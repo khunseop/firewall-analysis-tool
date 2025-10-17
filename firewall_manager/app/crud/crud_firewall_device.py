@@ -26,7 +26,7 @@ def update_firewall_device(db: Session, device_id: int, device_update: schemas.F
     if not db_device:
         return None
 
-    update_data = device_update.dict(exclude_unset=True)
+    update_data = device_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_device, key, value)
 
