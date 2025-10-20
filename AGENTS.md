@@ -166,6 +166,7 @@
     - `services/firewall`: 방화벽 연동 및 데이터 수집을 위한 모듈. 팩토리 패턴을 사용하여 벤더별 구현을 관리합니다.
   - `core`: 애플리케이션 설정, 보안 기능(암호화 등) 관리
   - `db`: 데이터베이스 세션 관리 및 초기화
+- **오프라인 문서**: FastAPI의 Swagger UI 및 Redoc 문서는 외부 CDN 대신 로컬 정적 파일(`app/static`)을 통해 제공됩니다.
 - 비동기 작업은 **FastAPI BackgroundTasks** 기반으로 간단히 처리
 - 스키마 변경 시 **Alembic**으로 마이그레이션 관리
 
