@@ -8,6 +8,47 @@
 
 ---
 
+## 1.5. 설치 및 실행 가이드
+
+본 애플리케이션을 로컬 환경에서 실행하기 위한 절차입니다.
+
+1.  **가상 환경 생성 및 활성화**
+    -   프로젝트 루트에서 가상 환경을 생성하고 활성화합니다. (Conda 또는 venv 사용)
+
+2.  **의존성 패키지 설치**
+    ```bash
+    pip install -r firewall_manager/requirements.txt
+    ```
+
+3.  **암호화 키 생성**
+    -   애플리케이션은 비밀번호 암호화를 위해 암호화 키가 필요합니다. 다음 명령어를 실행하여 키를 생성하고, 출력된 키 문자열을 복사합니다.
+    ```bash
+    python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    ```
+
+4.  **.env 파일 생성 및 설정**
+    -   `firewall_manager` 디렉토리 안에 `.env` 파일을 생성합니다.
+    -   아래 내용을 파일에 추가하고, `<your_generated_key_here>` 부분을 방금 복사한 키로 교체합니다.
+    ```env
+    DATABASE_URL=sqlite+aiosqlite:///./fat.db
+    ENCRYPTION_KEY=<your_generated_key_here>
+    ```
+
+5.  **데이터베이스 마이그레이션**
+    -   `firewall_manager` 디렉토리로 이동한 후, 다음 명령어를 실행하여 데이터베이스 테이블을 생성합니다.
+    ```bash
+    alembic upgrade head
+    ```
+
+6.  **서버 실행**
+    -   `firewall_manager` 디렉토리에서 다음 명령어를 실행합니다.
+    ```bash
+    uvicorn app.main:app --reload
+    ```
+    -   서버는 `http://127.0.0.1:8000`에서 실행됩니다.
+
+---
+
 ## 2. 핵심 기능
 
 ### 2.1. 대시보드
@@ -22,6 +63,7 @@
 - **목표:** 방화벽 장비의 등록 정보 및 정책 동기화를 관리합니다.
 - **세부 기능:**
   - 장비 정보(이름, IP, 벤더, 인증정보, 설명)를 CRUD 형태로 관리합니다.
+  - **`POST /devices/{id}/test-connection`**: 등록된 장비의 인증 정보(복호화된 비밀번호 사용)를 이용해 연결 가능 여부를 테스트합니다.
   - 동기화 방식은 기본적으로 **수동 동기화**를 지원하며, 필요 시 주기적 자동화가 가능합니다.
   - **백그라운드 동기화:** Celery 등 외부 의존성을 사용하지 않고, **FastAPI BackgroundTasks**를 활용해 간단한 비동기 처리를 수행합니다.
   - 동기화 결과 및 상태(성공/실패, 시간)를 로그로 기록합니다.
@@ -97,6 +139,8 @@
   │   │       ├── endpoints/
   │   │       └── api.py
   │   ├── core/
+  │   │   ├── config.py
+  │   │   └── security.py
   │   ├── crud/
   │   ├── db/
   │   ├── models/
@@ -111,7 +155,7 @@
   - `models`: SQLAlchemy 데이터베이스 모델 정의
   - `schemas`: Pydantic 스키마 (데이터 유효성 검사 및 직렬화)
   - `services`: 핵심 비즈니스 로직 (정책 분석, 동기화 등)
-  - `core`: 애플리케이션 설정 관리 (예: `.env` 파일 로드)
+  - `core`: 애플리케이션 설정, 보안 기능(암호화 등) 관리
   - `db`: 데이터베이스 세션 관리 및 초기화
 - 비동기 작업은 **FastAPI BackgroundTasks** 기반으로 간단히 처리
 - 스키마 변경 시 **Alembic**으로 마이그레이션 관리
@@ -128,7 +172,10 @@
 ---
 
 ## 5. 보안 및 인증
-- 비밀번호 등 민감 정보는 반드시 해싱(Hashing) 저장
+- **비밀번호 암호화**: 장비 비밀번호와 같이 복호화가 필요한 민감 정보는 **AES 대칭키 암호화**를 사용하여 DB에 저장됩니다.
+  - 암호화 키는 `.env` 파일의 `ENCRYPTION_KEY` 변수에 저장되며, 이 파일은 버전 관리에서 제외됩니다.
+  - **주의**: `ENCRYPTION_KEY`가 유출되면 모든 암호화된 데이터가 위험에 처하므로, 실운영 환경에서는 Vault 등 별도의 보안 시스템을 통해 키를 관리해야 합니다.
+- **단방향 해싱**: 향후 사용자 계정 기능이 추가될 경우, 비밀번호는 **bcrypt**와 같은 단방향 해시 함수를 사용하여 저장해야 합니다.
 - JWT 기반 인증(Optional)
 - 로그 및 정책 데이터 접근은 관리자 권한으로 제한
 

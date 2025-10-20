@@ -13,7 +13,7 @@ Stores information about the firewall devices being managed.
 | `ip_address`  | `VARCHAR` | `NOT NULL`, `UNIQUE`       | IP address of the device.                 |
 | `vendor`      | `VARCHAR` | `NOT NULL`                 | Vendor of the device (e.g., Palo Alto).   |
 | `username`    | `VARCHAR` | `NOT NULL`                 | Username for device authentication.       |
-| `password`    | `VARCHAR` | `NOT NULL`                 | Password for device authentication.       |
+| `password`    | `VARCHAR` | `NOT NULL`                 | AES encrypted password for authentication.|
 | `description` | `VARCHAR` | `NULLABLE`                 | A brief description of the device.        |
 
 ### Indexes
