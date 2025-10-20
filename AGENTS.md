@@ -87,18 +87,25 @@
 ## 4. 아키텍처 및 개발 가이드라인
 
 ### 4.1. 백엔드 (FastAPI)
-- 디렉토리 구조: `api`, `crud`, `models`, `schemas`, `services` 로 구성
-- `api`: 엔드포인트 및 요청/응답 관리
-- `crud`: DB 접근 및 기본 로직
-- `services`: 정책 수집, 비교, 분석 등 핵심 비즈니스 로직
+- **디렉토리 구조**: `api`, `crud`, `models`, `schemas`, `services`, `core`, `db` 로 구성
+  - `api`: API 엔드포인트 및 라우팅 관리
+  - `crud`: 데이터베이스 CRUD(Create, Read, Update, Delete) 로직
+  - `models`: SQLAlchemy 데이터베이스 모델 정의
+  - `schemas`: Pydantic 스키마 (데이터 유효성 검사 및 직렬화)
+  - `services`: 핵심 비즈니스 로직 (정책 분석, 동기화 등)
+  - `core`: 애플리케이션 설정 관리 (예: `.env` 파일 로드)
+  - `db`: 데이터베이스 세션 관리 및 초기화
 - 비동기 작업은 **FastAPI BackgroundTasks** 기반으로 간단히 처리
-- 스키마 변경 시 Alembic으로 마이그레이션 관리
+- 스키마 변경 시 **Alembic**으로 마이그레이션 관리
 
 ### 4.2. 프론트엔드 (Vanilla JS + Bulma)
 - SPA 형태로 구성 (`index.html` 진입점)
-- fetch() API를 통해 백엔드와 통신
+- `fetch()` API를 통해 백엔드와 통신
 - AG-Grid로 정책 조회 및 필터링 구현
 - Bulma 모달 및 탭 UI를 활용한 직관적 화면 구성
+
+### 4.3. 데이터베이스
+- 데이터베이스 스키마에 대한 자세한 정보는 [DATABASE.md](./DATABASE.md) 파일에서 확인할 수 있습니다.
 
 ---
 
