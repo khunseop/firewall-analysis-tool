@@ -87,7 +87,25 @@
 ## 4. 아키텍처 및 개발 가이드라인
 
 ### 4.1. 백엔드 (FastAPI)
-- **디렉토리 구조**: `api`, `crud`, `models`, `schemas`, `services`, `core`, `db` 로 구성
+- **디렉토리 구조**: `api`, `crud`, `models`, `schemas`, `services`, `core`, `db` 로 구성. 전체 구조는 아래와 같습니다.
+  ```
+  firewall_manager/
+  ├── alembic/
+  ├── app/
+  │   ├── api/
+  │   │   └── api_v1/
+  │   │       ├── endpoints/
+  │   │       └── api.py
+  │   ├── core/
+  │   ├── crud/
+  │   ├── db/
+  │   ├── models/
+  │   ├── schemas/
+  │   ├── services/
+  │   └── main.py
+  ├── alembic.ini
+  └── requirements.txt
+  ```
   - `api`: API 엔드포인트 및 라우팅 관리
   - `crud`: 데이터베이스 CRUD(Create, Read, Update, Delete) 로직
   - `models`: SQLAlchemy 데이터베이스 모델 정의
