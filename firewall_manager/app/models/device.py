@@ -9,5 +9,5 @@ class Device(Base):
     ip_address = Column(String, nullable=False, unique=True)
     vendor = Column(String, nullable=False)
     username = Column(String, nullable=False)
-    password = Column(String, nullable=False)  # Note: In a real app, this should be encrypted
+    password = Column(String, nullable=False)
     description = Column(String, nullable=True)

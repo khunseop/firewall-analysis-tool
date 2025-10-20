@@ -1,9 +1,10 @@
-from typing import List
+from typing import List, Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud, models, schemas
 from app.db.session import get_db
+from app.services import device_service
 
 router = APIRouter()
 
@@ -57,3 +58,22 @@ async def delete_device(
     if db_device is None:
         raise HTTPException(status_code=404, detail="Device not found")
     return db_device
+
+@router.post("/{device_id}/test-connection", response_model=dict)
+async def test_connection(
+    device_id: int,
+    db: AsyncSession = Depends(get_db)
+) -> Any:
+    """
+    Test the connection to a device.
+    """
+    db_device = await crud.get_device(db, device_id=device_id)
+    if db_device is None:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    connection_result = await device_service.test_device_connection(db_device)
+
+    if connection_result["status"] == "failure":
+        raise HTTPException(status_code=400, detail=connection_result["message"])
+
+    return connection_result

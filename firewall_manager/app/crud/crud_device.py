@@ -1,5 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+
+from app.core.security import encrypt
 from app.models.device import Device
 from app.schemas.device import DeviceCreate, DeviceUpdate
 
@@ -16,8 +18,9 @@ async def get_devices(db: AsyncSession, skip: int = 0, limit: int = 100):
     return result.scalars().all()
 
 async def create_device(db: AsyncSession, device: DeviceCreate):
-    # In a real app, you'd hash the password here.
-    db_device = Device(**device.model_dump())
+    create_data = device.model_dump()
+    create_data["password"] = encrypt(create_data["password"])
+    db_device = Device(**create_data)
     db.add(db_device)
     await db.commit()
     await db.refresh(db_device)
@@ -25,12 +28,12 @@ async def create_device(db: AsyncSession, device: DeviceCreate):
 
 async def update_device(db: AsyncSession, db_obj: Device, obj_in: DeviceUpdate):
     obj_data = obj_in.model_dump(exclude_unset=True)
+
+    if "password" in obj_data and obj_data["password"]:
+        obj_data["password"] = encrypt(obj_data["password"])
+
     for field in obj_data:
         setattr(db_obj, field, obj_data[field])
-
-    # In a real app, you'd hash the password if it's being updated.
-    if "password" in obj_data and obj_data["password"]:
-        setattr(db_obj, "password", obj_data["password"])
 
     db.add(db_obj)
     await db.commit()
