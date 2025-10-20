@@ -10,42 +10,52 @@
 
 ## 1.5. 설치 및 실행 가이드
 
-본 애플리케이션을 로컬 환경에서 실행하기 위한 절차입니다.
+본 애플리케이션은 이제 `.env` 생성과 DB 마이그레이션을 자동 처리합니다. 최소 단계로 실행 가능합니다.
 
 1.  **가상 환경 생성 및 활성화**
-    -   프로젝트 루트에서 가상 환경을 생성하고 활성화합니다. (Conda 또는 venv 사용)
+    - 프로젝트 루트에서 가상 환경을 생성하고 활성화합니다. (Conda 또는 venv 권장)
 
 2.  **의존성 패키지 설치**
     ```bash
     pip install -r firewall_manager/requirements.txt
     ```
 
-3.  **암호화 키 생성**
-    -   애플리케이션은 비밀번호 암호화를 위해 암호화 키가 필요합니다. 다음 명령어를 실행하여 키를 생성하고, 출력된 키 문자열을 복사합니다.
+3.  **서버 실행 (자동 설정 포함)**
+    - 프로젝트 루트에서 아래 중 하나를 실행합니다.
     ```bash
-    python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-    ```
+    # 방법 A: app-dir 지정 (권장)
+    uvicorn app.main:app --reload --app-dir firewall_manager
 
-4.  **.env 파일 생성 및 설정**
-    -   `firewall_manager` 디렉토리 안에 `.env` 파일을 생성합니다.
-    -   아래 내용을 파일에 추가하고, `<your_generated_key_here>` 부분을 방금 복사한 키로 교체합니다.
+    # 방법 B: 폴더 진입 후 실행
+    (cd firewall_manager && uvicorn app.main:app --reload)
+    ```
+    - 최초 실행 시 다음이 자동 수행됩니다:
+      - 프로젝트 루트에 `.env` 자동 생성 (없을 경우)
+        - 기본값: `DATABASE_URL=sqlite+aiosqlite:///<프로젝트루트>/fat.db`
+        - 기본값: `ENCRYPTION_KEY=<자동생성된 Fernet 키>`
+      - Alembic `upgrade head` 자동 실행 (DB 스키마 반영)
+    - 문서:
+      - Swagger UI: `http://127.0.0.1:8000/docs`
+      - ReDoc: `http://127.0.0.1:8000/redoc`
+
+4.  **(선택) 수동 설정/운영 환경 권장 설정**
+    - 자동 생성 대신 직접 `.env`를 관리하려면 프로젝트 루트에 아래 형식으로 생성하세요.
     ```env
-    DATABASE_URL=sqlite+aiosqlite:///./fat.db
-    ENCRYPTION_KEY=<your_generated_key_here>
+    DATABASE_URL=sqlite+aiosqlite:///absolute/path/to/fat.db
+    ENCRYPTION_KEY=<고정 Fernet 키>
+    ```
+    - 보안 주의: `ENCRYPTION_KEY`는 암호화/복호화의 기준 키입니다. 운영 환경에서는 반드시 안전하게 고정·관리하세요. 키가 변경되면 기존에 암호화된 값 복호화가 불가능합니다.
+    - (선택) 수동 마이그레이션:
+    ```bash
+    (cd firewall_manager && alembic upgrade head)
     ```
 
-5.  **데이터베이스 마이그레이션**
-    -   `firewall_manager` 디렉토리로 이동한 후, 다음 명령어를 실행하여 데이터베이스 테이블을 생성합니다.
+5.  **(선택) 스모크 테스트**
+    - 로컬 확인용 간단 테스트 스크립트:
     ```bash
-    alembic upgrade head
+    python firewall_manager/smoke_test.py
     ```
-
-6.  **서버 실행**
-    -   `firewall_manager` 디렉토리에서 다음 명령어를 실행합니다.
-    ```bash
-    uvicorn app.main:app --reload
-    ```
-    -   서버는 `http://127.0.0.1:8000`에서 실행됩니다.
+    - `/docs`, `/redoc`, 오픈API 스키마 응답, `devices` 테이블 존재 여부를 확인합니다.
 
 ---
 
