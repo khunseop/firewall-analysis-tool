@@ -12,7 +12,7 @@ class NetworkObject(NetworkObjectBase):
 
 class NetworkObjectInDBBase(NetworkObjectBase):
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class NetworkObjectInDB(NetworkObjectInDBBase):
     pass
