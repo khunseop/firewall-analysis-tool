@@ -6,8 +6,8 @@ from app.api.api_v1.api import api_router as api_v1_router
 app = FastAPI(
     title="Firewall Analysis Tool",
     version="0.1.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url=None,
+    redoc_url=None,
     swagger_ui_oauth2_redirect_url="/docs/oauth2-redirect",
     openapi_url="/api/v1/openapi.json"
 )
