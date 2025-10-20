@@ -1,28 +1,23 @@
-# firewall_manager/app/schemas/policy.py
 from pydantic import BaseModel
 from typing import Optional
 
+# Base schema for policy attributes
 class PolicyBase(BaseModel):
-    Vsys: Optional[str] = None
-    Seq: Optional[int] = None
-    Rule_Name: Optional[str] = None
-    Enable: Optional[str] = None
-    Action: Optional[str] = None
-    Source: Optional[str] = None
-    User: Optional[str] = None
-    Destination: Optional[str] = None
-    Service: Optional[str] = None
-    Application: Optional[str] = None
-    Security_Profile: Optional[str] = None
-    Category: Optional[str] = None
-    Description: Optional[str] = None
+    rule_name: str
+    source_ip: str
+    destination_ip: str
+    service: str
+    action: str
+    description: Optional[str] = None
 
+# Schema for creating a new policy
+class PolicyCreate(PolicyBase):
+    device_id: int
+
+# Schema for reading policy data (from DB)
 class Policy(PolicyBase):
-    pass
+    id: int
+    device_id: int
 
-class PolicyInDBBase(PolicyBase):
     class Config:
         from_attributes = True
-
-class PolicyInDB(PolicyInDBBase):
-    pass
