@@ -6,3 +6,6 @@ python-dotenv
 pydantic-settings
 aiosqlite
 cryptography
+pandas
+openpyxl
+requests
