@@ -28,6 +28,12 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     df = df.rename(columns=rename_map)
     return [pydantic_model(**row) for row in df.to_dict(orient='records')]
 
+def get_singular_name(plural_name: str) -> str:
+    """Converts plural data type string to singular form for CRUD operations."""
+    if plural_name == "policies":
+        return "policy"
+    return plural_name[:-1]
+
 async def _get_collector(device: models.Device) -> FirewallInterface:
     """Helper function to create and connect a firewall collector."""
     try:
@@ -56,42 +62,101 @@ async def _sync_data_task(device_id: int, data_type: str):
             logging.error(f"Device with id {device_id} not found.")
             return
 
-        collector = await _get_collector(device)
+        await crud.device.update_sync_status(db=db, device_id=device_id, status="in_progress")
+        collector = None
         try:
+            collector = await _get_collector(device)
             loop = asyncio.get_running_loop()
 
             sync_map = {
-                "policies": (collector.export_security_rules, crud.policy.delete_policies_by_device, crud.policy.create_policies, schemas.PolicyCreate),
-                "network_objects": (collector.export_network_objects, crud.network_object.delete_network_objects_by_device, crud.network_object.create_network_objects, schemas.NetworkObjectCreate),
-                "network_groups": (collector.export_network_group_objects, crud.network_group.delete_network_groups_by_device, crud.network_group.create_network_groups, schemas.NetworkGroupCreate),
-                "services": (collector.export_service_objects, crud.service.delete_services_by_device, crud.service.create_services, schemas.ServiceCreate),
-                "service_groups": (collector.export_service_group_objects, crud.service_group.delete_service_groups_by_device, crud.service_group.create_service_groups, schemas.ServiceGroupCreate),
+                "policies": (
+                    collector.export_security_rules,
+                    crud.policy.get_all_active_policies_by_device,
+                    crud.policy.create_policies,
+                    crud.policy.update_policy,
+                    crud.policy.mark_policies_as_inactive,
+                    schemas.PolicyCreate
+                ),
+                "network_objects": (
+                    collector.export_network_objects,
+                    crud.network_object.get_all_active_network_objects_by_device,
+                    crud.network_object.create_network_objects,
+                    crud.network_object.update_network_object,
+                    crud.network_object.mark_network_objects_as_inactive,
+                    schemas.NetworkObjectCreate
+                ),
+                "network_groups": (
+                    collector.export_network_group_objects,
+                    crud.network_group.get_all_active_network_groups_by_device,
+                    crud.network_group.create_network_groups,
+                    crud.network_group.update_network_group,
+                    crud.network_group.mark_network_groups_as_inactive,
+                    schemas.NetworkGroupCreate
+                ),
+                "services": (
+                    collector.export_service_objects,
+                    crud.service.get_all_active_services_by_device,
+                    crud.service.create_services,
+                    crud.service.update_service,
+                    crud.service.mark_services_as_inactive,
+                    schemas.ServiceCreate
+                ),
+                "service_groups": (
+                    collector.export_service_group_objects,
+                    crud.service_group.get_all_active_service_groups_by_device,
+                    crud.service_group.create_service_groups,
+                    crud.service_group.update_service_group,
+                    crud.service_group.mark_service_groups_as_inactive,
+                    schemas.ServiceGroupCreate
+                ),
             }
 
             if data_type not in sync_map:
                 logging.error(f"Invalid data type for synchronization: {data_type}")
+                await crud.device.update_sync_status(db=db, device_id=device_id, status="failure")
                 return
 
-            export_func, delete_func, create_func, schema_create = sync_map[data_type]
+            export_func, get_all_func, create_func, update_func, mark_inactive_func, schema_create = sync_map[data_type]
 
             df = await loop.run_in_executor(None, export_func)
 
-            # Add device_id before converting to Pydantic model
             df['device_id'] = device_id
 
-            items_to_create = dataframe_to_pydantic(df, schema_create)
+            items_to_sync = dataframe_to_pydantic(df, schema_create)
 
-            await delete_func(db=db, device_id=device_id)
-            # The create functions expect the model's name in the call, e.g., policies=...
-            await create_func(db=db, **{f"{data_type}": items_to_create})
+            existing_items = await get_all_func(db=db, device_id=device_id)
+            existing_items_map = {item.name: item for item in existing_items}
+
+            seen_item_ids = set()
+            items_to_create = []
+            singular_name = get_singular_name(data_type)
+
+            for item_in in items_to_sync:
+                existing_item = existing_items_map.get(item_in.name)
+                if existing_item:
+                    update_kwargs = {singular_name: existing_item, f"{singular_name}_in": item_in}
+                    await update_func(db=db, **update_kwargs)
+                    seen_item_ids.add(existing_item.id)
+                else:
+                    items_to_create.append(item_in)
+
+            if items_to_create:
+                await create_func(db=db, **{f"{data_type}": items_to_create})
+
+            mark_inactive_kwargs = {f"{singular_name}_ids_to_keep": seen_item_ids}
+            await mark_inactive_func(db=db, device_id=device_id, **mark_inactive_kwargs)
+            await crud.device.update_sync_status(db=db, device_id=device_id, status="success")
 
         except NotImplementedError:
             logging.warning(f"{data_type} synchronization not supported for device {device.name} ({device.vendor}).")
+            await crud.device.update_sync_status(db=db, device_id=device_id, status="not_supported")
         except Exception as e:
             logging.error(f"Failed to sync {data_type} for device {device.name}: {e}")
+            await crud.device.update_sync_status(db=db, device_id=device_id, status="failure")
         finally:
-            loop = asyncio.get_running_loop()
-            await loop.run_in_executor(None, collector.disconnect)
+            if collector:
+                loop = asyncio.get_running_loop()
+                await loop.run_in_executor(None, collector.disconnect)
 
 @router.post("/sync/{device_id}/{data_type}", response_model=schemas.Msg)
 async def sync_device_data(

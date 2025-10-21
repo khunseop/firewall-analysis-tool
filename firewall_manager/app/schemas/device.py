@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 
 # Base schema for device attributes
 class DeviceBase(BaseModel):
@@ -20,6 +21,8 @@ class DeviceUpdate(DeviceBase):
 # Schema for reading device data (from DB)
 class Device(DeviceBase):
     id: int
+    last_sync_at: Optional[datetime] = None
+    last_sync_status: Optional[str] = None
 
     class Config:
         from_attributes = True

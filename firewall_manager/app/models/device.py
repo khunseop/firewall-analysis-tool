@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, DateTime
 from app.db.session import Base
 
 class Device(Base):
@@ -11,3 +11,5 @@ class Device(Base):
     username = Column(String, nullable=False)
     password = Column(String, nullable=False)
     description = Column(String, nullable=True)
+    last_sync_at = Column(DateTime, nullable=True)
+    last_sync_status = Column(String, nullable=True)
