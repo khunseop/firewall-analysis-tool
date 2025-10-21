@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from app.db.session import Base
+from datetime import datetime
 
 class Policy(Base):
     __tablename__ = "policies"
@@ -20,5 +21,7 @@ class Policy(Base):
     security_profile = Column(String, nullable=True)
     category = Column(String, nullable=True)
     description = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    last_seen_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     device = relationship("Device")

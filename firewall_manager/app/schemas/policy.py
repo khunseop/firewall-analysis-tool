@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 
 # Base schema for policy attributes
 class PolicyBase(BaseModel):
@@ -25,6 +26,8 @@ class PolicyCreate(PolicyBase):
 class Policy(PolicyBase):
     id: int
     device_id: int
+    is_active: bool
+    last_seen_at: datetime
 
     class Config:
         from_attributes = True

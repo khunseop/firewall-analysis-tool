@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 
 # Base schema for network group attributes
 class NetworkGroupBase(BaseModel):
@@ -15,6 +16,8 @@ class NetworkGroupCreate(NetworkGroupBase):
 class NetworkGroup(NetworkGroupBase):
     id: int
     device_id: int
+    is_active: bool
+    last_seen_at: datetime
 
     class Config:
         from_attributes = True
