@@ -28,6 +28,12 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     df = df.rename(columns=rename_map)
     return [pydantic_model(**row) for row in df.to_dict(orient='records')]
 
+def get_singular_name(plural_name: str) -> str:
+    """Converts plural data type string to singular form for CRUD operations."""
+    if plural_name == "policies":
+        return "policy"
+    return plural_name[:-1]
+
 async def _get_collector(device: models.Device) -> FirewallInterface:
     """Helper function to create and connect a firewall collector."""
     try:
@@ -56,8 +62,10 @@ async def _sync_data_task(device_id: int, data_type: str):
             logging.error(f"Device with id {device_id} not found.")
             return
 
-        collector = await _get_collector(device)
+        await crud.device.update_sync_status(db=db, device_id=device_id, status="in_progress")
+        collector = None
         try:
+            collector = await _get_collector(device)
             loop = asyncio.get_running_loop()
 
             sync_map = {
@@ -105,6 +113,7 @@ async def _sync_data_task(device_id: int, data_type: str):
 
             if data_type not in sync_map:
                 logging.error(f"Invalid data type for synchronization: {data_type}")
+                await crud.device.update_sync_status(db=db, device_id=device_id, status="failure")
                 return
 
             export_func, get_all_func, create_func, update_func, mark_inactive_func, schema_create = sync_map[data_type]
@@ -120,11 +129,13 @@ async def _sync_data_task(device_id: int, data_type: str):
 
             seen_item_ids = set()
             items_to_create = []
+            singular_name = get_singular_name(data_type)
 
             for item_in in items_to_sync:
                 existing_item = existing_items_map.get(item_in.name)
                 if existing_item:
-                    await update_func(db=db, **{data_type[:-1]: existing_item, f"{data_type[:-1]}_in": item_in})
+                    update_kwargs = {singular_name: existing_item, f"{singular_name}_in": item_in}
+                    await update_func(db=db, **update_kwargs)
                     seen_item_ids.add(existing_item.id)
                 else:
                     items_to_create.append(item_in)
@@ -132,15 +143,20 @@ async def _sync_data_task(device_id: int, data_type: str):
             if items_to_create:
                 await create_func(db=db, **{f"{data_type}": items_to_create})
 
-            await mark_inactive_func(db=db, device_id=device_id, **{f"{data_type[:-1]}_ids_to_keep": seen_item_ids})
+            mark_inactive_kwargs = {f"{singular_name}_ids_to_keep": seen_item_ids}
+            await mark_inactive_func(db=db, device_id=device_id, **mark_inactive_kwargs)
+            await crud.device.update_sync_status(db=db, device_id=device_id, status="success")
 
         except NotImplementedError:
             logging.warning(f"{data_type} synchronization not supported for device {device.name} ({device.vendor}).")
+            await crud.device.update_sync_status(db=db, device_id=device_id, status="not_supported")
         except Exception as e:
             logging.error(f"Failed to sync {data_type} for device {device.name}: {e}")
+            await crud.device.update_sync_status(db=db, device_id=device_id, status="failure")
         finally:
-            loop = asyncio.get_running_loop()
-            await loop.run_in_executor(None, collector.disconnect)
+            if collector:
+                loop = asyncio.get_running_loop()
+                await loop.run_in_executor(None, collector.disconnect)
 
 @router.post("/sync/{device_id}/{data_type}", response_model=schemas.Msg)
 async def sync_device_data(
