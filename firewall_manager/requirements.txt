@@ -9,3 +9,6 @@ cryptography
 pandas
 openpyxl
 requests
+httpx
+paramiko
+scp

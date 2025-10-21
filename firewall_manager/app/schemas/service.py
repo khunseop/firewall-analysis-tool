@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 
 # Base schema for service attributes
 class ServiceBase(BaseModel):
@@ -16,6 +17,8 @@ class ServiceCreate(ServiceBase):
 class Service(ServiceBase):
     id: int
     device_id: int
+    is_active: bool
+    last_seen_at: datetime
 
     class Config:
         from_attributes = True
