@@ -2,6 +2,7 @@
 import logging
 from typing import Any, List
 import asyncio
+import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +13,20 @@ from app.services.firewall.factory import FirewallCollectorFactory
 from app.services.firewall.interface import FirewallInterface
 
 router = APIRouter()
+
+def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
+    """Converts a Pandas DataFrame to a list of Pydantic models."""
+    df.columns = [col.lower().replace(' ', '_') for col in df.columns]
+    # Rename columns to match Pydantic model fields
+    rename_map = {
+        "rule_name": "rule_name",
+        "group_name": "name",
+        "entry": "members",
+        "value": "ip_address",
+        "port": "port",
+    }
+    df = df.rename(columns=rename_map)
+    return [pydantic_model(**row) for row in df.to_dict(orient='records')]
 
 async def _get_collector(device: models.Device) -> FirewallInterface:
     """Helper function to create and connect a firewall collector."""
@@ -33,89 +48,65 @@ async def _get_collector(device: models.Device) -> FirewallInterface:
 
     return collector
 
-async def _sync_policies_task(device_id: int):
-    """Background task to synchronize policies for a device."""
+async def _sync_data_task(device_id: int, data_type: str):
+    """Generic background task to synchronize data for a device."""
     async with SessionLocal() as db:
         device = await crud.device.get_device(db=db, device_id=device_id)
         if not device:
-            # Log error or handle appropriately
+            logging.error(f"Device with id {device_id} not found.")
             return
 
         collector = await _get_collector(device)
         try:
             loop = asyncio.get_running_loop()
-            policies_df = await loop.run_in_executor(None, collector.export_security_rules)
 
-            # Convert DataFrame to list of Pydantic models
-            policies_to_create = [
-                schemas.PolicyCreate(**policy, device_id=device_id)
-                for policy in policies_df.to_dict(orient='records')
-            ]
+            sync_map = {
+                "policies": (collector.export_security_rules, crud.policy.delete_policies_by_device, crud.policy.create_policies, schemas.PolicyCreate),
+                "network_objects": (collector.export_network_objects, crud.network_object.delete_network_objects_by_device, crud.network_object.create_network_objects, schemas.NetworkObjectCreate),
+                "network_groups": (collector.export_network_group_objects, crud.network_group.delete_network_groups_by_device, crud.network_group.create_network_groups, schemas.NetworkGroupCreate),
+                "services": (collector.export_service_objects, crud.service.delete_services_by_device, crud.service.create_services, schemas.ServiceCreate),
+                "service_groups": (collector.export_service_group_objects, crud.service_group.delete_service_groups_by_device, crud.service_group.create_service_groups, schemas.ServiceGroupCreate),
+            }
 
-            # Clear old policies and create new ones
-            await crud.policy.delete_policies_by_device(db=db, device_id=device_id)
-            await crud.policy.create_policies(db=db, policies=policies_to_create)
+            if data_type not in sync_map:
+                logging.error(f"Invalid data type for synchronization: {data_type}")
+                return
 
+            export_func, delete_func, create_func, schema_create = sync_map[data_type]
+
+            df = await loop.run_in_executor(None, export_func)
+
+            # Add device_id before converting to Pydantic model
+            df['device_id'] = device_id
+
+            items_to_create = dataframe_to_pydantic(df, schema_create)
+
+            await delete_func(db=db, device_id=device_id)
+            # The create functions expect the model's name in the call, e.g., policies=...
+            await create_func(db=db, **{f"{data_type}": items_to_create})
+
+        except NotImplementedError:
+            logging.warning(f"{data_type} synchronization not supported for device {device.name} ({device.vendor}).")
         except Exception as e:
-            # Log the exception
-            logging.error(f"Failed to sync policies for device {device.name}: {e}")
+            logging.error(f"Failed to sync {data_type} for device {device.name}: {e}")
         finally:
             loop = asyncio.get_running_loop()
             await loop.run_in_executor(None, collector.disconnect)
 
-async def _sync_network_objects_task(device_id: int):
-    """Background task to synchronize network objects for a device."""
-    async with SessionLocal() as db:
-        device = await crud.device.get_device(db=db, device_id=device_id)
-        if not device:
-            return
-
-        collector = await _get_collector(device)
-        try:
-            loop = asyncio.get_running_loop()
-            objects_df = await loop.run_in_executor(None, collector.export_network_objects)
-
-            objects_to_create = [
-                schemas.NetworkObjectCreate(**obj, device_id=device_id)
-                for obj in objects_df.to_dict(orient='records')
-            ]
-
-            await crud.network_object.delete_network_objects_by_device(db=db, device_id=device_id)
-            await crud.network_object.create_network_objects(db=db, network_objects=objects_to_create)
-
-        except Exception as e:
-            logging.error(f"Failed to sync network objects for device {device.name}: {e}")
-        finally:
-            loop = asyncio.get_running_loop()
-            await loop.run_in_executor(None, collector.disconnect)
-
-@router.post("/sync/{device_id}/policies", response_model=schemas.Msg)
-async def sync_device_policies(
+@router.post("/sync/{device_id}/{data_type}", response_model=schemas.Msg)
+async def sync_device_data(
     device_id: int,
+    data_type: str,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
-    """Trigger a background task to synchronize policies from a device."""
+    """Trigger a background task to synchronize a specific data type from a device."""
     device = await crud.device.get_device(db=db, device_id=device_id)
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
 
-    background_tasks.add_task(_sync_policies_task, device_id)
-    return {"msg": "Policy synchronization started in the background."}
-
-@router.post("/sync/{device_id}/network-objects", response_model=schemas.Msg)
-async def sync_device_network_objects(
-    device_id: int,
-    background_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(get_db),
-):
-    """Trigger a background task to synchronize network objects from a device."""
-    device = await crud.device.get_device(db=db, device_id=device_id)
-    if not device:
-        raise HTTPException(status_code=404, detail="Device not found")
-
-    background_tasks.add_task(_sync_network_objects_task, device_id)
-    return {"msg": "Network object synchronization started in the background."}
+    background_tasks.add_task(_sync_data_task, device_id, data_type)
+    return {"msg": f"{data_type.replace('_', ' ').title()} synchronization started in the background."}
 
 @router.get("/{device_id}/policies", response_model=List[schemas.Policy])
 async def read_db_device_policies(
@@ -134,3 +125,30 @@ async def read_db_device_network_objects(
     """Retrieve network objects for a device from the local database."""
     network_objects = await crud.network_object.get_network_objects_by_device(db=db, device_id=device_id)
     return network_objects
+
+@router.get("/{device_id}/network-groups", response_model=List[schemas.NetworkGroup])
+async def read_db_device_network_groups(
+    device_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """Retrieve network groups for a device from the local database."""
+    network_groups = await crud.network_group.get_network_groups_by_device(db=db, device_id=device_id)
+    return network_groups
+
+@router.get("/{device_id}/services", response_model=List[schemas.Service])
+async def read_db_device_services(
+    device_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """Retrieve services for a device from the local database."""
+    services = await crud.service.get_services_by_device(db=db, device_id=device_id)
+    return services
+
+@router.get("/{device_id}/service-groups", response_model=List[schemas.ServiceGroup])
+async def read_db_device_service_groups(
+    device_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """Retrieve service groups for a device from the local database."""
+    service_groups = await crud.service_group.get_service_groups_by_device(db=db, device_id=device_id)
+    return service_groups

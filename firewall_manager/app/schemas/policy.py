@@ -4,10 +4,17 @@ from typing import Optional
 # Base schema for policy attributes
 class PolicyBase(BaseModel):
     rule_name: str
-    source_ip: str
-    destination_ip: str
+    source: str
+    destination: str
     service: str
     action: str
+    vsys: Optional[str] = None
+    seq: Optional[int] = None
+    enable: Optional[bool] = None
+    user: Optional[str] = None
+    application: Optional[str] = None
+    security_profile: Optional[str] = None
+    category: Optional[str] = None
     description: Optional[str] = None
 
 # Schema for creating a new policy
