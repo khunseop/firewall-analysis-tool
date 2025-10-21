@@ -1,18 +1,20 @@
-# firewall_manager/app/schemas/network_object.py
 from pydantic import BaseModel
 from typing import Optional
 
+# Base schema for network object attributes
 class NetworkObjectBase(BaseModel):
-    Name: Optional[str] = None
-    Type: Optional[str] = None
-    Value: Optional[str] = None
+    name: str
+    ip_address: str
+    description: Optional[str] = None
 
+# Schema for creating a new network object
+class NetworkObjectCreate(NetworkObjectBase):
+    device_id: int
+
+# Schema for reading network object data (from DB)
 class NetworkObject(NetworkObjectBase):
-    pass
+    id: int
+    device_id: int
 
-class NetworkObjectInDBBase(NetworkObjectBase):
     class Config:
         from_attributes = True
-
-class NetworkObjectInDB(NetworkObjectInDBBase):
-    pass
