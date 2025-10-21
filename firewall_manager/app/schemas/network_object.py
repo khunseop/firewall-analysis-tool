@@ -5,6 +5,7 @@ from typing import Optional
 class NetworkObjectBase(BaseModel):
     name: str
     ip_address: str
+    type: Optional[str] = None
     description: Optional[str] = None
 
 # Schema for creating a new network object
