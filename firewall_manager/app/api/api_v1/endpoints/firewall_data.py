@@ -105,7 +105,7 @@ async def _sync_data_task(device_id: int, data_type: str):
                     db_obj_data = {c.name: getattr(existing_item, c.name) for c in existing_item.__table__.columns}
                     if any(obj_data.get(k) != db_obj_data.get(k) for k in obj_data):
                         await update_func(db=db, db_obj=existing_item, obj_in=item_in)
-                        await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="updated", details=json.dumps({"before": db_obj_data, "after": obj_data})))
+                        await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="updated", details=json.dumps({"before": db_obj_data, "after": obj_data}, default=str)))
                 else:
                     # Create
                     items_to_create.append(item_in)
@@ -119,7 +119,7 @@ async def _sync_data_task(device_id: int, data_type: str):
             for item_name, item in existing_items_map.items():
                 if item_name not in items_to_sync_map:
                     await delete_func(db=db, **{f"{get_singular_name(data_type)}": item})
-                    db.add(schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="deleted"))
+                    await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="deleted"))
 
             await crud.device.update_sync_status(db=db, device=device, status="success")
             await db.commit()

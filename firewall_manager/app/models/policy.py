@@ -1,7 +1,6 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from app.db.session import Base
-from datetime import datetime
 
 class Policy(Base):
     __tablename__ = "policies"

@@ -1,7 +1,6 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from app.db.session import Base
-from datetime import datetime
 
 class ServiceGroup(Base):
     __tablename__ = "service_groups"

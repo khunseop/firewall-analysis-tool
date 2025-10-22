@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime
 
 # Base schema for network object attributes
 class NetworkObjectBase(BaseModel):
