@@ -19,7 +19,6 @@ async def get_services_by_device(db: AsyncSession, device_id: int, skip: int = 0
 async def create_services(db: AsyncSession, services: list[ServiceCreate]):
     db_services = [Service(**obj.model_dump()) for obj in services]
     db.add_all(db_services)
-    await db.commit()
     return db_services
 
 async def update_service(db: AsyncSession, db_obj: Service, obj_in: ServiceCreate):
@@ -27,14 +26,8 @@ async def update_service(db: AsyncSession, db_obj: Service, obj_in: ServiceCreat
     for field in obj_data:
         setattr(db_obj, field, obj_data[field])
     db.add(db_obj)
-    await db.commit()
-    await db.refresh(db_obj)
     return db_obj
 
-async def delete_service(db: AsyncSession, service_id: int):
-    result = await db.execute(select(Service).filter(Service.id == service_id))
-    db_service = result.scalars().first()
-    if db_service:
-        await db.delete(db_service)
-        await db.commit()
-    return db_service
+async def delete_service(db: AsyncSession, service: Service):
+    await db.delete(service)
+    return service

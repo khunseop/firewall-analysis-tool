@@ -19,7 +19,6 @@ async def get_network_groups_by_device(db: AsyncSession, device_id: int, skip: i
 async def create_network_groups(db: AsyncSession, network_groups: list[NetworkGroupCreate]):
     db_network_groups = [NetworkGroup(**obj.model_dump()) for obj in network_groups]
     db.add_all(db_network_groups)
-    await db.commit()
     return db_network_groups
 
 async def update_network_group(db: AsyncSession, db_obj: NetworkGroup, obj_in: NetworkGroupCreate):
@@ -27,14 +26,8 @@ async def update_network_group(db: AsyncSession, db_obj: NetworkGroup, obj_in: N
     for field in obj_data:
         setattr(db_obj, field, obj_data[field])
     db.add(db_obj)
-    await db.commit()
-    await db.refresh(db_obj)
     return db_obj
 
-async def delete_network_group(db: AsyncSession, network_group_id: int):
-    result = await db.execute(select(NetworkGroup).filter(NetworkGroup.id == network_group_id))
-    db_network_group = result.scalars().first()
-    if db_network_group:
-        await db.delete(db_network_group)
-        await db.commit()
-    return db_network_group
+async def delete_network_group(db: AsyncSession, network_group: NetworkGroup):
+    await db.delete(network_group)
+    return network_group

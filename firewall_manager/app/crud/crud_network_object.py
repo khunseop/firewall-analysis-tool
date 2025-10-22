@@ -19,7 +19,6 @@ async def get_network_objects_by_device(db: AsyncSession, device_id: int, skip: 
 async def create_network_objects(db: AsyncSession, network_objects: list[NetworkObjectCreate]):
     db_network_objects = [NetworkObject(**obj.model_dump()) for obj in network_objects]
     db.add_all(db_network_objects)
-    await db.commit()
     return db_network_objects
 
 async def update_network_object(db: AsyncSession, db_obj: NetworkObject, obj_in: NetworkObjectCreate):
@@ -27,14 +26,8 @@ async def update_network_object(db: AsyncSession, db_obj: NetworkObject, obj_in:
     for field in obj_data:
         setattr(db_obj, field, obj_data[field])
     db.add(db_obj)
-    await db.commit()
-    await db.refresh(db_obj)
     return db_obj
 
-async def delete_network_object(db: AsyncSession, network_object_id: int):
-    result = await db.execute(select(NetworkObject).filter(NetworkObject.id == network_object_id))
-    db_network_object = result.scalars().first()
-    if db_network_object:
-        await db.delete(db_network_object)
-        await db.commit()
-    return db_network_object
+async def delete_network_object(db: AsyncSession, network_object: NetworkObject):
+    await db.delete(network_object)
+    return network_object

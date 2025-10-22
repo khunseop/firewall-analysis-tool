@@ -64,7 +64,7 @@ async def _sync_data_task(device_id: int, data_type: str):
             logging.error(f"Device with id {device_id} not found.")
             return
 
-        await crud.device.update_sync_status(db=db, device_id=device_id, status="in_progress")
+        await crud.device.update_sync_status(db=db, device=device, status="in_progress")
         collector = None
         try:
             collector = await _get_collector(device)
@@ -94,6 +94,8 @@ async def _sync_data_task(device_id: int, data_type: str):
             existing_items_map = {getattr(item, key_attribute): item for item in existing_items}
             items_to_sync_map = {getattr(item, key_attribute): item for item in items_to_sync}
 
+            items_to_create = []
+
             # Handle created and updated items
             for item_name, item_in in items_to_sync_map.items():
                 existing_item = existing_items_map.get(item_name)
@@ -106,23 +108,33 @@ async def _sync_data_task(device_id: int, data_type: str):
                         await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="updated", details=json.dumps({"before": db_obj_data, "after": obj_data})))
                 else:
                     # Create
-                    await create_func(db=db, **{f"{data_type}": [item_in]})
-                    await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="created", details=json.dumps(item_in.model_dump())))
+                    items_to_create.append(item_in)
+
+            if items_to_create:
+                await create_func(db=db, **{f"{data_type}": items_to_create})
+                for item_in in items_to_create:
+                    await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=getattr(item_in, key_attribute), action="created", details=json.dumps(item_in.model_dump())))
 
             # Handle deleted items
             for item_name, item in existing_items_map.items():
                 if item_name not in items_to_sync_map:
-                    await delete_func(db=db, **{f"{get_singular_name(data_type)}_id": item.id})
-                    await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="deleted"))
+                    await delete_func(db=db, **{f"{get_singular_name(data_type)}": item})
+                    db.add(schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="deleted"))
 
-            await crud.device.update_sync_status(db=db, device_id=device_id, status="success")
+            await crud.device.update_sync_status(db=db, device=device, status="success")
+            await db.commit()
 
         except NotImplementedError:
             logging.warning(f"{data_type} synchronization not supported for device {device.name} ({device.vendor}).")
-            await crud.device.update_sync_status(db=db, device_id=device_id, status="not_supported")
+            await crud.device.update_sync_status(db=db, device=device, status="not_supported")
+            await db.commit()
         except Exception as e:
-            logging.error(f"Failed to sync {data_type} for device {device.name}: {e}")
-            await crud.device.update_sync_status(db=db, device_id=device_id, status="failure")
+            await db.rollback()
+            logging.error(f"Failed to sync {data_type} for device {device.name}: {e}", exc_info=True)
+            # Fetch a new device object for the new session
+            device_for_status_update = await crud.device.get_device(db=db, device_id=device_id)
+            await crud.device.update_sync_status(db=db, device=device_for_status_update, status="failure")
+            await db.commit()
         finally:
             if collector:
                 loop = asyncio.get_running_loop()

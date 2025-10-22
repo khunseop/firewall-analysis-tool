@@ -1,8 +1,8 @@
-"""Initial migration with all models
+"""Initial migration
 
-Revision ID: 9d6960f43338
+Revision ID: 363fd879a99d
 Revises:
-Create Date: 2025-10-21 01:22:56.562585
+Create Date: 2025-10-22 02:10:24.846594
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '9d6960f43338'
+revision: str = '363fd879a99d'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -29,11 +29,25 @@ def upgrade() -> None:
     sa.Column('username', sa.String(), nullable=False),
     sa.Column('password', sa.String(), nullable=False),
     sa.Column('description', sa.String(), nullable=True),
+    sa.Column('last_sync_at', sa.DateTime(), nullable=True),
+    sa.Column('last_sync_status', sa.String(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('ip_address')
     )
     op.create_index(op.f('ix_devices_id'), 'devices', ['id'], unique=False)
     op.create_index(op.f('ix_devices_name'), 'devices', ['name'], unique=True)
+    op.create_table('change_logs',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('timestamp', sa.DateTime(), nullable=False),
+    sa.Column('device_id', sa.Integer(), nullable=False),
+    sa.Column('data_type', sa.String(), nullable=False),
+    sa.Column('object_name', sa.String(), nullable=False),
+    sa.Column('action', sa.String(), nullable=False),
+    sa.Column('details', sa.JSON(), nullable=True),
+    sa.ForeignKeyConstraint(['device_id'], ['devices.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_change_logs_id'), 'change_logs', ['id'], unique=False)
     op.create_table('network_groups',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('device_id', sa.Integer(), nullable=True),
@@ -122,6 +136,8 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_network_groups_name'), table_name='network_groups')
     op.drop_index(op.f('ix_network_groups_id'), table_name='network_groups')
     op.drop_table('network_groups')
+    op.drop_index(op.f('ix_change_logs_id'), table_name='change_logs')
+    op.drop_table('change_logs')
     op.drop_index(op.f('ix_devices_name'), table_name='devices')
     op.drop_index(op.f('ix_devices_id'), table_name='devices')
     op.drop_table('devices')

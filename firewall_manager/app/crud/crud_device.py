@@ -1,10 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from datetime import datetime
 
 from app.core.security import encrypt
 from app.models.device import Device
 from app.schemas.device import DeviceCreate, DeviceUpdate
-from datetime import datetime
 
 async def get_device(db: AsyncSession, device_id: int):
     result = await db.execute(select(Device).filter(Device.id == device_id))
@@ -41,15 +41,11 @@ async def update_device(db: AsyncSession, db_obj: Device, obj_in: DeviceUpdate):
     await db.refresh(db_obj)
     return db_obj
 
-async def update_sync_status(db: AsyncSession, device_id: int, status: str):
-    db_device = await get_device(db, device_id)
-    if db_device:
-        db_device.last_sync_at = datetime.utcnow()
-        db_device.last_sync_status = status
-        db.add(db_device)
-        await db.commit()
-        await db.refresh(db_device)
-    return db_device
+async def update_sync_status(db: AsyncSession, device: Device, status: str):
+    device.last_sync_at = datetime.utcnow()
+    device.last_sync_status = status
+    db.add(device)
+    return device
 
 async def remove_device(db: AsyncSession, id: int):
     result = await db.execute(select(Device).filter(Device.id == id))

@@ -19,7 +19,6 @@ async def get_policies_by_device(db: AsyncSession, device_id: int, skip: int = 0
 async def create_policies(db: AsyncSession, policies: list[PolicyCreate]):
     db_policies = [Policy(**policy.model_dump()) for policy in policies]
     db.add_all(db_policies)
-    await db.commit()
     return db_policies
 
 async def update_policy(db: AsyncSession, db_obj: Policy, obj_in: PolicyCreate):
@@ -27,14 +26,8 @@ async def update_policy(db: AsyncSession, db_obj: Policy, obj_in: PolicyCreate):
     for field in obj_data:
         setattr(db_obj, field, obj_data[field])
     db.add(db_obj)
-    await db.commit()
-    await db.refresh(db_obj)
     return db_obj
 
-async def delete_policy(db: AsyncSession, policy_id: int):
-    result = await db.execute(select(Policy).filter(Policy.id == policy_id))
-    db_policy = result.scalars().first()
-    if db_policy:
-        await db.delete(db_policy)
-        await db.commit()
-    return db_policy
+async def delete_policy(db: AsyncSession, policy: Policy):
+    await db.delete(policy)
+    return policy
