@@ -158,7 +158,7 @@ class NGFClient:
 
                 info = {
                     "Seq": rule.get("seq"),
-                    "Rule Name": str(rule.get("fw_rule_id")),
+                    "Rule Name": rule.get("fw_rule_id"),
                     "Enable": "Y" if rule.get("use") == 1 else "N",
                     "Action": "allow" if rule.get("action") == 1 else "deny",
                     "Source": self.list_to_string([src.get("name") for src in rule.get("src", [])] or "any"),

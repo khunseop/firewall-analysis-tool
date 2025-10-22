@@ -143,7 +143,9 @@ async def _sync_data_task(device_id: int, data_type: str):
                     items_to_create.append(item_in)
 
             if items_to_create:
-                await create_func(db=db, **{f"{data_type}": items_to_create})
+                created_items = await create_func(db=db, **{f"{data_type}": items_to_create})
+                for item in created_items:
+                    seen_item_ids.add(item.id)
 
             mark_inactive_kwargs = {f"{singular_name}_ids_to_keep": seen_item_ids}
             await mark_inactive_func(db=db, device_id=device_id, **mark_inactive_kwargs)
