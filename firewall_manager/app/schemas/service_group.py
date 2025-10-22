@@ -16,8 +16,6 @@ class ServiceGroupCreate(ServiceGroupBase):
 class ServiceGroup(ServiceGroupBase):
     id: int
     device_id: int
-    is_active: bool
-    last_seen_at: datetime
 
     class Config:
         from_attributes = True

@@ -12,7 +12,5 @@ class NetworkObject(Base):
     ip_address = Column(String, nullable=False)
     type = Column(String, nullable=True)
     description = Column(String, nullable=True)
-    is_active = Column(Boolean, default=True, nullable=False)
-    last_seen_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     device = relationship("Device")
