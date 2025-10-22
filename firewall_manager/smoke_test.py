@@ -41,8 +41,15 @@ def test_db_migrated():
     finally:
         con.close()
 
+def create_test_device():
+    with TestClient(app) as client:
+        client.post(
+            "/api/v1/devices/",
+            json={"name": "test", "ip_address": "1.1.1.1", "vendor": "mock", "username": "user", "password": "password"}
+        )
 
 if __name__ == "__main__":
     test_docs_and_openapi()
     test_db_migrated()
+    create_test_device()
     print(json.dumps({"status": "ok"}))

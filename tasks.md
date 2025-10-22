@@ -6,6 +6,11 @@ This document tracks the development progress of the Firewall Analysis Tool.
 
 
 ## Completed Tasks
+- [x] **Implement Sync Status Tracking:**
+    - [x] **Add Status Endpoint:** Created a new `GET /firewall/sync/{device_id}/status` endpoint to allow polling for the current synchronization status.
+    - [x] **Update Sync Logic:** Modified the synchronization task to update the `last_sync_status` to "in_progress" at the start and "success" or "failure" upon completion.
+    - [x] **Add Pydantic Schema:** Created a `DeviceSyncStatus` schema for the new endpoint.
+    - [x] **Update Documentation:** Added the new endpoint to `AGENTS.md`.
 
 - [x] **Implement Change Tracking for Data Synchronization (Overwrite-and-Log):**
     - [x] **Architectural Shift:** Replaced the previous "soft-delete" model with a more robust "overwrite-and-log" strategy to provide a clear audit trail of all changes.

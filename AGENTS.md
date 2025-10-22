@@ -76,6 +76,7 @@
   - **`POST /devices/{id}/test-connection`**: 등록된 장비에 실제 접속(`connect` 및 `disconnect`)을 시도하여 연결 가능 여부를 테스트합니다. (보안 강화를 위해 비밀번호 로깅 제거)
   - **백그라운드 동기화:** FastAPI BackgroundTasks를 활용하여 데이터 동기화를 비동기 처리합니다.
   - **동기화 상태 추적:** `devices` 테이블의 `last_sync_at`과 `last_sync_status` 필드를 통해 각 장비의 마지막 동기화 시간과 성공/실패/진행중 상태를 추적합니다.
+  - **`GET /firewall/sync/{device_id}/status`**: 특정 장비의 마지막 동기화 상태와 시간을 조회합니다.
 
 ---
 
