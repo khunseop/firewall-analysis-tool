@@ -15,8 +15,8 @@ Stores information about the firewall devices being managed.
 | `username`         | `VARCHAR` | `NOT NULL`                 | Username for device authentication.       |
 | `password`         | `VARCHAR` | `NOT NULL`                 | Fernet (symmetric) encrypted password.    |
 | `description`      | `VARCHAR` | `NULLABLE`                 | A brief description of the device.        |
-| `last_sync_at`     | `DATETIME`| `NULLABLE`                 | Last time the device was synchronized.    |
-| `last_sync_status` | `VARCHAR` | `NULLABLE`                 | Status of the last synchronization.       |
+| `last_sync_at`     | `DATETIME`| `NULLABLE`                 | Timestamp of the last completed sync (success/failure). |
+| `last_sync_status` | `VARCHAR` | `NULLABLE`                 | `in_progress`, `success`, or `failure`.   |
 
 ### Indexes
 
@@ -41,6 +41,12 @@ Stores the history of changes made to firewall objects.
 
 - `ix_change_logs_id`: Index on the `id` column.
 
+### Semantics
+
+- On create/update/delete during synchronization, a row is appended:
+  - `action`: `created` | `updated` | `deleted`
+  - `details`: for updates, `{ "before": {..}, "after": {..} }` serialized to JSON
+
 ## `network_objects` Table
 
 Stores information about the network objects.
@@ -53,8 +59,8 @@ Stores information about the network objects.
 | `ip_address`   | `VARCHAR` | `NOT NULL`                 | IP address of the network object.                        |
 | `type`         | `VARCHAR` | `NULLABLE`                 | Type of the network object (e.g., ip-netmask, ip-range). |
 | `description`  | `VARCHAR` | `NULLABLE`                 | A brief description of the object.                       |
-| `is_active`    | `BOOLEAN` | `NOT NULL`                 | Whether the object is active.                            |
-| `last_seen_at` | `DATETIME`| `NOT NULL`                 | Last time the object was seen.                           |
+| `is_active`    | `BOOLEAN` | `NOT NULL`                 | Whether the object is active (present in last sync).     |
+| `last_seen_at` | `DATETIME`| `NOT NULL`                 | Last time the object was confirmed present from source.  |
 
 ### Indexes
 
@@ -72,8 +78,8 @@ Stores information about the network groups.
 | `name`         | `VARCHAR` | `NOT NULL`                 | Name of the network group.                   |
 | `members`      | `VARCHAR` | `NULLABLE`                 | Comma-separated list of member object names. |
 | `description`  | `VARCHAR` | `NULLABLE`                 | A brief description of the group.            |
-| `is_active`    | `BOOLEAN` | `NOT NULL`                 | Whether the group is active.                 |
-| `last_seen_at` | `DATETIME`| `NOT NULL`                 | Last time the group was seen.                |
+| `is_active`    | `BOOLEAN` | `NOT NULL`                 | Whether the group is active (present in last sync).      |
+| `last_seen_at` | `DATETIME`| `NOT NULL`                 | Last time the group was confirmed present.               |
 
 ### Indexes
 
@@ -92,8 +98,8 @@ Stores information about the service objects.
 | `protocol`     | `VARCHAR` | `NULLABLE`                 | Protocol of the service (e.g., tcp, udp). |
 | `port`         | `VARCHAR` | `NULLABLE`                 | Port number or range of the service.      |
 | `description`  | `VARCHAR` | `NULLABLE`                 | A brief description of the service.       |
-| `is_active`    | `BOOLEAN` | `NOT NULL`                 | Whether the service is active.            |
-| `last_seen_at` | `DATETIME`| `NOT NULL`                 | Last time the service was seen.           |
+| `is_active`    | `BOOLEAN` | `NOT NULL`                 | Whether the service is active (present in last sync).    |
+| `last_seen_at` | `DATETIME`| `NOT NULL`                 | Last time the service was confirmed present.             |
 
 ### Indexes
 
@@ -111,8 +117,8 @@ Stores information about the service groups.
 | `name`         | `VARCHAR` | `NOT NULL`                 | Name of the service group.                    |
 | `members`      | `VARCHAR` | `NULLABLE`                 | Comma-separated list of member service names. |
 | `description`  | `VARCHAR` | `NULLABLE`                 | A brief description of the group.             |
-| `is_active`    | `BOOLEAN` | `NOT NULL`                 | Whether the group is active.                  |
-| `last_seen_at` | `DATETIME`| `NOT NULL`                 | Last time the group was seen.                 |
+| `is_active`    | `BOOLEAN` | `NOT NULL`                 | Whether the group is active (present in last sync).      |
+| `last_seen_at` | `DATETIME`| `NOT NULL`                 | Last time the group was confirmed present.               |
 
 ### Indexes
 
@@ -140,10 +146,25 @@ Stores information about the firewall policies.
 | `security_profile`| `VARCHAR` | `NULLABLE`                 | Security profile of the policy.           |
 | `category`        | `VARCHAR` | `NULLABLE`                 | Category of the policy.                   |
 | `description`     | `VARCHAR` | `NULLABLE`                 | A brief description of the policy.        |
-| `is_active`       | `BOOLEAN` | `NOT NULL`                 | Whether the policy is active.             |
-| `last_seen_at`    | `DATETIME`| `NOT NULL`                 | Last time the policy was seen.            |
+| `is_active`       | `BOOLEAN` | `NOT NULL`                 | Whether the policy is active (present in last sync).     |
+| `last_seen_at`    | `DATETIME`| `NOT NULL`                 | Last time the policy was confirmed present.              |
 
 ### Indexes
 
 - `ix_policies_id`: Index on the `id` column.
 - `ix_policies_rule_name`: Index on the `rule_name` column.
+
+---
+
+## Synchronization Semantics
+
+- Device-level status:
+  - When a sync request is accepted, `devices.last_sync_status` is set to `in_progress`.
+  - On completion: set `success` or `failure`; `last_sync_at` is only updated at completion.
+
+- Object lifecycle on sync:
+  - New: insert rows for objects present in source but missing in DB.
+  - Update: compare by key (`policies.rule_name`, otherwise `name`); persist diffs and write `change_logs` with before/after.
+  - Delete: remove DB rows missing from source; write `change_logs` with `deleted`.
+  - Touch: for objects seen in source, set `last_seen_at=now()` and keep `is_active=True`.
+

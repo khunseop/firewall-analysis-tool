@@ -74,8 +74,8 @@
 - **세부 기능:**
   - 장비 정보(이름, IP, 벤더, 인증정보, 설명)를 CRUD 형태로 관리합니다.
   - **`POST /devices/{id}/test-connection`**: 등록된 장비에 실제 접속(`connect` 및 `disconnect`)을 시도하여 연결 가능 여부를 테스트합니다. (보안 강화를 위해 비밀번호 로깅 제거)
-  - **백그라운드 동기화:** FastAPI BackgroundTasks를 활용하여 데이터 동기화를 비동기 처리합니다.
-  - **동기화 상태 추적:** `devices` 테이블의 `last_sync_at`과 `last_sync_status` 필드를 통해 각 장비의 마지막 동기화 시간과 성공/실패/진행중 상태를 추적합니다.
+  - **백그라운드 동기화:** FastAPI BackgroundTasks로 데이터 동기화를 비동기 처리합니다. 요청 시 즉시 `in_progress`로 상태를 기록하고, 실제 동기화는 백그라운드 태스크에서 수행됩니다.
+  - **동기화 상태 추적:** `devices.last_sync_status`에 `in_progress | success | failure`를 기록합니다. `last_sync_at`은 동기화가 완료된 시점에만 업데이트되어 마지막 "완료된" 동기화 시간을 의미합니다.
   - **`GET /firewall/sync/{device_id}/status`**: 특정 장비의 마지막 동기화 상태와 시간을 조회합니다.
 
 ---
@@ -88,6 +88,11 @@
   - 출발지, 목적지, 서비스, 액션, 주석 등 다양한 필드 기반 검색을 제공합니다.
   - 특정 네트워크 대역이나 포트 범위를 지정하여 정책을 조회할 수 있습니다.
   - 정책 데이터는 SQLite에 저장되며, 각 벤더별 파싱 로직은 독립 모듈로 분리됩니다.
+  - 동기화 시 객체별 활성/삭제는 Overwrite-and-Log 규칙으로 처리합니다.
+    - 신규: DB에 존재하지 않으면 생성
+    - 업데이트: 키 필드(`policies.rule_name`, 그 외 `name`) 기준으로 비교 후 변경 시 업데이트 및 변경 로그 기록
+    - 삭제: 소스에 존재하지 않는 DB 항목은 삭제 처리하고 변경 로그 기록
+    - 마지막 조회 갱신: 기존 항목이 소스에서 확인되면 `last_seen_at`을 현재 시각으로 갱신하고 `is_active=True`로 유지합니다.
   - **멀티벤더 지원:** Palo Alto, SECUI (MF2, NGF) 방화벽의 정책 구조 차이를 추상화하여 통합된 데이터 모델로 관리합니다.
   - 정책 직접 생성/배포 기능은 제공하지 않습니다.
 
@@ -111,6 +116,32 @@
   - **Overwrite-and-Log 방식**: 동기화 시, 최신 데이터로 기존 데이터를 덮어쓰고(Overwrite), 모든 변경(생성/수정/삭제) 내역은 `change_logs` 테이블에 상세히 기록합니다.
   - **상세 로그**: 수정된 항목의 경우, 변경 전(`before`)과 변경 후(`after`) 데이터를 JSON 형태로 저장하여 정확한 변경 내용을 추적할 수 있습니다.
   - `change_logs` 테이블을 통해 특정 장비의 모든 객체 변경 이력을 시간 순으로 조회하고 분석할 수 있습니다.
+
+---
+
+## 7. 동기화 설계 개요
+
+- **엔드포인트**: `POST /api/v1/firewall/sync/{device_id}/{data_type}`
+  - `data_type`: `policies | network_objects | network_groups | services | service_groups`
+  - 처리 흐름:
+    1) `devices.last_sync_status`를 `in_progress`로 설정 후 커밋
+    2) 벤더 콜렉터 생성 및 연결, `export_*`로 원천 데이터를 `DataFrame`으로 수집
+    3) DataFrame → Pydantic 변환(`dataframe_to_pydantic`), `device_id` 주입
+    4) 백그라운드 태스크로 DB 정합(생성/수정/삭제) + 변경 이력 기록 수행
+    5) 성공 시 `last_sync_status=success`, 실패 시 `failure`로 갱신. `last_sync_at`은 완료 시에만 갱신
+
+- **키 매핑 규칙**:
+  - 정책: `rule_name`
+  - 그 외 객체: `name`
+
+- **객체 수명 필드**:
+  - 모든 객체 테이블에 `is_active`, `last_seen_at` 존재
+  - 소스에 존재한 기존 항목은 `last_seen_at=now()`로 터치, 미존재 항목은 삭제 처리하며 변경 로그에 남김
+
+- **보안**:
+  - 장비 비밀번호는 `.env`의 `ENCRYPTION_KEY`로 Fernet 암호화 저장/복호화 사용
+  - Mock 벤더는 복호화 실패 시 비밀번호 원문 패스스루 허용(테스트 편의)
+
 
 ---
 

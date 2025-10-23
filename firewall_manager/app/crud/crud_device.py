@@ -42,16 +42,6 @@ async def update_device(db: AsyncSession, db_obj: Device, obj_in: DeviceUpdate):
     await db.refresh(db_obj)
     return db_obj
 
-async def update_sync_status(db: AsyncSession, device_id: int, status: str):
-    db_device = await get_device(db, device_id)
-    if db_device:
-        db_device.last_sync_at = datetime.utcnow()
-        db_device.last_sync_status = status
-        db.add(db_device)
-        await db.commit()
-        await db.refresh(db_device)
-    return db_device
-
 async def remove_device(db: AsyncSession, id: int):
     result = await db.execute(select(Device).filter(Device.id == id))
     db_device = result.scalars().first()
