@@ -166,11 +166,16 @@ class NGFClient:
                     "Destination": self.list_to_string([dst.get("name") for dst in rule.get("dst", [])] or "any"),
                     "Service": self.list_to_string([srv.get("name") for srv in rule.get("srv", [])] or "any"),
                     "Application": self.list_to_string([app.get("name") for app in rule.get("app", [])] or "any"),
+                    # NGF: last_hit_time is maintained on primary member only
                     "Last Hit Date": rule.get("last_hit_time"),
                     "Description": rule.get("desc")
                 }
                 security_rules.append(info)
-            return pd.DataFrame(security_rules)
+            df = pd.DataFrame(security_rules)
+            # Normalize hit column name for downstream mapper
+            if not df.empty and 'Last Hit Date' in df.columns:
+                df = df.rename(columns={'Last Hit Date': 'last_hit_date'})
+            return df
         except Exception as e:
             raise Exception(f"NGF 규칙 데이터 수집 실패: {e}")
         finally:

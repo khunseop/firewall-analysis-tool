@@ -21,6 +21,9 @@ class Policy(Base):
     security_profile = Column(String, nullable=True)
     category = Column(String, nullable=True)
     description = Column(String, nullable=True)
+    # Last hit timestamps (primary/secondary for HA pairs)
+    last_hit_at = Column(DateTime, nullable=True)
+    last_hit_at_secondary = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     last_seen_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 

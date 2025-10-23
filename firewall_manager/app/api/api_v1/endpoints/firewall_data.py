@@ -1,6 +1,6 @@
 # firewall_manager/app/api/api_v1/endpoints/firewall_data.py
 import logging
-from typing import Any, List
+from typing import Any, List, Optional
 import asyncio
 from datetime import datetime
 import pandas as pd
@@ -16,6 +16,40 @@ from app.services.firewall.interface import FirewallInterface
 
 router = APIRouter()
 
+def _parse_datetime_safe(value: Any) -> Optional[datetime]:
+    """Best-effort parse of vendor-provided datetime strings or timestamps.
+    Returns None if parsing fails.
+    """
+    if value is None:
+        return None
+    try:
+        if isinstance(value, datetime):
+            return value
+        # numeric timestamp (seconds)
+        if isinstance(value, (int, float)):
+            # 0 means no hit
+            if value == 0:
+                return None
+            return datetime.fromtimestamp(int(value))
+        s = str(value).strip()
+        if not s:
+            return None
+        # common formats
+        for fmt in (
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d",
+            "%Y/%m/%d %H:%M:%S",
+            "%Y/%m/%d",
+        ):
+            try:
+                return datetime.strptime(s, fmt)
+            except Exception:
+                pass
+    except Exception:
+        return None
+    return None
+
+
 def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     """Converts a Pandas DataFrame to a list of Pydantic models."""
     df.columns = [col.lower().replace(' ', '_') for col in df.columns]
@@ -26,6 +60,17 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
         "port": "port",
     }
     df = df.rename(columns=rename_map)
+    # Map common hit date columns to standardized fields if present
+    # Supported input columns: last_hit_date, last_hit_at, last_hit_date_secondary
+    if 'last_hit_date' in df.columns and 'last_hit_at' not in df.columns:
+        df['last_hit_at'] = df['last_hit_date'].apply(_parse_datetime_safe)
+    elif 'last_hit_at' in df.columns:
+        df['last_hit_at'] = df['last_hit_at'].apply(_parse_datetime_safe)
+
+    if 'last_hit_date_secondary' in df.columns and 'last_hit_at_secondary' not in df.columns:
+        df['last_hit_at_secondary'] = df['last_hit_date_secondary'].apply(_parse_datetime_safe)
+    elif 'last_hit_at_secondary' in df.columns:
+        df['last_hit_at_secondary'] = df['last_hit_at_secondary'].apply(_parse_datetime_safe)
     # Normalize enable column to boolean if present (handles 'Y'/'N', 'yes'/'no', etc.)
     if 'enable' in df.columns:
         def _to_bool(v):
@@ -179,6 +224,17 @@ async def sync_device_data(device_id: int, data_type: str, background_tasks: Bac
 
     export_func, schema_create = sync_map[data_type]
 
+    # Build vendor-specific export kwargs
+    export_kwargs = {}
+    if data_type == "policies":
+        vendor = (device.vendor or "").lower()
+        if vendor == "paloalto":
+            # Enable hit merge and optional secondary host for HA
+            export_kwargs = {
+                "include_hit": True,
+                "secondary_hostname": (device.secondary_ip_address or None),
+            }
+
     connected = False
     try:
         # Ensure connection for vendors that require it (e.g., PaloAlto)
@@ -193,7 +249,10 @@ async def sync_device_data(device_id: int, data_type: str, background_tasks: Bac
             raise HTTPException(status_code=502, detail=f"Failed to connect to device: {e}")
 
         try:
-            df = await loop.run_in_executor(None, export_func)
+            if export_kwargs:
+                df = await loop.run_in_executor(None, lambda: export_func(**export_kwargs))
+            else:
+                df = await loop.run_in_executor(None, export_func)
         except NotImplementedError:
             # Vendor does not support this data type
             await crud.device.update_sync_status(db=db, device=device, status="failure")

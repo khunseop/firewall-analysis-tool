@@ -111,7 +111,10 @@ class MockCollector(FirewallInterface):
 
     def export_security_rules(self, **kwargs):
         time.sleep(random.uniform(0.1, 0.5))
-        return self.client.export_security_rules()
+        df = self.client.export_security_rules()
+        if not df.empty and 'Last Hit Date' in df.columns:
+            df = df.rename(columns={'Last Hit Date': 'last_hit_date'})
+        return df
 
     def export_network_objects(self, **kwargs):
         time.sleep(random.uniform(0.1, 0.5))
