@@ -9,7 +9,7 @@ import json
 
 from app import crud, models, schemas
 from app.db.session import get_db, SessionLocal
-from app.core.security import fernet
+from app.core.security import fernet, decrypt
 from app.services.firewall.factory import FirewallCollectorFactory
 from app.services.firewall.interface import FirewallInterface
 
@@ -25,6 +25,23 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
         "port": "port",
     }
     df = df.rename(columns=rename_map)
+    # Normalize enable column to boolean if present (handles 'Y'/'N', 'yes'/'no', etc.)
+    if 'enable' in df.columns:
+        def _to_bool(v):
+            if v is None:
+                return None
+            if isinstance(v, bool):
+                return v
+            try:
+                s = str(v).strip().lower()
+            except Exception:
+                return None
+            if s in {"y", "yes", "true", "1"}:
+                return True
+            if s in {"n", "no", "false", "0"}:
+                return False
+            return None
+        df['enable'] = df['enable'].apply(_to_bool)
     return [pydantic_model(**row) for row in df.to_dict(orient='records')]
 
 def get_singular_name(plural_name: str) -> str:
@@ -38,11 +55,17 @@ def get_key_attribute(data_type: str) -> str:
     return "rule_name" if data_type == "policies" else "name"
 
 async def _get_collector(device: models.Device) -> FirewallInterface:
-    """Helper function to create and connect a firewall collector."""
+    """Helper function to create a firewall collector with safe decryption."""
+    decrypted_password: str
     try:
-        decrypted_password = fernet.decrypt(device.password.encode()).decode()
+        decrypted_password = decrypt(device.password)
     except Exception:
-        raise HTTPException(status_code=500, detail="Password decryption failed")
+        # Fallback for vendors that don't actually use the password (e.g., mock)
+        # Prevent hard failure while still allowing sync to proceed.
+        if device.vendor.lower() == "mock":
+            decrypted_password = device.password
+        else:
+            raise HTTPException(status_code=500, detail="Password decryption failed")
 
     collector = FirewallCollectorFactory.get_collector(
         source_type=device.vendor.lower(),
@@ -148,13 +171,46 @@ async def sync_device_data(device_id: int, data_type: str, background_tasks: Bac
 
     export_func, schema_create = sync_map[data_type]
 
-    df = await loop.run_in_executor(None, export_func)
-    df['device_id'] = device_id
-    items_to_sync = dataframe_to_pydantic(df, schema_create)
+    connected = False
+    try:
+        # Ensure connection for vendors that require it (e.g., PaloAlto)
+        try:
+            connected = await loop.run_in_executor(None, collector.connect)
+        except NotImplementedError:
+            connected = False
+        except Exception as e:
+            # Mark failure and surface a user-friendly error
+            await crud.device.update_sync_status(db=db, device=device, status="failure")
+            await db.commit()
+            raise HTTPException(status_code=502, detail=f"Failed to connect to device: {e}")
 
-    logging.info(f"Adding background task for {data_type} sync on device {device_id}")
-    background_tasks.add_task(_sync_data_task, device_id, data_type, items_to_sync)
-    return {"msg": f"{data_type.replace('_', ' ').title()} synchronization started in the background."}
+        try:
+            df = await loop.run_in_executor(None, export_func)
+        except NotImplementedError:
+            # Vendor does not support this data type
+            await crud.device.update_sync_status(db=db, device=device, status="failure")
+            await db.commit()
+            raise HTTPException(status_code=400, detail=f"'{data_type}' sync is not supported by vendor '{device.vendor}'.")
+        except Exception as e:
+            await crud.device.update_sync_status(db=db, device=device, status="failure")
+            await db.commit()
+            raise HTTPException(status_code=502, detail=f"Failed to export data from device: {e}")
+
+        if df is None:
+            df = pd.DataFrame()
+        df['device_id'] = device_id
+        items_to_sync = dataframe_to_pydantic(df, schema_create)
+
+        logging.info(f"Adding background task for {data_type} sync on device {device_id}")
+        background_tasks.add_task(_sync_data_task, device_id, data_type, items_to_sync)
+        return {"msg": f"{data_type.replace('_', ' ').title()} synchronization started in the background."}
+    finally:
+        if connected:
+            try:
+                await loop.run_in_executor(None, collector.disconnect)
+            except Exception:
+                # Ignore disconnect errors
+                pass
 
 @router.get("/{device_id}/policies", response_model=List[schemas.Policy])
 async def read_db_device_policies(device_id: int, db: AsyncSession = Depends(get_db)):
