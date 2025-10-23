@@ -4,7 +4,13 @@ from sqlalchemy.orm import declarative_base
 from app.core.config import settings
 
 engine = create_async_engine(settings.DATABASE_URL, connect_args={"check_same_thread": False})
-SessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Avoid attribute expiration after commit to prevent MissingGreenlet issues
+SessionLocal = async_sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+    expire_on_commit=False,
+)
 Base = declarative_base()
 
 async def get_db():

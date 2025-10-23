@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from datetime import datetime
 
 from app.core.security import encrypt
 from app.models.device import Device
@@ -47,3 +48,16 @@ async def remove_device(db: AsyncSession, id: int):
         await db.delete(db_device)
         await db.commit()
     return db_device
+
+
+async def update_sync_status(db: AsyncSession, device: Device, status: str) -> Device:
+    """Update device sync status and optionally timestamp.
+
+    Only sets last_sync_at when the sync finishes with success or failure to
+    represent the time of the last completed sync attempt.
+    """
+    device.last_sync_status = status
+    if status in {"success", "failure"}:
+        device.last_sync_at = datetime.utcnow()
+    db.add(device)
+    return device
