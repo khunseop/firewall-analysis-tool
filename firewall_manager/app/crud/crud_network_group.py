@@ -24,28 +24,15 @@ async def get_all_active_network_groups_by_device(db: AsyncSession, device_id: i
 async def create_network_groups(db: AsyncSession, network_groups: list[NetworkGroupCreate]):
     db_network_groups = [NetworkGroup(**obj.model_dump()) for obj in network_groups]
     db.add_all(db_network_groups)
-    await db.commit()
     return db_network_groups
 
-async def update_network_group(db: AsyncSession, network_group: NetworkGroup, network_group_in: NetworkGroupCreate):
-    network_group_data = network_group_in.model_dump(exclude_unset=True)
-    for key, value in network_group_data.items():
-        setattr(network_group, key, value)
-    network_group.is_active = True
-    network_group.last_seen_at = datetime.utcnow()
-    db.add(network_group)
-    await db.commit()
-    await db.refresh(network_group)
+async def update_network_group(db: AsyncSession, db_obj: NetworkGroup, obj_in: NetworkGroupCreate):
+    obj_data = obj_in.model_dump(exclude_unset=True)
+    for field in obj_data:
+        setattr(db_obj, field, obj_data[field])
+    db.add(db_obj)
+    return db_obj
+
+async def delete_network_group(db: AsyncSession, network_group: NetworkGroup):
+    await db.delete(network_group)
     return network_group
-
-async def mark_network_groups_as_inactive(db: AsyncSession, device_id: int, network_group_ids_to_keep: set[int]):
-    await db.execute(
-        update(NetworkGroup)
-        .where(NetworkGroup.device_id == device_id, NetworkGroup.is_active == True, NetworkGroup.id.notin_(network_group_ids_to_keep))
-        .values(is_active=False)
-    )
-    await db.commit()
-
-async def delete_network_groups_by_device(db: AsyncSession, device_id: int):
-    await db.execute(delete(NetworkGroup).where(NetworkGroup.device_id == device_id))
-    await db.commit()

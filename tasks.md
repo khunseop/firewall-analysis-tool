@@ -4,32 +4,27 @@ This document tracks the development progress of the Firewall Analysis Tool.
 
 ## Future Tasks (To Do)
 
-### Implement Change Tracking for Data Synchronization
-
-The current data synchronization process overwrites existing data, which prevents tracking of historical changes. The following tasks will modify this to an "upsert" and "soft-delete" model.
-
-- [x] **Modify Database Schema:**
-    - [x] Add `is_active` (Boolean, default `True`) and `last_seen_at` (DateTime) columns to the following models:
-        - [x] `policy.py`
-        - [x] `network_object.py`
-        - [x] `network_group.py`
-        - [x] `service.py`
-        - [x] `service_group.py`
-    - [x] Update the corresponding Pydantic schemas to include the new fields.
-    - [x] Create and apply a new Alembic database migration for these schema changes.
-
-- [x] **Update Data Synchronization Logic (`firewall_data.py`):**
-    - [x] Modify the `_sync_data_task` to implement the new upsert/soft-delete strategy.
-    - [x] Before processing firewall data, fetch all existing active objects for the device from the database into a dictionary for quick lookups.
-    - [x] For each item received from the firewall:
-        - If the item exists in the database dictionary: Update its contents if they have changed and set `is_active=True` and `last_seen_at` to the current time. Remove it from the dictionary.
-        - If the item does not exist: Create it as a new record.
-    - [x] After the loop, any items remaining in the database dictionary were not seen in the latest sync. Mark all of them as `is_active = False`.
-
-- [x] **Update CRUD Functions:**
-    - [x] Modify all `get` functions (e.g., `get_policies_by_device`) to filter for `is_active == True` by default, so that "deleted" items are not returned by standard API calls.
 
 ## Completed Tasks
+- [x] **Implement Sync Status Tracking:**
+    - [x] **Add Status Endpoint:** Created a new `GET /firewall/sync/{device_id}/status` endpoint to allow polling for the current synchronization status.
+    - [x] **Update Sync Logic:** Modified the synchronization task to update the `last_sync_status` to "in_progress" at the start and "success" or "failure" upon completion.
+    - [x] **Add Pydantic Schema:** Created a `DeviceSyncStatus` schema for the new endpoint.
+    - [x] **Update Documentation:** Added the new endpoint to `AGENTS.md`.
+
+- [x] **Implement Change Tracking for Data Synchronization (Overwrite-and-Log):**
+    - [x] **Architectural Shift:** Replaced the previous "soft-delete" model with a more robust "overwrite-and-log" strategy to provide a clear audit trail of all changes.
+    - [x] **Remove Soft-Delete Columns:** Deleted the `is_active` and `last_seen_at` columns from the `Policy`, `NetworkObject`, `NetworkGroup`, `Service`, and `ServiceGroup` models and created a database migration to apply these changes.
+    - [x] **Add Change Log Feature:**
+        - [x] Created a new `ChangeLog` model to store the history of created, updated, and deleted objects.
+        - [x] Implemented a corresponding Pydantic schema and CRUD functions for the change log.
+        - [x] Created a database migration to add the new `change_logs` table.
+    - [x] **Rewrite Synchronization Logic:**
+        - [x] Overhauled the `_sync_data_task` to compare firewall data with the database.
+        - [x] Implemented logic to create new items, delete old items, and update existing items.
+        - [x] For every change (create, update, delete), a detailed entry is now recorded in the `change_logs` table.
+    - [x] **Simplify CRUD:** Refactored the CRUD functions for policies and objects to use simple `delete` operations, removing the now-obsolete soft-delete logic.
+    - [x] **Update Documentation:** Updated `DATABASE.md` to reflect the removal of old columns and the addition of the `change_logs` table.
 
 - [x] **Initial Project Setup:**
     - [x] Established the core FastAPI application structure.

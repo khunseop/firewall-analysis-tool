@@ -5,3 +5,5 @@ from .network_group import NetworkGroup, NetworkGroupCreate
 from .service import Service, ServiceCreate
 from .service_group import ServiceGroup, ServiceGroupCreate
 from .msg import Msg
+from .change_log import ChangeLog, ChangeLogCreate
+from .device import DeviceSyncStatus

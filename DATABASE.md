@@ -23,6 +23,24 @@ Stores information about the firewall devices being managed.
 - `ix_devices_id`: Index on the `id` column.
 - `ix_devices_name`: Index on the `name` column.
 
+## `change_logs` Table
+
+Stores the history of changes made to firewall objects.
+
+| Column        | Type      | Constraints                | Description                                           |
+|---------------|-----------|----------------------------|-------------------------------------------------------|
+| `id`          | `INTEGER` | `PRIMARY KEY`, `NOT NULL`  | Unique identifier for the log entry.                  |
+| `timestamp`   | `DATETIME`| `NOT NULL`                 | Timestamp of when the change occurred.                |
+| `device_id`   | `INTEGER` | `FOREIGN KEY (devices.id)` | Foreign key to the `devices` table.                   |
+| `data_type`   | `VARCHAR` | `NOT NULL`                 | The type of data that was changed (e.g., 'policies'). |
+| `object_name` | `VARCHAR` | `NOT NULL`                 | The name or identifier of the object that changed.    |
+| `action`      | `VARCHAR` | `NOT NULL`                 | The action performed ('created', 'updated', 'deleted').|
+| `details`     | `JSON`    | `NULLABLE`                 | A JSON object containing details about the change.    |
+
+### Indexes
+
+- `ix_change_logs_id`: Index on the `id` column.
+
 ## `network_objects` Table
 
 Stores information about the network objects.

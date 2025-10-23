@@ -5,10 +5,11 @@ import asyncio
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
+import json
 
 from app import crud, models, schemas
 from app.db.session import get_db, SessionLocal
-from app.core.security import fernet
+from app.core.security import fernet, decrypt
 from app.services.firewall.factory import FirewallCollectorFactory
 from app.services.firewall.interface import FirewallInterface
 
@@ -17,15 +18,30 @@ router = APIRouter()
 def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     """Converts a Pandas DataFrame to a list of Pydantic models."""
     df.columns = [col.lower().replace(' ', '_') for col in df.columns]
-    # Rename columns to match Pydantic model fields
     rename_map = {
-        "rule_name": "rule_name",
         "group_name": "name",
         "entry": "members",
         "value": "ip_address",
         "port": "port",
     }
     df = df.rename(columns=rename_map)
+    # Normalize enable column to boolean if present (handles 'Y'/'N', 'yes'/'no', etc.)
+    if 'enable' in df.columns:
+        def _to_bool(v):
+            if v is None:
+                return None
+            if isinstance(v, bool):
+                return v
+            try:
+                s = str(v).strip().lower()
+            except Exception:
+                return None
+            if s in {"y", "yes", "true", "1"}:
+                return True
+            if s in {"n", "no", "false", "0"}:
+                return False
+            return None
+        df['enable'] = df['enable'].apply(_to_bool)
     return [pydantic_model(**row) for row in df.to_dict(orient='records')]
 
 def get_singular_name(plural_name: str) -> str:
@@ -34,12 +50,22 @@ def get_singular_name(plural_name: str) -> str:
         return "policy"
     return plural_name[:-1]
 
+def get_key_attribute(data_type: str) -> str:
+    """Returns the key attribute for a given data type."""
+    return "rule_name" if data_type == "policies" else "name"
+
 async def _get_collector(device: models.Device) -> FirewallInterface:
-    """Helper function to create and connect a firewall collector."""
+    """Helper function to create a firewall collector with safe decryption."""
+    decrypted_password: str
     try:
-        decrypted_password = fernet.decrypt(device.password.encode()).decode()
+        decrypted_password = decrypt(device.password)
     except Exception:
-        raise HTTPException(status_code=500, detail="Password decryption failed")
+        # Fallback for vendors that don't actually use the password (e.g., mock)
+        # Prevent hard failure while still allowing sync to proceed.
+        if device.vendor.lower() == "mock":
+            decrypted_password = device.password
+        else:
+            raise HTTPException(status_code=500, detail="Password decryption failed")
 
     collector = FirewallCollectorFactory.get_collector(
         source_type=device.vendor.lower(),
@@ -47,173 +73,168 @@ async def _get_collector(device: models.Device) -> FirewallInterface:
         username=device.username,
         password=decrypted_password,
     )
-
-    loop = asyncio.get_running_loop()
-    if not await loop.run_in_executor(None, collector.connect):
-        raise HTTPException(status_code=500, detail="Failed to connect to the firewall device")
-
     return collector
 
-async def _sync_data_task(device_id: int, data_type: str):
+async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[Any]):
     """Generic background task to synchronize data for a device."""
+    logging.info(f"Starting sync for device_id: {device_id}, data_type: {data_type}")
     async with SessionLocal() as db:
         device = await crud.device.get_device(db=db, device_id=device_id)
         if not device:
             logging.error(f"Device with id {device_id} not found.")
             return
 
-        await crud.device.update_sync_status(db=db, device_id=device_id, status="in_progress")
-        collector = None
         try:
-            collector = await _get_collector(device)
-            loop = asyncio.get_running_loop()
-
+            logging.info(f"Syncing {data_type} for device: {device.name}")
             sync_map = {
-                "policies": (
-                    collector.export_security_rules,
-                    crud.policy.get_all_active_policies_by_device,
-                    crud.policy.create_policies,
-                    crud.policy.update_policy,
-                    crud.policy.mark_policies_as_inactive,
-                    schemas.PolicyCreate
-                ),
-                "network_objects": (
-                    collector.export_network_objects,
-                    crud.network_object.get_all_active_network_objects_by_device,
-                    crud.network_object.create_network_objects,
-                    crud.network_object.update_network_object,
-                    crud.network_object.mark_network_objects_as_inactive,
-                    schemas.NetworkObjectCreate
-                ),
-                "network_groups": (
-                    collector.export_network_group_objects,
-                    crud.network_group.get_all_active_network_groups_by_device,
-                    crud.network_group.create_network_groups,
-                    crud.network_group.update_network_group,
-                    crud.network_group.mark_network_groups_as_inactive,
-                    schemas.NetworkGroupCreate
-                ),
-                "services": (
-                    collector.export_service_objects,
-                    crud.service.get_all_active_services_by_device,
-                    crud.service.create_services,
-                    crud.service.update_service,
-                    crud.service.mark_services_as_inactive,
-                    schemas.ServiceCreate
-                ),
-                "service_groups": (
-                    collector.export_service_group_objects,
-                    crud.service_group.get_all_active_service_groups_by_device,
-                    crud.service_group.create_service_groups,
-                    crud.service_group.update_service_group,
-                    crud.service_group.mark_service_groups_as_inactive,
-                    schemas.ServiceGroupCreate
-                ),
+                "policies": (crud.policy.get_policies_by_device, crud.policy.create_policies, crud.policy.update_policy, crud.policy.delete_policy),
+                "network_objects": (crud.network_object.get_network_objects_by_device, crud.network_object.create_network_objects, crud.network_object.update_network_object, crud.network_object.delete_network_object),
+                "network_groups": (crud.network_group.get_network_groups_by_device, crud.network_group.create_network_groups, crud.network_group.update_network_group, crud.network_group.delete_network_group),
+                "services": (crud.service.get_services_by_device, crud.service.create_services, crud.service.update_service, crud.service.delete_service),
+                "service_groups": (crud.service_group.get_service_groups_by_device, crud.service_group.create_service_groups, crud.service_group.update_service_group, crud.service_group.delete_service_group),
             }
 
-            if data_type not in sync_map:
-                logging.error(f"Invalid data type for synchronization: {data_type}")
-                await crud.device.update_sync_status(db=db, device_id=device_id, status="failure")
-                return
-
-            export_func, get_all_func, create_func, update_func, mark_inactive_func, schema_create = sync_map[data_type]
-
-            df = await loop.run_in_executor(None, export_func)
-
-            df['device_id'] = device_id
-
-            items_to_sync = dataframe_to_pydantic(df, schema_create)
+            get_all_func, create_func, update_func, delete_func = sync_map[data_type]
 
             existing_items = await get_all_func(db=db, device_id=device_id)
-            existing_items_map = {item.name: item for item in existing_items}
+            key_attribute = get_key_attribute(data_type)
+            existing_items_map = {getattr(item, key_attribute): item for item in existing_items}
+            items_to_sync_map = {getattr(item, key_attribute): item for item in items_to_sync}
 
-            seen_item_ids = set()
+            logging.info(f"Found {len(existing_items)} existing items and {len(items_to_sync)} items to sync.")
+
             items_to_create = []
-            singular_name = get_singular_name(data_type)
 
-            for item_in in items_to_sync:
-                existing_item = existing_items_map.get(item_in.name)
+            for item_name, item_in in items_to_sync_map.items():
+                existing_item = existing_items_map.get(item_name)
                 if existing_item:
-                    update_kwargs = {singular_name: existing_item, f"{singular_name}_in": item_in}
-                    await update_func(db=db, **update_kwargs)
-                    seen_item_ids.add(existing_item.id)
+                    obj_data = item_in.model_dump()
+                    db_obj_data = {c.name: getattr(existing_item, c.name) for c in existing_item.__table__.columns}
+                    if any(obj_data.get(k) != db_obj_data.get(k) for k in obj_data):
+                        logging.info(f"Updating {data_type}: {item_name}")
+                        await update_func(db=db, db_obj=existing_item, obj_in=item_in)
+                        await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="updated", details=json.dumps({"before": db_obj_data, "after": obj_data}, default=str)))
                 else:
                     items_to_create.append(item_in)
 
             if items_to_create:
+                logging.info(f"Creating {len(items_to_create)} new {data_type}.")
                 await create_func(db=db, **{f"{data_type}": items_to_create})
+                for item_in in items_to_create:
+                    await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=getattr(item_in, key_attribute), action="created", details=json.dumps(item_in.model_dump(), default=str)))
 
-            mark_inactive_kwargs = {f"{singular_name}_ids_to_keep": seen_item_ids}
-            await mark_inactive_func(db=db, device_id=device_id, **mark_inactive_kwargs)
-            await crud.device.update_sync_status(db=db, device_id=device_id, status="success")
+            items_to_delete_count = 0
+            for item_name, item in existing_items_map.items():
+                if item_name not in items_to_sync_map:
+                    items_to_delete_count += 1
+                    logging.info(f"Deleting {data_type}: {item_name}")
+                    await delete_func(db=db, **{f"{get_singular_name(data_type)}": item})
+                    await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="deleted"))
 
-        except NotImplementedError:
-            logging.warning(f"{data_type} synchronization not supported for device {device.name} ({device.vendor}).")
-            await crud.device.update_sync_status(db=db, device_id=device_id, status="not_supported")
+            if items_to_delete_count > 0:
+                logging.info(f"Deleted {items_to_delete_count} {data_type}.")
+
+            await crud.device.update_sync_status(db=db, device=device, status="success")
+            await db.commit()
+            logging.info(f"Sync completed successfully for device_id: {device_id}, data_type: {data_type}")
+
         except Exception as e:
-            logging.error(f"Failed to sync {data_type} for device {device.name}: {e}")
-            await crud.device.update_sync_status(db=db, device_id=device_id, status="failure")
-        finally:
-            if collector:
-                loop = asyncio.get_running_loop()
-                await loop.run_in_executor(None, collector.disconnect)
+            await db.rollback()
+            logging.error(f"Failed to sync {data_type} for device {device.name}: {e}", exc_info=True)
+            async with SessionLocal() as new_db:
+                device_for_status_update = await crud.device.get_device(db=new_db, device_id=device_id)
+                await crud.device.update_sync_status(db=new_db, device=device_for_status_update, status="failure")
+                await new_db.commit()
 
 @router.post("/sync/{device_id}/{data_type}", response_model=schemas.Msg)
-async def sync_device_data(
-    device_id: int,
-    data_type: str,
-    background_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(get_db),
-):
-    """Trigger a background task to synchronize a specific data type from a device."""
+async def sync_device_data(device_id: int, data_type: str, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     device = await crud.device.get_device(db=db, device_id=device_id)
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
 
-    background_tasks.add_task(_sync_data_task, device_id, data_type)
-    return {"msg": f"{data_type.replace('_', ' ').title()} synchronization started in the background."}
+    await crud.device.update_sync_status(db=db, device=device, status="in_progress")
+    await db.commit()
+
+    collector = await _get_collector(device)
+    loop = asyncio.get_running_loop()
+
+    sync_map = {
+        "policies": (collector.export_security_rules, schemas.PolicyCreate),
+        "network_objects": (collector.export_network_objects, schemas.NetworkObjectCreate),
+        "network_groups": (collector.export_network_group_objects, schemas.NetworkGroupCreate),
+        "services": (collector.export_service_objects, schemas.ServiceCreate),
+        "service_groups": (collector.export_service_group_objects, schemas.ServiceGroupCreate),
+    }
+
+    if data_type not in sync_map:
+        raise HTTPException(status_code=400, detail="Invalid data type for synchronization")
+
+    export_func, schema_create = sync_map[data_type]
+
+    connected = False
+    try:
+        # Ensure connection for vendors that require it (e.g., PaloAlto)
+        try:
+            connected = await loop.run_in_executor(None, collector.connect)
+        except NotImplementedError:
+            connected = False
+        except Exception as e:
+            # Mark failure and surface a user-friendly error
+            await crud.device.update_sync_status(db=db, device=device, status="failure")
+            await db.commit()
+            raise HTTPException(status_code=502, detail=f"Failed to connect to device: {e}")
+
+        try:
+            df = await loop.run_in_executor(None, export_func)
+        except NotImplementedError:
+            # Vendor does not support this data type
+            await crud.device.update_sync_status(db=db, device=device, status="failure")
+            await db.commit()
+            raise HTTPException(status_code=400, detail=f"'{data_type}' sync is not supported by vendor '{device.vendor}'.")
+        except Exception as e:
+            await crud.device.update_sync_status(db=db, device=device, status="failure")
+            await db.commit()
+            raise HTTPException(status_code=502, detail=f"Failed to export data from device: {e}")
+
+        if df is None:
+            df = pd.DataFrame()
+        df['device_id'] = device_id
+        items_to_sync = dataframe_to_pydantic(df, schema_create)
+
+        logging.info(f"Adding background task for {data_type} sync on device {device_id}")
+        background_tasks.add_task(_sync_data_task, device_id, data_type, items_to_sync)
+        return {"msg": f"{data_type.replace('_', ' ').title()} synchronization started in the background."}
+    finally:
+        if connected:
+            try:
+                await loop.run_in_executor(None, collector.disconnect)
+            except Exception:
+                # Ignore disconnect errors
+                pass
 
 @router.get("/{device_id}/policies", response_model=List[schemas.Policy])
-async def read_db_device_policies(
-    device_id: int,
-    db: AsyncSession = Depends(get_db),
-) -> Any:
-    """Retrieve security policies for a device from the local database."""
-    policies = await crud.policy.get_policies_by_device(db=db, device_id=device_id)
-    return policies
+async def read_db_device_policies(device_id: int, db: AsyncSession = Depends(get_db)):
+    return await crud.policy.get_policies_by_device(db=db, device_id=device_id)
 
 @router.get("/{device_id}/network-objects", response_model=List[schemas.NetworkObject])
-async def read_db_device_network_objects(
-    device_id: int,
-    db: AsyncSession = Depends(get_db),
-) -> Any:
-    """Retrieve network objects for a device from the local database."""
-    network_objects = await crud.network_object.get_network_objects_by_device(db=db, device_id=device_id)
-    return network_objects
+async def read_db_device_network_objects(device_id: int, db: AsyncSession = Depends(get_db)):
+    return await crud.network_object.get_network_objects_by_device(db=db, device_id=device_id)
 
 @router.get("/{device_id}/network-groups", response_model=List[schemas.NetworkGroup])
-async def read_db_device_network_groups(
-    device_id: int,
-    db: AsyncSession = Depends(get_db),
-) -> Any:
-    """Retrieve network groups for a device from the local database."""
-    network_groups = await crud.network_group.get_network_groups_by_device(db=db, device_id=device_id)
-    return network_groups
+async def read_db_device_network_groups(device_id: int, db: AsyncSession = Depends(get_db)):
+    return await crud.network_group.get_network_groups_by_device(db=db, device_id=device_id)
 
 @router.get("/{device_id}/services", response_model=List[schemas.Service])
-async def read_db_device_services(
-    device_id: int,
-    db: AsyncSession = Depends(get_db),
-) -> Any:
-    """Retrieve services for a device from the local database."""
-    services = await crud.service.get_services_by_device(db=db, device_id=device_id)
-    return services
+async def read_db_device_services(device_id: int, db: AsyncSession = Depends(get_db)):
+    return await crud.service.get_services_by_device(db=db, device_id=device_id)
 
 @router.get("/{device_id}/service-groups", response_model=List[schemas.ServiceGroup])
-async def read_db_device_service_groups(
-    device_id: int,
-    db: AsyncSession = Depends(get_db),
-) -> Any:
-    """Retrieve service groups for a device from the local database."""
-    service_groups = await crud.service_group.get_service_groups_by_device(db=db, device_id=device_id)
-    return service_groups
+async def read_db_device_service_groups(device_id: int, db: AsyncSession = Depends(get_db)):
+    return await crud.service_group.get_service_groups_by_device(db=db, device_id=device_id)
+
+@router.get("/sync/{device_id}/status", response_model=schemas.DeviceSyncStatus)
+async def get_device_sync_status(device_id: int, db: AsyncSession = Depends(get_db)):
+    device = await crud.device.get_device(db=db, device_id=device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    return device
