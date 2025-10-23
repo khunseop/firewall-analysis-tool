@@ -2,6 +2,7 @@
 import logging
 from typing import Any, List
 import asyncio
+from datetime import datetime
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -108,12 +109,19 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
             for item_name, item_in in items_to_sync_map.items():
                 existing_item = existing_items_map.get(item_name)
                 if existing_item:
+                    # Touch last_seen_at and ensure is_active for seen items
+                    existing_item.last_seen_at = datetime.utcnow()
+                    if hasattr(existing_item, "is_active"):
+                        existing_item.is_active = True
                     obj_data = item_in.model_dump()
                     db_obj_data = {c.name: getattr(existing_item, c.name) for c in existing_item.__table__.columns}
                     if any(obj_data.get(k) != db_obj_data.get(k) for k in obj_data):
                         logging.info(f"Updating {data_type}: {item_name}")
                         await update_func(db=db, db_obj=existing_item, obj_in=item_in)
                         await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="updated", details=json.dumps({"before": db_obj_data, "after": obj_data}, default=str)))
+                    else:
+                        # Persist the last_seen_at touch even if no field changed
+                        db.add(existing_item)
                 else:
                     items_to_create.append(item_in)
 
