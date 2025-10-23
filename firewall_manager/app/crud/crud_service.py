@@ -1,19 +1,24 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import delete
+from sqlalchemy import delete, update
 
 from app.models.service import Service
 from app.schemas.service import ServiceCreate
+from datetime import datetime
 
 async def get_service(db: AsyncSession, service_id: int):
     result = await db.execute(select(Service).filter(Service.id == service_id))
     return result.scalars().first()
 
 async def get_services_by_device(db: AsyncSession, device_id: int, skip: int = 0, limit: int | None = None):
-    stmt = select(Service).filter(Service.device_id == device_id).offset(skip)
+    stmt = select(Service).filter(Service.device_id == device_id, Service.is_active == True).offset(skip)
     if limit:
         stmt = stmt.limit(limit)
     result = await db.execute(stmt)
+    return result.scalars().all()
+
+async def get_all_active_services_by_device(db: AsyncSession, device_id: int):
+    result = await db.execute(select(Service).filter(Service.device_id == device_id, Service.is_active == True))
     return result.scalars().all()
 
 async def create_services(db: AsyncSession, services: list[ServiceCreate]):

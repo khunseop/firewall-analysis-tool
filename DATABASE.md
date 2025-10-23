@@ -45,14 +45,16 @@ Stores the history of changes made to firewall objects.
 
 Stores information about the network objects.
 
-| Column        | Type      | Constraints                | Description                                              |
-|---------------|-----------|----------------------------|----------------------------------------------------------|
-| `id`          | `INTEGER` | `PRIMARY KEY`, `NOT NULL`  | Unique identifier for the object.                        |
-| `device_id`   | `INTEGER` | `FOREIGN KEY (devices.id)` | Foreign key to the `devices` table.                      |
-| `name`        | `VARCHAR` | `NOT NULL`                 | Name of the network object.                              |
-| `ip_address`  | `VARCHAR` | `NOT NULL`                 | IP address of the network object.                        |
-| `type`        | `VARCHAR` | `NULLABLE`                 | Type of the network object (e.g., ip-netmask, ip-range). |
-| `description` | `VARCHAR` | `NULLABLE`                 | A brief description of the object.                       |
+| Column         | Type      | Constraints                | Description                                              |
+|----------------|-----------|----------------------------|----------------------------------------------------------|
+| `id`           | `INTEGER` | `PRIMARY KEY`, `NOT NULL`  | Unique identifier for the object.                        |
+| `device_id`    | `INTEGER` | `FOREIGN KEY (devices.id)` | Foreign key to the `devices` table.                      |
+| `name`         | `VARCHAR` | `NOT NULL`                 | Name of the network object.                              |
+| `ip_address`   | `VARCHAR` | `NOT NULL`                 | IP address of the network object.                        |
+| `type`         | `VARCHAR` | `NULLABLE`                 | Type of the network object (e.g., ip-netmask, ip-range). |
+| `description`  | `VARCHAR` | `NULLABLE`                 | A brief description of the object.                       |
+| `is_active`    | `BOOLEAN` | `NOT NULL`                 | Whether the object is active.                            |
+| `last_seen_at` | `DATETIME`| `NOT NULL`                 | Last time the object was seen.                           |
 
 ### Indexes
 
@@ -63,13 +65,15 @@ Stores information about the network objects.
 
 Stores information about the network groups.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| `id` | `INTEGER` | `PRIMARY KEY`, `NOT NULL` | Unique identifier for the group. |
-| `device_id` | `INTEGER` | `FOREIGN KEY (devices.id)` | Foreign key to the `devices` table. |
-| `name` | `VARCHAR` | `NOT NULL` | Name of the network group. |
-| `members` | `VARCHAR` | `NULLABLE` | Comma-separated list of member object names. |
-| `description` | `VARCHAR` | `NULLABLE` | A brief description of the group. |
+| Column         | Type      | Constraints                | Description                                  |
+|----------------|-----------|----------------------------|----------------------------------------------|
+| `id`           | `INTEGER` | `PRIMARY KEY`, `NOT NULL`  | Unique identifier for the group.             |
+| `device_id`    | `INTEGER` | `FOREIGN KEY (devices.id)` | Foreign key to the `devices` table.          |
+| `name`         | `VARCHAR` | `NOT NULL`                 | Name of the network group.                   |
+| `members`      | `VARCHAR` | `NULLABLE`                 | Comma-separated list of member object names. |
+| `description`  | `VARCHAR` | `NULLABLE`                 | A brief description of the group.            |
+| `is_active`    | `BOOLEAN` | `NOT NULL`                 | Whether the group is active.                 |
+| `last_seen_at` | `DATETIME`| `NOT NULL`                 | Last time the group was seen.                |
 
 ### Indexes
 
@@ -80,14 +84,16 @@ Stores information about the network groups.
 
 Stores information about the service objects.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| `id` | `INTEGER` | `PRIMARY KEY`, `NOT NULL` | Unique identifier for the service. |
-| `device_id` | `INTEGER` | `FOREIGN KEY (devices.id)` | Foreign key to the `devices` table. |
-| `name` | `VARCHAR` | `NOT NULL` | Name of the service object. |
-| `protocol` | `VARCHAR` | `NULLABLE` | Protocol of the service (e.g., tcp, udp). |
-| `port` | `VARCHAR` | `NULLABLE` | Port number or range of the service. |
-| `description` | `VARCHAR` | `NULLABLE` | A brief description of the service. |
+| Column         | Type      | Constraints                | Description                               |
+|----------------|-----------|----------------------------|-------------------------------------------|
+| `id`           | `INTEGER` | `PRIMARY KEY`, `NOT NULL`  | Unique identifier for the service.        |
+| `device_id`    | `INTEGER` | `FOREIGN KEY (devices.id)` | Foreign key to the `devices` table.       |
+| `name`         | `VARCHAR` | `NOT NULL`                 | Name of the service object.               |
+| `protocol`     | `VARCHAR` | `NULLABLE`                 | Protocol of the service (e.g., tcp, udp). |
+| `port`         | `VARCHAR` | `NULLABLE`                 | Port number or range of the service.      |
+| `description`  | `VARCHAR` | `NULLABLE`                 | A brief description of the service.       |
+| `is_active`    | `BOOLEAN` | `NOT NULL`                 | Whether the service is active.            |
+| `last_seen_at` | `DATETIME`| `NOT NULL`                 | Last time the service was seen.           |
 
 ### Indexes
 
@@ -98,13 +104,15 @@ Stores information about the service objects.
 
 Stores information about the service groups.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| `id` | `INTEGER` | `PRIMARY KEY`, `NOT NULL` | Unique identifier for the group. |
-| `device_id` | `INTEGER` | `FOREIGN KEY (devices.id)` | Foreign key to the `devices` table. |
-| `name` | `VARCHAR` | `NOT NULL` | Name of the service group. |
-| `members` | `VARCHAR` | `NULLABLE` | Comma-separated list of member service names. |
-| `description` | `VARCHAR` | `NULLABLE` | A brief description of the group. |
+| Column         | Type      | Constraints                | Description                                   |
+|----------------|-----------|----------------------------|-----------------------------------------------|
+| `id`           | `INTEGER` | `PRIMARY KEY`, `NOT NULL`  | Unique identifier for the group.              |
+| `device_id`    | `INTEGER` | `FOREIGN KEY (devices.id)` | Foreign key to the `devices` table.           |
+| `name`         | `VARCHAR` | `NOT NULL`                 | Name of the service group.                    |
+| `members`      | `VARCHAR` | `NULLABLE`                 | Comma-separated list of member service names. |
+| `description`  | `VARCHAR` | `NULLABLE`                 | A brief description of the group.             |
+| `is_active`    | `BOOLEAN` | `NOT NULL`                 | Whether the group is active.                  |
+| `last_seen_at` | `DATETIME`| `NOT NULL`                 | Last time the group was seen.                 |
 
 ### Indexes
 
@@ -132,6 +140,8 @@ Stores information about the firewall policies.
 | `security_profile`| `VARCHAR` | `NULLABLE`                 | Security profile of the policy.           |
 | `category`        | `VARCHAR` | `NULLABLE`                 | Category of the policy.                   |
 | `description`     | `VARCHAR` | `NULLABLE`                 | A brief description of the policy.        |
+| `is_active`       | `BOOLEAN` | `NOT NULL`                 | Whether the policy is active.             |
+| `last_seen_at`    | `DATETIME`| `NOT NULL`                 | Last time the policy was seen.            |
 
 ### Indexes
 
