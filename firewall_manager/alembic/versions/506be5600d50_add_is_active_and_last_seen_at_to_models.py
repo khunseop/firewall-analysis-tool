@@ -1,7 +1,7 @@
 """Add is_active and last_seen_at to models
 
 Revision ID: 506be5600d50
-Revises: 9d6960f43338
+Revises: 4e930a9f1c8e
 Create Date: 2025-10-21 02:39:46.194080
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '506be5600d50'
-down_revision: Union[str, Sequence[str], None] = '9d6960f43338'
+down_revision: Union[str, Sequence[str], None] = '4e930a9f1c8e'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
