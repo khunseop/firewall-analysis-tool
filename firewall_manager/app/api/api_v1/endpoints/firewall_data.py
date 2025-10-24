@@ -63,11 +63,16 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     # 4) Safe type conversions
     if 'seq' in df.columns:
         def _to_int_or_none(v):
-            if v is None:
-                return None
+            # Treat NaN/None/blank as None; avoid int(NaN) error
+            try:
+                if v is None or pd.isna(v):
+                    return None
+            except Exception:
+                if v is None:
+                    return None
             try:
                 s = str(v).strip()
-                if s == '':
+                if s == '' or s.lower() in {'nan', 'none'}:
                     return None
                 return int(float(s))
             except Exception:
@@ -101,12 +106,24 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     ]
 
     def _parse_dt(v) -> Optional[datetime]:
-        if v is None:
-            return None
+        # Handle None/NaN early
+        try:
+            if v is None or pd.isna(v):
+                return None
+        except Exception:
+            if v is None:
+                return None
         # integer timestamp (seconds)
         try:
             if isinstance(v, (int, float)):
                 # guard against NaN which we already converted to None
+                # If float('nan') slips through, treat as None
+                if isinstance(v, float):
+                    try:
+                        if pd.isna(v):
+                            return None
+                    except Exception:
+                        pass
                 iv = int(v)
                 if iv <= 0:
                     return None
