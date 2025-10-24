@@ -363,27 +363,32 @@ async def sync_device_data(
 
 @router.get("/{device_id}/policies", response_model=List[schemas.Policy])
 async def read_db_device_policies(device_id: int, db: AsyncSession = Depends(get_db)):
-    return await crud.policy.get_policies_by_device(db=db, device_id=device_id)
+    rows = await crud.policy.get_policies_by_device(db=db, device_id=device_id)
+    return [schemas.Policy.model_validate(r, from_attributes=True) for r in rows]
 
 @router.get("/{device_id}/network-objects", response_model=List[schemas.NetworkObject])
 async def read_db_device_network_objects(device_id: int, db: AsyncSession = Depends(get_db)):
-    return await crud.network_object.get_network_objects_by_device(db=db, device_id=device_id)
+    rows = await crud.network_object.get_network_objects_by_device(db=db, device_id=device_id)
+    return [schemas.NetworkObject.model_validate(r, from_attributes=True) for r in rows]
 
 @router.get("/{device_id}/network-groups", response_model=List[schemas.NetworkGroup])
 async def read_db_device_network_groups(device_id: int, db: AsyncSession = Depends(get_db)):
-    return await crud.network_group.get_network_groups_by_device(db=db, device_id=device_id)
+    rows = await crud.network_group.get_network_groups_by_device(db=db, device_id=device_id)
+    return [schemas.NetworkGroup.model_validate(r, from_attributes=True) for r in rows]
 
 @router.get("/{device_id}/services", response_model=List[schemas.Service])
 async def read_db_device_services(device_id: int, db: AsyncSession = Depends(get_db)):
-    return await crud.service.get_services_by_device(db=db, device_id=device_id)
+    rows = await crud.service.get_services_by_device(db=db, device_id=device_id)
+    return [schemas.Service.model_validate(r, from_attributes=True) for r in rows]
 
 @router.get("/{device_id}/service-groups", response_model=List[schemas.ServiceGroup])
 async def read_db_device_service_groups(device_id: int, db: AsyncSession = Depends(get_db)):
-    return await crud.service_group.get_service_groups_by_device(db=db, device_id=device_id)
+    rows = await crud.service_group.get_service_groups_by_device(db=db, device_id=device_id)
+    return [schemas.ServiceGroup.model_validate(r, from_attributes=True) for r in rows]
 
 @router.get("/sync/{device_id}/status", response_model=schemas.DeviceSyncStatus)
 async def get_device_sync_status(device_id: int, db: AsyncSession = Depends(get_db)):
     device = await crud.device.get_device(db=db, device_id=device_id)
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
-    return device
+    return schemas.DeviceSyncStatus.model_validate(device, from_attributes=True)

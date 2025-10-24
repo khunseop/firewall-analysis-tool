@@ -16,7 +16,8 @@ async def create_device(
     db_device = await crud.device.get_device_by_name(db, name=device_in.name)
     if db_device:
         raise HTTPException(status_code=400, detail="Device with this name already registered")
-    return await crud.device.create_device(db=db, device=device_in)
+    created = await crud.device.create_device(db=db, device=device_in)
+    return schemas.Device.model_validate(created, from_attributes=True)
 
 @router.get("/", response_model=List[schemas.Device])
 async def read_devices(
@@ -25,7 +26,7 @@ async def read_devices(
     db: AsyncSession = Depends(get_db)
 ):
     devices = await crud.device.get_devices(db, skip=skip, limit=limit)
-    return devices
+    return [schemas.Device.model_validate(d, from_attributes=True) for d in devices]
 
 @router.get("/{device_id}", response_model=schemas.Device)
 async def read_device(
@@ -35,7 +36,7 @@ async def read_device(
     db_device = await crud.device.get_device(db, device_id=device_id)
     if db_device is None:
         raise HTTPException(status_code=404, detail="Device not found")
-    return db_device
+    return schemas.Device.model_validate(db_device, from_attributes=True)
 
 @router.put("/{device_id}", response_model=schemas.Device)
 async def update_device(
@@ -47,7 +48,7 @@ async def update_device(
     if db_device is None:
         raise HTTPException(status_code=404, detail="Device not found")
     updated_device = await crud.device.update_device(db=db, db_obj=db_device, obj_in=device_in)
-    return updated_device
+    return schemas.Device.model_validate(updated_device, from_attributes=True)
 
 @router.delete("/{device_id}", response_model=schemas.Device)
 async def delete_device(
@@ -57,7 +58,7 @@ async def delete_device(
     db_device = await crud.device.remove_device(db, id=device_id)
     if db_device is None:
         raise HTTPException(status_code=404, detail="Device not found")
-    return db_device
+    return schemas.Device.model_validate(db_device, from_attributes=True)
 
 @router.post("/{device_id}/test-connection", response_model=dict)
 async def test_connection(
