@@ -1,6 +1,6 @@
 # firewall_manager/app/api/api_v1/endpoints/firewall_data.py
 import logging
-from typing import Any, List
+from typing import Any, List, Optional
 import asyncio
 from datetime import datetime
 import pandas as pd
@@ -17,15 +17,63 @@ from app.services.firewall.interface import FirewallInterface
 router = APIRouter()
 
 def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
-    """Converts a Pandas DataFrame to a list of Pydantic models."""
+    """Converts a Pandas DataFrame to a list of Pydantic models.
+
+    - Standardizes column names (lowercase + spaces→underscore)
+    - Renames vendor-specific columns to unified schema
+    - Parses dates (including last hit date[s]) and integers safely
+    - Normalizes NaN/placeholder values to None
+    - Skips records without key fields (e.g., empty rule_name)
+    """
+    if df is None or df.empty:
+        return []
+
+    # 1) Standardize columns
     df.columns = [col.lower().replace(' ', '_') for col in df.columns]
+
+    # 2) Vendor-specific renames to our unified schema
     rename_map = {
+        # Common mappings already used elsewhere
         "group_name": "name",
         "entry": "members",
         "value": "ip_address",
-        "port": "port",
+        # Policy hit date(s)
+        "last_hit_time": "last_hit_date",
+        "last_hit_date_secondary": "last_hit_date_secondary",
     }
     df = df.rename(columns=rename_map)
+
+    # 3) Normalize placeholders to None
+    PLACEHOLDERS = {None, '', '-', 'n/a', 'N/A'}
+
+    def _normalize_value(v):
+        try:
+            if v in PLACEHOLDERS:
+                return None
+        except Exception:
+            pass
+        return v
+
+    for col in df.columns:
+        df[col] = df[col].apply(_normalize_value)
+
+    # Ensure NaN -> None
+    df = df.where(df.notna(), None)
+
+    # 4) Safe type conversions
+    if 'seq' in df.columns:
+        def _to_int_or_none(v):
+            if v is None:
+                return None
+            try:
+                s = str(v).strip()
+                if s == '':
+                    return None
+                return int(float(s))
+            except Exception:
+                return None
+        df['seq'] = df['seq'].apply(_to_int_or_none)
+
     # Normalize enable column to boolean if present (handles 'Y'/'N', 'yes'/'no', etc.)
     if 'enable' in df.columns:
         def _to_bool(v):
@@ -43,7 +91,66 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
                 return False
             return None
         df['enable'] = df['enable'].apply(_to_bool)
-    return [pydantic_model(**row) for row in df.to_dict(orient='records')]
+
+    # 5) Date parsing utilities
+    DATE_FORMATS = [
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d",
+        "%Y/%m/%d %H:%M:%S",
+        "%Y/%m/%d",
+    ]
+
+    def _parse_dt(v) -> Optional[datetime]:
+        if v is None:
+            return None
+        # integer timestamp (seconds)
+        try:
+            if isinstance(v, (int, float)):
+                # guard against NaN which we already converted to None
+                iv = int(v)
+                if iv <= 0:
+                    return None
+                return datetime.fromtimestamp(iv)
+        except Exception:
+            pass
+        # string parsing
+        try:
+            s = str(v).strip()
+            if s in {'', '-', 'n/a', 'N/A'}:
+                return None
+            # numeric string timestamp
+            if s.isdigit():
+                iv = int(s)
+                if iv <= 0:
+                    return None
+                return datetime.fromtimestamp(iv)
+            for fmt in DATE_FORMATS:
+                try:
+                    return datetime.strptime(s, fmt)
+                except ValueError:
+                    continue
+        except Exception:
+            return None
+        return None
+
+    # 6) Map last_hit_date columns -> last_hit_at fields expected by Pydantic/DB
+    if 'last_hit_date' in df.columns:
+        df['last_hit_at'] = df['last_hit_date'].apply(_parse_dt)
+    if 'last_hit_date_secondary' in df.columns:
+        df['last_hit_at_secondary'] = df['last_hit_date_secondary'].apply(_parse_dt)
+
+    # 7) Drop external 'id' column if present to avoid ORM confusion
+    if 'id' in df.columns:
+        df = df.drop(columns=['id'])
+
+    # 8) Ensure key fields stringified and skip blanks (policy.rule_name / others.name)
+    if 'rule_name' in df.columns:
+        df['rule_name'] = df['rule_name'].apply(lambda v: None if v is None else str(v))
+        df = df[df['rule_name'].apply(lambda x: isinstance(x, str) and x.strip() != '')]
+
+    # 9) Build Pydantic models
+    records = df.to_dict(orient='records')
+    return [pydantic_model(**row) for row in records]
 
 def get_singular_name(plural_name: str) -> str:
     """Converts plural data type string to singular form for CRUD operations."""
@@ -155,7 +262,14 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                 await new_db.commit()
 
 @router.post("/sync/{device_id}/{data_type}", response_model=schemas.Msg)
-async def sync_device_data(device_id: int, data_type: str, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+async def sync_device_data(
+    device_id: int,
+    data_type: str,
+    include_hit: bool = False,
+    hit_timeout_seconds: int = 30,
+    background_tasks: BackgroundTasks = None,
+    db: AsyncSession = Depends(get_db),
+):
     device = await crud.device.get_device(db=db, device_id=device_id)
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
@@ -193,7 +307,17 @@ async def sync_device_data(device_id: int, data_type: str, background_tasks: Bac
             raise HTTPException(status_code=502, detail=f"Failed to connect to device: {e}")
 
         try:
-            df = await loop.run_in_executor(None, export_func)
+            if data_type == 'policies' and device.vendor.lower() == 'paloalto':
+                # Palo Alto: optionally include hit merge and HA secondary
+                export_kwargs = {
+                    'include_hit': include_hit,
+                    'secondary_hostname': device.secondary_ip_address if include_hit else None,
+                    'hit_timeout_seconds': hit_timeout_seconds,
+                }
+                df = await loop.run_in_executor(None, lambda: export_func(**export_kwargs))
+            else:
+                # NGF includes hit data inherently; MF2/mock ignore include_hit
+                df = await loop.run_in_executor(None, export_func)
         except NotImplementedError:
             # Vendor does not support this data type
             await crud.device.update_sync_status(db=db, device=device, status="failure")

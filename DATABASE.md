@@ -17,6 +17,7 @@ Stores information about the firewall devices being managed.
 | `description`      | `VARCHAR` | `NULLABLE`                 | A brief description of the device.        |
 | `last_sync_at`     | `DATETIME`| `NULLABLE`                 | Timestamp of the last completed sync (success/failure). |
 | `last_sync_status` | `VARCHAR` | `NULLABLE`                 | `in_progress`, `success`, or `failure`.   |
+| `secondary_ip_address` | `VARCHAR` | `NULLABLE`             | Optional HA secondary peer IP/hostname (Palo Alto). |
 
 ### Indexes
 
@@ -148,6 +149,8 @@ Stores information about the firewall policies.
 | `description`     | `VARCHAR` | `NULLABLE`                 | A brief description of the policy.        |
 | `is_active`       | `BOOLEAN` | `NOT NULL`                 | Whether the policy is active (present in last sync).     |
 | `last_seen_at`    | `DATETIME`| `NOT NULL`                 | Last time the policy was confirmed present.              |
+| `last_hit_at`     | `DATETIME`| `NULLABLE`                 | Last hit time from primary device (if available).        |
+| `last_hit_at_secondary` | `DATETIME` | `NULLABLE`           | Last hit time from secondary device (HA) if available.   |
 
 ### Indexes
 
@@ -167,4 +170,12 @@ Stores information about the firewall policies.
   - Update: compare by key (`policies.rule_name`, otherwise `name`); persist diffs and write `change_logs` with before/after.
   - Delete: remove DB rows missing from source; write `change_logs` with `deleted`.
   - Touch: for objects seen in source, set `last_seen_at=now()` and keep `is_active=True`.
+
+### Last hit date collection
+- NGF: Provided directly in policy export as `Last Hit Date` and stored into `policies.last_hit_at`.
+- Palo Alto: If `include_hit=true`, the system queries `rule-hit-count` per vsys and merges by `(Vsys, Rule Name)`:
+  - Primary device → `policies.last_hit_at`
+  - Secondary peer (when `devices.secondary_ip_address` is set) → `policies.last_hit_at_secondary`
+  - Timeouts/failures in hit queries do not fail the overall policy sync.
+- MF2: Not supported; columns remain null.
 
