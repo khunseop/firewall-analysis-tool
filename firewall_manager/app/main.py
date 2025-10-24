@@ -2,6 +2,7 @@ from pathlib import Path
 import asyncio
 
 from fastapi import FastAPI
+import logging
 from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.docs import (
     get_swagger_ui_html,
@@ -31,6 +32,9 @@ app = FastAPI(
 # Mount local static assets regardless of current working directory
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+# Basic logging config for uvicorn console if not already configured by runner
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
 
 
 @app.get(SWAGGER_UI_HTML_PATH, include_in_schema=False)

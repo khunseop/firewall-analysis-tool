@@ -132,6 +132,7 @@ async def _get_collector(device: models.Device) -> FirewallInterface:
     except Exception:
         # Fallback for vendors that don't actually use the password (e.g., mock)
         # Prevent hard failure while still allowing sync to proceed.
+        logging.exception("Password decryption failed for device_id=%s vendor=%s", device.id, device.vendor)
         if device.vendor.lower() == "mock":
             decrypted_password = device.password
         else:
@@ -217,7 +218,7 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
 
         except Exception as e:
             await db.rollback()
-            logging.error(f"Failed to sync {data_type} for device {device.name}: {e}", exc_info=True)
+            logging.exception(f"Failed to sync {data_type} for device {device.name}")
             async with SessionLocal() as new_db:
                 device_for_status_update = await crud.device.get_device(db=new_db, device_id=device_id)
                 await crud.device.update_sync_status(db=new_db, device=device_for_status_update, status="failure")
