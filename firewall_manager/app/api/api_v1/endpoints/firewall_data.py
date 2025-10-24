@@ -4,7 +4,7 @@ from typing import Any, List, Optional
 import asyncio
 from datetime import datetime
 import pandas as pd
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 import json
 
@@ -284,7 +284,6 @@ async def sync_device_data(
     data_type: str,
     include_hit: bool = False,
     hit_timeout_seconds: int = 30,
-    background_tasks: BackgroundTasks | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     device = await crud.device.get_device(db=db, device_id=device_id)
