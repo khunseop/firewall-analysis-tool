@@ -100,7 +100,19 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     # Ensure rule_name is string when present (vendors may return numeric IDs)
     if 'rule_name' in df.columns:
         df['rule_name'] = df['rule_name'].apply(lambda v: str(v) if v is not None else v)
-    return [pydantic_model(**row) for row in df.to_dict(orient='records')]
+    records = df.to_dict(orient='records')
+    models: list[Any] = []
+    errors: list[dict[str, Any]] = []
+    for idx, row in enumerate(records):
+        try:
+            models.append(pydantic_model(**row))
+        except Exception as e:
+            # Collect minimal error info without leaking secrets
+            preview = {k: row.get(k) for k in list(row.keys())[:10]}
+            errors.append({"index": idx, "error": str(e), "row_preview": preview})
+    if errors:
+        logging.warning("dataframe_to_pydantic: %d/%d rows failed validation. First error: %s", len(errors), len(records), errors[0])
+    return models
 
 def get_singular_name(plural_name: str) -> str:
     """Converts plural data type string to singular form for CRUD operations."""
@@ -281,12 +293,20 @@ async def sync_device_data(
         except Exception as e:
             await crud.device.update_sync_status(db=db, device=device, status="failure")
             await db.commit()
-            raise HTTPException(status_code=502, detail=f"Failed to export data from device: {e}")
+            # Log traceback and a compact hint
+            logging.exception("Export failed for device_id=%s vendor=%s data_type=%s", device_id, device.vendor, data_type)
+            raise HTTPException(status_code=502, detail=f"Failed to export data from device (vendor={device.vendor}, type={data_type}).")
 
         if df is None:
             df = pd.DataFrame()
         df['device_id'] = device_id
-        items_to_sync = dataframe_to_pydantic(df, schema_create)
+        try:
+            items_to_sync = dataframe_to_pydantic(df, schema_create)
+        except Exception as e:
+            logging.exception("DataFrame to Pydantic conversion failed for device_id=%s data_type=%s", device_id, data_type)
+            await crud.device.update_sync_status(db=db, device=device, status="failure")
+            await db.commit()
+            raise HTTPException(status_code=500, detail="Failed to transform data for synchronization.")
 
         logging.info(f"Adding background task for {data_type} sync on device {device_id}")
         background_tasks.add_task(_sync_data_task, device_id, data_type, items_to_sync)

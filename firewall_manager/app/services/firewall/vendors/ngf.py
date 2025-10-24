@@ -148,12 +148,18 @@ class NGFClient:
 
     def export_security_rules(self) -> pd.DataFrame:
         try:
-            if not self.login(): raise Exception("NGF 로그인 실패")
+            if not self.login():
+                raise Exception("NGF 로그인 실패")
             rules_data = self.get_fw4_rules()
-            if not rules_data: raise Exception("규칙 데이터를 가져올 수 없습니다")
+            if not rules_data:
+                raise Exception("규칙 데이터를 가져올 수 없습니다")
 
             security_rules = []
-            for rule in rules_data.get("result", []):
+            result = rules_data.get("result", [])
+            if not isinstance(result, list):
+                logging.error("NGF get_fw4_rules(): unexpected result type: %s", type(result))
+                result = []
+            for rule in result:
                 if rule.get("name") == "default": continue
 
                 info = {
@@ -180,6 +186,7 @@ class NGFClient:
                 df['last_hit_date'] = df['last_hit_date'].apply(lambda v: None if isinstance(v, str) and v.strip() in {'-', '--', '—', ''} else v)
             return df
         except Exception as e:
+            logging.exception("NGF 규칙 데이터 수집 실패")
             raise Exception(f"NGF 규칙 데이터 수집 실패: {e}")
         finally:
             self.logout()

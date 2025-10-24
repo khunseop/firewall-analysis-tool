@@ -337,7 +337,7 @@ class PaloAltoAPI(FirewallInterface):
                 last_hit_ts = int(member_texts[2])
                 first_hit_ts = int(member_texts[4])
             except (IndexError, ValueError) as error:
-                self.logger.error("히트 카운트 파싱 중 오류 발생: %s", error)
+                self.logger.warning("히트 카운트 파싱 스킵 (rule=%s): %s", rule_name, error)
                 continue
 
             no_unused_days = 99999
