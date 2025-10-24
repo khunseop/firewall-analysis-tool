@@ -167,7 +167,16 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
 
     # 9) Build Pydantic models
     records = df.to_dict(orient='records')
-    return [pydantic_model(**row) for row in records]
+    items: list[Any] = []
+    failed = 0
+    for row in records:
+        try:
+            items.append(pydantic_model(**row))
+        except Exception:
+            failed += 1
+    if failed:
+        logging.warning(f"Data conversion failures: {failed} rows skipped for model {pydantic_model.__name__}")
+    return items
 
 def get_singular_name(plural_name: str) -> str:
     """Converts plural data type string to singular form for CRUD operations."""
@@ -358,10 +367,17 @@ async def sync_device_data(
             await db.commit()
             return {"msg": f"{data_type.replace('_', ' ').title()} synchronization completed."}
         except Exception as e:
-            await db.rollback()
-            await crud.device.update_sync_status(db=db, device=device, status="failure")
-            await db.commit()
-            raise HTTPException(status_code=500, detail=f"Sync failed: {e}")
+            logging.exception("Sync failed for device %s data_type %s", device.name, data_type)
+            try:
+                await db.rollback()
+            except Exception:
+                pass
+            try:
+                await crud.device.update_sync_status(db=db, device=device, status="failure")
+                await db.commit()
+            except Exception:
+                pass
+            raise HTTPException(status_code=500, detail=f"Sync failed: {type(e).__name__}: {e}")
     finally:
         if connected:
             try:
