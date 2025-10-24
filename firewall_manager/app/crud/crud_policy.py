@@ -58,6 +58,9 @@ async def create_policies(db: AsyncSession, policies: List[PolicyCreate]):
             data["device_id"] = int(data.get("device_id")) if data.get("device_id") is not None else None
         except Exception:
             pass
+        # Drop keys not in model to avoid TypeError
+        allowed = {c.name for c in Policy.__table__.columns}
+        data = {k: v for k, v in data.items() if k in allowed}
         sanitized.append(Policy(**data))
     db.add_all(sanitized)
     # flush to detect binding errors early

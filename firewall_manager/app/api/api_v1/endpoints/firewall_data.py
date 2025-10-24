@@ -204,7 +204,7 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
             existing_items = await get_all_func(db=db, device_id=device_id)
             key_attribute = get_key_attribute(data_type)
             existing_items_map = {getattr(item, key_attribute): item for item in existing_items}
-            items_to_sync_map = {getattr(item, key_attribute): item for item in items_to_sync}
+            items_to_sync_map = {getattr(item, key_attribute): item for item in items_to_sync if getattr(item, key_attribute, None)}
 
             logging.info(f"Found {len(existing_items)} existing items and {len(items_to_sync)} items to sync.")
 
@@ -361,13 +361,8 @@ async def sync_device_data(
             raise HTTPException(status_code=500, detail="Failed to transform data for synchronization.")
 
         logging.info(f"Scheduling background task for {data_type} sync on device {device_id}")
-        # Background task: run sync coroutine in its own event loop
-        def _runner():
-            try:
-                asyncio.run(_sync_data_task(device_id, data_type, items_to_sync))
-            except Exception:
-                logging.exception("Background sync task crashed for device %s type %s", device_id, data_type)
-        background_tasks.add_task(_runner)
+        # Run in the current event loop to avoid MissingGreenlet issues
+        asyncio.create_task(_sync_data_task(device_id, data_type, items_to_sync))
         return {"msg": f"{data_type.replace('_', ' ').title()} synchronization started in the background."}
     finally:
         if connected:
