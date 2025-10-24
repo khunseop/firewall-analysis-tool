@@ -36,3 +36,27 @@ async def update_policy(db: AsyncSession, db_obj: Policy, obj_in: PolicyCreate):
 async def delete_policy(db: AsyncSession, policy: Policy):
     await db.delete(policy)
     return policy
+
+
+async def update_policy_last_hit(
+    db: AsyncSession,
+    device_id: int,
+    rule_name: str,
+    *,
+    vsys: str | None = None,
+    last_hit_at: datetime | None = None,
+    last_hit_at_secondary: datetime | None = None,
+):
+    """Update last hit timestamps for a single policy by rule name (and optional vsys)."""
+    stmt = update(Policy).where(Policy.device_id == device_id, Policy.rule_name == rule_name)
+    if vsys is not None:
+        stmt = stmt.where(Policy.vsys == vsys)
+    values: dict = {}
+    if last_hit_at is not None:
+        values['last_hit_at'] = last_hit_at
+    if last_hit_at_secondary is not None:
+        values['last_hit_at_secondary'] = last_hit_at_secondary
+    if not values:
+        return 0
+    result = await db.execute(stmt.values(**values))
+    return result.rowcount or 0

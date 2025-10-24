@@ -200,7 +200,14 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                 await new_db.commit()
 
 @router.post("/sync/{device_id}/{data_type}", response_model=schemas.Msg)
-async def sync_device_data(device_id: int, data_type: str, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+async def sync_device_data(
+    device_id: int,
+    data_type: str,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    include_hit: bool = False,
+    hit_timeout_seconds: int = 30,
+):
     device = await crud.device.get_device(db=db, device_id=device_id)
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
@@ -231,8 +238,9 @@ async def sync_device_data(device_id: int, data_type: str, background_tasks: Bac
         if vendor == "paloalto":
             # Enable hit merge and optional secondary host for HA
             export_kwargs = {
-                "include_hit": True,
+                "include_hit": bool(include_hit),
                 "secondary_hostname": (device.secondary_ip_address or None),
+                "hit_timeout_seconds": int(hit_timeout_seconds),
             }
 
     connected = False

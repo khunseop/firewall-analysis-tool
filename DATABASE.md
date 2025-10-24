@@ -10,7 +10,8 @@ Stores information about the firewall devices being managed.
 |--------------------|-----------|----------------------------|-------------------------------------------|
 | `id`               | `INTEGER` | `PRIMARY KEY`, `NOT NULL`  | Unique identifier for the device.         |
 | `name`             | `VARCHAR` | `NOT NULL`, `UNIQUE`       | User-defined name for the device.         |
-| `ip_address`       | `VARCHAR` | `NOT NULL`, `UNIQUE`       | IP address of the device.                 |
+| `ip_address`       | `VARCHAR` | `NOT NULL`, `UNIQUE`       | Primary IP address of the device.         |
+| `secondary_ip_address` | `VARCHAR` | `NULLABLE`             | Secondary IP for HA pair (optional).      |
 | `vendor`           | `VARCHAR` | `NOT NULL`                 | Vendor of the device (e.g., Palo Alto).   |
 | `username`         | `VARCHAR` | `NOT NULL`                 | Username for device authentication.       |
 | `password`         | `VARCHAR` | `NOT NULL`                 | Fernet (symmetric) encrypted password.    |
@@ -146,6 +147,8 @@ Stores information about the firewall policies.
 | `security_profile`| `VARCHAR` | `NULLABLE`                 | Security profile of the policy.           |
 | `category`        | `VARCHAR` | `NULLABLE`                 | Category of the policy.                   |
 | `description`     | `VARCHAR` | `NULLABLE`                 | A brief description of the policy.        |
+| `last_hit_at`     | `DATETIME`| `NULLABLE`                 | Last hit timestamp (primary member).      |
+| `last_hit_at_secondary` | `DATETIME` | `NULLABLE`           | Last hit timestamp from secondary member. |
 | `is_active`       | `BOOLEAN` | `NOT NULL`                 | Whether the policy is active (present in last sync).     |
 | `last_seen_at`    | `DATETIME`| `NOT NULL`                 | Last time the policy was confirmed present.              |
 
@@ -167,4 +170,11 @@ Stores information about the firewall policies.
   - Update: compare by key (`policies.rule_name`, otherwise `name`); persist diffs and write `change_logs` with before/after.
   - Delete: remove DB rows missing from source; write `change_logs` with `deleted`.
   - Touch: for objects seen in source, set `last_seen_at=now()` and keep `is_active=True`.
+
+### Last Hit Collection Notes
+- NGF: `last_hit_time`가 정책 API 응답에 포함되어 빠르게 수집됨. `policies.last_hit_at`에 저장(Primary 기준).
+- Palo Alto: 별도 Hit Count API 필요. 경우에 따라 5분 이상 소요 가능. 다음 전략 적용:
+  - 정책 본문 수집과 Hit Count 병합을 분리 가능하도록 설계. 현재 기본값은 병합 활성화.
+  - HA 환경에서 `devices.secondary_ip_address`가 설정되면 Secondary에서도 Hit Count 조회 후 `last_hit_at_secondary`로 저장.
+  - 타임아웃/실패 시 정책 수집은 계속 진행하고, Hit Count는 건너뛰며 `last_sync_status`는 정책 동기화 기준으로 보고.
 
