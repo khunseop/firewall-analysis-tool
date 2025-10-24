@@ -136,17 +136,16 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     if 'seq' in df.columns:
         df['seq'] = df['seq'].apply(_to_int_or_none)
     records = df.to_dict(orient='records')
+    # Bulk-validate without spamming logs; only log aggregate failures
     models: list[Any] = []
-    errors: list[dict[str, Any]] = []
-    for idx, row in enumerate(records):
+    failed = 0
+    for row in records:
         try:
             models.append(pydantic_model(**row))
-        except Exception as e:
-            # Collect minimal error info without leaking secrets
-            preview = {k: row.get(k) for k in list(row.keys())[:10]}
-            errors.append({"index": idx, "error": str(e), "row_preview": preview})
-    if errors:
-        logging.warning("dataframe_to_pydantic: %d/%d rows failed validation. First error: %s", len(errors), len(records), errors[0])
+        except Exception:
+            failed += 1
+    if failed:
+        logging.warning("dataframe_to_pydantic: %d/%d rows failed validation", failed, len(records))
     return models
 
 def get_singular_name(plural_name: str) -> str:
@@ -232,24 +231,19 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
 
             if items_to_create:
                 logging.info(f"Creating {len(items_to_create)} new {data_type}.")
-                try:
-                    await create_func(db=db, **{f"{data_type}": items_to_create})
-                except Exception:
-                    logging.exception("Bulk create failed for %s; attempting per-item fallback", data_type)
-                    # Fallback: try inserting one by one to isolate bad rows
-                    good_items = []
-                    for item_in in items_to_create:
-                        try:
-                            await create_func(db=db, **{f"{data_type}": [item_in]})
-                            good_items.append(item_in)
-                        except Exception:
-                            logging.exception("Create failed for object: %s", getattr(item_in, key_attribute, '<unknown>'))
-                    items_to_create = good_items
+                await create_func(db=db, **{f"{data_type}": items_to_create})
                 for item_in in items_to_create:
-                    try:
-                        await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=getattr(item_in, key_attribute), action="created", details=json.dumps(item_in.model_dump(), default=str)))
-                    except Exception:
-                        logging.exception("ChangeLog create failed for object: %s", getattr(item_in, key_attribute, '<unknown>'))
+                    # Keep change log lightweight for bulk creates
+                    await crud.change_log.create_change_log(
+                        db=db,
+                        change_log=schemas.ChangeLogCreate(
+                            device_id=device_id,
+                            data_type=data_type,
+                            object_name=getattr(item_in, key_attribute),
+                            action="created",
+                            details=None,
+                        ),
+                    )
 
             items_to_delete_count = 0
             for item_name, item in existing_items_map.items():
@@ -367,8 +361,13 @@ async def sync_device_data(
             raise HTTPException(status_code=500, detail="Failed to transform data for synchronization.")
 
         logging.info(f"Scheduling background task for {data_type} sync on device {device_id}")
-        # Use asyncio.create_task to ensure proper async context for SQLAlchemy
-        asyncio.create_task(_sync_data_task(device_id, data_type, items_to_sync))
+        # Background task: run sync coroutine in its own event loop
+        def _runner():
+            try:
+                asyncio.run(_sync_data_task(device_id, data_type, items_to_sync))
+            except Exception:
+                logging.exception("Background sync task crashed for device %s type %s", device_id, data_type)
+        background_tasks.add_task(_runner)
         return {"msg": f"{data_type.replace('_', ' ').title()} synchronization started in the background."}
     finally:
         if connected:
