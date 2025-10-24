@@ -232,17 +232,39 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
 
             if items_to_create:
                 logging.info(f"Creating {len(items_to_create)} new {data_type}.")
-                await create_func(db=db, **{f"{data_type}": items_to_create})
+                try:
+                    await create_func(db=db, **{f"{data_type}": items_to_create})
+                except Exception:
+                    logging.exception("Bulk create failed for %s; attempting per-item fallback", data_type)
+                    # Fallback: try inserting one by one to isolate bad rows
+                    good_items = []
+                    for item_in in items_to_create:
+                        try:
+                            await create_func(db=db, **{f"{data_type}": [item_in]})
+                            good_items.append(item_in)
+                        except Exception:
+                            logging.exception("Create failed for object: %s", getattr(item_in, key_attribute, '<unknown>'))
+                    items_to_create = good_items
                 for item_in in items_to_create:
-                    await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=getattr(item_in, key_attribute), action="created", details=json.dumps(item_in.model_dump(), default=str)))
+                    try:
+                        await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=getattr(item_in, key_attribute), action="created", details=json.dumps(item_in.model_dump(), default=str)))
+                    except Exception:
+                        logging.exception("ChangeLog create failed for object: %s", getattr(item_in, key_attribute, '<unknown>'))
 
             items_to_delete_count = 0
             for item_name, item in existing_items_map.items():
                 if item_name not in items_to_sync_map:
                     items_to_delete_count += 1
                     logging.info(f"Deleting {data_type}: {item_name}")
-                    await delete_func(db=db, **{f"{get_singular_name(data_type)}": item})
-                    await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="deleted"))
+                    try:
+                        await delete_func(db=db, **{f"{get_singular_name(data_type)}": item})
+                    except Exception:
+                        logging.exception("Delete failed for %s: %s", data_type, item_name)
+                        continue
+                    try:
+                        await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="deleted"))
+                    except Exception:
+                        logging.exception("ChangeLog create failed for deleted object: %s", item_name)
 
             if items_to_delete_count > 0:
                 logging.info(f"Deleted {items_to_delete_count} {data_type}.")
@@ -344,8 +366,9 @@ async def sync_device_data(
             await db.commit()
             raise HTTPException(status_code=500, detail="Failed to transform data for synchronization.")
 
-        logging.info(f"Adding background task for {data_type} sync on device {device_id}")
-        background_tasks.add_task(_sync_data_task, device_id, data_type, items_to_sync)
+        logging.info(f"Scheduling background task for {data_type} sync on device {device_id}")
+        # Use asyncio.create_task to ensure proper async context for SQLAlchemy
+        asyncio.create_task(_sync_data_task(device_id, data_type, items_to_sync))
         return {"msg": f"{data_type.replace('_', ' ').title()} synchronization started in the background."}
     finally:
         if connected:
