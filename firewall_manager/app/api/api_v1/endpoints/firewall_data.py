@@ -57,7 +57,10 @@ def _parse_datetime_safe(value: Any) -> Optional[datetime]:
 
 def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     """Converts a Pandas DataFrame to a list of Pydantic models."""
-    df.columns = [col.lower().replace(' ', '_') for col in df.columns]
+    if df is None:
+        df = pd.DataFrame()
+    # normalize columns defensively
+    df.columns = [str(col).lower().replace(' ', '_') for col in df.columns]
     rename_map = {
         "group_name": "name",
         "entry": "members",
@@ -100,6 +103,38 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     # Ensure rule_name is string when present (vendors may return numeric IDs)
     if 'rule_name' in df.columns:
         df['rule_name'] = df['rule_name'].apply(lambda v: str(v) if v is not None else v)
+
+    # Drop accidental 'id' column from vendor exports which could conflict with ORM
+    if 'id' in df.columns:
+        df = df.drop(columns=['id'])
+
+    # Sanitize integer-like columns
+    def _to_int_or_none(v):
+        try:
+            if v is None:
+                return None
+            if isinstance(v, str) and v.strip().lower() in {'', '-', '--', '—', 'n/a', 'na'}:
+                return None
+            if isinstance(v, (int,)):
+                return v
+            if isinstance(v, float):
+                # pandas NaN handling
+                if pd.isna(v):
+                    return None
+                return int(v)
+            # strings like '12.0' or '12'
+            s = str(v).strip()
+            if not s:
+                return None
+            if s.isdigit():
+                return int(s)
+            # fallback: try float->int
+            return int(float(s))
+        except Exception:
+            return None
+
+    if 'seq' in df.columns:
+        df['seq'] = df['seq'].apply(_to_int_or_none)
     records = df.to_dict(orient='records')
     models: list[Any] = []
     errors: list[dict[str, Any]] = []
