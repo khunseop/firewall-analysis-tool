@@ -25,6 +25,11 @@ def _parse_datetime_safe(value: Any) -> Optional[datetime]:
     try:
         if isinstance(value, datetime):
             return value
+        # Common placeholders for 'no data'
+        if isinstance(value, str) and str(value).strip().lower() in {
+            '-', '--', '—', 'n/a', 'na', 'none', ''
+        }:
+            return None
         # numeric timestamp (seconds)
         if isinstance(value, (int, float)):
             # 0 means no hit
@@ -88,6 +93,13 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
                 return False
             return None
         df['enable'] = df['enable'].apply(_to_bool)
+
+    # Normalize NaN -> None for pydantic compatibility
+    df = df.where(pd.notna(df), None)
+
+    # Ensure rule_name is string when present (vendors may return numeric IDs)
+    if 'rule_name' in df.columns:
+        df['rule_name'] = df['rule_name'].apply(lambda v: str(v) if v is not None else v)
     return [pydantic_model(**row) for row in df.to_dict(orient='records')]
 
 def get_singular_name(plural_name: str) -> str:

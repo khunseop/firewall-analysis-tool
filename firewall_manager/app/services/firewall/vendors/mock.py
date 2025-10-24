@@ -114,6 +114,7 @@ class MockCollector(FirewallInterface):
         df = self.client.export_security_rules()
         if not df.empty and 'Last Hit Date' in df.columns:
             df = df.rename(columns={'Last Hit Date': 'last_hit_date'})
+            df['last_hit_date'] = df['last_hit_date'].apply(lambda v: v if v else None)
         return df
 
     def export_network_objects(self, **kwargs):

@@ -167,7 +167,8 @@ class NGFClient:
                     "Service": self.list_to_string([srv.get("name") for srv in rule.get("srv", [])] or "any"),
                     "Application": self.list_to_string([app.get("name") for app in rule.get("app", [])] or "any"),
                     # NGF: last_hit_time is maintained on primary member only
-                    "Last Hit Date": rule.get("last_hit_time"),
+                    # NGF가 '-' 등 placeholder를 반환할 수 있어 문자열로 안전 취급
+                    "Last Hit Date": rule.get("last_hit_time") or None,
                     "Description": rule.get("desc")
                 }
                 security_rules.append(info)
@@ -175,6 +176,8 @@ class NGFClient:
             # Normalize hit column name for downstream mapper
             if not df.empty and 'Last Hit Date' in df.columns:
                 df = df.rename(columns={'Last Hit Date': 'last_hit_date'})
+                # Fix placeholders like '-' to None for safe parsing
+                df['last_hit_date'] = df['last_hit_date'].apply(lambda v: None if isinstance(v, str) and v.strip() in {'-', '--', '—', ''} else v)
             return df
         except Exception as e:
             raise Exception(f"NGF 규칙 데이터 수집 실패: {e}")
