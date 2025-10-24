@@ -17,6 +17,8 @@ class PolicyBase(BaseModel):
     security_profile: Optional[str] = None
     category: Optional[str] = None
     description: Optional[str] = None
+    last_hit_at: Optional[datetime] = None
+    last_hit_at_secondary: Optional[datetime] = None
 
 # Schema for creating a new policy
 class PolicyCreate(PolicyBase):

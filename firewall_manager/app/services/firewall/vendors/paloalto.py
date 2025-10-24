@@ -123,14 +123,31 @@ class PaloAltoAPI(FirewallInterface):
         return pd.DataFrame(info, index=[0])
 
     def export_security_rules(self, **kwargs) -> pd.DataFrame:
+        """Export security rules and optionally merge rule hit info.
+
+        Args:
+            include_hit: When True, query rule-hit-count and merge by (Vsys, Rule Name)
+            secondary_hostname: Optional secondary peer hostname/IP for HA; also queried
+            hit_timeout_seconds: Per-request timeout for hit queries
+            config_type: 'running' or 'candidate' (defaults to 'running')
+        """
+        include_hit: bool = bool(kwargs.get('include_hit', False))
+        secondary_hostname: str | None = kwargs.get('secondary_hostname')
+        hit_timeout_seconds: int = int(kwargs.get('hit_timeout_seconds', 30))
         config_type = kwargs.get('config_type', 'running')
+
+        # 1) Fetch config and build base rule dataframe
         config_xml = self.get_config(config_type)
         tree = ET.fromstring(config_xml)
         vsys_entries = tree.findall('./result/config/devices/entry/vsys/entry')
-        security_rules = []
+        security_rules: list[dict] = []
 
+        vsys_names: list[str] = []
         for vsys in vsys_entries:
             vsys_name = vsys.attrib.get('name')
+            if not vsys_name:
+                continue
+            vsys_names.append(vsys_name)
             rulebase = vsys.findall('./rulebase/security/rules/entry')
             for idx, rule in enumerate(rulebase):
                 rule_name = str(rule.attrib.get('name'))
@@ -165,7 +182,53 @@ class PaloAltoAPI(FirewallInterface):
                 }
                 security_rules.append(rule_info)
 
-        return pd.DataFrame(security_rules)
+        rules_df = pd.DataFrame(security_rules)
+        if rules_df.empty or not include_hit:
+            return rules_df
+
+        # 2) Merge primary hit info
+        hit_frames: list[pd.DataFrame] = []
+        for vsys_name in vsys_names:
+            try:
+                df = self.export_hit_count(vsys_name=vsys_name, timeout=hit_timeout_seconds)
+                if not df.empty:
+                    hit_frames.append(df[['Vsys', 'Rule Name', 'Last Hit Date']])
+            except Exception as e:
+                self.logger.warning("Primary hit-count fetch failed for vsys=%s: %s", vsys_name, e)
+        if hit_frames:
+            primary_hits = pd.concat(hit_frames, ignore_index=True)
+            rules_df = rules_df.merge(
+                primary_hits.rename(columns={"Rule Name": "Rule_Name"}),
+                how='left',
+                on=['Vsys', 'Rule_Name']
+            )
+
+        # 3) Merge secondary hit info if requested
+        if secondary_hostname:
+            try:
+                secondary_api = PaloAltoAPI(hostname=secondary_hostname, username=self.username, password=self._password)
+                if not secondary_api.connect():
+                    self.logger.warning("Secondary Palo Alto connect failed: %s", secondary_hostname)
+                else:
+                    sec_frames: list[pd.DataFrame] = []
+                    for vsys_name in vsys_names:
+                        try:
+                            s_df = secondary_api.export_hit_count(vsys_name=vsys_name, timeout=hit_timeout_seconds)
+                            if not s_df.empty:
+                                sec_frames.append(s_df[['Vsys', 'Rule Name', 'Last Hit Date']])
+                        except Exception as err:
+                            self.logger.warning("Secondary hit-count fetch failed for vsys=%s: %s", vsys_name, err)
+                    if sec_frames:
+                        secondary_hits = pd.concat(sec_frames, ignore_index=True)
+                        secondary_hits = secondary_hits.rename(columns={
+                            'Rule Name': 'Rule_Name',
+                            'Last Hit Date': 'Last Hit Date Secondary'
+                        })
+                        rules_df = rules_df.merge(secondary_hits, how='left', on=['Vsys', 'Rule_Name'])
+            except Exception as e:
+                self.logger.warning("Secondary Palo Alto hit merge skipped due to error: %s", e)
+
+        return rules_df
 
     def export_network_objects(self) -> pd.DataFrame:
         config_xml = self.get_config()
@@ -258,7 +321,7 @@ class PaloAltoAPI(FirewallInterface):
             hit_counts = hit_counts[hit_counts['Unused Days'] <= days]
         return hit_counts
 
-    def export_hit_count(self, vsys_name: str = 'vsys1') -> pd.DataFrame:
+    def export_hit_count(self, vsys_name: str = 'vsys1', timeout: int = 30) -> pd.DataFrame:
         params = (
             ('type', 'op'),
             (
@@ -269,7 +332,7 @@ class PaloAltoAPI(FirewallInterface):
             ),
             ('key', self.api_key)
         )
-        response = self.get_api_data(params)
+        response = self.get_api_data(params, timeout=timeout)
         tree = ET.fromstring(response.text)
         rule_entries = tree.findall('./result/rule-hit-count/vsys/entry/rule-base/entry/rules/entry')
 

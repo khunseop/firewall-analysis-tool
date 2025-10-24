@@ -1,15 +1,15 @@
 # firewall_manager/app/api/api_v1/endpoints/firewall_data.py
 import logging
-from typing import Any, List
+from typing import Any, List, Optional
 import asyncio
 from datetime import datetime
 import pandas as pd
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 import json
 
 from app import crud, models, schemas
-from app.db.session import get_db, SessionLocal
+from app.db.session import get_db
 from app.core.security import fernet, decrypt
 from app.services.firewall.factory import FirewallCollectorFactory
 from app.services.firewall.interface import FirewallInterface
@@ -17,15 +17,68 @@ from app.services.firewall.interface import FirewallInterface
 router = APIRouter()
 
 def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
-    """Converts a Pandas DataFrame to a list of Pydantic models."""
+    """Converts a Pandas DataFrame to a list of Pydantic models.
+
+    - Standardizes column names (lowercase + spaces→underscore)
+    - Renames vendor-specific columns to unified schema
+    - Parses dates (including last hit date[s]) and integers safely
+    - Normalizes NaN/placeholder values to None
+    - Skips records without key fields (e.g., empty rule_name)
+    """
+    if df is None or df.empty:
+        return []
+
+    # 1) Standardize columns
     df.columns = [col.lower().replace(' ', '_') for col in df.columns]
+
+    # 2) Vendor-specific renames to our unified schema
     rename_map = {
+        # Common mappings already used elsewhere
         "group_name": "name",
         "entry": "members",
         "value": "ip_address",
-        "port": "port",
+        # Policy hit date(s)
+        "last_hit_time": "last_hit_date",
+        "last_hit_date_secondary": "last_hit_date_secondary",
     }
     df = df.rename(columns=rename_map)
+
+    # 3) Normalize placeholders to None
+    PLACEHOLDERS = {None, '', '-', 'n/a', 'N/A'}
+
+    def _normalize_value(v):
+        try:
+            if v in PLACEHOLDERS:
+                return None
+        except Exception:
+            pass
+        return v
+
+    for col in df.columns:
+        df[col] = df[col].apply(_normalize_value)
+
+    # Ensure NaN -> None
+    df = df.where(df.notna(), None)
+
+    # 4) Safe type conversions
+    if 'seq' in df.columns:
+        def _to_int_or_none(v):
+            # Treat NaN/None/blank as None; avoid int(NaN) error
+            try:
+                if v is None or pd.isna(v):
+                    return None
+            except Exception:
+                if v is None:
+                    return None
+            try:
+                s = str(v).strip()
+                if s == '' or s.lower() in {'nan', 'none'}:
+                    return None
+                return int(float(s))
+            except Exception:
+                return None
+        df['seq'] = df['seq'].apply(_to_int_or_none)
+
     # Normalize enable column to boolean if present (handles 'Y'/'N', 'yes'/'no', etc.)
     if 'enable' in df.columns:
         def _to_bool(v):
@@ -43,7 +96,87 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
                 return False
             return None
         df['enable'] = df['enable'].apply(_to_bool)
-    return [pydantic_model(**row) for row in df.to_dict(orient='records')]
+
+    # 5) Date parsing utilities
+    DATE_FORMATS = [
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d",
+        "%Y/%m/%d %H:%M:%S",
+        "%Y/%m/%d",
+    ]
+
+    def _parse_dt(v) -> Optional[datetime]:
+        # Handle None/NaN early
+        try:
+            if v is None or pd.isna(v):
+                return None
+        except Exception:
+            if v is None:
+                return None
+        # integer timestamp (seconds)
+        try:
+            if isinstance(v, (int, float)):
+                # guard against NaN which we already converted to None
+                # If float('nan') slips through, treat as None
+                if isinstance(v, float):
+                    try:
+                        if pd.isna(v):
+                            return None
+                    except Exception:
+                        pass
+                iv = int(v)
+                if iv <= 0:
+                    return None
+                return datetime.fromtimestamp(iv)
+        except Exception:
+            pass
+        # string parsing
+        try:
+            s = str(v).strip()
+            if s in {'', '-', 'n/a', 'N/A'}:
+                return None
+            # numeric string timestamp
+            if s.isdigit():
+                iv = int(s)
+                if iv <= 0:
+                    return None
+                return datetime.fromtimestamp(iv)
+            for fmt in DATE_FORMATS:
+                try:
+                    return datetime.strptime(s, fmt)
+                except ValueError:
+                    continue
+        except Exception:
+            return None
+        return None
+
+    # 6) Map last_hit_date columns -> last_hit_at fields expected by Pydantic/DB
+    if 'last_hit_date' in df.columns:
+        df['last_hit_at'] = df['last_hit_date'].apply(_parse_dt)
+    if 'last_hit_date_secondary' in df.columns:
+        df['last_hit_at_secondary'] = df['last_hit_date_secondary'].apply(_parse_dt)
+
+    # 7) Drop external 'id' column if present to avoid ORM confusion
+    if 'id' in df.columns:
+        df = df.drop(columns=['id'])
+
+    # 8) Ensure key fields stringified and skip blanks (policy.rule_name / others.name)
+    if 'rule_name' in df.columns:
+        df['rule_name'] = df['rule_name'].apply(lambda v: None if v is None else str(v))
+        df = df[df['rule_name'].apply(lambda x: isinstance(x, str) and x.strip() != '')]
+
+    # 9) Build Pydantic models
+    records = df.to_dict(orient='records')
+    items: list[Any] = []
+    failed = 0
+    for row in records:
+        try:
+            items.append(pydantic_model(**row))
+        except Exception:
+            failed += 1
+    if failed:
+        logging.warning(f"Data conversion failures: {failed} rows skipped for model {pydantic_model.__name__}")
+    return items
 
 def get_singular_name(plural_name: str) -> str:
     """Converts plural data type string to singular form for CRUD operations."""
@@ -76,86 +209,96 @@ async def _get_collector(device: models.Device) -> FirewallInterface:
     )
     return collector
 
-async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[Any]):
-    """Generic background task to synchronize data for a device."""
-    logging.info(f"Starting sync for device_id: {device_id}, data_type: {data_type}")
-    async with SessionLocal() as db:
-        device = await crud.device.get_device(db=db, device_id=device_id)
-        if not device:
-            logging.error(f"Device with id {device_id} not found.")
-            return
+async def _sync_data(db: AsyncSession, device: models.Device, data_type: str, items_to_sync: List[Any]):
+    """Synchronize data using the provided DB session (no background session)."""
+    logging.info(f"Syncing {data_type} for device: {device.name}")
+    sync_map = {
+        "policies": (crud.policy.get_policies_by_device, crud.policy.create_policies, crud.policy.update_policy, crud.policy.delete_policy),
+        "network_objects": (crud.network_object.get_network_objects_by_device, crud.network_object.create_network_objects, crud.network_object.update_network_object, crud.network_object.delete_network_object),
+        "network_groups": (crud.network_group.get_network_groups_by_device, crud.network_group.create_network_groups, crud.network_group.update_network_group, crud.network_group.delete_network_group),
+        "services": (crud.service.get_services_by_device, crud.service.create_services, crud.service.update_service, crud.service.delete_service),
+        "service_groups": (crud.service_group.get_service_groups_by_device, crud.service_group.create_service_groups, crud.service_group.update_service_group, crud.service_group.delete_service_group),
+    }
 
-        try:
-            logging.info(f"Syncing {data_type} for device: {device.name}")
-            sync_map = {
-                "policies": (crud.policy.get_policies_by_device, crud.policy.create_policies, crud.policy.update_policy, crud.policy.delete_policy),
-                "network_objects": (crud.network_object.get_network_objects_by_device, crud.network_object.create_network_objects, crud.network_object.update_network_object, crud.network_object.delete_network_object),
-                "network_groups": (crud.network_group.get_network_groups_by_device, crud.network_group.create_network_groups, crud.network_group.update_network_group, crud.network_group.delete_network_group),
-                "services": (crud.service.get_services_by_device, crud.service.create_services, crud.service.update_service, crud.service.delete_service),
-                "service_groups": (crud.service_group.get_service_groups_by_device, crud.service_group.create_service_groups, crud.service_group.update_service_group, crud.service_group.delete_service_group),
-            }
+    get_all_func, create_func, update_func, delete_func = sync_map[data_type]
 
-            get_all_func, create_func, update_func, delete_func = sync_map[data_type]
+    existing_items = await get_all_func(db=db, device_id=device.id)
+    key_attribute = get_key_attribute(data_type)
+    existing_items_map = {getattr(item, key_attribute): item for item in existing_items}
+    items_to_sync_map = {getattr(item, key_attribute): item for item in items_to_sync}
 
-            existing_items = await get_all_func(db=db, device_id=device_id)
-            key_attribute = get_key_attribute(data_type)
-            existing_items_map = {getattr(item, key_attribute): item for item in existing_items}
-            items_to_sync_map = {getattr(item, key_attribute): item for item in items_to_sync}
+    logging.info(f"Found {len(existing_items)} existing items and {len(items_to_sync)} items to sync.")
 
-            logging.info(f"Found {len(existing_items)} existing items and {len(items_to_sync)} items to sync.")
+    items_to_create = []
 
-            items_to_create = []
+    for item_name, item_in in items_to_sync_map.items():
+        existing_item = existing_items_map.get(item_name)
+        if existing_item:
+            existing_item.last_seen_at = datetime.utcnow()
+            if hasattr(existing_item, "is_active"):
+                existing_item.is_active = True
+            obj_data = item_in.model_dump()
+            db_obj_data = {c.name: getattr(existing_item, c.name) for c in existing_item.__table__.columns}
+            if any(obj_data.get(k) != db_obj_data.get(k) for k in obj_data):
+                logging.info(f"Updating {data_type}: {item_name}")
+                await update_func(db=db, db_obj=existing_item, obj_in=item_in)
+                await crud.change_log.create_change_log(
+                    db=db,
+                    change_log=schemas.ChangeLogCreate(
+                        device_id=device.id,
+                        data_type=data_type,
+                        object_name=item_name,
+                        action="updated",
+                        details=json.dumps({"before": db_obj_data, "after": obj_data}, default=str),
+                    ),
+                )
+            else:
+                db.add(existing_item)
+        else:
+            items_to_create.append(item_in)
 
-            for item_name, item_in in items_to_sync_map.items():
-                existing_item = existing_items_map.get(item_name)
-                if existing_item:
-                    # Touch last_seen_at and ensure is_active for seen items
-                    existing_item.last_seen_at = datetime.utcnow()
-                    if hasattr(existing_item, "is_active"):
-                        existing_item.is_active = True
-                    obj_data = item_in.model_dump()
-                    db_obj_data = {c.name: getattr(existing_item, c.name) for c in existing_item.__table__.columns}
-                    if any(obj_data.get(k) != db_obj_data.get(k) for k in obj_data):
-                        logging.info(f"Updating {data_type}: {item_name}")
-                        await update_func(db=db, db_obj=existing_item, obj_in=item_in)
-                        await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="updated", details=json.dumps({"before": db_obj_data, "after": obj_data}, default=str)))
-                    else:
-                        # Persist the last_seen_at touch even if no field changed
-                        db.add(existing_item)
-                else:
-                    items_to_create.append(item_in)
+    if items_to_create:
+        logging.info(f"Creating {len(items_to_create)} new {data_type}.")
+        await create_func(db=db, **{f"{data_type}": items_to_create})
+        for item_in in items_to_create:
+            await crud.change_log.create_change_log(
+                db=db,
+                change_log=schemas.ChangeLogCreate(
+                    device_id=device.id,
+                    data_type=data_type,
+                    object_name=getattr(item_in, key_attribute),
+                    action="created",
+                    details=json.dumps(item_in.model_dump(), default=str),
+                ),
+            )
 
-            if items_to_create:
-                logging.info(f"Creating {len(items_to_create)} new {data_type}.")
-                await create_func(db=db, **{f"{data_type}": items_to_create})
-                for item_in in items_to_create:
-                    await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=getattr(item_in, key_attribute), action="created", details=json.dumps(item_in.model_dump(), default=str)))
+    items_to_delete_count = 0
+    for item_name, item in existing_items_map.items():
+        if item_name not in items_to_sync_map:
+            items_to_delete_count += 1
+            logging.info(f"Deleting {data_type}: {item_name}")
+            await delete_func(db=db, **{f"{get_singular_name(data_type)}": item})
+            await crud.change_log.create_change_log(
+                db=db,
+                change_log=schemas.ChangeLogCreate(
+                    device_id=device.id,
+                    data_type=data_type,
+                    object_name=item_name,
+                    action="deleted",
+                ),
+            )
 
-            items_to_delete_count = 0
-            for item_name, item in existing_items_map.items():
-                if item_name not in items_to_sync_map:
-                    items_to_delete_count += 1
-                    logging.info(f"Deleting {data_type}: {item_name}")
-                    await delete_func(db=db, **{f"{get_singular_name(data_type)}": item})
-                    await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="deleted"))
-
-            if items_to_delete_count > 0:
-                logging.info(f"Deleted {items_to_delete_count} {data_type}.")
-
-            await crud.device.update_sync_status(db=db, device=device, status="success")
-            await db.commit()
-            logging.info(f"Sync completed successfully for device_id: {device_id}, data_type: {data_type}")
-
-        except Exception as e:
-            await db.rollback()
-            logging.error(f"Failed to sync {data_type} for device {device.name}: {e}", exc_info=True)
-            async with SessionLocal() as new_db:
-                device_for_status_update = await crud.device.get_device(db=new_db, device_id=device_id)
-                await crud.device.update_sync_status(db=new_db, device=device_for_status_update, status="failure")
-                await new_db.commit()
+    if items_to_delete_count > 0:
+        logging.info(f"Deleted {items_to_delete_count} {data_type}.")
 
 @router.post("/sync/{device_id}/{data_type}", response_model=schemas.Msg)
-async def sync_device_data(device_id: int, data_type: str, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+async def sync_device_data(
+    device_id: int,
+    data_type: str,
+    include_hit: bool = False,
+    hit_timeout_seconds: int = 30,
+    db: AsyncSession = Depends(get_db),
+):
     device = await crud.device.get_device(db=db, device_id=device_id)
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
@@ -193,7 +336,15 @@ async def sync_device_data(device_id: int, data_type: str, background_tasks: Bac
             raise HTTPException(status_code=502, detail=f"Failed to connect to device: {e}")
 
         try:
-            df = await loop.run_in_executor(None, export_func)
+            if data_type == 'policies' and device.vendor.lower() == 'paloalto':
+                export_kwargs = {
+                    'include_hit': include_hit,
+                    'secondary_hostname': device.secondary_ip_address if include_hit else None,
+                    'hit_timeout_seconds': hit_timeout_seconds,
+                }
+                df = await loop.run_in_executor(None, lambda: export_func(**export_kwargs))
+            else:
+                df = await loop.run_in_executor(None, export_func)
         except NotImplementedError:
             # Vendor does not support this data type
             await crud.device.update_sync_status(db=db, device=device, status="failure")
@@ -209,9 +360,24 @@ async def sync_device_data(device_id: int, data_type: str, background_tasks: Bac
         df['device_id'] = device_id
         items_to_sync = dataframe_to_pydantic(df, schema_create)
 
-        logging.info(f"Adding background task for {data_type} sync on device {device_id}")
-        background_tasks.add_task(_sync_data_task, device_id, data_type, items_to_sync)
-        return {"msg": f"{data_type.replace('_', ' ').title()} synchronization started in the background."}
+        # Perform sync inline (no background task) to avoid greenlet issues
+        try:
+            await _sync_data(db, device, data_type, items_to_sync)
+            await crud.device.update_sync_status(db=db, device=device, status="success")
+            await db.commit()
+            return {"msg": f"{data_type.replace('_', ' ').title()} synchronization completed."}
+        except Exception as e:
+            logging.exception("Sync failed for device %s data_type %s", device.name, data_type)
+            try:
+                await db.rollback()
+            except Exception:
+                pass
+            try:
+                await crud.device.update_sync_status(db=db, device=device, status="failure")
+                await db.commit()
+            except Exception:
+                pass
+            raise HTTPException(status_code=500, detail=f"Sync failed: {type(e).__name__}: {e}")
     finally:
         if connected:
             try:
@@ -222,27 +388,32 @@ async def sync_device_data(device_id: int, data_type: str, background_tasks: Bac
 
 @router.get("/{device_id}/policies", response_model=List[schemas.Policy])
 async def read_db_device_policies(device_id: int, db: AsyncSession = Depends(get_db)):
-    return await crud.policy.get_policies_by_device(db=db, device_id=device_id)
+    rows = await crud.policy.get_policies_by_device(db=db, device_id=device_id)
+    return [schemas.Policy.model_validate(r, from_attributes=True) for r in rows]
 
 @router.get("/{device_id}/network-objects", response_model=List[schemas.NetworkObject])
 async def read_db_device_network_objects(device_id: int, db: AsyncSession = Depends(get_db)):
-    return await crud.network_object.get_network_objects_by_device(db=db, device_id=device_id)
+    rows = await crud.network_object.get_network_objects_by_device(db=db, device_id=device_id)
+    return [schemas.NetworkObject.model_validate(r, from_attributes=True) for r in rows]
 
 @router.get("/{device_id}/network-groups", response_model=List[schemas.NetworkGroup])
 async def read_db_device_network_groups(device_id: int, db: AsyncSession = Depends(get_db)):
-    return await crud.network_group.get_network_groups_by_device(db=db, device_id=device_id)
+    rows = await crud.network_group.get_network_groups_by_device(db=db, device_id=device_id)
+    return [schemas.NetworkGroup.model_validate(r, from_attributes=True) for r in rows]
 
 @router.get("/{device_id}/services", response_model=List[schemas.Service])
 async def read_db_device_services(device_id: int, db: AsyncSession = Depends(get_db)):
-    return await crud.service.get_services_by_device(db=db, device_id=device_id)
+    rows = await crud.service.get_services_by_device(db=db, device_id=device_id)
+    return [schemas.Service.model_validate(r, from_attributes=True) for r in rows]
 
 @router.get("/{device_id}/service-groups", response_model=List[schemas.ServiceGroup])
 async def read_db_device_service_groups(device_id: int, db: AsyncSession = Depends(get_db)):
-    return await crud.service_group.get_service_groups_by_device(db=db, device_id=device_id)
+    rows = await crud.service_group.get_service_groups_by_device(db=db, device_id=device_id)
+    return [schemas.ServiceGroup.model_validate(r, from_attributes=True) for r in rows]
 
 @router.get("/sync/{device_id}/status", response_model=schemas.DeviceSyncStatus)
 async def get_device_sync_status(device_id: int, db: AsyncSession = Depends(get_db)):
     device = await crud.device.get_device(db=db, device_id=device_id)
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
-    return device
+    return schemas.DeviceSyncStatus.model_validate(device, from_attributes=True)

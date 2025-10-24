@@ -6,6 +6,7 @@ from datetime import datetime
 class DeviceBase(BaseModel):
     name: str
     ip_address: str
+    secondary_ip_address: Optional[str] = None
     vendor: str
     username: str
     description: Optional[str] = None
