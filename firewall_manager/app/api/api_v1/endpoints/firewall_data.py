@@ -284,7 +284,7 @@ async def sync_device_data(
     data_type: str,
     include_hit: bool = False,
     hit_timeout_seconds: int = 30,
-    background_tasks: BackgroundTasks = None,
+    background_tasks: BackgroundTasks | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     device = await crud.device.get_device(db=db, device_id=device_id)
@@ -350,8 +350,9 @@ async def sync_device_data(
         df['device_id'] = device_id
         items_to_sync = dataframe_to_pydantic(df, schema_create)
 
-        logging.info(f"Adding background task for {data_type} sync on device {device_id}")
-        background_tasks.add_task(_sync_data_task, device_id, data_type, items_to_sync)
+        logging.info(f"Scheduling async task for {data_type} sync on device {device_id}")
+        # IMPORTANT: Use asyncio.create_task to avoid MissingGreenlet with async DB
+        asyncio.create_task(_sync_data_task(device_id, data_type, items_to_sync))
         return {"msg": f"{data_type.replace('_', ' ').title()} synchronization started in the background."}
     finally:
         if connected:
