@@ -10,7 +10,11 @@ async def test_device_connection(device: Device) -> dict:
     try:
         decrypted_password = decrypt(device.password)
     except Exception:
-        return {"status": "failure", "message": "Password decryption failed."}
+        # Mock 벤더는 복호화 실패 시 원문 비밀번호 사용 허용 (테스트 편의)
+        if (device.vendor or "").lower() == "mock":
+            decrypted_password = device.password
+        else:
+            return {"status": "failure", "message": "Password decryption failed."}
 
     try:
         collector = FirewallCollectorFactory.get_collector(
