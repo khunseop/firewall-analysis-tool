@@ -21,6 +21,8 @@ class Policy(Base):
     security_profile = Column(String, nullable=True)
     category = Column(String, nullable=True)
     description = Column(String, nullable=True)
+    # 정책 사용이력의 마지막 히트 시간
+    last_hit_date = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     last_seen_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 

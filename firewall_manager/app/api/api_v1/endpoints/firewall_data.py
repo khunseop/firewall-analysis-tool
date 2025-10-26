@@ -43,6 +43,33 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
                 return False
             return None
         df['enable'] = df['enable'].apply(_to_bool)
+    # For policies: normalize typical vendor-specific columns to our schema
+    if set([c.lower() for c in df.columns]) & {"rule name", "rule_name"}:
+        df = df.rename(columns={
+            "Rule Name": "rule_name",
+            "Rule_Name": "rule_name",
+            "Vsys": "vsys",
+            "Seq": "seq",
+            "Enable": "enable",
+            "Action": "action",
+            "Source": "source",
+            "User": "user",
+            "Destination": "destination",
+            "Service": "service",
+            "Application": "application",
+            "Security Profile": "security_profile",
+            "Security_Profile": "security_profile",
+            "Category": "category",
+            "Description": "description",
+            "Last Hit Date": "last_hit_date",
+        })
+        # Coerce empty strings to None for last_hit_date to avoid parse errors
+        if 'last_hit_date' in df.columns:
+            def _normalize_last_hit(v):
+                if v in ("", "None", None, "-"):
+                    return None
+                return v
+            df['last_hit_date'] = df['last_hit_date'].apply(_normalize_last_hit)
     return [pydantic_model(**row) for row in df.to_dict(orient='records')]
 
 def get_singular_name(plural_name: str) -> str:
@@ -103,6 +130,49 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
             items_to_sync_map = {getattr(item, key_attribute): item for item in items_to_sync}
 
             logging.info(f"Found {len(existing_items)} existing items and {len(items_to_sync)} items to sync.")
+
+            # Enrich policies with last_hit_date if supported by vendor
+            if data_type == "policies":
+                try:
+                    vendor = (device.vendor or "").lower()
+                    if vendor == "paloalto":
+                        # Obtain hit count data and merge by rule_name
+                        collector = await _get_collector(device)
+                        loop = asyncio.get_running_loop()
+                        try:
+                            await loop.run_in_executor(None, collector.connect)
+                            hit_df = await loop.run_in_executor(None, collector.export_hit_count)
+                        finally:
+                            try:
+                                await loop.run_in_executor(None, collector.disconnect)
+                            except Exception:
+                                pass
+
+                        if hit_df is not None and not hit_df.empty:
+                            # Normalize columns to snake_case
+                            hit_df.columns = [c.lower().replace(' ', '_') for c in hit_df.columns]
+                            # Build mapping: (vsys?, rule_name) -> last_hit_date for VSYS-aware merge
+                            hit_map = {}
+                            for row in hit_df.to_dict(orient='records'):
+                                rn = row.get('rule_name')
+                                vs = row.get('vsys')
+                                lhd = row.get('last_hit_date')
+                                if rn is None:
+                                    continue
+                                key = ((str(vs).lower()) if vs else None, str(rn))
+                                hit_map[key] = lhd
+                            # Apply to items_to_sync_map (prefer VSYS match when available)
+                            for name, obj in items_to_sync_map.items():
+                                obj_vsys = getattr(obj, 'vsys', None)
+                                primary_key = ((str(obj_vsys).lower()) if obj_vsys else None, name)
+                                fallback_key = (None, name)
+                                target_key = primary_key if primary_key in hit_map else (fallback_key if fallback_key in hit_map else None)
+                                if target_key and hasattr(obj, 'last_hit_date'):
+                                    setattr(obj, 'last_hit_date', hit_map[target_key])
+                    # NGF already includes Last Hit Date in export_security_rules; MF2 not supported
+                except Exception as enrich_err:
+                    # Do not fail sync if enrichment fails
+                    logging.warning(f"Policy last_hit_date enrichment skipped: {enrich_err}")
 
             items_to_create = []
 

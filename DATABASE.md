@@ -168,3 +168,11 @@ Stores information about the firewall policies.
   - Delete: remove DB rows missing from source; write `change_logs` with `deleted`.
   - Touch: for objects seen in source, set `last_seen_at=now()` and keep `is_active=True`.
 
+### Policy Usage Tracking
+
+- `policies.last_hit_date: DATETIME NULL`
+  - NGF: 정책 수집 시 원천 데이터에 포함된 Last Hit Date를 저장. 값이 `-` 또는 공란이면 저장하지 않음(NULL 처리).
+  - Palo Alto: 정책 수집 직후, 공급자 API의 rule-hit-count를 호출해 VSYS, Rule Name 기준으로 병합하여 `last_hit_date`를 보강 저장.
+    - VSYS가 식별 가능한 경우 `(vsys, rule_name)`으로 매칭, 없으면 `rule_name`만으로 폴백.
+  - MF2: 미지원. 항상 NULL 유지.
+
