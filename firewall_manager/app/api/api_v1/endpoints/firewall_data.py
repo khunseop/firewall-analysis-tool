@@ -72,12 +72,19 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
         if 'rule name' in df.columns and 'rule_name' not in df.columns:
             df = df.rename(columns={'rule name': 'rule_name'})
 
-        # Normalize last_hit_date values to None when empty-like
+        # Normalize last_hit_date to naive UTC datetime; None when empty-like
         if 'last_hit_date' in df.columns:
             def _normalize_last_hit(v):
                 if v in ("", "None", None, "-"):
                     return None
-                return v
+                try:
+                    dt = pd.to_datetime(v, errors='coerce', utc=True)
+                    if pd.isna(dt):
+                        return None
+                    # store as naive UTC datetime to fit DB DateTime
+                    return dt.to_pydatetime().replace(tzinfo=None)
+                except Exception:
+                    return None
             df['last_hit_date'] = df['last_hit_date'].apply(_normalize_last_hit)
 
         # NGF 등 일부 벤더가 숫자 ID를 반환할 수 있으므로 문자열로 강제하고, 결측은 제거
@@ -189,6 +196,18 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
 
                 if hit_df is not None and not hit_df.empty:
                     hit_df.columns = [c.lower().replace(' ', '_') for c in hit_df.columns]
+                    if 'last_hit_date' in hit_df.columns:
+                        def _normalize_hit(v):
+                            if v in ("", "None", None, "-"):
+                                return None
+                            try:
+                                dt = pd.to_datetime(v, errors='coerce', utc=True)
+                                if pd.isna(dt):
+                                    return None
+                                return dt.to_pydatetime().replace(tzinfo=None)
+                            except Exception:
+                                return None
+                        hit_df['last_hit_date'] = hit_df['last_hit_date'].apply(_normalize_hit)
                     hit_map = {((str(r.get('vsys')).lower()) if r.get('vsys') else None, str(r.get('rule_name'))): r.get('last_hit_date') for r in hit_df.to_dict(orient='records') if r.get('rule_name')}
                     for name, obj in items_to_sync_map.items():
                         obj_vsys = getattr(obj, 'vsys', None)
