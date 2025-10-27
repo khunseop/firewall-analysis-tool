@@ -134,8 +134,10 @@ class PaloAltoAPI(FirewallInterface):
             rulebase = vsys.findall('./rulebase/security/rules/entry')
             for idx, rule in enumerate(rulebase):
                 rule_name = str(rule.attrib.get('name'))
+                # PAN-OS XML: <disabled>yes</disabled> 이면 비활성. Enable 컬럼은 Y/N로 표기(Y는 활성, N은 비활성)
                 disabled_list = self._get_member_texts(rule.findall('./disabled'))
-                disabled_status = "N" if self.list_to_string(disabled_list) == "yes" else "Y"
+                is_disabled = (self.list_to_string(disabled_list).strip().lower() == "yes")
+                disabled_status = "Y" if not is_disabled else "N"
                 action = self.list_to_string(self._get_member_texts(rule.findall('./action')))
                 source = self.list_to_string(self._get_member_texts(rule.findall('./source/member')))
                 user = self.list_to_string(self._get_member_texts(rule.findall('./source-user/member')))
@@ -281,12 +283,14 @@ class PaloAltoAPI(FirewallInterface):
                 # Palo Alto 응답에서 인덱스 2가 last-hit-timestamp인 구조를 가정
                 last_hit_date: str | None = None
                 try:
-                    last_hit_ts = int(member_texts[2])
-                    if last_hit_ts > 0:
-                        last_hit_date = datetime.datetime.fromtimestamp(last_hit_ts).strftime('%Y-%m-%d')
-                    else:
-                        last_hit_date = None
-                except (IndexError, ValueError):
+                    # 일부 버전은 epoch millis, 일부는 epoch seconds를 반환할 수 있음
+                    raw = member_texts[2]
+                    ts = int(raw)
+                    # epoch millis로 보이는 큰 값일 경우 seconds로 변환
+                    if ts > 10_000_000_000:  # > ~2286년 초과 기준
+                        ts = ts // 1000
+                    last_hit_date = datetime.datetime.utcfromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S') if ts > 0 else None
+                except (IndexError, ValueError, TypeError):
                     last_hit_date = None
 
                 vsys_results.append({

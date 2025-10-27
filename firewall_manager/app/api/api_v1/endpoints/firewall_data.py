@@ -226,8 +226,13 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                         existing_item.is_active = True
                     # Compare only explicitly provided and non-null fields to avoid false updates
                     obj_data = item_in.model_dump(exclude_unset=True, exclude_none=True)
-                    db_obj_data = {k: _normalize_value(getattr(existing_item, k, None)) for k in obj_data.keys()}
-                    if any(_normalize_value(obj_data.get(k)) != db_obj_data.get(k) for k in obj_data):
+                    # Normalize booleans consistently for diff (especially 'enable')
+                    db_obj_data = {}
+                    for k in obj_data.keys():
+                        v = getattr(existing_item, k, None)
+                        db_obj_data[k] = _normalize_bool(v) if k == 'enable' else _normalize_value(v)
+                    cmp_left = {k: (_normalize_bool(v) if k == 'enable' else _normalize_value(v)) for k, v in obj_data.items()}
+                    if any(cmp_left.get(k) != db_obj_data.get(k) for k in obj_data):
                         logging.info(f"Updating {data_type}: {item_name}")
                         await update_func(db=db, db_obj=existing_item, obj_in=item_in)
                         await crud.change_log.create_change_log(
@@ -237,7 +242,7 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                                 data_type=data_type,
                                 object_name=item_name,
                                 action="updated",
-                                details=json.dumps({"before": db_obj_data, "after": obj_data}, default=str),
+                                details=json.dumps({"before": db_obj_data, "after": cmp_left}, default=str),
                             ),
                         )
                     else:
@@ -301,6 +306,32 @@ def _normalize_value(value: Any) -> Any:
         return value
     except Exception:
         return value
+
+def _normalize_bool(value: Any) -> Any:
+    """Normalize diverse boolean-ish values to True/False/None for diff compare."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int,)):
+        if value == 0:
+            return False
+        if value == 1:
+            return True
+    if isinstance(value, float):
+        if value == 0.0:
+            return False
+        if value == 1.0:
+            return True
+    try:
+        s = str(value).strip().lower()
+    except Exception:
+        return None
+    if s in {"y", "yes", "true", "1", "on", "enabled"}:
+        return True
+    if s in {"n", "no", "false", "0", "off", "disabled"}:
+        return False
+    return None
 
 @router.post("/sync/{device_id}/{data_type}", include_in_schema=False, response_model=schemas.Msg)
 async def sync_device_data(device_id: int, data_type: str, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
