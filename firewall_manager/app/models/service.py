@@ -3,6 +3,7 @@ from sqlalchemy.dialects.sqlite import INTEGER as SQLITE_INTEGER
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 class Service(Base):
     __tablename__ = "services"
@@ -17,6 +18,6 @@ class Service(Base):
     port_start = Column(Integer, nullable=True)
     port_end = Column(Integer, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
-    last_seen_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_seen_at = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None), nullable=False)
 
     device = relationship("Device")

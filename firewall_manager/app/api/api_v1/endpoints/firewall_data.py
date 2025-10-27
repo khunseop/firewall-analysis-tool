@@ -3,6 +3,7 @@ import logging
 from typing import Any, List
 import asyncio
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -72,17 +73,19 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
         if 'rule name' in df.columns and 'rule_name' not in df.columns:
             df = df.rename(columns={'rule name': 'rule_name'})
 
-        # Normalize last_hit_date to naive UTC datetime; None when empty-like
+        # Normalize last_hit_date to system time (Asia/Seoul) naive datetime; None when empty-like
         if 'last_hit_date' in df.columns:
             def _normalize_last_hit(v):
                 if v in ("", "None", None, "-"):
                     return None
                 try:
-                    dt = pd.to_datetime(v, errors='coerce', utc=True)
+                    dt = pd.to_datetime(v, errors='coerce')
                     if pd.isna(dt):
                         return None
-                    # store as naive UTC datetime to fit DB DateTime
-                    return dt.to_pydatetime().replace(tzinfo=None)
+                    # store as naive Asia/Seoul datetime to fit DB DateTime
+                    if dt.tzinfo is not None:
+                        dt = dt.tz_convert('Asia/Seoul') if hasattr(dt, 'tz_convert') else dt.tz_convert('Asia/Seoul')
+                    return dt.tz_localize(None) if hasattr(dt, 'tz_localize') else dt.to_pydatetime().replace(tzinfo=None)
                 except Exception:
                     return None
             df['last_hit_date'] = df['last_hit_date'].apply(_normalize_last_hit)
@@ -201,10 +204,13 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                             if v in ("", "None", None, "-"):
                                 return None
                             try:
-                                dt = pd.to_datetime(v, errors='coerce', utc=True)
+                                dt = pd.to_datetime(v, errors='coerce')
                                 if pd.isna(dt):
                                     return None
-                                return dt.to_pydatetime().replace(tzinfo=None)
+                                # 시스템 시간(한국시간)으로 저장 (naive)
+                                if dt.tzinfo is not None:
+                                    dt = dt.tz_convert('Asia/Seoul') if hasattr(dt, 'tz_convert') else dt.tz_convert('Asia/Seoul')
+                                return dt.tz_localize(None) if hasattr(dt, 'tz_localize') else dt.to_pydatetime().replace(tzinfo=None)
                             except Exception:
                                 return None
                         hit_df['last_hit_date'] = hit_df['last_hit_date'].apply(_normalize_hit)
@@ -221,7 +227,7 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                 existing_item = existing_items_map.get(item_name)
                 if existing_item:
                     # Touch last_seen_at and ensure is_active for seen items
-                    existing_item.last_seen_at = datetime.utcnow()
+                    existing_item.last_seen_at = datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
                     if hasattr(existing_item, "is_active"):
                         existing_item.is_active = True
                     # Compare only explicitly provided and non-null fields to avoid false updates

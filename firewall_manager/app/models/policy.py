@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 class Policy(Base):
     __tablename__ = "policies"
@@ -24,6 +25,7 @@ class Policy(Base):
     # 정책 사용이력의 마지막 히트 시간
     last_hit_date = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
-    last_seen_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    # 시스템 시간(한국시간)으로 저장하기 위해 default는 런타임에서 주입
+    last_seen_at = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None), nullable=False)
 
     device = relationship("Device")

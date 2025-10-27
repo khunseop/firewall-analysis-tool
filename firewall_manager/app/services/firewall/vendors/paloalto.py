@@ -289,7 +289,8 @@ class PaloAltoAPI(FirewallInterface):
                     # epoch millis로 보이는 큰 값일 경우 seconds로 변환
                     if ts > 10_000_000_000:  # > ~2286년 초과 기준
                         ts = ts // 1000
-                    last_hit_date = datetime.datetime.utcfromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S') if ts > 0 else None
+                    # 시스템 시간(한국시간) 문자열로 표준화
+                    last_hit_date = datetime.datetime.fromtimestamp(ts, tz=datetime.timezone(datetime.timedelta(hours=9))).strftime('%Y-%m-%d %H:%M:%S') if ts > 0 else None
                 except (IndexError, ValueError, TypeError):
                     last_hit_date = None
 
