@@ -10,7 +10,7 @@
 
 ## 1.5. 설치 및 실행 가이드
 
-본 애플리케이션은 이제 `.env` 생성과 DB 마이그레이션을 자동 처리합니다. 최소 단계로 실행 가능합니다.
+본 애플리케이션은 `.env` 생성은 자동 처리되지만, DB 마이그레이션은 이제 수동 스크립트로 수행합니다. 이는 uvicorn 실행 시 자동 마이그레이션으로 인해 웹 로그가 멈추는 현상을 방지하기 위함입니다.
 
 1.  **가상 환경 생성 및 활성화**
     - 프로젝트 루트에서 가상 환경을 생성하고 활성화합니다. (Conda 또는 venv 권장)
@@ -33,7 +33,15 @@
       - 프로젝트 루트에 `.env` 자동 생성 (없을 경우)
         - 기본값: `DATABASE_URL=sqlite+aiosqlite:///<프로젝트루트>/fat.db`
         - 기본값: `ENCRYPTION_KEY=<자동생성된 Fernet 키>`
-      - Alembic `upgrade head` 자동 실행 (DB 스키마 반영)
+      - Alembic 자동 마이그레이션은 앱 시작 시 더 이상 실행되지 않습니다.
+        - 서버 실행 전 아래 수동 스크립트를 통해 DB 스키마를 반영하세요.
+        ```bash
+        # 최신으로 업그레이드
+        python3 firewall_manager/migrate.py
+
+        # 명시적 업그레이드
+        python3 firewall_manager/migrate.py upgrade head
+        ```
     - 문서:
       - Swagger UI: `http://127.0.0.1:8000/docs`
       - ReDoc: `http://127.0.0.1:8000/redoc`
@@ -45,9 +53,12 @@
     ENCRYPTION_KEY=<고정 Fernet 키>
     ```
     - 보안 주의: `ENCRYPTION_KEY`는 암호화/복호화의 기준 키입니다. 운영 환경에서는 반드시 안전하게 고정·관리하세요. 키가 변경되면 기존에 암호화된 값 복호화가 불가능합니다.
-    - (선택) 수동 마이그레이션:
+    - (선택) 수동 마이그레이션 고급 사용:
     ```bash
-    (cd firewall_manager && alembic upgrade head)
+    # 현재 리비전 확인/히스토리/다운그레이드 예시
+    python3 firewall_manager/migrate.py current
+    python3 firewall_manager/migrate.py history base:head
+    python3 firewall_manager/migrate.py downgrade -1
     ```
 
 5.  **(선택) 스모크 테스트**
