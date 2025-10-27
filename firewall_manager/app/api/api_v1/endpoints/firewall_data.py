@@ -16,6 +16,7 @@ from app.services.firewall.interface import FirewallInterface
 from ipaddress import ip_network, ip_address, IPv4Address, IPv6Address
 from pathlib import Path
 import importlib.util as _importlib_util
+from app.models.policy_members import PolicyAddressMember, PolicyServiceMember
 
 router = APIRouter()
 
@@ -340,19 +341,135 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                         loop = asyncio.get_running_loop()
                         result_df = await loop.run_in_executor(None, _compute_flatten)
                         if isinstance(result_df, pd.DataFrame) and not result_df.empty:
-                            # 매핑하여 Pydantic 객체에 주입
+                            # 정책 인덱스 테이블에 멤버를 숫자화하여 저장
                             result_df = result_df.rename(columns={
                                 'Extracted Source': 'flattened_source',
                                 'Extracted Destination': 'flattened_destination',
                                 'Extracted Service': 'flattened_service',
                             })
                             flat_map = {row['Rule Name']: row for row in result_df.to_dict(orient='records') if row.get('Rule Name')}
+
+                            # 기존 인덱스 삭제 후 재생성 (장비 전체가 아닌 변경된 정책만 대상으로 삼음)
+                            rule_to_policy_id: dict[str, int] = {}
+                            # 기존 정책 객체로부터 id 매핑 확보
+                            for name, existing in existing_items_map.items():
+                                rule_to_policy_id[name] = getattr(existing, 'id')
+
+                            # helper: 주소 토큰 파싱 -> 숫자화
+                            def _parse_addr_token(token: str) -> tuple[str | None, int | None, int | None, int | None]:
+                                t = token.strip()
+                                if t == '' or t.lower() == 'none':
+                                    return ('unknown', None, None, None)
+                                if t.lower() == 'any':
+                                    return ('any', 4, 0, (2**32)-1)
+                                # 알파가 있으면 fqdn 처리
+                                if any(c.isalpha() for c in t):
+                                    return ('fqdn', None, None, None)
+                                try:
+                                    if '-' in t:
+                                        a, b = t.split('-', 1)
+                                        ia, ib = ip_address(a.strip()), ip_address(b.strip())
+                                        if isinstance(ia, IPv4Address) and isinstance(ib, IPv4Address):
+                                            return ('ipv4_range', 4, int(ia), int(ib))
+                                        return ('unknown', 6, None, None)
+                                    if '/' in t:
+                                        net = ip_network(t, strict=False)
+                                        if isinstance(net.network_address, IPv4Address):
+                                            return ('ipv4_cidr', 4, int(net.network_address), int(net.broadcast_address))
+                                        return ('unknown', 6, None, None)
+                                    ip = ip_address(t)
+                                    if isinstance(ip, IPv4Address):
+                                        return ('ipv4_single', 4, int(ip), int(ip))
+                                    return ('unknown', 6, None, None)
+                                except Exception:
+                                    return ('unknown', None, None, None)
+
+                            # helper: 서비스 토큰 파싱 -> 숫자화
+                            def _parse_svc_token(token: str) -> tuple[str | None, str | None, int | None, int | None]:
+                                t = token.strip()
+                                if t == '' or t.lower() == 'none':
+                                    return ('unknown', None, None, None)
+                                if t in {'*', 'any', 'ANY'}:
+                                    return ('proto_port', None, 0, 65535)
+                                # 기대 형태: tcp/80, udp/1-1024
+                                try:
+                                    if '/' in t:
+                                        proto, ports = t.split('/', 1)
+                                        proto = proto.strip().lower()
+                                        if ports == '*' or ports.lower() == 'any':
+                                            return ('proto_port', proto, 0, 65535)
+                                        if ',' in ports:
+                                            # 다중 포트는 인덱스 테이블 행을 분할해 저장하는 것이 바람직하나,
+                                            # 여기서는 호출부에서 분리하여 전달하도록 가정
+                                            return ('unknown', proto, None, None)
+                                        if '-' in ports:
+                                            a, b = ports.split('-', 1)
+                                            return ('proto_port', proto, int(a), int(b))
+                                        p = int(ports)
+                                        return ('proto_port', proto, p, p)
+                                except Exception:
+                                    return ('unknown', None, None, None)
+                                return ('unknown', None, None, None)
+
+                            # 정책 단위 인덱스 재작성
                             for obj in items_to_sync:
-                                row = flat_map.get(getattr(obj, 'rule_name'))
-                                if row:
-                                    setattr(obj, 'flattened_source', row.get('flattened_source'))
-                                    setattr(obj, 'flattened_destination', row.get('flattened_destination'))
-                                    setattr(obj, 'flattened_service', row.get('flattened_service'))
+                                rule = getattr(obj, 'rule_name')
+                                row = flat_map.get(rule)
+                                if not row:
+                                    continue
+                                policy_id = rule_to_policy_id.get(rule)
+                                if not policy_id:
+                                    continue
+
+                                # 기존 인덱스 삭제 큐
+                                # 실제 삭제/삽입은 루프 종료 후 한 번에 처리해도 되지만, 간결성을 위해 즉시 처리
+                                await db.execute(
+                                    "DELETE FROM policy_address_members WHERE policy_id = :pid",
+                                    {"pid": policy_id},
+                                )
+                                await db.execute(
+                                    "DELETE FROM policy_service_members WHERE policy_id = :pid",
+                                    {"pid": policy_id},
+                                )
+
+                                # 주소 멤버
+                                for direction_key, col in (("source", 'flattened_source'), ("destination", 'flattened_destination')):
+                                    tokens = [t.strip() for t in str(row.get(col, '')).split(',') if t.strip()]
+                                    for token in tokens:
+                                        token_type, ver, start, end = _parse_addr_token(token)
+                                        db.add(PolicyAddressMember(
+                                            device_id=device_id,
+                                            policy_id=policy_id,
+                                            direction=direction_key,
+                                            token=token,
+                                            token_type=token_type,
+                                            ip_version=ver,
+                                            ip_start=start,
+                                            ip_end=end,
+                                        ))
+
+                                # 서비스 멤버 (콤마 분할 포함)
+                                svc_tokens_raw = [t.strip() for t in str(row.get('flattened_service', '')).split(',') if t.strip()]
+                                svc_tokens: list[str] = []
+                                for tok in svc_tokens_raw:
+                                    if '/' in tok and ',' in tok.split('/', 1)[1]:
+                                        proto, ports = tok.split('/', 1)
+                                        for p in ports.split(','):
+                                            svc_tokens.append(f"{proto}/{p.strip()}")
+                                    else:
+                                        svc_tokens.append(tok)
+
+                                for token in svc_tokens:
+                                    token_type, proto, pstart, pend = _parse_svc_token(token)
+                                    db.add(PolicyServiceMember(
+                                        device_id=device_id,
+                                        policy_id=policy_id,
+                                        token=token,
+                                        token_type=token_type,
+                                        protocol=proto,
+                                        port_start=pstart,
+                                        port_end=pend,
+                                    ))
                     except Exception:
                         # 평탄화 실패는 치명적이지 않으며, 로그만 남기고 진행
                         logging.warning("Policy flattening failed; proceeding without flattened fields.", exc_info=True)
