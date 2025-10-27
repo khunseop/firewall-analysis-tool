@@ -88,6 +88,8 @@
   - **백그라운드 동기화:** FastAPI BackgroundTasks로 데이터 동기화를 비동기 처리합니다. 요청 시 즉시 `in_progress`로 상태를 기록하고, 실제 동기화는 백그라운드 태스크에서 수행됩니다.
   - **동기화 상태 추적:** `devices.last_sync_status`에 `in_progress | success | failure`를 기록합니다. `last_sync_at`은 동기화가 완료된 시점에만 업데이트되어 마지막 "완료된" 동기화 시간을 의미합니다.
   - **`GET /firewall/sync/{device_id}/status`**: 특정 장비의 마지막 동기화 상태와 시간을 조회합니다.
+  - **`POST /firewall/sync-all/{device_id}`**: 장비의 모든 데이터 타입을 순서대로 수집하여 백그라운드 동기화를 시작합니다. 완료 후 자동으로 정책 인덱스가 리빌드됩니다.
+  - **`POST /firewall/parse-index/{device_id}`**: 저장된 정책을 기반으로 인덱스 테이블(`policy_address_members`, `policy_service_members`)을 재구성합니다.
 
 ---
 
@@ -137,14 +139,15 @@
 
 ## 7. 동기화 설계 개요
 
-- **엔드포인트**: `POST /api/v1/firewall/sync/{device_id}/{data_type}`
-  - `data_type`: `policies | network_objects | network_groups | services | service_groups`
+- **엔드포인트**: `POST /api/v1/firewall/sync-all/{device_id}` (권장)
+  - 내부용 개별 엔드포인트 `POST /api/v1/firewall/sync/{device_id}/{data_type}`는 Swagger에서 숨김 처리되었습니다.
   - 처리 흐름:
     1) `devices.last_sync_status`를 `in_progress`로 설정 후 커밋
     2) 벤더 콜렉터 생성 및 연결, `export_*`로 원천 데이터를 `DataFrame`으로 수집
     3) DataFrame → Pydantic 변환(`dataframe_to_pydantic`), `device_id` 주입
     4) 백그라운드 태스크로 DB 정합(생성/수정/삭제) + 변경 이력 기록 수행
-    5) 성공 시 `last_sync_status=success`, 실패 시 `failure`로 갱신. `last_sync_at`은 완료 시에만 갱신
+    5) 모든 동기화 태스크 enqueue 후, 정책 인덱싱 재작성 태스크를 추가로 enqueue
+    6) 성공 시 `last_sync_status=success`, 실패 시 `failure`로 갱신. `last_sync_at`은 완료 시에만 갱신
 
 - **키 매핑 규칙**:
   - 정책: `rule_name`
