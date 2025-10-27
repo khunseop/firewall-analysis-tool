@@ -6,6 +6,8 @@ from datetime import datetime
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import delete
+from sqlalchemy.future import select
 import json
 
 from app import crud, models, schemas
@@ -182,7 +184,10 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
             df['protocol'] = df['protocol'].apply(lambda x: str(x).lower() if x is not None else x)
         df = df.apply(lambda s: pd.Series(_parse_port_numeric(s.to_dict())), axis=1)
 
-    # 5) Build Pydantic objects
+    # 5) Replace NaN with None for Pydantic compatibility
+    if not df.empty:
+        df = df.where(pd.notna(df), None)
+    # 6) Build Pydantic objects
     records = df.to_dict(orient='records') if not df.empty else []
     return [pydantic_model(**row) for row in records]
 
@@ -269,210 +274,7 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                         if key in hit_map and hasattr(obj, 'last_hit_date'):
                             setattr(obj, 'last_hit_date', hit_map[key])
 
-            # 정책 평탄화: 그룹/서비스 그룹을 실제 멤버로 해제하고 값 치환
-            if data_type == "policies" and items_to_sync:
-                # 동적 로더로 policy_resolver 모듈 로딩 (repo 루트에 위치)
-                def _load_policy_resolver_class():
-                    try:
-                        here = Path(__file__).resolve()
-                        candidates = [
-                            here.parents[5] / 'policy_resolver.py',  # repo root (/workspace)
-                            here.parents[4] / 'policy_resolver.py',  # fallback (/workspace/firewall_manager)
-                        ]
-                        for resolver_path in candidates:
-                            if resolver_path.exists():
-                                spec = _importlib_util.spec_from_file_location('policy_resolver', str(resolver_path))
-                                mod = _importlib_util.module_from_spec(spec)
-                                assert spec and spec.loader
-                                spec.loader.exec_module(mod)  # type: ignore[attr-defined]
-                                return getattr(mod, 'PolicyResolver', None)
-                    except Exception:
-                        return None
-                    return None
-
-                PolicyResolverCls = _load_policy_resolver_class()
-                if PolicyResolverCls is not None:
-                    try:
-                        # DB에서 최신 객체/그룹 조회
-                        network_objs = await crud.network_object.get_all_active_network_objects_by_device(db=db, device_id=device_id)
-                        network_grps = await crud.network_group.get_all_active_network_groups_by_device(db=db, device_id=device_id)
-                        services = await crud.service.get_all_active_services_by_device(db=db, device_id=device_id)
-                        service_grps = await crud.service_group.get_all_active_service_groups_by_device(db=db, device_id=device_id)
-
-                        # DataFrame 구성
-                        rules_df = pd.DataFrame([
-                            {
-                                'Rule Name': getattr(obj, 'rule_name'),
-                                'Source': getattr(obj, 'source'),
-                                'Destination': getattr(obj, 'destination'),
-                                'Service': getattr(obj, 'service'),
-                            }
-                            for obj in items_to_sync
-                        ])
-
-                        network_object_df = pd.DataFrame([
-                            {'Name': o.name, 'Value': o.ip_address}
-                            for o in network_objs
-                        ])
-
-                        network_group_object_df = pd.DataFrame([
-                            {'Group Name': g.name, 'Entry': g.members or ''}
-                            for g in network_grps
-                        ])
-
-                        service_object_df = pd.DataFrame([
-                            {'Name': s.name, 'Protocol': s.protocol or '', 'Port': s.port or ''}
-                            for s in services
-                        ])
-
-                        service_group_object_df = pd.DataFrame([
-                            {'Group Name': g.name, 'Entry': g.members or ''}
-                            for g in service_grps
-                        ])
-
-                        resolver = PolicyResolverCls()
-
-                        def _compute_flatten():
-                            return resolver.resolve(
-                                rules_df, network_object_df, network_group_object_df,
-                                service_object_df, service_group_object_df
-                            )
-
-                        loop = asyncio.get_running_loop()
-                        result_df = await loop.run_in_executor(None, _compute_flatten)
-                        if isinstance(result_df, pd.DataFrame) and not result_df.empty:
-                            # 정책 인덱스 테이블에 멤버를 숫자화하여 저장
-                            result_df = result_df.rename(columns={
-                                'Extracted Source': 'flattened_source',
-                                'Extracted Destination': 'flattened_destination',
-                                'Extracted Service': 'flattened_service',
-                            })
-                            flat_map = {row['Rule Name']: row for row in result_df.to_dict(orient='records') if row.get('Rule Name')}
-
-                            # 기존 인덱스 삭제 후 재생성 (장비 전체가 아닌 변경된 정책만 대상으로 삼음)
-                            rule_to_policy_id: dict[str, int] = {}
-                            # 기존 정책 객체로부터 id 매핑 확보
-                            for name, existing in existing_items_map.items():
-                                rule_to_policy_id[name] = getattr(existing, 'id')
-
-                            # helper: 주소 토큰 파싱 -> 숫자화
-                            def _parse_addr_token(token: str) -> tuple[str | None, int | None, int | None, int | None]:
-                                t = token.strip()
-                                if t == '' or t.lower() == 'none':
-                                    return ('unknown', None, None, None)
-                                if t.lower() == 'any':
-                                    return ('any', 4, 0, (2**32)-1)
-                                # 알파가 있으면 fqdn 처리
-                                if any(c.isalpha() for c in t):
-                                    return ('fqdn', None, None, None)
-                                try:
-                                    if '-' in t:
-                                        a, b = t.split('-', 1)
-                                        ia, ib = ip_address(a.strip()), ip_address(b.strip())
-                                        if isinstance(ia, IPv4Address) and isinstance(ib, IPv4Address):
-                                            return ('ipv4_range', 4, int(ia), int(ib))
-                                        return ('unknown', 6, None, None)
-                                    if '/' in t:
-                                        net = ip_network(t, strict=False)
-                                        if isinstance(net.network_address, IPv4Address):
-                                            return ('ipv4_cidr', 4, int(net.network_address), int(net.broadcast_address))
-                                        return ('unknown', 6, None, None)
-                                    ip = ip_address(t)
-                                    if isinstance(ip, IPv4Address):
-                                        return ('ipv4_single', 4, int(ip), int(ip))
-                                    return ('unknown', 6, None, None)
-                                except Exception:
-                                    return ('unknown', None, None, None)
-
-                            # helper: 서비스 토큰 파싱 -> 숫자화
-                            def _parse_svc_token(token: str) -> tuple[str | None, str | None, int | None, int | None]:
-                                t = token.strip()
-                                if t == '' or t.lower() == 'none':
-                                    return ('unknown', None, None, None)
-                                if t in {'*', 'any', 'ANY'}:
-                                    return ('proto_port', None, 0, 65535)
-                                # 기대 형태: tcp/80, udp/1-1024
-                                try:
-                                    if '/' in t:
-                                        proto, ports = t.split('/', 1)
-                                        proto = proto.strip().lower()
-                                        if ports == '*' or ports.lower() == 'any':
-                                            return ('proto_port', proto, 0, 65535)
-                                        if ',' in ports:
-                                            # 다중 포트는 인덱스 테이블 행을 분할해 저장하는 것이 바람직하나,
-                                            # 여기서는 호출부에서 분리하여 전달하도록 가정
-                                            return ('unknown', proto, None, None)
-                                        if '-' in ports:
-                                            a, b = ports.split('-', 1)
-                                            return ('proto_port', proto, int(a), int(b))
-                                        p = int(ports)
-                                        return ('proto_port', proto, p, p)
-                                except Exception:
-                                    return ('unknown', None, None, None)
-                                return ('unknown', None, None, None)
-
-                            # 정책 단위 인덱스 재작성
-                            for obj in items_to_sync:
-                                rule = getattr(obj, 'rule_name')
-                                row = flat_map.get(rule)
-                                if not row:
-                                    continue
-                                policy_id = rule_to_policy_id.get(rule)
-                                if not policy_id:
-                                    continue
-
-                                # 기존 인덱스 삭제 큐
-                                # 실제 삭제/삽입은 루프 종료 후 한 번에 처리해도 되지만, 간결성을 위해 즉시 처리
-                                await db.execute(
-                                    "DELETE FROM policy_address_members WHERE policy_id = :pid",
-                                    {"pid": policy_id},
-                                )
-                                await db.execute(
-                                    "DELETE FROM policy_service_members WHERE policy_id = :pid",
-                                    {"pid": policy_id},
-                                )
-
-                                # 주소 멤버
-                                for direction_key, col in (("source", 'flattened_source'), ("destination", 'flattened_destination')):
-                                    tokens = [t.strip() for t in str(row.get(col, '')).split(',') if t.strip()]
-                                    for token in tokens:
-                                        token_type, ver, start, end = _parse_addr_token(token)
-                                        db.add(PolicyAddressMember(
-                                            device_id=device_id,
-                                            policy_id=policy_id,
-                                            direction=direction_key,
-                                            token=token,
-                                            token_type=token_type,
-                                            ip_version=ver,
-                                            ip_start=start,
-                                            ip_end=end,
-                                        ))
-
-                                # 서비스 멤버 (콤마 분할 포함)
-                                svc_tokens_raw = [t.strip() for t in str(row.get('flattened_service', '')).split(',') if t.strip()]
-                                svc_tokens: list[str] = []
-                                for tok in svc_tokens_raw:
-                                    if '/' in tok and ',' in tok.split('/', 1)[1]:
-                                        proto, ports = tok.split('/', 1)
-                                        for p in ports.split(','):
-                                            svc_tokens.append(f"{proto}/{p.strip()}")
-                                    else:
-                                        svc_tokens.append(tok)
-
-                                for token in svc_tokens:
-                                    token_type, proto, pstart, pend = _parse_svc_token(token)
-                                    db.add(PolicyServiceMember(
-                                        device_id=device_id,
-                                        policy_id=policy_id,
-                                        token=token,
-                                        token_type=token_type,
-                                        protocol=proto,
-                                        port_start=pstart,
-                                        port_end=pend,
-                                    ))
-                    except Exception:
-                        # 평탄화 실패는 치명적이지 않으며, 로그만 남기고 진행
-                        logging.warning("Policy flattening failed; proceeding without flattened fields.", exc_info=True)
+            # 정책 인덱스 재생성은 CRUD 반영 후에 수행 (신규 정책 ID 확보)
 
             items_to_create = []
 
@@ -506,11 +308,195 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                 if item_name not in items_to_sync_map:
                     items_to_delete_count += 1
                     logging.info(f"Deleting {data_type}: {item_name}")
+                    # 인덱스 테이블에서 관련 항목 먼저 삭제 (정책만 해당)
+                    if data_type == "policies":
+                        await db.execute(delete(models.PolicyAddressMember).where(models.PolicyAddressMember.policy_id == item.id))
+                        await db.execute(delete(models.PolicyServiceMember).where(models.PolicyServiceMember.policy_id == item.id))
                     await delete_func(db=db, **{f"{get_singular_name(data_type)}": item})
                     await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="deleted"))
 
             if items_to_delete_count > 0:
                 logging.info(f"Deleted {items_to_delete_count} {data_type}.")
+
+            # 정책 인덱스 재생성 (업데이트/생성 반영 후 정책 ID 확보 가능 시점)
+            if data_type == "policies":
+                try:
+                    # 동적 로더로 policy_resolver 모듈 로딩
+                    def _load_policy_resolver_class():
+                        try:
+                            here = Path(__file__).resolve()
+                            candidates = [
+                                here.parents[5] / 'policy_resolver.py',
+                                here.parents[4] / 'policy_resolver.py',
+                            ]
+                            for resolver_path in candidates:
+                                if resolver_path.exists():
+                                    spec = _importlib_util.spec_from_file_location('policy_resolver', str(resolver_path))
+                                    mod = _importlib_util.module_from_spec(spec)
+                                    assert spec and spec.loader
+                                    spec.loader.exec_module(mod)  # type: ignore[attr-defined]
+                                    return getattr(mod, 'PolicyResolver', None)
+                        except Exception:
+                            return None
+                        return None
+
+                    PolicyResolverCls = _load_policy_resolver_class()
+                    if PolicyResolverCls is not None and items_to_sync:
+                        # 대상 정책 rule_name 목록
+                        affected_rules = list(items_to_sync_map.keys())
+                        # 정책 id 매핑
+                        result = await db.execute(select(models.Policy).where(models.Policy.device_id == device_id, models.Policy.rule_name.in_(affected_rules)))
+                        policy_rows = result.scalars().all()
+                        rule_to_policy_id = {p.rule_name: p.id for p in policy_rows}
+
+                        # DB에서 최신 객체/그룹 조회
+                        network_objs = await crud.network_object.get_all_active_network_objects_by_device(db=db, device_id=device_id)
+                        network_grps = await crud.network_group.get_all_active_network_groups_by_device(db=db, device_id=device_id)
+                        services = await crud.service.get_all_active_services_by_device(db=db, device_id=device_id)
+                        service_grps = await crud.service_group.get_all_active_service_groups_by_device(db=db, device_id=device_id)
+
+                        # DataFrame 구성
+                        rules_df = pd.DataFrame([
+                            {
+                                'Rule Name': rn,
+                                'Source': getattr(items_to_sync_map[rn], 'source'),
+                                'Destination': getattr(items_to_sync_map[rn], 'destination'),
+                                'Service': getattr(items_to_sync_map[rn], 'service'),
+                            }
+                            for rn in affected_rules if rn in items_to_sync_map
+                        ])
+
+                        network_object_df = pd.DataFrame([
+                            {'Name': o.name, 'Value': o.ip_address}
+                            for o in network_objs
+                        ])
+                        network_group_object_df = pd.DataFrame([
+                            {'Group Name': g.name, 'Entry': g.members or ''}
+                            for g in network_grps
+                        ])
+                        service_object_df = pd.DataFrame([
+                            {'Name': s.name, 'Protocol': s.protocol or '', 'Port': s.port or ''}
+                            for s in services
+                        ])
+                        service_group_object_df = pd.DataFrame([
+                            {'Group Name': g.name, 'Entry': g.members or ''}
+                            for g in service_grps
+                        ])
+
+                        resolver = PolicyResolverCls()
+                        def _compute_flatten():
+                            return resolver.resolve(
+                                rules_df, network_object_df, network_group_object_df,
+                                service_object_df, service_group_object_df
+                            )
+                        loop = asyncio.get_running_loop()
+                        result_df = await loop.run_in_executor(None, _compute_flatten)
+                        if isinstance(result_df, pd.DataFrame) and not result_df.empty:
+                            result_df = result_df.rename(columns={
+                                'Extracted Source': 'flattened_source',
+                                'Extracted Destination': 'flattened_destination',
+                                'Extracted Service': 'flattened_service',
+                            })
+                            flat_map = {row['Rule Name']: row for row in result_df.to_dict(orient='records') if row.get('Rule Name')}
+
+                            # helper: 주소 토큰 파싱 -> 숫자화
+                            def _parse_addr_token(token: str) -> tuple[str | None, int | None, int | None, int | None]:
+                                t = token.strip()
+                                if t == '' or t.lower() == 'none':
+                                    return ('unknown', None, None, None)
+                                if t.lower() == 'any':
+                                    return ('any', 4, 0, (2**32)-1)
+                                if any(c.isalpha() for c in t):
+                                    return ('fqdn', None, None, None)
+                                try:
+                                    if '-' in t:
+                                        a, b = t.split('-', 1)
+                                        ia, ib = ip_address(a.strip()), ip_address(b.strip())
+                                        if isinstance(ia, IPv4Address) and isinstance(ib, IPv4Address):
+                                            return ('ipv4_range', 4, int(ia), int(ib))
+                                        return ('unknown', 6, None, None)
+                                    if '/' in t:
+                                        net = ip_network(t, strict=False)
+                                        if isinstance(net.network_address, IPv4Address):
+                                            return ('ipv4_cidr', 4, int(net.network_address), int(net.broadcast_address))
+                                        return ('unknown', 6, None, None)
+                                    ip = ip_address(t)
+                                    if isinstance(ip, IPv4Address):
+                                        return ('ipv4_single', 4, int(ip), int(ip))
+                                    return ('unknown', 6, None, None)
+                                except Exception:
+                                    return ('unknown', None, None, None)
+
+                            # helper: 서비스 토큰 파싱 -> 숫자화
+                            def _parse_svc_token(token: str) -> tuple[str | None, str | None, int | None, int | None]:
+                                t = token.strip()
+                                if t == '' or t.lower() == 'none':
+                                    return ('unknown', None, None, None)
+                                if t in {'*', 'any', 'ANY'}:
+                                    return ('proto_port', None, 0, 65535)
+                                try:
+                                    if '/' in t:
+                                        proto, ports = t.split('/', 1)
+                                        proto = proto.strip().lower()
+                                        if ports == '*' or ports.lower() == 'any':
+                                            return ('proto_port', proto, 0, 65535)
+                                        if ',' in ports:
+                                            return ('unknown', proto, None, None)
+                                        if '-' in ports:
+                                            a, b = ports.split('-', 1)
+                                            return ('proto_port', proto, int(a), int(b))
+                                        p = int(ports)
+                                        return ('proto_port', proto, p, p)
+                                except Exception:
+                                    return ('unknown', None, None, None)
+                                return ('unknown', None, None, None)
+
+                            # 재작성
+                            for rn in affected_rules:
+                                pid = rule_to_policy_id.get(rn)
+                                row = flat_map.get(rn)
+                                if not pid or not row:
+                                    continue
+                                await db.execute(delete(models.PolicyAddressMember).where(models.PolicyAddressMember.policy_id == pid))
+                                await db.execute(delete(models.PolicyServiceMember).where(models.PolicyServiceMember.policy_id == pid))
+
+                                for direction_key, col in (("source", 'flattened_source'), ("destination", 'flattened_destination')):
+                                    tokens = [t.strip() for t in str(row.get(col, '')).split(',') if t.strip()]
+                                    for token in tokens:
+                                        token_type, ver, start, end = _parse_addr_token(token)
+                                        db.add(models.PolicyAddressMember(
+                                            device_id=device_id,
+                                            policy_id=pid,
+                                            direction=direction_key,
+                                            token=token,
+                                            token_type=token_type,
+                                            ip_version=ver,
+                                            ip_start=start,
+                                            ip_end=end,
+                                        ))
+
+                                svc_tokens_raw = [t.strip() for t in str(row.get('flattened_service', '')).split(',') if t.strip()]
+                                svc_tokens: list[str] = []
+                                for tok in svc_tokens_raw:
+                                    if '/' in tok and ',' in tok.split('/', 1)[1]:
+                                        proto, ports = tok.split('/', 1)
+                                        for p in ports.split(','):
+                                            svc_tokens.append(f"{proto}/{p.strip()}")
+                                    else:
+                                        svc_tokens.append(tok)
+                                for token in svc_tokens:
+                                    token_type, proto, pstart, pend = _parse_svc_token(token)
+                                    db.add(models.PolicyServiceMember(
+                                        device_id=device_id,
+                                        policy_id=pid,
+                                        token=token,
+                                        token_type=token_type,
+                                        protocol=proto,
+                                        port_start=pstart,
+                                        port_end=pend,
+                                    ))
+                except Exception:
+                    logging.warning("Rebuild policy indices failed", exc_info=True)
 
             await crud.device.update_sync_status(db=db, device=device, status="success")
             await db.commit()
