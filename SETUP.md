@@ -1,6 +1,6 @@
-# FASTAPI Agent Setup Guide (자동 설정 포함)
+# FASTAPI Agent Setup Guide (수동 마이그레이션)
 
-아래 가이드에 따라 로컬 또는 개발 환경에서 빠르게 실행할 수 있습니다. 본 문서는 자동 설정(.env 생성, Alembic 마이그레이션 자동 적용) 흐름을 중심으로 설명합니다.
+아래 가이드에 따라 로컬 또는 개발 환경에서 빠르게 실행할 수 있습니다. 본 문서는 자동 실행 중단(uvicorn 시작 시 웹로그 정지 현상 방지)을 위해 Alembic 자동 마이그레이션을 제거하고, 별도의 수동 스크립트로 마이그레이션을 수행하는 흐름을 설명합니다.
 
 ## 요구사항
 - Python 3.10+
@@ -25,7 +25,22 @@ uvicorn app.main:app --reload --app-dir firewall_manager
 - 프로젝트 루트(`./`)에 `.env`가 없으면 자동 생성됩니다.
   - `DATABASE_URL=sqlite+aiosqlite:///<프로젝트루트>/fat.db`
   - `ENCRYPTION_KEY=<자동 생성된 Fernet 키>`
-- 앱 `startup` 이벤트 시 Alembic `upgrade head`가 자동 실행되어 DB 스키마가 최신 상태로 반영됩니다.
+- Alembic 자동 마이그레이션은 더 이상 앱 `startup`에서 실행되지 않습니다. 아래 수동 절차를 사용하세요.
+
+### 데이터베이스 마이그레이션 (수동)
+다음 스크립트로 수동으로 마이그레이션을 수행하세요.
+```bash
+# 최신으로 업그레이드
+python3 firewall_manager/migrate.py
+
+# 명시적 업그레이드
+python3 firewall_manager/migrate.py upgrade head
+
+# 현재 리비전 확인/히스토리/다운그레이드 예시
+python3 firewall_manager/migrate.py current
+python3 firewall_manager/migrate.py history base:head
+python3 firewall_manager/migrate.py downgrade -1
+```
 
 ### 문서 경로
 - Swagger UI: `http://127.0.0.1:8000/docs`
@@ -39,8 +54,8 @@ uvicorn app.main:app --reload --app-dir firewall_manager
 
 ## 문제 해결
 - 문서 화면이 로딩되지 않으면 정적 파일이 로컬에서 제공되는지 확인하세요 (`firewall_manager/app/static/*`).
-- DB가 생성되지 않으면 로그에서 Alembic 오류를 확인하세요. 필요시 수동 실행:
+- DB가 생성되지 않으면 수동 마이그레이션 스크립트를 먼저 실행하세요:
 ```bash
-(cd firewall_manager && alembic upgrade head)
+python3 firewall_manager/migrate.py
 ```
 - `.env`가 생성되지 않으면 `firewall_manager/app/core/config.py`의 자동 생성 로직이 실행되는지 확인하세요.
