@@ -7,6 +7,7 @@ from fastapi.openapi.docs import (
     get_redoc_html,
     get_swagger_ui_oauth2_redirect_html,
 )
+from fastapi.responses import FileResponse
 
 from app.api.api_v1.api import api_router as api_v1_router
 
@@ -27,6 +28,10 @@ app = FastAPI(
 # Mount local static assets regardless of current working directory
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+# Mount frontend static directory and serve SPA at root
+FRONTEND_DIR = Path(__file__).resolve().parent / "frontend"
+app.mount("/app", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="app")
 
 
 @app.get(SWAGGER_UI_HTML_PATH, include_in_schema=False)
@@ -57,6 +62,7 @@ async def redoc_html():
 app.include_router(api_v1_router, prefix="/api/v1")
 
 
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to the Firewall Analysis Tool API"}
+@app.get("/", include_in_schema=False)
+def serve_index():
+    index_file = FRONTEND_DIR / "index.html"
+    return FileResponse(index_file)
