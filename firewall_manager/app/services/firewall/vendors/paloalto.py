@@ -250,59 +250,89 @@ class PaloAltoAPI(FirewallInterface):
         return pd.DataFrame(group_objects)
 
     def export_usage_logs(self, days: int = None) -> pd.DataFrame:
-        # Palo Alto API는 특정 기간의 hit count 조회를 직접 지원하지 않음
-        # export_hit_count 결과를 후처리하여 유사한 기능을 구현할 수 있음
-        # 여기서는 export_hit_count를 호출하고, Unused Days로 필터링하는 방식을 제안
-        hit_counts = self.export_hit_count()
-        if days is not None and not hit_counts.empty:
-            hit_counts = hit_counts[hit_counts['Unused Days'] <= days]
-        return hit_counts
+        """최근 히트 일자 기반 사용 로그를 단순화하여 반환합니다.
 
-    def export_hit_count(self, vsys_name: str = 'vsys1') -> pd.DataFrame:
-        params = (
-            ('type', 'op'),
-            (
-                'cmd',
-                f"<show><rule-hit-count><vsys><vsys-name><entry name='{vsys_name}'>"
-                "<rule-base><entry name='security'><rules><all/></rules></entry></rule-base>"
-                "</entry></vsys-name></vsys></rule-hit-count></show>"
-            ),
-            ('key', self.api_key)
-        )
-        response = self.get_api_data(params)
-        tree = ET.fromstring(response.text)
-        rule_entries = tree.findall('./result/rule-hit-count/vsys/entry/rule-base/entry/rules/entry')
-
-        hit_counts = []
-        for rule in rule_entries:
-            rule_name = str(rule.attrib.get('name'))
-            member_texts = self._get_member_texts(rule)
+        Returns DataFrame with columns:
+          - Rule Name
+          - Last Hit Date
+          - Unused Days (계산값)
+        """
+        df = self.export_last_hit_date()
+        if df is None or df.empty:
+            return pd.DataFrame(columns=['Rule Name', 'Last Hit Date', 'Unused Days'])
+        # Unused Days 계산 (Last Hit Date가 있는 항목만)
+        def _unused_days(v):
             try:
-                hit_count = member_texts[1]
-                last_hit_ts = int(member_texts[2])
-                first_hit_ts = int(member_texts[4])
-            except (IndexError, ValueError) as error:
-                self.logger.error("히트 카운트 파싱 중 오류 발생: %s", error)
+                if v in (None, "", "-"):
+                    return None
+                dt = datetime.datetime.strptime(str(v), '%Y-%m-%d')
+                return (datetime.datetime.now() - dt).days
+            except Exception:
+                return None
+        out = df[['Rule Name', 'Last Hit Date']].copy()
+        out['Unused Days'] = out['Last Hit Date'].apply(_unused_days)
+        if days is not None:
+            out = out[out['Unused Days'].apply(lambda d: d is not None and d <= days)]
+        return out
+
+    def export_last_hit_date(self) -> pd.DataFrame:
+        """VSYS를 고려하여 각 규칙의 최근 히트 일자만 반환합니다.
+
+        Returns:
+            pd.DataFrame: columns = ["Vsys", "Rule Name", "Last Hit Date"]
+        """
+        # 먼저 VSYS 목록을 조회하기 위해 설정 XML을 가져옵니다.
+        config_xml = self.get_config('running')
+        config_tree = ET.fromstring(config_xml)
+        vsys_entries = config_tree.findall('./result/config/devices/entry/vsys/entry')
+
+        results: list[dict] = []
+
+        def _fetch_vsys_hit(vsys_name: str) -> list[dict]:
+            params = (
+                ('type', 'op'),
+                (
+                    'cmd',
+                    f"<show><rule-hit-count><vsys><vsys-name><entry name='{vsys_name}'>"
+                    "<rule-base><entry name='security'><rules><all/></rules></entry></rule-base>"
+                    "</entry></vsys-name></vsys></rule-hit-count></show>"
+                ),
+                ('key', self.api_key)
+            )
+            response = self.get_api_data(params)
+            tree = ET.fromstring(response.text)
+            rule_entries = tree.findall('./result/rule-hit-count/vsys/entry/rule-base/entry/rules/entry')
+
+            vsys_results: list[dict] = []
+            for rule in rule_entries:
+                rule_name = str(rule.attrib.get('name'))
+                member_texts = self._get_member_texts(rule)
+                # Palo Alto 응답에서 인덱스 2가 last-hit-timestamp인 구조를 가정
+                last_hit_date: str | None = None
+                try:
+                    last_hit_ts = int(member_texts[2])
+                    if last_hit_ts > 0:
+                        last_hit_date = datetime.datetime.fromtimestamp(last_hit_ts).strftime('%Y-%m-%d')
+                    else:
+                        last_hit_date = None
+                except (IndexError, ValueError):
+                    last_hit_date = None
+
+                vsys_results.append({
+                    "Vsys": vsys_name,
+                    "Rule Name": rule_name,
+                    "Last Hit Date": last_hit_date,
+                })
+            return vsys_results
+
+        for vsys in vsys_entries:
+            vsys_name = vsys.attrib.get('name')
+            if not vsys_name:
                 continue
+            try:
+                results.extend(_fetch_vsys_hit(vsys_name))
+            except Exception as e:
+                # 특정 VSYS에서 실패해도 전체 수집을 중단하지 않음
+                self.logger.warning("VSYS %s hit-date 조회 실패: %s", vsys_name, e)
 
-            no_unused_days = 99999
-            no_hit_date = datetime.datetime(1900, 1, 1).strftime('%Y-%m-%d')
-
-            if first_hit_ts == 0:
-                unused_days = no_unused_days
-            else:
-                unused_days = (datetime.datetime.now() - datetime.datetime.fromtimestamp(last_hit_ts)).days
-
-            last_hit_date = no_hit_date if last_hit_ts == 0 else datetime.datetime.fromtimestamp(last_hit_ts).strftime('%Y-%m-%d')
-            first_hit_date = no_hit_date if first_hit_ts == 0 else datetime.datetime.fromtimestamp(first_hit_ts).strftime('%Y-%m-%d')
-
-            hit_counts.append({
-                "Vsys": vsys_name,
-                "Rule Name": rule_name,
-                "Hit Count": hit_count,
-                "First Hit Date": first_hit_date,
-                "Last Hit Date": last_hit_date,
-                "Unused Days": unused_days
-            })
-
-        return pd.DataFrame(hit_counts)
+        return pd.DataFrame(results)

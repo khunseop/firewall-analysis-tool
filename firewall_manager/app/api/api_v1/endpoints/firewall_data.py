@@ -149,12 +149,10 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                 try:
                     vendor = (device.vendor or "").lower()
                     if vendor == "paloalto":
-                        # Obtain hit count data and merge by rule_name
-                        collector = await _get_collector(device)
-                        loop = asyncio.get_running_loop()
+                        # Palo Alto: VSYS-aware hit-date merge via export_last_hit_date
                         try:
                             await loop.run_in_executor(None, collector.connect)
-                            hit_df = await loop.run_in_executor(None, collector.export_hit_count)
+                            hit_df = await loop.run_in_executor(None, collector.export_last_hit_date)
                         finally:
                             try:
                                 await loop.run_in_executor(None, collector.disconnect)
@@ -162,9 +160,7 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                                 pass
 
                         if hit_df is not None and not hit_df.empty:
-                            # Normalize columns to snake_case
                             hit_df.columns = [c.lower().replace(' ', '_') for c in hit_df.columns]
-                            # Build mapping: (vsys?, rule_name) -> last_hit_date for VSYS-aware merge
                             hit_map = {}
                             for row in hit_df.to_dict(orient='records'):
                                 rn = row.get('rule_name')
@@ -174,7 +170,6 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                                     continue
                                 key = ((str(vs).lower()) if vs else None, str(rn))
                                 hit_map[key] = lhd
-                            # Apply to items_to_sync_map (prefer VSYS match when available)
                             for name, obj in items_to_sync_map.items():
                                 obj_vsys = getattr(obj, 'vsys', None)
                                 primary_key = ((str(obj_vsys).lower()) if obj_vsys else None, name)
@@ -182,9 +177,8 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                                 target_key = primary_key if primary_key in hit_map else (fallback_key if fallback_key in hit_map else None)
                                 if target_key and hasattr(obj, 'last_hit_date'):
                                     setattr(obj, 'last_hit_date', hit_map[target_key])
-                    # NGF already includes Last Hit Date in export_security_rules; MF2 not supported
+                    # NGF: last_hit_date already provided; MF2: not supported
                 except Exception as enrich_err:
-                    # Do not fail sync if enrichment fails
                     logging.warning(f"Policy last_hit_date enrichment skipped: {enrich_err}")
 
             items_to_create = []

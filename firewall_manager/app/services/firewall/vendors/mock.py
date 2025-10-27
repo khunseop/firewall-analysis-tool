@@ -155,3 +155,15 @@ class MockCollector(FirewallInterface):
             result.append({'Rule Name': rule_name, 'Last Hit Date': last_hit_date, 'Unused Days': unused_days, '미사용여부': usage_status})
 
         return pd.DataFrame(result)
+
+    # PaloAlto 전용 확장: 모의 구현 제공
+    def export_last_hit_date(self) -> pd.DataFrame:
+        rules_df = self.export_security_rules()
+        # Mock에는 VSYS 개념이 없으므로 Vsys=None
+        result = []
+        now = datetime.now()
+        for _, rule in rules_df.iterrows():
+            rule_name = rule.get('Rule Name', rule.get('name'))
+            lhd = (now - timedelta(days=random.randint(0, 30))).strftime('%Y-%m-%d') if random.random() < 0.8 else None
+            result.append({"Vsys": None, "Rule Name": rule_name, "Last Hit Date": lhd})
+        return pd.DataFrame(result)

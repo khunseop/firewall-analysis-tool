@@ -349,3 +349,7 @@ class NGFCollector(FirewallInterface):
 
         result_df['미사용여부'] = result_df['Unused Days'].apply(determine_usage_status)
         return result_df
+
+    # PaloAlto 전용 확장 미지원: 호출되면 빈 DF 반환
+    def export_last_hit_date(self) -> pd.DataFrame:
+        return pd.DataFrame(columns=["Vsys", "Rule Name", "Last Hit Date"])
