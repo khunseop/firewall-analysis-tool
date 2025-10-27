@@ -24,67 +24,30 @@ function normalizeVendorCode(value) {
   return raw;
 }
 
-function deviceForm(initial = {}) {
-  const v = (k, d="") => (initial[k] ?? d);
-  const vendorCode = normalizeVendorCode(v("vendor", VENDOR_OPTIONS[0].code));
-  return `
-  <div class="field">
-    <label class="label">이름</label>
-    <input class="input" name="name" value="${v("name")}" required />
-  </div>
-  <div class="field">
-    <label class="label">IP 주소</label>
-    <input class="input" name="ip_address" value="${v("ip_address")}" required />
-  </div>
-  <div class="field">
-    <label class="label">벤더</label>
-    <div class="select is-fullwidth">
-      <select name="vendor">
-        ${VENDOR_OPTIONS.map(x => `<option value="${x.code}" ${vendorCode===x.code?"selected":""}>${x.label}</option>`).join("")}
-      </select>
-    </div>
-  </div>
-  <div class="field">
-    <label class="label">사용자명</label>
-    <input class="input" name="username" value="${v("username")}" required />
-  </div>
-  <div class="field">
-    <label class="label">비밀번호</label>
-    <input class="input" type="password" name="password" value="" ${initial.id?"":"required"} />
-    <p class="help">수정 시 비워두면 비밀번호는 변경되지 않습니다.</p>
-  </div>
-  <div class="field">
-    <label class="label">설명</label>
-    <textarea class="textarea" name="description">${v("description")}</textarea>
-  </div>
-  `;
+function fillForm(initial = {}){
+  const root = document.getElementById('modal-device');
+  const form = root.querySelector('#device-form');
+  const vendorSelect = root.querySelector('#vendor-select');
+  vendorSelect.innerHTML = VENDOR_OPTIONS.map(x => `<option value="${x.code}">${x.label}</option>`).join("");
+  const set = (name,val)=>{ const el=form.elements.namedItem(name); if(el) el.value = val ?? "" };
+  set('name', initial.name);
+  set('ip_address', initial.ip_address);
+  set('username', initial.username);
+  set('description', initial.description);
+  vendorSelect.value = normalizeVendorCode(initial.vendor) || VENDOR_OPTIONS[0].code;
+  const pw = root.querySelector('#password-input'); if (pw) pw.value = "";
 }
 
-function openModal(contentHtml, onSubmit) {
-  const modal = document.createElement("div");
-  modal.className = "modal is-active";
-  modal.innerHTML = `
-    <div class="modal-background"></div>
-    <div class="modal-card">
-      <header class="modal-card-head">
-        <p class="modal-card-title">장비</p>
-        <button class="delete" aria-label="close"></button>
-      </header>
-      <section class="modal-card-body">
-        <form id="device-form">${contentHtml}</form>
-        <p class="help is-danger is-hidden" id="form-error"></p>
-      </section>
-      <footer class="modal-card-foot">
-        <button class="button is-primary" id="submit-btn">저장</button>
-        <button class="button is-light" id="cancel-btn">취소</button>
-      </footer>
-    </div>`;
-  document.body.appendChild(modal);
-  modal.querySelector(".delete").onclick = close;
-  modal.querySelector("#cancel-btn").onclick = (e)=>{e.preventDefault(); close();};
-  modal.querySelector("#submit-btn").onclick = async (e)=>{
+function openModal(onSubmit){
+  const modal = document.getElementById('modal-device');
+  modal.classList.add('is-active');
+  const close = () => modal.classList.remove('is-active');
+  modal.querySelector('#close-device').onclick = close;
+  modal.querySelector('#cancel-device').onclick = (e)=>{e.preventDefault(); close();};
+  modal.querySelector('#submit-device').onclick = async (e)=>{
     e.preventDefault();
-    const fd = new FormData(modal.querySelector("#device-form"));
+    const form = modal.querySelector('#device-form');
+    const fd = new FormData(form);
     const payload = Object.fromEntries(fd.entries());
     payload.vendor = normalizeVendorCode(payload.vendor);
     if (!payload.password) delete payload.password;
@@ -94,7 +57,6 @@ function openModal(contentHtml, onSubmit) {
       el.classList.remove('is-hidden');
     }
   };
-  function close(){ document.body.removeChild(modal); }
 }
 
 async function loadGrid(gridDiv, attempt = 0) {
@@ -147,7 +109,7 @@ function getColumns(){
     { field: 'description', headerName:'설명', flex: 1 },
     { field: 'last_sync_status', headerName:'동기화 상태', width: 140 },
     { field: 'last_sync_at', headerName:'동기화 시간', width: 180 },
-    { headerName:'작업', width: 280, cellRenderer: params => {
+    { headerName:'작업', width: 360, cellRenderer: params => {
         const d = params.data;
         const wrap = document.createElement('div');
         wrap.className = 'actions';
@@ -200,7 +162,8 @@ export function initDevices(root){
   const addBtn = root.querySelector('#btn-add');
   if (addBtn) {
     addBtn.onclick = () => {
-      openModal(deviceForm(), async (payload)=>{
+      fillForm({});
+      openModal(async (payload)=>{
         await api.createDevice(payload);
         await reload();
       });

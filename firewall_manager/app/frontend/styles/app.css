@@ -1,27 +1,8 @@
-/* Minimal modern look */
-:root{
-  --accent:#2563eb;
-}
-
-/* Theme: follow Bulma defaults; do not force */
-
-/* Keep Bulma default navbar; only minor highlight for active item */
-.navbar .navbar-item[href^="#/"]{opacity:1}
-.navbar .navbar-item.is-active{border-bottom:2px solid var(--accent)}
-
-.page-title{font-size:1.25rem;font-weight:700;margin-bottom:1rem;color:#111827}
+/* Minimal app-specific styles */
+html{color-scheme:light}
+body{background:#ffffff;color:#111827}
+.modal-card{background:#ffffff}
+.ag-theme-quartz{height:60vh;min-height:360px}
 .actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
-
-/* AG Grid light palette overrides */
-.ag-theme-quartz{
-  height:60vh;min-height:360px;
-  --ag-foreground-color:#111827;
-  --ag-background-color:#ffffff;
-  --ag-header-foreground-color:#111827;
-  --ag-header-background-color:#f9fafb;
-  --ag-odd-row-background-color:#ffffff;
-  --ag-row-hover-color:#f3f4f6;
-}
-
 .is-hidden{display:none}
 
