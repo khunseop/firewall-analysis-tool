@@ -326,26 +326,8 @@ class NGFCollector(FirewallInterface):
     def export_service_group_objects(self) -> pd.DataFrame:
         return self.client.export_service_group_objects_with_members()
 
-    def export_usage_logs(self, days: Optional[int] = None) -> pd.DataFrame:
-        security_rules = self.export_security_rules()
-        if security_rules.empty or 'Last Hit Date' not in security_rules.columns:
-            return pd.DataFrame(columns=['Rule Name', 'Last Hit Date', 'Unused Days', '미사용여부'])
+    # export_usage_logs는 인터페이스에서 제거되었습니다.
 
-        result_df = security_rules[['Rule Name', 'Last Hit Date']].copy()
-        current_date = datetime.now()
-
-        def calculate_unused_days(last_hit_date):
-            if pd.isna(last_hit_date) or not last_hit_date: return None
-            try:
-                return (current_date - datetime.strptime(last_hit_date, '%Y-%m-%d %H:%M:%S')).days
-            except (ValueError, TypeError): return None
-
-        result_df['Unused Days'] = result_df['Last Hit Date'].apply(calculate_unused_days)
-
-        def determine_usage_status(unused_days):
-            if pd.isna(unused_days): return '미사용'
-            if days is not None and unused_days > days: return '미사용'
-            return '사용'
-
-        result_df['미사용여부'] = result_df['Unused Days'].apply(determine_usage_status)
-        return result_df
+    # PaloAlto 전용 확장 미지원: 호출되면 빈 DF 반환
+    def export_last_hit_date(self, vsys: Optional[list[str] | set[str]] = None) -> pd.DataFrame:
+        return pd.DataFrame(columns=["Vsys", "Rule Name", "Last Hit Date"])

@@ -118,12 +118,15 @@ class FirewallInterface(ABC):
         """
         pass
 
-    @abstractmethod
-    def export_usage_logs(self, days: Optional[int] = None) -> pd.DataFrame:
-        """정책 사용이력을 DataFrame으로 반환합니다.
-        Args:
-            days: 조회할 기간 (일), None인 경우 전체 기간
+    # 이전 버전 호환용 메서드는 제거되었습니다. (export_usage_logs)
+
+    # Palo Alto 전용 확장: VSYS를 고려한 최근 히트일자 조회
+    def export_last_hit_date(self, vsys: Optional[list[str] | set[str]] = None) -> pd.DataFrame:
+        """정책별 최근 히트 일자를 DataFrame으로 반환합니다.
+
         Returns:
-            pd.DataFrame: Rule Name, Last Hit Date, Unused Days 컬럼을 가진 DataFrame
+            pd.DataFrame: Vsys, Rule Name, Last Hit Date 컬럼을 가진 DataFrame
+
+        기본 구현은 미지원입니다. Palo Alto 구현체에서만 지원합니다.
         """
-        pass
+        raise NotImplementedError("export_last_hit_date is only supported for specific vendors (e.g., Palo Alto)")
