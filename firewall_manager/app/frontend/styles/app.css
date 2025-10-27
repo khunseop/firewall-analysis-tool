@@ -3,10 +3,7 @@
   --accent:#2563eb;
 }
 
-/* Force light theme globally */
-html{color-scheme:light;background:#ffffff}
-body{background:#ffffff;color:#111827}
-.section{background:#ffffff}
+/* Theme: follow Bulma defaults; do not force */
 
 /* Keep Bulma default navbar; only minor highlight for active item */
 .navbar .navbar-item[href^="#/"]{opacity:1}

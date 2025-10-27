@@ -9,6 +9,7 @@ const codeToLabel = new Map(VENDOR_OPTIONS.map(v => [v.code, v.label]));
 const labelToCode = new Map(VENDOR_OPTIONS.map(v => [v.label, v.code]));
 let gridOptions;
 let gridApi;
+let gridHostEl;
 let handlersBound = false;
 
 function normalizeVendorCode(value) {
@@ -106,7 +107,11 @@ async function loadGrid(gridDiv, attempt = 0) {
     return;
   }
   const data = await api.listDevices();
-  if (!gridOptions && !gridApi) {
+  const needRecreate = !gridApi || !gridHostEl || gridHostEl !== gridDiv;
+  if (needRecreate) {
+    if (gridApi && typeof gridApi.destroy === 'function') {
+      try { gridApi.destroy(); } catch {}
+    }
     gridOptions = {
       columnDefs: getColumns(),
       rowData: data,
@@ -120,6 +125,7 @@ async function loadGrid(gridDiv, attempt = 0) {
       new agGrid.Grid(gridDiv, gridOptions);
       gridApi = gridOptions.api;
     }
+    gridHostEl = gridDiv;
   } else {
     if (gridApi) {
       if (typeof gridApi.setGridOption === 'function') gridApi.setGridOption('rowData', data);
@@ -190,42 +196,17 @@ async function reload(){
   if (gridDiv) await loadGrid(gridDiv);
 }
 
-export function DevicesPage(){
-  // 렌더 이후 버튼 핸들러 먼저 연결
-  setTimeout(()=>{
-    const addBtn = document.getElementById('btn-add');
-    if (addBtn) {
-      addBtn.onclick = () => {
-        openModal(deviceForm(), async (payload)=>{
-          await api.createDevice(payload);
-          await reload();
-        });
-      };
-    }
-    // 문서 위임 핸들러(중복 방지)
-    if (!handlersBound) {
-      document.addEventListener('click', (e) => {
-        const add = e.target.closest && e.target.closest('#btn-add');
-        if (add) {
-          e.preventDefault();
-          openModal(deviceForm(), async (payload)=>{
-            await api.createDevice(payload);
-            await reload();
-          });
-        }
+export function initDevices(root){
+  const addBtn = root.querySelector('#btn-add');
+  if (addBtn) {
+    addBtn.onclick = () => {
+      openModal(deviceForm(), async (payload)=>{
+        await api.createDevice(payload);
+        await reload();
       });
-      handlersBound = true;
-    }
-    // 그리드 로딩은 별도로 시도 (agGrid 준비 대기 포함)
-    reload();
-  }, 0);
-  return `
-    <div class="page-title">장비관리</div>
-    <div class="actions">
-      <button class="button is-primary" id="btn-add">장비 추가</button>
-    </div>
-    <div id="devices-grid" class="ag-theme-quartz"></div>
-  `;
+    };
+  }
+  reload();
 }
 
 
