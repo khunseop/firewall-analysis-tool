@@ -8,6 +8,9 @@ class NetworkObjectBase(BaseModel):
     ip_address: str
     type: Optional[str] = None
     description: Optional[str] = None
+    ip_version: Optional[int] = None
+    ip_start: Optional[int] = None
+    ip_end: Optional[int] = None
 
 # Schema for creating a new network object
 class NetworkObjectCreate(NetworkObjectBase):

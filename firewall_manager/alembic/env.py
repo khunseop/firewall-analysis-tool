@@ -15,6 +15,7 @@ from app.models.network_group import NetworkGroup
 from app.models.service import Service
 from app.models.service_group import ServiceGroup
 from app.models.change_log import ChangeLog
+from app.models.policy_members import PolicyAddressMember, PolicyServiceMember
 from app.core.config import settings
 
 # this is the Alembic Config object, which provides

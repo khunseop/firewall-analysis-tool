@@ -6,6 +6,8 @@ from datetime import datetime
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import delete
+from sqlalchemy.future import select
 import json
 
 from app import crud, models, schemas
@@ -13,6 +15,9 @@ from app.db.session import get_db, SessionLocal
 from app.core.security import fernet, decrypt
 from app.services.firewall.factory import FirewallCollectorFactory
 from app.services.firewall.interface import FirewallInterface
+from ipaddress import ip_network, ip_address, IPv4Address, IPv6Address
+from app.services.policy_indexer import rebuild_policy_indices
+from app.models.policy_members import PolicyAddressMember, PolicyServiceMember
 
 router = APIRouter()
 
@@ -81,7 +86,124 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
             # Drop invalid rows lacking a usable rule_name
             df = df[df['rule_name'].notna()]
 
-    # 4) Build Pydantic objects
+    # 4) Numeric normalization for specific models
+    def _parse_ip_numeric(row: dict) -> dict:
+        value = (row.get('ip_address') or '').strip()
+        typ = (row.get('type') or '').strip().lower()
+        if value == '' or value.lower() == 'none':
+            return row
+        # FQDN 처리: 타입 표기가 없더라도 알파 문자가 포함되면 FQDN로 간주
+        if typ == 'fqdn' or any(c.isalpha() for c in value):
+            row['ip_version'] = None
+            row['ip_start'] = None
+            row['ip_end'] = None
+            return row
+        try:
+            if '-' in value:  # range: a-b
+                start_s, end_s = value.split('-', 1)
+                start_ip = ip_address(start_s.strip())
+                end_ip = ip_address(end_s.strip())
+                if isinstance(start_ip, IPv4Address) and isinstance(end_ip, IPv4Address):
+                    row['ip_version'] = 4
+                    row['ip_start'] = int(start_ip)
+                    row['ip_end'] = int(end_ip)
+                else:
+                    # SQLite는 64-bit 정수만 지원하므로 IPv6은 숫자화 생략
+                    row['ip_version'] = 6
+                    row['ip_start'] = None
+                    row['ip_end'] = None
+                return row
+            if '/' in value:  # cidr
+                net = ip_network(value, strict=False)
+                if isinstance(net.network_address, IPv4Address):
+                    row['ip_version'] = 4
+                    row['ip_start'] = int(net.network_address)
+                    row['ip_end'] = int(net.broadcast_address)
+                else:
+                    row['ip_version'] = 6
+                    row['ip_start'] = None
+                    row['ip_end'] = None
+                return row
+            if value.lower() == 'any':
+                # IPv4 any로 취급
+                row['ip_version'] = 4
+                row['ip_start'] = 0
+                row['ip_end'] = (2**32) - 1
+                return row
+            # single ip
+            addr = ip_address(value)
+            if isinstance(addr, IPv4Address):
+                row['ip_version'] = 4
+                row['ip_start'] = int(addr)
+                row['ip_end'] = int(addr)
+            else:
+                row['ip_version'] = 6
+                row['ip_start'] = None
+                row['ip_end'] = None
+        except Exception:
+            # 해석 실패 시 숫자 필드 비우기
+            row['ip_version'] = None
+            row['ip_start'] = None
+            row['ip_end'] = None
+        return row
+
+    def _parse_port_numeric(row: dict) -> dict:
+        port_raw = (row.get('port') or '').strip()
+        if port_raw == '' or port_raw.lower() in {'none', 'icmp'}:
+            return row
+        if port_raw in {'*', 'any', 'ANY'}:
+            row['port_start'] = 0
+            row['port_end'] = 65535
+            return row
+        # 콤마 다중 포트는 애매하므로 숫자화 생략
+        if ',' in port_raw:
+            row['port_start'] = None
+            row['port_end'] = None
+            return row
+        try:
+            if '-' in port_raw:
+                a, b = port_raw.split('-', 1)
+                row['port_start'] = int(a)
+                row['port_end'] = int(b)
+                return row
+            p = int(port_raw)
+            row['port_start'] = p
+            row['port_end'] = p
+        except Exception:
+            row['port_start'] = None
+            row['port_end'] = None
+        return row
+
+    if pydantic_model is schemas.NetworkObjectCreate and not df.empty:
+        df = df.apply(lambda s: pd.Series(_parse_ip_numeric(s.to_dict())), axis=1)
+        # ensure numeric fields are proper ints or None
+        for col in ('ip_version', 'ip_start', 'ip_end'):
+            if col in df.columns:
+                df[col] = df[col].apply(lambda v: int(v) if v is not None and v == v else None)
+
+    if pydantic_model is schemas.ServiceCreate and not df.empty:
+        # protocol normalize to lower for consistency
+        if 'protocol' in df.columns:
+            df['protocol'] = df['protocol'].apply(lambda x: str(x).lower() if x is not None else x)
+        df = df.apply(lambda s: pd.Series(_parse_port_numeric(s.to_dict())), axis=1)
+        for col in ('port_start', 'port_end'):
+            if col in df.columns:
+                df[col] = df[col].apply(lambda v: int(v) if v is not None and v == v else None)
+
+    # 5) Normalize dtypes for known numeric fields to avoid 'inf'/'nan' errors
+    if pydantic_model is schemas.NetworkObjectCreate and not df.empty:
+        for col in ('ip_version', 'ip_start', 'ip_end'):
+            if col in df.columns:
+                df[col] = df[col].apply(lambda v: int(v) if isinstance(v, (int,)) else (int(v) if isinstance(v, float) and v == v and v not in (float('inf'), float('-inf')) else None))
+    if pydantic_model is schemas.ServiceCreate and not df.empty:
+        for col in ('port_start', 'port_end'):
+            if col in df.columns:
+                df[col] = df[col].apply(lambda v: int(v) if isinstance(v, (int,)) else (int(v) if isinstance(v, float) and v == v and v not in (float('inf'), float('-inf')) else None))
+
+    # 6) Replace NaN with None for Pydantic compatibility
+    if not df.empty:
+        df = df.where(pd.notna(df), None)
+    # 7) Build Pydantic objects
     records = df.to_dict(orient='records') if not df.empty else []
     return [pydantic_model(**row) for row in records]
 
@@ -168,6 +290,8 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                         if key in hit_map and hasattr(obj, 'last_hit_date'):
                             setattr(obj, 'last_hit_date', hit_map[key])
 
+            # 정책 인덱스 재생성은 CRUD 반영 후에 수행 (신규 정책 ID 확보)
+
             items_to_create = []
 
             for item_name, item_in in items_to_sync_map.items():
@@ -200,11 +324,26 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                 if item_name not in items_to_sync_map:
                     items_to_delete_count += 1
                     logging.info(f"Deleting {data_type}: {item_name}")
+                    # 인덱스 테이블에서 관련 항목 먼저 삭제 (정책만 해당)
+                    if data_type == "policies":
+                        await db.execute(delete(models.PolicyAddressMember).where(models.PolicyAddressMember.policy_id == item.id))
+                        await db.execute(delete(models.PolicyServiceMember).where(models.PolicyServiceMember.policy_id == item.id))
                     await delete_func(db=db, **{f"{get_singular_name(data_type)}": item})
                     await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="deleted"))
 
             if items_to_delete_count > 0:
                 logging.info(f"Deleted {items_to_delete_count} {data_type}.")
+
+            # 정책 인덱스 재생성 (업데이트/생성 반영 후 정책 ID 확보 가능 시점)
+            if data_type == "policies" and items_to_sync:
+                try:
+                    # 방금 처리한(또는 업데이트된) 정책 집합으로 인덱스 재작성
+                    # DB에서 최신 정책 엔티티 조회 후 전달
+                    result = await db.execute(select(models.Policy).where(models.Policy.device_id == device_id, models.Policy.rule_name.in_(list(items_to_sync_map.keys()))))
+                    policy_rows = result.scalars().all()
+                    await rebuild_policy_indices(db=db, device_id=device_id, policies=policy_rows)
+                except Exception:
+                    logging.warning("Rebuild policy indices failed", exc_info=True)
 
             await crud.device.update_sync_status(db=db, device=device, status="success")
             await db.commit()
@@ -325,6 +464,78 @@ async def sync_device_data(device_id: int, data_type: str, background_tasks: Bac
             except Exception:
                 # Ignore disconnect errors
                 pass
+
+
+@router.post("/sync-all/{device_id}", response_model=schemas.Msg)
+async def sync_all(device_id: int, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+    device = await crud.device.get_device(db=db, device_id=device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    # 순서: network_objects -> network_groups -> services -> service_groups -> policies
+    sequence = [
+        ("network_objects", schemas.NetworkObjectCreate),
+        ("network_groups", schemas.NetworkGroupCreate),
+        ("services", schemas.ServiceCreate),
+        ("service_groups", schemas.ServiceGroupCreate),
+        ("policies", schemas.PolicyCreate),
+    ]
+
+    loop = asyncio.get_running_loop()
+
+    try:
+        # 안전 복호화
+        try:
+            decrypted_password = decrypt(device.password)
+        except Exception:
+            if (device.vendor or "").lower() == "mock":
+                decrypted_password = device.password
+            else:
+                raise
+
+        collector = FirewallCollectorFactory.get_collector(
+            source_type=(device.vendor or "").lower(),
+            hostname=device.ip_address,
+            username=device.username,
+            password=decrypted_password,
+        )
+
+        connected = False
+        try:
+            try:
+                connected = await loop.run_in_executor(None, collector.connect)
+            except NotImplementedError:
+                connected = False
+
+            export_map = {
+                "policies": collector.export_security_rules,
+                "network_objects": collector.export_network_objects,
+                "network_groups": collector.export_network_group_objects,
+                "services": collector.export_service_objects,
+                "service_groups": collector.export_service_group_objects,
+            }
+
+            # 각 타입을 순차 수집 및 백그라운드 태스크로 push
+            for data_type, schema_create in sequence:
+                try:
+                    df = await loop.run_in_executor(None, export_map[data_type])
+                except NotImplementedError:
+                    continue
+                if df is None:
+                    df = pd.DataFrame()
+                df['device_id'] = device_id
+                items_to_sync = dataframe_to_pydantic(df, schema_create)
+                background_tasks.add_task(_sync_data_task, device_id, data_type, items_to_sync)
+
+            return {"msg": "Full synchronization started in the background."}
+        finally:
+            if connected:
+                try:
+                    await loop.run_in_executor(None, collector.disconnect)
+                except Exception:
+                    pass
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"sync-all failed: {e}")
 
 @router.get("/{device_id}/policies", response_model=List[schemas.Policy])
 async def read_db_device_policies(device_id: int, db: AsyncSession = Depends(get_db)):
