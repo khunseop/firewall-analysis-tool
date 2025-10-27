@@ -34,8 +34,7 @@ This document tracks the development progress of the Firewall Analysis Tool.
   - 비교 키: `policies.rule_name`, 기타 `name` 고정
 
 - [ ] 타임스탬프 기준 수정
-  - UTP → 시스템 시간(UTC 권장)으로 일원화
-  - 서버 타임존 정책 문서화, DB/응답 필드 일관성 점검
+  - 시스템 시간(대한민국 서울 시간)으로 일원화
 
 - [ ] 불필요 코드/파일/컬럼 정리
   - 외부 `policy_resolver.py` 의존 제거 완료에 따라 관련 동적 로딩 코드 삭제
