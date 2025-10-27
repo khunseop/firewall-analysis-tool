@@ -13,6 +13,9 @@ from app.db.session import get_db, SessionLocal
 from app.core.security import fernet, decrypt
 from app.services.firewall.factory import FirewallCollectorFactory
 from app.services.firewall.interface import FirewallInterface
+from ipaddress import ip_network, ip_address, IPv4Address, IPv6Address
+from pathlib import Path
+import importlib.util as _importlib_util
 
 router = APIRouter()
 
@@ -81,7 +84,104 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
             # Drop invalid rows lacking a usable rule_name
             df = df[df['rule_name'].notna()]
 
-    # 4) Build Pydantic objects
+    # 4) Numeric normalization for specific models
+    def _parse_ip_numeric(row: dict) -> dict:
+        value = (row.get('ip_address') or '').strip()
+        typ = (row.get('type') or '').strip().lower()
+        if value == '' or value.lower() == 'none':
+            return row
+        # FQDN 처리: 타입 표기가 없더라도 알파 문자가 포함되면 FQDN로 간주
+        if typ == 'fqdn' or any(c.isalpha() for c in value):
+            row['ip_version'] = None
+            row['ip_start'] = None
+            row['ip_end'] = None
+            return row
+        try:
+            if '-' in value:  # range: a-b
+                start_s, end_s = value.split('-', 1)
+                start_ip = ip_address(start_s.strip())
+                end_ip = ip_address(end_s.strip())
+                if isinstance(start_ip, IPv4Address) and isinstance(end_ip, IPv4Address):
+                    row['ip_version'] = 4
+                    row['ip_start'] = int(start_ip)
+                    row['ip_end'] = int(end_ip)
+                else:
+                    # SQLite는 64-bit 정수만 지원하므로 IPv6은 숫자화 생략
+                    row['ip_version'] = 6
+                    row['ip_start'] = None
+                    row['ip_end'] = None
+                return row
+            if '/' in value:  # cidr
+                net = ip_network(value, strict=False)
+                if isinstance(net.network_address, IPv4Address):
+                    row['ip_version'] = 4
+                    row['ip_start'] = int(net.network_address)
+                    row['ip_end'] = int(net.broadcast_address)
+                else:
+                    row['ip_version'] = 6
+                    row['ip_start'] = None
+                    row['ip_end'] = None
+                return row
+            if value.lower() == 'any':
+                # IPv4 any로 취급
+                row['ip_version'] = 4
+                row['ip_start'] = 0
+                row['ip_end'] = (2**32) - 1
+                return row
+            # single ip
+            addr = ip_address(value)
+            if isinstance(addr, IPv4Address):
+                row['ip_version'] = 4
+                row['ip_start'] = int(addr)
+                row['ip_end'] = int(addr)
+            else:
+                row['ip_version'] = 6
+                row['ip_start'] = None
+                row['ip_end'] = None
+        except Exception:
+            # 해석 실패 시 숫자 필드 비우기
+            row['ip_version'] = None
+            row['ip_start'] = None
+            row['ip_end'] = None
+        return row
+
+    def _parse_port_numeric(row: dict) -> dict:
+        port_raw = (row.get('port') or '').strip()
+        if port_raw == '' or port_raw.lower() in {'none', 'icmp'}:
+            return row
+        if port_raw in {'*', 'any', 'ANY'}:
+            row['port_start'] = 0
+            row['port_end'] = 65535
+            return row
+        # 콤마 다중 포트는 애매하므로 숫자화 생략
+        if ',' in port_raw:
+            row['port_start'] = None
+            row['port_end'] = None
+            return row
+        try:
+            if '-' in port_raw:
+                a, b = port_raw.split('-', 1)
+                row['port_start'] = int(a)
+                row['port_end'] = int(b)
+                return row
+            p = int(port_raw)
+            row['port_start'] = p
+            row['port_end'] = p
+        except Exception:
+            row['port_start'] = None
+            row['port_end'] = None
+        return row
+
+    if pydantic_model is schemas.NetworkObjectCreate and not df.empty:
+        df = df.apply(lambda s: pd.Series(_parse_ip_numeric(s.to_dict())), axis=1)
+
+    if pydantic_model is schemas.ServiceCreate and not df.empty:
+        # protocol normalize to lower for consistency
+        if 'protocol' in df.columns:
+            df['protocol'] = df['protocol'].apply(lambda x: str(x).lower() if x is not None else x)
+        df = df.apply(lambda s: pd.Series(_parse_port_numeric(s.to_dict())), axis=1)
+
+    # 5) Build Pydantic objects
     records = df.to_dict(orient='records') if not df.empty else []
     return [pydantic_model(**row) for row in records]
 
@@ -167,6 +267,95 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                         key = ((str(obj_vsys).lower()) if obj_vsys else None, name)
                         if key in hit_map and hasattr(obj, 'last_hit_date'):
                             setattr(obj, 'last_hit_date', hit_map[key])
+
+            # 정책 평탄화: 그룹/서비스 그룹을 실제 멤버로 해제하고 값 치환
+            if data_type == "policies" and items_to_sync:
+                # 동적 로더로 policy_resolver 모듈 로딩 (repo 루트에 위치)
+                def _load_policy_resolver_class():
+                    try:
+                        here = Path(__file__).resolve()
+                        candidates = [
+                            here.parents[5] / 'policy_resolver.py',  # repo root (/workspace)
+                            here.parents[4] / 'policy_resolver.py',  # fallback (/workspace/firewall_manager)
+                        ]
+                        for resolver_path in candidates:
+                            if resolver_path.exists():
+                                spec = _importlib_util.spec_from_file_location('policy_resolver', str(resolver_path))
+                                mod = _importlib_util.module_from_spec(spec)
+                                assert spec and spec.loader
+                                spec.loader.exec_module(mod)  # type: ignore[attr-defined]
+                                return getattr(mod, 'PolicyResolver', None)
+                    except Exception:
+                        return None
+                    return None
+
+                PolicyResolverCls = _load_policy_resolver_class()
+                if PolicyResolverCls is not None:
+                    try:
+                        # DB에서 최신 객체/그룹 조회
+                        network_objs = await crud.network_object.get_all_active_network_objects_by_device(db=db, device_id=device_id)
+                        network_grps = await crud.network_group.get_all_active_network_groups_by_device(db=db, device_id=device_id)
+                        services = await crud.service.get_all_active_services_by_device(db=db, device_id=device_id)
+                        service_grps = await crud.service_group.get_all_active_service_groups_by_device(db=db, device_id=device_id)
+
+                        # DataFrame 구성
+                        rules_df = pd.DataFrame([
+                            {
+                                'Rule Name': getattr(obj, 'rule_name'),
+                                'Source': getattr(obj, 'source'),
+                                'Destination': getattr(obj, 'destination'),
+                                'Service': getattr(obj, 'service'),
+                            }
+                            for obj in items_to_sync
+                        ])
+
+                        network_object_df = pd.DataFrame([
+                            {'Name': o.name, 'Value': o.ip_address}
+                            for o in network_objs
+                        ])
+
+                        network_group_object_df = pd.DataFrame([
+                            {'Group Name': g.name, 'Entry': g.members or ''}
+                            for g in network_grps
+                        ])
+
+                        service_object_df = pd.DataFrame([
+                            {'Name': s.name, 'Protocol': s.protocol or '', 'Port': s.port or ''}
+                            for s in services
+                        ])
+
+                        service_group_object_df = pd.DataFrame([
+                            {'Group Name': g.name, 'Entry': g.members or ''}
+                            for g in service_grps
+                        ])
+
+                        resolver = PolicyResolverCls()
+
+                        def _compute_flatten():
+                            return resolver.resolve(
+                                rules_df, network_object_df, network_group_object_df,
+                                service_object_df, service_group_object_df
+                            )
+
+                        loop = asyncio.get_running_loop()
+                        result_df = await loop.run_in_executor(None, _compute_flatten)
+                        if isinstance(result_df, pd.DataFrame) and not result_df.empty:
+                            # 매핑하여 Pydantic 객체에 주입
+                            result_df = result_df.rename(columns={
+                                'Extracted Source': 'flattened_source',
+                                'Extracted Destination': 'flattened_destination',
+                                'Extracted Service': 'flattened_service',
+                            })
+                            flat_map = {row['Rule Name']: row for row in result_df.to_dict(orient='records') if row.get('Rule Name')}
+                            for obj in items_to_sync:
+                                row = flat_map.get(getattr(obj, 'rule_name'))
+                                if row:
+                                    setattr(obj, 'flattened_source', row.get('flattened_source'))
+                                    setattr(obj, 'flattened_destination', row.get('flattened_destination'))
+                                    setattr(obj, 'flattened_service', row.get('flattened_service'))
+                    except Exception:
+                        # 평탄화 실패는 치명적이지 않으며, 로그만 남기고 진행
+                        logging.warning("Policy flattening failed; proceeding without flattened fields.", exc_info=True)
 
             items_to_create = []
 

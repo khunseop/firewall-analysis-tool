@@ -23,6 +23,10 @@ class Policy(Base):
     description = Column(String, nullable=True)
     # 정책 사용이력의 마지막 히트 시간
     last_hit_date = Column(DateTime, nullable=True)
+    # 평탄화 결과 (정책 저장 시 그룹명 해제된 실제 원소 나열)
+    flattened_source = Column(String, nullable=True)
+    flattened_destination = Column(String, nullable=True)
+    flattened_service = Column(String, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     last_seen_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 

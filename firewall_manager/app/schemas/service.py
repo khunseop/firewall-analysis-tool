@@ -8,6 +8,8 @@ class ServiceBase(BaseModel):
     protocol: Optional[str] = None
     port: Optional[str] = None
     description: Optional[str] = None
+    port_start: Optional[int] = None
+    port_end: Optional[int] = None
 
 # Schema for creating a new service
 class ServiceCreate(ServiceBase):
