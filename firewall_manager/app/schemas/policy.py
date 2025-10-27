@@ -18,9 +18,6 @@ class PolicyBase(BaseModel):
     category: Optional[str] = None
     description: Optional[str] = None
     last_hit_date: Optional[datetime] = None
-    flattened_source: Optional[str] = None
-    flattened_destination: Optional[str] = None
-    flattened_service: Optional[str] = None
 
 # Schema for creating a new policy
 class PolicyCreate(PolicyBase):

@@ -157,7 +157,7 @@ Stores information about the firewall policies.
 | `is_active`        | `BOOLEAN`  | `NOT NULL`                 | Whether the policy is active (present in last sync). |
 | `last_seen_at`     | `DATETIME` | `NOT NULL`                 | Last time the policy was confirmed present.        |
 
-Note: legacy `flattened_*` columns may exist for backward compatibility, but querying and analysis should use the member index tables below.
+Note: legacy `flattened_*` columns have been removed. Querying and analysis must use the member index tables below.
 
 ### Indexes
 
@@ -230,8 +230,8 @@ Indexes:
 
 ### Policy Flattening and Indexing
 
-- During policy sync, group members are resolved (including nested groups) via the resolver, then tokens are parsed and written into `policy_address_members` and `policy_service_members`.
-- Re-indexing is performed per affected policy (existing rows for that policy are deleted and re-inserted).
+- 정책 인덱싱은 동기화와 분리된 전용 단계로 수행됩니다. `sync-all` 완료 후 자동으로 실행되며, 필요 시 `parse-index` 엔드포인트로 수동 호출할 수 있습니다.
+- 그룹 전개 및 값 치환 후 토큰을 파싱하여 `policy_address_members`와 `policy_service_members`에 기록합니다.
 - Raw literals present directly in policies (e.g., single IPs, CIDRs, tcp/80) are included, ensuring no loss versus object tables.
 
 Notes:
