@@ -11,7 +11,5 @@ class NetworkGroup(Base):
     name = Column(String, index=True, nullable=False)
     members = Column(String, nullable=True)
     description = Column(String, nullable=True)
-    is_active = Column(Boolean, default=True, nullable=False)
-    last_seen_at = Column(DateTime, default=get_now_in_seoul, nullable=False)
 
     device = relationship("Device")

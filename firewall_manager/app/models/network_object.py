@@ -16,7 +16,5 @@ class NetworkObject(Base):
     ip_version = Column(Integer, nullable=True)  # 4 또는 6
     ip_start = Column(BigInteger, nullable=True)
     ip_end = Column(BigInteger, nullable=True)
-    is_active = Column(Boolean, default=True, nullable=False)
-    last_seen_at = Column(DateTime, default=get_now_in_seoul, nullable=False)
 
     device = relationship("Device")

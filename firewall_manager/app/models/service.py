@@ -16,7 +16,5 @@ class Service(Base):
     # 숫자화된 포트 범위 (any는 0-65535)
     port_start = Column(Integer, nullable=True)
     port_end = Column(Integer, nullable=True)
-    is_active = Column(Boolean, default=True, nullable=False)
-    last_seen_at = Column(DateTime, default=get_now_in_seoul, nullable=False)
 
     device = relationship("Device")

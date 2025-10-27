@@ -62,8 +62,6 @@ Stores information about the network objects.
 | `ip_version`   | `INTEGER`  | `NULLABLE`                 | 4 when IPv4 numeric is available; 6 for IPv6, otherwise NULL (e.g., FQDN).  |
 | `ip_start`     | `BIGINT`   | `NULLABLE`                 | Numeric start of IPv4 range (inclusive).                                    |
 | `ip_end`       | `BIGINT`   | `NULLABLE`                 | Numeric end of IPv4 range (inclusive).                                      |
-| `is_active`    | `BOOLEAN`  | `NOT NULL`                 | Whether the object is active (present in last sync).                        |
-| `last_seen_at` | `DATETIME` | `NOT NULL`                 | Last time the object was confirmed present from source.                     |
 
 ### Indexes
 
@@ -82,8 +80,6 @@ Stores information about the network groups.
 | `name`         | `VARCHAR` | `NOT NULL`                 | Name of the network group.                   |
 | `members`      | `VARCHAR` | `NULLABLE`                 | Comma-separated list of member object names. |
 | `description`  | `VARCHAR` | `NULLABLE`                 | A brief description of the group.            |
-| `is_active`    | `BOOLEAN` | `NOT NULL`                 | Whether the group is active (present in last sync).      |
-| `last_seen_at` | `DATETIME`| `NOT NULL`                 | Last time the group was confirmed present.               |
 
 ### Indexes
 
@@ -104,8 +100,6 @@ Stores information about the service objects.
 | `port_start`   | `INTEGER`  | `NULLABLE`                 | Numeric start port (inclusive). `any/*` → 0.               |
 | `port_end`     | `INTEGER`  | `NULLABLE`                 | Numeric end port (inclusive). `any/*` → 65535.             |
 | `description`  | `VARCHAR`  | `NULLABLE`                 | A brief description of the service.                        |
-| `is_active`    | `BOOLEAN`  | `NOT NULL`                 | Whether the service is active (present in last sync).      |
-| `last_seen_at` | `DATETIME` | `NOT NULL`                 | Last time the service was confirmed present.               |
 
 ### Indexes
 
@@ -124,8 +118,6 @@ Stores information about the service groups.
 | `name`         | `VARCHAR` | `NOT NULL`                 | Name of the service group.                    |
 | `members`      | `VARCHAR` | `NULLABLE`                 | Comma-separated list of member service names. |
 | `description`  | `VARCHAR` | `NULLABLE`                 | A brief description of the group.             |
-| `is_active`    | `BOOLEAN` | `NOT NULL`                 | Whether the group is active (present in last sync).      |
-| `last_seen_at` | `DATETIME`| `NOT NULL`                 | Last time the group was confirmed present.               |
 
 ### Indexes
 
@@ -154,10 +146,6 @@ Stores information about the firewall policies.
 | `category`         | `VARCHAR`  | `NULLABLE`                 | Category of the policy.                            |
 | `description`      | `VARCHAR`  | `NULLABLE`                 | A brief description of the policy.                 |
 | `last_hit_date`    | `DATETIME` | `NULLABLE`                 | Last usage timestamp (vendor-dependent enrichment).|
-| `is_active`        | `BOOLEAN`  | `NOT NULL`                 | Whether the policy is active (present in last sync). |
-| `last_seen_at`     | `DATETIME` | `NOT NULL`                 | Last time the policy was confirmed present.        |
-
-Note: legacy `flattened_*` columns may exist for backward compatibility, but querying and analysis should use the member index tables below.
 
 ### Indexes
 
