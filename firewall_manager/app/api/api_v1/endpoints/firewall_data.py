@@ -17,16 +17,22 @@ from app.services.firewall.interface import FirewallInterface
 router = APIRouter()
 
 def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
-    """Converts a Pandas DataFrame to a list of Pydantic models."""
+    """Converts a Pandas DataFrame to a list of Pydantic models.
+
+    - Normalizes column names to snake_case
+    - Converts vendor-specific flags to expected types
+    - Ensures critical keys (like policies.rule_name) are present and valid
+    """
+    # 1) Standardize columns
     df.columns = [col.lower().replace(' ', '_') for col in df.columns]
-    rename_map = {
+    df = df.rename(columns={
+        # Common normalizations for non-policy objects
         "group_name": "name",
         "entry": "members",
         "value": "ip_address",
-        "port": "port",
-    }
-    df = df.rename(columns=rename_map)
-    # Normalize enable column to boolean if present (handles 'Y'/'N', 'yes'/'no', etc.)
+    })
+
+    # 2) Normalize enable to boolean when present
     if 'enable' in df.columns:
         def _to_bool(v):
             if v is None:
@@ -43,34 +49,41 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
                 return False
             return None
         df['enable'] = df['enable'].apply(_to_bool)
-    # For policies: normalize typical vendor-specific columns to our schema
-    if set([c.lower() for c in df.columns]) & {"rule name", "rule_name"}:
-        df = df.rename(columns={
-            "Rule Name": "rule_name",
-            "Rule_Name": "rule_name",
-            "Vsys": "vsys",
-            "Seq": "seq",
-            "Enable": "enable",
-            "Action": "action",
-            "Source": "source",
-            "User": "user",
-            "Destination": "destination",
-            "Service": "service",
-            "Application": "application",
-            "Security Profile": "security_profile",
-            "Security_Profile": "security_profile",
-            "Category": "category",
-            "Description": "description",
-            "Last Hit Date": "last_hit_date",
-        })
-        # Coerce empty strings to None for last_hit_date to avoid parse errors
+
+    # 3) Policy-specific fixes
+    # Detect if this looks like a policies DataFrame by presence of rule_name-ish column
+    if 'rule_name' in df.columns or 'rule name' in df.columns:
+        # Ensure the canonical column name
+        if 'rule name' in df.columns and 'rule_name' not in df.columns:
+            df = df.rename(columns={'rule name': 'rule_name'})
+
+        # Normalize last_hit_date values to None when empty-like
         if 'last_hit_date' in df.columns:
             def _normalize_last_hit(v):
                 if v in ("", "None", None, "-"):
                     return None
                 return v
             df['last_hit_date'] = df['last_hit_date'].apply(_normalize_last_hit)
-    return [pydantic_model(**row) for row in df.to_dict(orient='records')]
+
+        # NGF 등 일부 벤더가 숫자 ID를 반환할 수 있으므로 문자열로 강제하고, 결측은 제거
+        if 'rule_name' in df.columns:
+            def _normalize_rule_name(v):
+                try:
+                    if v is None:
+                        return None
+                    s = str(v).strip()
+                    if s == '' or s.lower() in {"nan", "none", "-"}:
+                        return None
+                    return s
+                except Exception:
+                    return None
+            df['rule_name'] = df['rule_name'].apply(_normalize_rule_name)
+            # Drop invalid rows lacking a usable rule_name
+            df = df[df['rule_name'].notna()]
+
+    # 4) Build Pydantic objects
+    records = df.to_dict(orient='records') if not df.empty else []
+    return [pydantic_model(**row) for row in records]
 
 def get_singular_name(plural_name: str) -> str:
     """Converts plural data type string to singular form for CRUD operations."""
@@ -233,34 +246,76 @@ async def sync_device_data(device_id: int, data_type: str, background_tasks: Bac
     await crud.device.update_sync_status(db=db, device=device, status="in_progress")
     await db.commit()
 
-    collector = await _get_collector(device)
+    # 미싱 그린렛(MissingGreenlet) 회피: 커밋 이후 ORM 속성 재로딩을 피하기 위해
+    # 필요한 장비 속성을 커밋 전에 미리 추출해 둡니다.
     loop = asyncio.get_running_loop()
+    vendor_lower = (device.vendor or "").lower()
+    device_ip = device.ip_address
+    device_username = device.username
+    encrypted_pw = device.password
+    # 상태 갱신 및 커밋 이후에는 ORM 객체 접근을 최소화합니다.
 
-    sync_map = {
-        "policies": (collector.export_security_rules, schemas.PolicyCreate),
-        "network_objects": (collector.export_network_objects, schemas.NetworkObjectCreate),
-        "network_groups": (collector.export_network_group_objects, schemas.NetworkGroupCreate),
-        "services": (collector.export_service_objects, schemas.ServiceCreate),
-        "service_groups": (collector.export_service_group_objects, schemas.ServiceGroupCreate),
+    # 데이터 타입별 생성 스키마만 먼저 매핑하고, export 함수는 collector 생성 후 바인딩합니다.
+    schema_map = {
+        "policies": schemas.PolicyCreate,
+        "network_objects": schemas.NetworkObjectCreate,
+        "network_groups": schemas.NetworkGroupCreate,
+        "services": schemas.ServiceCreate,
+        "service_groups": schemas.ServiceGroupCreate,
     }
 
-    if data_type not in sync_map:
+    if data_type not in schema_map:
         raise HTTPException(status_code=400, detail="Invalid data type for synchronization")
 
-    export_func, schema_create = sync_map[data_type]
+    schema_create = schema_map[data_type]
 
     connected = False
     try:
+        # Collector는 커밋 이전에 확보한 원시 값으로 생성하여 그린렛 오류를 예방합니다.
+        # (ORM 객체 필드 재평가를 피함)
+        # 안전 복호화 처리 (mock는 실패 시 원문 허용)
+        try:
+            try:
+                decrypted_password = decrypt(encrypted_pw)
+            except Exception:
+                if vendor_lower == "mock":
+                    decrypted_password = encrypted_pw
+                else:
+                    raise
+            collector = FirewallCollectorFactory.get_collector(
+                source_type=vendor_lower,
+                hostname=device_ip,
+                username=device_username,
+                password=decrypted_password,
+            )
+        except Exception as e:
+            await crud.device.update_sync_status(db=db, device=device, status="failure")
+            await db.commit()
+            raise HTTPException(status_code=500, detail=f"Collector initialization failed: {e}")
+
         # Ensure connection for vendors that require it (e.g., PaloAlto)
         try:
             connected = await loop.run_in_executor(None, collector.connect)
         except NotImplementedError:
             connected = False
         except Exception as e:
-            # Mark failure and surface a user-friendly error
             await crud.device.update_sync_status(db=db, device=device, status="failure")
             await db.commit()
             raise HTTPException(status_code=502, detail=f"Failed to connect to device: {e}")
+
+        # 바인딩된 export 함수 선택
+        try:
+            export_func = {
+                "policies": collector.export_security_rules,
+                "network_objects": collector.export_network_objects,
+                "network_groups": collector.export_network_group_objects,
+                "services": collector.export_service_objects,
+                "service_groups": collector.export_service_group_objects,
+            }[data_type]
+        except KeyError:
+            await crud.device.update_sync_status(db=db, device=device, status="failure")
+            await db.commit()
+            raise HTTPException(status_code=400, detail="Invalid data type for synchronization")
 
         try:
             df = await loop.run_in_executor(None, export_func)
