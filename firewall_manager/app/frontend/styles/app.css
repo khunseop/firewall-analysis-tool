@@ -2,11 +2,29 @@
 :root{
   --accent:#2563eb;
 }
-.navbar{position:sticky;top:0;backdrop-filter:saturate(180%) blur(6px)}
-.navbar .navbar-item[href^="#/"]{opacity:.8}
-.navbar .navbar-item.is-active{opacity:1;border-bottom:2px solid var(--accent)}
-.page-title{font-size:1.25rem;font-weight:700;margin-bottom:1rem}
+
+/* Force light theme globally */
+html{color-scheme:light;background:#ffffff}
+body{background:#ffffff;color:#111827}
+.section{background:#ffffff}
+
+/* Keep Bulma default navbar; only minor highlight for active item */
+.navbar .navbar-item[href^="#/"]{opacity:1}
+.navbar .navbar-item.is-active{border-bottom:2px solid var(--accent)}
+
+.page-title{font-size:1.25rem;font-weight:700;margin-bottom:1rem;color:#111827}
 .actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
-.ag-theme-quartz{height:60vh;min-height:360px}
+
+/* AG Grid light palette overrides */
+.ag-theme-quartz{
+  height:60vh;min-height:360px;
+  --ag-foreground-color:#111827;
+  --ag-background-color:#ffffff;
+  --ag-header-foreground-color:#111827;
+  --ag-header-background-color:#f9fafb;
+  --ag-odd-row-background-color:#ffffff;
+  --ag-row-hover-color:#f3f4f6;
+}
+
 .is-hidden{display:none}
 

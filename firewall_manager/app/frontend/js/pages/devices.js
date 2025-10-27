@@ -1,10 +1,31 @@
 import { api } from "../api.js";
 
-const VENDORS = ["Palo Alto", "SECUI NGF", "Mock"]; // mf2 제외
+const VENDOR_OPTIONS = [
+  { code: "paloalto", label: "Palo Alto" },
+  { code: "ngf", label: "SECUI NGF" },
+  { code: "mock", label: "Mock" },
+];
+const codeToLabel = new Map(VENDOR_OPTIONS.map(v => [v.code, v.label]));
+const labelToCode = new Map(VENDOR_OPTIONS.map(v => [v.label, v.code]));
 let gridOptions;
+let gridApi;
+let handlersBound = false;
+
+function normalizeVendorCode(value) {
+  if (!value) return value;
+  const raw = String(value).trim();
+  if (codeToLabel.has(raw)) return raw; // already code
+  if (labelToCode.has(raw)) return labelToCode.get(raw);
+  const compact = raw.toLowerCase().replace(/\s+/g, "");
+  for (const { code, label } of VENDOR_OPTIONS) {
+    if (compact === code || compact === label.toLowerCase().replace(/\s+/g, "")) return code;
+  }
+  return raw;
+}
 
 function deviceForm(initial = {}) {
   const v = (k, d="") => (initial[k] ?? d);
+  const vendorCode = normalizeVendorCode(v("vendor", VENDOR_OPTIONS[0].code));
   return `
   <div class="field">
     <label class="label">이름</label>
@@ -18,7 +39,7 @@ function deviceForm(initial = {}) {
     <label class="label">벤더</label>
     <div class="select is-fullwidth">
       <select name="vendor">
-        ${VENDORS.map(x => `<option ${v("vendor")===x?"selected":""}>${x}</option>`).join("")}
+        ${VENDOR_OPTIONS.map(x => `<option value="${x.code}" ${vendorCode===x.code?"selected":""}>${x.label}</option>`).join("")}
       </select>
     </div>
   </div>
@@ -64,6 +85,7 @@ function openModal(contentHtml, onSubmit) {
     e.preventDefault();
     const fd = new FormData(modal.querySelector("#device-form"));
     const payload = Object.fromEntries(fd.entries());
+    payload.vendor = normalizeVendorCode(payload.vendor);
     if (!payload.password) delete payload.password;
     try { await onSubmit(payload); close(); } catch (err){
       const el = modal.querySelector('#form-error');
@@ -74,9 +96,17 @@ function openModal(contentHtml, onSubmit) {
   function close(){ document.body.removeChild(modal); }
 }
 
-async function loadGrid(gridDiv) {
+async function loadGrid(gridDiv, attempt = 0) {
+  // agGrid 스크립트 로딩 대기 (보수적으로 재시도)
+  if (!window.agGrid || (!window.agGrid.Grid && !window.agGrid.createGrid)) {
+    if (attempt < 10) {
+      return new Promise(resolve => setTimeout(() => resolve(loadGrid(gridDiv, attempt + 1)), 100));
+    }
+    console.warn('AG Grid not available. Skipping grid init.');
+    return;
+  }
   const data = await api.listDevices();
-  if (!gridOptions) {
+  if (!gridOptions && !gridApi) {
     gridOptions = {
       columnDefs: getColumns(),
       rowData: data,
@@ -84,9 +114,20 @@ async function loadGrid(gridDiv) {
       rowSelection: 'single',
       animateRows: true,
     };
-    new agGrid.Grid(gridDiv, gridOptions);
+    if (agGrid.createGrid) {
+      gridApi = agGrid.createGrid(gridDiv, gridOptions);
+    } else {
+      new agGrid.Grid(gridDiv, gridOptions);
+      gridApi = gridOptions.api;
+    }
   } else {
-    gridOptions.api.setRowData(data);
+    if (gridApi) {
+      if (typeof gridApi.setGridOption === 'function') gridApi.setGridOption('rowData', data);
+      else if (typeof gridApi.setRowData === 'function') gridApi.setRowData(data);
+      else if (gridOptions && gridOptions.api) gridOptions.api.setRowData(data);
+    } else if (gridOptions && gridOptions.api) {
+      gridOptions.api.setRowData(data);
+    }
   }
 }
 
@@ -94,7 +135,7 @@ function getColumns(){
   return [
     { field: 'id', headerName:'ID', width: 80 },
     { field: 'name', headerName:'이름', flex: 1 },
-    { field: 'vendor', headerName:'벤더', width: 140 },
+    { field: 'vendor', headerName:'벤더', width: 140, valueFormatter: p => codeToLabel.get(normalizeVendorCode(p.value)) || p.value },
     { field: 'ip_address', headerName:'IP 주소', width: 160 },
     { field: 'username', headerName:'사용자', width: 140 },
     { field: 'description', headerName:'설명', flex: 1 },
@@ -111,8 +152,12 @@ function getColumns(){
           <button class="button is-primary" data-act="sync">동기화</button>
         `;
         wrap.addEventListener('click', async (e)=>{
-          const act = e.target.closest('button')?.dataset.act;
+          const btn = e.target.closest('button');
+          const act = btn?.dataset.act;
           if (!act) return;
+          btn.setAttribute('disabled', 'disabled');
+          const prev = btn.textContent;
+          btn.textContent = prev + '…';
           try{
             if (act === 'test') {
               await api.testConnection(d.id);
@@ -129,6 +174,10 @@ function getColumns(){
               alert('동기화를 시작했습니다.');
             }
           }catch(err){ alert(err.message || '요청 실패'); }
+          finally {
+            btn.removeAttribute('disabled');
+            btn.textContent = prev;
+          }
         });
         return wrap;
       }
@@ -142,9 +191,8 @@ async function reload(){
 }
 
 export function DevicesPage(){
-  // 렌더 이후 초기화
-  setTimeout(async ()=>{
-    await reload();
+  // 렌더 이후 버튼 핸들러 먼저 연결
+  setTimeout(()=>{
     const addBtn = document.getElementById('btn-add');
     if (addBtn) {
       addBtn.onclick = () => {
@@ -154,6 +202,22 @@ export function DevicesPage(){
         });
       };
     }
+    // 문서 위임 핸들러(중복 방지)
+    if (!handlersBound) {
+      document.addEventListener('click', (e) => {
+        const add = e.target.closest && e.target.closest('#btn-add');
+        if (add) {
+          e.preventDefault();
+          openModal(deviceForm(), async (payload)=>{
+            await api.createDevice(payload);
+            await reload();
+          });
+        }
+      });
+      handlersBound = true;
+    }
+    // 그리드 로딩은 별도로 시도 (agGrid 준비 대기 포함)
+    reload();
   }, 0);
   return `
     <div class="page-title">장비관리</div>
