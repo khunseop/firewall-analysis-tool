@@ -27,7 +27,7 @@ async def create_service_groups(db: AsyncSession, service_groups: list[ServiceGr
     return db_service_groups
 
 async def update_service_group(db: AsyncSession, db_obj: ServiceGroup, obj_in: ServiceGroupCreate):
-    obj_data = obj_in.model_dump(exclude_unset=True)
+    obj_data = obj_in.model_dump(exclude_unset=True, exclude_none=True)
     for field in obj_data:
         setattr(db_obj, field, obj_data[field])
     db.add(db_obj)

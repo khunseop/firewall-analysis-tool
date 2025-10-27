@@ -37,20 +37,30 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
         "value": "ip_address",
     })
 
-    # 2) Normalize enable to boolean when present
+    # 2) Normalize enable to boolean when present (robust to numeric/strings)
     if 'enable' in df.columns:
         def _to_bool(v):
             if v is None:
                 return None
+            # Native booleans
             if isinstance(v, bool):
                 return v
+            # Numeric types (including floats from Excel): 0/0.0 -> False, 1/1.0 -> True
+            if isinstance(v, (int,)):
+                return bool(v)
+            if isinstance(v, float):
+                if v == 0.0:
+                    return False
+                if v == 1.0:
+                    return True
+            # String normalization
             try:
                 s = str(v).strip().lower()
             except Exception:
                 return None
-            if s in {"y", "yes", "true", "1"}:
+            if s in {"y", "yes", "true", "1", "on", "enabled"}:
                 return True
-            if s in {"n", "no", "false", "0"}:
+            if s in {"n", "no", "false", "0", "off", "disabled"}:
                 return False
             return None
         df['enable'] = df['enable'].apply(_to_bool)
@@ -195,12 +205,22 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                     existing_item.last_seen_at = datetime.utcnow()
                     if hasattr(existing_item, "is_active"):
                         existing_item.is_active = True
-                    obj_data = {k: _normalize_value(v) for k, v in item_in.model_dump().items()}
-                    db_obj_data = {c.name: _normalize_value(getattr(existing_item, c.name)) for c in existing_item.__table__.columns}
-                    if any(obj_data.get(k) != db_obj_data.get(k) for k in obj_data):
+                    # Compare only explicitly provided and non-null fields to avoid false updates
+                    obj_data = item_in.model_dump(exclude_unset=True, exclude_none=True)
+                    db_obj_data = {k: _normalize_value(getattr(existing_item, k, None)) for k in obj_data.keys()}
+                    if any(_normalize_value(obj_data.get(k)) != db_obj_data.get(k) for k in obj_data):
                         logging.info(f"Updating {data_type}: {item_name}")
                         await update_func(db=db, db_obj=existing_item, obj_in=item_in)
-                        await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="updated", details=json.dumps({"before": db_obj_data, "after": obj_data}, default=str)))
+                        await crud.change_log.create_change_log(
+                            db=db,
+                            change_log=schemas.ChangeLogCreate(
+                                device_id=device_id,
+                                data_type=data_type,
+                                object_name=item_name,
+                                action="updated",
+                                details=json.dumps({"before": db_obj_data, "after": obj_data}, default=str),
+                            ),
+                        )
                     else:
                         # Persist the last_seen_at touch even if no field changed
                         db.add(existing_item)
