@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 class ServiceGroup(Base):
     __tablename__ = "service_groups"
@@ -12,6 +13,6 @@ class ServiceGroup(Base):
     members = Column(String, nullable=True)
     description = Column(String, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
-    last_seen_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_seen_at = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None), nullable=False)
 
     device = relationship("Device")

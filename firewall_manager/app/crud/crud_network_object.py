@@ -27,7 +27,7 @@ async def create_network_objects(db: AsyncSession, network_objects: list[Network
     return db_network_objects
 
 async def update_network_object(db: AsyncSession, db_obj: NetworkObject, obj_in: NetworkObjectCreate):
-    obj_data = obj_in.model_dump(exclude_unset=True)
+    obj_data = obj_in.model_dump(exclude_unset=True, exclude_none=True)
     for field in obj_data:
         setattr(db_obj, field, obj_data[field])
     db.add(db_obj)

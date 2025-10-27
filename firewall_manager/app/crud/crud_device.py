@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from app.core.security import encrypt
 from app.models.device import Device
@@ -59,6 +60,7 @@ async def update_sync_status(db: AsyncSession, device: Device, status: str) -> D
     """
     device.last_sync_status = status
     if status in {"success", "failure"}:
-        device.last_sync_at = datetime.utcnow()
+        # 시스템 시간(한국시간, Asia/Seoul) 기준으로 저장
+        device.last_sync_at = datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
     db.add(device)
     return device

@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, BigInteger, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 class NetworkObject(Base):
     __tablename__ = "network_objects"
@@ -17,6 +18,6 @@ class NetworkObject(Base):
     ip_start = Column(BigInteger, nullable=True)
     ip_end = Column(BigInteger, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
-    last_seen_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_seen_at = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None), nullable=False)
 
     device = relationship("Device")

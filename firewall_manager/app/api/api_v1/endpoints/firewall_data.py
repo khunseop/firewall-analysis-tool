@@ -3,6 +3,7 @@ import logging
 from typing import Any, List
 import asyncio
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,20 +38,30 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
         "value": "ip_address",
     })
 
-    # 2) Normalize enable to boolean when present
+    # 2) Normalize enable to boolean when present (robust to numeric/strings)
     if 'enable' in df.columns:
         def _to_bool(v):
             if v is None:
                 return None
+            # Native booleans
             if isinstance(v, bool):
                 return v
+            # Numeric types (including floats from Excel): 0/0.0 -> False, 1/1.0 -> True
+            if isinstance(v, (int,)):
+                return bool(v)
+            if isinstance(v, float):
+                if v == 0.0:
+                    return False
+                if v == 1.0:
+                    return True
+            # String normalization
             try:
                 s = str(v).strip().lower()
             except Exception:
                 return None
-            if s in {"y", "yes", "true", "1"}:
+            if s in {"y", "yes", "true", "1", "on", "enabled"}:
                 return True
-            if s in {"n", "no", "false", "0"}:
+            if s in {"n", "no", "false", "0", "off", "disabled"}:
                 return False
             return None
         df['enable'] = df['enable'].apply(_to_bool)
@@ -62,12 +73,21 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
         if 'rule name' in df.columns and 'rule_name' not in df.columns:
             df = df.rename(columns={'rule name': 'rule_name'})
 
-        # Normalize last_hit_date values to None when empty-like
+        # Normalize last_hit_date to system time (Asia/Seoul) naive datetime; None when empty-like
         if 'last_hit_date' in df.columns:
             def _normalize_last_hit(v):
                 if v in ("", "None", None, "-"):
                     return None
-                return v
+                try:
+                    dt = pd.to_datetime(v, errors='coerce')
+                    if pd.isna(dt):
+                        return None
+                    # store as naive Asia/Seoul datetime to fit DB DateTime
+                    if dt.tzinfo is not None:
+                        dt = dt.tz_convert('Asia/Seoul') if hasattr(dt, 'tz_convert') else dt.tz_convert('Asia/Seoul')
+                    return dt.tz_localize(None) if hasattr(dt, 'tz_localize') else dt.to_pydatetime().replace(tzinfo=None)
+                except Exception:
+                    return None
             df['last_hit_date'] = df['last_hit_date'].apply(_normalize_last_hit)
 
         # NGF 등 일부 벤더가 숫자 ID를 반환할 수 있으므로 문자열로 강제하고, 결측은 제거
@@ -179,6 +199,21 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
 
                 if hit_df is not None and not hit_df.empty:
                     hit_df.columns = [c.lower().replace(' ', '_') for c in hit_df.columns]
+                    if 'last_hit_date' in hit_df.columns:
+                        def _normalize_hit(v):
+                            if v in ("", "None", None, "-"):
+                                return None
+                            try:
+                                dt = pd.to_datetime(v, errors='coerce')
+                                if pd.isna(dt):
+                                    return None
+                                # 시스템 시간(한국시간)으로 저장 (naive)
+                                if dt.tzinfo is not None:
+                                    dt = dt.tz_convert('Asia/Seoul') if hasattr(dt, 'tz_convert') else dt.tz_convert('Asia/Seoul')
+                                return dt.tz_localize(None) if hasattr(dt, 'tz_localize') else dt.to_pydatetime().replace(tzinfo=None)
+                            except Exception:
+                                return None
+                        hit_df['last_hit_date'] = hit_df['last_hit_date'].apply(_normalize_hit)
                     hit_map = {((str(r.get('vsys')).lower()) if r.get('vsys') else None, str(r.get('rule_name'))): r.get('last_hit_date') for r in hit_df.to_dict(orient='records') if r.get('rule_name')}
                     for name, obj in items_to_sync_map.items():
                         obj_vsys = getattr(obj, 'vsys', None)
@@ -192,15 +227,30 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                 existing_item = existing_items_map.get(item_name)
                 if existing_item:
                     # Touch last_seen_at and ensure is_active for seen items
-                    existing_item.last_seen_at = datetime.utcnow()
+                    existing_item.last_seen_at = datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
                     if hasattr(existing_item, "is_active"):
                         existing_item.is_active = True
-                    obj_data = {k: _normalize_value(v) for k, v in item_in.model_dump().items()}
-                    db_obj_data = {c.name: _normalize_value(getattr(existing_item, c.name)) for c in existing_item.__table__.columns}
-                    if any(obj_data.get(k) != db_obj_data.get(k) for k in obj_data):
+                    # Compare only explicitly provided and non-null fields to avoid false updates
+                    obj_data = item_in.model_dump(exclude_unset=True, exclude_none=True)
+                    # Normalize booleans consistently for diff (especially 'enable')
+                    db_obj_data = {}
+                    for k in obj_data.keys():
+                        v = getattr(existing_item, k, None)
+                        db_obj_data[k] = _normalize_bool(v) if k == 'enable' else _normalize_value(v)
+                    cmp_left = {k: (_normalize_bool(v) if k == 'enable' else _normalize_value(v)) for k, v in obj_data.items()}
+                    if any(cmp_left.get(k) != db_obj_data.get(k) for k in obj_data):
                         logging.info(f"Updating {data_type}: {item_name}")
                         await update_func(db=db, db_obj=existing_item, obj_in=item_in)
-                        await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="updated", details=json.dumps({"before": db_obj_data, "after": obj_data}, default=str)))
+                        await crud.change_log.create_change_log(
+                            db=db,
+                            change_log=schemas.ChangeLogCreate(
+                                device_id=device_id,
+                                data_type=data_type,
+                                object_name=item_name,
+                                action="updated",
+                                details=json.dumps({"before": db_obj_data, "after": cmp_left}, default=str),
+                            ),
+                        )
                     else:
                         # Persist the last_seen_at touch even if no field changed
                         db.add(existing_item)
@@ -262,6 +312,32 @@ def _normalize_value(value: Any) -> Any:
         return value
     except Exception:
         return value
+
+def _normalize_bool(value: Any) -> Any:
+    """Normalize diverse boolean-ish values to True/False/None for diff compare."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int,)):
+        if value == 0:
+            return False
+        if value == 1:
+            return True
+    if isinstance(value, float):
+        if value == 0.0:
+            return False
+        if value == 1.0:
+            return True
+    try:
+        s = str(value).strip().lower()
+    except Exception:
+        return None
+    if s in {"y", "yes", "true", "1", "on", "enabled"}:
+        return True
+    if s in {"n", "no", "false", "0", "off", "disabled"}:
+        return False
+    return None
 
 @router.post("/sync/{device_id}/{data_type}", include_in_schema=False, response_model=schemas.Msg)
 async def sync_device_data(device_id: int, data_type: str, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):

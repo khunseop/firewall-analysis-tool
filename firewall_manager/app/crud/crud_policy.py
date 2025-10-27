@@ -27,7 +27,8 @@ async def create_policies(db: AsyncSession, policies: list[PolicyCreate]):
     return db_policies
 
 async def update_policy(db: AsyncSession, db_obj: Policy, obj_in: PolicyCreate):
-    obj_data = obj_in.model_dump(exclude_unset=True)
+    # Exclude None to avoid overwriting existing values with nulls
+    obj_data = obj_in.model_dump(exclude_unset=True, exclude_none=True)
     for field in obj_data:
         setattr(db_obj, field, obj_data[field])
     db.add(db_obj)
