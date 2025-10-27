@@ -136,28 +136,10 @@ class MockCollector(FirewallInterface):
             'serial': ['MOCK-12345'], 'uptime': ['365 days'], 'status': ['running']
         })
 
-    def export_usage_logs(self, days: Optional[int] = None) -> pd.DataFrame:
-        time.sleep(random.uniform(0.1, 0.5))
-        rules_df = self.export_security_rules()
-        result = []
-        now = datetime.now()
-
-        for _, rule in rules_df.iterrows():
-            rule_name = rule.get('Rule Name', rule.get('name'))
-            if random.random() < 0.2:
-                last_hit_date, unused_days, usage_status = None, 999, '미사용'
-            else:
-                days_ago = random.randint(1, 60)
-                last_hit_date = (now - timedelta(days=days_ago)).strftime('%Y-%m-%d %H:%M:%S')
-                unused_days = days_ago
-                usage_status = '미사용' if days is not None and unused_days > days else '사용'
-
-            result.append({'Rule Name': rule_name, 'Last Hit Date': last_hit_date, 'Unused Days': unused_days, '미사용여부': usage_status})
-
-        return pd.DataFrame(result)
+    # export_usage_logs는 인터페이스에서 제거되었습니다.
 
     # PaloAlto 전용 확장: 모의 구현 제공
-    def export_last_hit_date(self) -> pd.DataFrame:
+    def export_last_hit_date(self, vsys: Optional[list[str] | set[str]] = None) -> pd.DataFrame:
         rules_df = self.export_security_rules()
         # Mock에는 VSYS 개념이 없으므로 Vsys=None
         result = []

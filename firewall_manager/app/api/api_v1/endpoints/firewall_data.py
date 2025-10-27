@@ -144,42 +144,27 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
 
             logging.info(f"Found {len(existing_items)} existing items and {len(items_to_sync)} items to sync.")
 
-            # Enrich policies with last_hit_date if supported by vendor
-            if data_type == "policies":
+            # Palo Alto: last_hit_date 단순 보강 (VSYS 고려)
+            if data_type == "policies" and (device.vendor or "").lower() == "paloalto":
                 try:
-                    vendor = (device.vendor or "").lower()
-                    if vendor == "paloalto":
-                        # Palo Alto: VSYS-aware hit-date merge via export_last_hit_date
-                        try:
-                            await loop.run_in_executor(None, collector.connect)
-                            hit_df = await loop.run_in_executor(None, collector.export_last_hit_date)
-                        finally:
-                            try:
-                                await loop.run_in_executor(None, collector.disconnect)
-                            except Exception:
-                                pass
+                    # policies에 포함된 vsys만 추출해 최소 호출
+                    vsys_set = {str(getattr(obj, 'vsys')).strip() for obj in items_to_sync if getattr(obj, 'vsys', None)}
+                    await loop.run_in_executor(None, collector.connect)
+                    hit_df = await loop.run_in_executor(None, lambda: collector.export_last_hit_date(vsys=vsys_set))
+                finally:
+                    try:
+                        await loop.run_in_executor(None, collector.disconnect)
+                    except Exception:
+                        pass
 
-                        if hit_df is not None and not hit_df.empty:
-                            hit_df.columns = [c.lower().replace(' ', '_') for c in hit_df.columns]
-                            hit_map = {}
-                            for row in hit_df.to_dict(orient='records'):
-                                rn = row.get('rule_name')
-                                vs = row.get('vsys')
-                                lhd = row.get('last_hit_date')
-                                if rn is None:
-                                    continue
-                                key = ((str(vs).lower()) if vs else None, str(rn))
-                                hit_map[key] = lhd
-                            for name, obj in items_to_sync_map.items():
-                                obj_vsys = getattr(obj, 'vsys', None)
-                                primary_key = ((str(obj_vsys).lower()) if obj_vsys else None, name)
-                                fallback_key = (None, name)
-                                target_key = primary_key if primary_key in hit_map else (fallback_key if fallback_key in hit_map else None)
-                                if target_key and hasattr(obj, 'last_hit_date'):
-                                    setattr(obj, 'last_hit_date', hit_map[target_key])
-                    # NGF: last_hit_date already provided; MF2: not supported
-                except Exception as enrich_err:
-                    logging.warning(f"Policy last_hit_date enrichment skipped: {enrich_err}")
+                if hit_df is not None and not hit_df.empty:
+                    hit_df.columns = [c.lower().replace(' ', '_') for c in hit_df.columns]
+                    hit_map = {((str(r.get('vsys')).lower()) if r.get('vsys') else None, str(r.get('rule_name'))): r.get('last_hit_date') for r in hit_df.to_dict(orient='records') if r.get('rule_name')}
+                    for name, obj in items_to_sync_map.items():
+                        obj_vsys = getattr(obj, 'vsys', None)
+                        key = ((str(obj_vsys).lower()) if obj_vsys else None, name)
+                        if key in hit_map and hasattr(obj, 'last_hit_date'):
+                            setattr(obj, 'last_hit_date', hit_map[key])
 
             items_to_create = []
 

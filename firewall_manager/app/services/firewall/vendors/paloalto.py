@@ -249,43 +249,14 @@ class PaloAltoAPI(FirewallInterface):
 
         return pd.DataFrame(group_objects)
 
-    def export_usage_logs(self, days: int = None) -> pd.DataFrame:
-        """최근 히트 일자 기반 사용 로그를 단순화하여 반환합니다.
+    # export_usage_logs는 인터페이스에서 제거되었습니다.
 
-        Returns DataFrame with columns:
-          - Rule Name
-          - Last Hit Date
-          - Unused Days (계산값)
-        """
-        df = self.export_last_hit_date()
-        if df is None or df.empty:
-            return pd.DataFrame(columns=['Rule Name', 'Last Hit Date', 'Unused Days'])
-        # Unused Days 계산 (Last Hit Date가 있는 항목만)
-        def _unused_days(v):
-            try:
-                if v in (None, "", "-"):
-                    return None
-                dt = datetime.datetime.strptime(str(v), '%Y-%m-%d')
-                return (datetime.datetime.now() - dt).days
-            except Exception:
-                return None
-        out = df[['Rule Name', 'Last Hit Date']].copy()
-        out['Unused Days'] = out['Last Hit Date'].apply(_unused_days)
-        if days is not None:
-            out = out[out['Unused Days'].apply(lambda d: d is not None and d <= days)]
-        return out
-
-    def export_last_hit_date(self) -> pd.DataFrame:
+    def export_last_hit_date(self, vsys: list[str] | set[str] | None = None) -> pd.DataFrame:
         """VSYS를 고려하여 각 규칙의 최근 히트 일자만 반환합니다.
 
         Returns:
             pd.DataFrame: columns = ["Vsys", "Rule Name", "Last Hit Date"]
         """
-        # 먼저 VSYS 목록을 조회하기 위해 설정 XML을 가져옵니다.
-        config_xml = self.get_config('running')
-        config_tree = ET.fromstring(config_xml)
-        vsys_entries = config_tree.findall('./result/config/devices/entry/vsys/entry')
-
         results: list[dict] = []
 
         def _fetch_vsys_hit(vsys_name: str) -> list[dict]:
@@ -325,14 +296,17 @@ class PaloAltoAPI(FirewallInterface):
                 })
             return vsys_results
 
-        for vsys in vsys_entries:
-            vsys_name = vsys.attrib.get('name')
-            if not vsys_name:
-                continue
+        # vsys 파라미터가 주어진 경우 그것만 조회, 없으면 기본 vsys1만 조회해 과도한 호출 방지
+        target_vsys_list: list[str]
+        if vsys:
+            target_vsys_list = [str(v) for v in vsys]
+        else:
+            target_vsys_list = ['vsys1']
+
+        for vsys_name in target_vsys_list:
             try:
                 results.extend(_fetch_vsys_hit(vsys_name))
             except Exception as e:
-                # 특정 VSYS에서 실패해도 전체 수집을 중단하지 않음
                 self.logger.warning("VSYS %s hit-date 조회 실패: %s", vsys_name, e)
 
         return pd.DataFrame(results)
