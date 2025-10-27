@@ -146,6 +146,8 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
 
             # Palo Alto: last_hit_date 단순 보강 (VSYS 고려)
             if data_type == "policies" and (device.vendor or "").lower() == "paloalto":
+                loop = asyncio.get_running_loop()
+                collector = await _get_collector(device)
                 try:
                     # policies에 포함된 vsys만 추출해 최소 호출
                     vsys_set = {str(getattr(obj, 'vsys')).strip() for obj in items_to_sync if getattr(obj, 'vsys', None)}
