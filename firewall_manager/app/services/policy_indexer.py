@@ -1,8 +1,6 @@
 import asyncio
 import pandas as pd
-from pathlib import Path
-import importlib.util as _importlib_util
-from typing import Iterable
+from typing import Iterable, Dict
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete
 from sqlalchemy.future import select
@@ -11,23 +9,86 @@ from app import crud, models
 from app.services.normalize import parse_ipv4_numeric, parse_port_numeric
 
 
-def _load_policy_resolver_class():
-    here = Path(__file__).resolve()
-    candidates = [
-        here.parents[5] / 'policy_resolver.py',
-        here.parents[4] / 'policy_resolver.py',
-    ]
-    for resolver_path in candidates:
-        try:
-            if resolver_path.exists():
-                spec = _importlib_util.spec_from_file_location('policy_resolver', str(resolver_path))
-                mod = _importlib_util.module_from_spec(spec)
-                assert spec and spec.loader
-                spec.loader.exec_module(mod)  # type: ignore[attr-defined]
-                return getattr(mod, 'PolicyResolver', None)
-        except Exception:
-            continue
-    return None
+class Resolver:
+    """Project-native resolver: expand nested groups and replace with members.
+
+    - network_groups: dict[name] -> comma-joined members
+    - service_groups: dict[name] -> comma-joined members
+    - service_objects: map name -> list of proto/port tokens (tcp/80, udp/53-60 ...)
+    - network_objects: map name -> list of address tokens (1.1.1.1, 10.0.0.0/8, ...)
+    """
+
+    @staticmethod
+    def _expand_groups(cells: str, group_map: Dict[str, str]) -> str:
+        cache: Dict[str, str] = {}
+
+        def dfs(name: str, depth: int = 0, max_depth: int = 20) -> str:
+            if name in cache:
+                return cache[name]
+            if depth > max_depth:
+                cache[name] = name
+                return name
+            entry = group_map.get(name)
+            if not entry or entry == name:
+                cache[name] = name
+                return name
+            expanded = []
+            for n in str(entry).split(','):
+                n = n.strip()
+                if not n:
+                    continue
+                expanded.append(dfs(n, depth + 1, max_depth))
+            flat = ','.join(set(','.join(expanded).split(','))) if expanded else name
+            cache[name] = flat
+            return flat
+
+        names = [t.strip() for t in str(cells).split(',') if t.strip()]
+        resolved = [dfs(n) for n in names]
+        return ','.join(set(','.join(resolved).split(',')))
+
+    @staticmethod
+    def _replace_with_values(cells: str, value_map: Dict[str, str]) -> str:
+        names = [t.strip() for t in str(cells).split(',') if t.strip()]
+        replaced = [str(value_map.get(n, n)) for n in names]
+        return ','.join(set(replaced))
+
+    def resolve(self, rules_df: pd.DataFrame, network_object_df: pd.DataFrame,
+                network_group_df: pd.DataFrame, service_object_df: pd.DataFrame,
+                service_group_df: pd.DataFrame) -> pd.DataFrame:
+        # maps
+        net_group_map = (network_group_df.set_index('Group Name')['Entry'].to_dict()
+                         if not network_group_df.empty else {})
+        net_value_map = (network_object_df.set_index('Name')['Value'].to_dict()
+                         if not network_object_df.empty else {})
+        svc_group_map = (service_group_df.set_index('Group Name')['Entry'].to_dict()
+                         if not service_group_df.empty else {})
+        # normalize service objects into proto/port tokens; split comma ports into rows
+        svc_rows = []
+        for _, row in service_object_df.iterrows():
+            name = row.get('Name')
+            proto = str(row.get('Protocol') or '').strip().lower()
+            port_raw = str(row.get('Port') or '').replace(' ', '')
+            if port_raw in ('', 'none'):
+                continue
+            parts = port_raw.split(',') if ',' in port_raw else [port_raw]
+            for p in parts:
+                token = f"{proto}/{p}" if proto else p
+                svc_rows.append({'Name': name, 'Value': token})
+        svc_value_map = pd.DataFrame(svc_rows).set_index('Name')['Value'].to_dict() if svc_rows else {}
+
+        # expand groups
+        rules_df = rules_df.copy()
+        rules_df['Resolved Source'] = rules_df['Source'].apply(lambda x: self._expand_groups(x, net_group_map))
+        rules_df['Resolved Destination'] = rules_df['Destination'].apply(lambda x: self._expand_groups(x, net_group_map))
+        rules_df['Resolved Service'] = rules_df['Service'].apply(lambda x: self._expand_groups(x, svc_group_map))
+
+        # replace to values
+        rules_df['Extracted Source'] = rules_df['Resolved Source'].apply(lambda x: self._replace_with_values(x, net_value_map))
+        rules_df['Extracted Destination'] = rules_df['Resolved Destination'].apply(lambda x: self._replace_with_values(x, net_value_map))
+        rules_df['Extracted Service'] = rules_df['Resolved Service'].apply(lambda x: self._replace_with_values(x, svc_value_map))
+
+        rules_df.drop(columns=['Resolved Source', 'Resolved Destination', 'Resolved Service'], inplace=True)
+        return rules_df
 
 
 async def rebuild_policy_indices(
@@ -35,9 +96,7 @@ async def rebuild_policy_indices(
     device_id: int,
     policies: Iterable[models.Policy],
 ) -> None:
-    PolicyResolverCls = _load_policy_resolver_class()
-    if PolicyResolverCls is None:
-        return
+    resolver = Resolver()
 
     rule_names = [p.rule_name for p in policies]
     if not rule_names:
@@ -75,7 +134,6 @@ async def rebuild_policy_indices(
         for g in service_grps
     ])
 
-    resolver = PolicyResolverCls()
     loop = asyncio.get_running_loop()
     result_df = await loop.run_in_executor(None, lambda: resolver.resolve(
         rules_df, network_object_df, network_group_object_df,

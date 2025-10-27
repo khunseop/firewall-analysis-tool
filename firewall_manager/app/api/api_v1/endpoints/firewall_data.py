@@ -16,8 +16,6 @@ from app.core.security import fernet, decrypt
 from app.services.firewall.factory import FirewallCollectorFactory
 from app.services.firewall.interface import FirewallInterface
 from ipaddress import ip_network, ip_address, IPv4Address, IPv6Address
-from pathlib import Path
-import importlib.util as _importlib_util
 from app.services.policy_indexer import rebuild_policy_indices
 from app.models.policy_members import PolicyAddressMember, PolicyServiceMember
 
@@ -192,10 +190,20 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
             if col in df.columns:
                 df[col] = df[col].apply(lambda v: int(v) if v is not None and v == v else None)
 
-    # 5) Replace NaN with None for Pydantic compatibility
+    # 5) Normalize dtypes for known numeric fields to avoid 'inf'/'nan' errors
+    if pydantic_model is schemas.NetworkObjectCreate and not df.empty:
+        for col in ('ip_version', 'ip_start', 'ip_end'):
+            if col in df.columns:
+                df[col] = df[col].apply(lambda v: int(v) if isinstance(v, (int,)) else (int(v) if isinstance(v, float) and v == v and v not in (float('inf'), float('-inf')) else None))
+    if pydantic_model is schemas.ServiceCreate and not df.empty:
+        for col in ('port_start', 'port_end'):
+            if col in df.columns:
+                df[col] = df[col].apply(lambda v: int(v) if isinstance(v, (int,)) else (int(v) if isinstance(v, float) and v == v and v not in (float('inf'), float('-inf')) else None))
+
+    # 6) Replace NaN with None for Pydantic compatibility
     if not df.empty:
         df = df.where(pd.notna(df), None)
-    # 6) Build Pydantic objects
+    # 7) Build Pydantic objects
     records = df.to_dict(orient='records') if not df.empty else []
     return [pydantic_model(**row) for row in records]
 
@@ -456,6 +464,78 @@ async def sync_device_data(device_id: int, data_type: str, background_tasks: Bac
             except Exception:
                 # Ignore disconnect errors
                 pass
+
+
+@router.post("/sync-all/{device_id}", response_model=schemas.Msg)
+async def sync_all(device_id: int, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+    device = await crud.device.get_device(db=db, device_id=device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    # 순서: network_objects -> network_groups -> services -> service_groups -> policies
+    sequence = [
+        ("network_objects", schemas.NetworkObjectCreate),
+        ("network_groups", schemas.NetworkGroupCreate),
+        ("services", schemas.ServiceCreate),
+        ("service_groups", schemas.ServiceGroupCreate),
+        ("policies", schemas.PolicyCreate),
+    ]
+
+    loop = asyncio.get_running_loop()
+
+    try:
+        # 안전 복호화
+        try:
+            decrypted_password = decrypt(device.password)
+        except Exception:
+            if (device.vendor or "").lower() == "mock":
+                decrypted_password = device.password
+            else:
+                raise
+
+        collector = FirewallCollectorFactory.get_collector(
+            source_type=(device.vendor or "").lower(),
+            hostname=device.ip_address,
+            username=device.username,
+            password=decrypted_password,
+        )
+
+        connected = False
+        try:
+            try:
+                connected = await loop.run_in_executor(None, collector.connect)
+            except NotImplementedError:
+                connected = False
+
+            export_map = {
+                "policies": collector.export_security_rules,
+                "network_objects": collector.export_network_objects,
+                "network_groups": collector.export_network_group_objects,
+                "services": collector.export_service_objects,
+                "service_groups": collector.export_service_group_objects,
+            }
+
+            # 각 타입을 순차 수집 및 백그라운드 태스크로 push
+            for data_type, schema_create in sequence:
+                try:
+                    df = await loop.run_in_executor(None, export_map[data_type])
+                except NotImplementedError:
+                    continue
+                if df is None:
+                    df = pd.DataFrame()
+                df['device_id'] = device_id
+                items_to_sync = dataframe_to_pydantic(df, schema_create)
+                background_tasks.add_task(_sync_data_task, device_id, data_type, items_to_sync)
+
+            return {"msg": "Full synchronization started in the background."}
+        finally:
+            if connected:
+                try:
+                    await loop.run_in_executor(None, collector.disconnect)
+                except Exception:
+                    pass
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"sync-all failed: {e}")
 
 @router.get("/{device_id}/policies", response_model=List[schemas.Policy])
 async def read_db_device_policies(device_id: int, db: AsyncSession = Depends(get_db)):
