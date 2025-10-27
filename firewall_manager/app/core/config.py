@@ -55,6 +55,15 @@ class Settings(BaseSettings):
         env_file = str(ENV_PATH)
 
 
+import pytz
+from datetime import datetime
+
 # Prepare environment and then instantiate Settings
 _ensure_env_file()
 settings = Settings()  # type: ignore[call-arg]
+
+SEOUL_TZ = pytz.timezone("Asia/Seoul")
+
+def get_now_in_seoul():
+    """Returns the current time in Asia/Seoul timezone."""
+    return datetime.now(SEOUL_TZ)

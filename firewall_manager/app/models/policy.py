@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from app.db.session import Base
-from datetime import datetime
+from app.core.config import get_now_in_seoul
 
 class Policy(Base):
     __tablename__ = "policies"
@@ -28,6 +28,6 @@ class Policy(Base):
     flattened_destination = Column(String, nullable=True)
     flattened_service = Column(String, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
-    last_seen_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_seen_at = Column(DateTime, default=get_now_in_seoul, nullable=False)
 
     device = relationship("Device")

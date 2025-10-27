@@ -1,11 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from datetime import datetime
 
 from app.core.security import encrypt
 from app.models.device import Device
 from app.schemas.device import DeviceCreate, DeviceUpdate
-from datetime import datetime
+from app.core.config import get_now_in_seoul
 
 async def get_device(db: AsyncSession, device_id: int):
     result = await db.execute(select(Device).filter(Device.id == device_id))
@@ -59,6 +58,6 @@ async def update_sync_status(db: AsyncSession, device: Device, status: str) -> D
     """
     device.last_sync_status = status
     if status in {"success", "failure"}:
-        device.last_sync_at = datetime.utcnow()
+        device.last_sync_at = get_now_in_seoul()
     db.add(device)
     return device

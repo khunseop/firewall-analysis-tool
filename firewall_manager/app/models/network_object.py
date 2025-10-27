@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, BigInteger, String, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from app.db.session import Base
-from datetime import datetime
+from app.core.config import get_now_in_seoul
 
 class NetworkObject(Base):
     __tablename__ = "network_objects"
@@ -17,6 +17,6 @@ class NetworkObject(Base):
     ip_start = Column(BigInteger, nullable=True)
     ip_end = Column(BigInteger, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
-    last_seen_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_seen_at = Column(DateTime, default=get_now_in_seoul, nullable=False)
 
     device = relationship("Device")
