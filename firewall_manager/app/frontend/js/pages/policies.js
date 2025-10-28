@@ -23,7 +23,7 @@ async function initGrid() {
   ]);
   const options = { columnDefs: getCols(), rowData: [], defaultColDef:{ resizable:true, sortable:true, filter:true } };
   options.pagination = true;
-  options.paginationAutoPageSize = true;
+  options.paginationPageSize = 50;
   if (agGrid.createGrid) policyGridApi = agGrid.createGrid(gridDiv, options); else { new agGrid.Grid(gridDiv, options); policyGridApi = options.api; }
 }
 
