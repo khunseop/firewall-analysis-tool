@@ -255,3 +255,89 @@ input.ts-hidden-accessible {
 .minimal-navbar .navbar-item:nth-child(4) { animation-delay: 0.2s; }
 .minimal-navbar .navbar-item:nth-child(5) { animation-delay: 0.25s; }
 
+/* Minimal Button Styles */
+.minimal-btn {
+  border: 1px solid #e5e7eb !important;
+  background: transparent !important;
+  color: #6b7280 !important;
+  font-weight: 500 !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: none !important;
+  border-radius: 6px !important;
+  height: 2.25rem !important;
+  padding: 0 1rem !important;
+  font-size: 0.95rem !important;
+}
+
+.minimal-btn:hover {
+  border-color: #3b82f6 !important;
+  color: #3b82f6 !important;
+  background: rgba(59, 130, 246, 0.05) !important;
+  transform: translateY(-1px);
+}
+
+.minimal-btn:active {
+  transform: translateY(0);
+}
+
+.minimal-btn.is-primary {
+  border-color: #3b82f6 !important;
+  color: #3b82f6 !important;
+}
+
+.minimal-btn.is-primary:hover {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+}
+
+.minimal-btn.is-info {
+  border-color: #3b82f6 !important;
+  color: #3b82f6 !important;
+}
+
+.minimal-btn.is-info:hover {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+}
+
+.minimal-btn.is-danger {
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+}
+
+.minimal-btn.is-danger:hover {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+.minimal-btn.is-success {
+  border-color: #10b981 !important;
+  color: #10b981 !important;
+}
+
+.minimal-btn.is-success:hover {
+  background: #10b981 !important;
+  color: #ffffff !important;
+}
+
+/* Minimal Input Styles */
+.minimal-input {
+  border: 1px solid #e5e7eb !important;
+  background: #ffffff !important;
+  color: #111827 !important;
+  font-size: 0.95rem !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: none !important;
+  border-radius: 6px !important;
+  height: 2.25rem !important;
+}
+
+.minimal-input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.1) !important;
+}
+
+.minimal-input::placeholder {
+  color: #9ca3af !important;
+}
+

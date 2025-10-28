@@ -1,22 +1,30 @@
 <div class="container is-fluid">
-  <h1 class="title is-5">장비관리</h1>
-  <div class="level">
-    <div class="level-left">
-      <div class="buttons">
-        <button class="button is-primary" id="btn-add">장비 추가</button>
-        <button class="button" id="btn-edit">수정</button>
-        <button class="button is-danger" id="btn-delete">삭제</button>
-        <button class="button is-link" id="btn-sync">동기화</button>
+  <h1 class="title is-5 mb-4">장비관리</h1>
+  
+  <div class="box mb-4">
+    <div class="level is-mobile">
+      <div class="level-left">
+        <div class="level-item">
+          <div class="buttons">
+            <button class="button minimal-btn is-primary" id="btn-add">장비 추가</button>
+            <button class="button minimal-btn is-info" id="btn-edit">수정</button>
+            <button class="button minimal-btn is-danger" id="btn-delete">삭제</button>
+            <button class="button minimal-btn is-success" id="btn-sync">동기화</button>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="level-right">
-      <div class="field">
-        <div class="control">
-          <input class="input" id="devices-search" type="text" placeholder="검색" />
+      <div class="level-right">
+        <div class="level-item">
+          <div class="field">
+            <div class="control">
+              <input class="input minimal-input" id="devices-search" type="text" placeholder="검색..." />
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
+  
   <div id="devices-grid" class="ag-theme-quartz"></div>
 
   <!-- Bulma modal for create/update device -->
@@ -70,8 +78,8 @@
         </form>
       </section>
       <footer class="modal-card-foot">
-        <button class="button is-primary" id="submit-device">저장</button>
-        <button class="button" id="cancel-device">취소</button>
+        <button class="button minimal-btn is-primary" id="submit-device">저장</button>
+        <button class="button minimal-btn" id="cancel-device">취소</button>
       </footer>
     </div>
   </div>
@@ -88,8 +96,8 @@
         <p id="confirm-message">이 작업을 진행하시겠습니까?</p>
       </section>
       <footer class="modal-card-foot is-justify-content-flex-end">
-        <button class="button" id="confirm-cancel">취소</button>
-        <button class="button is-primary" id="confirm-ok">확인</button>
+        <button class="button minimal-btn" id="confirm-cancel">취소</button>
+        <button class="button minimal-btn is-primary" id="confirm-ok">확인</button>
       </footer>
     </div>
   </div>
@@ -106,7 +114,7 @@
         <p id="alert-message">메시지</p>
       </section>
       <footer class="modal-card-foot is-justify-content-flex-end">
-        <button class="button is-primary" id="alert-ok">확인</button>
+        <button class="button minimal-btn is-primary" id="alert-ok">확인</button>
       </footer>
     </div>
   </div>
