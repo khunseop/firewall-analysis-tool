@@ -11,6 +11,11 @@ let gridOptions;
 let gridApi;
 let gridHostEl;
 let handlersBound = false;
+let miniModal;
+let consoleModal;
+let consoleAutoscroll = true;
+let consolePoller;
+let lastSeq = 0;
 
 function normalizeVendorCode(value) {
   if (!value) return value;
@@ -148,6 +153,7 @@ export function initDevices(root){
   const editBtn = root.querySelector('#btn-edit');
   const deleteBtn = root.querySelector('#btn-delete');
   const syncBtn = root.querySelector('#btn-sync');
+  const logBtn = root.querySelector('#btn-log');
   const search = root.querySelector('#devices-search');
   if (addBtn) {
     addBtn.onclick = () => {
@@ -163,7 +169,7 @@ export function initDevices(root){
       const apiRef = gridApi || (gridOptions && gridOptions.api);
       if (!apiRef) return;
       const sel = apiRef.getSelectedRows ? apiRef.getSelectedRows() : [];
-      if (!sel || sel.length !== 1) { alert('수정은 장비 1개만 선택하세요.'); return; }
+      if (!sel || sel.length !== 1) { return showAlert('수정은 장비 1개만 선택하세요.'); }
       const d = sel[0];
       fillForm(d);
       openModal(async (payload)=>{
@@ -177,8 +183,9 @@ export function initDevices(root){
       const apiRef = gridApi || (gridOptions && gridOptions.api);
       if (!apiRef) return;
       const sel = apiRef.getSelectedRows ? apiRef.getSelectedRows() : [];
-      if (!sel || sel.length === 0) { alert('삭제할 장비를 선택하세요.'); return; }
-      if (!confirm(`${sel.length}개 장비를 삭제하시겠습니까?`)) return;
+      if (!sel || sel.length === 0) { return showAlert('삭제할 장비를 선택하세요.'); }
+      const ok = await showConfirm(`${sel.length}개 장비를 삭제하시겠습니까?`);
+      if (!ok) return;
       for (const d of sel) { try { await api.deleteDevice(d.id); } catch (e) { console.warn('delete failed', d.id, e); } }
       await reload();
     };
@@ -188,7 +195,7 @@ export function initDevices(root){
       const apiRef = gridApi || (gridOptions && gridOptions.api);
       if (!apiRef) return;
       const sel = apiRef.getSelectedRows ? apiRef.getSelectedRows() : [];
-      if (!sel || sel.length === 0) { alert('동기화할 장비를 선택하세요.'); return; }
+      if (!sel || sel.length === 0) { return showAlert('동기화할 장비를 선택하세요.'); }
       // Simple queue: max 4 concurrent
       const ids = sel.map(d=>d.id);
       const concurrency = 4;
@@ -199,13 +206,22 @@ export function initDevices(root){
             const id = ids[idx++];
             active++;
             api.syncAll(id).then(()=>{ done++; }).catch(()=>{ failed++; }).finally(()=>{
-              active--; if (done+failed === ids.length) { alert(`동기화 시작됨: ${done} 성공, ${failed} 실패(시작 단계)`); resolve(); }
+              active--; if (done+failed === ids.length) { showAlert(`동기화 시작됨: ${done} 성공, ${failed} 실패(시작 단계)`); resolve(); }
               else next();
             });
           }
         };
         next();
       });
+    };
+  }
+  if (logBtn) {
+    logBtn.onclick = async () => {
+      const apiRef = gridApi || (gridOptions && gridOptions.api);
+      if (!apiRef) return;
+      const sel = apiRef.getSelectedRows ? apiRef.getSelectedRows() : [];
+      if (!sel || sel.length !== 1) { return showAlert('로그는 장비 1개만 선택하세요.'); }
+      openConsole(sel[0]);
     };
   }
   if (search) {
@@ -220,4 +236,127 @@ export function initDevices(root){
   reload();
 }
 
+
+// ---------- Mini modal helpers ----------
+function ensureMiniModal(){
+  if (miniModal) return miniModal;
+  const root = document.getElementById('modal-mini');
+  const title = root.querySelector('#mini-title');
+  const message = root.querySelector('#mini-message');
+  const close = root.querySelector('#mini-close');
+  const ok = root.querySelector('#mini-ok');
+  const confirmBtn = root.querySelector('#mini-confirm');
+  const cancel = root.querySelector('#mini-cancel');
+  miniModal = { root, title, message, close, ok, confirmBtn, cancel };
+  const hide = ()=> root.classList.remove('is-active');
+  close.onclick = hide;
+  return miniModal;
+}
+
+function showAlert(msg){
+  const m = ensureMiniModal();
+  m.title.textContent = '알림';
+  m.message.textContent = msg || '';
+  m.ok.classList.remove('is-hidden');
+  m.confirmBtn.classList.add('is-hidden');
+  m.cancel.classList.add('is-hidden');
+  return new Promise((resolve)=>{
+    const hide = ()=>{ m.root.classList.remove('is-active'); m.ok.onclick = null; resolve(true); };
+    m.ok.onclick = hide;
+    m.root.classList.add('is-active');
+  });
+}
+
+function showConfirm(msg){
+  const m = ensureMiniModal();
+  m.title.textContent = '확인';
+  m.message.textContent = msg || '';
+  m.ok.classList.add('is-hidden');
+  m.confirmBtn.classList.remove('is-hidden');
+  m.cancel.classList.remove('is-hidden');
+  return new Promise((resolve)=>{
+    const cleanup = ()=>{ m.confirmBtn.onclick = null; m.cancel.onclick = null; };
+    m.confirmBtn.onclick = ()=>{ cleanup(); m.root.classList.remove('is-active'); resolve(true); };
+    m.cancel.onclick = ()=>{ cleanup(); m.root.classList.remove('is-active'); resolve(false); };
+    m.root.classList.add('is-active');
+  });
+}
+
+// ---------- Sync console modal ----------
+function ensureConsole(){
+  if (consoleModal) return consoleModal;
+  const root = document.getElementById('modal-sync-console');
+  const close = document.getElementById('console-close');
+  const ok = document.getElementById('console-ok');
+  const out = document.getElementById('sync-console-output');
+  const clearBtn = document.getElementById('console-clear');
+  const autoscrollBtn = document.getElementById('console-autoscroll');
+  const refreshBtn = document.getElementById('console-refresh-status');
+  const deviceTag = document.getElementById('console-device-tag');
+  const statusTag = document.getElementById('console-status-tag');
+  const title = document.getElementById('console-title');
+  consoleModal = { root, close, ok, out, clearBtn, autoscrollBtn, refreshBtn, deviceTag, statusTag, title };
+  const hide = ()=>{ stopPolling(); root.classList.remove('is-active'); };
+  close.onclick = hide; ok.onclick = hide;
+  clearBtn.onclick = ()=>{ out.textContent = ''; lastSeq = 0; };
+  autoscrollBtn.onclick = ()=>{ consoleAutoscroll = !consoleAutoscroll; autoscrollBtn.textContent = `자동스크롤: ${consoleAutoscroll? '켜짐':'꺼짐'}`; };
+  refreshBtn.onclick = ()=> refreshStatus(root.getAttribute('data-device-id'));
+  return consoleModal;
+}
+
+function openConsole(device){
+  const m = ensureConsole();
+  m.title.textContent = `동기화 로그 - ${device.name}`;
+  m.deviceTag.textContent = `${device.name} (${device.id})`;
+  m.statusTag.textContent = `status: ${device.last_sync_status ?? '-'}`;
+  m.out.textContent = '';
+  lastSeq = 0;
+  m.root.setAttribute('data-device-id', String(device.id));
+  m.root.classList.add('is-active');
+  startPolling(device.id);
+}
+
+function appendEvents(events){
+  if (!events || !events.length) return;
+  const m = ensureConsole();
+  for (const e of events){
+    const line = `[${e.ts}] ${e.level.toUpperCase()} ${e.msg}`;
+    const span = document.createElement('span');
+    const ts = document.createElement('span'); ts.textContent = `[${e.ts}] `; ts.className = 'ts';
+    const lvl = document.createElement('span'); lvl.textContent = `${e.level.toUpperCase()} `; lvl.className = `level-${e.level}`;
+    const msg = document.createElement('span'); msg.textContent = e.msg;
+    const div = document.createElement('div');
+    div.appendChild(ts); div.appendChild(lvl); div.appendChild(msg);
+    m.out.appendChild(div);
+    lastSeq = e.seq;
+  }
+  if (consoleAutoscroll) m.out.scrollTop = m.out.scrollHeight;
+}
+
+function startPolling(deviceId){
+  stopPolling();
+  const tick = async ()=>{
+    try{
+      const { events, last_seq } = await api.syncLogs(deviceId, lastSeq);
+      appendEvents(events);
+    }catch(err){
+      // ignore transient errors
+    }finally{
+      consolePoller = setTimeout(tick, 1000);
+    }
+  };
+  tick();
+}
+
+function stopPolling(){
+  if (consolePoller) { clearTimeout(consolePoller); consolePoller = null; }
+}
+
+async function refreshStatus(deviceId){
+  try{
+    const d = await api.syncStatus(deviceId);
+    const m = ensureConsole();
+    m.statusTag.textContent = `status: ${d.last_sync_status ?? '-'}`;
+  }catch(err){ /* ignore */ }
+}
 

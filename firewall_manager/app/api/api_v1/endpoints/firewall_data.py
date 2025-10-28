@@ -1,11 +1,11 @@
 # firewall_manager/app/api/api_v1/endpoints/firewall_data.py
 import logging
-from typing import Any, List
+from typing import Any, List, Optional
 import asyncio
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import pandas as pd
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete
 from sqlalchemy.future import select
@@ -18,9 +18,48 @@ from app.services.firewall.factory import FirewallCollectorFactory
 from app.services.firewall.interface import FirewallInterface
 from ipaddress import ip_address, IPv4Address  # used for PaloAlto hit-date enrichment
 from app.services.policy_indexer import rebuild_policy_indices
+from collections import deque
+from threading import Lock
 from app.models.policy_members import PolicyAddressMember, PolicyServiceMember
 
 router = APIRouter()
+
+# --------------------------------------------------------------------------------------
+# In-memory per-device sync log buffer (simple, process-local)
+LOG_MAX_LEN = 1000
+_LOG_BUFFERS: dict[int, deque] = {}
+_LOG_LOCK = Lock()
+
+
+def _append_sync_log(device_id: int, level: str, message: str) -> None:
+    """Append a log event for a device with auto-incrementing sequence.
+
+    Stored as {seq, ts, level, msg} where ts is Asia/Seoul naive ISO string.
+    """
+    ts = datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None).isoformat(sep=" ", timespec="seconds")
+    with _LOG_LOCK:
+        buf = _LOG_BUFFERS.get(device_id)
+        if buf is None:
+            buf = deque(maxlen=LOG_MAX_LEN)
+            _LOG_BUFFERS[device_id] = buf
+        next_seq = (buf[-1]["seq"] + 1) if len(buf) > 0 else 1
+        buf.append({"seq": next_seq, "ts": ts, "level": level, "msg": message})
+
+
+def _get_sync_logs(device_id: int, after_seq: Optional[int] = None) -> tuple[list[dict], int]:
+    with _LOG_LOCK:
+        buf = list(_LOG_BUFFERS.get(device_id, ()))
+    if after_seq is not None:
+        events = [e for e in buf if e.get("seq", 0) > after_seq]
+    else:
+        events = buf
+    last_seq = events[-1]["seq"] if events else (buf[-1]["seq"] if buf else 0)
+    return events, last_seq
+
+
+def _clear_sync_logs(device_id: int) -> None:
+    with _LOG_LOCK:
+        _LOG_BUFFERS[device_id] = deque(maxlen=LOG_MAX_LEN)
 
 def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     """Converts a Pandas DataFrame to a list of Pydantic models.
@@ -157,6 +196,7 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
     Used by single-type sync endpoint. For orchestrated sync-all, pass False.
     """
     logging.info(f"Starting sync for device_id: {device_id}, data_type: {data_type}")
+    _append_sync_log(device_id, "info", f"[{data_type}] 동기화 시작")
     async with SessionLocal() as db:
         device = await crud.device.get_device(db=db, device_id=device_id)
         if not device:
@@ -181,6 +221,7 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
             items_to_sync_map = {getattr(item, key_attribute): item for item in items_to_sync}
 
             logging.info(f"Found {len(existing_items)} existing items and {len(items_to_sync)} items to sync.")
+            _append_sync_log(device_id, "info", f"[{data_type}] 기존 {len(existing_items)}건, 대상 {len(items_to_sync)}건")
 
             # Palo Alto: last_hit_date 단순 보강 (VSYS 고려)
             if data_type == "policies" and (device.vendor or "").lower() == "paloalto":
@@ -259,6 +300,7 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
 
             if items_to_create:
                 logging.info(f"Creating {len(items_to_create)} new {data_type}.")
+                _append_sync_log(device_id, "info", f"[{data_type}] 신규 {len(items_to_create)}건 생성")
                 await create_func(db=db, **{f"{data_type}": items_to_create})
                 for item_in in items_to_create:
                     await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=getattr(item_in, key_attribute), action="created", details=json.dumps(item_in.model_dump(), default=str)))
@@ -277,14 +319,17 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
 
             if items_to_delete_count > 0:
                 logging.info(f"Deleted {items_to_delete_count} {data_type}.")
+                _append_sync_log(device_id, "info", f"[{data_type}] {items_to_delete_count}건 삭제")
 
             # commit all CRUD changes for this data type
             await db.commit()
             logging.info(f"Sync completed successfully for device_id: {device_id}, data_type: {data_type}")
+            _append_sync_log(device_id, "info", f"[{data_type}] 동기화 완료")
 
         except Exception as e:
             await db.rollback()
             logging.error(f"Failed to sync {data_type} for device {device.name}: {e}", exc_info=True)
+            _append_sync_log(device_id, "error", f"[{data_type}] 동기화 실패: {e}")
             if update_device_status:
                 async with SessionLocal() as new_db:
                     device_for_status_update = await crud.device.get_device(db=new_db, device_id=device_id)
@@ -297,6 +342,7 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                 await crud.device.update_sync_status(db=db, device=device, status="success")
                 await db.commit()
                 logging.info(f"Device status updated to success for device_id: {device_id}")
+                _append_sync_log(device_id, "info", f"장비 동기화 상태: success")
 
 def _normalize_value(value: Any) -> Any:
     try:
@@ -347,6 +393,8 @@ async def sync_device_data(device_id: int, data_type: str, background_tasks: Bac
 
     await crud.device.update_sync_status(db=db, device=device, status="in_progress")
     await db.commit()
+    _clear_sync_logs(device_id)
+    _append_sync_log(device_id, "info", f"[{data_type}] 단일 동기화 요청")
 
     # 미싱 그린렛(MissingGreenlet) 회피: 커밋 이후 ORM 속성 재로딩을 피하기 위해
     # 필요한 장비 속성을 커밋 전에 미리 추출해 둡니다.
@@ -439,6 +487,7 @@ async def sync_device_data(device_id: int, data_type: str, background_tasks: Bac
         logging.info(f"Adding background task for {data_type} sync on device {device_id}")
         # 단일 타입 동기화는 상태 업데이트를 포함하도록 플래그 설정
         background_tasks.add_task(_sync_data_task, device_id, data_type, items_to_sync, True)
+        _append_sync_log(device_id, "info", f"[{data_type}] 동기화 태스크 등록")
         return {"msg": f"{data_type.replace('_', ' ').title()} synchronization started in the background."}
     finally:
         if connected:
@@ -458,6 +507,8 @@ async def sync_all(device_id: int, background_tasks: BackgroundTasks, db: AsyncS
     # 상태 in_progress로 설정
     await crud.device.update_sync_status(db=db, device=device, status="in_progress")
     await db.commit()
+    _clear_sync_logs(device_id)
+    _append_sync_log(device_id, "info", "전체 동기화 요청 수신")
 
     # 순서: network_objects -> network_groups -> services -> service_groups -> policies
     sequence = [
@@ -516,12 +567,14 @@ async def sync_all(device_id: int, background_tasks: BackgroundTasks, db: AsyncS
                 all_items[data_type] = items_to_sync
                 # 개별 태스크 enqueue
                 background_tasks.add_task(_sync_data_task, device_id, data_type, items_to_sync, False)
+                _append_sync_log(device_id, "info", f"[{data_type}] {len(items_to_sync)}건 동기화 태스크 등록")
 
             # 모든 동기화 완료 이벤트 이후 정책 인덱싱을 수행하기 위한 별도 태스크 추가
             # BackgroundTasks는 순차 보장 없으므로, parse-index는 별도 엔드포인트/트리거를 권장
             # 여기서는 성공/실패와 무관하게 parse-index를 후속 태스크로 추가
             background_tasks.add_task(_parse_index_after_sync_all, device_id)
 
+            _append_sync_log(device_id, "info", "전체 동기화 태스크 등록 완료")
             return {"msg": "Full synchronization started in the background. Indices will be rebuilt afterwards."}
         finally:
             if connected:
@@ -552,6 +605,7 @@ async def parse_index(device_id: int, db: AsyncSession = Depends(get_db)):
 async def _parse_index_after_sync_all(device_id: int) -> None:
     """Rebuild policy indices after sync-all. Best-effort; errors are logged only."""
     logging.info(f"Rebuilding policy indices after sync-all for device_id={device_id}")
+    _append_sync_log(device_id, "info", "정책 인덱스 재작성 시작")
     async with SessionLocal() as db:
         try:
             result = await db.execute(select(models.Policy).where(models.Policy.device_id == device_id))
@@ -563,6 +617,7 @@ async def _parse_index_after_sync_all(device_id: int) -> None:
                 await crud.device.update_sync_status(db=db, device=device, status="success")
             await db.commit()
             logging.info("Policy indices rebuilt successfully after sync-all")
+            _append_sync_log(device_id, "info", "정책 인덱스 재작성 완료")
         except Exception:
             await db.rollback()
             # 실패 시 failure로 업데이트
@@ -575,6 +630,7 @@ async def _parse_index_after_sync_all(device_id: int) -> None:
                 except Exception:
                     pass
             logging.warning("Failed to rebuild indices after sync-all", exc_info=True)
+            _append_sync_log(device_id, "error", "정책 인덱스 재작성 실패")
 
 @router.get("/{device_id}/policies", response_model=List[schemas.Policy])
 async def read_db_device_policies(device_id: int, db: AsyncSession = Depends(get_db)):
@@ -602,3 +658,12 @@ async def get_device_sync_status(device_id: int, db: AsyncSession = Depends(get_
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
     return device
+
+
+@router.get("/sync/{device_id}/logs")
+async def get_device_sync_logs(
+    device_id: int,
+    after: Optional[int] = Query(default=None, description="Return events with seq greater than this value"),
+):
+    events, last_seq = _get_sync_logs(device_id, after_seq=after)
+    return {"events": events, "last_seq": last_seq}

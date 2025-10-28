@@ -7,6 +7,7 @@
         <button class="button" id="btn-edit">수정</button>
         <button class="button is-danger" id="btn-delete">삭제</button>
         <button class="button is-link" id="btn-sync">동기화</button>
+        <button class="button is-info" id="btn-log">로그</button>
       </div>
     </div>
     <div class="level-right">
@@ -72,6 +73,51 @@
       <footer class="modal-card-foot">
         <button class="button is-primary" id="submit-device">저장</button>
         <button class="button" id="cancel-device">취소</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Mini modal (alert/confirm) -->
+  <div class="modal" id="modal-mini">
+    <div class="modal-background"></div>
+    <div class="modal-card is-narrow">
+      <header class="modal-card-head">
+        <p class="modal-card-title" id="mini-title">알림</p>
+        <button class="delete" aria-label="close" id="mini-close"></button>
+      </header>
+      <section class="modal-card-body">
+        <div id="mini-message"></div>
+      </section>
+      <footer class="modal-card-foot is-justify-content-flex-end">
+        <button class="button is-primary is-hidden" id="mini-ok">확인</button>
+        <button class="button is-danger is-hidden" id="mini-confirm">확인</button>
+        <button class="button is-light is-hidden" id="mini-cancel">취소</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Sync console modal -->
+  <div class="modal" id="modal-sync-console">
+    <div class="modal-background"></div>
+    <div class="modal-card is-wide">
+      <header class="modal-card-head">
+        <p class="modal-card-title" id="console-title">동기화 로그</p>
+        <div class="buttons are-small">
+          <button class="button is-light" id="console-clear">지우기</button>
+          <button class="button is-light" id="console-autoscroll">자동스크롤: 켜짐</button>
+        </div>
+        <button class="delete" aria-label="close" id="console-close"></button>
+      </header>
+      <section class="modal-card-body">
+        <div class="console-header">
+          <span class="tag is-link" id="console-device-tag">DEVICE</span>
+          <span class="tag" id="console-status-tag">status: -</span>
+        </div>
+        <pre class="console-output" id="sync-console-output"></pre>
+      </section>
+      <footer class="modal-card-foot is-justify-content-flex-end">
+        <button class="button" id="console-refresh-status">상태 새로고침</button>
+        <button class="button is-primary" id="console-ok">닫기</button>
       </footer>
     </div>
   </div>

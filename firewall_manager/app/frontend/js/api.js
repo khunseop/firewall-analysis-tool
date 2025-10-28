@@ -22,6 +22,7 @@ export const api = {
   testConnection: (id) => request(`/devices/${id}/test-connection`, { method: "POST" }),
   syncAll: (id) => request(`/firewall/sync-all/${id}`, { method: "POST" }),
   syncStatus: (id) => request(`/firewall/sync/${id}/status`),
+  syncLogs: (id, after) => request(`/firewall/sync/${id}/logs${after ? `?after=${encodeURIComponent(after)}` : ""}`),
 };
 
 

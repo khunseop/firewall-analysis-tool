@@ -6,3 +6,25 @@ body{background:#ffffff;color:#111827}
 .actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
 .is-hidden{display:none}
 
+/* Mini modal sizing */
+.modal-card.is-narrow{max-width:420px;width:90%}
+.modal-card.is-wide{max-width:960px;width:95%}
+
+/* Sync console */
+.console-output{
+  background:#0b1020;
+  color:#cbe1ff;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size:12px;
+  line-height:1.4;
+  padding:12px;
+  border-radius:6px;
+  height:45vh;
+  overflow:auto;
+  white-space:pre-wrap;
+}
+.console-header{display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem}
+.console-output .ts{color:#9fb3c8}
+.console-output .level-info{color:#7ce38b}
+.console-output .level-error{color:#ff7b7b}
+
