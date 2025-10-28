@@ -86,7 +86,7 @@ export async function initPolicies(){
         plugins: ['remove_button'],
         maxOptions: null,
       });
-      // Advanced filters: emulate tag input using Tom Select on plain inputs
+      // Advanced filters: tag input via Tom Select on bare inputs (remove outer Bulma input box)
       const makeTagInput = (inputId, placeholder) => {
         const el = document.getElementById(inputId);
         if (!el) return null;
@@ -98,6 +98,7 @@ export async function initPolicies(){
           maxOptions: 0,
           plugins: ['remove_button'],
           placeholder,
+          controlInput: '<input />',
         });
         return ts;
       };
