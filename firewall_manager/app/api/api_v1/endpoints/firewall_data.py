@@ -22,9 +22,53 @@ from app.models.policy_members import PolicyAddressMember, PolicyServiceMember
 
 router = APIRouter()
 
+
+def _normalize_last_hit_value(value: Any) -> datetime | None:
+    """Normalize vendor-provided last-hit value to naive Asia/Seoul datetime or None.
+
+    Accepts epoch seconds/milliseconds (int/float/str), datetime-like strings,
+    or pandas Timestamps. Returns Python datetime without tzinfo.
+    """
+    # Empty-like
+    if value in ("", "None", None, "-"):
+        return None
+    # Numeric epoch seconds/millis
+    try:
+        if isinstance(value, (int, float)) or (isinstance(value, str) and value.strip().lstrip("-+.").replace(".", "", 1).isdigit()):
+            val_float = float(value)
+            # Heuristic: milliseconds if >= 1e12 absolute
+            ts_seconds = val_float / 1000.0 if abs(val_float) >= 1e12 else val_float
+            return datetime.fromtimestamp(ts_seconds, tz=ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
+    except Exception:
+        pass
+    # Parse with pandas, then convert to Python datetime
+    try:
+        ts = pd.to_datetime(value, errors='coerce')
+        if pd.isna(ts):
+            return None
+        # Convert pandas Timestamp to python datetime
+        py_dt = ts.to_pydatetime() if hasattr(ts, 'to_pydatetime') else ts  # type: ignore[assignment]
+        # If tz-aware, convert to Asia/Seoul and drop tz
+        if getattr(py_dt, 'tzinfo', None) is not None:
+            py_dt = py_dt.astimezone(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
+        return py_dt
+    except Exception:
+        return None
+
+
+def _coerce_timestamp_to_py_datetime(value: Any) -> Any:
+    """Ensure pandas Timestamp is converted to native python datetime."""
+    try:
+        import pandas as _pd  # local import to avoid top-level dependency during tests
+        if isinstance(value, _pd.Timestamp):
+            return value.to_pydatetime()
+    except Exception:
+        pass
+    return value
+
 # Global semaphore to limit concurrent device-level sync orchestration
-# Ensures at most 4 devices are being synchronized at the same time.
-_DEVICE_SYNC_SEMAPHORE = asyncio.Semaphore(4)
+# SQLite의 동시 쓰기 한계를 고려하여 1개 장비만 동기화하도록 제한합니다.
+_DEVICE_SYNC_SEMAPHORE = asyncio.Semaphore(1)
 
 def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     """Converts a Pandas DataFrame to a list of Pydantic models.
@@ -79,20 +123,9 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
 
         # Normalize last_hit_date to system time (Asia/Seoul) naive datetime; None when empty-like
         if 'last_hit_date' in df.columns:
-            def _normalize_last_hit(v):
-                if v in ("", "None", None, "-"):
-                    return None
-                try:
-                    dt = pd.to_datetime(v, errors='coerce')
-                    if pd.isna(dt):
-                        return None
-                    # store as naive Asia/Seoul datetime to fit DB DateTime
-                    if dt.tzinfo is not None:
-                        dt = dt.tz_convert('Asia/Seoul') if hasattr(dt, 'tz_convert') else dt.tz_convert('Asia/Seoul')
-                    return dt.tz_localize(None) if hasattr(dt, 'tz_localize') else dt.to_pydatetime().replace(tzinfo=None)
-                except Exception:
-                    return None
-            df['last_hit_date'] = df['last_hit_date'].apply(_normalize_last_hit)
+            df['last_hit_date'] = df['last_hit_date'].apply(_normalize_last_hit_value)
+            # Force python datetime for Pydantic/SQLAlchemy compatibility
+            df['last_hit_date'] = df['last_hit_date'].apply(_coerce_timestamp_to_py_datetime)
 
         # NGF 등 일부 벤더가 숫자 ID를 반환할 수 있으므로 문자열로 강제하고, 결측은 제거
         if 'rule_name' in df.columns:
@@ -204,20 +237,8 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                 if hit_df is not None and not hit_df.empty:
                     hit_df.columns = [c.lower().replace(' ', '_') for c in hit_df.columns]
                     if 'last_hit_date' in hit_df.columns:
-                        def _normalize_hit(v):
-                            if v in ("", "None", None, "-"):
-                                return None
-                            try:
-                                dt = pd.to_datetime(v, errors='coerce')
-                                if pd.isna(dt):
-                                    return None
-                                # 시스템 시간(한국시간)으로 저장 (naive)
-                                if dt.tzinfo is not None:
-                                    dt = dt.tz_convert('Asia/Seoul') if hasattr(dt, 'tz_convert') else dt.tz_convert('Asia/Seoul')
-                                return dt.tz_localize(None) if hasattr(dt, 'tz_localize') else dt.to_pydatetime().replace(tzinfo=None)
-                            except Exception:
-                                return None
-                        hit_df['last_hit_date'] = hit_df['last_hit_date'].apply(_normalize_hit)
+                        hit_df['last_hit_date'] = hit_df['last_hit_date'].apply(_normalize_last_hit_value)
+                        hit_df['last_hit_date'] = hit_df['last_hit_date'].apply(_coerce_timestamp_to_py_datetime)
                     hit_map = {((str(r.get('vsys')).lower()) if r.get('vsys') else None, str(r.get('rule_name'))): r.get('last_hit_date') for r in hit_df.to_dict(orient='records') if r.get('rule_name')}
                     for name, obj in items_to_sync_map.items():
                         obj_vsys = getattr(obj, 'vsys', None)
