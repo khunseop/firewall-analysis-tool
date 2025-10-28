@@ -42,7 +42,21 @@ function fillForm(initial = {}){
 function openModal(onSubmit){
   const modal = document.getElementById('modal-device');
   modal.classList.add('is-active');
-  const close = () => modal.classList.remove('is-active');
+  const close = () => {
+    modal.classList.remove('is-active');
+    document.removeEventListener('keydown', handleEsc);
+  };
+  
+  const handleEsc = (e) => {
+    if (e.key === 'Escape') close();
+  };
+  
+  document.addEventListener('keydown', handleEsc);
+  
+  // 배경 클릭으로 닫기
+  const background = modal.querySelector('.modal-background');
+  if (background) background.onclick = close;
+  
   modal.querySelector('#close-device').onclick = close;
   modal.querySelector('#cancel-device').onclick = (e)=>{e.preventDefault(); close();};
   modal.querySelector('#submit-device').onclick = async (e)=>{
@@ -70,7 +84,23 @@ function openConfirm({ title = '확인', message = '이 작업을 진행하시�
     $('#confirm-message').textContent = message;
     $('#confirm-ok').textContent = okText;
     $('#confirm-cancel').textContent = cancelText;
-    const close = (val)=>{ modal.classList.remove('is-active'); resolve(val); };
+    
+    const close = (val)=>{ 
+      modal.classList.remove('is-active'); 
+      document.removeEventListener('keydown', handleEsc);
+      resolve(val); 
+    };
+    
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') close(false);
+    };
+    
+    document.addEventListener('keydown', handleEsc);
+    
+    // 배경 클릭으로 닫기
+    const background = modal.querySelector('.modal-background');
+    if (background) background.onclick = () => close(false);
+    
     $('#confirm-close').onclick = ()=>close(false);
     $('#confirm-cancel').onclick = ()=>close(false);
     $('#confirm-ok').onclick = ()=>close(true);
@@ -86,7 +116,23 @@ function openAlert({ title = '알림', message = '처리되었습니다.', okTex
     $('#alert-title').textContent = title;
     $('#alert-message').textContent = message;
     $('#alert-ok').textContent = okText;
-    const close = ()=>{ modal.classList.remove('is-active'); resolve(); };
+    
+    const close = ()=>{ 
+      modal.classList.remove('is-active'); 
+      document.removeEventListener('keydown', handleEsc);
+      resolve(); 
+    };
+    
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') close();
+    };
+    
+    document.addEventListener('keydown', handleEsc);
+    
+    // 배경 클릭으로 닫기
+    const background = modal.querySelector('.modal-background');
+    if (background) background.onclick = close;
+    
     $('#alert-close').onclick = close;
     $('#alert-ok').onclick = close;
   });

@@ -341,3 +341,75 @@ input.ts-hidden-accessible {
   color: #9ca3af !important;
 }
 
+/* Modal Improvements */
+.modal-background {
+  background-color: rgba(10, 10, 10, 0.3) !important;
+}
+
+.modal-card {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  max-width: 540px !important;
+  width: 90% !important;
+}
+
+.modal-card-head {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  padding: 1rem 1.25rem !important;
+}
+
+.modal-card-title {
+  font-size: 1.1rem !important;
+  font-weight: 600 !important;
+  color: #111827 !important;
+}
+
+.modal-card-body {
+  background: #ffffff !important;
+  padding: 1.25rem !important;
+}
+
+.modal-card-foot {
+  background: #ffffff !important;
+  border-top: 1px solid #e5e7eb !important;
+  padding: 1rem 1.25rem !important;
+}
+
+.modal-card .field {
+  margin-bottom: 1rem !important;
+}
+
+.modal-card .label {
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  color: #374151 !important;
+  margin-bottom: 0.4rem !important;
+}
+
+.modal-card .input,
+.modal-card .textarea,
+.modal-card .select select {
+  font-size: 0.95rem !important;
+  border-radius: 6px !important;
+  border-color: #e5e7eb !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.modal-card .input:focus,
+.modal-card .textarea:focus,
+.modal-card .select select:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.1) !important;
+}
+
+.modal-card .help {
+  font-size: 0.85rem !important;
+  margin-top: 0.25rem !important;
+}
+
+/* Compact confirm/alert modals */
+.modal.is-compact .modal-card {
+  max-width: 420px !important;
+}
+
