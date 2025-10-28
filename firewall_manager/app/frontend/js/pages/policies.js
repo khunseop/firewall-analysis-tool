@@ -21,7 +21,7 @@ async function initGrid() {
     { field:'description', headerName:'description', flex:1, minWidth:200 },
     { field:'last_hit_date', headerName:'last_hit_date', width:190 },
   ]);
-  const options = { columnDefs: getCols(), rowData: [], defaultColDef:{ resizable:true, sortable:true, filter:true } };
+  const options = { columnDefs: getCols(), rowData: [], defaultColDef:{ resizable:true, sortable:false, filter:true } };
   options.pagination = true;
   options.paginationPageSize = 50;
   if (agGrid.createGrid) policyGridApi = agGrid.createGrid(gridDiv, options); else { new agGrid.Grid(gridDiv, options); policyGridApi = options.api; }

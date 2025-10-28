@@ -214,8 +214,24 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
 
             existing_items = await get_all_func(db=db, device_id=device_id)
             key_attribute = get_key_attribute(data_type)
-            existing_items_map = {getattr(item, key_attribute): item for item in existing_items}
-            items_to_sync_map = {getattr(item, key_attribute): item for item in items_to_sync}
+
+            # Use composite key for policies to avoid cross-VSYS collisions on rule_name
+            def _make_key(obj: Any):
+                if data_type == "policies":
+                    vsys_val = getattr(obj, "vsys", None)
+                    vsys_key = (str(vsys_val).strip().lower()) if (vsys_val is not None and str(vsys_val).strip() != "") else None
+                    return (vsys_key, getattr(obj, "rule_name"))
+                return getattr(obj, key_attribute)
+
+            def _display_name(obj: Any) -> str:
+                if data_type == "policies":
+                    vsys_val = getattr(obj, "vsys", None)
+                    rule_name_val = getattr(obj, "rule_name", None)
+                    return f"{(vsys_val if (vsys_val is not None and str(vsys_val).strip() != '') else '-')}::{rule_name_val}"
+                return str(getattr(obj, key_attribute))
+
+            existing_items_map = {_make_key(item): item for item in existing_items}
+            items_to_sync_map = {_make_key(item): item for item in items_to_sync}
 
             logging.info(f"Found {len(existing_items)} existing items and {len(items_to_sync)} items to sync.")
 
@@ -248,8 +264,8 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
 
             items_to_create = []
 
-            for item_name, item_in in items_to_sync_map.items():
-                existing_item = existing_items_map.get(item_name)
+            for item_key, item_in in items_to_sync_map.items():
+                existing_item = existing_items_map.get(item_key)
                 if existing_item:
                     # Touch last_seen_at and ensure is_active for seen items
                     existing_item.last_seen_at = datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
@@ -264,14 +280,14 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                         db_obj_data[k] = _normalize_bool(v) if k == 'enable' else _normalize_value(v)
                     cmp_left = {k: (_normalize_bool(v) if k == 'enable' else _normalize_value(v)) for k, v in obj_data.items()}
                     if any(cmp_left.get(k) != db_obj_data.get(k) for k in obj_data):
-                        logging.info(f"Updating {data_type}: {item_name}")
+                        logging.info(f"Updating {data_type}: {_display_name(item_in)}")
                         await update_func(db=db, db_obj=existing_item, obj_in=item_in)
                         await crud.change_log.create_change_log(
                             db=db,
                             change_log=schemas.ChangeLogCreate(
                                 device_id=device_id,
                                 data_type=data_type,
-                                object_name=item_name,
+                                object_name=_display_name(item_in),
                                 action="updated",
                                 details=json.dumps({"before": db_obj_data, "after": cmp_left}, default=str),
                             ),
@@ -286,19 +302,36 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                 logging.info(f"Creating {len(items_to_create)} new {data_type}.")
                 await create_func(db=db, **{f"{data_type}": items_to_create})
                 for item_in in items_to_create:
-                    await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=getattr(item_in, key_attribute), action="created", details=json.dumps(item_in.model_dump(), default=str)))
+                    await crud.change_log.create_change_log(
+                        db=db,
+                        change_log=schemas.ChangeLogCreate(
+                            device_id=device_id,
+                            data_type=data_type,
+                            object_name=_display_name(item_in),
+                            action="created",
+                            details=json.dumps(item_in.model_dump(), default=str),
+                        ),
+                    )
 
             items_to_delete_count = 0
-            for item_name, item in existing_items_map.items():
-                if item_name not in items_to_sync_map:
+            for item_key, item in existing_items_map.items():
+                if item_key not in items_to_sync_map:
                     items_to_delete_count += 1
-                    logging.info(f"Deleting {data_type}: {item_name}")
+                    logging.info(f"Deleting {data_type}: {_display_name(item)}")
                     # 인덱스 테이블에서 관련 항목 먼저 삭제 (정책만 해당)
                     if data_type == "policies":
                         await db.execute(delete(models.PolicyAddressMember).where(models.PolicyAddressMember.policy_id == item.id))
                         await db.execute(delete(models.PolicyServiceMember).where(models.PolicyServiceMember.policy_id == item.id))
                     await delete_func(db=db, **{f"{get_singular_name(data_type)}": item})
-                    await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="deleted"))
+                    await crud.change_log.create_change_log(
+                        db=db,
+                        change_log=schemas.ChangeLogCreate(
+                            device_id=device_id,
+                            data_type=data_type,
+                            object_name=_display_name(item),
+                            action="deleted",
+                        ),
+                    )
 
             if items_to_delete_count > 0:
                 logging.info(f"Deleted {items_to_delete_count} {data_type}.")
