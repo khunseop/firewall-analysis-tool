@@ -23,8 +23,8 @@ from app.models.policy_members import PolicyAddressMember, PolicyServiceMember
 router = APIRouter()
 
 # Global semaphore to limit concurrent device-level sync orchestration
-# Ensures at most 4 devices are being synchronized at the same time.
-_DEVICE_SYNC_SEMAPHORE = asyncio.Semaphore(4)
+# SQLite의 동시 쓰기 한계를 고려하여 1개 장비만 동기화하도록 제한합니다.
+_DEVICE_SYNC_SEMAPHORE = asyncio.Semaphore(1)
 
 def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     """Converts a Pandas DataFrame to a list of Pydantic models.
@@ -82,14 +82,35 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
             def _normalize_last_hit(v):
                 if v in ("", "None", None, "-"):
                     return None
+                # Handle numeric epoch seconds/milliseconds
                 try:
-                    dt = pd.to_datetime(v, errors='coerce')
+                    if isinstance(v, (int, float)) or (isinstance(v, str) and v.strip().lstrip("-+").isdigit()):
+                        sval = int(float(v))
+                        # Heuristic: >= 10^12 -> milliseconds; else seconds
+                        ts_seconds = sval / 1000.0 if abs(sval) >= 10**12 else float(sval)
+                        return datetime.fromtimestamp(ts_seconds, tz=ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
+                except Exception:
+                    pass
+                # Fallback to pandas parser
+                try:
+                    dt = pd.to_datetime(v, errors='coerce', utc=False)
                     if pd.isna(dt):
                         return None
-                    # store as naive Asia/Seoul datetime to fit DB DateTime
-                    if dt.tzinfo is not None:
-                        dt = dt.tz_convert('Asia/Seoul') if hasattr(dt, 'tz_convert') else dt.tz_convert('Asia/Seoul')
-                    return dt.tz_localize(None) if hasattr(dt, 'tz_localize') else dt.to_pydatetime().replace(tzinfo=None)
+                    # Convert tz-aware to Asia/Seoul then drop tz
+                    try:
+                        if getattr(dt, 'tzinfo', None) is not None:
+                            if hasattr(dt, 'tz_convert'):
+                                dt = dt.tz_convert("Asia/Seoul")
+                    except Exception:
+                        try:
+                            if hasattr(dt, 'tz_localize'):
+                                dt = dt.tz_localize("Asia/Seoul")
+                        except Exception:
+                            pass
+                    if hasattr(dt, 'tz_localize'):
+                        return dt.tz_localize(None)
+                    # Fallback to native datetime
+                    return dt.to_pydatetime().replace(tzinfo=None)
                 except Exception:
                     return None
             df['last_hit_date'] = df['last_hit_date'].apply(_normalize_last_hit)
