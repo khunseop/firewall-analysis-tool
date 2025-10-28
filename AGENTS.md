@@ -181,8 +181,7 @@
 | **환경**        | 폐쇄망(Offline), 로컬 라이브러리 포함            |
 | **백엔드**       | FastAPI                              |
 | **프론트엔드**     | HTML / CSS / JavaScript (Vanilla JS) |
-| **CSS 프레임워크** | Bulma                                |
-| **테이블/그리드**   | AG-Grid                              |
+| **UI 프레임워크** | Bulma / AG-Grid / Tom-select |
 | **차트 라이브러리**  | ApexCharts.js                        |
 | **데이터베이스**    | SQLite                               |
 
