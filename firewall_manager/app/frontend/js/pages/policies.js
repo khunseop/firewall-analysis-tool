@@ -77,34 +77,15 @@ export async function initPolicies(){
   await loadDevicesIntoSelect();
   const sel = document.getElementById('policy-device-select');
   if (!sel) return;
-  // Initialize Tom Select for multi-select if available
+  // Initialize Tom Select for device selector only
   try {
-    if (window.TomSelect) {
-      if (sel._tomSelect) { try { sel._tomSelect.destroy(); } catch {} }
-      sel._tomSelect = new window.TomSelect(sel, { 
+    if (window.TomSelect && sel) {
+      if (sel.tomselect) { try { sel.tomselect.destroy(); } catch {} }
+      sel.tomselect = new window.TomSelect(sel, { 
         placeholder: '장비 선택',
         plugins: ['remove_button'],
         maxOptions: null,
       });
-      // Advanced filters: tag input via Tom Select on bare inputs (remove outer Bulma input box)
-      const makeTagInput = (inputId, placeholder) => {
-        const el = document.getElementById(inputId);
-        if (!el) return null;
-        const ts = new window.TomSelect(el, {
-          persist: false,
-          createOnBlur: true,
-          create: (input) => ({ value: input.trim(), text: input.trim() }),
-          delimiter: ',',
-          maxOptions: 0,
-          plugins: ['remove_button'],
-          placeholder,
-          controlInput: '<input />',
-        });
-        return ts;
-      };
-      makeTagInput('f-src', 'source 여러 값 입력');
-      makeTagInput('f-dst', 'destination 여러 값 입력');
-      makeTagInput('f-svc', 'service 여러 값 입력');
     }
   } catch {}
 
@@ -113,32 +94,14 @@ export async function initPolicies(){
     const btnReset = document.getElementById('btn-reset');
     if (btnSearch) btnSearch.onclick = () => searchAndLoadPolicies();
     if (btnReset) btnReset.onclick = () => { 
-      document.querySelectorAll('[id^="f-"]').forEach(el=>{ el.value=''; });
+      // Reset all filter inputs
+      document.querySelectorAll('[id^="f-"]').forEach(el => {
+        el.value = '';
+      });
       searchAndLoadPolicies();
     };
     // re-query when device selection changes
     sel.onchange = () => searchAndLoadPolicies();
-
-    // Make details toggle when clicking anywhere inside header area
-    const details = document.getElementById('adv-details');
-    if (details) {
-      const summary = details.querySelector('summary');
-      // Expand clickable area: toggle on click anywhere in summary or its parent box header area
-      if (summary) {
-        // Ensure keyboard accessibility remains intact
-        details.addEventListener('click', (e) => {
-          const path = e.composedPath ? e.composedPath() : [];
-          if (path.includes(summary)) return; // default behavior
-          // If user clicked on the box area but not on interactive controls, toggle
-          const target = e.target;
-          const isInteractive = ['INPUT','SELECT','TEXTAREA','BUTTON','A'].includes(target.tagName);
-          if (!isInteractive && (target.closest && target.closest('#adv-details'))) {
-            e.preventDefault();
-            details.open = !details.open;
-          }
-        });
-      }
-    }
   };
   bind();
 

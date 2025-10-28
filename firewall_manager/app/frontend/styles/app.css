@@ -57,3 +57,103 @@ input,textarea,select,.select select,button{color-scheme:light;background:#fffff
 .notice-item.success{background:#065f46}
 .notice-item.error{background:#7f1d1d}
 
+/* Tom-select fixes for policy search */
+/* Hide original input completely - must not take up any space */
+.ts-hidden-accessible,
+.tomselected,
+input.tomselected,
+input.ts-hidden-accessible {
+  display: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+}
+
+/* Wrapper takes full width and proper display */
+.ts-wrapper {
+  display: block !important;
+  width: 100% !important;
+  position: relative !important;
+}
+
+/* Control styling */
+.ts-wrapper .ts-control {
+  min-height: 38px !important;
+  padding: 6px 8px !important;
+  border: 1px solid #dbdbdb !important;
+  background: #ffffff !important;
+  border-radius: 4px !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 4px !important;
+  align-items: center !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Multi-select specific */
+.ts-wrapper.multi .ts-control {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Individual item styling */
+.ts-wrapper.multi .ts-control > div {
+  flex-shrink: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  background: #f5f5f5 !important;
+  border: 1px solid #dbdbdb !important;
+  border-radius: 3px !important;
+  padding: 2px 8px !important;
+  margin: 0 !important;
+  font-size: 0.875rem !important;
+  max-width: calc(100% - 80px) !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Input inside control */
+.ts-wrapper .ts-control input {
+  min-width: 80px !important;
+  flex: 1 1 auto !important;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Small variant */
+.ts-wrapper.input.is-small .ts-control {
+  font-size: 0.875rem !important;
+  min-height: 32px !important;
+}
+
+/* Dropdown positioning - must be above ag-grid headers */
+.ts-dropdown {
+  position: absolute !important;
+  z-index: 9999 !important;
+  border: 1px solid #dbdbdb !important;
+  background: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+/* Ensure dropdown appears above everything */
+.ts-wrapper.dropdown-active {
+  z-index: 10000 !important;
+}
+

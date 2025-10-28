@@ -1,40 +1,70 @@
 <div class="container is-fluid">
-  <h1 class="title is-5">정책조회</h1>
+  <h1 class="title is-5 mb-4">정책조회</h1>
 
-  <div class="columns is-multiline">
-    <div class="column is-12">
+  <!-- 장비 선택 -->
+  <div class="box mb-4">
+    <div class="field">
       <label class="label">장비</label>
       <div class="control">
         <select id="policy-device-select" multiple></select>
       </div>
     </div>
+  </div>
 
-    <div class="column is-12">
-      <details class="box" id="adv-details" open>
-        <summary><strong>상세 검색</strong></summary>
-        <div class="columns is-multiline">
-          <div class="column is-12">
-            <label class="label is-small">source</label>
-            <input id="f-src" placeholder="source: 콤마로 여러 개 입력 (예: 10.0.0.0/8, 1.1.1.1, any)" />
-          </div>
-          <div class="column is-12">
-            <label class="label is-small">destination</label>
-            <input id="f-dst" placeholder="destination: 콤마로 여러 개 입력 (예: 192.168.0.0/16, 8.8.8.8)" />
-          </div>
-          <div class="column is-12">
-            <label class="label is-small">service</label>
-            <input id="f-svc" placeholder="service: 콤마로 여러 개 입력 (예: tcp/80, udp/53, 443, 80-90, any)" />
-          </div>
-          <div class="column is-12 has-text-right">
-            <button class="button is-link" id="btn-search">검색</button>
-            <button class="button" id="btn-reset">초기화</button>
+  <!-- 검색 필터 -->
+  <div class="box mb-4">
+    <div class="level is-mobile mb-3">
+      <div class="level-left">
+        <div class="level-item">
+          <p class="subtitle is-6 mb-0">
+            <strong>검색 필터</strong>
+          </p>
+        </div>
+      </div>
+      <div class="level-right">
+        <div class="level-item">
+          <div class="buttons">
+            <button class="button is-primary is-small" id="btn-search">
+              검색
+            </button>
+            <button class="button is-light is-small" id="btn-reset">
+              초기화
+            </button>
           </div>
         </div>
-      </details>
+      </div>
+    </div>
+    
+    <div class="columns is-variable is-3">
+      <div class="column is-4">
+        <div class="field">
+          <label class="label is-small">출발지 (Source)</label>
+          <div class="control">
+            <input id="f-src" class="input is-small" placeholder="예: 10.0.0.0/8, 1.1.1.1, any" />
+          </div>
+        </div>
+      </div>
+      <div class="column is-4">
+        <div class="field">
+          <label class="label is-small">목적지 (Destination)</label>
+          <div class="control">
+            <input id="f-dst" class="input is-small" placeholder="예: 192.168.0.0/16, 8.8.8.8" />
+          </div>
+        </div>
+      </div>
+      <div class="column is-4">
+        <div class="field">
+          <label class="label is-small">서비스 (Service)</label>
+          <div class="control">
+            <input id="f-svc" class="input is-small" placeholder="예: tcp/80, udp/53, 443, 80-90" />
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div id="policies-grid" class="ag-theme-quartz" style="height: calc(100vh - 120px);"></div>
+  <!-- 정책 그리드 -->
+  <div id="policies-grid" class="ag-theme-quartz" style="height: calc(100vh - 400px);"></div>
 </div>
 
 
