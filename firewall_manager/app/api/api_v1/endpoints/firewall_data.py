@@ -19,6 +19,7 @@ from app.services.firewall.interface import FirewallInterface
 from ipaddress import ip_address, IPv4Address  # used for PaloAlto hit-date enrichment
 from app.services.policy_indexer import rebuild_policy_indices
 from app.models.policy_members import PolicyAddressMember, PolicyServiceMember
+from app.services.analysis import analyze_policies
 
 router = APIRouter()
 
@@ -694,6 +695,17 @@ async def get_device_sync_status(device_id: int, db: AsyncSession = Depends(get_
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
     return device
+
+
+@router.post("/analysis/policies", response_model=schemas.PolicyAnalysisResponse)
+async def analyze_policies_endpoint(req: schemas.PolicyAnalysisRequest, db: AsyncSession = Depends(get_db)):
+    if not req.device_ids:
+        return schemas.PolicyAnalysisResponse()
+    try:
+        return await analyze_policies(db=db, req=req)
+    except Exception as e:
+        logging.error(f"policy analysis failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Analysis failed")
 
 
 @router.post("/export/excel")

@@ -27,6 +27,7 @@ export const api = {
   getNetworkGroups: (deviceId) => request(`/firewall/${deviceId}/network-groups`),
   getServices: (deviceId) => request(`/firewall/${deviceId}/services`),
   getServiceGroups: (deviceId) => request(`/firewall/${deviceId}/service-groups`),
+  analyzePolicies: (payload) => request(`/firewall/analysis/policies`, { method: "POST", body: JSON.stringify(payload) }),
   exportToExcel: async (data, filename) => {
     const res = await fetch(`${BASE}/firewall/export/excel`, {
       method: "POST",

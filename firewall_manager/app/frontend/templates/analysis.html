@@ -1,6 +1,79 @@
-<div class="container">
-  <h1 class="title is-5">정책분석</h1>
-  <p class="help">중복/Shadow/광범위/미사용 분석은 후속 구현.</p>
+<div class="container is-fluid">
+  <h1 class="title is-5 mb-4">정책분석</h1>
+
+  <!-- 장비 선택 / 옵션 -->
+  <div class="box mb-4">
+    <div class="columns is-variable is-4">
+      <div class="column is-5">
+        <div class="field">
+          <label class="label">장비</label>
+          <div class="control">
+            <select id="analysis-device-select" multiple></select>
+          </div>
+        </div>
+      </div>
+      <div class="column is-7">
+        <div class="field is-grouped is-grouped-multiline">
+          <div class="control">
+            <label class="checkbox">
+              <input type="checkbox" id="opt-dup" checked> 중복
+            </label>
+          </div>
+          <div class="control">
+            <label class="checkbox">
+              <input type="checkbox" id="opt-shadow" checked> Shadow
+            </label>
+          </div>
+          <div class="control">
+            <label class="checkbox">
+              <input type="checkbox" id="opt-wide" checked> 광범위
+            </label>
+          </div>
+          <div class="control">
+            <label class="checkbox">
+              <input type="checkbox" id="opt-unused" checked> 미사용
+            </label>
+          </div>
+          <div class="control">
+            <label class="checkbox">
+              <input type="checkbox" id="opt-enabled-only" checked> 활성 정책만
+            </label>
+          </div>
+        </div>
+        <div class="field is-grouped is-grouped-multiline">
+          <div class="control">
+            <label class="label is-small">미사용 기준일</label>
+            <input id="opt-unused-days" class="input is-small" type="number" value="90" style="width:120px" />
+          </div>
+          <div class="control">
+            <label class="label is-small">광범위 CIDR 최대 프리픽스</label>
+            <input id="opt-wide-cidr" class="input is-small" type="number" value="16" style="width:160px" />
+          </div>
+          <div class="control" style="align-self:flex-end">
+            <div class="buttons">
+              <button class="button is-link is-small" id="btn-run-analysis">분석 실행</button>
+              <button class="button is-success is-small" id="btn-export-analysis">엑셀 내보내기</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 결과 탭 -->
+  <div class="tabs is-boxed">
+    <ul>
+      <li class="is-active" data-tab="dup"><a>중복</a></li>
+      <li data-tab="shadow"><a>Shadow</a></li>
+      <li data-tab="wide"><a>광범위</a></li>
+      <li data-tab="unused"><a>미사용</a></li>
+    </ul>
+  </div>
+
+  <div id="tab-dup" class="ag-theme-quartz" style="height: 40vh;"></div>
+  <div id="tab-shadow" class="ag-theme-quartz is-hidden" style="height: 40vh;"></div>
+  <div id="tab-wide" class="ag-theme-quartz is-hidden" style="height: 40vh;"></div>
+  <div id="tab-unused" class="ag-theme-quartz is-hidden" style="height: 40vh;"></div>
 </div>
 
 
