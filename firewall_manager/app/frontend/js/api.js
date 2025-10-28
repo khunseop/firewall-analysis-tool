@@ -27,6 +27,27 @@ export const api = {
   getNetworkGroups: (deviceId) => request(`/firewall/${deviceId}/network-groups`),
   getServices: (deviceId) => request(`/firewall/${deviceId}/services`),
   getServiceGroups: (deviceId) => request(`/firewall/${deviceId}/service-groups`),
+  exportToExcel: async (data, filename) => {
+    const res = await fetch(`${BASE}/firewall/export/excel`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data, filename }),
+    });
+    if (!res.ok) {
+      let detail = "Export failed";
+      try { const data = await res.json(); detail = data.detail || data.msg || detail; } catch {}
+      throw new Error(detail);
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  },
 };
 
 

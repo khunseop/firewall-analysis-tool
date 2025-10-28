@@ -276,6 +276,54 @@ function switchTab(tabName) {
   }
 }
 
+// 엑셀 내보내기
+async function exportToExcel() {
+  let currentGrid = null;
+  let fileName = '';
+  
+  switch (currentTab) {
+    case 'network-objects':
+      currentGrid = networkObjectsGrid;
+      fileName = 'network_objects';
+      break;
+    case 'network-groups':
+      currentGrid = networkGroupsGrid;
+      fileName = 'network_groups';
+      break;
+    case 'services':
+      currentGrid = servicesGrid;
+      fileName = 'services';
+      break;
+    case 'service-groups':
+      currentGrid = serviceGroupsGrid;
+      fileName = 'service_groups';
+      break;
+  }
+  
+  if (!currentGrid) {
+    alert('데이터가 없습니다.');
+    return;
+  }
+  
+  try {
+    // Get filtered rows from grid
+    const rowData = [];
+    currentGrid.forEachNodeAfterFilter((node) => {
+      rowData.push(node.data);
+    });
+    
+    if (rowData.length === 0) {
+      alert('내보낼 데이터가 없습니다.');
+      return;
+    }
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    await api.exportToExcel(rowData, `${fileName}_${timestamp}`);
+  } catch (error) {
+    alert(`내보내기 실패: ${error.message}`);
+  }
+}
+
 // 초기화
 export async function initObjects() {
   // currentTab을 초기 상태로 리셋
@@ -293,4 +341,10 @@ export async function initObjects() {
       }
     });
   });
+
+  // 엑셀 내보내기 버튼 이벤트
+  const btnExport = document.getElementById('btn-export-objects-excel');
+  if (btnExport) {
+    btnExport.onclick = () => exportToExcel();
+  }
 }

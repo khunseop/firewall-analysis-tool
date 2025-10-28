@@ -694,3 +694,49 @@ async def get_device_sync_status(device_id: int, db: AsyncSession = Depends(get_
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
     return device
+
+
+@router.post("/export/excel")
+async def export_to_excel(data: dict):
+    """Export grid data to Excel file using pandas DataFrame.
+    
+    Expected payload:
+    {
+        "data": [...],  # Array of row objects
+        "filename": "export_name"
+    }
+    """
+    from fastapi.responses import StreamingResponse
+    from io import BytesIO
+    
+    try:
+        rows = data.get("data", [])
+        filename = data.get("filename", "export")
+        
+        if not rows:
+            raise HTTPException(status_code=400, detail="No data to export")
+        
+        # Convert to DataFrame
+        df = pd.DataFrame(rows)
+        
+        # Create Excel file in memory
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Sheet1')
+        
+        output.seek(0)
+        
+        # Return as downloadable file
+        headers = {
+            'Content-Disposition': f'attachment; filename="{filename}.xlsx"'
+        }
+        
+        return StreamingResponse(
+            output,
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers=headers
+        )
+        
+    except Exception as e:
+        logging.error(f"Failed to export Excel: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to export Excel: {str(e)}")

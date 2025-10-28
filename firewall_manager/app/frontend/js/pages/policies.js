@@ -8,20 +8,20 @@ async function initGrid() {
   if (!gridDiv) return;
   const getCols = () => ([
     { field:'device_name', headerName:'장비', width:150, filter:'agTextColumnFilter', pinned:'left' },
-    { field:'seq', headerName:'seq', width:90, sort:'asc' },
-    { field:'vsys', headerName:'vsys', width:120 },
-    { field:'rule_name', headerName:'rule_name', flex:1, minWidth:160 },
-    { field:'enable', headerName:'enable', width:100, valueFormatter:p=>p.value===true?'true':p.value===false?'false':'' },
-    { field:'action', headerName:'action', width:110 },
-    { field:'source', headerName:'source', width:200 },
-    { field:'user', headerName:'user', width:140 },
-    { field:'destination', headerName:'destination', width:200 },
-    { field:'service', headerName:'service', width:200 },
-    { field:'application', headerName:'application', width:150 },
-    { field:'security_profile', headerName:'security_profile', width:180 },
-    { field:'category', headerName:'category', width:140 },
-    { field:'description', headerName:'description', flex:1, minWidth:200 },
-    { field:'last_hit_date', headerName:'last_hit_date', width:190 },
+    { field:'seq', headerName:'순서', width:90, sort:'asc' },
+    { field:'vsys', headerName:'가상시스템', width:120 },
+    { field:'rule_name', headerName:'정책명', flex:1, minWidth:160 },
+    { field:'enable', headerName:'활성화', width:100, valueFormatter:p=>p.value===true?'활성':p.value===false?'비활성':'' },
+    { field:'action', headerName:'액션', width:110 },
+    { field:'source', headerName:'출발지', width:200 },
+    { field:'user', headerName:'사용자', width:140 },
+    { field:'destination', headerName:'목적지', width:200 },
+    { field:'service', headerName:'서비스', width:200 },
+    { field:'application', headerName:'애플리케이션', width:150 },
+    { field:'security_profile', headerName:'보안프로파일', width:180 },
+    { field:'category', headerName:'카테고리', width:140 },
+    { field:'description', headerName:'설명', flex:1, minWidth:200 },
+    { field:'last_hit_date', headerName:'마지막매칭일시', width:190 },
   ]);
   const options = { columnDefs: getCols(), rowData: [], defaultColDef:{ resizable:true, sortable:false, filter:true } };
   options.pagination = true;
@@ -98,6 +98,7 @@ export async function initPolicies(){
   const bind = () => {
     const btnSearch = document.getElementById('btn-search');
     const btnReset = document.getElementById('btn-reset');
+    const btnExport = document.getElementById('btn-export-excel');
     if (btnSearch) btnSearch.onclick = () => searchAndLoadPolicies();
     if (btnReset) btnReset.onclick = () => { 
       // Reset all filter inputs
@@ -106,10 +107,35 @@ export async function initPolicies(){
       });
       searchAndLoadPolicies();
     };
+    if (btnExport) btnExport.onclick = () => exportToExcel();
     // re-query when device selection changes
     sel.onchange = () => searchAndLoadPolicies();
   };
   bind();
+
+  async function exportToExcel() {
+    if (!policyGridApi) {
+      alert('데이터가 없습니다.');
+      return;
+    }
+    try {
+      // Get filtered rows from grid
+      const rowData = [];
+      policyGridApi.forEachNodeAfterFilter((node) => {
+        rowData.push(node.data);
+      });
+      
+      if (rowData.length === 0) {
+        alert('내보낼 데이터가 없습니다.');
+        return;
+      }
+      
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      await api.exportToExcel(rowData, `policies_${timestamp}`);
+    } catch (error) {
+      alert(`내보내기 실패: ${error.message}`);
+    }
+  }
 
   // Auto-select first two devices (if none saved) and search
   try {
