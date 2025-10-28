@@ -110,7 +110,13 @@ async function loadGrid(gridDiv, attempt = 0) {
       columnDefs: getColumns(),
       rowData: data,
       defaultColDef: { resizable: true, sortable: true, filter: false },
-      rowSelection: {mode:'multiRow'},
+      rowSelection: {
+        mode: 'multiRow',
+        checkboxes: true,
+        headerCheckbox: true,
+        headerCheckboxFilteredOnly: true,
+        headerCheckboxCurrentPageOnly: true,
+      },
       pagination: true,
       paginationAutoPageSize: true,
       animateRows: true,
@@ -159,14 +165,6 @@ async function loadGrid(gridDiv, attempt = 0) {
 
 function getColumns(){
   return [
-    {
-      headerName: '', width: 48, pinned: 'left',
-      checkboxSelection: true,
-      headerCheckboxSelection: true,
-      headerCheckboxSelectionFilteredOnly: true,
-      headerCheckboxSelectionCurrentPageOnly: true,
-      resizable: false, sortable: false, filter: false, suppressMenu: true
-    },
     { field: 'id', headerName:'ID', width: 80 },
     { field: 'name', headerName:'이름', flex: 1 },
     { field: 'vendor', headerName:'벤더', width: 140, valueFormatter: p => codeToLabel.get(normalizeVendorCode(p.value)) || p.value },
