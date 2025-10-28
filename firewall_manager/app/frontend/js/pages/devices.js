@@ -162,6 +162,7 @@ async function loadGrid(gridDiv, attempt = 0) {
         checkboxes: true,
         headerCheckbox: true,
         selectAll: 'filtered',
+        enableClickSelection: true,
       },
       pagination: true,
       paginationAutoPageSize: true,
