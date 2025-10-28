@@ -10,87 +10,35 @@ let currentTab = 'network-objects';
 // 네트워크 객체 그리드 컬럼 정의
 const networkObjectsColumns = [
   { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'id', headerName: 'ID', width: 80, filter: 'agNumberColumnFilter' },
   { field: 'name', headerName: '이름', width: 200, filter: 'agTextColumnFilter' },
   { field: 'ip_address', headerName: 'IP 주소', width: 200, filter: 'agTextColumnFilter' },
   { field: 'type', headerName: '타입', width: 120, filter: 'agTextColumnFilter' },
-  { field: 'description', headerName: '설명', flex: 1, filter: 'agTextColumnFilter' },
-  { 
-    field: 'is_active', 
-    headerName: '활성', 
-    width: 100,
-    cellRenderer: (params) => params.value ? '✓' : '✗'
-  },
-  { 
-    field: 'last_seen_at', 
-    headerName: '마지막 확인', 
-    width: 180,
-    valueFormatter: (params) => params.value ? new Date(params.value).toLocaleString('ko-KR') : ''
-  }
+  { field: 'description', headerName: '설명', flex: 1, filter: 'agTextColumnFilter' }
 ];
 
 // 네트워크 그룹 그리드 컬럼 정의
 const networkGroupsColumns = [
   { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'id', headerName: 'ID', width: 80, filter: 'agNumberColumnFilter' },
   { field: 'name', headerName: '이름', width: 200, filter: 'agTextColumnFilter' },
   { field: 'members', headerName: '멤버', flex: 1, filter: 'agTextColumnFilter' },
-  { field: 'description', headerName: '설명', width: 200, filter: 'agTextColumnFilter' },
-  { 
-    field: 'is_active', 
-    headerName: '활성', 
-    width: 100,
-    cellRenderer: (params) => params.value ? '✓' : '✗'
-  },
-  { 
-    field: 'last_seen_at', 
-    headerName: '마지막 확인', 
-    width: 180,
-    valueFormatter: (params) => params.value ? new Date(params.value).toLocaleString('ko-KR') : ''
-  }
+  { field: 'description', headerName: '설명', width: 200, filter: 'agTextColumnFilter' }
 ];
 
 // 서비스 객체 그리드 컬럼 정의
 const servicesColumns = [
   { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'id', headerName: 'ID', width: 80, filter: 'agNumberColumnFilter' },
   { field: 'name', headerName: '이름', width: 200, filter: 'agTextColumnFilter' },
   { field: 'protocol', headerName: '프로토콜', width: 120, filter: 'agTextColumnFilter' },
   { field: 'port', headerName: '포트', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'description', headerName: '설명', flex: 1, filter: 'agTextColumnFilter' },
-  { 
-    field: 'is_active', 
-    headerName: '활성', 
-    width: 100,
-    cellRenderer: (params) => params.value ? '✓' : '✗'
-  },
-  { 
-    field: 'last_seen_at', 
-    headerName: '마지막 확인', 
-    width: 180,
-    valueFormatter: (params) => params.value ? new Date(params.value).toLocaleString('ko-KR') : ''
-  }
+  { field: 'description', headerName: '설명', flex: 1, filter: 'agTextColumnFilter' }
 ];
 
 // 서비스 그룹 그리드 컬럼 정의
 const serviceGroupsColumns = [
   { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'id', headerName: 'ID', width: 80, filter: 'agNumberColumnFilter' },
   { field: 'name', headerName: '이름', width: 200, filter: 'agTextColumnFilter' },
   { field: 'members', headerName: '멤버', flex: 1, filter: 'agTextColumnFilter' },
-  { field: 'description', headerName: '설명', width: 200, filter: 'agTextColumnFilter' },
-  { 
-    field: 'is_active', 
-    headerName: '활성', 
-    width: 100,
-    cellRenderer: (params) => params.value ? '✓' : '✗'
-  },
-  { 
-    field: 'last_seen_at', 
-    headerName: '마지막 확인', 
-    width: 180,
-    valueFormatter: (params) => params.value ? new Date(params.value).toLocaleString('ko-KR') : ''
-  }
+  { field: 'description', headerName: '설명', width: 200, filter: 'agTextColumnFilter' }
 ];
 
 // 그리드 정리

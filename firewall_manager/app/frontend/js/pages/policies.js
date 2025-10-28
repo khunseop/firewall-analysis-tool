@@ -1,11 +1,13 @@
 import { api } from "../api.js";
 
 let policyGridApi;
+let allDevices = []; // 장비 목록 저장
 
 async function initGrid() {
   const gridDiv = document.getElementById('policies-grid');
   if (!gridDiv) return;
   const getCols = () => ([
+    { field:'device_name', headerName:'장비', width:150, filter:'agTextColumnFilter', pinned:'left' },
     { field:'seq', headerName:'seq', width:90, sort:'asc' },
     { field:'vsys', headerName:'vsys', width:120 },
     { field:'rule_name', headerName:'rule_name', flex:1, minWidth:160 },
@@ -31,12 +33,12 @@ async function loadDevicesIntoSelect() {
   const sel = document.getElementById('policy-device-select');
   if (!sel) return;
   try {
-    const devices = await api.listDevices();
-    if (!devices || devices.length === 0) {
+    allDevices = await api.listDevices(); // 전역 변수에 저장
+    if (!allDevices || allDevices.length === 0) {
       sel.innerHTML = `<option value="">등록된 장비 없음</option>`;
       return;
     }
-    sel.innerHTML = devices.map(d=>`<option value="${d.id}">${d.name} (${d.vendor})</option>`).join('');
+    sel.innerHTML = allDevices.map(d=>`<option value="${d.id}">${d.name} (${d.vendor})</option>`).join('');
   } catch {
     sel.innerHTML = `<option value="">장비 불러오기 실패</option>`;
   }
@@ -50,8 +52,12 @@ async function searchAndLoadPolicies() {
   const payload = buildSearchPayload(deviceIds);
   const data = await api.searchPolicies(payload);
   if (Array.isArray(data)) {
-    // Inject seq-based row ID to ensure ordering and avoid showing DB id
-    const rows = data.map((r, idx)=>({ ...r, _seq_row: idx+1 }));
+    // Inject seq-based row ID and device_name
+    const rows = data.map((r, idx)=>{
+      const device = allDevices.find(d => d.id === r.device_id);
+      const deviceName = device ? device.name : `장비 ${r.device_id}`;
+      return { ...r, _seq_row: idx+1, device_name: deviceName };
+    });
     if (policyGridApi) {
       if (typeof policyGridApi.setGridOption==='function') policyGridApi.setGridOption('rowData', rows);
       else if (typeof policyGridApi.setRowData==='function') policyGridApi.setRowData(rows);
