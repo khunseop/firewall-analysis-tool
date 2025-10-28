@@ -214,7 +214,19 @@ async function loadDevices() {
         placeholder: '장비 선택',
         plugins: ['remove_button'],
         maxOptions: null,
+        onChange: function() {
+          const selectedDevices = this.getValue();
+          loadData(selectedDevices);
+        }
       });
+
+      // 첫 번째 장비 자동 선택
+      if (allDevices.length > 0) {
+        const firstDeviceId = allDevices[0].id.toString();
+        select.tomselect.setValue([firstDeviceId], true); // silent=true로 설정하여 onChange 트리거 방지
+        // 수동으로 loadData 호출
+        await loadData([firstDeviceId]);
+      }
     }
   } catch (err) {
     console.error('Failed to load devices:', err);
@@ -318,8 +330,11 @@ function switchTab(tabName) {
 
 // 초기화
 export async function initObjects() {
+  // currentTab을 초기 상태로 리셋
+  currentTab = 'network-objects';
+  
   await initGrids();
-  await loadDevices();
+  await loadDevices(); // Tom-select 초기화 및 데이터 로드 포함
 
   // 탭 클릭 이벤트
   document.querySelectorAll('.tabs li').forEach(li => {
@@ -330,20 +345,4 @@ export async function initObjects() {
       }
     });
   });
-
-  // 장비 선택 변경 이벤트 (Tom-select onChange)
-  const select = document.getElementById('object-device-select');
-  if (select && select.tomselect) {
-    select.tomselect.on('change', () => {
-      const selectedDevices = select.tomselect.getValue();
-      loadData(selectedDevices);
-    });
-
-    // 첫 번째 장비 자동 선택
-    if (allDevices.length > 0) {
-      const firstDeviceId = allDevices[0].id.toString();
-      select.tomselect.setValue([firstDeviceId]);
-      loadData([firstDeviceId]);
-    }
-  }
 }
