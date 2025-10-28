@@ -1,6 +1,66 @@
-<div class="container">
-  <h1 class="title is-5">객체조회</h1>
-  <p class="help">네트워크/서비스/그룹 탭은 후속 구현.</p>
+<div class="container is-fluid">
+  <h1 class="title is-5 mb-4">객체조회</h1>
+
+  <!-- 장비 선택 -->
+  <div class="box mb-4">
+    <div class="field">
+      <label class="label">장비</label>
+      <div class="control">
+        <select id="object-device-select">
+          <option value="">장비를 선택하세요</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 탭 메뉴 -->
+  <div class="box mb-4">
+    <div class="tabs is-boxed">
+      <ul>
+        <li class="is-active" data-tab="network-objects">
+          <a>
+            <span>네트워크 객체</span>
+          </a>
+        </li>
+        <li data-tab="network-groups">
+          <a>
+            <span>네트워크 그룹</span>
+          </a>
+        </li>
+        <li data-tab="services">
+          <a>
+            <span>서비스 객체</span>
+          </a>
+        </li>
+        <li data-tab="service-groups">
+          <a>
+            <span>서비스 그룹</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 탭 컨텐츠 -->
+    <div class="tab-content">
+      <!-- 네트워크 객체 탭 -->
+      <div id="network-objects-content" class="tab-pane is-active">
+        <div id="network-objects-grid" class="ag-theme-quartz" style="height: calc(100vh - 400px);"></div>
+      </div>
+
+      <!-- 네트워크 그룹 탭 -->
+      <div id="network-groups-content" class="tab-pane" style="display: none;">
+        <div id="network-groups-grid" class="ag-theme-quartz" style="height: calc(100vh - 400px);"></div>
+      </div>
+
+      <!-- 서비스 객체 탭 -->
+      <div id="services-content" class="tab-pane" style="display: none;">
+        <div id="services-grid" class="ag-theme-quartz" style="height: calc(100vh - 400px);"></div>
+      </div>
+
+      <!-- 서비스 그룹 탭 -->
+      <div id="service-groups-content" class="tab-pane" style="display: none;">
+        <div id="service-groups-grid" class="ag-theme-quartz" style="height: calc(100vh - 400px);"></div>
+      </div>
+    </div>
+  </div>
 </div>
-
-

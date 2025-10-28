@@ -23,6 +23,10 @@ export const api = {
   syncAll: (id) => request(`/firewall/sync-all/${id}`, { method: "POST" }),
   syncStatus: (id) => request(`/firewall/sync/${id}/status`),
   searchPolicies: (payload) => request(`/firewall/policies/search`, { method: "POST", body: JSON.stringify(payload) }),
+  getNetworkObjects: (deviceId) => request(`/firewall/${deviceId}/network-objects`),
+  getNetworkGroups: (deviceId) => request(`/firewall/${deviceId}/network-groups`),
+  getServices: (deviceId) => request(`/firewall/${deviceId}/services`),
+  getServiceGroups: (deviceId) => request(`/firewall/${deviceId}/service-groups`),
 };
 
 
