@@ -97,13 +97,14 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
     if to is not None:
         stmt = stmt.where(Policy.last_hit_date <= to)
 
-    # Member-index filters
-    # Source IP
-    if req.src_ip:
-        v, start, end = parse_ipv4_numeric(req.src_ip)
+    # Member-index filters (support multiple values OR-semantics)
+    pam = models.PolicyAddressMember
+    psm = models.PolicyServiceMember
+
+    def _src_match_expr(ip_str: str):
+        v, start, end = parse_ipv4_numeric(ip_str)
         if start is not None and end is not None and v == 4:
-            pam = models.PolicyAddressMember
-            src_exists = select(1).where(
+            return select(1).where(
                 pam.policy_id == Policy.id,
                 pam.device_id.in_(req.device_ids),
                 pam.direction == 'source',
@@ -111,17 +112,12 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
                 pam.ip_start <= end,
                 pam.ip_end >= start,
             ).exists()
-            stmt = stmt.where(src_exists)
-        else:
-            # Fallback substring search on raw field tokens
-            stmt = stmt.where(_ilike(Policy.source, req.src_ip))
+        return _ilike(Policy.source, ip_str)
 
-    # Destination IP
-    if req.dst_ip:
-        v, start, end = parse_ipv4_numeric(req.dst_ip)
+    def _dst_match_expr(ip_str: str):
+        v, start, end = parse_ipv4_numeric(ip_str)
         if start is not None and end is not None and v == 4:
-            pam = models.PolicyAddressMember
-            dst_exists = select(1).where(
+            return select(1).where(
                 pam.policy_id == Policy.id,
                 pam.device_id.in_(req.device_ids),
                 pam.direction == 'destination',
@@ -129,37 +125,74 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
                 pam.ip_start <= end,
                 pam.ip_end >= start,
             ).exists()
-            stmt = stmt.where(dst_exists)
+        return _ilike(Policy.destination, ip_str)
+
+    def _svc_match_expr(token: str):
+        token = (token or '').strip()
+        proto = None
+        ports = None
+        if '/' in token:
+            proto, ports = token.split('/', 1)
+            proto = (proto or '').strip().lower()
         else:
-            stmt = stmt.where(_ilike(Policy.destination, req.dst_ip))
-
-    # Service protocol/port
-    if req.protocol or req.port:
-        psm = models.PolicyServiceMember
-        proto = (req.protocol or '').strip().lower()
-        pstart, pend = parse_port_numeric(req.port or '')
-
+            ports = token
+        pstart, pend = parse_port_numeric(ports or '')
         conds = [psm.policy_id == Policy.id, psm.device_id.in_(req.device_ids)]
         if proto and proto not in {'any', '*'}:
             conds.append(func.lower(psm.protocol) == proto)
-        # Only apply numeric overlap when both ends known
         if pstart is not None and pend is not None:
             conds.extend([psm.port_start <= pend, psm.port_end >= pstart])
-        # else fallback to substring search on raw service field
-        service_exists = None
-        if pstart is not None and pend is not None:
-            service_exists = select(1).where(*conds).exists()
-            stmt = stmt.where(service_exists)
-        else:
-            # fallback string contains on Policy.service
-            tokens = []
-            if proto and proto not in {'any', '*'}:
-                tokens.append(proto)
-            if req.port:
-                tokens.append(req.port.strip())
-            if tokens:
-                for t in tokens:
-                    stmt = stmt.where(_ilike(Policy.service, t))
+            return select(1).where(*conds).exists()
+        # fallback string contains on raw service field
+        fallback = []
+        if proto and proto not in {'any', '*'}:
+            fallback.append(proto)
+        if ports:
+            fallback.append(ports)
+        expr = None
+        for t in fallback:
+            expr = (_ilike(Policy.service, t) if expr is None else (expr & _ilike(Policy.service, t)))
+        return expr if expr is not None else _ilike(Policy.service, token)
+
+    # Apply source filters
+    src_terms = [req.src_ip] if req.src_ip else []
+    if req.src_ips:
+        src_terms += [t for t in req.src_ips if t]
+    if src_terms:
+        # OR across multiple tokens
+        src_expr = None
+        for t in src_terms:
+            e = _src_match_expr(t)
+            src_expr = e if src_expr is None else (src_expr | e)
+        stmt = stmt.where(src_expr)
+
+    # Apply destination filters
+    dst_terms = [req.dst_ip] if req.dst_ip else []
+    if req.dst_ips:
+        dst_terms += [t for t in req.dst_ips if t]
+    if dst_terms:
+        dst_expr = None
+        for t in dst_terms:
+            e = _dst_match_expr(t)
+            dst_expr = e if dst_expr is None else (dst_expr | e)
+        stmt = stmt.where(dst_expr)
+
+    # Apply service filters
+    svc_terms = []
+    # legacy fields
+    if req.protocol or req.port:
+        proto = (req.protocol or '').strip().lower()
+        ports = (req.port or '').strip()
+        svc_terms.append(f"{proto}/{ports}" if proto or ports else '')
+    if req.services:
+        svc_terms += [t for t in req.services if t]
+    svc_terms = [t for t in svc_terms if t]
+    if svc_terms:
+        svc_expr = None
+        for t in svc_terms:
+            e = _svc_match_expr(t)
+            svc_expr = e if svc_expr is None else (svc_expr | e)
+        stmt = stmt.where(svc_expr)
 
     # Ordering: device -> vsys -> seq -> rule_name
     stmt = stmt.order_by(Policy.device_id.asc(), Policy.vsys.asc(), Policy.seq.asc(), Policy.rule_name.asc())

@@ -3,7 +3,7 @@
 
   <div class="columns is-multiline">
     <div class="column is-12">
-      <label class="label">장비 (다중 선택 가능)</label>
+      <label class="label">장비</label>
       <div class="control">
         <select id="policy-device-select" multiple></select>
       </div>
@@ -13,58 +13,22 @@
       <details class="box" open>
         <summary><strong>상세 검색</strong></summary>
         <div class="columns is-multiline">
-          <div class="column is-2"><input class="input" id="f-vsys" placeholder="vsys" /></div>
-          <div class="column is-2"><input class="input" id="f-rule" placeholder="rule_name" /></div>
-          <div class="column is-2">
-            <div class="select is-fullwidth">
-              <select id="f-action">
-                <option value="">action</option>
-                <option value="allow">allow</option>
-                <option value="deny">deny</option>
-                <option value="drop">drop</option>
-                <option value="reject">reject</option>
-              </select>
-            </div>
-          </div>
-          <div class="column is-2">
-            <div class="select is-fullwidth">
-              <select id="f-enable">
-                <option value="">enable</option>
-                <option value="true">true</option>
-                <option value="false">false</option>
-              </select>
-            </div>
-          </div>
-          <div class="column is-2"><input class="input" id="f-user" placeholder="user" /></div>
-          <div class="column is-2"><input class="input" id="f-app" placeholder="application" /></div>
-
-          <div class="column is-2"><input class="input" id="f-src" placeholder="src_ip (IPv4/CIDR/Range/any)" /></div>
-          <div class="column is-2"><input class="input" id="f-dst" placeholder="dst_ip (IPv4/CIDR/Range/any)" /></div>
-          <div class="column is-2">
-            <div class="select is-fullwidth">
-              <select id="f-proto">
-                <option value="">protocol</option>
-                <option value="tcp">tcp</option>
-                <option value="udp">udp</option>
-                <option value="any">any</option>
-              </select>
-            </div>
-          </div>
-          <div class="column is-2"><input class="input" id="f-port" placeholder="port (80 / 80-90 / any)" /></div>
-          <div class="column is-2"><input class="input" id="f-category" placeholder="category" /></div>
-          <div class="column is-2"><input class="input" id="f-secprof" placeholder="security_profile" /></div>
-          <div class="column is-4"><input class="input" id="f-desc" placeholder="description" /></div>
           <div class="column is-4">
-            <div class="field has-addons">
-              <p class="control is-expanded">
-                <input class="input" type="datetime-local" id="f-hit-from">
-              </p>
-              <p class="control is-expanded">
-                <input class="input" type="datetime-local" id="f-hit-to">
-              </p>
-            </div>
+            <label class="label is-small">source</label>
+            <input class="input" id="f-src" placeholder="예: 10.0.0.0/8, 1.1.1.1, any" />
+            <p class="help">콤마로 여러 개 입력</p>
           </div>
-          <div class="column is-4 has-text-right">
+          <div class="column is-4">
+            <label class="label is-small">destination</label>
+            <input class="input" id="f-dst" placeholder="예: 192.168.0.0/16, 8.8.8.8" />
+            <p class="help">콤마로 여러 개 입력</p>
+          </div>
+          <div class="column is-4">
+            <label class="label is-small">service</label>
+            <input class="input" id="f-svc" placeholder="예: tcp/80, udp/53, 443, 80-90, any" />
+            <p class="help">콤마로 여러 개 입력</p>
+          </div>
+          <div class="column is-12 has-text-right">
             <button class="button is-link" id="btn-search">검색</button>
             <button class="button" id="btn-reset">초기화</button>
           </div>

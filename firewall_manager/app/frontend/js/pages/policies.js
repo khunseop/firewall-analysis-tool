@@ -9,19 +9,19 @@ async function initGrid() {
     { field:'seq', headerName:'seq', width:90, sort:'asc' },
     { field:'vsys', headerName:'vsys', width:120 },
     { field:'rule_name', headerName:'rule_name', flex:1, minWidth:160 },
-    { field:'enable', headerName:'enable', width:100, valueFormatter:p=>p.value===true?'true':p.value===false?'false':'', filter:'agSetColumnFilter' },
-    { field:'action', headerName:'action', width:110, filter:'agSetColumnFilter' },
-    { field:'source', headerName:'source', width:200, filter:'agTextColumnFilter' },
+    { field:'enable', headerName:'enable', width:100, valueFormatter:p=>p.value===true?'true':p.value===false?'false':'' },
+    { field:'action', headerName:'action', width:110 },
+    { field:'source', headerName:'source', width:200 },
     { field:'user', headerName:'user', width:140 },
-    { field:'destination', headerName:'destination', width:200, filter:'agTextColumnFilter' },
-    { field:'service', headerName:'service', width:200, filter:'agTextColumnFilter' },
+    { field:'destination', headerName:'destination', width:200 },
+    { field:'service', headerName:'service', width:200 },
     { field:'application', headerName:'application', width:150 },
     { field:'security_profile', headerName:'security_profile', width:180 },
     { field:'category', headerName:'category', width:140 },
     { field:'description', headerName:'description', flex:1, minWidth:200 },
-    { field:'last_hit_date', headerName:'last_hit_date', width:190, filter:'agDateColumnFilter', valueFormatter:p=>p.value?new Date(p.value).toLocaleString():'' },
+    { field:'last_hit_date', headerName:'last_hit_date', width:190 },
   ]);
-  const options = { columnDefs: getCols(), rowData: [], defaultColDef:{ resizable:true, sortable:true, filter:true, floatingFilter:true } };
+  const options = { columnDefs: getCols(), rowData: [], defaultColDef:{ resizable:true, sortable:true, filter:true } };
   options.pagination = true;
   options.paginationAutoPageSize = true;
   if (agGrid.createGrid) policyGridApi = agGrid.createGrid(gridDiv, options); else { new agGrid.Grid(gridDiv, options); policyGridApi = options.api; }
@@ -61,30 +61,14 @@ async function searchAndLoadPolicies() {
 
 function buildSearchPayload(deviceIds){
   const g = (id) => document.getElementById(id);
-  const dt = (el) => {
-    const v = el?.value?.trim();
-    if (!v) return null;
-    // datetime-local -> ISO string; backend expects RFC3339
-    try { return new Date(v).toISOString(); } catch { return null; }
-  };
   const b = (v) => v === 'true' ? true : v === 'false' ? false : null;
+  const splitCsv = (v) => (v||'').split(',').map(s=>s.trim()).filter(Boolean);
   return {
     device_ids: deviceIds,
-    vsys: g('f-vsys')?.value || null,
-    rule_name: g('f-rule')?.value || null,
-    action: g('f-action')?.value || null,
-    enable: b(g('f-enable')?.value || ''),
-    user: g('f-user')?.value || null,
-    application: g('f-app')?.value || null,
-    security_profile: g('f-secprof')?.value || null,
-    category: g('f-category')?.value || null,
-    description: g('f-desc')?.value || null,
-    last_hit_date_from: dt(g('f-hit-from')),
-    last_hit_date_to: dt(g('f-hit-to')),
-    src_ip: g('f-src')?.value || null,
-    dst_ip: g('f-dst')?.value || null,
-    protocol: g('f-proto')?.value || null,
-    port: g('f-port')?.value || null,
+    // grid에서 필터링할 기본 컬럼은 요청에서 제외 (간소화)
+    src_ips: splitCsv(g('f-src')?.value || ''),
+    dst_ips: splitCsv(g('f-dst')?.value || ''),
+    services: splitCsv(g('f-svc')?.value || ''),
   };
 }
 
@@ -110,7 +94,7 @@ export async function initPolicies(){
     const btnReset = document.getElementById('btn-reset');
     if (btnSearch) btnSearch.onclick = () => searchAndLoadPolicies();
     if (btnReset) btnReset.onclick = () => { 
-      document.querySelectorAll('[id^="f-"]').forEach(el=>{ if (el.tagName==='SELECT') el.value=''; else el.value=''; });
+      document.querySelectorAll('[id^="f-"]').forEach(el=>{ el.value=''; });
       searchAndLoadPolicies();
     };
     // re-query when device selection changes
