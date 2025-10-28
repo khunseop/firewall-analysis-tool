@@ -603,6 +603,21 @@ async def _parse_index_after_sync_all(device_id: int) -> None:
 async def read_db_device_policies(device_id: int, db: AsyncSession = Depends(get_db)):
     return await crud.policy.get_policies_by_device(db=db, device_id=device_id)
 
+
+@router.post("/policies/search", response_model=List[schemas.Policy])
+async def search_policies(req: schemas.PolicySearchRequest, db: AsyncSession = Depends(get_db)):
+    """Multi-device policy search with member-index filters.
+
+    - device_ids: required, one or more
+    - basic substring filters on columns
+    - src_ip/dst_ip resolved via policy_address_members range overlap when possible
+    - protocol/port resolved via policy_service_members when numeric possible
+    - results ordered by device_id, vsys, seq, rule_name
+    """
+    if not req.device_ids:
+        return []
+    return await crud.policy.search_policies(db=db, req=req)
+
 @router.get("/{device_id}/network-objects", response_model=List[schemas.NetworkObject])
 async def read_db_device_network_objects(device_id: int, db: AsyncSession = Depends(get_db)):
     return await crud.network_object.get_network_objects_by_device(db=db, device_id=device_id)
