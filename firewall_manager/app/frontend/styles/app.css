@@ -1,0 +1,8 @@
+/* Minimal app-specific styles */
+html{color-scheme:light}
+body{background:#ffffff;color:#111827}
+.modal-card{background:#ffffff}
+.ag-theme-quartz{height:60vh;min-height:360px}
+.actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
+.is-hidden{display:none}
+
