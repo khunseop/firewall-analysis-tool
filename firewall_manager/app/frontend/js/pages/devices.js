@@ -196,6 +196,8 @@ export function initDevices(root){
       if (!apiRef) return;
       const sel = apiRef.getSelectedRows ? apiRef.getSelectedRows() : [];
       if (!sel || sel.length === 0) { return showAlert('동기화할 장비를 선택하세요.'); }
+      const ok = await showConfirm(`${sel.length}개 장비의 전체 동기화를 시작할까요?`);
+      if (!ok) return;
       // Simple queue: max 4 concurrent
       const ids = sel.map(d=>d.id);
       const concurrency = 4;
@@ -205,7 +207,7 @@ export function initDevices(root){
           while (active < concurrency && idx < ids.length) {
             const id = ids[idx++];
             active++;
-            api.syncAll(id).then(()=>{ done++; }).catch(()=>{ failed++; }).finally(()=>{
+            api.syncAll(id).then(()=>{ done++; window.pushNotice && window.pushNotice(`장비 ${id} 동기화 시작됨`, 'info'); streamLogsToNavbar(id, 60000); }).catch((e)=>{ failed++; window.pushNotice && window.pushNotice(`장비 ${id} 동기화 시작 실패: ${e.message||e}`, 'error'); }).finally(()=>{
               active--; if (done+failed === ids.length) { showAlert(`동기화 시작됨: ${done} 성공, ${failed} 실패(시작 단계)`); resolve(); }
               else next();
             });
@@ -221,7 +223,8 @@ export function initDevices(root){
       if (!apiRef) return;
       const sel = apiRef.getSelectedRows ? apiRef.getSelectedRows() : [];
       if (!sel || sel.length !== 1) { return showAlert('로그는 장비 1개만 선택하세요.'); }
-      openConsole(sel[0]);
+      // Instead of console modal: stream to navbar notices inline for a short session
+      streamLogsToNavbar(sel[0].id, 8000);
     };
   }
   if (search) {
@@ -358,5 +361,26 @@ async function refreshStatus(deviceId){
     const m = ensureConsole();
     m.statusTag.textContent = `status: ${d.last_sync_status ?? '-'}`;
   }catch(err){ /* ignore */ }
+}
+
+// --- Navbar notice stream (lightweight) ---
+async function streamLogsToNavbar(deviceId, durationMs = 10000){
+  let seq = 0;
+  const startedAt = Date.now();
+  const pump = async()=>{
+    if (Date.now() - startedAt > durationMs) return; // stop after duration
+    try{
+      const { events } = await api.syncLogs(deviceId, seq);
+      if (events && events.length){
+        seq = events[events.length-1].seq;
+        for (const e of events){
+          const lvl = e.level === 'error' ? 'error' : 'info';
+          window.pushNotice && window.pushNotice(`${e.msg}`, lvl, 3000);
+        }
+      }
+    }catch(err){ /* ignore */ }
+    setTimeout(pump, 1000);
+  };
+  pump();
 }
 

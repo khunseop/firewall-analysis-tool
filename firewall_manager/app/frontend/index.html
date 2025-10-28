@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="/app/styles/app.css" />
   </head>
   <body>
-    <nav class="navbar is-white" role="navigation" aria-label="main navigation">
+    <nav class="navbar is-white" role="navigation" aria-label="main navigation" style="position:relative;">
       <div class="navbar-brand">
         <a class="navbar-item" href="#/dashboard"><strong>FAT</strong></a>
         <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navMenu">
@@ -43,6 +43,20 @@
     <script src="/static/vendor/ag-grid/ag-grid-community.js"></script>
     <script src="/static/vendor/tom-select/tom-select.complete.js"></script>
     <script type="module" src="/app/js/main.js"></script>
+    <script type="module">
+      import { Navbar, pushNotice } from '/app/js/components/navbar.js';
+      // Inject notices host into navbar
+      const brand = document.querySelector('nav.navbar');
+      if (brand) {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = Navbar();
+        // Only append the notices container, not duplicate title (keep existing UI)
+        const notices = wrap.querySelector('#navbar-notices');
+        if (notices) { brand.appendChild(notices); }
+      }
+      // Expose notice push globally for convenience
+      window.pushNotice = pushNotice;
+    </script>
   </body>
   </html>
 
