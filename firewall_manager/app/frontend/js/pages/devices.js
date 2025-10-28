@@ -77,7 +77,7 @@ async function loadGrid(gridDiv, attempt = 0) {
     gridOptions = {
       columnDefs: getColumns(),
       rowData: data,
-      defaultColDef: { resizable: true, sortable: true, filter: true },
+      defaultColDef: { resizable: true, sortable: true, filter: false },
       rowSelection: 'single',
       animateRows: true,
     };
@@ -161,6 +161,7 @@ async function reload(){
 
 export function initDevices(root){
   const addBtn = root.querySelector('#btn-add');
+  const search = root.querySelector('#devices-search');
   if (addBtn) {
     addBtn.onclick = () => {
       fillForm({});
@@ -168,6 +169,15 @@ export function initDevices(root){
         await api.createDevice(payload);
         await reload();
       });
+    };
+  }
+  if (search) {
+    search.oninput = () => {
+      if (gridApi && typeof gridApi.setQuickFilter === 'function') {
+        gridApi.setQuickFilter(search.value);
+      } else if (gridOptions && gridOptions.api && typeof gridOptions.api.setQuickFilter === 'function') {
+        gridOptions.api.setQuickFilter(search.value);
+      }
     };
   }
   reload();

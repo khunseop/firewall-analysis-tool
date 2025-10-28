@@ -21,8 +21,16 @@ async function initGrid() {
 async function loadDevicesIntoSelect() {
   const sel = document.getElementById('policy-device-select');
   if (!sel) return;
-  const devices = await api.listDevices();
-  sel.innerHTML = devices.map(d=>`<option value="${d.id}">${d.name} (${d.vendor})</option>`).join('');
+  try {
+    const devices = await api.listDevices();
+    if (!devices || devices.length === 0) {
+      sel.innerHTML = `<option value="">등록된 장비 없음</option>`;
+      return;
+    }
+    sel.innerHTML = devices.map(d=>`<option value="${d.id}">${d.name} (${d.vendor})</option>`).join('');
+  } catch {
+    sel.innerHTML = `<option value="">장비 불러오기 실패</option>`;
+  }
 }
 
 async function loadPolicies(deviceId){
