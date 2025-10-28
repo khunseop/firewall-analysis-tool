@@ -114,8 +114,7 @@ async function loadGrid(gridDiv, attempt = 0) {
         mode: 'multiRow',
         checkboxes: true,
         headerCheckbox: true,
-        headerCheckboxFilteredOnly: true,
-        headerCheckboxCurrentPageOnly: true,
+        selectAll: 'filtered',
       },
       pagination: true,
       paginationAutoPageSize: true,
@@ -257,6 +256,8 @@ export function initDevices(root){
       if (!api) return;
       if (typeof api.setGridOption === 'function') api.setGridOption('quickFilterText', value);
       else if (typeof api.setQuickFilter === 'function') api.setQuickFilter(value);
+      // ensure header checkbox reflects filtered-only selection mode when filter changes
+      try { if (api.refreshHeader) api.refreshHeader(); } catch {}
     };
   }
   reload();
