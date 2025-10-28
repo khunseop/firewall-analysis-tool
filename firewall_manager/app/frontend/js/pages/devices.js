@@ -167,6 +167,7 @@ async function loadGrid(gridDiv, attempt = 0) {
       pagination: true,
       paginationAutoPageSize: true,
       animateRows: true,
+      getRowId: (params) => params.data.id,
     };
     if (agGrid.createGrid) {
       gridApi = agGrid.createGrid(gridDiv, gridOptions);
@@ -191,9 +192,16 @@ async function loadGrid(gridDiv, attempt = 0) {
     } catch {}
   } else {
     if (gridApi) {
-      if (typeof gridApi.setGridOption === 'function') gridApi.setGridOption('rowData', data);
-      else if (typeof gridApi.setRowData === 'function') gridApi.setRowData(data);
-      else if (gridOptions && gridOptions.api) gridOptions.api.setRowData(data);
+      // applyTransaction을 사용하여 선택 상태 유지
+      if (typeof gridApi.applyTransaction === 'function') {
+        gridApi.applyTransaction({ update: data });
+      } else if (typeof gridApi.setGridOption === 'function') {
+        gridApi.setGridOption('rowData', data);
+      } else if (typeof gridApi.setRowData === 'function') {
+        gridApi.setRowData(data);
+      } else if (gridOptions && gridOptions.api) {
+        gridOptions.api.setRowData(data);
+      }
     } else if (gridOptions && gridOptions.api) {
       gridOptions.api.setRowData(data);
     }
@@ -237,7 +245,6 @@ function getColumns(){
     { field: 'name', headerName:'이름', flex: 1 },
     { field: 'vendor', headerName:'벤더', width: 140, valueFormatter: p => codeToLabel.get(normalizeVendorCode(p.value)) || p.value },
     { field: 'ip_address', headerName:'IP 주소', width: 160 },
-    { field: 'username', headerName:'사용자', width: 140 },
     { field: 'description', headerName:'설명', flex: 1 },
     { field: 'last_sync_status', headerName:'동기화 상태', width: 160, cellRenderer: statusCellRenderer },
     { field: 'last_sync_at', headerName:'동기화 시간', width: 200 },
@@ -331,9 +338,16 @@ function startPolling(){
       const hasProgress = Array.isArray(data) && data.some(d => d.last_sync_status === 'in_progress');
       const apiRef = gridApi || (gridOptions && gridOptions.api);
       if (apiRef) {
-        if (typeof apiRef.setGridOption === 'function') apiRef.setGridOption('rowData', data);
-        else if (typeof apiRef.setRowData === 'function') apiRef.setRowData(data);
-        else if (gridOptions && gridOptions.api) gridOptions.api.setRowData(data);
+        // applyTransaction을 사용하여 선택 상태 유지
+        if (typeof apiRef.applyTransaction === 'function') {
+          apiRef.applyTransaction({ update: data });
+        } else if (typeof apiRef.setGridOption === 'function') {
+          apiRef.setGridOption('rowData', data);
+        } else if (typeof apiRef.setRowData === 'function') {
+          apiRef.setRowData(data);
+        } else if (gridOptions && gridOptions.api) {
+          gridOptions.api.setRowData(data);
+        }
       }
       // 계속 진행중이면 짧게, 아니면 길게
       const interval = hasProgress ? 2000 : 8000;
