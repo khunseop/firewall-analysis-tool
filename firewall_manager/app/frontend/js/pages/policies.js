@@ -47,7 +47,14 @@ async function loadDevicesIntoSelect() {
 async function searchAndLoadPolicies() {
   const sel = document.getElementById('policy-device-select');
   const deviceIds = Array.from(sel?.selectedOptions || []).map(o=>parseInt(o.value,10)).filter(Boolean);
-  if (!deviceIds.length) return;
+  if (!deviceIds.length) {
+    // 선택된 장비가 없으면 그리드를 빈 상태로 초기화
+    if (policyGridApi) {
+      if (typeof policyGridApi.setGridOption==='function') policyGridApi.setGridOption('rowData', []);
+      else if (typeof policyGridApi.setRowData==='function') policyGridApi.setRowData([]);
+    }
+    return;
+  }
 
   const payload = buildSearchPayload(deviceIds);
   const data = await api.searchPolicies(payload);
@@ -137,14 +144,7 @@ export async function initPolicies(){
     }
   }
 
-  // Auto-select first two devices (if none saved) and search
-  try {
-    const options = Array.from(sel.options || []);
-    if (options.length > 0 && !options.some(o=>o.selected)) {
-      options.slice(0, Math.min(2, options.length)).forEach(o=>o.selected = true);
-    }
-  } catch {}
-  await searchAndLoadPolicies();
+  // 초기 로딩 시 자동 선택/자동 조회를 수행하지 않습니다.
 }
 
 

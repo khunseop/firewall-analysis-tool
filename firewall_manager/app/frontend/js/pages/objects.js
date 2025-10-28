@@ -167,14 +167,7 @@ async function loadDevices() {
           loadData(selectedDevices);
         }
       });
-
-      // 첫 번째 장비 자동 선택
-      if (allDevices.length > 0) {
-        const firstDeviceId = allDevices[0].id.toString();
-        select.tomselect.setValue([firstDeviceId], true); // silent=true로 설정하여 onChange 트리거 방지
-        // 수동으로 loadData 호출
-        await loadData([firstDeviceId]);
-      }
+      // 초기 로딩 시 자동 선택/자동 로드를 수행하지 않습니다.
     }
   } catch (err) {
     console.error('Failed to load devices:', err);
