@@ -22,6 +22,10 @@ from app.models.policy_members import PolicyAddressMember, PolicyServiceMember
 
 router = APIRouter()
 
+# Global semaphore to limit concurrent device-level sync orchestration
+# Ensures at most 4 devices are being synchronized at the same time.
+_DEVICE_SYNC_SEMAPHORE = asyncio.Semaphore(4)
+
 def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     """Converts a Pandas DataFrame to a list of Pydantic models.
 
@@ -298,6 +302,93 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                 await db.commit()
                 logging.info(f"Device status updated to success for device_id: {device_id}")
 
+
+async def _run_sync_all_orchestrator(device_id: int) -> None:
+    """Run full device sync inside a global concurrency limiter and set final status.
+
+    This performs vendor export for all supported data types and applies DB reconciliation
+    by directly invoking _sync_data_task sequentially. After all types finish, it rebuilds
+    policy indices and updates the device's sync status to success/failure accordingly.
+    """
+    async with _DEVICE_SYNC_SEMAPHORE:
+        logging.info(f"[orchestrator] Starting sync-all for device_id={device_id}")
+        async with SessionLocal() as db:
+            device = await crud.device.get_device(db=db, device_id=device_id)
+            if not device:
+                logging.warning(f"[orchestrator] Device not found: id={device_id}")
+                return
+
+            # Ensure status reflects in_progress while queued/processing
+            try:
+                await crud.device.update_sync_status(db=db, device=device, status="in_progress")
+                await db.commit()
+            except Exception:
+                await db.rollback()
+
+            loop = asyncio.get_running_loop()
+
+            try:
+                collector = await _get_collector(device)
+                connected = False
+                try:
+                    try:
+                        connected = await loop.run_in_executor(None, collector.connect)
+                    except NotImplementedError:
+                        connected = False
+
+                    export_map = {
+                        "policies": collector.export_security_rules,
+                        "network_objects": collector.export_network_objects,
+                        "network_groups": collector.export_network_group_objects,
+                        "services": collector.export_service_objects,
+                        "service_groups": collector.export_service_group_objects,
+                    }
+
+                    sequence = [
+                        ("network_objects", schemas.NetworkObjectCreate),
+                        ("network_groups", schemas.NetworkGroupCreate),
+                        ("services", schemas.ServiceCreate),
+                        ("service_groups", schemas.ServiceGroupCreate),
+                        ("policies", schemas.PolicyCreate),
+                    ]
+
+                    # Export and apply each data type sequentially for this device
+                    for data_type, schema_create in sequence:
+                        try:
+                            df = await loop.run_in_executor(None, export_map[data_type])
+                        except NotImplementedError:
+                            continue
+                        if df is None:
+                            df = pd.DataFrame()
+                        df["device_id"] = device_id
+                        items_to_sync = dataframe_to_pydantic(df, schema_create)
+                        await _sync_data_task(device_id, data_type, items_to_sync, False)
+
+                    # Rebuild indices after full sync
+                    result = await db.execute(select(models.Policy).where(models.Policy.device_id == device_id))
+                    policies = result.scalars().all()
+                    await rebuild_policy_indices(db=db, device_id=device_id, policies=policies)
+                    await crud.device.update_sync_status(db=db, device=device, status="success")
+                    await db.commit()
+                    logging.info(f"[orchestrator] sync-all finished successfully for device_id={device_id}")
+                finally:
+                    if connected:
+                        try:
+                            await loop.run_in_executor(None, collector.disconnect)
+                        except Exception:
+                            pass
+            except Exception:
+                await db.rollback()
+                try:
+                    # Best-effort failure status update
+                    device = await crud.device.get_device(db=db, device_id=device_id)
+                    if device:
+                        await crud.device.update_sync_status(db=db, device=device, status="failure")
+                        await db.commit()
+                except Exception:
+                    pass
+                logging.warning(f"[orchestrator] sync-all failed for device_id={device_id}", exc_info=True)
+
 def _normalize_value(value: Any) -> Any:
     try:
         if value is None:
@@ -459,78 +550,10 @@ async def sync_all(device_id: int, background_tasks: BackgroundTasks, db: AsyncS
     await crud.device.update_sync_status(db=db, device=device, status="in_progress")
     await db.commit()
 
-    # 순서: network_objects -> network_groups -> services -> service_groups -> policies
-    sequence = [
-        ("network_objects", schemas.NetworkObjectCreate),
-        ("network_groups", schemas.NetworkGroupCreate),
-        ("services", schemas.ServiceCreate),
-        ("service_groups", schemas.ServiceGroupCreate),
-        ("policies", schemas.PolicyCreate),
-    ]
-
-    loop = asyncio.get_running_loop()
-
-    try:
-        # 안전 복호화
-        try:
-            decrypted_password = decrypt(device.password)
-        except Exception:
-            if (device.vendor or "").lower() == "mock":
-                decrypted_password = device.password
-            else:
-                raise
-
-        collector = FirewallCollectorFactory.get_collector(
-            source_type=(device.vendor or "").lower(),
-            hostname=device.ip_address,
-            username=device.username,
-            password=decrypted_password,
-        )
-
-        connected = False
-        try:
-            try:
-                connected = await loop.run_in_executor(None, collector.connect)
-            except NotImplementedError:
-                connected = False
-
-            export_map = {
-                "policies": collector.export_security_rules,
-                "network_objects": collector.export_network_objects,
-                "network_groups": collector.export_network_group_objects,
-                "services": collector.export_service_objects,
-                "service_groups": collector.export_service_group_objects,
-            }
-
-            # 각 타입을 순차 수집 및 백그라운드 태스크로 push
-            all_items: dict[str, list[Any]] = {}
-            for data_type, schema_create in sequence:
-                try:
-                    df = await loop.run_in_executor(None, export_map[data_type])
-                except NotImplementedError:
-                    continue
-                if df is None:
-                    df = pd.DataFrame()
-                df['device_id'] = device_id
-                items_to_sync = dataframe_to_pydantic(df, schema_create)
-                all_items[data_type] = items_to_sync
-                # 개별 태스크 enqueue
-                background_tasks.add_task(_sync_data_task, device_id, data_type, items_to_sync, False)
-
-            # 모든 동기화 완료 이벤트 이후 정책 인덱싱을 수행하기 위한 별도 태스크 추가
-            # BackgroundTasks는 순차 보장 없으므로, parse-index는 별도 엔드포인트/트리거를 권장
-            # 여기서는 성공/실패와 무관하게 parse-index를 후속 태스크로 추가
-            background_tasks.add_task(_parse_index_after_sync_all, device_id)
-
-            return {"msg": "Full synchronization started in the background. Indices will be rebuilt afterwards."}
-        finally:
-            if connected:
-                try:
-                    await loop.run_in_executor(None, collector.disconnect)
-                except Exception:
-                    pass
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"sync-all failed: {e}")
+    # 새 동작: 무거운 오케스트레이션을 하나의 백그라운드 태스크로 위임하고,
+    # 글로벌 세마포어로 동시 장비 동기화를 4개로 제한합니다.
+    background_tasks.add_task(_run_sync_all_orchestrator, device_id)
+    return {"msg": "Full synchronization enqueued. It will run with limited concurrency (max 4)."}
 
 
 @router.post("/parse-index/{device_id}", response_model=schemas.Msg)
