@@ -15,6 +15,8 @@ async function initGrid() {
     { field:'last_hit_date', headerName:'Last Hit', width:180 },
   ]);
   const options = { columnDefs: getCols(), rowData: [], defaultColDef:{ resizable:true, sortable:true, filter:true } };
+  options.pagination = true;
+  options.paginationAutoPageSize = true;
   if (agGrid.createGrid) policyGridApi = agGrid.createGrid(gridDiv, options); else { new agGrid.Grid(gridDiv, options); policyGridApi = options.api; }
 }
 

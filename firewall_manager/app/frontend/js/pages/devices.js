@@ -78,7 +78,11 @@ async function loadGrid(gridDiv, attempt = 0) {
       columnDefs: getColumns(),
       rowData: data,
       defaultColDef: { resizable: true, sortable: true, filter: false },
-      rowSelection: 'single',
+      rowSelection: 'multiple',
+      rowMultiSelectWithClick: true,
+      suppressRowClickSelection: false,
+      pagination: true,
+      paginationAutoPageSize: true,
       animateRows: true,
     };
     if (agGrid.createGrid) {
@@ -133,48 +137,6 @@ function getColumns(){
     { field: 'description', headerName:'설명', flex: 1 },
     { field: 'last_sync_status', headerName:'동기화 상태', width: 140 },
     { field: 'last_sync_at', headerName:'동기화 시간', width: 180 },
-    { headerName:'작업', width: 360, cellRenderer: params => {
-        const d = params.data;
-        const wrap = document.createElement('div');
-        wrap.className = 'actions';
-        wrap.innerHTML = `
-          <button class="button is-link" data-act="test">연결테스트</button>
-          <button class="button" data-act="edit">수정</button>
-          <button class="button is-danger" data-act="del">삭제</button>
-          <button class="button is-primary" data-act="sync">동기화</button>
-        `;
-        wrap.addEventListener('click', async (e)=>{
-          const btn = e.target.closest('button');
-          const act = btn?.dataset.act;
-          if (!act) return;
-          btn.setAttribute('disabled', 'disabled');
-          const prev = btn.textContent;
-          btn.textContent = prev + '…';
-          try{
-            if (act === 'test') {
-              await api.testConnection(d.id);
-              alert('연결 성공');
-            } else if (act === 'edit') {
-              fillForm(d);
-              openModal(async (payload)=>{
-                await api.updateDevice(d.id, payload);
-                await reload();
-              });
-            } else if (act === 'del') {
-              if (confirm('삭제하시겠습니까?')){ await api.deleteDevice(d.id); await reload(); }
-            } else if (act === 'sync') {
-              await api.syncAll(d.id);
-              alert('동기화를 시작했습니다.');
-            }
-          }catch(err){ alert(err.message || '요청 실패'); }
-          finally {
-            btn.removeAttribute('disabled');
-            btn.textContent = prev;
-          }
-        });
-        return wrap;
-      }
-    },
   ];
 }
 
@@ -185,6 +147,9 @@ async function reload(){
 
 export function initDevices(root){
   const addBtn = root.querySelector('#btn-add');
+  const editBtn = root.querySelector('#btn-edit');
+  const deleteBtn = root.querySelector('#btn-delete');
+  const syncBtn = root.querySelector('#btn-sync');
   const search = root.querySelector('#devices-search');
   if (addBtn) {
     addBtn.onclick = () => {
@@ -192,6 +157,56 @@ export function initDevices(root){
       openModal(async (payload)=>{
         await api.createDevice(payload);
         await reload();
+      });
+    };
+  }
+  if (editBtn) {
+    editBtn.onclick = async () => {
+      const apiRef = gridApi || (gridOptions && gridOptions.api);
+      if (!apiRef) return;
+      const sel = apiRef.getSelectedRows ? apiRef.getSelectedRows() : [];
+      if (!sel || sel.length !== 1) { alert('수정은 장비 1개만 선택하세요.'); return; }
+      const d = sel[0];
+      fillForm(d);
+      openModal(async (payload)=>{
+        await api.updateDevice(d.id, payload);
+        await reload();
+      });
+    };
+  }
+  if (deleteBtn) {
+    deleteBtn.onclick = async () => {
+      const apiRef = gridApi || (gridOptions && gridOptions.api);
+      if (!apiRef) return;
+      const sel = apiRef.getSelectedRows ? apiRef.getSelectedRows() : [];
+      if (!sel || sel.length === 0) { alert('삭제할 장비를 선택하세요.'); return; }
+      if (!confirm(`${sel.length}개 장비를 삭제하시겠습니까?`)) return;
+      for (const d of sel) { try { await api.deleteDevice(d.id); } catch (e) { console.warn('delete failed', d.id, e); } }
+      await reload();
+    };
+  }
+  if (syncBtn) {
+    syncBtn.onclick = async () => {
+      const apiRef = gridApi || (gridOptions && gridOptions.api);
+      if (!apiRef) return;
+      const sel = apiRef.getSelectedRows ? apiRef.getSelectedRows() : [];
+      if (!sel || sel.length === 0) { alert('동기화할 장비를 선택하세요.'); return; }
+      // Simple queue: max 4 concurrent
+      const ids = sel.map(d=>d.id);
+      const concurrency = 4;
+      let idx = 0; let active = 0; let done = 0; let failed = 0;
+      return new Promise((resolve)=>{
+        const next = () => {
+          while (active < concurrency && idx < ids.length) {
+            const id = ids[idx++];
+            active++;
+            api.syncAll(id).then(()=>{ done++; }).catch(()=>{ failed++; }).finally(()=>{
+              active--; if (done+failed === ids.length) { alert(`동기화 시작됨: ${done} 성공, ${failed} 실패(시작 단계)`); resolve(); }
+              else next();
+            });
+          }
+        };
+        next();
       });
     };
   }
