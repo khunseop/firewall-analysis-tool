@@ -9,6 +9,7 @@ let currentTab = 'network-objects';
 
 // 네트워크 객체 그리드 컬럼 정의
 const networkObjectsColumns = [
+  { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
   { field: 'id', headerName: 'ID', width: 80, filter: 'agNumberColumnFilter' },
   { field: 'name', headerName: '이름', width: 200, filter: 'agTextColumnFilter' },
   { field: 'ip_address', headerName: 'IP 주소', width: 200, filter: 'agTextColumnFilter' },
@@ -30,6 +31,7 @@ const networkObjectsColumns = [
 
 // 네트워크 그룹 그리드 컬럼 정의
 const networkGroupsColumns = [
+  { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
   { field: 'id', headerName: 'ID', width: 80, filter: 'agNumberColumnFilter' },
   { field: 'name', headerName: '이름', width: 200, filter: 'agTextColumnFilter' },
   { field: 'members', headerName: '멤버', flex: 1, filter: 'agTextColumnFilter' },
@@ -50,6 +52,7 @@ const networkGroupsColumns = [
 
 // 서비스 객체 그리드 컬럼 정의
 const servicesColumns = [
+  { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
   { field: 'id', headerName: 'ID', width: 80, filter: 'agNumberColumnFilter' },
   { field: 'name', headerName: '이름', width: 200, filter: 'agTextColumnFilter' },
   { field: 'protocol', headerName: '프로토콜', width: 120, filter: 'agTextColumnFilter' },
@@ -71,6 +74,7 @@ const servicesColumns = [
 
 // 서비스 그룹 그리드 컬럼 정의
 const serviceGroupsColumns = [
+  { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
   { field: 'id', headerName: 'ID', width: 80, filter: 'agNumberColumnFilter' },
   { field: 'name', headerName: '이름', width: 200, filter: 'agTextColumnFilter' },
   { field: 'members', headerName: '멤버', flex: 1, filter: 'agTextColumnFilter' },
@@ -183,50 +187,95 @@ async function initGrids() {
   }
 }
 
+// 장비 목록을 저장할 변수
+let allDevices = [];
+
 // 장비 목록 로드
 async function loadDevices() {
   try {
-    const devices = await api.listDevices();
+    allDevices = await api.listDevices();
     const select = document.getElementById('object-device-select');
     if (!select) return;
 
-    select.innerHTML = '<option value="">장비를 선택하세요</option>';
-    devices.forEach(dev => {
+    select.innerHTML = '';
+    allDevices.forEach(dev => {
       const opt = document.createElement('option');
       opt.value = dev.id;
       opt.textContent = `${dev.name} (${dev.ip_address})`;
       select.appendChild(opt);
     });
+
+    // Tom-select 초기화
+    if (window.TomSelect && select) {
+      if (select.tomselect) {
+        try { select.tomselect.destroy(); } catch (e) {}
+      }
+      select.tomselect = new window.TomSelect(select, {
+        placeholder: '장비 선택',
+        plugins: ['remove_button'],
+        maxOptions: null,
+      });
+    }
   } catch (err) {
     console.error('Failed to load devices:', err);
   }
 }
 
-// 데이터 로드
-async function loadData(deviceId) {
-  if (!deviceId) return;
+// 데이터 로드 (멀티 장비 지원)
+async function loadData(deviceIds) {
+  // deviceIds를 배열로 변환 (단일 값이거나 문자열일 경우 대비)
+  let deviceIdArray = [];
+  if (Array.isArray(deviceIds)) {
+    deviceIdArray = deviceIds;
+  } else if (deviceIds) {
+    deviceIdArray = [deviceIds];
+  }
+
+  if (deviceIdArray.length === 0) {
+    // 선택된 장비가 없으면 빈 데이터 표시
+    if (networkObjectsGrid) networkObjectsGrid.setGridOption('rowData', []);
+    if (networkGroupsGrid) networkGroupsGrid.setGridOption('rowData', []);
+    if (servicesGrid) servicesGrid.setGridOption('rowData', []);
+    if (serviceGroupsGrid) serviceGroupsGrid.setGridOption('rowData', []);
+    return;
+  }
 
   try {
-    if (currentTab === 'network-objects') {
-      const data = await api.getNetworkObjects(deviceId);
-      if (networkObjectsGrid) {
-        networkObjectsGrid.setGridOption('rowData', data);
+    // 여러 장비의 데이터를 병렬로 가져오기
+    const dataPromises = deviceIdArray.map(async (deviceId) => {
+      const device = allDevices.find(d => d.id === parseInt(deviceId));
+      const deviceName = device ? device.name : `장비 ${deviceId}`;
+      
+      let data = [];
+      if (currentTab === 'network-objects') {
+        data = await api.getNetworkObjects(deviceId);
+      } else if (currentTab === 'network-groups') {
+        data = await api.getNetworkGroups(deviceId);
+      } else if (currentTab === 'services') {
+        data = await api.getServices(deviceId);
+      } else if (currentTab === 'service-groups') {
+        data = await api.getServiceGroups(deviceId);
       }
-    } else if (currentTab === 'network-groups') {
-      const data = await api.getNetworkGroups(deviceId);
-      if (networkGroupsGrid) {
-        networkGroupsGrid.setGridOption('rowData', data);
-      }
-    } else if (currentTab === 'services') {
-      const data = await api.getServices(deviceId);
-      if (servicesGrid) {
-        servicesGrid.setGridOption('rowData', data);
-      }
-    } else if (currentTab === 'service-groups') {
-      const data = await api.getServiceGroups(deviceId);
-      if (serviceGroupsGrid) {
-        serviceGroupsGrid.setGridOption('rowData', data);
-      }
+      
+      // 각 항목에 device_name 추가
+      return data.map(item => ({
+        ...item,
+        device_name: deviceName
+      }));
+    });
+
+    const results = await Promise.all(dataPromises);
+    const mergedData = results.flat();
+
+    // 해당 그리드에 데이터 설정
+    if (currentTab === 'network-objects' && networkObjectsGrid) {
+      networkObjectsGrid.setGridOption('rowData', mergedData);
+    } else if (currentTab === 'network-groups' && networkGroupsGrid) {
+      networkGroupsGrid.setGridOption('rowData', mergedData);
+    } else if (currentTab === 'services' && servicesGrid) {
+      servicesGrid.setGridOption('rowData', mergedData);
+    } else if (currentTab === 'service-groups' && serviceGroupsGrid) {
+      serviceGroupsGrid.setGridOption('rowData', mergedData);
     }
   } catch (err) {
     console.error(`Failed to load ${currentTab}:`, err);
@@ -259,8 +308,11 @@ function switchTab(tabName) {
 
   // 현재 선택된 장비로 데이터 로드
   const select = document.getElementById('object-device-select');
-  if (select && select.value) {
-    loadData(select.value);
+  if (select && select.tomselect) {
+    const selectedDevices = select.tomselect.getValue();
+    if (selectedDevices && selectedDevices.length > 0) {
+      loadData(selectedDevices);
+    }
   }
 }
 
@@ -279,17 +331,19 @@ export async function initObjects() {
     });
   });
 
-  // 장비 선택 변경 이벤트
+  // 장비 선택 변경 이벤트 (Tom-select onChange)
   const select = document.getElementById('object-device-select');
-  if (select) {
-    select.addEventListener('change', (e) => {
-      loadData(e.target.value);
+  if (select && select.tomselect) {
+    select.tomselect.on('change', () => {
+      const selectedDevices = select.tomselect.getValue();
+      loadData(selectedDevices);
     });
-  }
 
-  // 첫 번째 장비 자동 선택
-  if (select && select.options.length > 1) {
-    select.selectedIndex = 1;
-    loadData(select.value);
+    // 첫 번째 장비 자동 선택
+    if (allDevices.length > 0) {
+      const firstDeviceId = allDevices[0].id.toString();
+      select.tomselect.setValue([firstDeviceId]);
+      loadData([firstDeviceId]);
+    }
   }
 }
