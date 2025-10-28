@@ -1,6 +1,44 @@
-<div class="container">
-  <h1 class="title is-5">대시보드</h1>
-  <p class="help">동기화 상태 요약은 추후 구성됩니다.</p>
-</div>
+<div class="container is-fluid">
+  <h1 class="title is-5 mb-4">대시보드</h1>
 
+  <!-- 통계 카드 -->
+  <div class="columns is-multiline mb-4">
+    <div class="column is-3">
+      <div class="box has-background-link-light">
+        <div class="heading">총 장비</div>
+        <div class="title is-3" id="stat-total-devices">-</div>
+      </div>
+    </div>
+    <div class="column is-3">
+      <div class="box has-background-info-light">
+        <div class="heading">총 정책</div>
+        <div class="title is-3" id="stat-total-policies">-</div>
+      </div>
+    </div>
+    <div class="column is-3">
+      <div class="box has-background-success-light">
+        <div class="heading">네트워크 객체</div>
+        <div class="title is-3" id="stat-network-objects">-</div>
+      </div>
+    </div>
+    <div class="column is-3">
+      <div class="box has-background-warning-light">
+        <div class="heading">서비스 객체</div>
+        <div class="title is-3" id="stat-service-objects">-</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 장비별 통계 -->
+  <div class="box mb-4">
+    <h2 class="subtitle is-5 mb-3">장비별 통계</h2>
+    <div id="device-stats-grid" class="ag-theme-quartz" style="height: 400px;"></div>
+  </div>
+
+  <!-- 정책 분석 결과 (추후 구현) -->
+  <div class="box">
+    <h2 class="subtitle is-5 mb-3">정책 분석 결과</h2>
+    <p class="has-text-grey">정책 분석 기능은 추후 구현 예정입니다.</p>
+  </div>
+</div>
 
