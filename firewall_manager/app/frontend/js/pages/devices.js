@@ -88,6 +88,20 @@ async function loadGrid(gridDiv, attempt = 0) {
       gridApi = gridOptions.api;
     }
     gridHostEl = gridDiv;
+    // Apply quick filter from input if present after (re)creation
+    try {
+      const input = document.getElementById('devices-search');
+      const value = input ? input.value : '';
+      if (value) {
+        if (gridApi && typeof gridApi.setGridOption === 'function') {
+          gridApi.setGridOption('quickFilterText', value);
+        } else if (gridApi && typeof gridApi.setQuickFilter === 'function') {
+          gridApi.setQuickFilter(value);
+        } else if (gridOptions && gridOptions.api && typeof gridOptions.api.setQuickFilter === 'function') {
+          gridOptions.api.setQuickFilter(value);
+        }
+      }
+    } catch {}
   } else {
     if (gridApi) {
       if (typeof gridApi.setGridOption === 'function') gridApi.setGridOption('rowData', data);
@@ -96,6 +110,16 @@ async function loadGrid(gridDiv, attempt = 0) {
     } else if (gridOptions && gridOptions.api) {
       gridOptions.api.setRowData(data);
     }
+    // Re-apply quick filter if any
+    try {
+      const input = document.getElementById('devices-search');
+      const value = input ? input.value : '';
+      const api = gridApi || (gridOptions && gridOptions.api);
+      if (api && value) {
+        if (typeof api.setGridOption === 'function') api.setGridOption('quickFilterText', value);
+        else if (typeof api.setQuickFilter === 'function') api.setQuickFilter(value);
+      }
+    } catch {}
   }
 }
 
@@ -173,11 +197,11 @@ export function initDevices(root){
   }
   if (search) {
     search.oninput = () => {
-      if (gridApi && typeof gridApi.setQuickFilter === 'function') {
-        gridApi.setQuickFilter(search.value);
-      } else if (gridOptions && gridOptions.api && typeof gridOptions.api.setQuickFilter === 'function') {
-        gridOptions.api.setQuickFilter(search.value);
-      }
+      const value = search.value;
+      const api = gridApi || (gridOptions && gridOptions.api);
+      if (!api) return;
+      if (typeof api.setGridOption === 'function') api.setGridOption('quickFilterText', value);
+      else if (typeof api.setQuickFilter === 'function') api.setQuickFilter(value);
     };
   }
   reload();

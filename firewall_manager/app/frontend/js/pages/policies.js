@@ -48,19 +48,30 @@ async function apiRequest(path){
   return res.json();
 }
 
-export function PoliciesPage(){
-  setTimeout(async ()=>{
-    await initGrid();
-    await loadDevicesIntoSelect();
-    const sel = document.getElementById('policy-device-select');
-    if (sel) {
-      sel.onchange = () => loadPolicies(sel.value);
-      if (sel.value) loadPolicies(sel.value);
+export async function initPolicies(){
+  await initGrid();
+  await loadDevicesIntoSelect();
+  const sel = document.getElementById('policy-device-select');
+  if (!sel) return;
+  // Initialize Tom Select if available (local vendor)
+  try {
+    if (window.TomSelect) {
+      if (sel._tomSelect) { try { sel._tomSelect.destroy(); } catch {} }
+      sel._tomSelect = new window.TomSelect(sel, { placeholder: '장비 검색' });
     }
-  },0);
-  return `
-    <div class="page-title">정책조회</div>
-  `;
+  } catch {}
+  // Bind change to load policies
+  sel.onchange = () => {
+    try { localStorage.setItem('policy-selected-device-id', sel.value || ''); } catch {}
+    loadPolicies(sel.value);
+  };
+  // Select first device by default
+  try {
+    const saved = localStorage.getItem('policy-selected-device-id');
+    if (saved && Array.from(sel.options).some(o=>o.value===saved)) sel.value = saved;
+  } catch {}
+  if (!sel.value && sel.options && sel.options.length > 0) sel.value = sel.options[0].value;
+  if (sel.value) loadPolicies(sel.value);
 }
 
 

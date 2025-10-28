@@ -1,9 +1,10 @@
 import { startRouter, addRoute } from "./router.js";
 import { initDevices } from "./pages/devices.js";
+import { initPolicies } from "./pages/policies.js";
 
 addRoute("#/dashboard", { template: "dashboard.html" });
 addRoute("#/devices", { template: "devices.html", init: initDevices });
-addRoute("#/policies", { template: "policies.html" });
+addRoute("#/policies", { template: "policies.html", init: initPolicies });
 addRoute("#/objects", { template: "objects.html" });
 addRoute("#/analysis", { template: "analysis.html" });
 
