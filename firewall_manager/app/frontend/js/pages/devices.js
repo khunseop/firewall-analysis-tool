@@ -59,6 +59,38 @@ function openModal(onSubmit){
   };
 }
 
+function openConfirm({ title = '확인', message = '이 작업을 진행하시겠습니까?', okText = '확인', cancelText = '취소' } = {}){
+  return new Promise(resolve => {
+    const modal = document.getElementById('modal-confirm');
+    if (!modal) { return resolve(false); }
+    modal.classList.add('is-active');
+    const $ = (sel)=>modal.querySelector(sel);
+    $('#confirm-title').textContent = title;
+    $('#confirm-message').textContent = message;
+    $('#confirm-ok').textContent = okText;
+    $('#confirm-cancel').textContent = cancelText;
+    const close = (val)=>{ modal.classList.remove('is-active'); resolve(val); };
+    $('#confirm-close').onclick = ()=>close(false);
+    $('#confirm-cancel').onclick = ()=>close(false);
+    $('#confirm-ok').onclick = ()=>close(true);
+  });
+}
+
+function openAlert({ title = '알림', message = '처리되었습니다.', okText = '확인' } = {}){
+  return new Promise(resolve => {
+    const modal = document.getElementById('modal-alert');
+    if (!modal) { return resolve(); }
+    modal.classList.add('is-active');
+    const $ = (sel)=>modal.querySelector(sel);
+    $('#alert-title').textContent = title;
+    $('#alert-message').textContent = message;
+    $('#alert-ok').textContent = okText;
+    const close = ()=>{ modal.classList.remove('is-active'); resolve(); };
+    $('#alert-close').onclick = close;
+    $('#alert-ok').onclick = close;
+  });
+}
+
 async function loadGrid(gridDiv, attempt = 0) {
   // agGrid 스크립트 로딩 대기 (보수적으로 재시도)
   if (!window.agGrid || (!window.agGrid.Grid && !window.agGrid.createGrid)) {
@@ -127,6 +159,14 @@ async function loadGrid(gridDiv, attempt = 0) {
 
 function getColumns(){
   return [
+    {
+      headerName: '', width: 48, pinned: 'left',
+      checkboxSelection: true,
+      headerCheckboxSelection: true,
+      headerCheckboxSelectionFilteredOnly: true,
+      headerCheckboxSelectionCurrentPageOnly: true,
+      resizable: false, sortable: false, filter: false, suppressMenu: true
+    },
     { field: 'id', headerName:'ID', width: 80 },
     { field: 'name', headerName:'이름', flex: 1 },
     { field: 'vendor', headerName:'벤더', width: 140, valueFormatter: p => codeToLabel.get(normalizeVendorCode(p.value)) || p.value },
@@ -163,7 +203,8 @@ export function initDevices(root){
       const apiRef = gridApi || (gridOptions && gridOptions.api);
       if (!apiRef) return;
       const sel = apiRef.getSelectedRows ? apiRef.getSelectedRows() : [];
-      if (!sel || sel.length !== 1) { alert('수정은 장비 1개만 선택하세요.'); return; }
+      if (!sel || sel.length === 0) { await openAlert({ title:'수정', message:'수정할 장비를 선택하세요.' }); return; }
+      if (sel.length > 1) { await openAlert({ title:'수정', message:'수정은 장비 1개만 선택하세요.' }); return; }
       const d = sel[0];
       fillForm(d);
       openModal(async (payload)=>{
@@ -177,8 +218,9 @@ export function initDevices(root){
       const apiRef = gridApi || (gridOptions && gridOptions.api);
       if (!apiRef) return;
       const sel = apiRef.getSelectedRows ? apiRef.getSelectedRows() : [];
-      if (!sel || sel.length === 0) { alert('삭제할 장비를 선택하세요.'); return; }
-      if (!confirm(`${sel.length}개 장비를 삭제하시겠습니까?`)) return;
+      if (!sel || sel.length === 0) { await openAlert({ title:'삭제', message:'삭제할 장비를 선택하세요.' }); return; }
+      const ok = await openConfirm({ title:'삭제 확인', message:`${sel.length}개 장비를 삭제하시겠습니까?`, okText:'삭제', cancelText:'취소' });
+      if (!ok) return;
       for (const d of sel) { try { await api.deleteDevice(d.id); } catch (e) { console.warn('delete failed', d.id, e); } }
       await reload();
     };
@@ -188,7 +230,9 @@ export function initDevices(root){
       const apiRef = gridApi || (gridOptions && gridOptions.api);
       if (!apiRef) return;
       const sel = apiRef.getSelectedRows ? apiRef.getSelectedRows() : [];
-      if (!sel || sel.length === 0) { alert('동기화할 장비를 선택하세요.'); return; }
+      if (!sel || sel.length === 0) { await openAlert({ title:'동기화', message:'동기화할 장비를 선택하세요.' }); return; }
+      const ok = await openConfirm({ title:'동기화 확인', message:`${sel.length}개 장비에 대해 동기화를 시작할까요?`, okText:'동기화', cancelText:'취소' });
+      if (!ok) return;
       // Simple queue: max 4 concurrent
       const ids = sel.map(d=>d.id);
       const concurrency = 4;
@@ -199,7 +243,7 @@ export function initDevices(root){
             const id = ids[idx++];
             active++;
             api.syncAll(id).then(()=>{ done++; }).catch(()=>{ failed++; }).finally(()=>{
-              active--; if (done+failed === ids.length) { alert(`동기화 시작됨: ${done} 성공, ${failed} 실패(시작 단계)`); resolve(); }
+              active--; if (done+failed === ids.length) { openAlert({ title:'동기화 시작', message:`동기화 시작됨: ${done} 성공, ${failed} 실패(시작 단계)` }); resolve(); }
               else next();
             });
           }

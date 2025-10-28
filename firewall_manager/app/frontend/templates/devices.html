@@ -75,6 +75,41 @@
       </footer>
     </div>
   </div>
+
+  <!-- Small unified confirm modal -->
+  <div class="modal is-compact" id="modal-confirm">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <header class="modal-card-head">
+        <p class="modal-card-title" id="confirm-title">확인</p>
+        <button class="delete" aria-label="close" id="confirm-close"></button>
+      </header>
+      <section class="modal-card-body">
+        <p id="confirm-message">이 작업을 진행하시겠습니까?</p>
+      </section>
+      <footer class="modal-card-foot is-justify-content-flex-end">
+        <button class="button" id="confirm-cancel">취소</button>
+        <button class="button is-primary" id="confirm-ok">확인</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Small unified alert modal -->
+  <div class="modal is-compact" id="modal-alert">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <header class="modal-card-head">
+        <p class="modal-card-title" id="alert-title">알림</p>
+        <button class="delete" aria-label="close" id="alert-close"></button>
+      </header>
+      <section class="modal-card-body">
+        <p id="alert-message">메시지</p>
+      </section>
+      <footer class="modal-card-foot is-justify-content-flex-end">
+        <button class="button is-primary" id="alert-ok">확인</button>
+      </footer>
+    </div>
+  </div>
 </div>
 
 
