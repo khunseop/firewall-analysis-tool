@@ -11,6 +11,7 @@ let gridOptions;
 let gridApi;
 let gridHostEl;
 let handlersBound = false;
+let pollTimer = null;
 
 function normalizeVendorCode(value) {
   if (!value) return value;
@@ -162,6 +163,27 @@ async function loadGrid(gridDiv, attempt = 0) {
   }
 }
 
+function statusCellRenderer(params){
+  const value = params.value;
+  const el = document.createElement('span');
+  el.textContent = value || '-';
+  if (value === 'in_progress') {
+    el.innerHTML = `
+      <span class="icon is-small" style="margin-right:6px">
+        <svg class="spinner" width="14" height="14" viewBox="0 0 50 50">
+          <circle cx="25" cy="25" r="20" fill="none" stroke="#3273dc" stroke-width="6" stroke-linecap="round" stroke-dasharray="31.4 31.4">
+            <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.8s" repeatCount="indefinite" />
+          </circle>
+        </svg>
+      </span> 진행 중`;
+  } else if (value === 'success') {
+    el.innerHTML = `<span class="tag is-success is-light">성공</span>`;
+  } else if (value === 'failure') {
+    el.innerHTML = `<span class="tag is-danger is-light">실패</span>`;
+  }
+  return el;
+}
+
 function getColumns(){
   return [
     { field: 'id', headerName:'ID', width: 80 },
@@ -170,8 +192,8 @@ function getColumns(){
     { field: 'ip_address', headerName:'IP 주소', width: 160 },
     { field: 'username', headerName:'사용자', width: 140 },
     { field: 'description', headerName:'설명', flex: 1 },
-    { field: 'last_sync_status', headerName:'동기화 상태', width: 140 },
-    { field: 'last_sync_at', headerName:'동기화 시간', width: 180 },
+    { field: 'last_sync_status', headerName:'동기화 상태', width: 160, cellRenderer: statusCellRenderer },
+    { field: 'last_sync_at', headerName:'동기화 시간', width: 200 },
   ];
 }
 
@@ -230,23 +252,13 @@ export function initDevices(root){
       if (!sel || sel.length === 0) { await openAlert({ title:'동기화', message:'동기화할 장비를 선택하세요.' }); return; }
       const ok = await openConfirm({ title:'동기화 확인', message:`${sel.length}개 장비에 대해 동기화를 시작할까요?`, okText:'동기화', cancelText:'취소' });
       if (!ok) return;
-      // Simple queue: max 4 concurrent
+      // 서버는 글로벌 동시성(4)을 보장. 클라이언트는 단순히 모든 선택에 대해 트리거.
       const ids = sel.map(d=>d.id);
-      const concurrency = 4;
-      let idx = 0; let active = 0; let done = 0; let failed = 0;
-      return new Promise((resolve)=>{
-        const next = () => {
-          while (active < concurrency && idx < ids.length) {
-            const id = ids[idx++];
-            active++;
-            api.syncAll(id).then(()=>{ done++; }).catch(()=>{ failed++; }).finally(()=>{
-              active--; if (done+failed === ids.length) { openAlert({ title:'동기화 시작', message:`동기화 시작됨: ${done} 성공, ${failed} 실패(시작 단계)` }); resolve(); }
-              else next();
-            });
-          }
-        };
-        next();
-      });
+      for (const id of ids) {
+        try { await api.syncAll(id); } catch (e) { console.warn('sync start failed', id, e); }
+      }
+      // 폴링 시작: in_progress 상태가 없어질 때까지 주기적으로 갱신
+      startPolling();
     };
   }
   if (search) {
@@ -261,6 +273,34 @@ export function initDevices(root){
     };
   }
   reload();
+  startPolling();
+}
+
+function startPolling(){
+  stopPolling();
+  const tick = async () => {
+    try {
+      const data = await api.listDevices();
+      const hasProgress = Array.isArray(data) && data.some(d => d.last_sync_status === 'in_progress');
+      const apiRef = gridApi || (gridOptions && gridOptions.api);
+      if (apiRef) {
+        if (typeof apiRef.setGridOption === 'function') apiRef.setGridOption('rowData', data);
+        else if (typeof apiRef.setRowData === 'function') apiRef.setRowData(data);
+        else if (gridOptions && gridOptions.api) gridOptions.api.setRowData(data);
+      }
+      // 계속 진행중이면 짧게, 아니면 길게
+      const interval = hasProgress ? 2000 : 8000;
+      pollTimer = setTimeout(tick, interval);
+    } catch (e) {
+      // 실패 시 폴링 간격을 늘려 재시도
+      pollTimer = setTimeout(tick, 10000);
+    }
+  };
+  pollTimer = setTimeout(tick, 1500);
+}
+
+function stopPolling(){
+  if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
 }
 
 
