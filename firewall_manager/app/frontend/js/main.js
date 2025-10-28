@@ -1,15 +1,25 @@
 import { startRouter, addRoute } from "./router.js";
-import { DashboardPage } from "./pages/dashboard.js";
-import { DevicesPage } from "./pages/devices.js";
-import { PoliciesPage } from "./pages/policies.js";
-import { ObjectsPage } from "./pages/objects.js";
-import { AnalysisPage } from "./pages/analysis.js";
+import { initDevices } from "./pages/devices.js";
+import { initPolicies } from "./pages/policies.js";
 
-addRoute("#/dashboard", DashboardPage);
-addRoute("#/devices", DevicesPage);
-addRoute("#/policies", PoliciesPage);
-addRoute("#/objects", ObjectsPage);
-addRoute("#/analysis", AnalysisPage);
+addRoute("#/dashboard", { template: "dashboard.html" });
+addRoute("#/devices", { template: "devices.html", init: initDevices });
+addRoute("#/policies", { template: "policies.html", init: initPolicies });
+addRoute("#/objects", { template: "objects.html" });
+addRoute("#/analysis", { template: "analysis.html" });
+
+// Bulma navbar burger toggle (per docs)
+document.addEventListener('DOMContentLoaded', () => {
+  const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+  $navbarBurgers.forEach( el => {
+    el.addEventListener('click', () => {
+      const target = el.dataset.target;
+      const $target = document.getElementById(target);
+      el.classList.toggle('is-active');
+      if ($target) $target.classList.toggle('is-active');
+    });
+  });
+});
 
 startRouter();
 

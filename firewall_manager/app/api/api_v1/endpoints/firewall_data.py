@@ -22,6 +22,54 @@ from app.models.policy_members import PolicyAddressMember, PolicyServiceMember
 
 router = APIRouter()
 
+
+def _normalize_last_hit_value(value: Any) -> datetime | None:
+    """Normalize vendor-provided last-hit value to naive Asia/Seoul datetime or None.
+
+    Accepts epoch seconds/milliseconds (int/float/str), datetime-like strings,
+    or pandas Timestamps. Returns Python datetime without tzinfo.
+    """
+    # Empty-like
+    if value in ("", "None", None, "-"):
+        return None
+    # Numeric epoch seconds/millis
+    try:
+        if isinstance(value, (int, float)) or (isinstance(value, str) and value.strip().lstrip("-+.").replace(".", "", 1).isdigit()):
+            val_float = float(value)
+            # Heuristic: milliseconds if >= 1e12 absolute
+            ts_seconds = val_float / 1000.0 if abs(val_float) >= 1e12 else val_float
+            return datetime.fromtimestamp(ts_seconds, tz=ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
+    except Exception:
+        pass
+    # Parse with pandas, then convert to Python datetime
+    try:
+        ts = pd.to_datetime(value, errors='coerce')
+        if pd.isna(ts):
+            return None
+        # Convert pandas Timestamp to python datetime
+        py_dt = ts.to_pydatetime() if hasattr(ts, 'to_pydatetime') else ts  # type: ignore[assignment]
+        # If tz-aware, convert to Asia/Seoul and drop tz
+        if getattr(py_dt, 'tzinfo', None) is not None:
+            py_dt = py_dt.astimezone(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
+        return py_dt
+    except Exception:
+        return None
+
+
+def _coerce_timestamp_to_py_datetime(value: Any) -> Any:
+    """Ensure pandas Timestamp is converted to native python datetime."""
+    try:
+        import pandas as _pd  # local import to avoid top-level dependency during tests
+        if isinstance(value, _pd.Timestamp):
+            return value.to_pydatetime()
+    except Exception:
+        pass
+    return value
+
+# Global semaphore to limit concurrent device-level sync orchestration
+# SQLite의 동시 쓰기 한계를 고려하여 1개 장비만 동기화하도록 제한합니다.
+_DEVICE_SYNC_SEMAPHORE = asyncio.Semaphore(1)
+
 def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     """Converts a Pandas DataFrame to a list of Pydantic models.
 
@@ -75,20 +123,9 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
 
         # Normalize last_hit_date to system time (Asia/Seoul) naive datetime; None when empty-like
         if 'last_hit_date' in df.columns:
-            def _normalize_last_hit(v):
-                if v in ("", "None", None, "-"):
-                    return None
-                try:
-                    dt = pd.to_datetime(v, errors='coerce')
-                    if pd.isna(dt):
-                        return None
-                    # store as naive Asia/Seoul datetime to fit DB DateTime
-                    if dt.tzinfo is not None:
-                        dt = dt.tz_convert('Asia/Seoul') if hasattr(dt, 'tz_convert') else dt.tz_convert('Asia/Seoul')
-                    return dt.tz_localize(None) if hasattr(dt, 'tz_localize') else dt.to_pydatetime().replace(tzinfo=None)
-                except Exception:
-                    return None
-            df['last_hit_date'] = df['last_hit_date'].apply(_normalize_last_hit)
+            df['last_hit_date'] = df['last_hit_date'].apply(_normalize_last_hit_value)
+            # Force python datetime for Pydantic/SQLAlchemy compatibility
+            df['last_hit_date'] = df['last_hit_date'].apply(_coerce_timestamp_to_py_datetime)
 
         # NGF 등 일부 벤더가 숫자 ID를 반환할 수 있으므로 문자열로 강제하고, 결측은 제거
         if 'rule_name' in df.columns:
@@ -177,8 +214,24 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
 
             existing_items = await get_all_func(db=db, device_id=device_id)
             key_attribute = get_key_attribute(data_type)
-            existing_items_map = {getattr(item, key_attribute): item for item in existing_items}
-            items_to_sync_map = {getattr(item, key_attribute): item for item in items_to_sync}
+
+            # Use composite key for policies to avoid cross-VSYS collisions on rule_name
+            def _make_key(obj: Any):
+                if data_type == "policies":
+                    vsys_val = getattr(obj, "vsys", None)
+                    vsys_key = (str(vsys_val).strip().lower()) if (vsys_val is not None and str(vsys_val).strip() != "") else None
+                    return (vsys_key, getattr(obj, "rule_name"))
+                return getattr(obj, key_attribute)
+
+            def _display_name(obj: Any) -> str:
+                if data_type == "policies":
+                    vsys_val = getattr(obj, "vsys", None)
+                    rule_name_val = getattr(obj, "rule_name", None)
+                    return f"{(vsys_val if (vsys_val is not None and str(vsys_val).strip() != '') else '-')}::{rule_name_val}"
+                return str(getattr(obj, key_attribute))
+
+            existing_items_map = {_make_key(item): item for item in existing_items}
+            items_to_sync_map = {_make_key(item): item for item in items_to_sync}
 
             logging.info(f"Found {len(existing_items)} existing items and {len(items_to_sync)} items to sync.")
 
@@ -200,20 +253,8 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                 if hit_df is not None and not hit_df.empty:
                     hit_df.columns = [c.lower().replace(' ', '_') for c in hit_df.columns]
                     if 'last_hit_date' in hit_df.columns:
-                        def _normalize_hit(v):
-                            if v in ("", "None", None, "-"):
-                                return None
-                            try:
-                                dt = pd.to_datetime(v, errors='coerce')
-                                if pd.isna(dt):
-                                    return None
-                                # 시스템 시간(한국시간)으로 저장 (naive)
-                                if dt.tzinfo is not None:
-                                    dt = dt.tz_convert('Asia/Seoul') if hasattr(dt, 'tz_convert') else dt.tz_convert('Asia/Seoul')
-                                return dt.tz_localize(None) if hasattr(dt, 'tz_localize') else dt.to_pydatetime().replace(tzinfo=None)
-                            except Exception:
-                                return None
-                        hit_df['last_hit_date'] = hit_df['last_hit_date'].apply(_normalize_hit)
+                        hit_df['last_hit_date'] = hit_df['last_hit_date'].apply(_normalize_last_hit_value)
+                        hit_df['last_hit_date'] = hit_df['last_hit_date'].apply(_coerce_timestamp_to_py_datetime)
                     hit_map = {((str(r.get('vsys')).lower()) if r.get('vsys') else None, str(r.get('rule_name'))): r.get('last_hit_date') for r in hit_df.to_dict(orient='records') if r.get('rule_name')}
                     for name, obj in items_to_sync_map.items():
                         obj_vsys = getattr(obj, 'vsys', None)
@@ -223,8 +264,8 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
 
             items_to_create = []
 
-            for item_name, item_in in items_to_sync_map.items():
-                existing_item = existing_items_map.get(item_name)
+            for item_key, item_in in items_to_sync_map.items():
+                existing_item = existing_items_map.get(item_key)
                 if existing_item:
                     # Touch last_seen_at and ensure is_active for seen items
                     existing_item.last_seen_at = datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
@@ -239,14 +280,14 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                         db_obj_data[k] = _normalize_bool(v) if k == 'enable' else _normalize_value(v)
                     cmp_left = {k: (_normalize_bool(v) if k == 'enable' else _normalize_value(v)) for k, v in obj_data.items()}
                     if any(cmp_left.get(k) != db_obj_data.get(k) for k in obj_data):
-                        logging.info(f"Updating {data_type}: {item_name}")
+                        logging.info(f"Updating {data_type}: {_display_name(item_in)}")
                         await update_func(db=db, db_obj=existing_item, obj_in=item_in)
                         await crud.change_log.create_change_log(
                             db=db,
                             change_log=schemas.ChangeLogCreate(
                                 device_id=device_id,
                                 data_type=data_type,
-                                object_name=item_name,
+                                object_name=_display_name(item_in),
                                 action="updated",
                                 details=json.dumps({"before": db_obj_data, "after": cmp_left}, default=str),
                             ),
@@ -261,19 +302,36 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                 logging.info(f"Creating {len(items_to_create)} new {data_type}.")
                 await create_func(db=db, **{f"{data_type}": items_to_create})
                 for item_in in items_to_create:
-                    await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=getattr(item_in, key_attribute), action="created", details=json.dumps(item_in.model_dump(), default=str)))
+                    await crud.change_log.create_change_log(
+                        db=db,
+                        change_log=schemas.ChangeLogCreate(
+                            device_id=device_id,
+                            data_type=data_type,
+                            object_name=_display_name(item_in),
+                            action="created",
+                            details=json.dumps(item_in.model_dump(), default=str),
+                        ),
+                    )
 
             items_to_delete_count = 0
-            for item_name, item in existing_items_map.items():
-                if item_name not in items_to_sync_map:
+            for item_key, item in existing_items_map.items():
+                if item_key not in items_to_sync_map:
                     items_to_delete_count += 1
-                    logging.info(f"Deleting {data_type}: {item_name}")
+                    logging.info(f"Deleting {data_type}: {_display_name(item)}")
                     # 인덱스 테이블에서 관련 항목 먼저 삭제 (정책만 해당)
                     if data_type == "policies":
                         await db.execute(delete(models.PolicyAddressMember).where(models.PolicyAddressMember.policy_id == item.id))
                         await db.execute(delete(models.PolicyServiceMember).where(models.PolicyServiceMember.policy_id == item.id))
                     await delete_func(db=db, **{f"{get_singular_name(data_type)}": item})
-                    await crud.change_log.create_change_log(db=db, change_log=schemas.ChangeLogCreate(device_id=device_id, data_type=data_type, object_name=item_name, action="deleted"))
+                    await crud.change_log.create_change_log(
+                        db=db,
+                        change_log=schemas.ChangeLogCreate(
+                            device_id=device_id,
+                            data_type=data_type,
+                            object_name=_display_name(item),
+                            action="deleted",
+                        ),
+                    )
 
             if items_to_delete_count > 0:
                 logging.info(f"Deleted {items_to_delete_count} {data_type}.")
@@ -297,6 +355,93 @@ async def _sync_data_task(device_id: int, data_type: str, items_to_sync: List[An
                 await crud.device.update_sync_status(db=db, device=device, status="success")
                 await db.commit()
                 logging.info(f"Device status updated to success for device_id: {device_id}")
+
+
+async def _run_sync_all_orchestrator(device_id: int) -> None:
+    """Run full device sync inside a global concurrency limiter and set final status.
+
+    This performs vendor export for all supported data types and applies DB reconciliation
+    by directly invoking _sync_data_task sequentially. After all types finish, it rebuilds
+    policy indices and updates the device's sync status to success/failure accordingly.
+    """
+    async with _DEVICE_SYNC_SEMAPHORE:
+        logging.info(f"[orchestrator] Starting sync-all for device_id={device_id}")
+        async with SessionLocal() as db:
+            device = await crud.device.get_device(db=db, device_id=device_id)
+            if not device:
+                logging.warning(f"[orchestrator] Device not found: id={device_id}")
+                return
+
+            # Ensure status reflects in_progress while queued/processing
+            try:
+                await crud.device.update_sync_status(db=db, device=device, status="in_progress")
+                await db.commit()
+            except Exception:
+                await db.rollback()
+
+            loop = asyncio.get_running_loop()
+
+            try:
+                collector = await _get_collector(device)
+                connected = False
+                try:
+                    try:
+                        connected = await loop.run_in_executor(None, collector.connect)
+                    except NotImplementedError:
+                        connected = False
+
+                    export_map = {
+                        "policies": collector.export_security_rules,
+                        "network_objects": collector.export_network_objects,
+                        "network_groups": collector.export_network_group_objects,
+                        "services": collector.export_service_objects,
+                        "service_groups": collector.export_service_group_objects,
+                    }
+
+                    sequence = [
+                        ("network_objects", schemas.NetworkObjectCreate),
+                        ("network_groups", schemas.NetworkGroupCreate),
+                        ("services", schemas.ServiceCreate),
+                        ("service_groups", schemas.ServiceGroupCreate),
+                        ("policies", schemas.PolicyCreate),
+                    ]
+
+                    # Export and apply each data type sequentially for this device
+                    for data_type, schema_create in sequence:
+                        try:
+                            df = await loop.run_in_executor(None, export_map[data_type])
+                        except NotImplementedError:
+                            continue
+                        if df is None:
+                            df = pd.DataFrame()
+                        df["device_id"] = device_id
+                        items_to_sync = dataframe_to_pydantic(df, schema_create)
+                        await _sync_data_task(device_id, data_type, items_to_sync, False)
+
+                    # Rebuild indices after full sync
+                    result = await db.execute(select(models.Policy).where(models.Policy.device_id == device_id))
+                    policies = result.scalars().all()
+                    await rebuild_policy_indices(db=db, device_id=device_id, policies=policies)
+                    await crud.device.update_sync_status(db=db, device=device, status="success")
+                    await db.commit()
+                    logging.info(f"[orchestrator] sync-all finished successfully for device_id={device_id}")
+                finally:
+                    if connected:
+                        try:
+                            await loop.run_in_executor(None, collector.disconnect)
+                        except Exception:
+                            pass
+            except Exception:
+                await db.rollback()
+                try:
+                    # Best-effort failure status update
+                    device = await crud.device.get_device(db=db, device_id=device_id)
+                    if device:
+                        await crud.device.update_sync_status(db=db, device=device, status="failure")
+                        await db.commit()
+                except Exception:
+                    pass
+                logging.warning(f"[orchestrator] sync-all failed for device_id={device_id}", exc_info=True)
 
 def _normalize_value(value: Any) -> Any:
     try:
@@ -459,78 +604,10 @@ async def sync_all(device_id: int, background_tasks: BackgroundTasks, db: AsyncS
     await crud.device.update_sync_status(db=db, device=device, status="in_progress")
     await db.commit()
 
-    # 순서: network_objects -> network_groups -> services -> service_groups -> policies
-    sequence = [
-        ("network_objects", schemas.NetworkObjectCreate),
-        ("network_groups", schemas.NetworkGroupCreate),
-        ("services", schemas.ServiceCreate),
-        ("service_groups", schemas.ServiceGroupCreate),
-        ("policies", schemas.PolicyCreate),
-    ]
-
-    loop = asyncio.get_running_loop()
-
-    try:
-        # 안전 복호화
-        try:
-            decrypted_password = decrypt(device.password)
-        except Exception:
-            if (device.vendor or "").lower() == "mock":
-                decrypted_password = device.password
-            else:
-                raise
-
-        collector = FirewallCollectorFactory.get_collector(
-            source_type=(device.vendor or "").lower(),
-            hostname=device.ip_address,
-            username=device.username,
-            password=decrypted_password,
-        )
-
-        connected = False
-        try:
-            try:
-                connected = await loop.run_in_executor(None, collector.connect)
-            except NotImplementedError:
-                connected = False
-
-            export_map = {
-                "policies": collector.export_security_rules,
-                "network_objects": collector.export_network_objects,
-                "network_groups": collector.export_network_group_objects,
-                "services": collector.export_service_objects,
-                "service_groups": collector.export_service_group_objects,
-            }
-
-            # 각 타입을 순차 수집 및 백그라운드 태스크로 push
-            all_items: dict[str, list[Any]] = {}
-            for data_type, schema_create in sequence:
-                try:
-                    df = await loop.run_in_executor(None, export_map[data_type])
-                except NotImplementedError:
-                    continue
-                if df is None:
-                    df = pd.DataFrame()
-                df['device_id'] = device_id
-                items_to_sync = dataframe_to_pydantic(df, schema_create)
-                all_items[data_type] = items_to_sync
-                # 개별 태스크 enqueue
-                background_tasks.add_task(_sync_data_task, device_id, data_type, items_to_sync, False)
-
-            # 모든 동기화 완료 이벤트 이후 정책 인덱싱을 수행하기 위한 별도 태스크 추가
-            # BackgroundTasks는 순차 보장 없으므로, parse-index는 별도 엔드포인트/트리거를 권장
-            # 여기서는 성공/실패와 무관하게 parse-index를 후속 태스크로 추가
-            background_tasks.add_task(_parse_index_after_sync_all, device_id)
-
-            return {"msg": "Full synchronization started in the background. Indices will be rebuilt afterwards."}
-        finally:
-            if connected:
-                try:
-                    await loop.run_in_executor(None, collector.disconnect)
-                except Exception:
-                    pass
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"sync-all failed: {e}")
+    # 새 동작: 무거운 오케스트레이션을 하나의 백그라운드 태스크로 위임하고,
+    # 글로벌 세마포어로 동시 장비 동기화를 4개로 제한합니다.
+    background_tasks.add_task(_run_sync_all_orchestrator, device_id)
+    return {"msg": "Full synchronization enqueued. It will run with limited concurrency (max 4)."}
 
 
 @router.post("/parse-index/{device_id}", response_model=schemas.Msg)
@@ -579,6 +656,21 @@ async def _parse_index_after_sync_all(device_id: int) -> None:
 @router.get("/{device_id}/policies", response_model=List[schemas.Policy])
 async def read_db_device_policies(device_id: int, db: AsyncSession = Depends(get_db)):
     return await crud.policy.get_policies_by_device(db=db, device_id=device_id)
+
+
+@router.post("/policies/search", response_model=List[schemas.Policy])
+async def search_policies(req: schemas.PolicySearchRequest, db: AsyncSession = Depends(get_db)):
+    """Multi-device policy search with member-index filters.
+
+    - device_ids: required, one or more
+    - basic substring filters on columns
+    - src_ip/dst_ip resolved via policy_address_members range overlap when possible
+    - protocol/port resolved via policy_service_members when numeric possible
+    - results ordered by device_id, vsys, seq, rule_name
+    """
+    if not req.device_ids:
+        return []
+    return await crud.policy.search_policies(db=db, req=req)
 
 @router.get("/{device_id}/network-objects", response_model=List[schemas.NetworkObject])
 async def read_db_device_network_objects(device_id: int, db: AsyncSession = Depends(get_db)):

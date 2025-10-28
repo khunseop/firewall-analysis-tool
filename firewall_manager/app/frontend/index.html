@@ -1,20 +1,27 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-ag-theme-mode="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Firewall Analysis Tool</title>
-    <link rel="stylesheet" href="/static/vendor/bulma/bulma.min.css" />
+    <link rel="stylesheet" href="/static/vendor/bulma/css/bulma.min.css" />
     <link rel="stylesheet" href="/static/vendor/ag-grid/ag-grid.css" />
     <link rel="stylesheet" href="/static/vendor/ag-grid/ag-theme-quartz.css" />
+    <link rel="stylesheet" href="/static/vendor/tom-select/tom-select.css" />
     <link rel="stylesheet" href="/app/styles/app.css" />
   </head>
   <body>
-    <nav class="navbar" role="navigation" aria-label="main navigation">
+    <nav class="navbar is-white" role="navigation" aria-label="main navigation">
       <div class="navbar-brand">
-        <div class="navbar-item"><strong>FAT</strong></div>
+        <a class="navbar-item" href="#/dashboard"><strong>FAT</strong></a>
+        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navMenu">
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+        </a>
       </div>
-      <div class="navbar-menu is-active">
+
+      <div id="navMenu" class="navbar-menu">
         <div class="navbar-start">
           <a class="navbar-item" href="#/dashboard">대시보드</a>
           <a class="navbar-item" href="#/devices">장비관리</a>
@@ -22,16 +29,19 @@
           <a class="navbar-item" href="#/objects">객체조회</a>
           <a class="navbar-item" href="#/analysis">정책분석</a>
         </div>
+        <div class="navbar-end">
+        </div>
       </div>
     </nav>
 
     <section class="section">
-      <div class="container">
+      <div class="container is-fluid">
         <div id="app"></div>
       </div>
     </section>
 
-    <script src="/static/vendor/ag-grid/ag-grid-community.min.js"></script>
+    <script src="/static/vendor/ag-grid/ag-grid-community.js"></script>
+    <script src="/static/vendor/tom-select/tom-select.complete.js"></script>
     <script type="module" src="/app/js/main.js"></script>
   </body>
   </html>

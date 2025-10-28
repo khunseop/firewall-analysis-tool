@@ -1,69 +1,56 @@
 import { api } from "../api.js";
 
-const VENDORS = ["Palo Alto", "SECUI NGF", "Mock"]; // mf2 제외
+const VENDOR_OPTIONS = [
+  { code: "paloalto", label: "Palo Alto" },
+  { code: "ngf", label: "SECUI NGF" },
+  { code: "mock", label: "Mock" },
+];
+const codeToLabel = new Map(VENDOR_OPTIONS.map(v => [v.code, v.label]));
+const labelToCode = new Map(VENDOR_OPTIONS.map(v => [v.label, v.code]));
 let gridOptions;
+let gridApi;
+let gridHostEl;
+let handlersBound = false;
+let pollTimer = null;
 
-function deviceForm(initial = {}) {
-  const v = (k, d="") => (initial[k] ?? d);
-  return `
-  <div class="field">
-    <label class="label">이름</label>
-    <input class="input" name="name" value="${v("name")}" required />
-  </div>
-  <div class="field">
-    <label class="label">IP 주소</label>
-    <input class="input" name="ip_address" value="${v("ip_address")}" required />
-  </div>
-  <div class="field">
-    <label class="label">벤더</label>
-    <div class="select is-fullwidth">
-      <select name="vendor">
-        ${VENDORS.map(x => `<option ${v("vendor")===x?"selected":""}>${x}</option>`).join("")}
-      </select>
-    </div>
-  </div>
-  <div class="field">
-    <label class="label">사용자명</label>
-    <input class="input" name="username" value="${v("username")}" required />
-  </div>
-  <div class="field">
-    <label class="label">비밀번호</label>
-    <input class="input" type="password" name="password" value="" ${initial.id?"":"required"} />
-    <p class="help">수정 시 비워두면 비밀번호는 변경되지 않습니다.</p>
-  </div>
-  <div class="field">
-    <label class="label">설명</label>
-    <textarea class="textarea" name="description">${v("description")}</textarea>
-  </div>
-  `;
+function normalizeVendorCode(value) {
+  if (!value) return value;
+  const raw = String(value).trim();
+  if (codeToLabel.has(raw)) return raw; // already code
+  if (labelToCode.has(raw)) return labelToCode.get(raw);
+  const compact = raw.toLowerCase().replace(/\s+/g, "");
+  for (const { code, label } of VENDOR_OPTIONS) {
+    if (compact === code || compact === label.toLowerCase().replace(/\s+/g, "")) return code;
+  }
+  return raw;
 }
 
-function openModal(contentHtml, onSubmit) {
-  const modal = document.createElement("div");
-  modal.className = "modal is-active";
-  modal.innerHTML = `
-    <div class="modal-background"></div>
-    <div class="modal-card">
-      <header class="modal-card-head">
-        <p class="modal-card-title">장비</p>
-        <button class="delete" aria-label="close"></button>
-      </header>
-      <section class="modal-card-body">
-        <form id="device-form">${contentHtml}</form>
-        <p class="help is-danger is-hidden" id="form-error"></p>
-      </section>
-      <footer class="modal-card-foot">
-        <button class="button is-primary" id="submit-btn">저장</button>
-        <button class="button is-light" id="cancel-btn">취소</button>
-      </footer>
-    </div>`;
-  document.body.appendChild(modal);
-  modal.querySelector(".delete").onclick = close;
-  modal.querySelector("#cancel-btn").onclick = (e)=>{e.preventDefault(); close();};
-  modal.querySelector("#submit-btn").onclick = async (e)=>{
+function fillForm(initial = {}){
+  const root = document.getElementById('modal-device');
+  const form = root.querySelector('#device-form');
+  const vendorSelect = root.querySelector('#vendor-select');
+  vendorSelect.innerHTML = VENDOR_OPTIONS.map(x => `<option value="${x.code}">${x.label}</option>`).join("");
+  const set = (name,val)=>{ const el=form.elements.namedItem(name); if(el) el.value = val ?? "" };
+  set('name', initial.name);
+  set('ip_address', initial.ip_address);
+  set('username', initial.username);
+  set('description', initial.description);
+  vendorSelect.value = normalizeVendorCode(initial.vendor) || VENDOR_OPTIONS[0].code;
+  const pw = root.querySelector('#password-input'); if (pw) pw.value = "";
+}
+
+function openModal(onSubmit){
+  const modal = document.getElementById('modal-device');
+  modal.classList.add('is-active');
+  const close = () => modal.classList.remove('is-active');
+  modal.querySelector('#close-device').onclick = close;
+  modal.querySelector('#cancel-device').onclick = (e)=>{e.preventDefault(); close();};
+  modal.querySelector('#submit-device').onclick = async (e)=>{
     e.preventDefault();
-    const fd = new FormData(modal.querySelector("#device-form"));
+    const form = modal.querySelector('#device-form');
+    const fd = new FormData(form);
     const payload = Object.fromEntries(fd.entries());
+    payload.vendor = normalizeVendorCode(payload.vendor);
     if (!payload.password) delete payload.password;
     try { await onSubmit(payload); close(); } catch (err){
       const el = modal.querySelector('#form-error');
@@ -71,68 +58,142 @@ function openModal(contentHtml, onSubmit) {
       el.classList.remove('is-hidden');
     }
   };
-  function close(){ document.body.removeChild(modal); }
 }
 
-async function loadGrid(gridDiv) {
+function openConfirm({ title = '확인', message = '이 작업을 진행하시겠습니까?', okText = '확인', cancelText = '취소' } = {}){
+  return new Promise(resolve => {
+    const modal = document.getElementById('modal-confirm');
+    if (!modal) { return resolve(false); }
+    modal.classList.add('is-active');
+    const $ = (sel)=>modal.querySelector(sel);
+    $('#confirm-title').textContent = title;
+    $('#confirm-message').textContent = message;
+    $('#confirm-ok').textContent = okText;
+    $('#confirm-cancel').textContent = cancelText;
+    const close = (val)=>{ modal.classList.remove('is-active'); resolve(val); };
+    $('#confirm-close').onclick = ()=>close(false);
+    $('#confirm-cancel').onclick = ()=>close(false);
+    $('#confirm-ok').onclick = ()=>close(true);
+  });
+}
+
+function openAlert({ title = '알림', message = '처리되었습니다.', okText = '확인' } = {}){
+  return new Promise(resolve => {
+    const modal = document.getElementById('modal-alert');
+    if (!modal) { return resolve(); }
+    modal.classList.add('is-active');
+    const $ = (sel)=>modal.querySelector(sel);
+    $('#alert-title').textContent = title;
+    $('#alert-message').textContent = message;
+    $('#alert-ok').textContent = okText;
+    const close = ()=>{ modal.classList.remove('is-active'); resolve(); };
+    $('#alert-close').onclick = close;
+    $('#alert-ok').onclick = close;
+  });
+}
+
+async function loadGrid(gridDiv, attempt = 0) {
+  // agGrid 스크립트 로딩 대기 (보수적으로 재시도)
+  if (!window.agGrid || (!window.agGrid.Grid && !window.agGrid.createGrid)) {
+    if (attempt < 10) {
+      return new Promise(resolve => setTimeout(() => resolve(loadGrid(gridDiv, attempt + 1)), 100));
+    }
+    console.warn('AG Grid not available. Skipping grid init.');
+    return;
+  }
   const data = await api.listDevices();
-  if (!gridOptions) {
+  const needRecreate = !gridApi || !gridHostEl || gridHostEl !== gridDiv;
+  if (needRecreate) {
+    if (gridApi && typeof gridApi.destroy === 'function') {
+      try { gridApi.destroy(); } catch {}
+    }
     gridOptions = {
       columnDefs: getColumns(),
       rowData: data,
-      defaultColDef: { resizable: true, sortable: true, filter: true },
-      rowSelection: 'single',
+      defaultColDef: { resizable: true, sortable: true, filter: false },
+      rowSelection: {
+        mode: 'multiRow',
+        checkboxes: true,
+        headerCheckbox: true,
+        selectAll: 'filtered',
+      },
+      pagination: true,
+      paginationAutoPageSize: true,
       animateRows: true,
     };
-    new agGrid.Grid(gridDiv, gridOptions);
+    if (agGrid.createGrid) {
+      gridApi = agGrid.createGrid(gridDiv, gridOptions);
+    } else {
+      new agGrid.Grid(gridDiv, gridOptions);
+      gridApi = gridOptions.api;
+    }
+    gridHostEl = gridDiv;
+    // Apply quick filter from input if present after (re)creation
+    try {
+      const input = document.getElementById('devices-search');
+      const value = input ? input.value : '';
+      if (value) {
+        if (gridApi && typeof gridApi.setGridOption === 'function') {
+          gridApi.setGridOption('quickFilterText', value);
+        } else if (gridApi && typeof gridApi.setQuickFilter === 'function') {
+          gridApi.setQuickFilter(value);
+        } else if (gridOptions && gridOptions.api && typeof gridOptions.api.setQuickFilter === 'function') {
+          gridOptions.api.setQuickFilter(value);
+        }
+      }
+    } catch {}
   } else {
-    gridOptions.api.setRowData(data);
+    if (gridApi) {
+      if (typeof gridApi.setGridOption === 'function') gridApi.setGridOption('rowData', data);
+      else if (typeof gridApi.setRowData === 'function') gridApi.setRowData(data);
+      else if (gridOptions && gridOptions.api) gridOptions.api.setRowData(data);
+    } else if (gridOptions && gridOptions.api) {
+      gridOptions.api.setRowData(data);
+    }
+    // Re-apply quick filter if any
+    try {
+      const input = document.getElementById('devices-search');
+      const value = input ? input.value : '';
+      const api = gridApi || (gridOptions && gridOptions.api);
+      if (api && value) {
+        if (typeof api.setGridOption === 'function') api.setGridOption('quickFilterText', value);
+        else if (typeof api.setQuickFilter === 'function') api.setQuickFilter(value);
+      }
+    } catch {}
   }
+}
+
+function statusCellRenderer(params){
+  const value = params.value;
+  const el = document.createElement('span');
+  el.textContent = value || '-';
+  if (value === 'in_progress') {
+    el.innerHTML = `
+      <span class="icon is-small" style="margin-right:6px">
+        <svg class="spinner" width="14" height="14" viewBox="0 0 50 50">
+          <circle cx="25" cy="25" r="20" fill="none" stroke="#3273dc" stroke-width="6" stroke-linecap="round" stroke-dasharray="31.4 31.4">
+            <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.8s" repeatCount="indefinite" />
+          </circle>
+        </svg>
+      </span> 진행 중`;
+  } else if (value === 'success') {
+    el.innerHTML = `<span class="tag is-success is-light">성공</span>`;
+  } else if (value === 'failure') {
+    el.innerHTML = `<span class="tag is-danger is-light">실패</span>`;
+  }
+  return el;
 }
 
 function getColumns(){
   return [
     { field: 'id', headerName:'ID', width: 80 },
     { field: 'name', headerName:'이름', flex: 1 },
-    { field: 'vendor', headerName:'벤더', width: 140 },
+    { field: 'vendor', headerName:'벤더', width: 140, valueFormatter: p => codeToLabel.get(normalizeVendorCode(p.value)) || p.value },
     { field: 'ip_address', headerName:'IP 주소', width: 160 },
     { field: 'username', headerName:'사용자', width: 140 },
     { field: 'description', headerName:'설명', flex: 1 },
-    { field: 'last_sync_status', headerName:'동기화 상태', width: 140 },
-    { field: 'last_sync_at', headerName:'동기화 시간', width: 180 },
-    { headerName:'작업', width: 280, cellRenderer: params => {
-        const d = params.data;
-        const wrap = document.createElement('div');
-        wrap.className = 'actions';
-        wrap.innerHTML = `
-          <button class="button is-link" data-act="test">연결테스트</button>
-          <button class="button" data-act="edit">수정</button>
-          <button class="button is-danger" data-act="del">삭제</button>
-          <button class="button is-primary" data-act="sync">동기화</button>
-        `;
-        wrap.addEventListener('click', async (e)=>{
-          const act = e.target.closest('button')?.dataset.act;
-          if (!act) return;
-          try{
-            if (act === 'test') {
-              await api.testConnection(d.id);
-              alert('연결 성공');
-            } else if (act === 'edit') {
-              openModal(deviceForm(d), async (payload)=>{
-                await api.updateDevice(d.id, payload);
-                await reload();
-              });
-            } else if (act === 'del') {
-              if (confirm('삭제하시겠습니까?')){ await api.deleteDevice(d.id); await reload(); }
-            } else if (act === 'sync') {
-              await api.syncAll(d.id);
-              alert('동기화를 시작했습니다.');
-            }
-          }catch(err){ alert(err.message || '요청 실패'); }
-        });
-        return wrap;
-      }
-    },
+    { field: 'last_sync_status', headerName:'동기화 상태', width: 160, cellRenderer: statusCellRenderer },
+    { field: 'last_sync_at', headerName:'동기화 시간', width: 200 },
   ];
 }
 
@@ -141,27 +202,105 @@ async function reload(){
   if (gridDiv) await loadGrid(gridDiv);
 }
 
-export function DevicesPage(){
-  // 렌더 이후 초기화
-  setTimeout(async ()=>{
-    await reload();
-    const addBtn = document.getElementById('btn-add');
-    if (addBtn) {
-      addBtn.onclick = () => {
-        openModal(deviceForm(), async (payload)=>{
-          await api.createDevice(payload);
-          await reload();
-        });
-      };
+export function initDevices(root){
+  const addBtn = root.querySelector('#btn-add');
+  const editBtn = root.querySelector('#btn-edit');
+  const deleteBtn = root.querySelector('#btn-delete');
+  const syncBtn = root.querySelector('#btn-sync');
+  const search = root.querySelector('#devices-search');
+  if (addBtn) {
+    addBtn.onclick = () => {
+      fillForm({});
+      openModal(async (payload)=>{
+        await api.createDevice(payload);
+        await reload();
+      });
+    };
+  }
+  if (editBtn) {
+    editBtn.onclick = async () => {
+      const apiRef = gridApi || (gridOptions && gridOptions.api);
+      if (!apiRef) return;
+      const sel = apiRef.getSelectedRows ? apiRef.getSelectedRows() : [];
+      if (!sel || sel.length === 0) { await openAlert({ title:'수정', message:'수정할 장비를 선택하세요.' }); return; }
+      if (sel.length > 1) { await openAlert({ title:'수정', message:'수정은 장비 1개만 선택하세요.' }); return; }
+      const d = sel[0];
+      fillForm(d);
+      openModal(async (payload)=>{
+        await api.updateDevice(d.id, payload);
+        await reload();
+      });
+    };
+  }
+  if (deleteBtn) {
+    deleteBtn.onclick = async () => {
+      const apiRef = gridApi || (gridOptions && gridOptions.api);
+      if (!apiRef) return;
+      const sel = apiRef.getSelectedRows ? apiRef.getSelectedRows() : [];
+      if (!sel || sel.length === 0) { await openAlert({ title:'삭제', message:'삭제할 장비를 선택하세요.' }); return; }
+      const ok = await openConfirm({ title:'삭제 확인', message:`${sel.length}개 장비를 삭제하시겠습니까?`, okText:'삭제', cancelText:'취소' });
+      if (!ok) return;
+      for (const d of sel) { try { await api.deleteDevice(d.id); } catch (e) { console.warn('delete failed', d.id, e); } }
+      await reload();
+    };
+  }
+  if (syncBtn) {
+    syncBtn.onclick = async () => {
+      const apiRef = gridApi || (gridOptions && gridOptions.api);
+      if (!apiRef) return;
+      const sel = apiRef.getSelectedRows ? apiRef.getSelectedRows() : [];
+      if (!sel || sel.length === 0) { await openAlert({ title:'동기화', message:'동기화할 장비를 선택하세요.' }); return; }
+      const ok = await openConfirm({ title:'동기화 확인', message:`${sel.length}개 장비에 대해 동기화를 시작할까요?`, okText:'동기화', cancelText:'취소' });
+      if (!ok) return;
+      // 서버는 글로벌 동시성(4)을 보장. 클라이언트는 단순히 모든 선택에 대해 트리거.
+      const ids = sel.map(d=>d.id);
+      for (const id of ids) {
+        try { await api.syncAll(id); } catch (e) { console.warn('sync start failed', id, e); }
+      }
+      // 폴링 시작: in_progress 상태가 없어질 때까지 주기적으로 갱신
+      startPolling();
+    };
+  }
+  if (search) {
+    search.oninput = () => {
+      const value = search.value;
+      const api = gridApi || (gridOptions && gridOptions.api);
+      if (!api) return;
+      if (typeof api.setGridOption === 'function') api.setGridOption('quickFilterText', value);
+      else if (typeof api.setQuickFilter === 'function') api.setQuickFilter(value);
+      // ensure header checkbox reflects filtered-only selection mode when filter changes
+      try { if (api.refreshHeader) api.refreshHeader(); } catch {}
+    };
+  }
+  reload();
+  startPolling();
+}
+
+function startPolling(){
+  stopPolling();
+  const tick = async () => {
+    try {
+      const data = await api.listDevices();
+      const hasProgress = Array.isArray(data) && data.some(d => d.last_sync_status === 'in_progress');
+      const apiRef = gridApi || (gridOptions && gridOptions.api);
+      if (apiRef) {
+        if (typeof apiRef.setGridOption === 'function') apiRef.setGridOption('rowData', data);
+        else if (typeof apiRef.setRowData === 'function') apiRef.setRowData(data);
+        else if (gridOptions && gridOptions.api) gridOptions.api.setRowData(data);
+      }
+      // 계속 진행중이면 짧게, 아니면 길게
+      const interval = hasProgress ? 2000 : 8000;
+      pollTimer = setTimeout(tick, interval);
+    } catch (e) {
+      // 실패 시 폴링 간격을 늘려 재시도
+      pollTimer = setTimeout(tick, 10000);
     }
-  }, 0);
-  return `
-    <div class="page-title">장비관리</div>
-    <div class="actions">
-      <button class="button is-primary" id="btn-add">장비 추가</button>
-    </div>
-    <div id="devices-grid" class="ag-theme-quartz"></div>
-  `;
+  };
+  pollTimer = setTimeout(tick, 1500);
+}
+
+function stopPolling(){
+  if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
 }
 
 
