@@ -131,7 +131,8 @@ function getColumns(){
               await api.testConnection(d.id);
               alert('연결 성공');
             } else if (act === 'edit') {
-              openModal(deviceForm(d), async (payload)=>{
+              fillForm(d);
+              openModal(async (payload)=>{
                 await api.updateDevice(d.id, payload);
                 await reload();
               });
