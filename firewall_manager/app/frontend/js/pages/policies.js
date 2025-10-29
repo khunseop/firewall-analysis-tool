@@ -74,14 +74,14 @@ async function searchAndLoadPolicies() {
 
 function buildSearchPayload(deviceIds){
   const g = (id) => document.getElementById(id);
-  const b = (v) => v === 'true' ? true : v === 'false' ? false : null;
-  const splitCsv = (v) => (v||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const v = (id) => g(id)?.value?.trim() || '';
+  const splitCsv = (val) => (val || '').split(',').map(s => s.trim()).filter(Boolean);
   return {
     device_ids: deviceIds,
-    // grid에서 필터링할 기본 컬럼은 요청에서 제외 (간소화)
-    src_ips: splitCsv(g('f-src')?.value || ''),
-    dst_ips: splitCsv(g('f-dst')?.value || ''),
-    services: splitCsv(g('f-svc')?.value || ''),
+    rule_name: v('f-rule-name'),
+    src_ips: splitCsv(v('f-src')),
+    dst_ips: splitCsv(v('f-dst')),
+    services: splitCsv(v('f-svc')),
   };
 }
 
@@ -107,11 +107,13 @@ export async function initPolicies(){
     const btnReset = document.getElementById('btn-reset');
     const btnExport = document.getElementById('btn-export-excel');
     if (btnSearch) btnSearch.onclick = () => searchAndLoadPolicies();
-    if (btnReset) btnReset.onclick = () => { 
+    if (btnReset) btnReset.onclick = () => {
       // Reset all filter inputs
-      document.querySelectorAll('[id^="f-"]').forEach(el => {
+      document.querySelectorAll('input[id^="f-"]').forEach(el => {
         el.value = '';
       });
+      // TomSelect는 별도로 초기화해야 할 수 있지만, 여기서는 간단히 값만 비웁니다.
+      // sel.tomselect.clear(); (필요 시)
       searchAndLoadPolicies();
     };
     if (btnExport) btnExport.onclick = () => exportToExcel();

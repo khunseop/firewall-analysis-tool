@@ -191,19 +191,15 @@ async function loadGrid(gridDiv, attempt = 0) {
       }
     } catch {}
   } else {
-    if (gridApi) {
-      // applyTransaction을 사용하여 선택 상태 유지
-      if (typeof gridApi.applyTransaction === 'function') {
-        gridApi.applyTransaction({ update: data });
-      } else if (typeof gridApi.setGridOption === 'function') {
-        gridApi.setGridOption('rowData', data);
-      } else if (typeof gridApi.setRowData === 'function') {
-        gridApi.setRowData(data);
-      } else if (gridOptions && gridOptions.api) {
-        gridOptions.api.setRowData(data);
+    const api = gridApi || (gridOptions && gridOptions.api);
+    if (api) {
+      // setRowData로 교체하여 그리드를 항상 완전히 새로 고침
+      // applyTransaction은 신규/삭제된 행을 반영하지 못함
+      if (typeof api.setRowData === 'function') {
+        api.setRowData(data);
+      } else if (typeof api.setGridOption === 'function') {
+        api.setGridOption('rowData', data);
       }
-    } else if (gridOptions && gridOptions.api) {
-      gridOptions.api.setRowData(data);
     }
     // Re-apply quick filter if any
     try {
@@ -338,15 +334,11 @@ function startPolling(){
       const hasProgress = Array.isArray(data) && data.some(d => d.last_sync_status === 'in_progress');
       const apiRef = gridApi || (gridOptions && gridOptions.api);
       if (apiRef) {
-        // applyTransaction을 사용하여 선택 상태 유지
-        if (typeof apiRef.applyTransaction === 'function') {
-          apiRef.applyTransaction({ update: data });
+        // applyTransaction 대신 setRowData를 사용하여 신규/삭제 행을 반영
+        if (typeof apiRef.setRowData === 'function') {
+          apiRef.setRowData(data);
         } else if (typeof apiRef.setGridOption === 'function') {
           apiRef.setGridOption('rowData', data);
-        } else if (typeof apiRef.setRowData === 'function') {
-          apiRef.setRowData(data);
-        } else if (gridOptions && gridOptions.api) {
-          gridOptions.api.setRowData(data);
         }
       }
       // 계속 진행중이면 짧게, 아니면 길게

@@ -61,7 +61,9 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
     if req.vsys:
         stmt = stmt.where(_ilike(Policy.vsys, req.vsys))
     if req.rule_name:
-        stmt = stmt.where(_ilike(Policy.rule_name, req.rule_name))
+        rule_names = [name.strip() for name in req.rule_name.split(',') if name.strip()]
+        if rule_names:
+            stmt = stmt.where(Policy.rule_name.in_(rule_names))
     if req.user:
         stmt = stmt.where(_ilike(Policy.user, req.user))
     if req.application:
@@ -143,16 +145,7 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
         if pstart is not None and pend is not None:
             conds.extend([psm.port_start <= pend, psm.port_end >= pstart])
             return select(1).where(*conds).exists()
-        # fallback string contains on raw service field
-        fallback = []
-        if proto and proto not in {'any', '*'}:
-            fallback.append(proto)
-        if ports:
-            fallback.append(ports)
-        expr = None
-        for t in fallback:
-            expr = (_ilike(Policy.service, t) if expr is None else (expr & _ilike(Policy.service, t)))
-        return expr if expr is not None else _ilike(Policy.service, token)
+        return _ilike(Policy.service, token)
 
     # Apply source filters
     src_terms = [req.src_ip] if req.src_ip else []
