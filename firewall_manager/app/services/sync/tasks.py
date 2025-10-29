@@ -17,7 +17,6 @@ from app.services.sync.transform import (
     dataframe_to_pydantic,
     get_key_attribute,
     get_singular_name,
-    normalize_bool,
     normalize_value,
     normalize_last_hit_value,
     coerce_timestamp_to_py_datetime,
@@ -28,6 +27,17 @@ from app.services.policy_indexer import rebuild_policy_indices
 
 # SQLite의 동시 쓰기 한계를 고려하여 1개 장비만 동기화하도록 제한합니다.
 _DEVICE_SYNC_SEMAPHORE = asyncio.Semaphore(1)
+
+
+def _as_bool(value: Any) -> bool:
+    """값을 명확하게 불리언으로 변환합니다."""
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+
+    s = str(value).strip().lower()
+    return s in {"true", "y", "yes", "1"}
 
 
 async def sync_data_task(
@@ -135,7 +145,7 @@ async def sync_data_task(
 
                         # enable 필드는 bool 타입으로 정규화하여 비교
                         if field == 'enable':
-                            if normalize_bool(val_in) != normalize_bool(val_db):
+                            if _as_bool(val_in) != _as_bool(val_db):
                                 is_dirty = True
                                 break
                         # 다른 필드들은 문자열로 변환하고 공백을 제거하여 비교
@@ -158,8 +168,8 @@ async def sync_data_task(
                                 object_name=_display_name(item_in),
                                 action="updated",
                                 details=json.dumps({
-                                    "before": {k: normalize_bool(v) if k == 'enable' else v for k, v in db_obj_before_update.items()},
-                                    "after": {k: normalize_bool(v) if k == 'enable' else v for k, v in obj_data_in.items()}
+                                    "before": {k: _as_bool(v) if k == 'enable' else v for k, v in db_obj_before_update.items()},
+                                    "after": {k: _as_bool(v) if k == 'enable' else v for k, v in obj_data_in.items()}
                                 }, default=str),
                             ),
                         )
