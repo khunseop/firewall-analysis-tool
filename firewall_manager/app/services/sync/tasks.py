@@ -121,15 +121,35 @@ async def sync_data_task(
                     existing_item.last_seen_at = datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
                     if hasattr(existing_item, "is_active"):
                         existing_item.is_active = True
-                    obj_data = item_in.model_dump(exclude_unset=True, exclude_none=True)
-                    db_obj_data = {}
-                    for k in obj_data.keys():
-                        v = getattr(existing_item, k, None)
-                        db_obj_data[k] = normalize_bool(v) if k == 'enable' else normalize_value(v)
-                    cmp_left = {k: (normalize_bool(v) if k == 'enable' else normalize_value(v)) for k, v in obj_data.items()}
-                    if any(cmp_left.get(k) != db_obj_data.get(k) for k in obj_data):
+                    obj_data_in = item_in.model_dump(exclude_unset=True, exclude_none=True)
+
+                    is_dirty = False
+                    fields_to_compare = obj_data_in.keys()
+
+                    # 로깅을 위한 원본 데이터 상태 저장
+                    db_obj_before_update = {k: getattr(existing_item, k, None) for k in fields_to_compare}
+
+                    for field in fields_to_compare:
+                        val_in = obj_data_in[field]
+                        val_db = getattr(existing_item, field, None)
+
+                        # enable 필드는 bool 타입으로 정규화하여 비교
+                        if field == 'enable':
+                            if normalize_bool(val_in) != normalize_bool(val_db):
+                                is_dirty = True
+                                break
+                        # 다른 필드들은 문자열로 변환하고 공백을 제거하여 비교
+                        elif normalize_value(val_in) != normalize_value(val_db):
+                            is_dirty = True
+                            break
+
+                    if is_dirty:
                         logging.info(f"Updating {data_type}: {_display_name(item_in)}")
+
+                        # 실제 업데이트 수행
                         await update_func(db=db, db_obj=existing_item, obj_in=item_in)
+
+                        # 변경 로그 기록
                         await crud.change_log.create_change_log(
                             db=db,
                             change_log=schemas.ChangeLogCreate(
@@ -137,7 +157,10 @@ async def sync_data_task(
                                 data_type=data_type,
                                 object_name=_display_name(item_in),
                                 action="updated",
-                                details=json.dumps({"before": db_obj_data, "after": cmp_left}, default=str),
+                                details=json.dumps({
+                                    "before": {k: normalize_bool(v) if k == 'enable' else v for k, v in db_obj_before_update.items()},
+                                    "after": {k: normalize_bool(v) if k == 'enable' else v for k, v in obj_data_in.items()}
+                                }, default=str),
                             ),
                         )
                     else:
