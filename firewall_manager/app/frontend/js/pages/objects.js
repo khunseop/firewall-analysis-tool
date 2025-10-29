@@ -323,7 +323,8 @@ export async function initObjects() {
   currentTab = 'network-objects';
   
   await initGrids();
-  await loadDevices(); // Tom-select 초기화 및 데이터 로드 포함
+  await loadDevices(); // Tom-select 초기화
+  loadData([]); // 최초 로딩 시 그리드 클리어
 
   // 탭 클릭 이벤트
   document.querySelectorAll('.tabs li').forEach(li => {
