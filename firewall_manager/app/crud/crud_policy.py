@@ -61,7 +61,9 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
     if req.vsys:
         stmt = stmt.where(_ilike(Policy.vsys, req.vsys))
     if req.rule_name:
-        stmt = stmt.where(_ilike(Policy.rule_name, req.rule_name))
+        rule_names = [name.strip() for name in req.rule_name.split(',') if name.strip()]
+        if rule_names:
+            stmt = stmt.where(Policy.rule_name.in_(rule_names))
     if req.user:
         stmt = stmt.where(_ilike(Policy.user, req.user))
     if req.application:
