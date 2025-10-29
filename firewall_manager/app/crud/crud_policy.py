@@ -112,7 +112,7 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
                 pam.ip_start <= end,
                 pam.ip_end >= start,
             ).exists()
-        return _ilike(Policy.source, ip_str)
+        return Policy.source.match(ip_str)
 
     def _dst_match_expr(ip_str: str):
         v, start, end = parse_ipv4_numeric(ip_str)
@@ -125,7 +125,7 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
                 pam.ip_start <= end,
                 pam.ip_end >= start,
             ).exists()
-        return _ilike(Policy.destination, ip_str)
+        return Policy.destination.match(ip_str)
 
     def _svc_match_expr(token: str):
         token = (token or '').strip()
@@ -143,16 +143,7 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
         if pstart is not None and pend is not None:
             conds.extend([psm.port_start <= pend, psm.port_end >= pstart])
             return select(1).where(*conds).exists()
-        # fallback string contains on raw service field
-        fallback = []
-        if proto and proto not in {'any', '*'}:
-            fallback.append(proto)
-        if ports:
-            fallback.append(ports)
-        expr = None
-        for t in fallback:
-            expr = (_ilike(Policy.service, t) if expr is None else (expr & _ilike(Policy.service, t)))
-        return expr if expr is not None else _ilike(Policy.service, token)
+        return Policy.service.match(token)
 
     # Apply source filters
     src_terms = [req.src_ip] if req.src_ip else []
