@@ -32,7 +32,7 @@ async def sync_data_task(
     items_to_sync: List[Any],
 ) -> None:
     """Generic background task to synchronize one data type for a device using bulk operations."""
-    logging.info(f"Starting bulk sync for device_id: {device_id}, data_type: {data_type}")
+    logging.info(f"Starting sync for device_id: {device_id}, data_type: {data_type}")
 
     # Determine the correct model based on data_type
     model_map = {
@@ -94,28 +94,31 @@ async def sync_data_task(
                     ))
 
             # Perform all DB operations in a single transaction block
-            async with db.begin():
-                if ids_to_delete:
-                    if data_type == "policies":
-                        await db.execute(delete(PolicyAddressMember).where(PolicyAddressMember.policy_id.in_(ids_to_delete)))
-                        await db.execute(delete(PolicyServiceMember).where(PolicyServiceMember.policy_id.in_(ids_to_delete)))
-                    await db.execute(delete(model).where(model.id.in_(ids_to_delete)))
+            # Note: Transaction is already started by the first query, so we just perform operations and commit
+            if ids_to_delete:
+                if data_type == "policies":
+                    await db.execute(delete(PolicyAddressMember).where(PolicyAddressMember.policy_id.in_(ids_to_delete)))
+                    await db.execute(delete(PolicyServiceMember).where(PolicyServiceMember.policy_id.in_(ids_to_delete)))
+                await db.execute(delete(model).where(model.id.in_(ids_to_delete)))
 
-                if items_to_create:
-                    await db.run_sync(lambda sync_session: sync_session.bulk_insert_mappings(model, items_to_create))
+            if items_to_create:
+                await db.run_sync(lambda sync_session: sync_session.bulk_insert_mappings(model, items_to_create))
 
-                if items_to_update:
-                    await db.run_sync(lambda sync_session: sync_session.bulk_update_mappings(model, items_to_update))
+            if items_to_update:
+                await db.run_sync(lambda sync_session: sync_session.bulk_update_mappings(model, items_to_update))
 
-                if change_logs_to_create:
-                    await crud.change_log.create_change_logs(db, change_logs=change_logs_to_create)
+            if change_logs_to_create:
+                await crud.change_log.create_change_logs(db, change_logs=change_logs_to_create)
 
-            logging.info(f"Bulk sync for {data_type} completed. "
+            # Commit all changes
+            await db.commit()
+
+            logging.info(f"Sync for {data_type} completed. "
                          f"Created: {len(items_to_create)}, Updated: {len(items_to_update)}, Deleted: {len(ids_to_delete)}")
 
         except Exception as e:
             await db.rollback()
-            logging.error(f"Failed to bulk sync {data_type} for device_id {device_id}: {e}", exc_info=True)
+            logging.error(f"Failed to sync {data_type} for device_id {device_id}: {e}", exc_info=True)
             raise
 
 async def run_sync_all_orchestrator(device_id: int) -> None:
