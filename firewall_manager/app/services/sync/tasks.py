@@ -103,31 +103,15 @@ async def sync_data_task(
 
             logging.info(f"Found {len(existing_items)} existing items and {len(items_to_sync)} items to sync.")
 
-            # Palo Alto: last_hit_date 보강 (VSYS 고려)
-            if data_type == "policies" and (device.vendor or "").lower() == "paloalto":
-                loop = asyncio.get_running_loop()
-                collector = create_collector_from_device(device)
-                try:
-                    await loop.run_in_executor(None, collector.connect)
-                    vsys_set = {str(getattr(obj, 'vsys')).strip() for obj in items_to_sync if getattr(obj, 'vsys', None)}
-                    hit_df = await loop.run_in_executor(None, lambda: collector.export_last_hit_date(vsys=vsys_set))
-                finally:
-                    try:
-                        await loop.run_in_executor(None, collector.disconnect)
-                    except Exception:
-                        pass
-
-                if hit_df is not None and not hit_df.empty:
-                    hit_df.columns = [c.lower().replace(' ', '_') for c in hit_df.columns]
-                    if 'last_hit_date' in hit_df.columns:
-                        hit_df['last_hit_date'] = hit_df['last_hit_date'].apply(normalize_last_hit_value)
-                        hit_df['last_hit_date'] = hit_df['last_hit_date'].apply(coerce_timestamp_to_py_datetime)
-                    hit_map = {((str(r.get('vsys')).lower()) if r.get('vsys') else None, str(r.get('rule_name'))): r.get('last_hit_date') for r in hit_df.to_dict(orient='records') if r.get('rule_name')}
-                    for name, obj in items_to_sync_map.items():
-                        obj_vsys = getattr(obj, 'vsys', None)
-                        key = ((str(obj_vsys).lower()) if obj_vsys else None, name)
-                        if key in hit_map and hasattr(obj, 'last_hit_date'):
-                            setattr(obj, 'last_hit_date', hit_map[key])
+            # 모든 정책에 대해 last_hit_date 필드를 파싱하고 정규화합니다.
+            # 이 로직은 `dataframe_to_pydantic`에서 이미 처리되었어야 하지만,
+            # 동기화 객체에 대해 한 번 더 확실하게 처리하여 데이터 일관성을 보장합니다.
+            if data_type == "policies":
+                for item in items_to_sync:
+                    if hasattr(item, "last_hit_date"):
+                        raw_value = getattr(item, "last_hit_date")
+                        normalized_date = normalize_last_hit_value(raw_value)
+                        setattr(item, "last_hit_date", normalized_date)
 
             items_to_create: List[Any] = []
 

@@ -43,10 +43,21 @@ def test_db_migrated():
 
 def create_test_device():
     with TestClient(app) as client:
-        client.post(
+        # Check if device exists and delete it for idempotency
+        response = client.get("/api/v1/devices/?limit=100")
+        assert response.status_code == 200
+        devices = response.json()
+        for device in devices:
+            if device["name"] == "test":
+                delete_res = client.delete(f"/api/v1/devices/{device['id']}")
+                assert delete_res.status_code == 200
+
+        # Create the test device
+        create_res = client.post(
             "/api/v1/devices/",
             json={"name": "test", "ip_address": "1.1.1.1", "vendor": "mock", "username": "user", "password": "password"}
         )
+        assert create_res.status_code == 200, f"Failed to create device: {create_res.text}"
 
 if __name__ == "__main__":
     test_docs_and_openapi()
