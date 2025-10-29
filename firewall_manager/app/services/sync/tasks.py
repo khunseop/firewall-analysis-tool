@@ -132,16 +132,7 @@ async def sync_data_task(
                         val_in = obj_data_in[field]
                         val_db = getattr(existing_item, field, None)
 
-                        # enable 필드는 bool 타입으로 정규화하여 비교
-                        if field == 'enable':
-                            # 값비교를 위한 명시적 bool 변환
-                            val_in_bool = str(val_in).strip().lower() in {'true', 'y', 'yes', '1'}
-                            val_db_bool = str(val_db).strip().lower() in {'true', 'y', 'yes', '1'}
-                            if val_in_bool != val_db_bool:
-                                is_dirty = True
-                                break
-                        # 다른 필드들은 문자열로 변환하고 공백을 제거하여 비교
-                        elif normalize_value(val_in) != normalize_value(val_db):
+                        if normalize_value(val_in) != normalize_value(val_db):
                             is_dirty = True
                             break
 
@@ -160,8 +151,8 @@ async def sync_data_task(
                                 object_name=_display_name(item_in),
                                 action="updated",
                                 details=json.dumps({
-                                    "before": {k: (str(v).strip().lower() in {'true', 'y', 'yes', '1'}) if k == 'enable' else v for k, v in db_obj_before_update.items()},
-                                    "after": {k: (str(v).strip().lower() in {'true', 'y', 'yes', '1'}) if k == 'enable' else v for k, v in obj_data_in.items()}
+                                    "before": db_obj_before_update,
+                                    "after": obj_data_in
                                 }, default=str),
                             ),
                         )
