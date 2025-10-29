@@ -141,11 +141,11 @@ async def rebuild_policy_indices(
             for token in filter(None, tokens):
                 ver, start, end = resolver.ipv4_cache.get(token) or parse_ipv4_numeric(token)
                 resolver.ipv4_cache[token] = (ver, start, end)
-                addr_rows.append(models.PolicyAddressMember(
-                    device_id=device_id, policy_id=policy_id, direction=direction, token=token,
-                    token_type='ipv4_single' if ver == 4 and start == end else 'ipv4_range',
-                    ip_version=ver, ip_start=start, ip_end=end
-                ))
+                addr_rows.append({
+                    "device_id": device_id, "policy_id": policy_id, "direction": direction, "token": token,
+                    "token_type": 'ipv4_single' if ver == 4 and start == end else 'ipv4_range',
+                    "ip_version": ver, "ip_start": start, "ip_end": end
+                })
 
         # Service members
         tokens = row['flattened_service'].split(',')
@@ -153,10 +153,10 @@ async def rebuild_policy_indices(
             proto, port_str = token.split('/', 1) if '/' in token else (None, token)
             start, end = resolver.port_cache.get(port_str) or parse_port_numeric(port_str)
             resolver.port_cache[port_str] = (start, end)
-            svc_rows.append(models.PolicyServiceMember(
-                device_id=device_id, policy_id=policy_id, token=token,
-                token_type='proto_port', protocol=proto, port_start=start, port_end=end
-            ))
+            svc_rows.append({
+                "device_id": device_id, "policy_id": policy_id, "token": token,
+                "token_type": 'proto_port', "protocol": proto, "port_start": start, "port_end": end
+            })
 
     # 6. Perform batch database operations
     async with db.begin_nested():
@@ -165,5 +165,11 @@ async def rebuild_policy_indices(
             await db.execute(delete(models.PolicyAddressMember).where(models.PolicyAddressMember.policy_id.in_(policy_ids_to_update)))
             await db.execute(delete(models.PolicyServiceMember).where(models.PolicyServiceMember.policy_id.in_(policy_ids_to_update)))
 
-        if addr_rows: db.add_all(addr_rows)
-        if svc_rows: db.add_all(svc_rows)
+        if addr_rows:
+            await db.run_sync(
+                lambda sync_session: sync_session.bulk_insert_mappings(models.PolicyAddressMember, addr_rows)
+            )
+        if svc_rows:
+            await db.run_sync(
+                lambda sync_session: sync_session.bulk_insert_mappings(models.PolicyServiceMember, svc_rows)
+            )
