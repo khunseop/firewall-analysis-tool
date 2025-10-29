@@ -67,21 +67,25 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
                 return None
             if isinstance(v, bool):
                 return v
-            if isinstance(v, (int,)):
-                return bool(v)
+
+            # 정수/실수 타입 처리: 1 또는 1.0만 True로 간주
+            if isinstance(v, int):
+                return v == 1
             if isinstance(v, float):
-                if v == 0.0:
-                    return False
-                if v == 1.0:
-                    return True
+                return v == 1.0
+
+            # 문자열 타입 처리
             try:
                 s = str(v).strip().lower()
             except Exception:
-                return None
+                return None  # 변환 불가 시 None 반환
+
             if s in {"y", "yes", "true", "1", "on", "enabled"}:
                 return True
             if s in {"n", "no", "false", "0", "off", "disabled"}:
                 return False
+
+            # 그 외의 모든 경우는 정의되지 않은 상태로 처리
             return None
         df["enable"] = df["enable"].apply(_to_bool)
 

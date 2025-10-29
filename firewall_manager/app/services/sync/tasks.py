@@ -17,7 +17,6 @@ from app.services.sync.transform import (
     dataframe_to_pydantic,
     get_key_attribute,
     get_singular_name,
-    normalize_bool,
     normalize_value,
     normalize_last_hit_value,
     coerce_timestamp_to_py_datetime,
@@ -103,31 +102,15 @@ async def sync_data_task(
 
             logging.info(f"Found {len(existing_items)} existing items and {len(items_to_sync)} items to sync.")
 
-            # Palo Alto: last_hit_date 보강 (VSYS 고려)
-            if data_type == "policies" and (device.vendor or "").lower() == "paloalto":
-                loop = asyncio.get_running_loop()
-                collector = create_collector_from_device(device)
-                try:
-                    await loop.run_in_executor(None, collector.connect)
-                    vsys_set = {str(getattr(obj, 'vsys')).strip() for obj in items_to_sync if getattr(obj, 'vsys', None)}
-                    hit_df = await loop.run_in_executor(None, lambda: collector.export_last_hit_date(vsys=vsys_set))
-                finally:
-                    try:
-                        await loop.run_in_executor(None, collector.disconnect)
-                    except Exception:
-                        pass
-
-                if hit_df is not None and not hit_df.empty:
-                    hit_df.columns = [c.lower().replace(' ', '_') for c in hit_df.columns]
-                    if 'last_hit_date' in hit_df.columns:
-                        hit_df['last_hit_date'] = hit_df['last_hit_date'].apply(normalize_last_hit_value)
-                        hit_df['last_hit_date'] = hit_df['last_hit_date'].apply(coerce_timestamp_to_py_datetime)
-                    hit_map = {((str(r.get('vsys')).lower()) if r.get('vsys') else None, str(r.get('rule_name'))): r.get('last_hit_date') for r in hit_df.to_dict(orient='records') if r.get('rule_name')}
-                    for name, obj in items_to_sync_map.items():
-                        obj_vsys = getattr(obj, 'vsys', None)
-                        key = ((str(obj_vsys).lower()) if obj_vsys else None, name)
-                        if key in hit_map and hasattr(obj, 'last_hit_date'):
-                            setattr(obj, 'last_hit_date', hit_map[key])
+            # 모든 정책에 대해 last_hit_date 필드를 파싱하고 정규화합니다.
+            # 이 로직은 `dataframe_to_pydantic`에서 이미 처리되었어야 하지만,
+            # 동기화 객체에 대해 한 번 더 확실하게 처리하여 데이터 일관성을 보장합니다.
+            if data_type == "policies":
+                for item in items_to_sync:
+                    if hasattr(item, "last_hit_date"):
+                        raw_value = getattr(item, "last_hit_date")
+                        normalized_date = normalize_last_hit_value(raw_value)
+                        setattr(item, "last_hit_date", normalized_date)
 
             items_to_create: List[Any] = []
 
@@ -137,15 +120,29 @@ async def sync_data_task(
                     existing_item.last_seen_at = datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
                     if hasattr(existing_item, "is_active"):
                         existing_item.is_active = True
-                    obj_data = item_in.model_dump(exclude_unset=True, exclude_none=True)
-                    db_obj_data = {}
-                    for k in obj_data.keys():
-                        v = getattr(existing_item, k, None)
-                        db_obj_data[k] = normalize_bool(v) if k == 'enable' else normalize_value(v)
-                    cmp_left = {k: (normalize_bool(v) if k == 'enable' else normalize_value(v)) for k, v in obj_data.items()}
-                    if any(cmp_left.get(k) != db_obj_data.get(k) for k in obj_data):
+                    obj_data_in = item_in.model_dump(exclude_unset=True, exclude_none=True)
+
+                    is_dirty = False
+                    fields_to_compare = obj_data_in.keys()
+
+                    # 로깅을 위한 원본 데이터 상태 저장
+                    db_obj_before_update = {k: getattr(existing_item, k, None) for k in fields_to_compare}
+
+                    for field in fields_to_compare:
+                        val_in = obj_data_in[field]
+                        val_db = getattr(existing_item, field, None)
+
+                        if normalize_value(val_in) != normalize_value(val_db):
+                            is_dirty = True
+                            break
+
+                    if is_dirty:
                         logging.info(f"Updating {data_type}: {_display_name(item_in)}")
+
+                        # 실제 업데이트 수행
                         await update_func(db=db, db_obj=existing_item, obj_in=item_in)
+
+                        # 변경 로그 기록
                         await crud.change_log.create_change_log(
                             db=db,
                             change_log=schemas.ChangeLogCreate(
@@ -153,7 +150,10 @@ async def sync_data_task(
                                 data_type=data_type,
                                 object_name=_display_name(item_in),
                                 action="updated",
-                                details=json.dumps({"before": db_obj_data, "after": cmp_left}, default=str),
+                                details=json.dumps({
+                                    "before": db_obj_before_update,
+                                    "after": obj_data_in
+                                }, default=str),
                             ),
                         )
                     else:
@@ -216,78 +216,91 @@ async def sync_data_task(
 
 
 async def run_sync_all_orchestrator(device_id: int) -> None:
-    """Run full device sync inside a global concurrency limiter and set final status."""
+    """Run full device sync sequentially for one device."""
     async with _DEVICE_SYNC_SEMAPHORE:
         logging.info(f"[orchestrator] Starting sync-all for device_id={device_id}")
+
+        # 1. Set status to "in_progress"
         async with SessionLocal() as db:
             device = await crud.device.get_device(db=db, device_id=device_id)
             if not device:
                 logging.warning(f"[orchestrator] Device not found: id={device_id}")
                 return
+            await crud.device.update_sync_status(db=db, device=device, status="in_progress")
+            await db.commit()
 
-            try:
-                await crud.device.update_sync_status(db=db, device=device, status="in_progress")
-                await db.commit()
-            except Exception:
-                await db.rollback()
+        collector = create_collector_from_device(device)
+        connected = False
+        loop = asyncio.get_running_loop()
 
-            loop = asyncio.get_running_loop()
+        try:
+            # 2. Connect to the device
             try:
-                collector = create_collector_from_device(device)
+                await loop.run_in_executor(None, collector.connect)
+                connected = True
+            except NotImplementedError:
+                # Some vendors may not require an explicit connect/disconnect
                 connected = False
+
+            # 3. Define the sequence of data types to sync
+            export_map = {
+                "policies": collector.export_security_rules,
+                "network_objects": collector.export_network_objects,
+                "network_groups": collector.export_network_group_objects,
+                "services": collector.export_service_objects,
+                "service_groups": collector.export_service_group_objects,
+            }
+            sequence = [
+                ("network_objects", schemas.NetworkObjectCreate),
+                ("network_groups", schemas.NetworkGroupCreate),
+                ("services", schemas.ServiceCreate),
+                ("service_groups", schemas.ServiceGroupCreate),
+                ("policies", schemas.PolicyCreate),
+            ]
+
+            # 4. Sequentially fetch and sync each data type
+            for data_type, schema_create in sequence:
+                logging.info(f"[orchestrator] Syncing {data_type} for device_id={device_id}")
                 try:
-                    try:
-                        connected = await loop.run_in_executor(None, collector.connect)
-                    except NotImplementedError:
-                        connected = False
+                    df = await loop.run_in_executor(None, export_map[data_type])
+                except NotImplementedError:
+                    logging.info(f"[orchestrator] Sync for '{data_type}' is not implemented for this device vendor.")
+                    continue
 
-                    export_map = {
-                        "policies": collector.export_security_rules,
-                        "network_objects": collector.export_network_objects,
-                        "network_groups": collector.export_network_group_objects,
-                        "services": collector.export_service_objects,
-                        "service_groups": collector.export_service_group_objects,
-                    }
+                if df is None:
+                    df = pd.DataFrame()
 
-                    sequence = [
-                        ("network_objects", schemas.NetworkObjectCreate),
-                        ("network_groups", schemas.NetworkGroupCreate),
-                        ("services", schemas.ServiceCreate),
-                        ("service_groups", schemas.ServiceGroupCreate),
-                        ("policies", schemas.PolicyCreate),
-                    ]
+                df["device_id"] = device_id
+                items_to_sync = dataframe_to_pydantic(df, schema_create)
+                await sync_data_task(device_id, data_type, items_to_sync, update_device_status=False)
 
-                    for data_type, schema_create in sequence:
-                        try:
-                            df = await loop.run_in_executor(None, export_map[data_type])
-                        except NotImplementedError:
-                            continue
-                        if df is None:
-                            df = pd.DataFrame()
-                        df["device_id"] = device_id
-                        items_to_sync = dataframe_to_pydantic(df, schema_create)
-                        await sync_data_task(device_id, data_type, items_to_sync, False)
+            # 5. Post-sync operations (e.g., rebuilding indices)
+            async with SessionLocal() as db:
+                logging.info(f"[orchestrator] Rebuilding policy indices for device_id={device_id}")
+                result = await db.execute(select(models.Policy).where(models.Policy.device_id == device_id))
+                policies = result.scalars().all()
+                await rebuild_policy_indices(db=db, device_id=device_id, policies=policies)
 
-                    # Rebuild indices after full sync
-                    result = await db.execute(select(models.Policy).where(models.Policy.device_id == device_id))
-                    policies = result.scalars().all()
-                    await rebuild_policy_indices(db=db, device_id=device_id, policies=policies)
-                    await crud.device.update_sync_status(db=db, device=device, status="success")
+                # 6. Set final status to "success"
+                device_to_update = await crud.device.get_device(db=db, device_id=device_id)  # Re-fetch device
+                if device_to_update:
+                    await crud.device.update_sync_status(db=db, device=device_to_update, status="success")
                     await db.commit()
-                    logging.info(f"[orchestrator] sync-all finished successfully for device_id={device_id}")
-                finally:
-                    if connected:
-                        try:
-                            await loop.run_in_executor(None, collector.disconnect)
-                        except Exception:
-                            pass
-            except Exception:
-                await db.rollback()
+
+            logging.info(f"[orchestrator] sync-all finished successfully for device_id={device_id}")
+
+        except Exception as e:
+            logging.error(f"[orchestrator] sync-all failed for device_id={device_id}: {e}", exc_info=True)
+            # 7. Set final status to "failure"
+            async with SessionLocal() as db:
+                device_to_update = await crud.device.get_device(db=db, device_id=device_id)
+                if device_to_update:
+                    await crud.device.update_sync_status(db=db, device=device_to_update, status="failure")
+                    await db.commit()
+        finally:
+            # 8. Disconnect from the device
+            if connected:
                 try:
-                    device = await crud.device.get_device(db=db, device_id=device_id)
-                    if device:
-                        await crud.device.update_sync_status(db=db, device=device, status="failure")
-                        await db.commit()
-                except Exception:
-                    pass
-                logging.warning(f"[orchestrator] sync-all failed for device_id={device_id}", exc_info=True)
+                    await loop.run_in_executor(None, collector.disconnect)
+                except Exception as e:
+                    logging.warning(f"Ignoring error during collector disconnect: {e}", exc_info=True)

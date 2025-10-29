@@ -109,18 +109,26 @@ async def rebuild_policy_indices(
     device_id: int,
     policies: Iterable[models.Policy],
 ) -> None:
-    resolver = Resolver()
-
-    rule_names = [p.rule_name for p in policies]
-    if not rule_names:
+    """
+    정책 인덱스를 재구성합니다. DB 접근을 최소화하고 메모리 내에서 모든 처리를 수행하여 최적화합니다.
+    """
+    policy_list = list(policies)
+    if not policy_list:
         return
 
-    # 최신 객체/그룹 수집
-    network_objs = await crud.network_object.get_all_active_network_objects_by_device(db=db, device_id=device_id)
-    network_grps = await crud.network_group.get_all_active_network_groups_by_device(db=db, device_id=device_id)
-    services = await crud.service.get_all_active_services_by_device(db=db, device_id=device_id)
-    service_grps = await crud.service_group.get_all_active_service_groups_by_device(db=db, device_id=device_id)
+    # 1. DB에서 모든 필요한 데이터를 한 번에 로드
+    async with db.begin_nested():
+        network_objs_result = await db.execute(select(models.NetworkObject).where(models.NetworkObject.device_id == device_id))
+        network_grps_result = await db.execute(select(models.NetworkGroup).where(models.NetworkGroup.device_id == device_id))
+        services_result = await db.execute(select(models.Service).where(models.Service.device_id == device_id))
+        service_grps_result = await db.execute(select(models.ServiceGroup).where(models.ServiceGroup.device_id == device_id))
 
+        network_objs = network_objs_result.scalars().all()
+        network_grps = network_grps_result.scalars().all()
+        services = services_result.scalars().all()
+        service_grps = service_grps_result.scalars().all()
+
+    # 2. DataFrame으로 변환
     rules_df = pd.DataFrame([
         {
             'Rule Name': p.rule_name,
@@ -128,42 +136,24 @@ async def rebuild_policy_indices(
             'Destination': p.destination,
             'Service': p.service,
         }
-        for p in policies
+        for p in policy_list
     ])
-    network_object_df = pd.DataFrame([
-        {'Name': o.name, 'Value': o.ip_address}
-        for o in network_objs
-    ])
-    network_group_object_df = pd.DataFrame([
-        {'Group Name': g.name, 'Entry': g.members or ''}
-        for g in network_grps
-    ])
-    service_object_df = pd.DataFrame([
-        {'Name': s.name, 'Protocol': s.protocol or '', 'Port': s.port or ''}
-        for s in services
-    ])
-    service_group_object_df = pd.DataFrame([
-        {'Group Name': g.name, 'Entry': g.members or ''}
-        for g in service_grps
-    ])
+    network_object_df = pd.DataFrame([{'Name': o.name, 'Value': o.ip_address} for o in network_objs])
+    network_group_object_df = pd.DataFrame([{'Group Name': g.name, 'Entry': g.members or ''} for g in network_grps])
+    service_object_df = pd.DataFrame([{'Name': s.name, 'Protocol': s.protocol or '', 'Port': s.port or ''} for s in services])
+    service_group_object_df = pd.DataFrame([{'Group Name': g.name, 'Entry': g.members or ''} for g in service_grps])
 
-    loop = asyncio.get_running_loop()
-    result_df = await loop.run_in_executor(None, lambda: resolver.resolve(
+    # 3. 메모리 내에서 그룹 확장 및 값 변환 (DB 접근 없음)
+    resolver = Resolver()
+    result_df = resolver.resolve(
         rules_df, network_object_df, network_group_object_df,
         service_object_df, service_group_object_df
-    ))
+    )
     if not isinstance(result_df, pd.DataFrame) or result_df.empty:
         return
 
-    # rule_name -> policy id
-    result = await db.execute(
-        select(models.Policy).where(
-            models.Policy.device_id == device_id,
-            models.Policy.rule_name.in_(rule_names)
-        )
-    )
-    policy_rows = result.scalars().all()
-    rule_to_pid = {p.rule_name: p.id for p in policy_rows}
+    # 4. 메모리 내에서 rule_name -> policy_id 맵 생성 (DB 접근 없음)
+    rule_to_pid = {p.rule_name: p.id for p in policy_list}
 
     # 인덱스 재작성 (배치 추가 및 파싱 캐시 적용)
     result_df = result_df.rename(columns={
@@ -173,14 +163,14 @@ async def rebuild_policy_indices(
     })
     flat_map = {row['Rule Name']: row for row in result_df.to_dict(orient='records') if row.get('Rule Name')}
 
-    # Build delete first for target policies
-    target_policy_ids = list(rule_to_pid.values())
-    if target_policy_ids:
-        # Delete existing members for these policies in advance
-        await db.execute(delete(models.PolicyAddressMember).where(models.PolicyAddressMember.policy_id.in_(target_policy_ids)))
-        await db.execute(delete(models.PolicyServiceMember).where(models.PolicyServiceMember.policy_id.in_(target_policy_ids)))
+    # 5. DB 작업을 단일 트랜잭션으로 처리
+    async with db.begin_nested():
+        # 이 장비의 모든 기존 인덱스 데이터를 삭제
+        await db.execute(delete(models.PolicyAddressMember).where(models.PolicyAddressMember.device_id == device_id))
+        await db.execute(delete(models.PolicyServiceMember).where(models.PolicyServiceMember.device_id == device_id))
 
-    addr_rows: List[models.PolicyAddressMember] = []
+        # 새 인덱스 데이터를 메모리 내에 생성
+        addr_rows: List[models.PolicyAddressMember] = []
     svc_rows: List[models.PolicyServiceMember] = []
 
     ipv4_cache: Dict[str, Tuple[Optional[int], Optional[int], Optional[int]]] = {}
@@ -255,8 +245,8 @@ async def rebuild_policy_indices(
                     port_end=None,
                 ))
 
-    # Batch add to reduce ORM overhead
-    if addr_rows:
-        db.add_all(addr_rows)
-    if svc_rows:
-        db.add_all(svc_rows)
+        # Batch add to reduce ORM overhead
+        if addr_rows:
+            db.add_all(addr_rows)
+        if svc_rows:
+            db.add_all(svc_rows)

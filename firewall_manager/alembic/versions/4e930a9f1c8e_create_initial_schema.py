@@ -52,7 +52,7 @@ def upgrade() -> None:
     sa.Column('rule_name', sa.String(), nullable=True),
     sa.Column('vsys', sa.String(), nullable=True),
     sa.Column('seq', sa.Integer(), nullable=True),
-    sa.Column('enable', sa.String(), nullable=True),
+    sa.Column('enable', sa.Boolean(), nullable=True),
     sa.Column('action', sa.String(), nullable=True),
     sa.Column('source', sa.Text(), nullable=True),
     sa.Column('user', sa.String(), nullable=True),
