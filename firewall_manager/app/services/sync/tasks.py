@@ -216,78 +216,91 @@ async def sync_data_task(
 
 
 async def run_sync_all_orchestrator(device_id: int) -> None:
-    """Run full device sync inside a global concurrency limiter and set final status."""
+    """Run full device sync sequentially for one device."""
     async with _DEVICE_SYNC_SEMAPHORE:
         logging.info(f"[orchestrator] Starting sync-all for device_id={device_id}")
+
+        # 1. Set status to "in_progress"
         async with SessionLocal() as db:
             device = await crud.device.get_device(db=db, device_id=device_id)
             if not device:
                 logging.warning(f"[orchestrator] Device not found: id={device_id}")
                 return
+            await crud.device.update_sync_status(db=db, device=device, status="in_progress")
+            await db.commit()
 
-            try:
-                await crud.device.update_sync_status(db=db, device=device, status="in_progress")
-                await db.commit()
-            except Exception:
-                await db.rollback()
+        collector = create_collector_from_device(device)
+        connected = False
+        loop = asyncio.get_running_loop()
 
-            loop = asyncio.get_running_loop()
+        try:
+            # 2. Connect to the device
             try:
-                collector = create_collector_from_device(device)
+                await loop.run_in_executor(None, collector.connect)
+                connected = True
+            except NotImplementedError:
+                # Some vendors may not require an explicit connect/disconnect
                 connected = False
+
+            # 3. Define the sequence of data types to sync
+            export_map = {
+                "policies": collector.export_security_rules,
+                "network_objects": collector.export_network_objects,
+                "network_groups": collector.export_network_group_objects,
+                "services": collector.export_service_objects,
+                "service_groups": collector.export_service_group_objects,
+            }
+            sequence = [
+                ("network_objects", schemas.NetworkObjectCreate),
+                ("network_groups", schemas.NetworkGroupCreate),
+                ("services", schemas.ServiceCreate),
+                ("service_groups", schemas.ServiceGroupCreate),
+                ("policies", schemas.PolicyCreate),
+            ]
+
+            # 4. Sequentially fetch and sync each data type
+            for data_type, schema_create in sequence:
+                logging.info(f"[orchestrator] Syncing {data_type} for device_id={device_id}")
                 try:
-                    try:
-                        connected = await loop.run_in_executor(None, collector.connect)
-                    except NotImplementedError:
-                        connected = False
+                    df = await loop.run_in_executor(None, export_map[data_type])
+                except NotImplementedError:
+                    logging.info(f"[orchestrator] Sync for '{data_type}' is not implemented for this device vendor.")
+                    continue
 
-                    export_map = {
-                        "policies": collector.export_security_rules,
-                        "network_objects": collector.export_network_objects,
-                        "network_groups": collector.export_network_group_objects,
-                        "services": collector.export_service_objects,
-                        "service_groups": collector.export_service_group_objects,
-                    }
+                if df is None:
+                    df = pd.DataFrame()
 
-                    sequence = [
-                        ("network_objects", schemas.NetworkObjectCreate),
-                        ("network_groups", schemas.NetworkGroupCreate),
-                        ("services", schemas.ServiceCreate),
-                        ("service_groups", schemas.ServiceGroupCreate),
-                        ("policies", schemas.PolicyCreate),
-                    ]
+                df["device_id"] = device_id
+                items_to_sync = dataframe_to_pydantic(df, schema_create)
+                await sync_data_task(device_id, data_type, items_to_sync, update_device_status=False)
 
-                    for data_type, schema_create in sequence:
-                        try:
-                            df = await loop.run_in_executor(None, export_map[data_type])
-                        except NotImplementedError:
-                            continue
-                        if df is None:
-                            df = pd.DataFrame()
-                        df["device_id"] = device_id
-                        items_to_sync = dataframe_to_pydantic(df, schema_create)
-                        await sync_data_task(device_id, data_type, items_to_sync, False)
+            # 5. Post-sync operations (e.g., rebuilding indices)
+            async with SessionLocal() as db:
+                logging.info(f"[orchestrator] Rebuilding policy indices for device_id={device_id}")
+                result = await db.execute(select(models.Policy).where(models.Policy.device_id == device_id))
+                policies = result.scalars().all()
+                await rebuild_policy_indices(db=db, device_id=device_id, policies=policies)
 
-                    # Rebuild indices after full sync
-                    result = await db.execute(select(models.Policy).where(models.Policy.device_id == device_id))
-                    policies = result.scalars().all()
-                    await rebuild_policy_indices(db=db, device_id=device_id, policies=policies)
-                    await crud.device.update_sync_status(db=db, device=device, status="success")
+                # 6. Set final status to "success"
+                device_to_update = await crud.device.get_device(db=db, device_id=device_id)  # Re-fetch device
+                if device_to_update:
+                    await crud.device.update_sync_status(db=db, device=device_to_update, status="success")
                     await db.commit()
-                    logging.info(f"[orchestrator] sync-all finished successfully for device_id={device_id}")
-                finally:
-                    if connected:
-                        try:
-                            await loop.run_in_executor(None, collector.disconnect)
-                        except Exception:
-                            pass
-            except Exception:
-                await db.rollback()
+
+            logging.info(f"[orchestrator] sync-all finished successfully for device_id={device_id}")
+
+        except Exception as e:
+            logging.error(f"[orchestrator] sync-all failed for device_id={device_id}: {e}", exc_info=True)
+            # 7. Set final status to "failure"
+            async with SessionLocal() as db:
+                device_to_update = await crud.device.get_device(db=db, device_id=device_id)
+                if device_to_update:
+                    await crud.device.update_sync_status(db=db, device=device_to_update, status="failure")
+                    await db.commit()
+        finally:
+            # 8. Disconnect from the device
+            if connected:
                 try:
-                    device = await crud.device.get_device(db=db, device_id=device_id)
-                    if device:
-                        await crud.device.update_sync_status(db=db, device=device, status="failure")
-                        await db.commit()
-                except Exception:
-                    pass
-                logging.warning(f"[orchestrator] sync-all failed for device_id={device_id}", exc_info=True)
+                    await loop.run_in_executor(None, collector.disconnect)
+                except Exception as e:
+                    logging.warning(f"Ignoring error during collector disconnect: {e}", exc_info=True)

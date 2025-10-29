@@ -108,4 +108,4 @@ async def sync_all(device_id: int, background_tasks: BackgroundTasks, db: AsyncS
     await db.commit()
 
     background_tasks.add_task(run_sync_all_orchestrator, device_id)
-    return {"msg": "Full synchronization enqueued. It will run with limited concurrency (max 4)."}
+    return {"msg": "Full synchronization started in the background."}
