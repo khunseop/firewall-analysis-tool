@@ -10,20 +10,25 @@ async function initGrid() {
     { field:'device_name', headerName:'장비', width:150, filter:'agTextColumnFilter', pinned:'left' },
     { field:'seq', headerName:'순서', width:90, sort:'asc' },
     { field:'vsys', headerName:'가상시스템', width:120 },
-    { field:'rule_name', headerName:'정책명', flex:1, minWidth:160 },
+    { field:'rule_name', headerName:'정책명', minWidth:250 },
     { field:'enable', headerName:'활성화', width:100, valueFormatter:p=>p.value===true?'활성':p.value===false?'비활성':'' },
     { field:'action', headerName:'액션', width:110 },
-    { field:'source', headerName:'출발지', width:200 },
+    { field:'source', headerName:'출발지', minWidth:250 },
     { field:'user', headerName:'사용자', width:140 },
-    { field:'destination', headerName:'목적지', width:200 },
-    { field:'service', headerName:'서비스', width:200 },
+    { field:'destination', headerName:'목적지', minWidth:250 },
+    { field:'service', headerName:'서비스', minWidth:250 },
     { field:'application', headerName:'애플리케이션', width:150 },
     { field:'security_profile', headerName:'보안프로파일', width:180 },
     { field:'category', headerName:'카테고리', width:140 },
-    { field:'description', headerName:'설명', flex:1, minWidth:200 },
+    { field:'description', headerName:'설명', minWidth:300 },
     { field:'last_hit_date', headerName:'마지막매칭일시', width:190 },
   ]);
-  const options = { columnDefs: getCols(), rowData: [], defaultColDef:{ resizable:true, sortable:false, filter:true } };
+  const options = {
+    columnDefs: getCols(),
+    rowData: [],
+    defaultColDef:{ resizable:true, sortable:true, filter:true },
+    enableRangeSelection: true,
+  };
   options.pagination = true;
   options.paginationPageSize = 50;
   if (agGrid.createGrid) policyGridApi = agGrid.createGrid(gridDiv, options); else { new agGrid.Grid(gridDiv, options); policyGridApi = options.api; }
@@ -112,6 +117,10 @@ export async function initPolicies(){
       document.querySelectorAll('input[id^="f-"]').forEach(el => {
         el.value = '';
       });
+      // Reset ag-grid filters
+      if (policyGridApi) {
+        if (typeof policyGridApi.setFilterModel==='function') policyGridApi.setFilterModel(null);
+      }
       // TomSelect는 별도로 초기화해야 할 수 있지만, 여기서는 간단히 값만 비웁니다.
       // sel.tomselect.clear(); (필요 시)
       searchAndLoadPolicies();
