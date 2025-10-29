@@ -12,7 +12,7 @@ class Policy(Base):
     vsys = Column(String, nullable=True)
     seq = Column(Integer, nullable=True)
     rule_name = Column(String, index=True, nullable=False)
-    enable = Column(Boolean, nullable=True)
+    enable = Column(Boolean(create_constraint=False), nullable=True)
     action = Column(String, nullable=False)
     source = Column(String, nullable=False)
     user = Column(String, nullable=True)
@@ -24,7 +24,7 @@ class Policy(Base):
     description = Column(String, nullable=True)
     # 정책 사용이력의 마지막 히트 시간
     last_hit_date = Column(DateTime, nullable=True)
-    is_active = Column(Boolean, default=True, nullable=False)
+    is_active = Column(Boolean(create_constraint=False), default=True, nullable=False)
     # 시스템 시간(한국시간)으로 저장하기 위해 default는 런타임에서 주입
     last_seen_at = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None), nullable=False)
 
