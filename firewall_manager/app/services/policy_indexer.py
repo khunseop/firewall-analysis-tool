@@ -22,6 +22,8 @@ class Resolver:
         # Caches persist for the lifetime of a single Resolver instance (per rebuild run)
         self._net_group_closure_cache: Dict[str, str] = {}
         self._svc_group_closure_cache: Dict[str, str] = {}
+        self.ipv4_cache: Dict[str, Tuple[Optional[int], Optional[int], Optional[int]]] = {}
+        self.port_cache: Dict[str, Tuple[Optional[int], Optional[int]]] = {}
 
     def _expand_groups(self, cells: str, group_map: Dict[str, str], closure_cache: Dict[str, str]) -> str:
         def dfs(name: str, depth: int = 0, max_depth: int = 20) -> str:
@@ -165,16 +167,15 @@ async def rebuild_policy_indices(
 
     # 5. DB 작업을 단일 트랜잭션으로 처리
     async with db.begin_nested():
-        # 이 장비의 모든 기존 인덱스 데이터를 삭제
-        await db.execute(delete(models.PolicyAddressMember).where(models.PolicyAddressMember.device_id == device_id))
-        await db.execute(delete(models.PolicyServiceMember).where(models.PolicyServiceMember.device_id == device_id))
+        policy_ids_to_update = [p.id for p in policy_list]
+        # Delete existing index data only for the policies being updated
+        if policy_ids_to_update:
+            await db.execute(delete(models.PolicyAddressMember).where(models.PolicyAddressMember.policy_id.in_(policy_ids_to_update)))
+            await db.execute(delete(models.PolicyServiceMember).where(models.PolicyServiceMember.policy_id.in_(policy_ids_to_update)))
 
         # 새 인덱스 데이터를 메모리 내에 생성
         addr_rows: List[models.PolicyAddressMember] = []
     svc_rows: List[models.PolicyServiceMember] = []
-
-    ipv4_cache: Dict[str, Tuple[Optional[int], Optional[int], Optional[int]]] = {}
-    port_cache: Dict[str, Tuple[Optional[int], Optional[int]]] = {}
 
     for rule, pid in rule_to_pid.items():
         row = flat_map.get(rule)
@@ -185,11 +186,11 @@ async def rebuild_policy_indices(
         for direction_key, col in (("source", 'flattened_source'), ("destination", 'flattened_destination')):
             tokens = [t.strip() for t in str(row.get(col, '')).split(',') if t.strip()]
             for token in tokens:
-                if token in ipv4_cache:
-                    ver, start, end = ipv4_cache[token]
+                if token in resolver.ipv4_cache:
+                    ver, start, end = resolver.ipv4_cache[token]
                 else:
                     ver, start, end = parse_ipv4_numeric(token)
-                    ipv4_cache[token] = (ver, start, end)
+                    resolver.ipv4_cache[token] = (ver, start, end)
                 token_type = (
                     'any' if token.lower() == 'any' else
                     'ipv4_range' if (ver == 4 and start is not None and end is not None and end != start) else
@@ -220,11 +221,11 @@ async def rebuild_policy_indices(
         for token in svc_tokens:
             if '/' in token:
                 proto, ports = token.split('/', 1)
-                if ports in port_cache:
-                    pstart, pend = port_cache[ports]
+                if ports in resolver.port_cache:
+                    pstart, pend = resolver.port_cache[ports]
                 else:
                     pstart, pend = parse_port_numeric(ports)
-                    port_cache[ports] = (pstart, pend)
+                    resolver.port_cache[ports] = (pstart, pend)
                 svc_rows.append(models.PolicyServiceMember(
                     device_id=device_id,
                     policy_id=pid,

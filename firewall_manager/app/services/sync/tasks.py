@@ -137,6 +137,8 @@ async def sync_data_task(
                             break
 
                     if is_dirty:
+                        if data_type == "policies":
+                            existing_item.is_indexed = False
                         logging.info(f"Updating {data_type}: {_display_name(item_in)}")
 
                         # 실제 업데이트 수행
@@ -277,12 +279,25 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
             # 5. Post-sync operations (e.g., rebuilding indices)
             async with SessionLocal() as db:
                 logging.info(f"[orchestrator] Rebuilding policy indices for device_id={device_id}")
-                result = await db.execute(select(models.Policy).where(models.Policy.device_id == device_id))
-                policies = result.scalars().all()
-                await rebuild_policy_indices(db=db, device_id=device_id, policies=policies)
+                result = await db.execute(
+                    select(models.Policy).where(
+                        models.Policy.device_id == device_id,
+                        models.Policy.is_indexed == False,
+                    )
+                )
+                policies_to_index = result.scalars().all()
+
+                if policies_to_index:
+                    await rebuild_policy_indices(db=db, device_id=device_id, policies=policies_to_index)
+                    for p in policies_to_index:
+                        p.is_indexed = True
+                    db.add_all(policies_to_index)
+                    await db.commit()
+                else:
+                    logging.info(f"[orchestrator] No policies to re-index for device_id={device_id}")
 
                 # 6. Set final status to "success"
-                device_to_update = await crud.device.get_device(db=db, device_id=device_id)  # Re-fetch device
+                device_to_update = await crud.device.get_device(db=db, device_id=device_id)
                 if device_to_update:
                     await crud.device.update_sync_status(db=db, device=device_to_update, status="success")
                     await db.commit()
