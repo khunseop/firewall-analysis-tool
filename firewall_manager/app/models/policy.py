@@ -27,5 +27,6 @@ class Policy(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     # 시스템 시간(한국시간)으로 저장하기 위해 default는 런타임에서 주입
     last_seen_at = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None), nullable=False)
+    is_indexed = Column(Boolean, default=False, nullable=False)
 
     device = relationship("Device")
