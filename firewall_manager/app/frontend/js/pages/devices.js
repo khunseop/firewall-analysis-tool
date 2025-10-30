@@ -215,10 +215,13 @@ async function loadGrid(gridDiv, attempt = 0) {
 }
 
 function statusCellRenderer(params){
-  const value = params.value;
+  const status = params.value;
+  const step = params.data ? params.data.last_sync_step : null;
   const el = document.createElement('span');
-  el.textContent = value || '-';
-  if (value === 'in_progress') {
+  el.textContent = status || '-';
+
+  if (status === 'in_progress') {
+    const stepText = step || '진행 중...';
     el.innerHTML = `
       <span class="icon is-small" style="margin-right:6px">
         <svg class="spinner" width="14" height="14" viewBox="0 0 50 50">
@@ -226,10 +229,10 @@ function statusCellRenderer(params){
             <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.8s" repeatCount="indefinite" />
           </circle>
         </svg>
-      </span> 진행 중`;
-  } else if (value === 'success') {
+      </span> ${stepText}`;
+  } else if (status === 'success') {
     el.innerHTML = `<span class="tag is-success is-light">성공</span>`;
-  } else if (value === 'failure') {
+  } else if (status === 'failure') {
     el.innerHTML = `<span class="tag is-danger is-light">실패</span>`;
   }
   return el;
@@ -242,8 +245,8 @@ function getColumns(){
     { field: 'vendor', headerName:'벤더', width: 140, valueFormatter: p => codeToLabel.get(normalizeVendorCode(p.value)) || p.value },
     { field: 'ip_address', headerName:'IP 주소', width: 160 },
     { field: 'description', headerName:'설명', flex: 1 },
-    { field: 'last_sync_status', headerName:'동기화 상태', width: 160, cellRenderer: statusCellRenderer },
-    { field: 'last_sync_at', headerName:'동기화 시간', width: 200 },
+    { field: 'last_sync_status', headerName:'진행 상태', width: 220, cellRenderer: statusCellRenderer },
+    { field: 'last_sync_at', headerName:'마지막 동기화', width: 200 },
   ];
 }
 
