@@ -7,28 +7,42 @@ from app import schemas
 
 
 def normalize_last_hit_value(value: Any) -> datetime | None:
-    """Normalize vendor-provided last-hit value to naive Asia/Seoul datetime or None."""
-    if value in ("", "None", None, "-"):
+    """
+    Robustly normalize any vendor-provided last-hit value to a timezone-naive
+    Python datetime object (in Asia/Seoul timezone) or None.
+
+    This function is designed to handle various inputs including strings,
+    numeric timestamps, pandas Timestamps, NaT, and None, and guarantees
+    that the output is *always* either a standard Python datetime or None.
+    """
+    if value in (None, "", "-") or pd.isna(value):
         return None
+
     try:
-        if isinstance(value, (int, float)) or (
-            isinstance(value, str)
-            and value.strip().lstrip("-+.").replace(".", "", 1).isdigit()
-        ):
-            val_float = float(value)
-            ts_seconds = val_float / 1000.0 if abs(val_float) >= 1e12 else val_float
-            return datetime.fromtimestamp(ts_seconds, tz=ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
-    except Exception:
-        pass
-    try:
+        # Attempt to convert to a pandas Timestamp, which handles many formats.
+        # errors='coerce' will turn unparseable formats into NaT.
         ts = pd.to_datetime(value, errors="coerce")
+
+        # If conversion results in NaT (Not a Time), it's an invalid date.
         if pd.isna(ts):
             return None
-        py_dt = ts.to_pydatetime() if hasattr(ts, "to_pydatetime") else ts  # type: ignore[assignment]
-        if getattr(py_dt, "tzinfo", None) is not None:
+
+        # Convert numeric timestamps (e.g., milliseconds from Java/JS).
+        # A simple numeric check isn't enough, as '20230101' could be parsed as a number.
+        # pd.to_datetime handles most reasonable formats, but we can add specific numeric handling if needed.
+        # For now, we trust pd.to_datetime and then ensure it's a python object.
+
+        # Ensure the final output is a python datetime object, not a pandas Timestamp.
+        py_dt = ts.to_pydatetime()
+
+        # If timezone information is present, convert to Asia/Seoul and make it naive.
+        if py_dt.tzinfo:
             py_dt = py_dt.astimezone(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
+
         return py_dt
-    except Exception:
+
+    except (ValueError, TypeError):
+        # Catch any other unexpected conversion errors.
         return None
 
 
@@ -36,6 +50,8 @@ def coerce_timestamp_to_py_datetime(value: Any) -> Any:
     """Ensure pandas Timestamp is converted to native python datetime."""
     try:
         import pandas as _pd
+        if _pd.isna(value):  # Handle NaT
+            return None
         if isinstance(value, _pd.Timestamp):
             return value.to_pydatetime()
     except Exception:
@@ -95,7 +111,6 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
             df = df.rename(columns={"rule name": "rule_name"})
         if "last_hit_date" in df.columns:
             df["last_hit_date"] = df["last_hit_date"].apply(normalize_last_hit_value)
-            df["last_hit_date"] = df["last_hit_date"].apply(coerce_timestamp_to_py_datetime)
         if "rule_name" in df.columns:
             def _normalize_rule_name(v):
                 try:
