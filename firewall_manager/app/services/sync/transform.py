@@ -6,57 +6,6 @@ from typing import Any, List
 from app import schemas
 
 
-def normalize_last_hit_value(value: Any) -> datetime | None:
-    """
-    Robustly normalize any vendor-provided last-hit value to a timezone-naive
-    Python datetime object (in Asia/Seoul timezone) or None.
-
-    This function is designed to handle various inputs including strings,
-    numeric timestamps, pandas Timestamps, NaT, and None, and guarantees
-    that the output is *always* either a standard Python datetime or None.
-    """
-    if value in (None, "", "-") or pd.isna(value):
-        return None
-
-    try:
-        # Attempt to convert to a pandas Timestamp, which handles many formats.
-        # errors='coerce' will turn unparseable formats into NaT.
-        ts = pd.to_datetime(value, errors="coerce")
-
-        # If conversion results in NaT (Not a Time), it's an invalid date.
-        if pd.isna(ts):
-            return None
-
-        # Convert numeric timestamps (e.g., milliseconds from Java/JS).
-        # A simple numeric check isn't enough, as '20230101' could be parsed as a number.
-        # pd.to_datetime handles most reasonable formats, but we can add specific numeric handling if needed.
-        # For now, we trust pd.to_datetime and then ensure it's a python object.
-
-        # Ensure the final output is a python datetime object, not a pandas Timestamp.
-        py_dt = ts.to_pydatetime()
-
-        # If timezone information is present, convert to Asia/Seoul and make it naive.
-        if py_dt.tzinfo:
-            py_dt = py_dt.astimezone(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
-
-        return py_dt
-
-    except (ValueError, TypeError):
-        # Catch any other unexpected conversion errors.
-        return None
-
-
-def coerce_timestamp_to_py_datetime(value: Any) -> Any:
-    """Ensure pandas Timestamp is converted to native python datetime."""
-    try:
-        import pandas as _pd
-        if _pd.isna(value):  # Handle NaT
-            return None
-        if isinstance(value, _pd.Timestamp):
-            return value.to_pydatetime()
-    except Exception:
-        pass
-    return value
 
 
 def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
@@ -110,7 +59,19 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
         if "rule name" in df.columns and "rule_name" not in df.columns:
             df = df.rename(columns={"rule name": "rule_name"})
         if "last_hit_date" in df.columns:
-            df["last_hit_date"] = df["last_hit_date"].apply(normalize_last_hit_value)
+            # “-”, None 등 파싱 불가능한 값을 NaT로 변환
+            s = pd.to_datetime(df["last_hit_date"], errors="coerce")
+
+            # 타임존이 없는(naive) 경우, Asia/Seoul 타임존으로 간주
+            # 타임존이 있는(aware) 경우, Asia/Seoul 타임존으로 변환
+            if s.dt.tz is None:
+                s = s.dt.tz_localize(ZoneInfo("Asia/Seoul"), ambiguous='infer')
+            else:
+                s = s.dt.tz_convert(ZoneInfo("Asia/Seoul"))
+
+            # Naive datetime 객체로 최종 변환 (DB 저장을 위해)
+            # NaT는 None으로 변환됨
+            df["last_hit_date"] = s.dt.to_pydatetime(na=True)
         if "rule_name" in df.columns:
             def _normalize_rule_name(v):
                 try:
