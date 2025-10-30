@@ -52,15 +52,19 @@ async def remove_device(db: AsyncSession, id: int):
     return db_device
 
 
-async def update_sync_status(db: AsyncSession, device: Device, status: str) -> Device:
-    """Update device sync status and optionally timestamp.
-
-    Only sets last_sync_at when the sync finishes with success or failure to
-    represent the time of the last completed sync attempt.
-    """
+async def update_sync_status(
+    db: AsyncSession, device: Device, status: str, step: str | None = None
+) -> Device:
+    """Update device sync status, step, and optionally timestamp."""
     device.last_sync_status = status
+    device.last_sync_step = step
+
     if status in {"success", "failure"}:
-        # 시스템 시간(한국시간, Asia/Seoul) 기준으로 저장
+        # Set timestamp only when the sync finishes to mark the end time.
         device.last_sync_at = datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
+
+    if status == "success":
+        device.last_sync_step = "Completed" # Mark final step on success
+
     db.add(device)
     return device

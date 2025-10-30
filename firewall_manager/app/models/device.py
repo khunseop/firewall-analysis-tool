@@ -12,4 +12,5 @@ class Device(Base):
     password = Column(String, nullable=False)
     description = Column(String, nullable=True)
     last_sync_at = Column(DateTime, nullable=True)
-    last_sync_status = Column(String, nullable=True)
+    last_sync_status = Column(String, nullable=True)  # e.g., in_progress, success, failure
+    last_sync_step = Column(String, nullable=True)   # e.g., collecting policies, indexing, etc.
