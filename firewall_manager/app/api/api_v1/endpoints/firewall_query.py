@@ -58,6 +58,35 @@ async def read_db_device_service_groups(device_id: int, db: AsyncSession = Depen
     return await crud.service_group.get_service_groups_by_device(db=db, device_id=device_id)
 
 
+from typing import Union
+
+@router.get("/object/details", response_model=Union[schemas.NetworkObject, schemas.NetworkGroup, schemas.Service, schemas.ServiceGroup, schemas.Msg])
+async def get_object_details(device_id: int, name: str, db: AsyncSession = Depends(get_db)):
+    # Try to find the object in the order of likelihood
+
+    # 1. Network Object
+    net_obj = await crud.network_object.get_network_object_by_name_and_device(db, device_id=device_id, name=name)
+    if net_obj:
+        return net_obj
+
+    # 2. Network Group
+    net_group = await crud.network_group.get_network_group_by_name_and_device(db, device_id=device_id, name=name)
+    if net_group:
+        return net_group
+
+    # 3. Service Object
+    svc_obj = await crud.service.get_service_by_name_and_device(db, device_id=device_id, name=name)
+    if svc_obj:
+        return svc_obj
+
+    # 4. Service Group
+    svc_group = await crud.service_group.get_service_group_by_name_and_device(db, device_id=device_id, name=name)
+    if svc_group:
+        return svc_group
+
+    raise HTTPException(status_code=404, detail=f"Object '{name}' not found in device '{device_id}'")
+
+
 @router.get("/sync/{device_id}/status", response_model=schemas.DeviceSyncStatus)
 async def get_device_sync_status(device_id: int, db: AsyncSession = Depends(get_db)):
     device = await crud.device.get_device(db=db, device_id=device_id)

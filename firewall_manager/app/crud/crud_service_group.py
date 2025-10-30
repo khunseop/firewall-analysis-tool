@@ -6,6 +6,12 @@ from app.models.service_group import ServiceGroup
 from app.schemas.service_group import ServiceGroupCreate
 from datetime import datetime
 
+async def get_service_group_by_name_and_device(db: AsyncSession, device_id: int, name: str):
+    result = await db.execute(
+        select(ServiceGroup).filter(ServiceGroup.device_id == device_id, ServiceGroup.name == name)
+    )
+    return result.scalars().first()
+
 async def get_service_group(db: AsyncSession, service_group_id: int):
     result = await db.execute(select(ServiceGroup).filter(ServiceGroup.id == service_group_id))
     return result.scalars().first()

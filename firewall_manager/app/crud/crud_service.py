@@ -6,6 +6,12 @@ from app.models.service import Service
 from app.schemas.service import ServiceCreate
 from datetime import datetime
 
+async def get_service_by_name_and_device(db: AsyncSession, device_id: int, name: str):
+    result = await db.execute(
+        select(Service).filter(Service.device_id == device_id, Service.name == name)
+    )
+    return result.scalars().first()
+
 async def get_service(db: AsyncSession, service_id: int):
     result = await db.execute(select(Service).filter(Service.id == service_id))
     return result.scalars().first()

@@ -81,6 +81,7 @@ async function initGrids() {
       paginationPageSizeSelector: [50, 100, 200],
       rowSelection: 'multiple',
       enableRangeSelection: true,
+      onFirstDataRendered: params => params.api.autoSizeAllColumns(),
     });
   }
 
@@ -99,6 +100,7 @@ async function initGrids() {
       paginationPageSizeSelector: [50, 100, 200],
       rowSelection: 'multiple',
       enableRangeSelection: true,
+      onFirstDataRendered: params => params.api.autoSizeAllColumns(),
     });
   }
 
@@ -117,6 +119,7 @@ async function initGrids() {
       paginationPageSizeSelector: [50, 100, 200],
       rowSelection: 'multiple',
       enableRangeSelection: true,
+      onFirstDataRendered: params => params.api.autoSizeAllColumns(),
     });
   }
 
@@ -135,6 +138,7 @@ async function initGrids() {
       paginationPageSizeSelector: [50, 100, 200],
       rowSelection: 'multiple',
       enableRangeSelection: true,
+      onFirstDataRendered: params => params.api.autoSizeAllColumns(),
     });
   }
 }
@@ -239,12 +243,16 @@ async function loadData(deviceIds) {
     // 해당 그리드에 데이터 설정
     if (currentTab === 'network-objects' && networkObjectsGrid) {
       networkObjectsGrid.setGridOption('rowData', mergedData);
+      networkObjectsGrid.autoSizeAllColumns();
     } else if (currentTab === 'network-groups' && networkGroupsGrid) {
       networkGroupsGrid.setGridOption('rowData', mergedData);
+      networkGroupsGrid.autoSizeAllColumns();
     } else if (currentTab === 'services' && servicesGrid) {
       servicesGrid.setGridOption('rowData', mergedData);
+      servicesGrid.autoSizeAllColumns();
     } else if (currentTab === 'service-groups' && serviceGroupsGrid) {
       serviceGroupsGrid.setGridOption('rowData', mergedData);
+      serviceGroupsGrid.autoSizeAllColumns();
     }
   } catch (err) {
     console.error(`Failed to load ${currentTab}:`, err);

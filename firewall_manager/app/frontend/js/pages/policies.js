@@ -1,7 +1,39 @@
 import { api } from "../api.js";
+import { showObjectDetailModal } from '../components/objectDetailModal.js';
 
 let policyGridApi;
 let allDevices = []; // 장비 목록 저장
+
+// Function to render object links in a cell
+function objectCellRenderer(params) {
+  if (!params.value) return '';
+  const deviceId = params.data.device_id;
+  const objectNames = params.value.split(',').map(s => s.trim()).filter(Boolean);
+
+  const container = document.createElement('span');
+  objectNames.forEach((name, index) => {
+    const link = document.createElement('a');
+    link.href = '#';
+    link.textContent = name;
+    link.style.cursor = 'pointer';
+    link.addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        const objectDetails = await api.getObjectDetails(deviceId, name);
+        showObjectDetailModal(objectDetails);
+      } catch (error) {
+        alert(`객체 '${name}'의 상세 정보를 가져오는 데 실패했습니다: ${error.message}`);
+      }
+    });
+    container.appendChild(link);
+
+    if (index < objectNames.length - 1) {
+      container.appendChild(document.createTextNode(', '));
+    }
+  });
+  return container;
+}
+
 
 async function initGrid() {
   const gridDiv = document.getElementById('policies-grid');
@@ -13,10 +45,22 @@ async function initGrid() {
     { field:'rule_name', headerName:'정책명', minWidth:250 },
     { field:'enable', headerName:'활성화', width:100, valueFormatter:p=>p.value===true?'활성':p.value===false?'비활성':'' },
     { field:'action', headerName:'액션', width:110 },
-    { field:'source', headerName:'출발지', minWidth:250 },
+    {
+      field:'source', headerName:'출발지', minWidth:250, wrapText:true,
+      cellStyle: { 'white-space': 'normal', 'line-height': 1.5, 'max-height': '120px', 'overflow-y': 'auto' },
+      cellRenderer: objectCellRenderer
+    },
     { field:'user', headerName:'사용자', width:140 },
-    { field:'destination', headerName:'목적지', minWidth:250 },
-    { field:'service', headerName:'서비스', minWidth:250 },
+    {
+      field:'destination', headerName:'목적지', minWidth:250, wrapText:true,
+      cellStyle: { 'white-space': 'normal', 'line-height': 1.5, 'max-height': '120px', 'overflow-y': 'auto' },
+      cellRenderer: objectCellRenderer
+    },
+    {
+      field:'service', headerName:'서비스', minWidth:250, wrapText:true,
+      cellStyle: { 'white-space': 'normal', 'line-height': 1.5, 'max-height': '120px', 'overflow-y': 'auto' },
+      cellRenderer: objectCellRenderer
+    },
     { field:'application', headerName:'애플리케이션', width:150 },
     { field:'security_profile', headerName:'보안프로파일', width:180 },
     { field:'category', headerName:'카테고리', width:140 },
@@ -28,10 +72,23 @@ async function initGrid() {
     rowData: [],
     defaultColDef:{ resizable:true, sortable:true, filter:true },
     enableRangeSelection: true,
+    rowHeight: 120,
+    onGridReady: params => {
+        policyGridApi = params.api;
+    },
+    onFirstDataRendered: params => params.api.autoSizeAllColumns(),
   };
   options.pagination = true;
   options.paginationPageSize = 50;
-  if (agGrid.createGrid) policyGridApi = agGrid.createGrid(gridDiv, options); else { new agGrid.Grid(gridDiv, options); policyGridApi = options.api; }
+
+  if (typeof agGrid !== 'undefined') {
+      if (agGrid.createGrid) {
+          policyGridApi = agGrid.createGrid(gridDiv, options);
+      } else {
+          new agGrid.Grid(gridDiv, options);
+          policyGridApi = options.api;
+      }
+  }
 }
 
 async function loadDevicesIntoSelect() {

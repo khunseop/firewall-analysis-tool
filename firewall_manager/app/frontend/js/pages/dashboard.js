@@ -103,6 +103,12 @@ function initDeviceStatsGrid() {
       resizable: true,
       sortable: true,
       filter: true
+    },
+    onGridReady: (params) => {
+      params.api.autoSizeAllColumns();
+    },
+    onFirstDataRendered: (params) => {
+      params.api.autoSizeAllColumns();
     }
   };
 

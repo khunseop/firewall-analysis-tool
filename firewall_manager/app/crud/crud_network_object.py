@@ -6,6 +6,12 @@ from app.models.network_object import NetworkObject
 from app.schemas.network_object import NetworkObjectCreate
 from datetime import datetime
 
+async def get_network_object_by_name_and_device(db: AsyncSession, device_id: int, name: str):
+    result = await db.execute(
+        select(NetworkObject).filter(NetworkObject.device_id == device_id, NetworkObject.name == name)
+    )
+    return result.scalars().first()
+
 async def get_network_object(db: AsyncSession, network_object_id: int):
     result = await db.execute(select(NetworkObject).filter(NetworkObject.id == network_object_id))
     return result.scalars().first()

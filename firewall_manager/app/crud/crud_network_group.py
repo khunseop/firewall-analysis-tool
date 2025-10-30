@@ -6,6 +6,12 @@ from app.models.network_group import NetworkGroup
 from app.schemas.network_group import NetworkGroupCreate
 from datetime import datetime
 
+async def get_network_group_by_name_and_device(db: AsyncSession, device_id: int, name: str):
+    result = await db.execute(
+        select(NetworkGroup).filter(NetworkGroup.device_id == device_id, NetworkGroup.name == name)
+    )
+    return result.scalars().first()
+
 async def get_network_group(db: AsyncSession, network_group_id: int):
     result = await db.execute(select(NetworkGroup).filter(NetworkGroup.id == network_group_id))
     return result.scalars().first()
