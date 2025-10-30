@@ -66,24 +66,59 @@ async def sync_data_task(
             for key, new_item in items_to_sync_map.items():
                 existing_item = existing_items_map.get(key)
                 if not existing_item:
+                    # --- Handle item creation ---
                     items_to_create.append(new_item.model_dump())
                     change_logs_to_create.append(schemas.ChangeLogCreate(
                         device_id=device_id, data_type=data_type, object_name=key[-1], action="created",
                         details=json.dumps(new_item.model_dump(), default=str)
                     ))
                 else:
+                    # --- Handle item updates ---
                     update_data = new_item.model_dump(exclude_unset=True)
-                    is_dirty = any(normalize_value(update_data.get(k)) != normalize_value(getattr(existing_item, k)) for k in update_data)
 
-                    if is_dirty:
+                    # 1. Check for last_hit_date change separately (for policies)
+                    is_hit_date_changed = False
+                    if data_type == "policies":
+                        old_hit_date = getattr(existing_item, 'last_hit_date', None)
+                        new_hit_date = update_data.get('last_hit_date')
+                        # Consider changed if difference is more than a second
+                        if old_hit_date and new_hit_date and abs((new_hit_date - old_hit_date).total_seconds()) > 1:
+                            is_hit_date_changed = True
+                        elif not old_hit_date and new_hit_date: # Was null, now has value
+                            is_hit_date_changed = True
+
+                    # 2. Check for other field changes (is_dirty)
+                    fields_to_compare = set(update_data.keys())
+                    if data_type == "policies":
+                        fields_to_compare -= {'seq', 'last_hit_date'} # Exclude seq and last_hit_date
+
+                    is_dirty = any(
+                        normalize_value(update_data.get(k)) != normalize_value(getattr(existing_item, k))
+                        for k in fields_to_compare
+                    )
+
+                    # 3. Determine if an update and/or logging is needed
+                    needs_update = is_dirty or is_hit_date_changed
+
+                    if needs_update:
                         update_data["id"] = existing_item.id
                         if data_type == "policies":
-                            update_data["is_indexed"] = False
+                            # Mark for re-indexing only if substantive fields changed
+                            if is_dirty:
+                                update_data["is_indexed"] = False
                         items_to_update.append(update_data)
-                        change_logs_to_create.append(schemas.ChangeLogCreate(
-                            device_id=device_id, data_type=data_type, object_name=key[-1], action="updated",
-                            details=json.dumps({"before": {k: getattr(existing_item, k) for k in update_data if k != 'id'}, "after": update_data}, default=str)
-                        ))
+
+                        # Logging logic
+                        if is_dirty:
+                            change_logs_to_create.append(schemas.ChangeLogCreate(
+                                device_id=device_id, data_type=data_type, object_name=key[-1], action="updated",
+                                details=json.dumps({"before": {k: getattr(existing_item, k) for k in update_data if k != 'id'}, "after": update_data}, default=str)
+                            ))
+                        elif is_hit_date_changed: # Only hit date changed
+                            change_logs_to_create.append(schemas.ChangeLogCreate(
+                                device_id=device_id, data_type=data_type, object_name=key[-1], action="hit_date_updated",
+                                details=json.dumps({"before": {"last_hit_date": old_hit_date}, "after": {"last_hit_date": new_hit_date}}, default=str)
+                            ))
 
             for key, existing_item in existing_items_map.items():
                 if key not in items_to_sync_map:
