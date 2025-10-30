@@ -92,8 +92,18 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     if pydantic_model is schemas.ServiceCreate and not df.empty and "protocol" in df.columns:
         df["protocol"] = df["protocol"].apply(lambda x: str(x).lower() if x is not None else x)
 
+    # 5) Ensure integer columns with potential missing values are handled correctly
+    # NaN forces pandas to use float type, which causes "cannot convert float NaN to integer" error.
+    # Converting to pandas' nullable Int64 type before converting to dict solves this.
+    if "seq" in df.columns:
+        df["seq"] = df["seq"].astype("Int64")
+
+    # 6) Final processing before creating Pydantic models
     if not df.empty:
+        # Pydantic v2는 NaN, NaT를 허용하지 않으므로, 모든 결측값을 None으로 확실하게 변환
+        # 이 단계가 ValueError: cannot convert float NaN to integer"를 방지하는 핵심
         df = df.where(pd.notna(df), None)
+
     records = df.to_dict(orient="records") if not df.empty else []
     return [pydantic_model(**row) for row in records]
 
