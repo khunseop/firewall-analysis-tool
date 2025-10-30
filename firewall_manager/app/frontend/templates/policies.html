@@ -29,8 +29,8 @@
     </div>
     
     <div class="columns is-variable is-2 is-multiline">
-      <!-- Row 1: Device and Rule Name -->
-      <div class="column is-6">
+      <!-- Device and Rule Name -->
+      <div class="column is-3">
         <div class="field">
           <label class="label is-small">장비</label>
           <div class="control">
@@ -38,37 +38,36 @@
           </div>
         </div>
       </div>
-      <div class="column is-6">
+      <div class="column is-3">
         <div class="field">
           <label class="label is-small">정책명</label>
           <div class="control">
-            <input id="f-rule-name" class="input is-small" placeholder="정책 이름 검색..." />
+            <input id="f-rule-name" class="input is-small" placeholder="쉼표(,)로 여러 정책명 입력" />
           </div>
         </div>
       </div>
-
-      <!-- Row 2: IP and Service -->
-      <div class="column is-4">
+      <!-- IP and Service -->
+      <div class="column is-2">
         <div class="field">
-          <label class="label is-small">출발지 (Source)</label>
+          <label class="label is-small">출발지</label>
           <div class="control">
-            <input id="f-src" class="input is-small" placeholder="예: 10.0.0.0/8, 1.1.1.1, any" />
+            <input id="f-src" class="input is-small" placeholder="IP 또는 객체명" />
           </div>
         </div>
       </div>
-      <div class="column is-4">
+      <div class="column is-2">
         <div class="field">
-          <label class="label is-small">목적지 (Destination)</label>
+          <label class="label is-small">목적지</label>
           <div class="control">
-            <input id="f-dst" class="input is-small" placeholder="예: 192.168.0.0/16, 8.8.8.8" />
+            <input id="f-dst" class="input is-small" placeholder="IP 또는 객체명" />
           </div>
         </div>
       </div>
-      <div class="column is-4">
+      <div class="column is-2">
         <div class="field">
-          <label class="label is-small">서비스 (Service)</label>
+          <label class="label is-small">서비스</label>
           <div class="control">
-            <input id="f-svc" class="input is-small" placeholder="예: tcp/80, udp/53, 443, 80-90" />
+            <input id="f-svc" class="input is-small" placeholder="포트 또는 객체명" />
           </div>
         </div>
       </div>

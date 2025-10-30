@@ -10,35 +10,35 @@ let currentTab = 'network-objects';
 // 네트워크 객체 그리드 컬럼 정의
 const networkObjectsColumns = [
   { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'name', headerName: '이름', width: 200, filter: 'agTextColumnFilter' },
-  { field: 'ip_address', headerName: 'IP 주소', width: 200, filter: 'agTextColumnFilter' },
+  { field: 'name', headerName: '이름', minWidth: 200, filter: 'agTextColumnFilter' },
+  { field: 'ip_address', headerName: 'IP 주소', minWidth: 200, filter: 'agTextColumnFilter' },
   { field: 'type', headerName: '타입', width: 120, filter: 'agTextColumnFilter' },
-  { field: 'description', headerName: '설명', flex: 1, filter: 'agTextColumnFilter' }
+  { field: 'description', headerName: '설명', minWidth: 300, filter: 'agTextColumnFilter' }
 ];
 
 // 네트워크 그룹 그리드 컬럼 정의
 const networkGroupsColumns = [
   { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'name', headerName: '이름', width: 200, filter: 'agTextColumnFilter' },
-  { field: 'members', headerName: '멤버', flex: 1, filter: 'agTextColumnFilter' },
-  { field: 'description', headerName: '설명', width: 200, filter: 'agTextColumnFilter' }
+  { field: 'name', headerName: '이름', minWidth: 200, filter: 'agTextColumnFilter' },
+  { field: 'members', headerName: '멤버', minWidth: 400, filter: 'agTextColumnFilter' },
+  { field: 'description', headerName: '설명', minWidth: 300, filter: 'agTextColumnFilter' }
 ];
 
 // 서비스 객체 그리드 컬럼 정의
 const servicesColumns = [
   { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'name', headerName: '이름', width: 200, filter: 'agTextColumnFilter' },
+  { field: 'name', headerName: '이름', minWidth: 200, filter: 'agTextColumnFilter' },
   { field: 'protocol', headerName: '프로토콜', width: 120, filter: 'agTextColumnFilter' },
   { field: 'port', headerName: '포트', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'description', headerName: '설명', flex: 1, filter: 'agTextColumnFilter' }
+  { field: 'description', headerName: '설명', minWidth: 300, filter: 'agTextColumnFilter' }
 ];
 
 // 서비스 그룹 그리드 컬럼 정의
 const serviceGroupsColumns = [
   { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'name', headerName: '이름', width: 200, filter: 'agTextColumnFilter' },
-  { field: 'members', headerName: '멤버', flex: 1, filter: 'agTextColumnFilter' },
-  { field: 'description', headerName: '설명', width: 200, filter: 'agTextColumnFilter' }
+  { field: 'name', headerName: '이름', minWidth: 200, filter: 'agTextColumnFilter' },
+  { field: 'members', headerName: '멤버', minWidth: 400, filter: 'agTextColumnFilter' },
+  { field: 'description', headerName: '설명', minWidth: 300, filter: 'agTextColumnFilter' }
 ];
 
 // 그리드 정리
@@ -80,6 +80,7 @@ async function initGrids() {
       paginationPageSize: 50,
       paginationPageSizeSelector: [50, 100, 200],
       rowSelection: 'multiple',
+      enableRangeSelection: true,
     });
   }
 
@@ -97,6 +98,7 @@ async function initGrids() {
       paginationPageSize: 50,
       paginationPageSizeSelector: [50, 100, 200],
       rowSelection: 'multiple',
+      enableRangeSelection: true,
     });
   }
 
@@ -114,6 +116,7 @@ async function initGrids() {
       paginationPageSize: 50,
       paginationPageSizeSelector: [50, 100, 200],
       rowSelection: 'multiple',
+      enableRangeSelection: true,
     });
   }
 
@@ -131,6 +134,7 @@ async function initGrids() {
       paginationPageSize: 50,
       paginationPageSizeSelector: [50, 100, 200],
       rowSelection: 'multiple',
+      enableRangeSelection: true,
     });
   }
 }
@@ -185,11 +189,23 @@ async function loadData(deviceIds) {
   }
 
   if (deviceIdArray.length === 0) {
-    // 선택된 장비가 없으면 빈 데이터 표시
-    if (networkObjectsGrid) networkObjectsGrid.setGridOption('rowData', []);
-    if (networkGroupsGrid) networkGroupsGrid.setGridOption('rowData', []);
-    if (servicesGrid) servicesGrid.setGridOption('rowData', []);
-    if (serviceGroupsGrid) serviceGroupsGrid.setGridOption('rowData', []);
+    // 선택된 장비가 없으면 빈 데이터 표시 및 필터 초기화
+    if (networkObjectsGrid) {
+      networkObjectsGrid.setGridOption('rowData', []);
+      networkObjectsGrid.setFilterModel(null);
+    }
+    if (networkGroupsGrid) {
+      networkGroupsGrid.setGridOption('rowData', []);
+      networkGroupsGrid.setFilterModel(null);
+    }
+    if (servicesGrid) {
+      servicesGrid.setGridOption('rowData', []);
+      servicesGrid.setFilterModel(null);
+    }
+    if (serviceGroupsGrid) {
+      serviceGroupsGrid.setGridOption('rowData', []);
+      serviceGroupsGrid.setFilterModel(null);
+    }
     return;
   }
 
