@@ -194,7 +194,12 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
 
             # --- Post-Collection Processing ---
             # Hit Date Collection
-            if hasattr(collector, 'export_last_hit_date'):
+            from app.services.firewall.interface import FirewallInterface as _FWI
+            _method = getattr(collector, 'export_last_hit_date', None)
+            _overridden = hasattr(type(collector), 'export_last_hit_date') and getattr(type(collector), 'export_last_hit_date') is not getattr(_FWI, 'export_last_hit_date')
+            if callable(_method) and _overridden:
+                logging.info(f"[orchestrator] Starting last_hit_date collection for device_id={device_id}")
+            # if hasattr(collector, 'export_last_hit_date'):
                 async with SessionLocal() as db:
                     await crud.device.update_sync_status(db, device=device, status="in_progress", step="Collecting usage history...")
                     await db.commit()
@@ -202,8 +207,10 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                     policies_df = collected_dfs["policies"]
                     vsys_list = policies_df["vsys"].unique().tolist() if "vsys" in policies_df.columns else None
                     if vsys_list:
+                        logging.info(f"[orchestrator] Collecting last_hit_date for VSYS: {vsys_list}")
                         hit_date_df = await loop.run_in_executor(None, lambda: collector.export_last_hit_date(vsys=vsys_list))
                         if not hit_date_df.empty:
+                            logging.info(f"[orchestrator] Retrieved {len(hit_date_df)} last_hit records; merging...")
                             for col in ['vsys', 'rule_name']:
                                 if col in policies_df.columns: policies_df[col] = policies_df[col].astype(str)
                                 if col in hit_date_df.columns: hit_date_df[col] = hit_date_df[col].astype(str)
@@ -212,8 +219,16 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                             if "last_hit_date" in policies_df.columns:
                                 policies_df["last_hit_date"] = pd.to_datetime(policies_df["last_hit_date"], errors='coerce', utc=True)
                             collected_dfs["policies"] = policies_df
+                            merged_hits = policies_df["last_hit_date"].notna().sum() if "last_hit_date" in policies_df.columns else 0
+                            logging.info(f"[orchestrator] last_hit_date merge complete. Non-null hits: {merged_hits}")
+                        else:
+                            logging.info("[orchestrator] No last_hit_date records returned; skipping merge.")
+                    else:
+                        logging.info("[orchestrator] VSYS not found in policies; skipping last_hit_date collection.")
                 except Exception as e:
                     logging.error(f"Failed to collect or merge last_hit_date for device {device_id}: {e}", exc_info=True)
+            else:
+                logging.info("[orchestrator] Collector has no export_last_hit_date; skipping usage history collection.")
 
 
             # --- DB Synchronization ---
