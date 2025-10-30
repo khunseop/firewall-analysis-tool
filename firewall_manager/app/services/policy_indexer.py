@@ -198,7 +198,7 @@ async def rebuild_policy_indices(
             for start_ip, end_ip in merged_ranges:
                  addr_rows.append({
                     "device_id": device_id, "policy_id": policy.id, "direction": direction,
-                    "token_type": 'ipv4_range', "ip_version": 4,
+                    "token_type": 'ipv4_range',
                     "ip_start": start_ip, "ip_end": end_ip
                 })
 

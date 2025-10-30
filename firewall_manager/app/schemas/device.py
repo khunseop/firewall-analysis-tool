@@ -23,6 +23,7 @@ class Device(DeviceBase):
     id: int
     last_sync_at: Optional[datetime] = None
     last_sync_status: Optional[str] = None
+    last_sync_step: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -30,6 +31,7 @@ class Device(DeviceBase):
 class DeviceSyncStatus(BaseModel):
     last_sync_at: Optional[datetime] = None
     last_sync_status: Optional[str] = None
+    last_sync_step: Optional[str] = None
 
     class Config:
         from_attributes = True
