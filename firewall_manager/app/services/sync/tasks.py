@@ -18,7 +18,6 @@ from app.services.sync.transform import (
     get_key_attribute,
     get_singular_name,
     normalize_value,
-    normalize_last_hit_value,
 )
 from app.services.sync.collector import create_collector_from_device
 from app.services.policy_indexer import rebuild_policy_indices
@@ -151,6 +150,18 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
             for data_type, schema_create, export_func in sequence:
                 df = await loop.run_in_executor(None, export_func)
                 df = pd.DataFrame() if df is None else df
+
+                if data_type == "policies" and device.vendor == "paloalto":
+                    vsys_list = df["vsys"].unique().tolist() if "vsys" in df.columns else None
+                    if vsys_list:
+                        hit_date_df = await loop.run_in_executor(None, lambda: collector.export_last_hit_date(vsys=vsys_list))
+                        if not hit_date_df.empty:
+                            # 'rule_name'으로 컬럼 이름 통일
+                            df.rename(columns={"rule_name": "rule_name"}, inplace=True)
+                            hit_date_df.rename(columns={"rule_name": "rule_name"}, inplace=True)
+                            # vsys와 rule_name을 기준으로 merge
+                            df = pd.merge(df, hit_date_df, on=["vsys", "rule_name"], how="left")
+
                 df["device_id"] = device_id
                 items_to_sync = dataframe_to_pydantic(df, schema_create)
                 await sync_data_task(device_id, data_type, items_to_sync)

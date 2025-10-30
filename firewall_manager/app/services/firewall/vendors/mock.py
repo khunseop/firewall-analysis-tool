@@ -47,7 +47,16 @@ class MockFirewall:
             'Service': [f"Service_{random.randint(1,10)}" for _ in range(rule_count)],
             'Application': [', '.join(random.sample(applications, random.randint(1, 3))) for _ in range(rule_count)],
             'Description': [f"자동 생성된 규칙 설명 {i}" for i in range(rule_count)],
-            'Last Hit Date': [(datetime.now() - timedelta(days=random.randint(0, 90))).strftime('%Y-%m-%d %H:%M:%S') for _ in range(rule_count)]
+            'Last Hit Date': [
+                random.choice([
+                    (datetime.now() - timedelta(days=random.randint(0, 90))).strftime('%Y-%m-%d %H:%M:%S'),
+                    (datetime.now() - timedelta(seconds=random.randint(0, 86400))).timestamp(), # Numeric timestamp
+                    "-",
+                    None,
+                    "Invalid Date",
+                    ""
+                ]) for _ in range(rule_count)
+            ]
         })
 
         net_obj_count = random.randint(5, 15)
