@@ -59,19 +59,21 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
         if "rule name" in df.columns and "rule_name" not in df.columns:
             df = df.rename(columns={"rule name": "rule_name"})
         if "last_hit_date" in df.columns:
-            # “-”, None 등 파싱 불가능한 값을 NaT로 변환
+            # 1. 파싱 불가능한 값을 NaT로 변환
             s = pd.to_datetime(df["last_hit_date"], errors="coerce")
 
-            # 타임존이 없는(naive) 경우, Asia/Seoul 타임존으로 간주
-            # 타임존이 있는(aware) 경우, Asia/Seoul 타임존으로 변환
+            # 2. 타임존을 Asia/Seoul로 표준화 (없는 경우 설정, 있는 경우 변환)
             if s.dt.tz is None:
                 s = s.dt.tz_localize(ZoneInfo("Asia/Seoul"), ambiguous='infer')
             else:
                 s = s.dt.tz_convert(ZoneInfo("Asia/Seoul"))
 
-            # Naive datetime 객체로 최종 변환 (DB 저장을 위해)
-            # NaT는 None으로 변환됨
-            df["last_hit_date"] = s.dt.to_pydatetime()
+            # 3. DB 저장을 위해 타임존 정보를 제거 (naive datetime으로)
+            s = s.dt.tz_localize(None)
+
+            # 4. 순수 Python datetime 객체로 변환 (NaT -> None)
+            # 5. Pandas가 Timestamp로 재변환하는 것을 막기 위해 object 타입으로 강제
+            df["last_hit_date"] = s.dt.to_pydatetime().astype(object)
         if "rule_name" in df.columns:
             def _normalize_rule_name(v):
                 try:
