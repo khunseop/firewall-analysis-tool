@@ -1,0 +1,89 @@
+- To fully reset filters in the UI, both the custom search input fields must be cleared and the ag-Grid internal filter state must be reset by calling `gridApi.setFilterModel(null)`.
+- The data synchronization orchestrator (`run_sync_all_orchestrator` in `app/services/sync/tasks.py`) uses an `asyncio.Semaphore` to ensure only one device synchronization task runs at a time, avoiding SQLite concurrent write issues.
+- The application should manage firewall devices (CRUD), and allow for querying of policies, objects, and hit counts.
+- To optimize the insertion of large volumes of data, the policy indexing logic in `app/services/policy_indexer.py` uses SQLAlchemy Core's `bulk_insert_mappings` instead of the ORM's `add_all` method.
+- To prevent long-running database locks that block UI queries during data synchronization, the `sync_data_task` function is designed to first compute all changes in memory and then apply them to the database in a single, short-lived transaction using high-performance bulk operations (e.g., `bulk_insert_mappings`, `bulk_update_mappings`).
+- The `enable` field in policies represents the policy's state on the firewall device, whereas the `is_active` field is an internal application flag used during synchronization to track if a policy still exists on the device.
+- In ag-Grid, text selection/copying is enabled by setting `enableRangeSelection: true` in the grid options.
+- The project contains a `TODO.md` file that lists and prioritizes development tasks.
+- The repository does not contain any frontend JavaScript unit tests.
+- When using ag-grid, `gridApi.applyTransaction({ update: data })` only modifies existing rows. To display new or removed rows, a full refresh with `gridApi.setRowData(data)` is required.
+- The `app/services` directory is used to contain business logic that is more complex than simple CRUD operations, such as the device connection test.
+- Data returned from service layers must have keys that match the corresponding Pydantic schema field names (e.g., using snake_case like `rule_name` instead of space-separated words like `Rule Name`).
+- The project is named 'Firewall Analysis Tool' (FAT), as specified in the `main.py` FastAPI app title.
+- Passwords are encrypted using the `cryptography` library's Fernet symmetric encryption. The logic is handled in `app/core/security.py`.
+- The application will be deployed in an offline environment, so external CDN dependencies should be avoided.
+- The application requires a `.env` file in the `firewall_manager/` directory with `DATABASE_URL` and `ENCRYPTION_KEY` variables. The `firewall_manager/app/core/config.py` is configured to look for this file.
+- Database models defined in `firewall_manager/app/models/` use snake_case for table column names (e.g., `rule_name`, `ip_address`).
+- The user-specified tech stack is: Backend: FastAPI, Frontend: Vanilla JS with Bulma, Tables: ag-grid, Charts: apexcharts.js, DB: SQLite.
+- The application uses the standard `logging` module for error reporting instead of `print()` statements.
+- The application uses `fastapi.BackgroundTasks` to perform long-running data synchronization from firewalls without blocking API requests.
+- Password encryption for new devices is handled at the API endpoint level (`/api/v1/endpoints/devices.py`), not in the CRUD layer, to ensure it occurs only once before database insertion.
+- The project uses a `.gitignore` in the `firewall_manager` directory to exclude database files (*.db), Python cache (__pycache__, *.pyc), environment files (.env), and log files (*.log).
+- The project uses SQLAlchemy for the ORM and Alembic for database migrations.
+- In ag-Grid, the `autoSizeAllColumns()` method can be called after data is loaded to automatically adjust column widths to fit their content.
+- When populating Pydantic models from Pandas DataFrames returned by the firewall services, DataFrame columns (e.g., 'Rule Name') must be explicitly renamed to match the snake_case field names of the Pydantic models (e.g., 'rule_name').
+- The `test-connection` service must perform a live connection and disconnection test using the appropriate firewall vendor collector and must not log or expose decrypted passwords.
+- The `smoke_test.py` script is designed to be idempotent. It ensures a clean state by deleting any pre-existing test data (like the 'test' device) before execution to prevent errors on repeated runs.
+- CRUD functions that retrieve multiple database records should not have a hardcoded limit and should support fetching all items by default (e.g., using `limit: int | None = None`).
+- If the `uvicorn` server fails to start with an 'Address already in use' error, use `ps aux | grep uvicorn` to find the lingering process ID and terminate it with `kill <PID>`.
+- The project uses Playwright for frontend verification. It can be installed with `pip install playwright` followed by `playwright install`.
+- The ENCRYPTION_KEY for the .env file can be generated by running the Python command: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
+- Device passwords must be stored encrypted but must be decryptable for use in API calls to firewalls.
+- Vendor modules from the legacy `bak_firewall_module` (`mf2`, `ngf`, `mock`) have been ported into the current application under `firewall_manager/app/services/firewall/vendors/`, with each vendor's logic consolidated into a single file.
+- Database migrations are managed with Alembic. For `autogenerate` to detect model changes, models must be imported in `firewall_manager/alembic/env.py`. From the `firewall_manager` directory, run commands as a module (e.g., `python -m alembic revision --autogenerate -m "..."`). The database must be up-to-date (`python -m alembic upgrade head`) before generating new revisions.
+- To optimize policy parsing, the `Resolver` class in `app/services/policy_indexer.py` pre-computes 'resolved object maps' for all network and service objects before processing policies. The main indexing function then uses these maps for fast lookups, avoiding redundant parsing of the same object across multiple policies.
+- To run the application for development, execute `uvicorn app.main:app --reload --app-dir firewall_manager` from the project root.
+- For performance-intensive data processing tasks like the policy index rebuild (`rebuild_policy_indices`), the preferred architectural pattern is to load all necessary data from the database into memory upfront, perform all computations in-memory, and then write the final results back to the database in a single, bulk transaction to minimize DB I/O and locking.
+- Incomplete or unsupported methods within the firewall vendor modules should raise a `NotImplementedError`.
+- The `app/crud/__init__.py` file exposes sub-modules via aliases (e.g., `from . import crud_device as device`). Other parts of the application must use this aliased path to call CRUD functions (e.g., `crud.device.get_device(...)`).
+- The synchronization logic must handle different key attributes for different data types. 'policies' are identified by `rule_name`, while other objects like `NetworkObject` use `name`.
+- Vendor-specific modules in `app/services/firewall/vendors/` should return raw data. Data normalization, like parsing date strings, is handled centrally by the data synchronization logic in `app/services/sync/tasks.py`, which uses helpers from `app/services/sync/transform.py`.
+- User Instruction: Code changes must be accompanied by updates to documentation (e.g., AGENTS.md, DATABASE.md) and a new Alembic migration if the database schema is altered.
+- To allow horizontal scrolling for wide content in ag-Grid, column definitions should use `minWidth` instead of `flex: 1` to prevent columns from forcing themselves to fit within the viewport.
+- The user wants to build a firewall management and analysis application using FastAPI.
+- The data synchronization process uses an "overwrite-and-log" strategy. During a sync, new items are created, existing items are updated in-place (overwritten), and items no longer present in the source are hard-deleted. All changes (creations, updates with diffs, deletions) are recorded in a dedicated `change_logs` table for auditing.
+- When serializing data for JSON, `datetime` objects must be handled to avoid `TypeError`. Use `json.dumps(..., default=str)` as a convention.
+- The existing `FPAT` repository is to be used for reference only, not as a code dependency.
+- When running the development server, `uvicorn --reload` can cause conflicts with Alembic's state management, leading to migration errors. For database-related work, it is more stable to run the server without the `--reload` flag.
+- The primary data synchronization is orchestrated by a `POST /api/v1/firewall/sync-all/{device_id}` endpoint, which processes data types sequentially in a single background task and database transaction.
+- When writing Playwright tests for the Korean UI, `get_by_label` can be unreliable. Using more direct CSS selectors, such as `locator('[name="..."]')`, is a more robust strategy for targeting form elements.
+- Raw data from firewalls (like IP addresses and ports as strings) should be stored in the database during synchronization. Parsing and numeric conversion should be handled in a later, separate stage like policy indexing.
+- The project uses Pydantic v2. In Pydantic schemas, `from_attributes = True` must be used in the inner `Config` class instead of the deprecated `orm_mode = True` for ORM model compatibility.
+- The `devices` table includes `last_sync_at` (DateTime, nullable) and `last_sync_status` (String, nullable) columns to track the state of data synchronization for each device.
+- The database schema includes tables for `network_objects`, `network_groups`, `services`, and `service_groups` to represent firewall configurations. The `network_objects` table has a `type` column to distinguish between different object types.
+- The policy search for `rule_name` supports multiple, comma-separated values for exact-match filtering. The backend parses the string, trims whitespace from each value, and uses a SQL `IN` clause.
+- To set up the database for the first time or apply schema changes, run `python3 firewall_manager/migrate.py`.
+- The `smoke_test.py` script (`python3 firewall_manager/smoke_test.py`) is used for basic application health checks after setting up the environment.
+- Timestamps must be timezone-aware and standardized to 'Asia/Seoul'. A helper function `get_now_in_seoul()` in `app/core/config.py` is used for this purpose, replacing `datetime.utcnow()`.
+- If Alembic migrations become corrupted or unmanageable, the recovery process is to: 1. Delete the physical database file (e.g., `fat.db`). 2. Delete all version files from `alembic/versions/`. 3. Generate a new, single migration file from the current state of the models. 4. Apply the new migration.
+- The standard sequence to set up the environment and run initial checks is: 1. `pip install -r firewall_manager/requirements.txt`, 2. `python3 firewall_manager/migrate.py` to create/update the database, 3. `python3 firewall_manager/smoke_test.py` to verify basic functionality.
+- When porting logic from the legacy `bak_firewall_module`, the core business logic should be preserved exactly as it is, but reimplemented within the new FastAPI application structure.
+- User Instruction: Provide responses and explanations in Korean.
+- The database schema includes a `change_logs` table to store an audit trail of all create, update (with diffs), and delete operations on synchronized objects. Changes are stored in a JSON `details` column.
+- The application should provide a dashboard for device status visualization, device management (CRUD), policy management (read-only analysis and filtering), and a scenario-based troubleshooting feature.
+- Logic for checking if a database record is "dirty" (needs updating) should normalize string values (e.g., by stripping whitespace) before comparison to avoid unnecessary updates.
+- The project uses Pydantic v2. All calls to the deprecated `.dict()` method should be replaced with `.model_dump()`.
+- The project structure is a standard FastAPI layout, with separation of concerns for API endpoints, CRUD logic, services, database models, and Pydantic schemas.
+- Different firewall vendors return different raw values for the policy `enable` state (e.g., 'Y'/'N', '0'/'1'). This inconsistency is handled centrally during the data transformation stage in `app/services/sync/transform.py`.
+- Data integrity is maintained by ensuring consistency between Pydantic schemas and SQLAlchemy models. If a field is required (i.e., not `Optional`) in a Pydantic schema, the corresponding column in the SQLAlchemy model should be defined with `nullable=False`.
+- A factory pattern is used for firewall vendor integration in `app/services/firewall`. This includes a common `FirewallInterface`, a `FirewallCollectorFactory`, and vendor-specific modules. Pandas DataFrames are used for data manipulation within this service.
+- When using Alembic with a SQLite database, altering table structures (e.g., adding a `NOT NULL` column, dropping a column) will fail due to SQLite limitations. Migrations must be manually edited to use Alembic's `batch_alter_table` context manager for these operations.
+- The project uses `__init__.py` files in `app/schemas`, `app/crud`, and `app/services` to expose sub-module contents at the package level, enabling cleaner imports like `from app import schemas`.
+- The frontend user interface, including navigation links, buttons, and form labels, is in Korean.
+- To improve performance, policy parsing is incremental. The `policies` table has an `is_indexed` boolean column. During synchronization, updated or new policies have this flag set to `False`. The `rebuild_policy_indices` function then only processes policies where `is_indexed` is `False` and performs targeted deletions of their old index members.
+- To ensure data integrity, long-running tasks like data synchronization must be atomic. All database operations (creations, updates, deletions, logging) should be staged within a single database session, with a single `commit` call at the very end of the process. Individual CRUD functions should not perform their own commits.
+- The main API router is located in `firewall_manager/app/api/api_v1/api.py` and includes all endpoint-specific routers from the `endpoints` directory.
+- The synchronization process uses a `dataframe_to_pydantic` helper function (in `app/services/sync/transform.py`) to sanitize data from vendor services. This function converts DataFrame column names to snake_case and performs specific renames (e.g., 'value' to 'ip_address', 'group_name' to 'name') to ensure compatibility with Pydantic models.
+- The application provides a GET /api/v1/firewall/sync/{device_id}/status endpoint to poll synchronization status. The main sync endpoint sets the status to 'in_progress', and the background task updates it to 'success' or 'failure' on completion.
+- The `policies` table model (`firewall_manager/app/models/policy.py`) includes columns based on Palo Alto firewalls, such as `vsys`, `seq`, `rule_name`, `enable`, `action`, `source`, `user`, `destination`, `service`, `application`, `security_profile`, `category`, and `description`.
+- When debugging database-related data type issues, it's crucial to verify the actual schema in the database (e.g., via Alembic history or a DB browser) against the SQLAlchemy model definition. A schema mismatch (e.g., a column being `VARCHAR` instead of `BOOLEAN`/`INTEGER`) can be the root cause of type interpretation errors in the application.
+- When adding vendor-specific columns to database models, they should be made nullable to accommodate devices from other vendors that may not have corresponding fields.
+- The policy search (`crud.policy.search_policies`) is optimized for text searches using a GIN trigram index on the `source`, `destination`, and `service` columns. This index accelerates `ILIKE` queries, which are used as the fallback when a search term is not a valid IP or port range.
+- User Instruction: Keep the `TODO.md` file updated by marking tasks as complete as they are finished.
+- To install dependencies, run `pip install -r firewall_manager/requirements.txt`.
+- To mitigate 'database is locked' errors and improve concurrency with SQLite, Write-Ahead Logging (WAL) mode is enabled for all database connections via an SQLAlchemy event listener in `app/db/session.py`.
+- The project uses a consistent pattern for CRUD modules, with a separate file for each model (e.g., `crud_policy.py`). Each module provides functions for creating, retrieving, updating, and deleting individual records, as well as functions for bulk creation or retrieval by `device_id`.
+- The project lacks a dedicated `tests` directory and relies on `firewall_manager/smoke_test.py` for basic testing.
+- The main database file is a SQLite database located at `firewall_manager/fat.db`.
+- When checking for database record changes ('dirty' checking) in `app/services/sync/tasks.py`, different normalization functions may be needed for specific fields. For instance, `last_hit_date` in policies requires the special `normalize_last_hit_value` function for accurate comparison, while other fields use the generic `normalize_value`.

@@ -74,7 +74,15 @@ async def sync_data_task(
                     ))
                 else:
                     update_data = new_item.model_dump(exclude_unset=True)
-                    is_dirty = any(normalize_value(update_data.get(k)) != normalize_value(getattr(existing_item, k)) for k in update_data)
+
+                    def is_field_dirty(k):
+                        new_val = update_data.get(k)
+                        old_val = getattr(existing_item, k)
+                        if data_type == "policies" and k == "last_hit_date":
+                            return normalize_last_hit_value(new_val) != normalize_last_hit_value(old_val)
+                        return normalize_value(new_val) != normalize_value(old_val)
+
+                    is_dirty = any(is_field_dirty(k) for k in update_data)
 
                     if is_dirty:
                         update_data["id"] = existing_item.id
