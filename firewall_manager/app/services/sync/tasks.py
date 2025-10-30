@@ -156,11 +156,18 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                     if vsys_list:
                         hit_date_df = await loop.run_in_executor(None, lambda: collector.export_last_hit_date(vsys=vsys_list))
                         if not hit_date_df.empty:
-                            # 'rule_name'으로 컬럼 이름 통일
-                            df.rename(columns={"rule_name": "rule_name"}, inplace=True)
-                            hit_date_df.rename(columns={"rule_name": "rule_name"}, inplace=True)
-                            # vsys와 rule_name을 기준으로 merge
+                            # Ensure merge keys are the same type (string) to prevent merge failures
+                            df['vsys'] = df['vsys'].astype(str)
+                            df['rule_name'] = df['rule_name'].astype(str)
+                            hit_date_df['vsys'] = hit_date_df['vsys'].astype(str)
+                            hit_date_df['rule_name'] = hit_date_df['rule_name'].astype(str)
+
+                            # Merge policy data with last hit date info
                             df = pd.merge(df, hit_date_df, on=["vsys", "rule_name"], how="left")
+
+                            # Explicitly convert the last_hit_date column to datetime objects
+                            if "last_hit_date" in df.columns:
+                                df["last_hit_date"] = pd.to_datetime(df["last_hit_date"], errors='coerce', utc=True)
 
                 df["device_id"] = device_id
                 items_to_sync = dataframe_to_pydantic(df, schema_create)

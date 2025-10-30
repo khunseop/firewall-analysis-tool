@@ -1,103 +1,150 @@
 import asyncio
-import pandas as pd
-from typing import Iterable, Dict, Tuple, Optional, List
+from typing import Iterable, Dict, Set, List, Tuple, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete
-from sqlalchemy.future import select
-
 from app import crud, models
 from app.services.normalize import parse_ipv4_numeric, parse_port_numeric
+from ipaddress import ip_network, ip_address
 
+# --- IP Range Merging Utilities (for Step 2b) ---
+
+def _ip_str_to_numeric_range(ip_str: str) -> Optional[Tuple[int, int]]:
+    """Converts a single IP, CIDR, or range string to a numeric start-end tuple."""
+    try:
+        if '-' in ip_str:
+            start_str, end_str = ip_str.split('-', 1)
+            start = int(ip_address(start_str.strip()))
+            end = int(ip_address(end_str.strip()))
+            return min(start, end), max(start, end)
+        elif '/' in ip_str:
+            net = ip_network(ip_str, strict=False)
+            return int(net.network_address), int(net.broadcast_address)
+        else:
+            addr = int(ip_address(ip_str.strip()))
+            return addr, addr
+    except ValueError:
+        return None
+
+def merge_ip_ranges(ip_strings: Set[str]) -> List[Tuple[int, int]]:
+    """Merges a set of IP-related strings into the smallest list of continuous numeric ranges."""
+    if not ip_strings:
+        return []
+
+    # Convert all string representations to numeric ranges
+    ranges = []
+    for s in ip_strings:
+        r = _ip_str_to_numeric_range(s)
+        if r:
+            ranges.append(r)
+
+    if not ranges:
+        return []
+
+    # Sort intervals by start IP
+    ranges.sort(key=lambda x: x[0])
+
+    merged = []
+    current_start, current_end = ranges[0]
+
+    for i in range(1, len(ranges)):
+        next_start, next_end = ranges[i]
+        # If the next interval overlaps or is adjacent to the current one
+        if next_start <= current_end + 1:
+            # Merge by extending the current end
+            current_end = max(current_end, next_end)
+        else:
+            # The current interval is finished, add it to the list
+            merged.append((current_start, current_end))
+            # Start a new interval
+            current_start, current_end = next_start, next_end
+
+    # Add the last processed interval
+    merged.append((current_start, current_end))
+
+    return merged
+
+
+# --- Optimized Resolver ---
 
 class Resolver:
-    """A class to resolve and cache firewall policy objects for efficient indexing."""
+    """A class to resolve firewall policy objects efficiently using native Python types."""
 
     def __init__(self) -> None:
-        self._net_group_closure_cache: Dict[str, str] = {}
-        self._svc_group_closure_cache: Dict[str, str] = {}
-        self.ipv4_cache: Dict[str, Tuple[Optional[int], Optional[int], Optional[int]]] = {}
-        self.port_cache: Dict[str, Tuple[Optional[int], Optional[int]]] = {}
-        self.resolved_address_map: Dict[str, str] = {}
-        self.resolved_service_map: Dict[str, str] = {}
+        self._net_group_closure_cache: Dict[str, Set[str]] = {}
+        self._svc_group_closure_cache: Dict[str, Set[str]] = {}
 
-    def _expand_groups(self, name: str, group_map: Dict[str, str], closure_cache: Dict[str, str]) -> str:
-        """Recursively expand group members with memoization."""
+    def _expand_groups(
+        self,
+        name: str,
+        group_map: Dict[str, List[str]],
+        closure_cache: Dict[str, Set[str]],
+        visited: Optional[Set[str]] = None
+    ) -> Set[str]:
+        """Recursively expands group members using sets for high performance."""
         if name in closure_cache:
             return closure_cache[name]
 
-        # Protect against excessive recursion depth
-        MAX_DEPTH = 20
+        # Protect against circular dependencies
+        if visited is None:
+            visited = set()
+        if name in visited:
+            return {name}
+        visited.add(name)
 
-        def dfs(current_name: str, visited: set) -> str:
-            if current_name in visited:
-                return current_name # Circular dependency detected
+        members = group_map.get(name)
+        if not members:
+            # It's a base object, not a group
+            closure_cache[name] = {name}
+            return {name}
 
-            visited.add(current_name)
+        expanded_members: Set[str] = set()
+        for member_name in members:
+            expanded_members.update(self._expand_groups(member_name, group_map, closure_cache, visited.copy()))
 
-            if len(visited) > MAX_DEPTH:
-                return current_name
-
-            members = group_map.get(current_name)
-            if not members:
-                return current_name
-
-            expanded_members = []
-            for member_name in members.split(','):
-                member_name = member_name.strip()
-                if member_name:
-                    expanded_members.append(dfs(member_name, visited.copy()))
-
-            return ','.join(sorted(list(set(','.join(expanded_members).split(',')))))
-
-        result = dfs(name, set())
-        closure_cache[name] = result
-        return result
+        closure_cache[name] = expanded_members
+        return expanded_members
 
     def pre_resolve_objects(
         self,
-        network_objects: pd.DataFrame,
-        network_groups: pd.DataFrame,
-        service_objects: pd.DataFrame,
-        service_groups: pd.DataFrame
-    ) -> None:
-        """Pre-resolves all network and service objects to create a final value map."""
-        net_value_map = network_objects.set_index('Name')['Value'].to_dict() if not network_objects.empty else {}
-        net_group_map = network_groups.set_index('Group Name')['Entry'].to_dict() if not network_groups.empty else {}
+        network_objects: Iterable[models.NetworkObject],
+        network_groups: Iterable[models.NetworkGroup],
+        service_objects: Iterable[models.Service],
+        service_groups: Iterable[models.ServiceGroup]
+    ) -> Tuple[Dict[str, Set[str]], Dict[str, Set[str]]]:
+        """Pre-resolves all objects and returns final value maps (address and service)."""
+        # 1. Create base value maps and group maps directly from SQLAlchemy objects
+        net_value_map = {o.name: {o.ip_address} for o in network_objects}
+        net_group_map = {g.name: [m.strip() for m in (g.members or "").split(',') if m.strip()] for g in network_groups}
 
-        # Combine base objects and groups for address resolution
-        all_address_names = list(net_value_map.keys()) + list(net_group_map.keys())
-        for name in all_address_names:
-            expanded_groups = self._expand_groups(name, net_group_map, self._net_group_closure_cache)
-            final_values = {net_value_map.get(n.strip(), n.strip()) for n in expanded_groups.split(',')}
-            self.resolved_address_map[name] = ','.join(sorted(list(final_values)))
-
-        # Handle service objects
         svc_value_map = {}
-        if not service_objects.empty:
-            for _, row in service_objects.iterrows():
-                name, proto, port = row.get('Name'), str(row.get('Protocol', '')).lower(), str(row.get('Port', '')).replace(' ', '')
-                if port and port != 'none':
-                    svc_value_map[name] = ','.join([f"{proto}/{p.strip()}" for p in port.split(',')])
+        for s in service_objects:
+            proto, port = str(s.protocol or "").lower(), str(s.port or "").replace(" ", "")
+            if port and port != "none":
+                svc_value_map[s.name] = {f"{proto}/{p.strip()}" for p in port.split(',')}
 
-        svc_group_map = service_groups.set_index('Group Name')['Entry'].to_dict() if not service_groups.empty else {}
-        all_service_names = list(svc_value_map.keys()) + list(svc_group_map.keys())
+        svc_group_map = {g.name: [m.strip() for m in (g.members or "").split(',') if m.strip()] for g in service_groups}
+
+        # 2. Resolve all address groups
+        resolved_address_map: Dict[str, Set[str]] = {}
+        all_address_names = set(net_value_map.keys()) | set(net_group_map.keys())
+        for name in all_address_names:
+            expanded_group_names = self._expand_groups(name, net_group_map, self._net_group_closure_cache)
+            final_values: Set[str] = set()
+            for n in expanded_group_names:
+                final_values.update(net_value_map.get(n, {n}))
+            resolved_address_map[name] = final_values
+
+        # 3. Resolve all service groups
+        resolved_service_map: Dict[str, Set[str]] = {}
+        all_service_names = set(svc_value_map.keys()) | set(svc_group_map.keys())
         for name in all_service_names:
-            expanded_groups = self._expand_groups(name, svc_group_map, self._svc_group_closure_cache)
-            final_values = {svc_value_map.get(n.strip(), n.strip()) for n in expanded_groups.split(',')}
-            self.resolved_service_map[name] = ','.join(sorted(list(final_values)))
+            expanded_group_names = self._expand_groups(name, svc_group_map, self._svc_group_closure_cache)
+            final_values: Set[str] = set()
+            for n in expanded_group_names:
+                final_values.update(svc_value_map.get(n, {n}))
+            resolved_service_map[name] = final_values
 
-    def resolve_policy_members(self, policy_df: pd.DataFrame) -> pd.DataFrame:
-        """Resolves policy members using the pre-built maps."""
-
-        def map_values(member_str: str, resolved_map: Dict[str, str]) -> str:
-            if not isinstance(member_str, str): return ''
-            final_values = {resolved_map.get(n.strip(), n.strip()) for n in member_str.split(',')}
-            return ','.join(sorted(list(final_values)))
-
-        policy_df['flattened_source'] = policy_df['source'].apply(map_values, resolved_map=self.resolved_address_map)
-        policy_df['flattened_destination'] = policy_df['destination'].apply(map_values, resolved_map=self.resolved_address_map)
-        policy_df['flattened_service'] = policy_df['service'].apply(map_values, resolved_map=self.resolved_service_map)
-        return policy_df
+        return resolved_address_map, resolved_service_map
 
 
 async def rebuild_policy_indices(
@@ -105,7 +152,7 @@ async def rebuild_policy_indices(
     device_id: int,
     policies: Iterable[models.Policy],
 ) -> None:
-    """Rebuilds policy indices with an optimized, pre-resolving strategy."""
+    """Rebuilds policy indices with an optimized, set-based, in-memory strategy."""
     policy_list = list(policies)
     if not policy_list:
         return
@@ -116,49 +163,56 @@ async def rebuild_policy_indices(
     services = await crud.service.get_services_by_device(db, device_id=device_id)
     service_grps = await crud.service_group.get_service_groups_by_device(db, device_id=device_id)
 
-    # 2. Convert to DataFrames
-    network_object_df = pd.DataFrame([{'Name': o.name, 'Value': o.ip_address} for o in network_objs])
-    network_group_df = pd.DataFrame([{'Group Name': g.name, 'Entry': g.members or ''} for g in network_grps])
-    service_object_df = pd.DataFrame([{'Name': s.name, 'Protocol': s.protocol, 'Port': s.port} for s in services])
-    service_group_df = pd.DataFrame([{'Group Name': g.name, 'Entry': g.members or ''} for g in service_grps])
-
-    # 3. Pre-resolve all objects to build value maps
+    # 2. Pre-resolve all objects to build final value maps
     resolver = Resolver()
-    resolver.pre_resolve_objects(network_object_df, network_group_df, service_object_df, service_group_df)
+    resolved_address_map, resolved_service_map = resolver.pre_resolve_objects(
+        network_objs, network_grps, services, service_grps
+    )
 
-    # 4. Create a DataFrame for policies and resolve their members
-    policy_df = pd.DataFrame([p.__dict__ for p in policy_list])
-    resolved_df = resolver.resolve_policy_members(policy_df)
-
-    # 5. Process and insert index data into the database
+    # 3. Resolve members for each policy and prepare for DB insertion
     addr_rows, svc_rows = [], []
-    for _, row in resolved_df.iterrows():
-        policy_id = row['id']
+    ipv4_cache: Dict[str, Tuple[Optional[int], Optional[int], Optional[int]]] = {}
+    port_cache: Dict[str, Tuple[Optional[int], Optional[int]]] = {}
 
-        # Address members
-        for direction in ['source', 'destination']:
-            tokens = row[f'flattened_{direction}'].split(',')
-            for token in filter(None, tokens):
-                ver, start, end = resolver.ipv4_cache.get(token) or parse_ipv4_numeric(token)
-                resolver.ipv4_cache[token] = (ver, start, end)
-                addr_rows.append({
-                    "device_id": device_id, "policy_id": policy_id, "direction": direction, "token": token,
-                    "token_type": 'ipv4_single' if ver == 4 and start == end else 'ipv4_range',
-                    "ip_version": ver, "ip_start": start, "ip_end": end
+    for policy in policy_list:
+        # Resolve source members
+        src_members: Set[str] = set()
+        for name in [s.strip() for s in (policy.source or "").split(',') if s.strip()]:
+            src_members.update(resolved_address_map.get(name, {name}))
+
+        # Resolve destination members
+        dst_members: Set[str] = set()
+        for name in [s.strip() for s in (policy.destination or "").split(',') if s.strip()]:
+            dst_members.update(resolved_address_map.get(name, {name}))
+
+        # Resolve service members
+        svc_members: Set[str] = set()
+        for name in [s.strip() for s in (policy.service or "").split(',') if s.strip()]:
+            svc_members.update(resolved_service_map.get(name, {name}))
+
+        # --- Data Compression & Row Creation ---
+        # Address members (Source and Destination)
+        for direction, members in [('source', src_members), ('destination', dst_members)]:
+            # IP Range Merging
+            merged_ranges = merge_ip_ranges(members)
+            for start_ip, end_ip in merged_ranges:
+                 addr_rows.append({
+                    "device_id": device_id, "policy_id": policy.id, "direction": direction,
+                    "token_type": 'ipv4_range', "ip_version": 4,
+                    "ip_start": start_ip, "ip_end": end_ip
                 })
 
-        # Service members
-        tokens = row['flattened_service'].split(',')
-        for token in filter(None, tokens):
+        # Service members (remains token-based for now, but could be optimized similarly)
+        for token in filter(None, svc_members):
             proto, port_str = token.split('/', 1) if '/' in token else (None, token)
-            start, end = resolver.port_cache.get(port_str) or parse_port_numeric(port_str)
-            resolver.port_cache[port_str] = (start, end)
+            start, end = port_cache.get(port_str) or parse_port_numeric(port_str)
+            port_cache[port_str] = (start, end)
             svc_rows.append({
-                "device_id": device_id, "policy_id": policy_id, "token": token,
+                "device_id": device_id, "policy_id": policy.id, "token": token,
                 "token_type": 'proto_port', "protocol": proto, "port_start": start, "port_end": end
             })
 
-    # 6. Perform batch database operations
+    # 4. Perform batch database operations
     async with db.begin_nested():
         policy_ids_to_update = [p.id for p in policy_list]
         if policy_ids_to_update:
