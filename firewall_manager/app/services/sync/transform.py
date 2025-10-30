@@ -71,7 +71,7 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
 
             # Naive datetime 객체로 최종 변환 (DB 저장을 위해)
             # NaT는 None으로 변환됨
-            df["last_hit_date"] = s.dt.to_pydatetime(na=True)
+            df["last_hit_date"] = s.dt.to_pydatetime()
         if "rule_name" in df.columns:
             def _normalize_rule_name(v):
                 try:
