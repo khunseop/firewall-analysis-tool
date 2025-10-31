@@ -96,31 +96,25 @@ function initDeviceStatsGrid() {
   if (!gridDiv) return;
 
   const columnDefs = [
-    { field: 'name', headerName: '장비명', width: 180, filter: 'agTextColumnFilter' },
-    { field: 'vendor', headerName: '벤더', width: 100, filter: 'agTextColumnFilter' },
-    { field: 'ip_address', headerName: 'IP 주소', width: 140, filter: 'agTextColumnFilter' },
-    { field: 'policies', headerName: '정책 수', width: 100, filter: 'agNumberColumnFilter' },
-    { field: 'disabled_policies', headerName: '비활성화 정책', width: 130, filter: 'agNumberColumnFilter' },
-    { field: 'network_objects', headerName: '네트워크 객체', width: 140, filter: 'agNumberColumnFilter' },
-    { field: 'services', headerName: '서비스 객체', width: 130, filter: 'agNumberColumnFilter' }
+    { field: 'name', headerName: '장비명', filter: 'agTextColumnFilter' },
+    { field: 'vendor', headerName: '벤더', filter: 'agTextColumnFilter' },
+    { field: 'ip_address', headerName: 'IP 주소', filter: 'agTextColumnFilter' },
+    { field: 'policies', headerName: '정책 수', filter: 'agNumberColumnFilter' },
+    { field: 'disabled_policies', headerName: '비활성화 정책', filter: 'agNumberColumnFilter' },
+    { field: 'network_objects', headerName: '네트워크 객체', filter: 'agNumberColumnFilter' },
+    { field: 'services', headerName: '서비스 객체', filter: 'agNumberColumnFilter' }
   ];
 
   const gridOptions = {
     columnDefs: columnDefs,
     rowData: [],
     defaultColDef: {
-      resizable: true,
+      resizable: false,
       sortable: true,
       filter: true
     },
-    autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 120 },
-    enableCellTextSelection: true,
-    onGridReady: (params) => {
-      params.api.autoSizeAllColumns();
-    },
-    onFirstDataRendered: (params) => {
-      params.api.autoSizeAllColumns();
-    }
+    autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 500 },
+    enableCellTextSelection: true
   };
 
   if (typeof agGrid !== 'undefined') {

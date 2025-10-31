@@ -157,11 +157,13 @@ async function loadGrid(gridDiv, attempt = 0) {
       columnDefs: getColumns(),
       rowData: data,
       defaultColDef: { resizable: true, sortable: true, filter: false },
-      rowSelection: { mode: 'multiRow',checkboxes: true, headerCheckbox: true, enableClickSelection: true} ,
+      rowSelection: { mode: 'multiRow', checkboxes: true, headerCheckbox: true, enableClickSelection: true} ,
       pagination: true,
       paginationAutoPageSize: true,
       animateRows: true,
       getRowId: (params) => String(params.data.id),
+      autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 10, defaultMaxWidth: 400 },
+      enableCellTextSelection: true,
     };
     if (agGrid.createGrid) {
       gridApi = agGrid.createGrid(gridDiv, gridOptions);
@@ -234,13 +236,13 @@ function statusCellRenderer(params){
 
 function getColumns(){
   return [
-    { field: 'id', headerName:'ID', width: 80 },
+    { field: 'id', headerName:'ID', maxWidth: 100 },
     { field: 'name', headerName:'이름', flex: 1 },
-    { field: 'vendor', headerName:'벤더', width: 140, valueFormatter: p => codeToLabel.get(normalizeVendorCode(p.value)) || p.value },
-    { field: 'ip_address', headerName:'IP 주소', width: 160 },
+    { field: 'vendor', headerName:'벤더', maxWidth: 150, valueFormatter: p => codeToLabel.get(normalizeVendorCode(p.value)) || p.value },
+    { field: 'ip_address', headerName:'IP 주소' },
     { field: 'description', headerName:'설명', flex: 1 },
-    { field: 'last_sync_status', headerName:'진행 상태', width: 220, cellRenderer: statusCellRenderer },
-    { field: 'last_sync_at', headerName:'마지막 동기화', width: 200 },
+    { field: 'last_sync_status', headerName:'진행 상태', cellRenderer: statusCellRenderer },
+    { field: 'last_sync_at', headerName:'마지막 동기화' },
   ];
 }
 
