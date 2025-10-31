@@ -8,16 +8,16 @@ async def main():
         page = await browser.new_page()
 
         try:
-            # 1. Dashboard Loading Verification
+            # 1. Dashboard Loading Verification (with /app prefix)
             print("Navigating to Dashboard...")
-            await page.goto("http://localhost:8000/dashboard", wait_until="networkidle")
+            await page.goto("http://localhost:8000/app/dashboard", wait_until="networkidle")
             await expect(page.get_by_role("heading", name="대시보드")).to_be_visible(timeout=15000)
             print("Dashboard loaded successfully.")
 
             # 2. Policy Page and Grid Verification
             print("Navigating to Policy page...")
             await page.get_by_role("link", name="정책 조회").click()
-            await page.wait_for_url("**/policies", wait_until="networkidle")
+            await page.wait_for_url("**/app/policies", wait_until="networkidle")
             await expect(page.get_by_role("heading", name="정책 조회")).to_be_visible()
 
             # Wait for the grid to be ready

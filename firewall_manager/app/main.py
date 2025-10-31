@@ -31,7 +31,7 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # Mount frontend static directory and serve SPA at root
 FRONTEND_DIR = Path(__file__).resolve().parent / "frontend"
-
+app.mount("/app", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="app")
 
 
 @app.get(SWAGGER_UI_HTML_PATH, include_in_schema=False)
@@ -59,10 +59,10 @@ async def redoc_html():
     )
 
 
-# API routes must be registered *before* the catch-all static file mount.
 app.include_router(api_v1_router, prefix="/api/v1")
 
 
-# Mount frontend at root to serve index.html and other assets
-# This must be LAST after all other API routes are registered.
-app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
+@app.get("/", include_in_schema=False)
+def serve_index():
+    index_file = FRONTEND_DIR / "index.html"
+    return FileResponse(index_file)
