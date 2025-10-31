@@ -1,10 +1,16 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import delete, update
+from sqlalchemy import delete, update, func
 
 from app.models.service_group import ServiceGroup
 from app.schemas.service_group import ServiceGroupCreate
 from datetime import datetime
+
+async def get_service_group_by_name_and_device(db: AsyncSession, device_id: int, name: str):
+    result = await db.execute(
+        select(ServiceGroup).filter(ServiceGroup.device_id == device_id, ServiceGroup.name == name)
+    )
+    return result.scalars().first()
 
 async def get_service_group(db: AsyncSession, service_group_id: int):
     result = await db.execute(select(ServiceGroup).filter(ServiceGroup.id == service_group_id))
@@ -36,3 +42,14 @@ async def update_service_group(db: AsyncSession, db_obj: ServiceGroup, obj_in: S
 async def delete_service_group(db: AsyncSession, service_group: ServiceGroup):
     await db.delete(service_group)
     return service_group
+
+
+async def count_service_groups_by_device(db: AsyncSession, device_id: int) -> int:
+    """장비별 서비스 그룹 수량을 카운트합니다."""
+    result = await db.execute(
+        select(func.count(ServiceGroup.id)).where(
+            ServiceGroup.device_id == device_id,
+            ServiceGroup.is_active == True
+        )
+    )
+    return result.scalar() or 0

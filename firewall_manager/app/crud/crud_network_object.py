@@ -1,10 +1,16 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import delete, update
+from sqlalchemy import delete, update, func
 
 from app.models.network_object import NetworkObject
 from app.schemas.network_object import NetworkObjectCreate
 from datetime import datetime
+
+async def get_network_object_by_name_and_device(db: AsyncSession, device_id: int, name: str):
+    result = await db.execute(
+        select(NetworkObject).filter(NetworkObject.device_id == device_id, NetworkObject.name == name)
+    )
+    return result.scalars().first()
 
 async def get_network_object(db: AsyncSession, network_object_id: int):
     result = await db.execute(select(NetworkObject).filter(NetworkObject.id == network_object_id))
@@ -36,3 +42,14 @@ async def update_network_object(db: AsyncSession, db_obj: NetworkObject, obj_in:
 async def delete_network_object(db: AsyncSession, network_object: NetworkObject):
     await db.delete(network_object)
     return network_object
+
+
+async def count_network_objects_by_device(db: AsyncSession, device_id: int) -> int:
+    """장비별 네트워크 객체 수량을 카운트합니다."""
+    result = await db.execute(
+        select(func.count(NetworkObject.id)).where(
+            NetworkObject.device_id == device_id,
+            NetworkObject.is_active == True
+        )
+    )
+    return result.scalar() or 0

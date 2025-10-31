@@ -68,3 +68,20 @@ class PolicySearchRequest(BaseModel):
     # Paging (optional; AG-Grid usually client-side). If provided, backend slices.
     skip: Optional[int] = None
     limit: Optional[int] = None
+
+# Response schema for policy search
+class PolicySearchResponse(BaseModel):
+    policies: List[Policy]
+    valid_object_names: List[str]
+
+
+# Response schema for policy count
+class PolicyCountResponse(BaseModel):
+    total: int
+    disabled: int
+
+
+# Response schema for object count
+class ObjectCountResponse(BaseModel):
+    network_objects: int  # 객체 + 그룹 합계
+    services: int  # 서비스 + 그룹 합계

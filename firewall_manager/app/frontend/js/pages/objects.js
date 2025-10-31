@@ -19,8 +19,21 @@ const networkObjectsColumns = [
 // 네트워크 그룹 그리드 컬럼 정의
 const networkGroupsColumns = [
   { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'name', headerName: '이름', minWidth: 200, filter: 'agTextColumnFilter' },
-  { field: 'members', headerName: '멤버', minWidth: 400, filter: 'agTextColumnFilter' },
+  { field: 'name', headerName: '이름', minWidth: 200, filter: 'agTextColumnFilter', maxWidth: 400 },
+    {
+        field: 'members',
+        headerName: '멤버',
+        minWidth: 400,
+        filter: 'agTextColumnFilter',
+        wrapText: true,
+        autoHeight: true,
+        maxWidth: 500,
+        cellRenderer: params => {
+            if (!params.value) return '';
+            const members = String(params.value).split(',').map(s => s.trim()).filter(Boolean);
+            return members.join('<br>');
+        }
+    },
   { field: 'description', headerName: '설명', minWidth: 300, filter: 'agTextColumnFilter' }
 ];
 
@@ -36,8 +49,21 @@ const servicesColumns = [
 // 서비스 그룹 그리드 컬럼 정의
 const serviceGroupsColumns = [
   { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'name', headerName: '이름', minWidth: 200, filter: 'agTextColumnFilter' },
-  { field: 'members', headerName: '멤버', minWidth: 400, filter: 'agTextColumnFilter' },
+  { field: 'name', headerName: '이름', minWidth: 200, filter: 'agTextColumnFilter', maxWidth: 400 },
+    {
+        field: 'members',
+        headerName: '멤버',
+        minWidth: 400,
+        filter: 'agTextColumnFilter',
+        wrapText: true,
+        autoHeight: true,
+        maxWidth: 500,
+        cellRenderer: params => {
+            if (!params.value) return '';
+            const members = String(params.value).split(',').map(s => s.trim()).filter(Boolean);
+            return members.join('<br>');
+        }
+    },
   { field: 'description', headerName: '설명', minWidth: 300, filter: 'agTextColumnFilter' }
 ];
 
@@ -73,14 +99,15 @@ async function initGrids() {
       columnDefs: networkObjectsColumns,
       defaultColDef: {
         sortable: true,
-        resizable: true,
+        resizable: false,
         filter: true,
       },
+      autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 120 },
+      enableCellTextSelection: true,
       pagination: true,
       paginationPageSize: 50,
       paginationPageSizeSelector: [50, 100, 200],
-      rowSelection: 'multiple',
-      enableRangeSelection: true,
+      onFirstDataRendered: params => params.api.autoSizeAllColumns(),
     });
   }
 
@@ -91,14 +118,15 @@ async function initGrids() {
       columnDefs: networkGroupsColumns,
       defaultColDef: {
         sortable: true,
-        resizable: true,
+        resizable: false,
         filter: true,
       },
+      autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 120 },
+      enableCellTextSelection: true,
       pagination: true,
       paginationPageSize: 50,
       paginationPageSizeSelector: [50, 100, 200],
-      rowSelection: 'multiple',
-      enableRangeSelection: true,
+      onFirstDataRendered: params => params.api.autoSizeAllColumns(),
     });
   }
 
@@ -109,14 +137,15 @@ async function initGrids() {
       columnDefs: servicesColumns,
       defaultColDef: {
         sortable: true,
-        resizable: true,
+        resizable: false,
         filter: true,
       },
+      autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 120 },
+      enableCellTextSelection: true,
       pagination: true,
       paginationPageSize: 50,
       paginationPageSizeSelector: [50, 100, 200],
-      rowSelection: 'multiple',
-      enableRangeSelection: true,
+      onFirstDataRendered: params => params.api.autoSizeAllColumns(),
     });
   }
 
@@ -124,17 +153,17 @@ async function initGrids() {
   const serviceGroupsEl = document.getElementById('service-groups-grid');
   if (serviceGroupsEl) {
     serviceGroupsGrid = agGrid.createGrid(serviceGroupsEl, {
-      columnDefs: serviceGroupsColumns,
       defaultColDef: {
         sortable: true,
-        resizable: true,
+        resizable: false,
         filter: true,
       },
+      autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 120 },
+      enableCellTextSelection: true,
       pagination: true,
       paginationPageSize: 50,
       paginationPageSizeSelector: [50, 100, 200],
-      rowSelection: 'multiple',
-      enableRangeSelection: true,
+      onFirstDataRendered: params => params.api.autoSizeAllColumns(),
     });
   }
 }
@@ -239,12 +268,16 @@ async function loadData(deviceIds) {
     // 해당 그리드에 데이터 설정
     if (currentTab === 'network-objects' && networkObjectsGrid) {
       networkObjectsGrid.setGridOption('rowData', mergedData);
+      networkObjectsGrid.autoSizeAllColumns();
     } else if (currentTab === 'network-groups' && networkGroupsGrid) {
       networkGroupsGrid.setGridOption('rowData', mergedData);
+      networkGroupsGrid.autoSizeAllColumns();
     } else if (currentTab === 'services' && servicesGrid) {
       servicesGrid.setGridOption('rowData', mergedData);
+      servicesGrid.autoSizeAllColumns();
     } else if (currentTab === 'service-groups' && serviceGroupsGrid) {
       serviceGroupsGrid.setGridOption('rowData', mergedData);
+      serviceGroupsGrid.autoSizeAllColumns();
     }
   } catch (err) {
     console.error(`Failed to load ${currentTab}:`, err);

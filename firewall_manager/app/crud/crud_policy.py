@@ -45,6 +45,28 @@ async def delete_policy(db: AsyncSession, policy: Policy):
     return policy
 
 
+async def count_policies_by_device(db: AsyncSession, device_id: int) -> dict:
+    """장비별 정책 수량을 카운트합니다. (총 정책 수, 비활성화 정책 수)"""
+    total_count = await db.execute(
+        select(func.count(Policy.id)).where(
+            Policy.device_id == device_id,
+            Policy.is_active == True
+        )
+    )
+    total = total_count.scalar() or 0
+    
+    disabled_count = await db.execute(
+        select(func.count(Policy.id)).where(
+            Policy.device_id == device_id,
+            Policy.is_active == True,
+            Policy.enable == False
+        )
+    )
+    disabled = disabled_count.scalar() or 0
+    
+    return {"total": total, "disabled": disabled}
+
+
 async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) -> List[Policy]:
     if not req.device_ids:
         return []
@@ -99,93 +121,106 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
     if to is not None:
         stmt = stmt.where(Policy.last_hit_date <= to)
 
-    # Member-index filters (support multiple values OR-semantics)
-    pam = models.PolicyAddressMember
-    psm = models.PolicyServiceMember
+    # --- Member-index filters ---
+    # We collect policy IDs from each filter type (src, dst, svc).
+    # Within each filter, multiple values are treated as OR (union).
+    # Between filters, the results are treated as AND (intersection).
 
-    def _src_match_expr(ip_str: str):
-        v, start, end = parse_ipv4_numeric(ip_str)
-        if start is not None and end is not None and v == 4:
-            return select(1).where(
-                pam.policy_id == Policy.id,
-                pam.device_id.in_(req.device_ids),
-                pam.direction == 'source',
-                pam.ip_version == 4,
-                pam.ip_start <= end,
-                pam.ip_end >= start,
-            ).exists()
-        return Policy.source.match(ip_str)
+    list_of_policy_id_sets = []
 
-    def _dst_match_expr(ip_str: str):
-        v, start, end = parse_ipv4_numeric(ip_str)
-        if start is not None and end is not None and v == 4:
-            return select(1).where(
-                pam.policy_id == Policy.id,
-                pam.device_id.in_(req.device_ids),
-                pam.direction == 'destination',
-                pam.ip_version == 4,
-                pam.ip_start <= end,
-                pam.ip_end >= start,
-            ).exists()
-        return Policy.destination.match(ip_str)
-
-    def _svc_match_expr(token: str):
-        token = (token or '').strip()
-        proto = None
-        ports = None
-        if '/' in token:
-            proto, ports = token.split('/', 1)
-            proto = (proto or '').strip().lower()
-        else:
-            ports = token
-        pstart, pend = parse_port_numeric(ports or '')
-        conds = [psm.policy_id == Policy.id, psm.device_id.in_(req.device_ids)]
-        if proto and proto not in {'any', '*'}:
-            conds.append(func.lower(psm.protocol) == proto)
-        if pstart is not None and pend is not None:
-            conds.extend([psm.port_start <= pend, psm.port_end >= pstart])
-            return select(1).where(*conds).exists()
-        return Policy.service.match(token)
-
-    # Apply source filters
-    src_terms = [req.src_ip] if req.src_ip else []
+    # Source IP filter
     if req.src_ips:
-        src_terms += [t for t in req.src_ips if t]
-    if src_terms:
-        # OR across multiple tokens
-        src_expr = None
-        for t in src_terms:
-            e = _src_match_expr(t)
-            src_expr = e if src_expr is None else (src_expr | e)
-        stmt = stmt.where(src_expr)
+        src_policy_ids = set()
+        for ip_str in req.src_ips:
+            _, start, end = parse_ipv4_numeric(ip_str)
+            if start is not None and end is not None:
+                query = select(models.PolicyAddressMember.policy_id).where(
+                    models.PolicyAddressMember.device_id.in_(req.device_ids),
+                    models.PolicyAddressMember.direction == 'source',
+                    models.PolicyAddressMember.ip_start <= end,
+                    models.PolicyAddressMember.ip_end >= start
+                )
+                result = await db.execute(query)
+                src_policy_ids.update(result.scalars().all())
+        list_of_policy_id_sets.append(src_policy_ids)
 
-    # Apply destination filters
-    dst_terms = [req.dst_ip] if req.dst_ip else []
+    # Destination IP filter
     if req.dst_ips:
-        dst_terms += [t for t in req.dst_ips if t]
-    if dst_terms:
-        dst_expr = None
-        for t in dst_terms:
-            e = _dst_match_expr(t)
-            dst_expr = e if dst_expr is None else (dst_expr | e)
-        stmt = stmt.where(dst_expr)
+        dst_policy_ids = set()
+        for ip_str in req.dst_ips:
+            _, start, end = parse_ipv4_numeric(ip_str)
+            if start is not None and end is not None:
+                query = select(models.PolicyAddressMember.policy_id).where(
+                    models.PolicyAddressMember.device_id.in_(req.device_ids),
+                    models.PolicyAddressMember.direction == 'destination',
+                    models.PolicyAddressMember.ip_start <= end,
+                    models.PolicyAddressMember.ip_end >= start
+                )
+                result = await db.execute(query)
+                dst_policy_ids.update(result.scalars().all())
+        list_of_policy_id_sets.append(dst_policy_ids)
 
-    # Apply service filters
-    svc_terms = []
-    # legacy fields
-    if req.protocol or req.port:
-        proto = (req.protocol or '').strip().lower()
-        ports = (req.port or '').strip()
-        svc_terms.append(f"{proto}/{ports}" if proto or ports else '')
+    # Service filter
     if req.services:
-        svc_terms += [t for t in req.services if t]
-    svc_terms = [t for t in svc_terms if t]
-    if svc_terms:
-        svc_expr = None
-        for t in svc_terms:
-            e = _svc_match_expr(t)
-            svc_expr = e if svc_expr is None else (svc_expr | e)
-        stmt = stmt.where(svc_expr)
+        from sqlalchemy import and_, or_
+
+        svc_policy_ids = set()
+        or_conditions = []
+
+        for token in req.services:
+            token = token.strip()
+            if not token:
+                continue
+
+            proto = None
+            ports_str = token
+            if '/' in token:
+                parts = token.split('/', 1)
+                proto = parts[0].strip().lower()
+                ports_str = parts[1].strip()
+
+            pstart, pend = parse_port_numeric(ports_str)
+
+            if pstart is not None and pend is not None:
+                # Base condition for port range
+                port_condition = and_(
+                    models.PolicyServiceMember.port_start <= pend,
+                    models.PolicyServiceMember.port_end >= pstart
+                )
+
+                # Protocol-specific conditions
+                if proto and proto != 'any':
+                    # User specified a protocol (e.g., 'tcp/80')
+                    final_condition = and_(port_condition, func.lower(models.PolicyServiceMember.protocol) == proto)
+                else:
+                    # User did not specify a protocol (e.g., '80'), or specified 'any'.
+                    # Match against tcp/udp for specific ports, but also include 'any' protocol
+                    # policies which match all ports.
+                    final_condition = and_(
+                        port_condition,
+                        func.lower(models.PolicyServiceMember.protocol).in_(['tcp', 'udp', 'any'])
+                    )
+                or_conditions.append(final_condition)
+
+        if or_conditions:
+            query = select(models.PolicyServiceMember.policy_id).where(
+                models.PolicyServiceMember.device_id.in_(req.device_ids),
+                or_(*or_conditions)
+            )
+            result = await db.execute(query)
+            svc_policy_ids.update(result.scalars().all())
+
+        list_of_policy_id_sets.append(svc_policy_ids)
+
+    # If any index filters were applied, calculate the intersection
+    if list_of_policy_id_sets:
+        # 모든 필터 결과의 교집합을 계산
+        final_policy_ids = set.intersection(*list_of_policy_id_sets)
+
+        if not final_policy_ids: # 결합된 인덱스 필터와 일치하는 정책이 없음
+            return []
+        stmt = stmt.where(Policy.id.in_(final_policy_ids))
+
 
     # Ordering: device -> vsys -> seq -> rule_name
     stmt = stmt.order_by(Policy.device_id.asc(), Policy.vsys.asc(), Policy.seq.asc(), Policy.rule_name.asc())

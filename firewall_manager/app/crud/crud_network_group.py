@@ -1,10 +1,16 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import delete, update
+from sqlalchemy import delete, update, func
 
 from app.models.network_group import NetworkGroup
 from app.schemas.network_group import NetworkGroupCreate
 from datetime import datetime
+
+async def get_network_group_by_name_and_device(db: AsyncSession, device_id: int, name: str):
+    result = await db.execute(
+        select(NetworkGroup).filter(NetworkGroup.device_id == device_id, NetworkGroup.name == name)
+    )
+    return result.scalars().first()
 
 async def get_network_group(db: AsyncSession, network_group_id: int):
     result = await db.execute(select(NetworkGroup).filter(NetworkGroup.id == network_group_id))
@@ -36,3 +42,14 @@ async def update_network_group(db: AsyncSession, db_obj: NetworkGroup, obj_in: N
 async def delete_network_group(db: AsyncSession, network_group: NetworkGroup):
     await db.delete(network_group)
     return network_group
+
+
+async def count_network_groups_by_device(db: AsyncSession, device_id: int) -> int:
+    """장비별 네트워크 그룹 수량을 카운트합니다."""
+    result = await db.execute(
+        select(func.count(NetworkGroup.id)).where(
+            NetworkGroup.device_id == device_id,
+            NetworkGroup.is_active == True
+        )
+    )
+    return result.scalar() or 0

@@ -31,11 +31,51 @@ async def read_db_device_policies(device_id: int, db: AsyncSession = Depends(get
     return await crud.policy.get_policies_by_device(db=db, device_id=device_id)
 
 
-@router.post("/policies/search", response_model=List[schemas.Policy])
+@router.get("/{device_id}/policies/count", response_model=schemas.PolicyCountResponse)
+async def count_device_policies(device_id: int, db: AsyncSession = Depends(get_db)):
+    """장비별 정책 수량을 카운트합니다. (총 정책 수, 비활성화 정책 수)"""
+    counts = await crud.policy.count_policies_by_device(db=db, device_id=device_id)
+    return schemas.PolicyCountResponse(**counts)
+
+
+@router.get("/{device_id}/objects/count", response_model=schemas.ObjectCountResponse)
+async def count_device_objects(device_id: int, db: AsyncSession = Depends(get_db)):
+    """장비별 객체 수량을 카운트합니다. (네트워크 객체+그룹, 서비스+그룹)"""
+    network_objects_count = await crud.network_object.count_network_objects_by_device(db=db, device_id=device_id)
+    network_groups_count = await crud.network_group.count_network_groups_by_device(db=db, device_id=device_id)
+    
+    services_count = await crud.service.count_services_by_device(db=db, device_id=device_id)
+    service_groups_count = await crud.service_group.count_service_groups_by_device(db=db, device_id=device_id)
+    
+    return schemas.ObjectCountResponse(
+        network_objects=network_objects_count + network_groups_count,
+        services=services_count + service_groups_count
+    )
+
+
+@router.post("/policies/search", response_model=schemas.PolicySearchResponse)
 async def search_policies(req: schemas.PolicySearchRequest, db: AsyncSession = Depends(get_db)):
     if not req.device_ids:
-        return []
-    return await crud.policy.search_policies(db=db, req=req)
+        return schemas.PolicySearchResponse(policies=[], valid_object_names=[])
+
+    policies = await crud.policy.search_policies(db=db, req=req)
+
+    # Fetch all valid object names for the given devices
+    valid_object_names = set()
+    for device_id in req.device_ids:
+        net_objs = await crud.network_object.get_network_objects_by_device(db=db, device_id=device_id)
+        valid_object_names.update(obj.name for obj in net_objs)
+
+        net_groups = await crud.network_group.get_network_groups_by_device(db=db, device_id=device_id)
+        valid_object_names.update(group.name for group in net_groups)
+
+        services = await crud.service.get_services_by_device(db=db, device_id=device_id)
+        valid_object_names.update(svc.name for svc in services)
+
+        service_groups = await crud.service_group.get_service_groups_by_device(db=db, device_id=device_id)
+        valid_object_names.update(group.name for group in service_groups)
+
+    return schemas.PolicySearchResponse(policies=policies, valid_object_names=list(valid_object_names))
 
 
 @router.get("/{device_id}/network-objects", response_model=List[schemas.NetworkObject])
@@ -56,6 +96,35 @@ async def read_db_device_services(device_id: int, db: AsyncSession = Depends(get
 @router.get("/{device_id}/service-groups", response_model=List[schemas.ServiceGroup])
 async def read_db_device_service_groups(device_id: int, db: AsyncSession = Depends(get_db)):
     return await crud.service_group.get_service_groups_by_device(db=db, device_id=device_id)
+
+
+from typing import Union
+
+@router.get("/object/details", response_model=Union[schemas.NetworkObject, schemas.NetworkGroup, schemas.Service, schemas.ServiceGroup, schemas.Msg])
+async def get_object_details(device_id: int, name: str, db: AsyncSession = Depends(get_db)):
+    # Try to find the object in the order of likelihood
+
+    # 1. Network Object
+    net_obj = await crud.network_object.get_network_object_by_name_and_device(db, device_id=device_id, name=name)
+    if net_obj:
+        return net_obj
+
+    # 2. Network Group
+    net_group = await crud.network_group.get_network_group_by_name_and_device(db, device_id=device_id, name=name)
+    if net_group:
+        return net_group
+
+    # 3. Service Object
+    svc_obj = await crud.service.get_service_by_name_and_device(db, device_id=device_id, name=name)
+    if svc_obj:
+        return svc_obj
+
+    # 4. Service Group
+    svc_group = await crud.service_group.get_service_group_by_name_and_device(db, device_id=device_id, name=name)
+    if svc_group:
+        return svc_group
+
+    raise HTTPException(status_code=404, detail=f"Object '{name}' not found in device '{device_id}'")
 
 
 @router.get("/sync/{device_id}/status", response_model=schemas.DeviceSyncStatus)
