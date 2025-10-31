@@ -61,8 +61,9 @@ async def redoc_html():
 
 app.include_router(api_v1_router, prefix="/api/v1")
 
-
-@app.get("/", include_in_schema=False)
-def serve_index():
+# Add a catch-all route for client-side routing.
+# This must be after all other routes.
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_catch_all(full_path: str):
     index_file = FRONTEND_DIR / "index.html"
     return FileResponse(index_file)

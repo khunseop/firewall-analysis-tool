@@ -151,19 +151,19 @@ class PaloAltoAPI(FirewallInterface):
                 description = self.list_to_string([desc.replace('\n', ' ') for desc in description_list])
 
                 rule_info = {
-                    "Vsys": vsys_name,
-                    "Seq": idx + 1,
-                    "Rule Name": rule_name,
-                    "Enable": disabled_status,
-                    "Action": action,
-                    "Source": source,
-                    "User": user,
-                    "Destination": destination,
-                    "Service": service,
-                    "Application": application,
-                    "Security Profile": url_filtering,
-                    "Category": category,
-                    "Description": description,
+                    "vsys": vsys_name,
+                    "seq": idx + 1,
+                    "rule_name": rule_name,
+                    "enable": disabled_status,
+                    "action": action,
+                    "source": source,
+                    "user": user,
+                    "destination": destination,
+                    "service": service,
+                    "application": application,
+                    "security_profile": url_filtering,
+                    "category": category,
+                    "description": description,
                 }
                 security_rules.append(rule_info)
 
@@ -290,9 +290,9 @@ class PaloAltoAPI(FirewallInterface):
                     last_hit_date = None
 
                 vsys_results.append({
-                    "Vsys": vsys_name,
-                    "Rule Name": rule_name,
-                    "Last Hit Date": last_hit_date,
+                    "vsys": vsys_name,
+                    "rule_name": rule_name,
+                    "last_hit_date": last_hit_date,
                 })
             return vsys_results
 

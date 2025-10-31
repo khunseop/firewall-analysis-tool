@@ -157,17 +157,17 @@ class NGFClient:
                 if rule.get("name") == "default": continue
 
                 info = {
-                    "Seq": rule.get("seq"),
-                    "Rule Name": rule.get("fw_rule_id"),
-                    "Enable": "Y" if rule.get("use") == 1 else "N",
-                    "Action": "allow" if rule.get("action") == 1 else "deny",
-                    "Source": self.list_to_string([src.get("name") for src in rule.get("src", [])] or "any"),
-                    "User": self.list_to_string([list(user.values())[0] for user in rule.get("user", [])] or "any"),
-                    "Destination": self.list_to_string([dst.get("name") for dst in rule.get("dst", [])] or "any"),
-                    "Service": self.list_to_string([srv.get("name") for srv in rule.get("srv", [])] or "any"),
-                    "Application": self.list_to_string([app.get("name") for app in rule.get("app", [])] or "any"),
-                    "Last Hit Date": rule.get("last_hit_time"),
-                    "Description": rule.get("desc")
+                    "seq": rule.get("seq"),
+                    "rule_name": rule.get("fw_rule_id"),
+                    "enable": "Y" if rule.get("use") == 1 else "N",
+                    "action": "allow" if rule.get("action") == 1 else "deny",
+                    "source": self.list_to_string([src.get("name") for src in rule.get("src", [])] or "any"),
+                    "user": self.list_to_string([list(user.values())[0] for user in rule.get("user", [])] or "any"),
+                    "destination": self.list_to_string([dst.get("name") for dst in rule.get("dst", [])] or "any"),
+                    "service": self.list_to_string([srv.get("name") for srv in rule.get("srv", [])] or "any"),
+                    "application": self.list_to_string([app.get("name") for app in rule.get("app", [])] or "any"),
+                    "last_hit_date": rule.get("last_hit_time"),
+                    "description": rule.get("desc")
                 }
                 security_rules.append(info)
             return pd.DataFrame(security_rules)
@@ -330,4 +330,4 @@ class NGFCollector(FirewallInterface):
 
     # PaloAlto 전용 확장 미지원: 호출되면 빈 DF 반환
     def export_last_hit_date(self, vsys: Optional[list[str] | set[str]] = None) -> pd.DataFrame:
-        return pd.DataFrame(columns=["Vsys", "Rule Name", "Last Hit Date"])
+        return pd.DataFrame(columns=["vsys", "rule_name", "last_hit_date"])

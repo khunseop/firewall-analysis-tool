@@ -80,7 +80,6 @@ async function initGrids() {
       paginationPageSize: 50,
       paginationPageSizeSelector: [50, 100, 200],
       rowSelection: 'multiple',
-      enableRangeSelection: true,
       onFirstDataRendered: params => params.api.autoSizeAllColumns(),
     });
   }
@@ -99,7 +98,6 @@ async function initGrids() {
       paginationPageSize: 50,
       paginationPageSizeSelector: [50, 100, 200],
       rowSelection: 'multiple',
-      enableRangeSelection: true,
       onFirstDataRendered: params => params.api.autoSizeAllColumns(),
     });
   }
@@ -118,7 +116,6 @@ async function initGrids() {
       paginationPageSize: 50,
       paginationPageSizeSelector: [50, 100, 200],
       rowSelection: 'multiple',
-      enableRangeSelection: true,
       onFirstDataRendered: params => params.api.autoSizeAllColumns(),
     });
   }
@@ -137,7 +134,6 @@ async function initGrids() {
       paginationPageSize: 50,
       paginationPageSizeSelector: [50, 100, 200],
       rowSelection: 'multiple',
-      enableRangeSelection: true,
       onFirstDataRendered: params => params.api.autoSizeAllColumns(),
     });
   }

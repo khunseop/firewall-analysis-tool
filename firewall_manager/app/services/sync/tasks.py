@@ -210,18 +210,11 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                     if hit_date_df is not None and not hit_date_df.empty:
                         logging.info(f"[orchestrator] Retrieved {len(hit_date_df)} last_hit records; merging...")
 
-                        # policies_df의 컬럼은 transform.py를 거쳐 소문자가 됨 ('vsys', 'rule_name')
-                        # hit_date_df의 컬럼은 'Vsys', 'Rule Name' 이므로, 소문자로 변경하여 병합
-                        hit_date_df = hit_date_df.rename(columns={"Vsys": "vsys", "Rule Name": "rule_name", "Last Hit Date": "last_hit_date"})
-
+                        # Vender 모듈에서 컬럼명을 snake_case로 통일했으므로 rename 불필요
                         # 데이터 타입 통일
                         for col in ['vsys', 'rule_name']:
                             if col in policies_df.columns: policies_df[col] = policies_df[col].astype(str)
                             if col in hit_date_df.columns: hit_date_df[col] = hit_date_df[col].astype(str)
-
-                        # merge 전에 policies_df에 'vsys' 컬럼이 없으면 생성
-                        if 'vsys' not in policies_df.columns:
-                            policies_df['vsys'] = 'vsys1' # 또는 적절한 기본값
 
                         policies_df = pd.merge(policies_df, hit_date_df, on=["vsys", "rule_name"], how="left")
 
@@ -234,7 +227,7 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                     else:
                         logging.info("[orchestrator] No last_hit_date records returned; skipping merge.")
                 except Exception as e:
-                    logging.error(f"Failed to collect or merge last_hit_date for device {device_id}: {e}", exc_info=True)
+                    logging.warning(f"Failed to collect or merge last_hit_date for device {device_id}: {e}. Continuing sync without hit dates.", exc_info=True)
             else:
                 logging.info(f"[orchestrator] Vendor is not 'paloalto' ({device.vendor}); skipping usage history collection.")
 

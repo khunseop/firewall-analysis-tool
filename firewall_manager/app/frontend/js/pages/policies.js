@@ -86,8 +86,8 @@ async function initGrid() {
     columnDefs: getCols(),
     rowData: [],
     defaultColDef:{ resizable:true, sortable:true, filter:true },
-    enableRangeSelection: true,
     rowHeight: 180,
+    getRowId: params => String(params.data.id),
     onGridReady: params => {
         policyGridApi = params.api;
     },
@@ -161,15 +161,41 @@ async function searchAndLoadPolicies() {
 
 function buildSearchPayload(deviceIds){
   const g = (id) => document.getElementById(id);
-  const v = (id) => g(id)?.value?.trim() || '';
+  const v = (id) => g(id)?.value?.trim() || null; // 값이 없으면 null 반환
   const splitCsv = (val) => (val || '').split(',').map(s => s.trim()).filter(Boolean);
-  return {
+
+  const payload = {
     device_ids: deviceIds,
     rule_name: v('f-rule-name'),
+    vsys: v('f-vsys'),
+    // `source`, `destination`, `service`는 더 이상 Pydantic 모델에 없는 일반 텍스트 필드입니다.
+    // 대신 `src_ips`, `dst_ips`, `services`를 사용합니다.
+    user: v('f-user'),
+    application: v('f-app'),
+    description: v('f-desc'),
+    action: v('f-action'),
+    last_hit_date_from: v('f-hit-from'),
+    last_hit_date_to: v('f-hit-to'),
+    enable: g('f-enable')?.value === 'true' ? true : g('f-enable')?.value === 'false' ? false : null,
+
+    // Corrected fields for indexed search
     src_ips: splitCsv(v('f-src')),
     dst_ips: splitCsv(v('f-dst')),
     services: splitCsv(v('f-svc')),
   };
+
+  const isAllFiltersEmpty = Object.keys(payload).every(key => {
+    if (key === 'device_ids') return !payload[key] || payload[key].length === 0;
+    const value = payload[key];
+    if (Array.isArray(value)) return value.length === 0;
+    return value === null || value === '';
+  });
+
+  if (isAllFiltersEmpty && deviceIds.length > 0) {
+    payload.limit = 500;
+  }
+
+  return payload;
 }
 
 export async function initPolicies(){
