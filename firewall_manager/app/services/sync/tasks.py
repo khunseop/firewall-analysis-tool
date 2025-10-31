@@ -210,13 +210,18 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                     if hit_date_df is not None and not hit_date_df.empty:
                         logging.info(f"[orchestrator] Retrieved {len(hit_date_df)} last_hit records; merging...")
 
-                        # 컬럼 이름 통일 (paloalto.py는 'Rule Name', tasks.py는 'rule_name')
-                        hit_date_df = hit_date_df.rename(columns={"Rule Name": "rule_name", "Last Hit Date": "last_hit_date", "Vsys": "vsys"})
+                        # policies_df의 컬럼은 transform.py를 거쳐 소문자가 됨 ('vsys', 'rule_name')
+                        # hit_date_df의 컬럼은 'Vsys', 'Rule Name' 이므로, 소문자로 변경하여 병합
+                        hit_date_df = hit_date_df.rename(columns={"Vsys": "vsys", "Rule Name": "rule_name", "Last Hit Date": "last_hit_date"})
 
                         # 데이터 타입 통일
                         for col in ['vsys', 'rule_name']:
                             if col in policies_df.columns: policies_df[col] = policies_df[col].astype(str)
                             if col in hit_date_df.columns: hit_date_df[col] = hit_date_df[col].astype(str)
+
+                        # merge 전에 policies_df에 'vsys' 컬럼이 없으면 생성
+                        if 'vsys' not in policies_df.columns:
+                            policies_df['vsys'] = 'vsys1' # 또는 적절한 기본값
 
                         policies_df = pd.merge(policies_df, hit_date_df, on=["vsys", "rule_name"], how="left")
 
