@@ -157,17 +157,12 @@ async function loadGrid(gridDiv, attempt = 0) {
       columnDefs: getColumns(),
       rowData: data,
       defaultColDef: { resizable: true, sortable: true, filter: false },
-      rowSelection: {
-        mode: 'multiRow',
-        checkboxes: true,
-        headerCheckbox: true,
-        selectAll: 'filtered',
-        enableClickSelection: true,
-      },
+      rowSelection: 'multiple',
+      suppressRowClickSelection: true,
       pagination: true,
       paginationAutoPageSize: true,
       animateRows: true,
-      getRowId: (params) => params.data.id,
+      getRowId: (params) => String(params.data.id),
     };
     if (agGrid.createGrid) {
       gridApi = agGrid.createGrid(gridDiv, gridOptions);
@@ -329,30 +324,48 @@ export function initDevices(root){
   startPolling();
 }
 
-function startPolling(){
+async function startPolling() {
   stopPolling();
   const tick = async () => {
+    let nextInterval = 8000; // 기본 폴링 간격
     try {
-      const data = await api.listDevices();
-      const hasProgress = Array.isArray(data) && data.some(d => d.last_sync_status === 'in_progress');
+      const latestDevices = await api.listDevices();
       const apiRef = gridApi || (gridOptions && gridOptions.api);
-      if (apiRef) {
-        // applyTransaction 대신 setRowData를 사용하여 신규/삭제 행을 반영
-        if (typeof apiRef.setRowData === 'function') {
-          apiRef.setRowData(data);
-        } else if (typeof apiRef.setGridOption === 'function') {
-          apiRef.setGridOption('rowData', data);
+
+      if (apiRef && latestDevices) {
+        const rowsToUpdate = [];
+        let hasInProgress = false;
+
+        latestDevices.forEach(device => {
+          const rowNode = apiRef.getRowNode(String(device.id));
+          if (rowNode) {
+            // 기존 행과 데이터 비교하여 변경된 경우에만 업데이트 목록에 추가
+            const currentData = rowNode.data;
+            if (JSON.stringify(currentData) !== JSON.stringify(device)) {
+              rowsToUpdate.push(device);
+            }
+          }
+          if (device.last_sync_status === 'in_progress') {
+            hasInProgress = true;
+          }
+        });
+
+        if (rowsToUpdate.length > 0) {
+          apiRef.applyTransaction({ update: rowsToUpdate });
+        }
+
+        if (hasInProgress) {
+          nextInterval = 2000; // 동기화 진행 중일 때는 더 자주 폴링
         }
       }
-      // 계속 진행중이면 짧게, 아니면 길게
-      const interval = hasProgress ? 2000 : 8000;
-      pollTimer = setTimeout(tick, interval);
     } catch (e) {
-      // 실패 시 폴링 간격을 늘려 재시도
-      pollTimer = setTimeout(tick, 10000);
+      console.error("Polling failed:", e);
+      nextInterval = 15000; // 에러 발생 시 폴링 간격 늘림
+    } finally {
+      pollTimer = setTimeout(tick, nextInterval);
     }
   };
-  pollTimer = setTimeout(tick, 1500);
+  pollTimer = setTimeout(tick, 1500); // 즉시 첫 실행
 }
 
 function stopPolling(){

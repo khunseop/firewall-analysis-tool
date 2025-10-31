@@ -12,6 +12,7 @@ async function loadStatistics() {
 
     // 각 장비의 통계 데이터 수집
     let totalPolicies = 0;
+    let totalDisabledPolicies = 0;
     let totalNetworkObjects = 0;
     let totalServices = 0;
 
@@ -20,14 +21,14 @@ async function loadStatistics() {
     for (const device of devices) {
       try {
         // 정책 수 가져오기
-        const policies = await api.searchPolicies({ device_ids: [device.id] });
-        const policyCount = Array.isArray(policies) ? policies.length : 0;
+        const response = await api.searchPolicies({ device_ids: [device.id], limit: 10000 }); // 모든 정책을 가져오기 위해 limit 설정
+        const policies = response.policies || [];
+        const policyCount = policies.length;
         totalPolicies += policyCount;
 
         // 비활성화 정책 수 카운트
-        const disabledPolicyCount = Array.isArray(policies) 
-          ? policies.filter(p => p.enable === false).length 
-          : 0;
+        const disabledPolicyCount = policies.filter(p => p.enable === false).length;
+        totalDisabledPolicies += disabledPolicyCount;
 
         // 네트워크 객체 수 가져오기
         const networkObjects = await api.getNetworkObjects(device.id);
@@ -65,6 +66,7 @@ async function loadStatistics() {
 
     // 통계 카드 업데이트
     document.getElementById('stat-total-policies').textContent = totalPolicies;
+    document.getElementById('stat-disabled-policies').textContent = totalDisabledPolicies;
     document.getElementById('stat-network-objects').textContent = totalNetworkObjects;
     document.getElementById('stat-service-objects').textContent = totalServices;
 

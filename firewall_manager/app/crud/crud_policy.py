@@ -140,7 +140,11 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
 
     # Service filter
     if req.services:
+        from sqlalchemy import and_, or_
+
         svc_policy_ids = set()
+        or_conditions = []
+
         for token in req.services:
             token = token.strip()
             if not token:
@@ -156,27 +160,42 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
             pstart, pend = parse_port_numeric(ports_str)
 
             if pstart is not None and pend is not None:
-                query = select(models.PolicyServiceMember.policy_id).where(
-                    models.PolicyServiceMember.device_id.in_(req.device_ids),
+                # Base condition for port range
+                port_condition = and_(
                     models.PolicyServiceMember.port_start <= pend,
                     models.PolicyServiceMember.port_end >= pstart
                 )
-                if proto and proto != 'any':
-                    query = query.where(func.lower(models.PolicyServiceMember.protocol) == proto)
 
-                result = await db.execute(query)
-                svc_policy_ids.update(result.scalars().all())
+                # Protocol-specific conditions
+                if proto and proto != 'any':
+                    # User specified a protocol (e.g., 'tcp/80')
+                    final_condition = and_(port_condition, func.lower(models.PolicyServiceMember.protocol) == proto)
+                else:
+                    # User did not specify a protocol (e.g., '80'), or specified 'any'.
+                    # Match against tcp/udp for specific ports, but also include 'any' protocol
+                    # policies which match all ports.
+                    final_condition = and_(
+                        port_condition,
+                        func.lower(models.PolicyServiceMember.protocol).in_(['tcp', 'udp', 'any'])
+                    )
+                or_conditions.append(final_condition)
+
+        if or_conditions:
+            query = select(models.PolicyServiceMember.policy_id).where(
+                models.PolicyServiceMember.device_id.in_(req.device_ids),
+                or_(*or_conditions)
+            )
+            result = await db.execute(query)
+            svc_policy_ids.update(result.scalars().all())
+
         list_of_policy_id_sets.append(svc_policy_ids)
 
     # If any index filters were applied, calculate the intersection
     if list_of_policy_id_sets:
-        # Start with the first set of IDs
-        final_policy_ids = list_of_policy_id_sets[0]
-        # Intersect with the rest of the sets
-        for i in range(1, len(list_of_policy_id_sets)):
-            final_policy_ids.intersection_update(list_of_policy_id_sets[i])
+        # 모든 필터 결과의 교집합을 계산
+        final_policy_ids = set.intersection(*list_of_policy_id_sets)
 
-        if not final_policy_ids: # No policies matched the combined index filters
+        if not final_policy_ids: # 결합된 인덱스 필터와 일치하는 정책이 없음
             return []
         stmt = stmt.where(Policy.id.in_(final_policy_ids))
 

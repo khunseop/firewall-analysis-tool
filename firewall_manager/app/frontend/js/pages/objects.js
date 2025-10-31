@@ -19,8 +19,21 @@ const networkObjectsColumns = [
 // 네트워크 그룹 그리드 컬럼 정의
 const networkGroupsColumns = [
   { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'name', headerName: '이름', minWidth: 200, filter: 'agTextColumnFilter' },
-  { field: 'members', headerName: '멤버', minWidth: 400, filter: 'agTextColumnFilter' },
+  { field: 'name', headerName: '이름', minWidth: 200, filter: 'agTextColumnFilter', maxWidth: 400 },
+    {
+        field: 'members',
+        headerName: '멤버',
+        minWidth: 400,
+        filter: 'agTextColumnFilter',
+        wrapText: true,
+        autoHeight: true,
+        maxWidth: 500,
+        cellRenderer: params => {
+            if (!params.value) return '';
+            const members = String(params.value).split(',').map(s => s.trim()).filter(Boolean);
+            return members.join('<br>');
+        }
+    },
   { field: 'description', headerName: '설명', minWidth: 300, filter: 'agTextColumnFilter' }
 ];
 
@@ -36,8 +49,21 @@ const servicesColumns = [
 // 서비스 그룹 그리드 컬럼 정의
 const serviceGroupsColumns = [
   { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'name', headerName: '이름', minWidth: 200, filter: 'agTextColumnFilter' },
-  { field: 'members', headerName: '멤버', minWidth: 400, filter: 'agTextColumnFilter' },
+  { field: 'name', headerName: '이름', minWidth: 200, filter: 'agTextColumnFilter', maxWidth: 400 },
+    {
+        field: 'members',
+        headerName: '멤버',
+        minWidth: 400,
+        filter: 'agTextColumnFilter',
+        wrapText: true,
+        autoHeight: true,
+        maxWidth: 500,
+        cellRenderer: params => {
+            if (!params.value) return '';
+            const members = String(params.value).split(',').map(s => s.trim()).filter(Boolean);
+            return members.join('<br>');
+        }
+    },
   { field: 'description', headerName: '설명', minWidth: 300, filter: 'agTextColumnFilter' }
 ];
 

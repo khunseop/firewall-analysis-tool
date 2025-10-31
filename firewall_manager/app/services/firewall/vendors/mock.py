@@ -31,6 +31,7 @@ class MockFirewall:
         return random.choice(common_ports + port_ranges)
 
     def _generate_sample_data(self):
+        random.seed(42) # Ensure deterministic mock data for consistent testing
         zones = ['Internal', 'External', 'DMZ', 'Guest', 'Management']
         applications = ['Web', 'File Transfer', 'Remote Access', 'Email', 'Database', 'VoIP', 'Streaming']
         protocols = ['tcp', 'udp', 'icmp']
@@ -145,6 +146,17 @@ class MockFirewall:
                 'user': 'any', 'destination': 'any',
                 'service': 'Svc_80', # tcp/80
                 'application': 'Web', 'description': '복합 검색 테스트용 규칙',
+                'last_hit_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            },
+            # Rule to guarantee a policy with tcp/443 exists for testing
+            {
+                'seq': rule_count + 3,
+                'rule_name': 'Test-Search-Rule-Direct-HTTPS',
+                'enable': 'Y', 'action': 'allow',
+                'source': 'any',
+                'user': 'any', 'destination': 'Test-Host-1', # 1.1.1.1
+                'service': 'Svc_443', # tcp/443
+                'application': 'Web', 'description': 'Direct HTTPS service search test',
                 'last_hit_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
         ])

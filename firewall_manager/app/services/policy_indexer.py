@@ -202,11 +202,21 @@ async def rebuild_policy_indices(
                     "ip_start": start_ip, "ip_end": end_ip
                 })
 
-        # Service members (remains token-based for now, but could be optimized similarly)
+        # Service members
         for token in filter(None, svc_members):
-            proto, port_str = token.split('/', 1) if '/' in token else (None, token)
+            token_lower = token.lower()
+            if '/' in token_lower:
+                proto, port_str = token_lower.split('/', 1)
+            else:
+                proto, port_str = ('any' if token_lower == 'any' else None), token_lower
+
             start, end = port_cache.get(port_str) or parse_port_numeric(port_str)
             port_cache[port_str] = (start, end)
+
+            # Do not insert rows for tokens that couldn't be parsed into valid ports.
+            if start is None or end is None:
+                continue
+
             svc_rows.append({
                 "device_id": device_id, "policy_id": policy.id, "token": token,
                 "token_type": 'proto_port', "protocol": proto, "port_start": start, "port_end": end

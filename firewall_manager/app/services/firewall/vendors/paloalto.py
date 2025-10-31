@@ -309,4 +309,9 @@ class PaloAltoAPI(FirewallInterface):
             except Exception as e:
                 self.logger.warning("VSYS %s hit-date 조회 실패: %s", vsys_name, e)
 
-        return pd.DataFrame(results)
+        df = pd.DataFrame(results)
+        if not df.empty and 'last_hit_date' in df.columns:
+            # 숫자 타임스탬프를 datetime 객체로 변환
+            df['last_hit_date'] = pd.to_datetime(df['last_hit_date'], unit='s', errors='coerce')
+
+        return df

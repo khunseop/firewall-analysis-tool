@@ -7,38 +7,39 @@ let validObjectNames = new Set(); // 유효한 객체 이름 저장
 
 // Function to render object links in a cell
 function objectCellRenderer(params) {
-  if (!params.value) return '';
-  const deviceId = params.data.device_id;
-  const objectNames = params.value.split(',').map(s => s.trim()).filter(Boolean);
+    if (!params.value) return '';
+    const deviceId = params.data.device_id;
+    const objectNames = params.value.split(',').map(s => s.trim()).filter(Boolean);
 
-  const container = document.createElement('span');
-  objectNames.forEach((name, index) => {
-    // DB에 존재하는 객체인 경우에만 링크 생성
-    if (validObjectNames.has(name)) {
-      const link = document.createElement('a');
-      link.href = '#';
-      link.textContent = name;
-      link.style.cursor = 'pointer';
-      link.addEventListener('click', async (e) => {
-        e.preventDefault();
-        try {
-          const objectDetails = await api.getObjectDetails(deviceId, name);
-          showObjectDetailModal(objectDetails);
-        } catch (error) {
-          alert(`객체 '${name}'의 상세 정보를 가져오는 데 실패했습니다: ${error.message}`);
+    const container = document.createElement('div');
+    container.style.height = '100%';
+    container.style.overflowY = 'auto';
+    container.style.lineHeight = '1.5';
+
+    objectNames.forEach(name => {
+        const line = document.createElement('div');
+        if (validObjectNames.has(name)) {
+            const link = document.createElement('a');
+            link.href = '#';
+            link.textContent = name;
+            link.style.cursor = 'pointer';
+            link.onclick = async (e) => {
+                e.preventDefault();
+                try {
+                    const objectDetails = await api.getObjectDetails(deviceId, name);
+                    showObjectDetailModal(objectDetails);
+                } catch (error) {
+                    alert(`객체 '${name}'의 상세 정보를 가져오는 데 실패했습니다: ${error.message}`);
+                }
+            };
+            line.appendChild(link);
+        } else {
+            line.textContent = name;
         }
-      });
-      container.appendChild(link);
-    } else {
-      // 존재하지 않는 객체는 일반 텍스트로 표시
-      container.appendChild(document.createTextNode(name));
-    }
+        container.appendChild(line);
+    });
 
-    if (index < objectNames.length - 1) {
-      container.appendChild(document.createTextNode(', '));
-    }
-  });
-  return container;
+    return container;
 }
 
 
@@ -49,44 +50,40 @@ async function initGrid() {
     { field:'device_name', headerName:'장비', width:150, filter:'agTextColumnFilter', pinned:'left' },
     { field:'seq', headerName:'순서', width:90, sort:'asc' },
     { field:'vsys', headerName:'가상시스템', width:120 },
-    { field:'rule_name', headerName:'정책명', minWidth:250 },
+    { field:'rule_name', headerName:'정책명', minWidth:250, maxWidth: 400 },
     { field:'enable', headerName:'활성화', width:100, valueFormatter:p=>p.value===true?'활성':p.value===false?'비활성':'' },
     { field:'action', headerName:'액션', width:110 },
     {
-      field:'source', headerName:'출발지', minWidth:250, wrapText:true,
-      cellStyle: { 'white-space': 'normal', 'line-height': 1.5, 'max-height': '180px', 'overflow-y': 'auto' },
+      field:'source', headerName:'출발지', minWidth:250, maxWidth: 400, wrapText:true,
       cellRenderer: objectCellRenderer
     },
     {
       field:'user', headerName:'사용자', width:140, wrapText:true,
-      cellStyle: { 'white-space': 'normal', 'line-height': 1.5, 'max-height': '180px', 'overflow-y': 'auto' },
-      cellRenderer: params => (params.value || '').replace(/,/g, ', ')
+      cellRenderer: params => (params.value || '').replace(/,/g, ',<br>')
     },
     {
-      field:'destination', headerName:'목적지', minWidth:250, wrapText:true,
-      cellStyle: { 'white-space': 'normal', 'line-height': 1.5, 'max-height': '180px', 'overflow-y': 'auto' },
+      field:'destination', headerName:'목적지', minWidth:250, maxWidth: 400, wrapText:true,
       cellRenderer: objectCellRenderer
     },
     {
-      field:'service', headerName:'서비스', minWidth:250, wrapText:true,
-      cellStyle: { 'white-space': 'normal', 'line-height': 1.5, 'max-height': '180px', 'overflow-y': 'auto' },
+      field:'service', headerName:'서비스', minWidth:250, maxWidth: 400, wrapText:true,
       cellRenderer: objectCellRenderer
     },
     {
       field:'application', headerName:'애플리케이션', width:150, wrapText:true,
-      cellStyle: { 'white-space': 'normal', 'line-height': 1.5, 'max-height': '180px', 'overflow-y': 'auto' },
-      cellRenderer: params => (params.value || '').replace(/,/g, ', ')
+      cellRenderer: params => (params.value || '').replace(/,/g, ',<br>')
     },
     { field:'security_profile', headerName:'보안프로파일', width:180 },
     { field:'category', headerName:'카테고리', width:140 },
-    { field:'description', headerName:'설명', minWidth:300 },
+    { field:'description', headerName:'설명', minWidth:300, maxWidth: 500 },
     { field:'last_hit_date', headerName:'마지막매칭일시', width:190 },
   ]);
   const options = {
     columnDefs: getCols(),
     rowData: [],
     defaultColDef:{ resizable:true, sortable:true, filter:true },
-    rowHeight: 180,
+    rowHeight: 120, // 5줄 + 여백에 해당하는 높이
+    autoSizeStrategy: { type: 'fitCellContents' },
     getRowId: params => String(params.data.id),
     onGridReady: params => {
         policyGridApi = params.api;
