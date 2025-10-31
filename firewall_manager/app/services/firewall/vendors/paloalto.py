@@ -153,7 +153,7 @@ class PaloAltoAPI(FirewallInterface):
                 rule_info = {
                     "Vsys": vsys_name,
                     "Seq": idx + 1,
-                    "Rule_Name": rule_name,
+                    "Rule Name": rule_name,
                     "Enable": disabled_status,
                     "Action": action,
                     "Source": source,
@@ -161,7 +161,7 @@ class PaloAltoAPI(FirewallInterface):
                     "Destination": destination,
                     "Service": service,
                     "Application": application,
-                    "Security_Profile": url_filtering,
+                    "Security Profile": url_filtering,
                     "Category": category,
                     "Description": description,
                 }

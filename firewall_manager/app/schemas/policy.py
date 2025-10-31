@@ -68,3 +68,8 @@ class PolicySearchRequest(BaseModel):
     # Paging (optional; AG-Grid usually client-side). If provided, backend slices.
     skip: Optional[int] = None
     limit: Optional[int] = None
+
+# Response schema for policy search
+class PolicySearchResponse(BaseModel):
+    policies: List[Policy]
+    valid_object_names: List[str]

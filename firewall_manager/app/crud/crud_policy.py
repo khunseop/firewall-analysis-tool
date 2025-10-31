@@ -114,7 +114,7 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
                 pam.ip_start <= end,
                 pam.ip_end >= start,
             ).exists()
-        return Policy.source.match(ip_str)
+        return Policy.source.ilike(f"%{ip_str}%")
 
     def _dst_match_expr(ip_str: str):
         v, start, end = parse_ipv4_numeric(ip_str)
@@ -127,7 +127,7 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
                 pam.ip_start <= end,
                 pam.ip_end >= start,
             ).exists()
-        return Policy.destination.match(ip_str)
+        return Policy.destination.ilike(f"%{ip_str}%")
 
     def _svc_match_expr(token: str):
         token = (token or '').strip()
@@ -145,7 +145,7 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
         if pstart is not None and pend is not None:
             conds.extend([psm.port_start <= pend, psm.port_end >= pstart])
             return select(1).where(*conds).exists()
-        return Policy.service.match(token)
+        return Policy.service.ilike(f"%{token}%")
 
     # Apply source filters
     src_terms = [req.src_ip] if req.src_ip else []

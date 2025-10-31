@@ -31,11 +31,29 @@ async def read_db_device_policies(device_id: int, db: AsyncSession = Depends(get
     return await crud.policy.get_policies_by_device(db=db, device_id=device_id)
 
 
-@router.post("/policies/search", response_model=List[schemas.Policy])
+@router.post("/policies/search", response_model=schemas.PolicySearchResponse)
 async def search_policies(req: schemas.PolicySearchRequest, db: AsyncSession = Depends(get_db)):
     if not req.device_ids:
-        return []
-    return await crud.policy.search_policies(db=db, req=req)
+        return schemas.PolicySearchResponse(policies=[], valid_object_names=[])
+
+    policies = await crud.policy.search_policies(db=db, req=req)
+
+    # Fetch all valid object names for the given devices
+    valid_object_names = set()
+    for device_id in req.device_ids:
+        net_objs = await crud.network_object.get_network_objects_by_device(db=db, device_id=device_id)
+        valid_object_names.update(obj.name for obj in net_objs)
+
+        net_groups = await crud.network_group.get_network_groups_by_device(db=db, device_id=device_id)
+        valid_object_names.update(group.name for group in net_groups)
+
+        services = await crud.service.get_services_by_device(db=db, device_id=device_id)
+        valid_object_names.update(svc.name for svc in services)
+
+        service_groups = await crud.service_group.get_service_groups_by_device(db=db, device_id=device_id)
+        valid_object_names.update(group.name for group in service_groups)
+
+    return schemas.PolicySearchResponse(policies=policies, valid_object_names=list(valid_object_names))
 
 
 @router.get("/{device_id}/network-objects", response_model=List[schemas.NetworkObject])
