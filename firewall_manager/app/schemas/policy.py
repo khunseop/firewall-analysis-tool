@@ -73,3 +73,15 @@ class PolicySearchRequest(BaseModel):
 class PolicySearchResponse(BaseModel):
     policies: List[Policy]
     valid_object_names: List[str]
+
+
+# Response schema for policy count
+class PolicyCountResponse(BaseModel):
+    total: int
+    disabled: int
+
+
+# Response schema for object count
+class ObjectCountResponse(BaseModel):
+    network_objects: int  # 객체 + 그룹 합계
+    services: int  # 서비스 + 그룹 합계

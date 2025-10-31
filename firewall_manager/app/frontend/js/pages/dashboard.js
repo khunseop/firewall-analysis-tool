@@ -8,7 +8,8 @@ async function loadStatistics() {
     const devices = await api.listDevices();
     
     // 총 장비 수
-    document.getElementById('stat-total-devices').textContent = devices.length;
+    const statTotalDevices = document.getElementById('stat-total-devices');
+    if (statTotalDevices) statTotalDevices.textContent = devices.length;
 
     // 각 장비의 통계 데이터 수집
     let totalPolicies = 0;
@@ -20,24 +21,20 @@ async function loadStatistics() {
 
     for (const device of devices) {
       try {
-        // 정책 수 가져오기
-        const response = await api.searchPolicies({ device_ids: [device.id], limit: 10000 }); // 모든 정책을 가져오기 위해 limit 설정
-        const policies = response.policies || [];
-        const policyCount = policies.length;
+        // 정책 수 가져오기 (카운트 API 사용)
+        const policyCounts = await api.getPolicyCount(device.id);
+        const policyCount = policyCounts.total || 0;
+        const disabledPolicyCount = policyCounts.disabled || 0;
+        
         totalPolicies += policyCount;
-
-        // 비활성화 정책 수 카운트
-        const disabledPolicyCount = policies.filter(p => p.enable === false).length;
         totalDisabledPolicies += disabledPolicyCount;
 
-        // 네트워크 객체 수 가져오기
-        const networkObjects = await api.getNetworkObjects(device.id);
-        const networkObjectCount = Array.isArray(networkObjects) ? networkObjects.length : 0;
+        // 객체 수 가져오기 (카운트 API 사용)
+        const objectCounts = await api.getObjectCount(device.id);
+        const networkObjectCount = objectCounts.network_objects || 0;
+        const serviceCount = objectCounts.services || 0;
+        
         totalNetworkObjects += networkObjectCount;
-
-        // 서비스 객체 수 가져오기
-        const services = await api.getServices(device.id);
-        const serviceCount = Array.isArray(services) ? services.length : 0;
         totalServices += serviceCount;
 
         // 장비별 통계 데이터 저장
@@ -65,10 +62,15 @@ async function loadStatistics() {
     }
 
     // 통계 카드 업데이트
-    document.getElementById('stat-total-policies').textContent = totalPolicies;
-    document.getElementById('stat-disabled-policies').textContent = totalDisabledPolicies;
-    document.getElementById('stat-network-objects').textContent = totalNetworkObjects;
-    document.getElementById('stat-service-objects').textContent = totalServices;
+    const statTotalPolicies = document.getElementById('stat-total-policies');
+    const statDisabledPolicies = document.getElementById('stat-disabled-policies');
+    const statNetworkObjects = document.getElementById('stat-network-objects');
+    const statServiceObjects = document.getElementById('stat-service-objects');
+    
+    if (statTotalPolicies) statTotalPolicies.textContent = totalPolicies;
+    if (statDisabledPolicies) statDisabledPolicies.textContent = totalDisabledPolicies;
+    if (statNetworkObjects) statNetworkObjects.textContent = totalNetworkObjects;
+    if (statServiceObjects) statServiceObjects.textContent = totalServices;
 
     // 장비별 통계 그리드 업데이트
     if (deviceStatsGrid) {
@@ -76,10 +78,15 @@ async function loadStatistics() {
     }
   } catch (err) {
     console.error('Failed to load statistics:', err);
-    document.getElementById('stat-total-devices').textContent = '오류';
-    document.getElementById('stat-total-policies').textContent = '오류';
-    document.getElementById('stat-network-objects').textContent = '오류';
-    document.getElementById('stat-service-objects').textContent = '오류';
+    const statTotalDevices = document.getElementById('stat-total-devices');
+    const statTotalPolicies = document.getElementById('stat-total-policies');
+    const statNetworkObjects = document.getElementById('stat-network-objects');
+    const statServiceObjects = document.getElementById('stat-service-objects');
+    
+    if (statTotalDevices) statTotalDevices.textContent = '오류';
+    if (statTotalPolicies) statTotalPolicies.textContent = '오류';
+    if (statNetworkObjects) statNetworkObjects.textContent = '오류';
+    if (statServiceObjects) statServiceObjects.textContent = '오류';
   }
 }
 
@@ -106,6 +113,8 @@ function initDeviceStatsGrid() {
       sortable: true,
       filter: true
     },
+    autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 120 },
+    enableCellTextSelection: true,
     onGridReady: (params) => {
       params.api.autoSizeAllColumns();
     },

@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import delete, update
+from sqlalchemy import delete, update, func
 
 from app.models.service import Service
 from app.schemas.service import ServiceCreate
@@ -42,3 +42,14 @@ async def update_service(db: AsyncSession, db_obj: Service, obj_in: ServiceCreat
 async def delete_service(db: AsyncSession, service: Service):
     await db.delete(service)
     return service
+
+
+async def count_services_by_device(db: AsyncSession, device_id: int) -> int:
+    """장비별 서비스 객체 수량을 카운트합니다."""
+    result = await db.execute(
+        select(func.count(Service.id)).where(
+            Service.device_id == device_id,
+            Service.is_active == True
+        )
+    )
+    return result.scalar() or 0

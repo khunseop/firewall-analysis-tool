@@ -45,6 +45,28 @@ async def delete_policy(db: AsyncSession, policy: Policy):
     return policy
 
 
+async def count_policies_by_device(db: AsyncSession, device_id: int) -> dict:
+    """장비별 정책 수량을 카운트합니다. (총 정책 수, 비활성화 정책 수)"""
+    total_count = await db.execute(
+        select(func.count(Policy.id)).where(
+            Policy.device_id == device_id,
+            Policy.is_active == True
+        )
+    )
+    total = total_count.scalar() or 0
+    
+    disabled_count = await db.execute(
+        select(func.count(Policy.id)).where(
+            Policy.device_id == device_id,
+            Policy.is_active == True,
+            Policy.enable == False
+        )
+    )
+    disabled = disabled_count.scalar() or 0
+    
+    return {"total": total, "disabled": disabled}
+
+
 async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) -> List[Policy]:
     if not req.device_ids:
         return []

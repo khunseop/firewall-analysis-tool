@@ -31,6 +31,28 @@ async def read_db_device_policies(device_id: int, db: AsyncSession = Depends(get
     return await crud.policy.get_policies_by_device(db=db, device_id=device_id)
 
 
+@router.get("/{device_id}/policies/count", response_model=schemas.PolicyCountResponse)
+async def count_device_policies(device_id: int, db: AsyncSession = Depends(get_db)):
+    """장비별 정책 수량을 카운트합니다. (총 정책 수, 비활성화 정책 수)"""
+    counts = await crud.policy.count_policies_by_device(db=db, device_id=device_id)
+    return schemas.PolicyCountResponse(**counts)
+
+
+@router.get("/{device_id}/objects/count", response_model=schemas.ObjectCountResponse)
+async def count_device_objects(device_id: int, db: AsyncSession = Depends(get_db)):
+    """장비별 객체 수량을 카운트합니다. (네트워크 객체+그룹, 서비스+그룹)"""
+    network_objects_count = await crud.network_object.count_network_objects_by_device(db=db, device_id=device_id)
+    network_groups_count = await crud.network_group.count_network_groups_by_device(db=db, device_id=device_id)
+    
+    services_count = await crud.service.count_services_by_device(db=db, device_id=device_id)
+    service_groups_count = await crud.service_group.count_service_groups_by_device(db=db, device_id=device_id)
+    
+    return schemas.ObjectCountResponse(
+        network_objects=network_objects_count + network_groups_count,
+        services=services_count + service_groups_count
+    )
+
+
 @router.post("/policies/search", response_model=schemas.PolicySearchResponse)
 async def search_policies(req: schemas.PolicySearchRequest, db: AsyncSession = Depends(get_db)):
     if not req.device_ids:

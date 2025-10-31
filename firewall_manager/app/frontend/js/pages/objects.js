@@ -99,13 +99,14 @@ async function initGrids() {
       columnDefs: networkObjectsColumns,
       defaultColDef: {
         sortable: true,
-        resizable: true,
+        resizable: false,
         filter: true,
       },
+      autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 120 },
+      enableCellTextSelection: true,
       pagination: true,
       paginationPageSize: 50,
       paginationPageSizeSelector: [50, 100, 200],
-      rowSelection: 'multiple',
       onFirstDataRendered: params => params.api.autoSizeAllColumns(),
     });
   }
@@ -117,13 +118,14 @@ async function initGrids() {
       columnDefs: networkGroupsColumns,
       defaultColDef: {
         sortable: true,
-        resizable: true,
+        resizable: false,
         filter: true,
       },
+      autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 120 },
+      enableCellTextSelection: true,
       pagination: true,
       paginationPageSize: 50,
       paginationPageSizeSelector: [50, 100, 200],
-      rowSelection: 'multiple',
       onFirstDataRendered: params => params.api.autoSizeAllColumns(),
     });
   }
@@ -135,13 +137,14 @@ async function initGrids() {
       columnDefs: servicesColumns,
       defaultColDef: {
         sortable: true,
-        resizable: true,
+        resizable: false,
         filter: true,
       },
+      autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 120 },
+      enableCellTextSelection: true,
       pagination: true,
       paginationPageSize: 50,
       paginationPageSizeSelector: [50, 100, 200],
-      rowSelection: 'multiple',
       onFirstDataRendered: params => params.api.autoSizeAllColumns(),
     });
   }
@@ -150,16 +153,16 @@ async function initGrids() {
   const serviceGroupsEl = document.getElementById('service-groups-grid');
   if (serviceGroupsEl) {
     serviceGroupsGrid = agGrid.createGrid(serviceGroupsEl, {
-      columnDefs: serviceGroupsColumns,
       defaultColDef: {
         sortable: true,
-        resizable: true,
+        resizable: false,
         filter: true,
       },
+      autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 120 },
+      enableCellTextSelection: true,
       pagination: true,
       paginationPageSize: 50,
       paginationPageSizeSelector: [50, 100, 200],
-      rowSelection: 'multiple',
       onFirstDataRendered: params => params.api.autoSizeAllColumns(),
     });
   }

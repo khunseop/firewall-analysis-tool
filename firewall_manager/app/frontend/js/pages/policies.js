@@ -81,9 +81,9 @@ async function initGrid() {
   const options = {
     columnDefs: getCols(),
     rowData: [],
-    defaultColDef:{ resizable:true, sortable:true, filter:true },
-    rowHeight: 120, // 5줄 + 여백에 해당하는 높이
-    autoSizeStrategy: { type: 'fitCellContents' },
+    defaultColDef:{ resizable:false, sortable:false, filter:true },
+    autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 120 },
+    enableCellTextSelection: true,
     getRowId: params => String(params.data.id),
     onGridReady: params => {
         policyGridApi = params.api;
