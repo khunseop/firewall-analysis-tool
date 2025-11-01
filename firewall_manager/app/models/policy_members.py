@@ -14,7 +14,7 @@ class PolicyAddressMember(Base):
     ip_start = Column(BigInteger, nullable=True)
     ip_end = Column(BigInteger, nullable=True)
 
-    policy = relationship("Policy")
+    policy = relationship("Policy", back_populates="address_members")
     device = relationship("Device")
 
     __table_args__ = (
@@ -35,7 +35,7 @@ class PolicyServiceMember(Base):
     port_start = Column(Integer, nullable=True)
     port_end = Column(Integer, nullable=True)
 
-    policy = relationship("Policy")
+    policy = relationship("Policy", back_populates="service_members")
     device = relationship("Device")
 
     __table_args__ = (
