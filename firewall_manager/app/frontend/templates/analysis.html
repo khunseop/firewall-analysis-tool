@@ -1,6 +1,56 @@
-<div class="container">
-  <h1 class="title is-5">정책분석</h1>
-  <p class="help">중복/Shadow/광범위/미사용 분석은 후속 구현.</p>
+<div class="container is-fluid">
+  <h1 class="title is-5 mb-4">정책 분석</h1>
+
+  <!-- 컨트롤 박스 -->
+  <div class="box mb-4">
+    <div class="columns is-vcentered">
+      <!-- 장비 선택 -->
+      <div class="column is-4">
+        <div class="field">
+          <label class="label">장비</label>
+          <div class="control">
+            <select id="analysis-device-select"></select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 분석 종류 선택 -->
+      <div class="column is-3">
+        <div class="field">
+          <label class="label">분석 종류</label>
+          <div class="control">
+            <div class="select is-fullwidth">
+              <select id="analysis-type-select">
+                <option selected>중복 정책 분석</option>
+                <option disabled>Shadow 정책 분석 (예정)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 분석 시작 버튼 -->
+      <div class="column">
+        <div class="field">
+          <label class="label">&nbsp;</label>
+          <div class="control">
+            <button class="button is-primary" id="btn-start-analysis">분석하기</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 상태 표시 영역 -->
+    <div id="analysis-status-container" class="mt-4" style="display: none;">
+        <div class="notification is-info is-light">
+            <p id="analysis-status-text">상태</p>
+        </div>
+    </div>
+  </div>
+
+  <!-- 결과 그리드 -->
+  <div class="box">
+    <h2 class="title is-6">분석 결과</h2>
+    <div id="analysis-result-grid" class="ag-theme-quartz" style="height: calc(100vh - 400px);"></div>
+  </div>
 </div>
-
-
