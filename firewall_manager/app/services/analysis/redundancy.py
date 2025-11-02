@@ -48,15 +48,15 @@ class RedundancyAnalyzer:
 
         # 주소 멤버들을 방향에 따라 정렬된 튜플로 변환
         src_addrs = tuple(sorted([
-            f"{m.ip_address}/{m.netmask}" for m in policy.address_members if m.direction == 'source'
+            f"{m.ip_start}-{m.ip_end}" for m in policy.address_members if m.direction == 'source'
         ]))
         dst_addrs = tuple(sorted([
-            f"{m.ip_address}/{m.netmask}" for m in policy.address_members if m.direction == 'destination'
+            f"{m.ip_start}-{m.ip_end}" for m in policy.address_members if m.direction == 'destination'
         ]))
 
         # 서비스 멤버들을 프로토콜과 포트에 따라 정렬된 튜플로 변환
         services = tuple(sorted([
-            f"{m.protocol}/{m.port}" for m in policy.service_members
+            f"{m.protocol}/{m.port_start}-{m.port_end}" for m in policy.service_members
         ]))
 
         # 벤더별로 비교할 컬럼들을 튜플로 묶음
