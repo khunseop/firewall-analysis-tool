@@ -14,14 +14,7 @@ from alembic import context
 
 # Import your models' Base
 from app.db.session import Base
-from app.models.device import Device
-from app.models.network_object import NetworkObject
-from app.models.policy import Policy
-from app.models.network_group import NetworkGroup
-from app.models.service import Service
-from app.models.service_group import ServiceGroup
-from app.models.change_log import ChangeLog
-from app.models.policy_members import PolicyAddressMember, PolicyServiceMember
+from app.models import *
 from app.core.config import settings
 
 # this is the Alembic Config object, which provides

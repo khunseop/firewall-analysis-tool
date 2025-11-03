@@ -66,3 +66,8 @@ app.include_router(api_v1_router, prefix="/api/v1")
 def serve_index():
     index_file = FRONTEND_DIR / "index.html"
     return FileResponse(index_file)
+
+@app.get("/analysis", include_in_schema=False)
+def serve_analysis_page():
+    analysis_file = FRONTEND_DIR / "templates/analysis.html"
+    return FileResponse(analysis_file)

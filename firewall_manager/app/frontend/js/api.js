@@ -30,6 +30,9 @@ export const api = {
   getServices: (deviceId) => request(`/firewall/${deviceId}/services`),
   getServiceGroups: (deviceId) => request(`/firewall/${deviceId}/service-groups`),
   getObjectDetails: (deviceId, name) => request(`/firewall/object/details?device_id=${deviceId}&name=${encodeURIComponent(name)}`),
+  startAnalysis: (deviceId) => request(`/analysis/redundancy/${deviceId}`, { method: "POST" }),
+  getAnalysisStatus: (deviceId) => request(`/analysis/${deviceId}/status`),
+  getAnalysisResults: (taskId) => request(`/analysis/redundancy/${taskId}/results`),
   exportToExcel: async (data, filename) => {
     const res = await fetch(`${BASE}/firewall/export/excel`, {
       method: "POST",

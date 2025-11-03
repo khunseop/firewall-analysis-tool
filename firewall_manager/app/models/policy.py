@@ -30,3 +30,5 @@ class Policy(Base):
     is_indexed = Column(Boolean, default=False, nullable=False)
 
     device = relationship("Device")
+    address_members = relationship("PolicyAddressMember", back_populates="policy", cascade="all, delete-orphan")
+    service_members = relationship("PolicyServiceMember", back_populates="policy", cascade="all, delete-orphan")
