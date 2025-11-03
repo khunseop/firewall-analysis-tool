@@ -39,18 +39,19 @@
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- 상태 표시 영역 -->
-    <div id="analysis-status-container" class="mt-4" style="display: none;">
-        <div class="notification is-info is-light">
-            <p id="analysis-status-text">상태</p>
-        </div>
-    </div>
+  <!-- 상태 로그 표시 영역 -->
+  <div id="analysis-status-container" class="mb-4" style="display: none;">
+      <p class="is-size-7 has-text-grey" id="analysis-status-text"></p>
   </div>
 
   <!-- 결과 그리드 -->
-  <div class="box">
-    <h2 class="title is-6">분석 결과</h2>
-    <div id="analysis-result-grid" class="ag-theme-quartz" style="height: calc(100vh - 400px);"></div>
+  <div id="analysis-result-box" class="box" style="display: none;">
+    <div class="is-flex is-justify-content-space-between is-align-items-center mb-4">
+        <h2 class="title is-6">분석 결과</h2>
+        <button class="button is-link is-small" id="btn-export-excel">Excel로 내보내기</button>
+    </div>
+    <div id="analysis-result-grid" class="ag-theme-quartz" style="height: calc(100vh - 450px);"></div>
   </div>
 </div>

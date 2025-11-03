@@ -1,3 +1,4 @@
+
 import logging
 from collections import defaultdict
 from typing import Dict, List, Tuple
@@ -20,7 +21,7 @@ class RedundancyAnalyzer:
         self.db = db_session
         self.task = task
         self.device_id = task.device_id
-        self.vendor = ""  # Dispositivo থেকে 가져올 예정
+        self.vendor = ""
 
     async def _get_policies_with_members(self) -> List[Policy]:
         """분석에 필요한 정책과 멤버 데이터를 DB에서 조회합니다."""
@@ -45,46 +46,24 @@ class RedundancyAnalyzer:
 
     def _normalize_policy_key(self, policy: Policy) -> Tuple:
         """정책의 중복 여부를 판단하기 위한 고유 키를 생성합니다."""
-
-        # 주소 멤버들을 방향에 따라 정렬된 튜플로 변환
         src_addrs = tuple(sorted([
             f"{m.ip_start}-{m.ip_end}" for m in policy.address_members if m.direction == 'source'
         ]))
         dst_addrs = tuple(sorted([
             f"{m.ip_start}-{m.ip_end}" for m in policy.address_members if m.direction == 'destination'
         ]))
-
-        # 서비스 멤버들을 프로토콜과 포트에 따라 정렬된 튜플로 변환
         services = tuple(sorted([
             f"{m.protocol}/{m.port_start}-{m.port_end}" for m in policy.service_members
         ]))
 
-        # 벤더별로 비교할 컬럼들을 튜플로 묶음
+        key_fields = [policy.action, src_addrs, policy.user, dst_addrs, services, policy.application]
         if self.vendor == 'paloalto':
-            key = (
-                policy.action,
-                src_addrs,
-                policy.user,
-                dst_addrs,
-                services,
-                policy.application,
-                policy.security_profile,
-                policy.category,
-                policy.vsys,
-            )
-        else: # 'ngf' 및 기본값
-            key = (
-                policy.action,
-                src_addrs,
-                policy.user,
-                dst_addrs,
-                services,
-                policy.application,
-            )
-        return key
+            key_fields.extend([policy.security_profile, policy.category, policy.vsys])
 
-    async def analyze(self):
-        """중복 정책 분석을 실행합니다."""
+        return tuple(key_fields)
+
+    async def analyze(self) -> List[RedundancyPolicySetCreate]:
+        """중복 정책 분석을 실행하고 결과를 반환합니다."""
         logger.info(f"Task ID {self.task.id}에 대한 중복 정책 분석 시작.")
 
         device = await crud.device.get_device(self.db, device_id=self.device_id)
@@ -95,19 +74,15 @@ class RedundancyAnalyzer:
         policies = await self._get_policies_with_members()
 
         policy_map: Dict[Tuple, int] = {}
-        results_to_create: List[RedundancyPolicySetCreate] = []
-
+        temp_results: List[RedundancyPolicySetCreate] = []
         upper_rules: Dict[int, RedundancyPolicySetCreate] = {}
         lower_rules_count: Dict[int, int] = defaultdict(int)
-
         current_set_number = 1
 
         logger.info("정책 중복 여부 확인 중...")
         for policy in policies:
             key = self._normalize_policy_key(policy)
-
             if key in policy_map:
-                # 중복 발견 (Lower Rule)
                 set_number = policy_map[key]
                 result = RedundancyPolicySetCreate(
                     task_id=self.task.id,
@@ -115,10 +90,9 @@ class RedundancyAnalyzer:
                     type=RedundancyPolicySetType.LOWER,
                     policy_id=policy.id
                 )
-                results_to_create.append(result)
+                temp_results.append(result)
                 lower_rules_count[set_number] += 1
             else:
-                # 새로운 정책 (Upper Rule)
                 policy_map[key] = current_set_number
                 result = RedundancyPolicySetCreate(
                     task_id=self.task.id,
@@ -129,23 +103,19 @@ class RedundancyAnalyzer:
                 upper_rules[current_set_number] = result
                 current_set_number += 1
 
-        logger.info("분석 완료. 결과 저장 준비 중...")
-
-        # Lower Rule이 있는 Upper Rule만 최종 결과에 추가
+        logger.info("분석 완료. 결과 집계 중...")
         final_results = []
         for set_num, upper_rule in upper_rules.items():
             if lower_rules_count[set_num] > 0:
                 final_results.append(upper_rule)
 
         final_results.extend([
-            r for r in results_to_create if r.type == RedundancyPolicySetType.LOWER
+            r for r in temp_results if r.type == RedundancyPolicySetType.LOWER
         ])
 
         if not final_results:
             logger.info("중복 정책이 발견되지 않았습니다.")
-            return
+            return []
 
-        # 결과를 DB에 저장
-        logger.info(f"{len(final_results)}개의 중복 분석 결과를 저장합니다.")
-        await crud.analysis.create_redundancy_policy_sets(self.db, sets_in=final_results)
-        logger.info("중복 정책 분석 결과 저장 완료.")
+        logger.info(f"{len(final_results)}개의 중복 분석 결과를 찾았습니다.")
+        return final_results

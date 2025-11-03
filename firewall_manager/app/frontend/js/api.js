@@ -33,6 +33,7 @@ export const api = {
   startAnalysis: (deviceId) => request(`/analysis/redundancy/${deviceId}`, { method: "POST" }),
   getAnalysisStatus: (deviceId) => request(`/analysis/${deviceId}/status`),
   getAnalysisResults: (taskId) => request(`/analysis/redundancy/${taskId}/results`),
+  getLatestAnalysisResult: (deviceId, analysisType) => request(`/analysis/${deviceId}/latest-result?analysis_type=${analysisType}`),
   exportToExcel: async (data, filename) => {
     const res = await fetch(`${BASE}/firewall/export/excel`, {
       method: "POST",

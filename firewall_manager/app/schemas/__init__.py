@@ -7,4 +7,8 @@ from .service_group import ServiceGroup, ServiceGroupCreate
 from .msg import Msg
 from .change_log import ChangeLog, ChangeLogCreate
 from .device import DeviceSyncStatus
-from .analysis import AnalysisTask, AnalysisTaskCreate, AnalysisTaskUpdate, RedundancyPolicySet, RedundancyPolicySetCreate
+from .analysis import (
+    AnalysisTask, AnalysisTaskCreate, AnalysisTaskUpdate,
+    RedundancyPolicySet, RedundancyPolicySetCreate,
+    AnalysisResult, AnalysisResultCreate, AnalysisResultUpdate
+)

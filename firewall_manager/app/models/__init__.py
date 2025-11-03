@@ -6,4 +6,4 @@ from .service import Service
 from .service_group import ServiceGroup
 from .change_log import ChangeLog
 from .policy_members import PolicyAddressMember, PolicyServiceMember
-from .analysis import AnalysisTask, RedundancyPolicySet
+from .analysis import AnalysisTask, RedundancyPolicySet, AnalysisResult

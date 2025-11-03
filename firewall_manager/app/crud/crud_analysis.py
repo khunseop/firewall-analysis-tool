@@ -1,10 +1,14 @@
+
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 
-from app.models.analysis import AnalysisTask, RedundancyPolicySet, AnalysisTaskStatus
-from app.schemas.analysis import AnalysisTaskCreate, AnalysisTaskUpdate, RedundancyPolicySetCreate
+from app.models.analysis import AnalysisTask, RedundancyPolicySet, AnalysisTaskStatus, AnalysisResult
+from app.schemas.analysis import (
+    AnalysisTaskCreate, AnalysisTaskUpdate, RedundancyPolicySetCreate,
+    AnalysisResultCreate
+)
 
 # AnalysisTask CRUD
 async def create_analysis_task(db: AsyncSession, *, obj_in: AnalysisTaskCreate) -> AnalysisTask:
@@ -60,3 +64,39 @@ async def delete_redundancy_policy_sets_by_task(db: AsyncSession, task_id: int) 
     # This is handled by ondelete="CASCADE" in the model, but an explicit function can be useful.
     # For now, we rely on the cascade delete.
     pass
+
+# AnalysisResult CRUD
+async def get_analysis_result(db: AsyncSession, result_id: int):
+    """특정 ID를 가진 분석 결과를 조회합니다."""
+    result = await db.execute(select(AnalysisResult).filter(AnalysisResult.id == result_id))
+    return result.scalar_one_or_none()
+
+async def get_analysis_result_by_device_and_type(db: AsyncSession, *, device_id: int, analysis_type: str):
+    """특정 장비와 분석 유형에 대한 가장 최근의 분석 결과를 조회합니다."""
+    result = await db.execute(
+        select(AnalysisResult)
+        .filter(AnalysisResult.device_id == device_id, AnalysisResult.analysis_type == analysis_type)
+        .order_by(AnalysisResult.created_at.desc())
+    )
+    return result.scalars().first()
+
+async def create_or_update_analysis_result(db: AsyncSession, *, obj_in: AnalysisResultCreate):
+    """분석 결과를 생성하거나 이미 존재하면 업데이트합니다."""
+    existing_result = await get_analysis_result_by_device_and_type(
+        db, device_id=obj_in.device_id, analysis_type=obj_in.analysis_type
+    )
+
+    if existing_result:
+        # Update
+        update_data = obj_in.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(existing_result, field, value)
+        db_obj = existing_result
+    else:
+        # Create
+        db_obj = AnalysisResult(**obj_in.model_dump())
+
+    db.add(db_obj)
+    await db.commit()
+    await db.refresh(db_obj)
+    return db_obj

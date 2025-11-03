@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, JSON
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 import enum
+import datetime
 
 class AnalysisTaskType(str, enum.Enum):
     REDUNDANCY = "redundancy"
@@ -38,3 +39,14 @@ class RedundancyPolicySet(Base):
 
     task = relationship("AnalysisTask")
     policy = relationship("Policy")
+
+class AnalysisResult(Base):
+    __tablename__ = 'analysis_results'
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_id = Column(Integer, ForeignKey('devices.id'), nullable=False, index=True)
+    analysis_type = Column(String, nullable=False, index=True)
+    result_data = Column(JSON, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    device = relationship("Device")

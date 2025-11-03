@@ -1,4 +1,3 @@
-from typing import Any, List
 
 from typing import Any, List
 
@@ -24,7 +23,6 @@ async def start_redundancy_analysis(
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
 
-    # 이미 다른 분석 작업이 실행 중인지 확인
     running_task = await crud.analysis.get_running_analysis_task(db)
     if running_task:
         raise HTTPException(status_code=409, detail=f"An analysis task (ID: {running_task.id}) is already in progress.")
@@ -60,3 +58,22 @@ async def get_redundancy_analysis_results(
 
     results = await crud.analysis.get_redundancy_policy_sets_by_task(db, task_id=task_id)
     return results
+
+@router.get("/{device_id}/latest-result", response_model=schemas.AnalysisResult)
+async def read_latest_analysis_result(
+    device_id: int,
+    analysis_type: str,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """
+    특정 장비와 분석 유형에 대한 가장 최근의 분석 결과를 가져옵니다.
+    """
+    result = await crud.analysis.get_analysis_result_by_device_and_type(
+        db, device_id=device_id, analysis_type=analysis_type
+    )
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail="해당 장비와 분석 유형에 대한 분석 결과가 없습니다.",
+        )
+    return result
