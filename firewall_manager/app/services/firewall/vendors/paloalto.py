@@ -281,11 +281,10 @@ class PaloAltoAPI(FirewallInterface):
                 rule_name = str(rule.attrib.get('name'))
                 member_texts = self._get_member_texts(rule)
                 # Palo Alto 응답에서 인덱스 2가 last-hit-timestamp인 구조를 가정
-                last_hit_date: str | None = None
                 try:
                     # Palo Alto는 epoch timestamp를 문자열로 반환
-                    # 파싱은 transform.py에서 일괄 처리하므로 여기서는 원시 값만 전달
-                    last_hit_date = member_texts[2] if len(member_texts) > 2 else None
+                    last_hit_ts = member_texts[2] if len(member_texts) > 2 else None
+                    last_hit_date = None if last_hit_ts == 0 else datetime.datetime.fromtimestamp(int(last_hit_ts)).strftime("%Y-%m-%d %H:%M:%S")
                 except IndexError:
                     last_hit_date = None
 
