@@ -13,6 +13,7 @@ function objectCellRenderer(params) {
 
     const container = document.createElement('div');
     container.style.height = '100%';
+    container.style.maxHeight = '150px'
     container.style.overflowY = 'auto';
     container.style.lineHeight = '1.5';
 
@@ -54,35 +55,35 @@ async function initGrid() {
     { field:'enable', headerName:'활성화', width:100, valueFormatter:p=>p.value===true?'활성':p.value===false?'비활성':'' },
     { field:'action', headerName:'액션', width:110 },
     {
-      field:'source', headerName:'출발지', minWidth:250, maxWidth: 400, wrapText:true,
+      field:'source', headerName:'출발지', minWidth:250, maxWidth: 400, wrapText:true, autoHeight:true,
       cellRenderer: objectCellRenderer
     },
     {
-      field:'user', headerName:'사용자', width:140, wrapText:true,
-      cellRenderer: params => (params.value || '').replace(/,/g, ',<br>')
-    },
-    {
-      field:'destination', headerName:'목적지', minWidth:250, maxWidth: 400, wrapText:true,
+      field:'user', headerName:'사용자', minWidth:250, wrapText:true, autoHeight:true,
       cellRenderer: objectCellRenderer
     },
     {
-      field:'service', headerName:'서비스', minWidth:250, maxWidth: 400, wrapText:true,
+      field:'destination', headerName:'목적지', minWidth:250, maxWidth: 400, wrapText:true, autoHeight:true,
       cellRenderer: objectCellRenderer
     },
     {
-      field:'application', headerName:'애플리케이션', width:150, wrapText:true,
-      cellRenderer: params => (params.value || '').replace(/,/g, ',<br>')
+      field:'service', headerName:'서비스', minWidth:250, maxWidth: 400, wrapText:true, autoHeight:true,
+      cellRenderer: objectCellRenderer
+    },
+    {
+      field:'application', headerName:'애플리케이션', minWidth:250, wrapText:true, autoHeight:true,
+      cellRenderer: objectCellRenderer
     },
     { field:'security_profile', headerName:'보안프로파일', width:180 },
     { field:'category', headerName:'카테고리', width:140 },
-    { field:'description', headerName:'설명', minWidth:300, maxWidth: 500 },
-    { field:'last_hit_date', headerName:'마지막매칭일시', width:190 },
+    { field:'description', headerName:'설명', minWidth:300, maxWidth: 1000 },
+    { field:'last_hit_date', headerName:'마지막매칭일시', minWidth:200 },
   ]);
   const options = {
     columnDefs: getCols(),
     rowData: [],
     defaultColDef:{ resizable:false, sortable:false, filter:true },
-    autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 120 },
+    autoSizeStrategy: { type: 'fitGridWidth', defaultMaxWidth: 300 },
     enableCellTextSelection: true,
     getRowId: params => String(params.data.id),
     onGridReady: params => {
@@ -262,5 +263,3 @@ export async function initPolicies(){
 
   // 초기 로딩 시 자동 선택/자동 조회를 수행하지 않습니다.
 }
-
-
