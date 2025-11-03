@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 
 from app.models.analysis import AnalysisTask, RedundancyPolicySet, AnalysisTaskStatus
@@ -48,7 +49,10 @@ async def create_redundancy_policy_sets(db: AsyncSession, *, sets_in: List[Redun
 
 async def get_redundancy_policy_sets_by_task(db: AsyncSession, task_id: int) -> List[RedundancyPolicySet]:
     result = await db.execute(
-        select(RedundancyPolicySet).filter(RedundancyPolicySet.task_id == task_id).order_by(RedundancyPolicySet.set_number, RedundancyPolicySet.type.desc())
+        select(RedundancyPolicySet)
+        .options(selectinload(RedundancyPolicySet.policy))
+        .filter(RedundancyPolicySet.task_id == task_id)
+        .order_by(RedundancyPolicySet.set_number, RedundancyPolicySet.type.desc())
     )
     return result.scalars().all()
 
