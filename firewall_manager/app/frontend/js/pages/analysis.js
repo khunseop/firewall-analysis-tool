@@ -1,36 +1,34 @@
+
 import { api } from '../api.js';
 
 let resultGridApi = null;
 let deviceSelect = null;
 let statusInterval = null;
 
-// 분석 유형에 따른 컬럼 정의 반환
 function getColumnDefs(analysisType) {
     const commonColumns = [
-        { field: 'policy.seq', headerName: 'Seq', width: 80 },
-        { field: 'policy.rule_name', headerName: '규칙 이름', minWidth: 200, filter: 'agTextColumnFilter' },
-        { field: 'policy.source', headerName: '출발지', minWidth: 250, filter: 'agTextColumnFilter' },
-        { field: 'policy.destination', headerName: '목적지', minWidth: 250, filter: 'agTextColumnFilter' },
-        { field: 'policy.service', headerName: '서비스', minWidth: 200, filter: 'agTextColumnFilter' },
-        { field: 'policy.action', headerName: 'Action', width: 100 },
-        { field: 'policy.description', headerName: '설명', minWidth: 300, filter: 'agTextColumnFilter' }
+        { field: 'policy.seq', headerName: 'Seq', width: 80, valueGetter: params => params.data.policy?.seq },
+        { field: 'policy.rule_name', headerName: '규칙 이름', minWidth: 200, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.rule_name },
+        { field: 'policy.source', headerName: '출발지', minWidth: 250, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.source },
+        { field: 'policy.destination', headerName: '목적지', minWidth: 250, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.destination },
+        { field: 'policy.service', headerName: '서비스', minWidth: 200, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.service },
+        { field: 'policy.action', headerName: 'Action', width: 100, valueGetter: params => params.data.policy?.action },
+        { field: 'policy.description', headerName: '설명', minWidth: 300, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.description }
     ];
 
-    if (analysisType === '중복 정책 분석') {
+    if (analysisType === 'redundancy') { // 서버에서 사용하는 실제 값으로 변경
         return [
             { field: 'set_number', headerName: 'No', width: 80, sort: 'asc' },
             { field: 'type', headerName: '구분', width: 100 },
             ...commonColumns
         ];
     }
-    // 다른 분석 유형에 대한 컬럼 정의 추가 가능
     return commonColumns;
 }
 
-// 그리드 생성 및 초기화
 function createGrid(columnDefs, rowData) {
     if (resultGridApi) {
-        try { resultGridApi.destroy(); } catch (e) { console.warn('Failed to destroy resultGrid:', e); }
+        try { resultGridApi.destroy(); } catch (e) {}
         resultGridApi = null;
     }
 
@@ -59,7 +57,6 @@ function createGrid(columnDefs, rowData) {
     }
 }
 
-// 장비 목록 로드
 async function loadDevices() {
     try {
         const devices = await api.listDevices();
@@ -81,6 +78,7 @@ async function loadDevices() {
             deviceSelect = new window.TomSelect(selectEl, {
                 placeholder: '분석할 장비를 선택하세요',
                 maxOptions: null,
+                onChange: () => loadLatestResult() // 장비 변경 시 최신 결과 로드
             });
         }
     } catch (err) {
@@ -88,25 +86,17 @@ async function loadDevices() {
     }
 }
 
-// 상태 로그 업데이트
 function updateStatusLog(message) {
     const statusContainer = document.getElementById('analysis-status-container');
     const statusText = document.getElementById('analysis-status-text');
-
     if (statusContainer.style.display === 'none') {
         statusContainer.style.display = 'block';
     }
-
     const timestamp = new Date().toLocaleTimeString();
-    const newMessage = document.createElement('p');
-    newMessage.className = 'is-size-7 has-text-grey';
-    newMessage.textContent = `[${timestamp}] ${message}`;
-
-    statusText.appendChild(newMessage);
-    statusText.scrollTop = statusText.scrollHeight; // Auto-scroll to bottom
+    statusText.innerHTML += `<p class="is-size-7 has-text-grey">[${timestamp}] ${message}</p>`;
+    statusText.scrollTop = statusText.scrollHeight;
 }
 
-// 모든 상태 관련 UI 초기화
 function resetStatusUI() {
     stopPolling();
     const statusContainer = document.getElementById('analysis-status-container');
@@ -117,19 +107,16 @@ function resetStatusUI() {
     if (statusText) statusText.innerHTML = '';
     if (statusContainer) statusContainer.style.display = 'none';
     if (resultBox) resultBox.style.display = 'none';
-
     if (startButton) {
         startButton.disabled = false;
         startButton.classList.remove('is-loading');
     }
-
     if (resultGridApi) {
         try { resultGridApi.destroy(); } catch (e) {}
         resultGridApi = null;
     }
 }
 
-// 상태 폴링 중지
 function stopPolling() {
     if (statusInterval) {
         clearInterval(statusInterval);
@@ -142,38 +129,38 @@ function stopPolling() {
     }
 }
 
-// 결과 표시
-async function displayResults(taskId) {
+// 저장된 결과 또는 태스크 완료 후 결과를 그리드에 표시
+function displayResults(resultData, analysisType) {
+    resetStatusUI();
+    const resultBox = document.getElementById('analysis-result-box');
+    if(resultData && resultData.length > 0) {
+        const columnDefs = getColumnDefs(analysisType);
+        createGrid(columnDefs, resultData);
+        if (resultBox) resultBox.style.display = 'block';
+    } else {
+        if (resultBox) resultBox.style.display = 'none';
+    }
+}
+
+async function displayTaskResults(taskId) {
     try {
         updateStatusLog('분석 결과를 가져오는 중...');
         const results = await api.getAnalysisResults(taskId);
-
-        const rowData = results.map(item => ({
-            set_number: item.set_number,
-            type: item.type,
-            policy: item.policy,
-        }));
-
-        const analysisType = document.getElementById('analysis-type-select').value;
-        const columnDefs = getColumnDefs(analysisType);
-
-        createGrid(columnDefs, rowData);
-
-        const resultBox = document.getElementById('analysis-result-box');
-        if (resultBox) resultBox.style.display = 'block';
-
+        displayResults(results, 'redundancy');
         updateStatusLog('결과 표시 완료.');
-
     } catch (error) {
         console.error('결과를 가져오는 데 실패했습니다:', error);
         updateStatusLog(`결과 로딩 실패: ${error.message}`);
     }
 }
 
-// 상태 폴링 시작
 function startPolling(deviceId) {
     stopPolling();
-
+    const startButton = document.getElementById('btn-start-analysis');
+    if (startButton) {
+        startButton.disabled = true;
+        startButton.classList.add('is-loading');
+    }
     statusInterval = setInterval(async () => {
         try {
             const task = await api.getAnalysisStatus(deviceId);
@@ -184,7 +171,7 @@ function startPolling(deviceId) {
                 case 'success':
                     stopPolling();
                     updateStatusLog('분석 성공.');
-                    displayResults(task.id);
+                    await displayTaskResults(task.id); // 태스크 결과 조회 및 표시
                     break;
                 case 'failure':
                     stopPolling();
@@ -202,30 +189,48 @@ function startPolling(deviceId) {
     }, 3000);
 }
 
-// 분석 시작
 async function startAnalysis() {
     const deviceId = deviceSelect.getValue();
     if (!deviceId) {
         alert('분석할 장비를 선택하세요.');
         return;
     }
-
     resetStatusUI();
-
-    const startButton = document.getElementById('btn-start-analysis');
-    if (startButton) {
-        startButton.disabled = true;
-        startButton.classList.add('is-loading');
-    }
-
+    updateStatusLog('분석 시작을 요청합니다...');
     try {
-        updateStatusLog('분석 시작을 요청합니다...');
         await api.startAnalysis(deviceId);
         startPolling(deviceId);
     } catch (error) {
         console.error('분석 시작 실패:', error);
         updateStatusLog(`분석 시작 실패: ${error.message}`);
         stopPolling();
+    }
+}
+
+async function loadLatestResult() {
+    const deviceId = deviceSelect.getValue();
+    const analysisTypeEl = document.getElementById('analysis-type-select');
+    // 현재는 '중복 정책 분석'만 지원하므로, 실제 API가 요구하는 'redundancy' 값으로 하드코딩
+    const analysisType = 'redundancy';
+
+    if (!deviceId) {
+        resetStatusUI();
+        return;
+    }
+
+    try {
+        const latestResult = await api.getLatestAnalysisResult(deviceId, analysisType);
+        if (latestResult && latestResult.result_data) {
+            displayResults(latestResult.result_data, latestResult.analysis_type);
+        } else {
+             resetStatusUI();
+        }
+    } catch (error) {
+        if (error.message.includes('404')) {
+             resetStatusUI(); // 404는 결과가 없는 것이므로 UI 초기화
+        } else {
+            console.error('최신 분석 결과 로드 실패:', error);
+        }
     }
 }
 
@@ -239,12 +244,10 @@ async function exportToExcel() {
       resultGridApi.forEachNodeAfterFilter((node) => {
         rowData.push(node.data);
       });
-
       if (rowData.length === 0) {
         alert('내보낼 데이터가 없습니다.');
         return;
       }
-
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
       await api.exportToExcel(rowData, `analysis_result_${timestamp}`);
     } catch (error) {
@@ -252,7 +255,6 @@ async function exportToExcel() {
     }
 }
 
-// 초기화
 export async function initAnalysis() {
     await loadDevices();
 
@@ -265,4 +267,7 @@ export async function initAnalysis() {
     if (exportButton) {
         exportButton.addEventListener('click', exportToExcel);
     }
+
+    // 페이지 초기 로드 시 첫 번째 장비의 최신 결과를 불러옴
+    await loadLatestResult();
 }

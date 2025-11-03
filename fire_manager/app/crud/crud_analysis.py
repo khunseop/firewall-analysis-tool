@@ -7,7 +7,7 @@ from typing import List, Optional
 from app.models.analysis import AnalysisTask, RedundancyPolicySet, AnalysisTaskStatus, AnalysisResult
 from app.schemas.analysis import (
     AnalysisTaskCreate, AnalysisTaskUpdate, RedundancyPolicySetCreate,
-    AnalysisResultCreate
+    AnalysisResultCreate, AnalysisResultUpdate
 )
 
 # AnalysisTask CRUD

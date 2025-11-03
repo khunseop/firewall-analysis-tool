@@ -1,6 +1,7 @@
+
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 from app.models.analysis import AnalysisTaskStatus, AnalysisTaskType, RedundancyPolicySetType
 from .policy import Policy
 
@@ -41,3 +42,25 @@ class RedundancyPolicySet(RedundancyPolicySetBase):
 
     class Config:
         from_attributes = True
+
+# Schemas for AnalysisResult
+class AnalysisResultBase(BaseModel):
+    device_id: int
+    analysis_type: str
+    result_data: Any
+
+class AnalysisResultCreate(AnalysisResultBase):
+    pass
+
+class AnalysisResultUpdate(AnalysisResultBase):
+    pass
+
+class AnalysisResultInDBBase(AnalysisResultBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class AnalysisResult(AnalysisResultInDBBase):
+    pass
