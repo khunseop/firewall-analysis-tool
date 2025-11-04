@@ -225,9 +225,14 @@ async def rebuild_policy_indices(
     # 4. Perform batch database operations
     async with db.begin_nested():
         policy_ids_to_update = [p.id for p in policy_list]
+
+        # Chunk the deletion to avoid "too many SQL variables" error in SQLite
         if policy_ids_to_update:
-            await db.execute(delete(models.PolicyAddressMember).where(models.PolicyAddressMember.policy_id.in_(policy_ids_to_update)))
-            await db.execute(delete(models.PolicyServiceMember).where(models.PolicyServiceMember.policy_id.in_(policy_ids_to_update)))
+            SQLITE_MAX_VARIABLES = 900 # Default limit is 999, being safe
+            for i in range(0, len(policy_ids_to_update), SQLITE_MAX_VARIABLES):
+                chunk = policy_ids_to_update[i:i + SQLITE_MAX_VARIABLES]
+                await db.execute(delete(models.PolicyAddressMember).where(models.PolicyAddressMember.policy_id.in_(chunk)))
+                await db.execute(delete(models.PolicyServiceMember).where(models.PolicyServiceMember.policy_id.in_(chunk)))
 
         if addr_rows:
             await db.run_sync(
