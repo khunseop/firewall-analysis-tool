@@ -22,6 +22,7 @@ async def get_devices(db: AsyncSession, skip: int = 0, limit: int = 100):
 
 async def create_device(db: AsyncSession, device: DeviceCreate):
     create_data = device.model_dump()
+    create_data.pop("password_confirm", None)
     create_data["password"] = encrypt(create_data["password"])
     db_device = Device(**create_data)
     db.add(db_device)
@@ -31,9 +32,11 @@ async def create_device(db: AsyncSession, device: DeviceCreate):
 
 async def update_device(db: AsyncSession, db_obj: Device, obj_in: DeviceUpdate):
     obj_data = obj_in.model_dump(exclude_unset=True)
-
+    obj_data.pop("password_confirm", None)
     if "password" in obj_data and obj_data["password"]:
         obj_data["password"] = encrypt(obj_data["password"])
+    else:
+        obj_data.pop("password", None)
 
     for field in obj_data:
         setattr(db_obj, field, obj_data[field])

@@ -31,7 +31,7 @@ def create_test_device(client: TestClient):
     if test_device:
         client.delete(f"/api/v1/devices/{test_device['id']}")
 
-    create_res = client.post("/api/v1/devices/", json={"name": "test-mock", "ip_address": "1.1.1.1", "vendor": "mock", "username": "user", "password": "password"})
+    create_res = client.post("/api/v1/devices/", json={"name": "test-mock", "ip_address": "1.1.1.1", "vendor": "mock", "username": "user", "password": "password", "password_confirm": "password"})
     assert create_res.status_code == 200
     return create_res.json()
 
