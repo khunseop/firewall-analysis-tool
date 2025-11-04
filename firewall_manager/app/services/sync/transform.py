@@ -43,29 +43,10 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     if "rule_name" in df.columns or "rule name" in df.columns:
         if "rule name" in df.columns and "rule_name" not in df.columns:
             df = df.rename(columns={"rule name": "rule_name"})
+
+        # Pydantic 스키마(str)와 일치시키기 위해 모든 값을 문자열로 변환
         if "last_hit_date" in df.columns:
-            # UserWarning 해결: 숫자와 문자열을 분리하여 명시적으로 파싱
-            numeric_hits = pd.to_numeric(df["last_hit_date"], errors='coerce')
-            # 유효한 숫자 타임스탬프만 변환 (Unix timestamp)
-            numeric_dates = pd.to_datetime(numeric_hits.dropna(), unit='s')
-
-            # 숫자가 아닌 나머지 값들을 날짜 문자열로 파싱 (format='mixed' 추가)
-            string_dates = pd.to_datetime(df.loc[numeric_hits.isna(), "last_hit_date"], errors='coerce', format='mixed')
-
-            # 두 결과를 합쳐서 시리즈 s 생성
-            s = pd.concat([numeric_dates, string_dates])
-
-            # 타임존 표준화
-            if s.dt.tz is None:
-                s = s.dt.tz_localize(ZoneInfo("Asia/Seoul"), ambiguous='infer')
-            else:
-                s = s.dt.tz_convert(ZoneInfo("Asia/Seoul"))
-
-            # 타임존 정보 제거 (naive)
-            s = s.dt.tz_localize(None)
-
-            # to_pydatetime() 호출을 제거하고, Timestamp 객체를 그대로 두어 최종 단계에서 처리
-            df["last_hit_date"] = s
+            df["last_hit_date"] = df["last_hit_date"].astype(str)
 
         if "rule_name" in df.columns:
             def _normalize_rule_name(v):
