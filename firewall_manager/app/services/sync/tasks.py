@@ -214,8 +214,7 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
 
                     if device.use_ssh_for_last_hit_date:
                         logging.info("[orchestrator] Using SSH for last_hit_date collection.")
-                        await loop.run_in_executor(None, lambda: collector.export_last_hit_date_ssh(vsys=vsys_list))
-                        hit_date_df = pd.DataFrame() # SSH is for logging only for now
+                        hit_date_df = await loop.run_in_executor(None, lambda: collector.export_last_hit_date_ssh(vsys=vsys_list))
                     else:
                         logging.info("[orchestrator] Using API for last_hit_date collection.")
                         # Primary device collection

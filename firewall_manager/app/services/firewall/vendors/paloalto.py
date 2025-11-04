@@ -5,6 +5,7 @@ import logging
 import requests
 import xml.etree.ElementTree as ET
 import paramiko
+import re
 
 import pandas as pd
 
@@ -312,13 +313,14 @@ class PaloAltoAPI(FirewallInterface):
         df = pd.DataFrame(results)
         return df
 
-    def export_last_hit_date_ssh(self, vsys: list[str] | set[str] | None = None) -> None:
-        """SSH를 통해 각 규칙의 최근 히트 일자 정보를 수집하고 로깅합니다."""
+    def export_last_hit_date_ssh(self, vsys: list[str] | set[str] | None = None) -> pd.DataFrame:
+        """SSH를 통해 각 규칙의 최근 히트 일자 정보를 수집하고 파싱하여 DataFrame으로 반환합니다."""
         target_vsys_list: list[str] = ['vsys1']
         if vsys:
             target_vsys_list = [str(v) for v in vsys]
 
         self.logger.info(f"Starting SSH last_hit_date collection for vsys: {target_vsys_list}")
+        all_results = []
 
         ssh = None
         try:
@@ -326,38 +328,62 @@ class PaloAltoAPI(FirewallInterface):
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             ssh.connect(self.hostname, port=22, username=self.username, password=self._password, timeout=10)
 
-            channel = ssh.invoke_shell()
+            def execute_command(command: str, timeout: int = 3600) -> str:
+                stdin, stdout, stderr = ssh.exec_command(command, timeout=timeout)
+                exit_status = stdout.channel.recv_exit_status()
+                if exit_status != 0:
+                    error = stderr.read().decode('utf-8').strip()
+                    raise FirewallAPIError(f"Command '{command}' failed with exit status {exit_status}: {error}")
+                return stdout.read().decode('utf-8')
 
-            # 초기 배너 및 프롬프트 수신
-            time.sleep(1)
-            channel.recv(4096)
-
-            commands = [
-                "set cli timeout idle 30",
-                "set cli pager off"
-            ]
-            for cmd in commands:
-                channel.send(cmd + '\n')
-                time.sleep(0.5)
-                channel.recv(4096) # 명령어 실행 결과 수신 (무시)
+            execute_command("set cli timeout idle 30")
+            execute_command("set cli pager off")
 
             for vsys_name in target_vsys_list:
                 command = f"show rule-hit-count vsys vsys-name {vsys_name} rule-base security rules all"
                 self.logger.info(f"Executing command: {command}")
-                channel.send(command + '\n')
 
-                output = ""
-                while True:
-                    time.sleep(2) # 명령어 실행 대기
-                    if channel.recv_ready():
-                        output_chunk = channel.recv(8192).decode('utf-8')
-                        output += output_chunk
-                        if '>' in output_chunk or '#' in output_chunk: # 프롬프트가 다시 나타나면 종료
-                            break
-                    else:
-                        break # 더 이상 수신할 데이터가 없으면 종료
+                output = execute_command(command)
+                self.logger.info(f"Raw output received for vsys {vsys_name}, attempting to parse.")
 
-                self.logger.info(f"Output for vsys {vsys_name}:\n{output}")
+                lines = output.splitlines()
+                parsing_started = False
+                for line in lines:
+                    line = line.strip()
+                    if not line:
+                        continue
+
+                    if '----------' in line:
+                        parsing_started = True
+                        continue
+
+                    if not parsing_started:
+                        continue
+
+                    if line.startswith('intrazone-default'):
+                        break
+
+                    # Regex to capture Rule Name, Hit Count, and the rest of the line for the timestamp
+                    match = re.match(r'^([a-zA-Z0-9_-]+)\s+(\d+)\s+(.*)', line)
+                    if match:
+                        rule_name = match.group(1)
+                        hit_count = match.group(2)
+                        timestamp_str = match.group(3).strip()
+
+                        last_hit_date = None
+                        if timestamp_str != '-':
+                            try:
+                                # Format: "Tue Nov  4 00:50:48 2025" -> extra space for day
+                                dt_obj = datetime.datetime.strptime(timestamp_str, '%a %b %d %H:%M:%S %Y')
+                                last_hit_date = dt_obj.strftime('%Y-%m-%d %H:%M:%S')
+                            except ValueError:
+                                self.logger.warning(f"Could not parse timestamp '{timestamp_str}' for rule '{rule_name}'.")
+
+                        all_results.append({
+                            "vsys": vsys_name,
+                            "rule_name": rule_name,
+                            "last_hit_date": last_hit_date
+                        })
 
         except paramiko.AuthenticationException:
             self.logger.error("SSH authentication failed.")
@@ -369,3 +395,5 @@ class PaloAltoAPI(FirewallInterface):
             if ssh:
                 ssh.close()
                 self.logger.info("SSH connection closed.")
+
+        return pd.DataFrame(all_results)
