@@ -4,12 +4,15 @@ from app.services.firewall.interface import FirewallInterface
 from app import models
 
 
-def create_collector_from_device(device: models.Device) -> FirewallInterface:
+def create_collector_from_device(device: models.Device, use_ha_ip: bool = False) -> FirewallInterface:
     """Create a vendor collector from a Device row with safe decryption.
 
     - Allows password passthrough when vendor is 'mock' and decryption fails.
+    - Uses ha_peer_ip if use_ha_ip is True.
     """
     vendor_lower = (device.vendor or "").lower()
+    hostname = device.ha_peer_ip if use_ha_ip and device.ha_peer_ip else device.ip_address
+
     try:
         decrypted_password = decrypt(device.password)
     except Exception:
@@ -19,7 +22,7 @@ def create_collector_from_device(device: models.Device) -> FirewallInterface:
             raise
     return FirewallCollectorFactory.get_collector(
         source_type=vendor_lower,
-        hostname=device.ip_address,
+        hostname=hostname,
         username=device.username,
         password=decrypted_password,
     )

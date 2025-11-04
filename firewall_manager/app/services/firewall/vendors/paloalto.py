@@ -4,6 +4,7 @@ import datetime
 import logging
 import requests
 import xml.etree.ElementTree as ET
+import paramiko
 
 import pandas as pd
 
@@ -310,3 +311,61 @@ class PaloAltoAPI(FirewallInterface):
 
         df = pd.DataFrame(results)
         return df
+
+    def export_last_hit_date_ssh(self, vsys: list[str] | set[str] | None = None) -> None:
+        """SSH를 통해 각 규칙의 최근 히트 일자 정보를 수집하고 로깅합니다."""
+        target_vsys_list: list[str] = ['vsys1']
+        if vsys:
+            target_vsys_list = [str(v) for v in vsys]
+
+        self.logger.info(f"Starting SSH last_hit_date collection for vsys: {target_vsys_list}")
+
+        ssh = None
+        try:
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect(self.hostname, port=22, username=self.username, password=self._password, timeout=10)
+
+            channel = ssh.invoke_shell()
+
+            # 초기 배너 및 프롬프트 수신
+            time.sleep(1)
+            channel.recv(4096)
+
+            commands = [
+                "set cli timeout idle 30",
+                "set cli pager off"
+            ]
+            for cmd in commands:
+                channel.send(cmd + '\n')
+                time.sleep(0.5)
+                channel.recv(4096) # 명령어 실행 결과 수신 (무시)
+
+            for vsys_name in target_vsys_list:
+                command = f"show rule-hit-count vsys vsys-name {vsys_name} rule-base security rules all"
+                self.logger.info(f"Executing command: {command}")
+                channel.send(command + '\n')
+
+                output = ""
+                while True:
+                    time.sleep(2) # 명령어 실행 대기
+                    if channel.recv_ready():
+                        output_chunk = channel.recv(8192).decode('utf-8')
+                        output += output_chunk
+                        if '>' in output_chunk or '#' in output_chunk: # 프롬프트가 다시 나타나면 종료
+                            break
+                    else:
+                        break # 더 이상 수신할 데이터가 없으면 종료
+
+                self.logger.info(f"Output for vsys {vsys_name}:\n{output}")
+
+        except paramiko.AuthenticationException:
+            self.logger.error("SSH authentication failed.")
+        except paramiko.SSHException as e:
+            self.logger.error(f"SSH connection error: {e}")
+        except Exception as e:
+            self.logger.error(f"An unexpected error occurred during SSH collection: {e}", exc_info=True)
+        finally:
+            if ssh:
+                ssh.close()
+                self.logger.info("SSH connection closed.")
