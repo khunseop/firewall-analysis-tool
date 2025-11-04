@@ -81,10 +81,16 @@ async def sync_data_task(
                     if data_type == "policies":
                         old_hit_date = getattr(existing_item, 'last_hit_date', None)
                         new_hit_date = update_data.get('last_hit_date')
-                        # Consider changed if difference is more than a second
-                        if old_hit_date and new_hit_date and abs((new_hit_date - old_hit_date).total_seconds()) > 1:
-                            is_hit_date_changed = True
-                        elif not old_hit_date and new_hit_date: # Was null, now has value
+
+                        old_hit_date_str = None
+                        if isinstance(old_hit_date, datetime):
+                            # Format datetime to string to match the new string-based format
+                            old_hit_date_str = old_hit_date.strftime("%Y-%m-%d %H:%M:%S")
+                        else:
+                            # It's already a string or None
+                            old_hit_date_str = old_hit_date
+
+                        if old_hit_date_str != new_hit_date:
                             is_hit_date_changed = True
 
                     # 2. Check for other field changes (is_dirty)
@@ -217,9 +223,6 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                             if col in hit_date_df.columns: hit_date_df[col] = hit_date_df[col].astype(str)
 
                         policies_df = pd.merge(policies_df, hit_date_df, on=["vsys", "rule_name"], how="left")
-
-                        if "last_hit_date" in policies_df.columns:
-                            policies_df["last_hit_date"] = pd.to_datetime(policies_df["last_hit_date"], errors='coerce', utc=True)
 
                         collected_dfs["policies"] = policies_df
                         merged_hits = policies_df["last_hit_date"].notna().sum() if "last_hit_date" in policies_df.columns else 0
