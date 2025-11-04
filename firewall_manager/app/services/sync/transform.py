@@ -44,11 +44,22 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
         if "rule name" in df.columns and "rule_name" not in df.columns:
             df = df.rename(columns={"rule name": "rule_name"})
 
-        # Pydantic 스키마(str)와 일치시키기 위해 모든 값을 문자열로 변환
-        if "last_hit_date" in df.columns:
-            df["last_hit_date"] = df["last_hit_date"].astype(str)
-
         if "rule_name" in df.columns:
+            if "last_hit_date" in df.columns:
+                def _parse_hit_date(v):
+                    if v is None or pd.isna(v) or v == '-':
+                        return None
+                    try:
+                        # Try parsing as a numeric timestamp first
+                        return pd.to_datetime(v, unit='s', errors='raise')
+                    except (ValueError, TypeError):
+                        try:
+                            # Fallback to parsing as a date string
+                            return pd.to_datetime(v, errors='coerce')
+                        except Exception:
+                            return None
+                df["last_hit_date"] = df["last_hit_date"].apply(_parse_hit_date)
+
             def _normalize_rule_name(v):
                 try:
                     if v is None: return None

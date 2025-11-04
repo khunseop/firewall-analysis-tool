@@ -224,9 +224,6 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
 
                         policies_df = pd.merge(policies_df, hit_date_df, on=["vsys", "rule_name"], how="left")
 
-                        if "last_hit_date" in policies_df.columns:
-                            policies_df["last_hit_date"] = pd.to_datetime(policies_df["last_hit_date"], errors='coerce', utc=True)
-
                         collected_dfs["policies"] = policies_df
                         merged_hits = policies_df["last_hit_date"].notna().sum() if "last_hit_date" in policies_df.columns else 0
                         logging.info(f"[orchestrator] last_hit_date merge complete. Non-null hits: {merged_hits}")
