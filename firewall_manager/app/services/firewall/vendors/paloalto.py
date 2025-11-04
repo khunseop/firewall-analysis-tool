@@ -330,20 +330,23 @@ class PaloAltoAPI(FirewallInterface):
 
             def execute_command(command: str, timeout: int = 3600) -> str:
                 stdin, stdout, stderr = ssh.exec_command(command, timeout=timeout)
+                output = stdout.read().decode('utf-8')
                 exit_status = stdout.channel.recv_exit_status()
                 if exit_status != 0:
                     error = stderr.read().decode('utf-8').strip()
-                    raise FirewallAPIError(f"Command '{command}' failed with exit status {exit_status}: {error}")
-                return stdout.read().decode('utf-8')
-
-            execute_command("set cli timeout idle 30")
-            execute_command("set cli pager off")
+                    raise FirewallAPIError(f"Command failed with exit status {exit_status}: {error}")
+                return output
 
             for vsys_name in target_vsys_list:
-                command = f"show rule-hit-count vsys vsys-name {vsys_name} rule-base security rules all"
-                self.logger.info(f"Executing command: {command}")
+                commands = [
+                    "set cli scripting-mode on",
+                    "set cli pager off",
+                    f"show rule-hit-count vsys vsys-name {vsys_name} rule-base security rules all"
+                ]
+                full_command = "; ".join(commands)
+                self.logger.info(f"Executing combined command for vsys {vsys_name}")
 
-                output = execute_command(command)
+                output = execute_command(full_command)
                 self.logger.info(f"Raw output received for vsys {vsys_name}, attempting to parse.")
 
                 lines = output.splitlines()
@@ -373,8 +376,10 @@ class PaloAltoAPI(FirewallInterface):
                         last_hit_date = None
                         if timestamp_str != '-':
                             try:
-                                # Format: "Tue Nov  4 00:50:48 2025" -> extra space for day
-                                dt_obj = datetime.datetime.strptime(timestamp_str, '%a %b %d %H:%M:%S %Y')
+                                # Normalize multiple spaces to a single space
+                                normalized_timestamp_str = re.sub(r'\s+', ' ', timestamp_str)
+                                # Format: "Tue Nov 4 00:50:48 2025"
+                                dt_obj = datetime.datetime.strptime(normalized_timestamp_str, '%a %b %d %H:%M:%S %Y')
                                 last_hit_date = dt_obj.strftime('%Y-%m-%d %H:%M:%S')
                             except ValueError:
                                 self.logger.warning(f"Could not parse timestamp '{timestamp_str}' for rule '{rule_name}'.")
