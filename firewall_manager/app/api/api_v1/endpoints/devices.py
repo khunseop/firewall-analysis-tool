@@ -13,6 +13,8 @@ async def create_device(
     device_in: schemas.DeviceCreate,
     db: AsyncSession = Depends(get_db)
 ):
+    if device_in.password != device_in.password_confirm:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
     db_device = await crud.device.get_device_by_name(db, name=device_in.name)
     if db_device:
         raise HTTPException(status_code=400, detail="Device with this name already registered")
@@ -43,6 +45,8 @@ async def update_device(
     device_in: schemas.DeviceUpdate,
     db: AsyncSession = Depends(get_db)
 ):
+    if device_in.password and device_in.password != device_in.password_confirm:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
     db_device = await crud.device.get_device(db, device_id=device_id)
     if db_device is None:
         raise HTTPException(status_code=404, detail="Device not found")

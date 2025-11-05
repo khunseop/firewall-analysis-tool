@@ -50,6 +50,12 @@
             </div>
           </div>
           <div class="field">
+            <label class="label">HA Peer IP</label>
+            <div class="control">
+              <input class="input" name="ha_peer_ip" />
+            </div>
+          </div>
+          <div class="field">
             <label class="label">벤더</label>
             <div class="control select is-fullwidth">
               <select name="vendor" id="vendor-select"></select>
@@ -69,10 +75,22 @@
             <p class="help">수정 시 비워두면 비밀번호는 변경되지 않습니다.</p>
           </div>
           <div class="field">
+            <label class="label">비밀번호 확인</label>
+            <div class="control">
+              <input class="input" type="password" name="password_confirm" />
+            </div>
+          </div>
+          <div class="field">
             <label class="label">설명</label>
             <div class="control">
               <textarea class="textarea" name="description"></textarea>
             </div>
+          </div>
+          <div class="field">
+            <label class="checkbox">
+              <input type="checkbox" name="use_ssh_for_last_hit_date">
+              last_hit_date SSH로 수집
+            </label>
           </div>
           <p class="help is-danger is-hidden" id="form-error"></p>
         </form>
@@ -119,5 +137,3 @@
     </div>
   </div>
 </div>
-
-

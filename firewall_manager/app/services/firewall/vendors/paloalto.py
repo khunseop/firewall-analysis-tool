@@ -4,6 +4,8 @@ import datetime
 import logging
 import requests
 import xml.etree.ElementTree as ET
+import paramiko
+import re
 
 import pandas as pd
 
@@ -310,3 +312,116 @@ class PaloAltoAPI(FirewallInterface):
 
         df = pd.DataFrame(results)
         return df
+
+    def export_last_hit_date_ssh(self, vsys: list[str] | set[str] | None = None) -> pd.DataFrame:
+        """SSH를 통해 각 규칙의 최근 히트 일자 정보를 수집하고 파싱하여 DataFrame으로 반환합니다."""
+        target_vsys_list: list[str] = ['vsys1']
+        if vsys:
+            target_vsys_list = [str(v) for v in vsys]
+
+        self.logger.info(f"Starting SSH last_hit_date collection for vsys: {target_vsys_list}")
+        all_results = []
+
+        ssh = None
+        try:
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect(self.hostname, port=22, username=self.username, password=self._password, timeout=20, look_for_keys=False, allow_agent=False)
+
+            channel = ssh.invoke_shell()
+
+            def read_until_prompt(prompt_pattern: str = r'>\s*$', timeout: int = 10) -> str:
+                output = ""
+                start_time = time.time()
+                while True:
+                    if channel.recv_ready():
+                        output += channel.recv(65535).decode('utf-8', errors='ignore')
+                        # 프롬프트가 출력의 마지막 라인에 있는지 확인
+                        if output.strip().endswith(('>', '#')):
+                            return output
+
+                    if time.time() - start_time > timeout:
+                        raise TimeoutError(f"Timed out waiting for shell prompt. Output received:\n{output}")
+
+                    time.sleep(0.5)
+
+            # 초기 프롬프트 및 배너 메시지 처리
+            read_until_prompt(timeout=20)
+
+            channel.send("set cli scripting-mode on\n")
+            read_until_prompt()
+
+            channel.send("set cli pager off\n")
+            read_until_prompt()
+
+            for vsys_name in target_vsys_list:
+                command = f"show rule-hit-count vsys vsys-name {vsys_name} rule-base security rules all\n"
+                self.logger.info(f"Executing command for vsys {vsys_name}: {command.strip()}")
+                channel.send(command)
+
+                # 명령어 실행 결과를 충분히 기다려서 받음
+                output = read_until_prompt(timeout=3600) # Long timeout for potentially large outputs
+                self.logger.info(f"Raw output received for vsys {vsys_name}, attempting to parse.")
+
+                lines = output.splitlines()
+                parsing_started = False
+                for line in lines:
+                    line = line.strip()
+                    if not line:
+                        continue
+
+                    # 데이터 시작점 (헤더 구분선)을 찾음
+                    if '----------' in line:
+                        parsing_started = True
+                        continue
+
+                    # 파싱이 시작되지 않았으면 다음 라인으로
+                    if not parsing_started:
+                        continue
+
+                    # 특정 규칙 이름 (종료 지점)에서 파싱 중단
+                    if line.startswith('intrazone-default'):
+                        break
+
+                    # 정규식을 사용하여 룰 이름, 히트 카운트, 타임스탬프 문자열을 추출
+                    match = re.match(r'^([a-zA-Z0-9/._-]+)\s+(\d+)\s+([A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+\d{4}|-)', line)
+                    if match:
+                        rule_name = match.group(1)
+                        hit_count = match.group(2)
+                        timestamp_str = match.group(3).strip()
+
+                        last_hit_date = None
+                        if timestamp_str != '-':
+                            try:
+                                # 여러 공백을 단일 공백으로 정규화
+                                normalized_timestamp_str = re.sub(r'\s+', ' ', timestamp_str)
+                                # 포맷: "Tue Nov  4 00:50:48 2025" (일(day)이 한 자리일 경우 공백이 2개)
+                                dt_obj = datetime.datetime.strptime(normalized_timestamp_str, '%a %b %d %H:%M:%S %Y')
+                                last_hit_date = dt_obj.strftime('%Y-%m-%d %H:%M:%S')
+                            except ValueError:
+                                self.logger.warning(f"Could not parse timestamp '{timestamp_str}' for rule '{rule_name}'.")
+
+                        all_results.append({
+                            "vsys": vsys_name,
+                            "rule_name": rule_name,
+                            "last_hit_date": last_hit_date
+                        })
+
+        except paramiko.AuthenticationException:
+            self.logger.error("SSH authentication failed for %s.", self.hostname)
+            raise FirewallAuthenticationError(f"SSH authentication failed for {self.hostname}.")
+        except paramiko.SSHException as e:
+            self.logger.error(f"SSH connection error for %s: %s", self.hostname, e)
+            raise FirewallConnectionError(f"SSH connection error for {self.hostname}: {e}")
+        except TimeoutError as e:
+            self.logger.error(f"SSH command timed out for %s: %s", self.hostname, e)
+            raise FirewallConnectionError(f"SSH command timed out for {self.hostname}: {e}")
+        except Exception as e:
+            self.logger.error(f"An unexpected error occurred during SSH collection for %s: %s", self.hostname, e, exc_info=True)
+            raise FirewallAPIError(f"An unexpected error occurred during SSH collection for {self.hostname}: {e}")
+        finally:
+            if ssh:
+                ssh.close()
+                self.logger.info("SSH connection closed for %s.", self.hostname)
+
+        return pd.DataFrame(all_results)

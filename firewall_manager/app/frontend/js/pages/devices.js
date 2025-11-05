@@ -33,10 +33,14 @@ function fillForm(initial = {}){
   const set = (name,val)=>{ const el=form.elements.namedItem(name); if(el) el.value = val ?? "" };
   set('name', initial.name);
   set('ip_address', initial.ip_address);
+  set('ha_peer_ip', initial.ha_peer_ip);
   set('username', initial.username);
   set('description', initial.description);
+  const useSshCheckbox = form.elements.namedItem('use_ssh_for_last_hit_date');
+  if(useSshCheckbox) useSshCheckbox.checked = initial.use_ssh_for_last_hit_date || false;
   vendorSelect.value = normalizeVendorCode(initial.vendor) || VENDOR_OPTIONS[0].code;
   const pw = root.querySelector('#password-input'); if (pw) pw.value = "";
+  const pwConfirm = form.elements.namedItem('password_confirm'); if (pwConfirm) pwConfirm.value = "";
 }
 
 function openModal(onSubmit){
@@ -65,11 +69,28 @@ function openModal(onSubmit){
     const fd = new FormData(form);
     const payload = Object.fromEntries(fd.entries());
     payload.vendor = normalizeVendorCode(payload.vendor);
-    if (!payload.password) delete payload.password;
-    try { await onSubmit(payload); close(); } catch (err){
-      const el = modal.querySelector('#form-error');
-      el.textContent = err.message || '요청 실패';
-      el.classList.remove('is-hidden');
+
+    if (payload.password && payload.password !== payload.password_confirm) {
+        const el = modal.querySelector('#form-error');
+        el.textContent = '비밀번호가 일치하지 않습니다.';
+        el.classList.remove('is-hidden');
+        return;
+    }
+
+    if (!payload.password) {
+        delete payload.password;
+        delete payload.password_confirm;
+    }
+
+    payload.use_ssh_for_last_hit_date = form.elements.namedItem('use_ssh_for_last_hit_date').checked;
+
+    try {
+        await onSubmit(payload);
+        close();
+    } catch (err) {
+        const el = modal.querySelector('#form-error');
+        el.textContent = err.message || '요청 실패';
+        el.classList.remove('is-hidden');
     }
   };
 }

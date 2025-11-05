@@ -211,16 +211,45 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                     vsys_list = policies_df["vsys"].unique().tolist() if "vsys" in policies_df.columns and not policies_df["vsys"].isnull().all() else None
 
                     logging.info(f"[orchestrator] Collecting last_hit_date for VSYS: {vsys_list if vsys_list else 'all'}")
-                    hit_date_df = await loop.run_in_executor(None, lambda: collector.export_last_hit_date(vsys=vsys_list))
+
+                    if device.use_ssh_for_last_hit_date:
+                        logging.info("[orchestrator] Using SSH for last_hit_date collection.")
+                        hit_date_df = await loop.run_in_executor(None, lambda: collector.export_last_hit_date_ssh(vsys=vsys_list))
+                    else:
+                        logging.info("[orchestrator] Using API for last_hit_date collection.")
+                        # Primary device collection
+                        hit_date_df = await loop.run_in_executor(None, lambda: collector.export_last_hit_date(vsys=vsys_list))
+
+                        # HA Peer device collection
+                        if device.ha_peer_ip:
+                            logging.info(f"[orchestrator] HA Peer IP detected ({device.ha_peer_ip}). Collecting its last_hit_date as well.")
+                            ha_collector = create_collector_from_device(device, use_ha_ip=True)
+                            try:
+                                await loop.run_in_executor(None, ha_collector.connect)
+                                ha_hit_date_df = await loop.run_in_executor(None, lambda: ha_collector.export_last_hit_date(vsys=vsys_list))
+                                if ha_hit_date_df is not None and not ha_hit_date_df.empty:
+                                    hit_date_df = pd.concat([hit_date_df, ha_hit_date_df]).reset_index(drop=True)
+                                    logging.info(f"[orchestrator] Concatenated hit dates. Total records: {len(hit_date_df)}")
+                            except Exception as ha_e:
+                                logging.warning(f"[orchestrator] Failed to collect last_hit_date from HA peer {device.ha_peer_ip}: {ha_e}")
+                            finally:
+                                await loop.run_in_executor(None, ha_collector.disconnect)
 
                     if hit_date_df is not None and not hit_date_df.empty:
-                        logging.info(f"[orchestrator] Retrieved {len(hit_date_df)} last_hit records; merging...")
+                        logging.info(f"[orchestrator] Retrieved {len(hit_date_df)} last_hit records; processing...")
+
+                        # Keep only the latest hit date for each rule
+                        hit_date_df['last_hit_date'] = pd.to_datetime(hit_date_df['last_hit_date'], errors='coerce')
+                        hit_date_df = hit_date_df.sort_values('last_hit_date').groupby(['vsys', 'rule_name']).tail(1)
 
                         # Vender 모듈에서 컬럼명을 snake_case로 통일했으므로 rename 불필요
                         # 데이터 타입 통일
                         for col in ['vsys', 'rule_name']:
                             if col in policies_df.columns: policies_df[col] = policies_df[col].astype(str)
                             if col in hit_date_df.columns: hit_date_df[col] = hit_date_df[col].astype(str)
+
+                        # Convert datetime back to string for merging
+                        hit_date_df['last_hit_date'] = hit_date_df['last_hit_date'].dt.strftime('%Y-%m-%d %H:%M:%S')
 
                         policies_df = pd.merge(policies_df, hit_date_df, on=["vsys", "rule_name"], how="left")
 

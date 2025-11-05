@@ -9,14 +9,18 @@ class DeviceBase(BaseModel):
     vendor: str
     username: str
     description: Optional[str] = None
+    ha_peer_ip: Optional[str] = None
+    use_ssh_for_last_hit_date: Optional[bool] = False
 
 # Schema for creating a new device
 class DeviceCreate(DeviceBase):
     password: str
+    password_confirm: str
 
 # Schema for updating an existing device
 class DeviceUpdate(DeviceBase):
     password: Optional[str] = None
+    password_confirm: Optional[str] = None
 
 # Schema for reading device data (from DB)
 class Device(DeviceBase):
