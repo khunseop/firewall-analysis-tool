@@ -103,7 +103,7 @@ async function initGrid() {
         onFirstDataRendered: params => params.api.autoSizeAllColumns(),
         pagination: true,
         paginationPageSize: 50,
-        enableFilterHandlers: true, // Enable filter buttons
+        enableFilterHandlers: true,
     };
 
     if (typeof agGrid !== 'undefined') {
@@ -160,37 +160,43 @@ function buildSearchPayload(deviceIds) {
 
     const splitCsv = (val) => (val || '').split(',').map(s => s.trim()).filter(Boolean);
 
+    let isServerFilterActive = false;
+
     for (const [field, model] of Object.entries(filterModel)) {
         if (!model) continue;
 
+        // Check if the filter is a server-side filter
+        if (model.filterType === 'values' || model.filterType === 'date' || (model.filterType !== 'text' && model.filter)) {
+             isServerFilterActive = true;
+        }
+
         if (model.filterType === 'values') {
-            // DualFilter in 'values' mode
             const values = splitCsv(model.filter);
             if (values.length > 0) {
                 if (field === 'source') payload.src_ips = values;
                 else if (field === 'destination') payload.dst_ips = values;
                 else if (field === 'service') payload.services = values;
-                else if (field === 'rule_name') payload.rule_name = model.filter; // rule_name uses raw comma-separated string
+                else if (field === 'rule_name') payload.rule_name = model.filter;
             }
-        } else if (model.filterType === 'text') {
-            // DualFilter in 'text' mode, or standard agTextColumnFilter
-            // This is client-side, so no payload needed
         } else if (model.filterType === 'date') {
-            // Standard agDateColumnFilter
             if (model.type === 'inRange') {
                  if (field === 'last_hit_date') {
                     payload.last_hit_date_from = model.dateFrom;
                     payload.last_hit_date_to = model.dateTo;
                 }
             }
-        } else {
-             // Standard agTextColumnFilter (without explicit filterType)
-            if (model.type === 'contains' && model.filter) {
-                 if (field === 'vsys') payload.vsys = model.filter;
-                 else if (field === 'action') payload.action = model.filter;
-                 // other text fields...
-            }
+        } else if (model.filterType !== 'text' && model.filter && model.type && model.type !== 'blank' && model.type !== 'notBlank') {
+             // Handle standard ag-grid text filters which are also server-side
+            if (field === 'vsys') payload.vsys = model.filter;
+            else if (field === 'action') payload.action = model.filter;
+            // Add other standard text fields that should be filtered server-side
         }
+    }
+
+    // Only add the limit if NO server-side filters are active.
+    // Client-side filters (like DualFilter's 'text' mode) should not affect this.
+    if (!isServerFilterActive) {
+        payload.limit = 500;
     }
 
     return payload;
@@ -223,7 +229,6 @@ export async function initPolicies() {
                 if (policyGridApi) {
                     policyGridApi.setFilterModel(null);
                 }
-                // When resetting filters, we need to re-fetch data for the selected devices
                 searchAndLoadPolicies();
             };
         }
@@ -233,7 +238,7 @@ export async function initPolicies() {
 
         sel.onchange = () => {
             if (policyGridApi) {
-                policyGridApi.setFilterModel(null); // Clear filters on device change
+                policyGridApi.setFilterModel(null);
             }
             searchAndLoadPolicies();
         };
