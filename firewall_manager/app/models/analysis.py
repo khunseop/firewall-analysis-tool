@@ -38,7 +38,7 @@ class RedundancyPolicySet(Base):
     policy_id = Column(Integer, ForeignKey("policies.id", ondelete="CASCADE"), nullable=False)
 
     task = relationship("AnalysisTask")
-    policy = relationship("Policy")
+    policy = relationship("Policy", back_populates="redundancy_policy_sets")
 
 class AnalysisResult(Base):
     __tablename__ = 'analysis_results'

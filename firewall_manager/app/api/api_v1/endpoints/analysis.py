@@ -59,6 +59,21 @@ async def get_redundancy_analysis_results(
     results = await crud.analysis.get_redundancy_policy_sets_by_task(db, task_id=task_id)
     return results
 
+@router.get("/{device_id}/redundancy/latest-result", response_model=schemas.AnalysisResult)
+async def get_latest_redundancy_analysis_result(
+    device_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """
+    지정된 장비의 가장 최근 중복 정책 분석 결과를 조회합니다.
+    """
+    result = await crud.analysis.get_analysis_result_by_device_and_type(
+        db, device_id=device_id, analysis_type="redundancy"
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Redundancy analysis result not found.")
+    return result
+
 @router.get("/{device_id}/latest-result", response_model=schemas.AnalysisResult)
 async def read_latest_analysis_result(
     device_id: int,
