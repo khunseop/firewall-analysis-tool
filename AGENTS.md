@@ -57,6 +57,8 @@
 - **목표:** 방화벽 장비의 등록 정보 및 정책 동기화를 관리합니다.
 - **세부 기능:**
   - 장비 정보(이름, IP, 벤더, 인증정보, 설명)를 CRUD 형태로 관리합니다.
+  - **HA Peer IP 지원 (Palo Alto):** `ha_peer_ip` 필드를 통해 HA(고가용성)로 구성된 다른 장비의 IP를 등록할 수 있습니다. `last_hit_date` 수집 시, 기본 IP와 `ha_peer_ip` 양쪽에서 데이터를 모두 수집한 후, 각 정책 룰에 대해 더 최신 타임스탬프를 가진 데이터만 선택하여 저장합니다.
+  - **SSH를 통한 `last_hit_date` 수집:** `use_ssh_for_last_hit_date` 체크박스를 활성화하면, API 대신 SSH를 통해 `last_hit_date` 정보를 수집합니다. 이는 API 방식이 불안정하거나 지원되지 않는 특정 환경을 위한 대안입니다.
   - **`POST /devices/{id}/test-connection`**: 등록된 장비에 실제 접속(`connect` 및 `disconnect`)을 시도하여 연결 가능 여부를 테스트합니다.
   - **백그라운드 동기화:** FastAPI BackgroundTasks로 데이터 동기화를 비동기 처리합니다.
   - **동기화 상태 추적:** `devices` 테이블의 `last_sync_status` (`in_progress | success | failure`)와 `last_sync_step` (`"객체 수집 중"`, `"정책 인덱싱 중"` 등)을 통해 상세한 진행 상태를 기록합니다. `last_sync_at`은 동기화가 완료된 시점에만 업데이트됩니다.
@@ -70,7 +72,9 @@
 - **`last_hit_date` 동기화 로직:**
   - 동기화 오케스트레이터는 벤더에 종속되지 않는 범용적인 구조로 설계되었습니다.
   - 각 벤더의 Collector 객체에 `export_last_hit_date` 메서드가 있는지 동적으로 확인하여(`hasattr`) 호출합니다.
-  - **Palo Alto:** `export_last_hit_date`를 구현하여 정책 수집 후 별도 API로 사용 이력을 조회하고 데이터를 병합합니다.
+  - **Palo Alto:**
+    - **API 방식:** `export_last_hit_date`를 구현하여 정책 수집 후 별도 API로 사용 이력을 조회합니다. 만약 `ha_peer_ip`가 설정되어 있다면, 양쪽 장비에서 모두 데이터를 가져와 최신 기록을 병합합니다.
+    - **SSH 방식:** `use_ssh_for_last_hit_date`가 활성화된 경우, `export_last_hit_date_ssh` 메서드를 호출합니다. 이 메서드는 `paramiko`의 `invoke_shell`을 사용하여 안정적인 대화형(interactive) 세션을 생성하고, 룰별 Hit 정보를 파싱하여 반환합니다.
   - **NGF:** `export_security_rules` 메서드가 정책 데이터에 사용 이력을 포함하여 반환하므로, `export_last_hit_date` 메서드를 구현하지 않습니다.
   - **MF2:** 미지원.
   - 이 구조 덕분에, `last_hit_date` 수집 중 오류가 발생해도 로깅 후 동기화의 나머지 부분은 계속 진행되며, 향후 새로운 벤더를 추가할 때 유연하게 확장할 수 있습니다.
