@@ -3,34 +3,9 @@
 
   <!-- 검색 필터 -->
   <div class="box mb-4">
-    <div class="level is-mobile mb-3">
-      <div class="level-left">
-        <div class="level-item">
-          <p class="subtitle is-6 mb-0">
-            <strong>검색 필터</strong>
-          </p>
-        </div>
-      </div>
-      <div class="level-right">
-        <div class="level-item">
-          <div class="buttons">
-            <button class="button is-link is-small" id="btn-search">
-              검색
-            </button>
-            <button class="button is-light is-small" id="btn-reset">
-              초기화
-            </button>
-            <button class="button is-success is-small" id="btn-export-excel">
-              엑셀 내보내기
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-    
     <div class="columns is-variable is-2 is-multiline">
-      <!-- Device and Rule Name -->
-      <div class="column is-3">
+      <!-- Device Selection -->
+      <div class="column is-12">
         <div class="field">
           <label class="label is-small">장비</label>
           <div class="control">
@@ -38,44 +13,26 @@
           </div>
         </div>
       </div>
-      <div class="column is-3">
-        <div class="field">
-          <label class="label is-small">정책명</label>
-          <div class="control">
-            <input id="f-rule-name" class="input is-small" placeholder="쉼표(,)로 여러 정책명 입력" />
-          </div>
-        </div>
-      </div>
-      <!-- IP and Service -->
-      <div class="column is-2">
-        <div class="field">
-          <label class="label is-small">출발지</label>
-          <div class="control">
-            <input id="f-src" class="input is-small" placeholder="쉼표(,)로 여러 IP값 입력" />
-          </div>
-        </div>
-      </div>
-      <div class="column is-2">
-        <div class="field">
-          <label class="label is-small">목적지</label>
-          <div class="control">
-            <input id="f-dst" class="input is-small" placeholder="쉼표(,)로 여러 IP값 입력" />
-          </div>
-        </div>
-      </div>
-      <div class="column is-2">
-        <div class="field">
-          <label class="label is-small">서비스</label>
-          <div class="control">
-            <input id="f-svc" class="input is-small" placeholder="쉼표(,)로 여러 포트값 입력" />
-          </div>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="level mb-2">
+    <div class="level-left"></div>
+    <div class="level-right">
+      <div class="level-item">
+        <div class="buttons">
+          <button class="button is-light is-small" id="btn-reset">
+            필터 초기화
+          </button>
+          <button class="button is-success is-small" id="btn-export-excel">
+            엑셀 내보내기
+          </button>
         </div>
       </div>
     </div>
   </div>
 
   <!-- 정책 그리드 -->
-  <div id="policies-grid" class="ag-theme-quartz" style="height: calc(100vh - 100px);"></div>
+  <div id="policies-grid" class="ag-theme-quartz" style="height: calc(100vh - 230px);"></div>
 </div>
-
-

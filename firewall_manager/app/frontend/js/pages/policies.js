@@ -1,5 +1,6 @@
 import { api } from "../api.js";
 import { showObjectDetailModal } from '../components/objectDetailModal.js';
+import { createDualFilter } from '../components/dualFilter.js';
 
 let policyGridApi;
 let allDevices = []; // 장비 목록 저장
@@ -48,36 +49,71 @@ async function initGrid() {
   const gridDiv = document.getElementById('policies-grid');
   if (!gridDiv) return;
   const getCols = () => ([
-    { field:'device_name', headerName:'장비', width:150, filter:'agTextColumnFilter', pinned:'left' },
-    { field:'seq', headerName:'순서', width:90, sort:'asc' },
-    { field:'vsys', headerName:'가상시스템', width:120 },
-    { field:'rule_name', headerName:'정책명', minWidth:250, maxWidth: 400 },
-    { field:'enable', headerName:'활성화', width:100, valueFormatter:p=>p.value===true?'활성':p.value===false?'비활성':'' },
-    { field:'action', headerName:'액션', width:110 },
+    {
+      field:'device_name', headerName:'장비', width:150, filter:'agTextColumnFilter', pinned:'left',
+      filterParams: { buttons: ['apply', 'reset'] }
+    },
+    { field:'seq', headerName:'순서', width:90, sort:'asc', filter: false },
+    {
+      field:'vsys', headerName:'가상시스템', width:120, filter:'agTextColumnFilter',
+      filterParams: { buttons: ['apply', 'reset'] }
+    },
+    {
+      field:'rule_name', headerName:'정책명', minWidth:250, maxWidth: 400,
+      filter: createDualFilter,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        applyValueSearch: () => searchAndLoadPolicies()
+      }
+    },
+    { field:'enable', headerName:'활성화', width:100, filter: false, valueFormatter:p=>p.value===true?'활성':p.value===false?'비활성':'' },
+    {
+      field:'action', headerName:'액션', width:110, filter:'agTextColumnFilter',
+      filterParams: { buttons: ['apply', 'reset'] }
+    },
     {
       field:'source', headerName:'출발지', minWidth:250, maxWidth: 400, wrapText:true, autoHeight:true,
-      cellRenderer: objectCellRenderer
+      cellRenderer: objectCellRenderer,
+      filter: createDualFilter,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        applyValueSearch: () => searchAndLoadPolicies()
+      }
     },
     {
       field:'user', headerName:'사용자', minWidth:250, wrapText:true, autoHeight:true,
-      cellRenderer: objectCellRenderer
+      cellRenderer: objectCellRenderer,
+      filter: 'agTextColumnFilter',
+      filterParams: { buttons: ['apply', 'reset'] }
     },
     {
       field:'destination', headerName:'목적지', minWidth:250, maxWidth: 400, wrapText:true, autoHeight:true,
-      cellRenderer: objectCellRenderer
+      cellRenderer: objectCellRenderer,
+      filter: createDualFilter,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        applyValueSearch: () => searchAndLoadPolicies()
+      }
     },
     {
       field:'service', headerName:'서비스', minWidth:250, maxWidth: 400, wrapText:true, autoHeight:true,
-      cellRenderer: objectCellRenderer
+      cellRenderer: objectCellRenderer,
+      filter: createDualFilter,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        applyValueSearch: () => searchAndLoadPolicies()
+      }
     },
     {
       field:'application', headerName:'애플리케이션', minWidth:250, wrapText:true, autoHeight:true,
-      cellRenderer: objectCellRenderer
+      cellRenderer: objectCellRenderer,
+      filter: 'agTextColumnFilter',
+      filterParams: { buttons: ['apply', 'reset'] }
     },
-    { field:'security_profile', headerName:'보안프로파일', width:180 },
-    { field:'category', headerName:'카테고리', width:140 },
-    { field:'description', headerName:'설명', minWidth:300, maxWidth: 1000 },
-    { field:'last_hit_date', headerName:'마지막매칭일시', minWidth:200 },
+    { field:'security_profile', headerName:'보안프로파일', width:180, filter: false },
+    { field:'category', headerName:'카테고리', width:140, filter: 'agTextColumnFilter', filterParams: { buttons: ['apply', 'reset'] } },
+    { field:'description', headerName:'설명', minWidth:300, maxWidth: 1000, filter: 'agTextColumnFilter', filterParams: { buttons: ['apply', 'reset'] } },
+    { field:'last_hit_date', headerName:'마지막매칭일시', minWidth:200, filter: false },
   ]);
   const options = {
     columnDefs: getCols(),
@@ -86,6 +122,7 @@ async function initGrid() {
     autoSizeStrategy: { type: 'fitGridWidth', defaultMaxWidth: 300 },
     enableCellTextSelection: true,
     getRowId: params => String(params.data.id),
+    enableFilterHandlers: true, // Enable filter buttons globally
     onGridReady: params => {
         policyGridApi = params.api;
     },
@@ -123,7 +160,6 @@ async function searchAndLoadPolicies() {
   const sel = document.getElementById('policy-device-select');
   const deviceIds = Array.from(sel?.selectedOptions || []).map(o=>parseInt(o.value,10)).filter(Boolean);
   if (!deviceIds.length) {
-    // 선택된 장비가 없으면 그리드를 빈 상태로 초기화
     if (policyGridApi) {
       if (typeof policyGridApi.setGridOption==='function') policyGridApi.setGridOption('rowData', []);
       else if (typeof policyGridApi.setRowData==='function') policyGridApi.setRowData([]);
@@ -135,10 +171,7 @@ async function searchAndLoadPolicies() {
   const response = await api.searchPolicies(payload);
 
   if (response && Array.isArray(response.policies)) {
-    // Update the set of valid object names
     validObjectNames = new Set(response.valid_object_names || []);
-
-    // Inject seq-based row ID and device_name
     const rows = response.policies.map((r, idx) => {
       const device = allDevices.find(d => d.id === r.device_id);
       const deviceName = device ? device.name : `장비 ${r.device_id}`;
@@ -151,43 +184,40 @@ async function searchAndLoadPolicies() {
       } else if (typeof policyGridApi.setRowData === 'function') {
         policyGridApi.setRowData(rows);
       }
-      // Refresh cells to apply the new link logic
       policyGridApi.refreshCells({ force: true });
     }
   }
 }
 
 function buildSearchPayload(deviceIds){
-  const g = (id) => document.getElementById(id);
-  const v = (id) => g(id)?.value?.trim() || null; // 값이 없으면 null 반환
-  const splitCsv = (val) => (val || '').split(',').map(s => s.trim()).filter(Boolean);
+  const filterModel = policyGridApi ? policyGridApi.getFilterModel() : {};
+  const payload = { device_ids: deviceIds };
 
-  const payload = {
-    device_ids: deviceIds,
-    rule_name: v('f-rule-name'),
-    vsys: v('f-vsys'),
-    // `source`, `destination`, `service`는 더 이상 Pydantic 모델에 없는 일반 텍스트 필드입니다.
-    // 대신 `src_ips`, `dst_ips`, `services`를 사용합니다.
-    user: v('f-user'),
-    application: v('f-app'),
-    description: v('f-desc'),
-    action: v('f-action'),
-    last_hit_date_from: v('f-hit-from'),
-    last_hit_date_to: v('f-hit-to'),
-    enable: g('f-enable')?.value === 'true' ? true : g('f-enable')?.value === 'false' ? false : null,
-
-    // Corrected fields for indexed search
-    src_ips: splitCsv(v('f-src')),
-    dst_ips: splitCsv(v('f-dst')),
-    services: splitCsv(v('f-svc')),
+  // Map server-side filters from the grid model
+  const serverFilters = {
+    'rule_name': 'rule_name',
+    'source': 'src_ips',
+    'destination': 'dst_ips',
+    'service': 'services'
   };
 
-  const isAllFiltersEmpty = Object.keys(payload).every(key => {
-    if (key === 'device_ids') return !payload[key] || payload[key].length === 0;
-    const value = payload[key];
-    if (Array.isArray(value)) return value.length === 0;
-    return value === null || value === '';
+  for (const colId in filterModel) {
+    const model = filterModel[colId];
+    if (serverFilters[colId] && model.filterType === 'values') {
+      payload[serverFilters[colId]] = model.values;
+    }
+  }
+
+  // Add other simple text filters if they exist (though UI for them is removed)
+  // This part can be extended if other filters are server-side
+  const simpleTextFilters = ['vsys', 'user', 'application', 'description', 'action'];
+  simpleTextFilters.forEach(key => {
+    if (filterModel[key] && filterModel[key].filter) {
+        payload[key] = filterModel[key].filter;
+    }
   });
+
+  const isAllFiltersEmpty = Object.keys(payload).length <= 1;
 
   if (isAllFiltersEmpty && deviceIds.length > 0) {
     payload.limit = 500;
@@ -201,7 +231,7 @@ export async function initPolicies(){
   await loadDevicesIntoSelect();
   const sel = document.getElementById('policy-device-select');
   if (!sel) return;
-  // Initialize Tom Select for device selector only
+
   try {
     if (window.TomSelect && sel) {
       if (sel.tomselect) { try { sel.tomselect.destroy(); } catch {} }
@@ -214,21 +244,14 @@ export async function initPolicies(){
   } catch {}
 
   const bind = () => {
-    const btnSearch = document.getElementById('btn-search');
     const btnReset = document.getElementById('btn-reset');
     const btnExport = document.getElementById('btn-export-excel');
-    if (btnSearch) btnSearch.onclick = () => searchAndLoadPolicies();
+
     if (btnReset) btnReset.onclick = () => {
-      // Reset all filter inputs
-      document.querySelectorAll('input[id^="f-"]').forEach(el => {
-        el.value = '';
-      });
-      // Reset ag-grid filters
       if (policyGridApi) {
-        if (typeof policyGridApi.setFilterModel==='function') policyGridApi.setFilterModel(null);
+        policyGridApi.setFilterModel(null);
       }
-      // TomSelect는 별도로 초기화해야 할 수 있지만, 여기서는 간단히 값만 비웁니다.
-      // sel.tomselect.clear(); (필요 시)
+      // After resetting grid filters, re-run the search to clear server-side filters as well
       searchAndLoadPolicies();
     };
     if (btnExport) btnExport.onclick = () => exportToExcel();
@@ -243,7 +266,6 @@ export async function initPolicies(){
       return;
     }
     try {
-      // Get filtered rows from grid
       const rowData = [];
       policyGridApi.forEachNodeAfterFilter((node) => {
         rowData.push(node.data);
@@ -260,6 +282,4 @@ export async function initPolicies(){
       alert(`내보내기 실패: ${error.message}`);
     }
   }
-
-  // 초기 로딩 시 자동 선택/자동 조회를 수행하지 않습니다.
 }
