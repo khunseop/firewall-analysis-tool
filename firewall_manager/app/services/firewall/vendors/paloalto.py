@@ -384,7 +384,7 @@ class PaloAltoAPI(FirewallInterface):
                         break
 
                     # 정규식을 사용하여 룰 이름, 히트 카운트, 타임스탬프 문자열을 추출
-                    match = re.match(r'^([a-zA-Z0-9/._-]+)\s+(\d+)\s+(.*)', line)
+                    match = re.match(r'^([a-zA-Z0-9/._-]+)\s+(\d+)\s+([A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+\d{4}|-)', line)
                     if match:
                         rule_name = match.group(1)
                         hit_count = match.group(2)
