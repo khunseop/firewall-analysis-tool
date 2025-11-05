@@ -1,6 +1,6 @@
 // dualFilter.js
 
-// AG Grid의 IFilterComp 인터페이스를 구현하는 커스텀 필터
+// AG Grid의 IFilterComp 인터페이스를 구현하는 커텀 필터
 export function createDualFilter(params) {
   return {
     // 필터의 DOM 요소를 초기화하고 반환
