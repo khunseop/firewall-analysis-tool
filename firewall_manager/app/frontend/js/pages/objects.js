@@ -153,6 +153,7 @@ async function initGrids() {
   const serviceGroupsEl = document.getElementById('service-groups-grid');
   if (serviceGroupsEl) {
     serviceGroupsGrid = agGrid.createGrid(serviceGroupsEl, {
+      columnDefs: serviceGroupsColumns,
       defaultColDef: {
         sortable: true,
         resizable: false,
