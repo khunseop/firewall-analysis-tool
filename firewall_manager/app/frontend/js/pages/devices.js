@@ -258,10 +258,10 @@ function statusCellRenderer(params){
 function getColumns(){
   return [
     { field: 'id', headerName:'ID', maxWidth: 100 },
-    { field: 'name', headerName:'이름', flex: 1 },
+    { field: 'name', headerName:'이름'},
     { field: 'vendor', headerName:'벤더', maxWidth: 150, valueFormatter: p => codeToLabel.get(normalizeVendorCode(p.value)) || p.value },
     { field: 'ip_address', headerName:'IP 주소' },
-    { field: 'description', headerName:'설명', flex: 1 },
+    { field: 'description', headerName:'설명'},
     { field: 'last_sync_status', headerName:'진행 상태', cellRenderer: statusCellRenderer },
     { field: 'last_sync_at', headerName:'마지막 동기화' },
   ];
