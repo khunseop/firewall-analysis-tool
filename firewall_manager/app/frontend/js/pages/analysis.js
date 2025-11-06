@@ -45,7 +45,6 @@ function createGrid(columnDefs, rowData) {
             pagination: true,
             paginationPageSize: 50,
             enableCellTextSelection: true,
-            rowSelection: 'multiple',
             onGridReady: (params) => {
                 resultGridApi = params.api;
             },
