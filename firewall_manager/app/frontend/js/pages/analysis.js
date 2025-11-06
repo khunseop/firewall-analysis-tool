@@ -38,8 +38,8 @@ function createGrid(columnDefs, rowData) {
             columnDefs: columnDefs,
             rowData: rowData,
             defaultColDef: {
-                sortable: true,
-                resizable: true,
+                sortable: false,
+                resizable: false,
                 filter: true,
             },
             pagination: true,
@@ -130,15 +130,21 @@ function stopPolling() {
 }
 
 // 저장된 결과 또는 태스크 완료 후 결과를 그리드에 표시
-function displayResults(resultData, analysisType) {
-    resetStatusUI();
+function displayResults(resultData, analysisType, source = 'latest') {
     const resultBox = document.getElementById('analysis-result-box');
+    if (source === 'task') {
+        resetStatusUI(); // 태스크 완료 시에만 전체 UI 초기화
+    }
+
     if(resultData && resultData.length > 0) {
         const columnDefs = getColumnDefs(analysisType);
         createGrid(columnDefs, resultData);
         if (resultBox) resultBox.style.display = 'block';
     } else {
         if (resultBox) resultBox.style.display = 'none';
+        if (source === 'task') {
+            updateStatusLog('분석이 완료되었지만, 중복된 정책이 발견되지 않았습니다.');
+        }
     }
 }
 
@@ -146,8 +152,8 @@ async function displayTaskResults(taskId) {
     try {
         updateStatusLog('분석 결과를 가져오는 중...');
         const results = await api.getAnalysisResults(taskId);
-        displayResults(results, 'redundancy');
         updateStatusLog('결과 표시 완료.');
+        displayResults(results, 'redundancy', 'task');
     } catch (error) {
         console.error('결과를 가져오는 데 실패했습니다:', error);
         updateStatusLog(`결과 로딩 실패: ${error.message}`);
@@ -171,7 +177,8 @@ function startPolling(deviceId) {
                 case 'success':
                     stopPolling();
                     updateStatusLog('분석 성공.');
-                    await displayTaskResults(task.id); // 태스크 결과 조회 및 표시
+                    // Playwright가 메시지를 감지할 수 있도록 짧은 지연 추가
+                    setTimeout(() => displayTaskResults(task.id), 100);
                     break;
                 case 'failure':
                     stopPolling();
@@ -209,7 +216,6 @@ async function startAnalysis() {
 
 async function loadLatestResult() {
     const deviceId = deviceSelect.getValue();
-    const analysisTypeEl = document.getElementById('analysis-type-select');
     // 현재는 '중복 정책 분석'만 지원하므로, 실제 API가 요구하는 'redundancy' 값으로 하드코딩
     const analysisType = 'redundancy';
 
@@ -218,19 +224,27 @@ async function loadLatestResult() {
         return;
     }
 
+    // 새 장비를 선택했으므로 이전 상태와 결과를 초기화
+    resetStatusUI();
+    updateStatusLog('최신 분석 결과를 조회합니다...');
+
     try {
         const latestResult = await api.getLatestAnalysisResult(deviceId, analysisType);
-        if (latestResult && latestResult.result_data) {
+        if (latestResult && latestResult.result_data && latestResult.result_data.length > 0) {
+            updateStatusLog(`최신 분석 결과를 표시합니다. (생성일: ${new Date(latestResult.created_at).toLocaleString()})`);
             displayResults(latestResult.result_data, latestResult.analysis_type);
         } else {
-             resetStatusUI();
+            updateStatusLog('최신 분석 결과에 데이터가 없습니다.');
         }
     } catch (error) {
-        if (error.message.includes('404')) {
-             resetStatusUI(); // 404는 결과가 없는 것이므로 UI 초기화
+        if (error.status === 404) {
+            updateStatusLog('저장된 최신 분석 결과가 없습니다.');
         } else {
             console.error('최신 분석 결과 로드 실패:', error);
+            updateStatusLog(`오류: 최신 분석 결과를 불러오지 못했습니다. (${error.message})`);
         }
+        const resultBox = document.getElementById('analysis-result-box');
+        if (resultBox) resultBox.style.display = 'none';
     }
 }
 
