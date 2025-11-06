@@ -72,7 +72,7 @@ async function initGrid() {
       filterParams: { buttons: ['apply', 'reset'] }
     },
     {
-      field:'source', headerName:'출발지', minWidth:250, maxWidth: 400, wrapText:true, autoHeight:true,
+      field:'source', headerName:'출발지', minWidth:250, maxWidth: 400, wrapText:true,
       cellRenderer: objectCellRenderer,
       filter: createDualFilter,
       filterParams: {
@@ -81,13 +81,13 @@ async function initGrid() {
       }
     },
     {
-      field:'user', headerName:'사용자', minWidth:250, wrapText:true, autoHeight:true,
+      field:'user', headerName:'사용자', minWidth:250, wrapText:true,
       cellRenderer: objectCellRenderer,
       filter: 'agTextColumnFilter',
       filterParams: { buttons: ['apply', 'reset'] }
     },
     {
-      field:'destination', headerName:'목적지', minWidth:250, maxWidth: 400, wrapText:true, autoHeight:true,
+      field:'destination', headerName:'목적지', minWidth:250, maxWidth: 400, wrapText:true,
       cellRenderer: objectCellRenderer,
       filter: createDualFilter,
       filterParams: {
@@ -96,7 +96,7 @@ async function initGrid() {
       }
     },
     {
-      field:'service', headerName:'서비스', minWidth:250, maxWidth: 400, wrapText:true, autoHeight:true,
+      field:'service', headerName:'서비스', minWidth:250, maxWidth: 400, wrapText:true,
       cellRenderer: objectCellRenderer,
       filter: createDualFilter,
       filterParams: {
@@ -105,7 +105,7 @@ async function initGrid() {
       }
     },
     {
-      field:'application', headerName:'애플리케이션', minWidth:250, wrapText:true, autoHeight:true,
+      field:'application', headerName:'애플리케이션', minWidth:250, wrapText:true,
       cellRenderer: objectCellRenderer,
       filter: 'agTextColumnFilter',
       filterParams: { buttons: ['apply', 'reset'] }
@@ -118,8 +118,8 @@ async function initGrid() {
   const options = {
     columnDefs: getCols(),
     rowData: [],
-    defaultColDef:{ resizable:false, sortable:false, filter:true },
-    autoSizeStrategy: { type: 'fitGridWidth', defaultMaxWidth: 300 },
+    defaultColDef:{ resizable:true, sortable:true, filter:true },
+    autoSizeStrategy: { type: 'fitGridWidth', defaultMaxWidth: 400 },
     enableCellTextSelection: true,
     getRowId: params => String(params.data.id),
     enableFilterHandlers: true, // Enable filter buttons globally
@@ -130,6 +130,7 @@ async function initGrid() {
   };
   options.pagination = true;
   options.paginationPageSize = 50;
+  options.suppressRowClickSelection = true;
 
   if (typeof agGrid !== 'undefined') {
       if (agGrid.createGrid) {
@@ -157,34 +158,38 @@ async function loadDevicesIntoSelect() {
 }
 
 async function searchAndLoadPolicies() {
-  const sel = document.getElementById('policy-device-select');
-  const deviceIds = Array.from(sel?.selectedOptions || []).map(o=>parseInt(o.value,10)).filter(Boolean);
-  if (!deviceIds.length) {
-    if (policyGridApi) {
-      if (typeof policyGridApi.setGridOption==='function') policyGridApi.setGridOption('rowData', []);
-      else if (typeof policyGridApi.setRowData==='function') policyGridApi.setRowData([]);
-    }
-    return;
+  if (policyGridApi) {
+    policyGridApi.showLoadingOverlay();
   }
-
-  const payload = buildSearchPayload(deviceIds);
-  const response = await api.searchPolicies(payload);
-
-  if (response && Array.isArray(response.policies)) {
-    validObjectNames = new Set(response.valid_object_names || []);
-    const rows = response.policies.map((r, idx) => {
-      const device = allDevices.find(d => d.id === r.device_id);
-      const deviceName = device ? device.name : `장비 ${r.device_id}`;
-      return { ...r, _seq_row: idx + 1, device_name: deviceName };
-    });
-
-    if (policyGridApi) {
-      if (typeof policyGridApi.setGridOption === 'function') {
-        policyGridApi.setGridOption('rowData', rows);
-      } else if (typeof policyGridApi.setRowData === 'function') {
-        policyGridApi.setRowData(rows);
+  try {
+    const sel = document.getElementById('policy-device-select');
+    const deviceIds = Array.from(sel?.selectedOptions || []).map(o=>parseInt(o.value,10)).filter(Boolean);
+    if (!deviceIds.length) {
+      if (policyGridApi) {
+        policyGridApi.setGridOption('rowData', []);
       }
-      policyGridApi.refreshCells({ force: true });
+      return;
+    }
+
+    const payload = buildSearchPayload(deviceIds);
+    const response = await api.searchPolicies(payload);
+
+    if (response && Array.isArray(response.policies)) {
+      validObjectNames = new Set(response.valid_object_names || []);
+      const rows = response.policies.map((r, idx) => {
+        const device = allDevices.find(d => d.id === r.device_id);
+        const deviceName = device ? device.name : `장비 ${r.device_id}`;
+        return { ...r, _seq_row: idx + 1, device_name: deviceName };
+      });
+
+      if (policyGridApi) {
+        policyGridApi.setGridOption('rowData', rows);
+        policyGridApi.refreshCells({ force: true });
+      }
+    }
+  } finally {
+    if (policyGridApi) {
+      policyGridApi.hideOverlay();
     }
   }
 }
@@ -201,26 +206,18 @@ function buildSearchPayload(deviceIds){
     'service': 'services'
   };
 
+  // Standard text filters that are also server-side
+  const simpleTextFilters = ['vsys', 'user', 'application', 'description', 'action', 'device_name'];
+
   for (const colId in filterModel) {
     const model = filterModel[colId];
     if (serverFilters[colId] && model.filterType === 'values') {
-      payload[serverFilters[colId]] = model.values;
+      if(model.values && model.values.length > 0) {
+        payload[serverFilters[colId]] = model.values;
+      }
+    } else if (simpleTextFilters.includes(colId) && model.type === 'contains' && model.filter) {
+        payload[colId] = model.filter;
     }
-  }
-
-  // Add other simple text filters if they exist (though UI for them is removed)
-  // This part can be extended if other filters are server-side
-  const simpleTextFilters = ['vsys', 'user', 'application', 'description', 'action'];
-  simpleTextFilters.forEach(key => {
-    if (filterModel[key] && filterModel[key].filter) {
-        payload[key] = filterModel[key].filter;
-    }
-  });
-
-  const isAllFiltersEmpty = Object.keys(payload).length <= 1;
-
-  if (isAllFiltersEmpty && deviceIds.length > 0) {
-    payload.limit = 500;
   }
 
   return payload;
@@ -251,11 +248,9 @@ export async function initPolicies(){
       if (policyGridApi) {
         policyGridApi.setFilterModel(null);
       }
-      // After resetting grid filters, re-run the search to clear server-side filters as well
       searchAndLoadPolicies();
     };
     if (btnExport) btnExport.onclick = () => exportToExcel();
-    // re-query when device selection changes
     sel.onchange = () => searchAndLoadPolicies();
   };
   bind();
