@@ -32,13 +32,14 @@ async def run_redundancy_analysis_task(db: AsyncSession, device_id: int):
         )
         task = await crud.analysis.create_analysis_task(db, obj_in=task_create)
 
-        try:
-            task_update = AnalysisTaskUpdate(
-                started_at=datetime.now(),
-                task_status='in_progress'
-            )
-            task = await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+        # 상태를 'in_progress'로 먼저 업데이트
+        task_update = AnalysisTaskUpdate(
+            started_at=datetime.now(),
+            task_status='in_progress'
+        )
+        task = await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
 
+        try:
             # 1. 핵심 분석 로직 실행 및 결과 반환
             analyzer = RedundancyAnalyzer(db_session=db, task=task)
             analysis_sets = await analyzer.analyze()

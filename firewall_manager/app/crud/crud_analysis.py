@@ -1,6 +1,6 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 
@@ -81,21 +81,19 @@ async def get_analysis_result_by_device_and_type(db: AsyncSession, *, device_id:
     return result.scalars().first()
 
 async def create_or_update_analysis_result(db: AsyncSession, *, obj_in: AnalysisResultCreate):
-    """분석 결과를 생성하거나 이미 존재하면 업데이트합니다."""
-    existing_result = await get_analysis_result_by_device_and_type(
-        db, device_id=obj_in.device_id, analysis_type=obj_in.analysis_type
+    """
+    새로운 분석 결과를 생성합니다.
+    만약 동일한 장비와 분석 유형의 이전 결과가 존재한다면, 모두 삭제하고 새로운 결과를 저장합니다.
+    """
+    # 기존 결과 모두 삭제
+    delete_stmt = delete(AnalysisResult).where(
+        AnalysisResult.device_id == obj_in.device_id,
+        AnalysisResult.analysis_type == obj_in.analysis_type
     )
+    await db.execute(delete_stmt)
 
-    if existing_result:
-        # Update
-        update_data = obj_in.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(existing_result, field, value)
-        db_obj = existing_result
-    else:
-        # Create
-        db_obj = AnalysisResult(**obj_in.model_dump())
-
+    # 새로운 결과 생성
+    db_obj = AnalysisResult(**obj_in.model_dump())
     db.add(db_obj)
     await db.commit()
     await db.refresh(db_obj)

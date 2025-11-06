@@ -8,7 +8,9 @@ async function request(path, options = {}) {
   if (!res.ok) {
     let detail = "Request failed";
     try { const data = await res.json(); detail = data.detail || data.msg || detail; } catch {}
-    throw new Error(detail);
+    const error = new Error(detail);
+    error.status = res.status;
+    throw error;
   }
   const ct = res.headers.get("content-type") || "";
   return ct.includes("application/json") ? res.json() : res.text();

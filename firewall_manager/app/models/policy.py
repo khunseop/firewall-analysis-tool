@@ -32,3 +32,4 @@ class Policy(Base):
     device = relationship("Device")
     address_members = relationship("PolicyAddressMember", back_populates="policy", cascade="all, delete-orphan")
     service_members = relationship("PolicyServiceMember", back_populates="policy", cascade="all, delete-orphan")
+    redundancy_policy_sets = relationship("RedundancyPolicySet", back_populates="policy", cascade="all, delete-orphan")
