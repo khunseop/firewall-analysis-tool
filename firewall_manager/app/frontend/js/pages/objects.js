@@ -1,6 +1,7 @@
 import { api } from '../api.js';
 import { adjustGridHeight, createGridEventHandlers, createCommonGridOptions } from '../utils/grid.js';
 import { exportGridToExcel } from '../utils/export.js';
+import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
 
 // ==================== 전역 변수 ====================
 
@@ -316,6 +317,17 @@ async function loadData(deviceIds) {
     deviceIdArray = [deviceIds];
   }
 
+  // 메시지 컨테이너 ID 매핑
+  const messageContainerMap = {
+    'network-objects': 'network-objects-message-container',
+    'network-groups': 'network-groups-message-container',
+    'services': 'services-message-container',
+    'service-groups': 'service-groups-message-container'
+  };
+  
+  const currentMessageContainer = document.getElementById(messageContainerMap[currentTab]);
+  const currentGridElement = document.getElementById(`${currentTab}-grid`);
+  
   if (deviceIdArray.length === 0) {
     // 선택된 장비가 없으면 빈 데이터 표시 및 필터 초기화
     if (networkObjectsGrid) {
@@ -334,8 +346,16 @@ async function loadData(deviceIds) {
       serviceGroupsGrid.setGridOption('rowData', []);
       serviceGroupsGrid.setFilterModel(null);
     }
+    
+    // 메시지 표시 및 그리드 숨김
+    showEmptyMessage(currentMessageContainer, '장비를 선택하세요', 'fa-mouse-pointer');
+    if (currentGridElement) currentGridElement.style.display = 'none';
     return;
   }
+  
+  // 장비가 선택되면 메시지 숨기고 그리드 표시
+  hideEmptyMessage(currentMessageContainer);
+  if (currentGridElement) currentGridElement.style.display = 'block';
 
   try {
     // 여러 장비의 데이터를 병렬로 가져오기
@@ -394,6 +414,15 @@ async function loadData(deviceIds) {
         }
         adjustGridHeight(gridElement);
       }, 600);
+    }
+    
+    // 데이터가 없으면 메시지 표시
+    if (mergedData.length === 0) {
+      showEmptyMessage(currentMessageContainer, '장비를 선택하세요', 'fa-mouse-pointer');
+      if (gridElement) gridElement.style.display = 'none';
+    } else {
+      hideEmptyMessage(currentMessageContainer);
+      if (gridElement) gridElement.style.display = 'block';
     }
   } catch (err) {
     console.error(`Failed to load ${currentTab}:`, err);

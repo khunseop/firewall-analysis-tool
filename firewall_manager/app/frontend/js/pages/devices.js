@@ -1,5 +1,6 @@
 import { api } from "../api.js";
 import { openConfirm, openAlert, openFormModal } from "../utils/modal.js";
+import { showEmptyMessage, hideEmptyMessage } from "../utils/message.js";
 
 // ==================== 상수 및 전역 변수 ====================
 
@@ -229,6 +230,19 @@ async function loadGrid(gridDiv) {
   if (!isReady) return;
   
   const data = await api.listDevices();
+  const messageContainer = document.getElementById('devices-message-container');
+  
+  // 장비가 없으면 메시지 표시
+  if (data.length === 0) {
+    showEmptyMessage(messageContainer, '장비를 추가하세요', 'fa-plus-circle');
+    if (gridDiv) gridDiv.style.display = 'none';
+    return;
+  }
+  
+  // 장비가 있으면 메시지 숨기고 그리드 표시
+  hideEmptyMessage(messageContainer);
+  if (gridDiv) gridDiv.style.display = 'block';
+  
   const needRecreate = !gridApi || !gridHostEl || gridHostEl !== gridDiv;
   
   if (needRecreate) {

@@ -1,101 +1,306 @@
-# FAT Agent: FIREWALL ANALYSIS TOOL
+# FAT: Firewall Analysis Tool
+
+## 목차
+
+1. [프로젝트 개요](#1-프로젝트-개요)
+2. [설치 및 실행](#2-설치-및-실행)
+3. [핵심 기능](#3-핵심-기능)
+4. [아키텍처](#4-아키텍처)
+5. [개발 가이드라인](#5-개발-가이드라인)
+
+---
 
 ## 1. 프로젝트 개요
 
 **FAT(Firewall Analysis Tool)**은 여러 방화벽 장비의 정책을 통합 조회하고 분석할 수 있는 **웹 기반 정책 관리 도구**입니다.
-본 문서는 FAT의 **Agent 구성요소**에 대한 명세를 정의하며, 주로 **정책 데이터 수집 및 동기화 로직**을 다룹니다.
-이 시스템은 **폐쇄망(Offline)** 환경에서 운용되며, **Palo Alto**와 **SECUI (MF2, NGF)** 등 멀티 벤더를 기본 지원하며, 테스트를 위한 **Mock** 벤더도 포함합니다.
+
+### 주요 특징
+
+- **멀티 벤더 지원**: Palo Alto, SECUI (MF2, NGF), Mock (테스트용)
+- **폐쇄망 환경**: 오프라인 환경에서 운용 가능
+- **통합 조회**: 여러 장비의 정책을 한 번에 검색 및 비교
+- **정책 분석**: 중복 정책 자동 탐지 및 분석
+- **실시간 동기화**: 백그라운드 동기화 및 상태 추적
 
 ---
 
-## 1.5. 설치 및 실행 가이드
+## 2. 설치 및 실행
 
-본 애플리케이션은 `.env` 생성은 자동 처리되지만, DB 마이그레이션은 이제 수동 스크립트로 수행합니다. 이는 uvicorn 실행 시 자동 마이그레이션으로 인해 웹 로그가 멈추는 현상을 방지하기 위함입니다.
+### 2.1. 사전 요구사항
 
-1.  **가상 환경 생성 및 활성화**
-    - 프로젝트 루트에서 가상 환경을 생성하고 활성화합니다. (Conda 또는 venv 권장)
+- Python 3.8 이상
+- 가상 환경 관리 도구 (Conda 또는 venv)
 
-2.  **의존성 패키지 설치**
-    ```bash
-    pip install -r firewall_manager/requirements.txt
-    ```
+### 2.2. 설치 절차
 
-3.  **데이터베이스 마이그레이션**
-    - 서버를 실행하기 전, 항상 다음 명령을 통해 데이터베이스 스키마를 최신 상태로 유지해야 합니다.
-    ```bash
-    # (최초 생성 시) DB를 최신 상태로 생성 및 업그레이드
-    python3 firewall_manager/migrate.py
+```bash
+# 1. 가상 환경 생성 및 활성화
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-    # 또는 명시적으로 upgrade head 사용 가능
-    python3 -m alembic -c firewall_manager/alembic.ini upgrade head
-    ```
+# 2. 의존성 패키지 설치
+pip install -r firewall_manager/requirements.txt
 
-4.  **서버 실행**
-    - 프로젝트 루트에서 아래 중 하나를 실행합니다.
-    ```bash
-    # 방법 A: app-dir 지정 (권장)
-    uvicorn app.main:app --reload --app-dir firewall_manager
+# 3. 데이터베이스 마이그레이션
+python3 firewall_manager/migrate.py
 
-    # 방법 B: 폴더 진입 후 실행
-    (cd firewall_manager && uvicorn app.main:app --reload)
-    ```
-    - 문서:
-      - Swagger UI: `http://127.0.0.1:8000/docs`
-      - ReDoc: `http://127.0.0.1:8000/redoc`
+# 또는 명시적으로 upgrade head 사용
+python3 -m alembic -c firewall_manager/alembic.ini upgrade head
+```
 
-5.  **(선택) 스모크 테스트**
-    - 로컬 확인용 간단 테스트 스크립트:
-    ```bash
-    python3 firewall_manager/smoke_test.py
-    ```
+> **참고**: DB 마이그레이션은 수동 스크립트로 수행합니다. 이는 uvicorn 실행 시 자동 마이그레이션으로 인해 웹 로그가 멈추는 현상을 방지하기 위함입니다.
 
----
+### 2.3. 서버 실행
 
-## 2. 핵심 기능
+```bash
+# 방법 A: app-dir 지정 (권장)
+uvicorn app.main:app --reload --app-dir firewall_manager
 
-### 2.2. 장비 관리
-- **목표:** 방화벽 장비의 등록 정보 및 정책 동기화를 관리합니다.
-- **세부 기능:**
-  - 장비 정보(이름, IP, 벤더, 인증정보, 설명)를 CRUD 형태로 관리합니다.
-  - **HA Peer IP 지원 (Palo Alto):** `ha_peer_ip` 필드를 통해 HA(고가용성)로 구성된 다른 장비의 IP를 등록할 수 있습니다. `last_hit_date` 수집 시, 기본 IP와 `ha_peer_ip` 양쪽에서 데이터를 모두 수집한 후, 각 정책 룰에 대해 더 최신 타임스탬프를 가진 데이터만 선택하여 저장합니다.
-  - **SSH를 통한 `last_hit_date` 수집:** `use_ssh_for_last_hit_date` 체크박스를 활성화하면, API 대신 SSH를 통해 `last_hit_date` 정보를 수집합니다. 이는 API 방식이 불안정하거나 지원되지 않는 특정 환경을 위한 대안입니다.
-  - **`POST /devices/{id}/test-connection`**: 등록된 장비에 실제 접속(`connect` 및 `disconnect`)을 시도하여 연결 가능 여부를 테스트합니다.
-  - **백그라운드 동기화:** FastAPI BackgroundTasks로 데이터 동기화를 비동기 처리합니다.
-  - **동기화 상태 추적:** `devices` 테이블의 `last_sync_status` (`in_progress | success | failure`)와 `last_sync_step` (`"객체 수집 중"`, `"정책 인덱싱 중"` 등)을 통해 상세한 진행 상태를 기록합니다. `last_sync_at`은 동기화가 완료된 시점에만 업데이트됩니다.
-  - **`GET /firewall/sync/{device_id}/status`**: 특정 장비의 마지막 동기화 상태, 단계, 시간을 조회합니다.
-  - **`POST /firewall/sync-all/{device_id}`**: 장비의 모든 데이터를 순서대로 수집하여 백그라운드 동기화를 시작합니다. 완료 후 자동으로 정책 인덱스가 리빌드됩니다.
-  - **`POST /firewall/parse-index/{device_id}`**: 저장된 정책을 기반으로 인덱스 테이블을 재구성합니다. (현재는 `sync-all`에 통합됨)
+# 방법 B: 폴더 진입 후 실행
+cd firewall_manager && uvicorn app.main:app --reload
+```
+
+### 2.4. 접속 정보
+
+- **웹 애플리케이션**: `http://127.0.0.1:8000`
+- **Swagger UI**: `http://127.0.0.1:8000/docs`
+- **ReDoc**: `http://127.0.0.1:8000/redoc`
+
+### 2.5. 스모크 테스트 (선택)
+
+```bash
+python3 firewall_manager/smoke_test.py
+```
 
 ---
 
-### 2.3. 정책 및 객체 조회
-- **`last_hit_date` 동기화 로직:**
-  - 동기화 오케스트레이터는 벤더에 종속되지 않는 범용적인 구조로 설계되었습니다.
-  - 각 벤더의 Collector 객체에 `export_last_hit_date` 메서드가 있는지 동적으로 확인하여(`hasattr`) 호출합니다.
-  - **Palo Alto:**
-    - **API 방식:** `export_last_hit_date`를 구현하여 정책 수집 후 별도 API로 사용 이력을 조회합니다. 만약 `ha_peer_ip`가 설정되어 있다면, 양쪽 장비에서 모두 데이터를 가져와 최신 기록을 병합합니다.
-    - **SSH 방식:** `use_ssh_for_last_hit_date`가 활성화된 경우, `export_last_hit_date_ssh` 메서드를 호출합니다. 이 메서드는 `paramiko`의 `invoke_shell`을 사용하여 안정적인 대화형(interactive) 세션을 생성하고, 룰별 Hit 정보를 파싱하여 반환합니다.
-  - **NGF:** `export_security_rules` 메서드가 정책 데이터에 사용 이력을 포함하여 반환하므로, `export_last_hit_date` 메서드를 구현하지 않습니다.
-  - **MF2:** 미지원.
-  - 이 구조 덕분에, `last_hit_date` 수집 중 오류가 발생해도 로깅 후 동기화의 나머지 부분은 계속 진행되며, 향후 새로운 벤더를 추가할 때 유연하게 확장할 수 있습니다.
+## 3. 핵심 기능
+
+### 3.1. 장비 관리
+
+#### 주요 기능
+
+- **CRUD 작업**: 장비 정보(이름, IP, 벤더, 인증정보, 설명) 관리
+- **연결 테스트**: `POST /devices/{id}/test-connection`으로 실제 접속 테스트
+- **백그라운드 동기화**: FastAPI BackgroundTasks로 비동기 처리
+- **동기화 상태 추적**: 실시간 진행 상태 및 단계 표시
+
+#### 고급 기능
+
+**HA Peer IP 지원 (Palo Alto)**
+- `ha_peer_ip` 필드로 HA 구성 장비의 IP 등록
+- `last_hit_date` 수집 시 양쪽 장비에서 데이터 수집 후 최신 타임스탬프 선택
+
+**SSH를 통한 `last_hit_date` 수집**
+- `use_ssh_for_last_hit_date` 옵션으로 API 대신 SSH 사용
+- API 방식이 불안정한 환경에서의 대안 제공
+
+#### API 엔드포인트
+
+- `GET /devices` - 장비 목록 조회
+- `POST /devices` - 장비 등록
+- `PUT /devices/{id}` - 장비 정보 수정
+- `DELETE /devices/{id}` - 장비 삭제
+- `POST /devices/{id}/test-connection` - 연결 테스트
+- `POST /firewall/sync-all/{device_id}` - 전체 동기화 시작
+- `GET /firewall/sync/{device_id}/status` - 동기화 상태 조회
+
+### 3.2. 정책 및 객체 조회
+
+#### 정책 조회
+
+- **멀티 장비 검색**: 여러 장비의 정책을 동시에 검색
+- **고급 필터링**: 정책명, 출발지/목적지 IP, 서비스, 사용자, 애플리케이션 등 다양한 조건으로 검색
+- **인덱스 기반 검색**: IP 범위 및 서비스 기반 빠른 검색
+- **마지막 매칭일시**: 정책 사용 이력 조회
+
+#### 객체 조회
+
+- **네트워크 객체**: IP 주소, 네트워크 그룹
+- **서비스 객체**: 프로토콜/포트, 서비스 그룹
+- **객체 상세 정보**: 클릭 시 상세 정보 모달 표시
+
+#### `last_hit_date` 동기화 로직
+
+동기화 오케스트레이터는 벤더에 종속되지 않는 범용 구조로 설계되었습니다.
+
+**Palo Alto**
+- **API 방식**: `export_last_hit_date` 메서드로 정책 수집 후 별도 API 호출
+- **SSH 방식**: `use_ssh_for_last_hit_date` 활성화 시 `export_last_hit_date_ssh` 메서드 사용
+  - `paramiko`의 `invoke_shell`로 대화형 세션 생성
+  - 룰별 Hit 정보 파싱
+
+**NGF**
+- `export_security_rules` 메서드가 정책 데이터에 사용 이력을 포함하여 반환
+- 별도의 `export_last_hit_date` 메서드 불필요
+
+**MF2**
+- 현재 미지원
+
+> **장점**: `last_hit_date` 수집 중 오류 발생 시에도 나머지 동기화는 계속 진행되며, 새로운 벤더 추가 시 유연하게 확장 가능
+
+### 3.3. 정책 분석
+
+#### 중복 정책 분석
+
+- **자동 탐지**: 상위 정책이 하위 정책을 완전히 포함하는 경우 자동 탐지
+- **백그라운드 처리**: 분석 작업은 백그라운드에서 비동기 실행
+- **상태 추적**: 분석 진행 상태 실시간 조회
+- **결과 조회**: 완료된 분석 결과를 그리드로 표시
+
+#### API 엔드포인트
+
+- `POST /analysis/redundancy/{device_id}` - 중복 정책 분석 시작
+- `GET /analysis/{device_id}/status` - 분석 상태 조회
+- `GET /analysis/redundancy/{task_id}/results` - 분석 결과 조회
+- `GET /analysis/{device_id}/latest-result` - 최신 분석 결과 조회
 
 ---
 
-## 4. 아키텍처 및 개발 가이드라인
+## 4. 아키텍처
 
 ### 4.1. 백엔드 (FastAPI)
-- **디렉토리 구조**: `api`, `crud`, `models`, `schemas`, `services`, `core`, `db` 로 구성.
-- **`services/policy_indexer.py` 성능 최적화:**
-    - **Pure Python 기반 리팩토링:** 초기 버전은 Pandas DataFrame을 사용하여 정책 멤버를 분석했으나, 현재는 메모리 및 속도 최적화를 위해 순수 Python의 `set`과 `dict`를 사용하는 방식으로 완전히 리팩토링되었습니다. 이를 통해 그룹 확장(flattening) 과정의 성능이 대폭 향상되었습니다.
-    - **IP 주소 범위 병합:** 인덱싱 과정에서 개별 IP 주소와 CIDR을 숫자 범위로 변환한 뒤, 연속적인 범위들을 하나로 병합하여 `policy_address_members` 테이블에 저장합니다. 이 데이터 압축 기법을 통해 DB 저장 공간을 획기적으로 줄이고 범위 기반 검색 쿼리의 성능을 개선했습니다.
-    - **스키마 최적화:** IPv4 환경만 지원하는 요구사항에 맞춰 불필요한 `ip_version` 컬럼을 `policy_address_members` 모델과 테이블에서 제거했습니다.
 
-- **Alembic 및 SQLite 사용 가이드라인:**
-    - **`batch_alter_table` 사용:** SQLite는 `ALTER TABLE`의 기능 제약이 많아, 컬럼 추가/삭제, 제약조건 변경 시 Alembic이 자동 생성한 마이그레이션 스크립트가 실패할 수 있습니다. 이러한 작업은 반드시 `op.batch_alter_table()` 컨텍스트 매니저를 사용하도록 스크립트를 수동으로 수정해야 합니다.
-    - **마이그레이션 실패 시 복구:** Alembic 마이그레이션이 실패하여 DB가 불안정한 상태(`table already exists` 등)가 되면, 다음 절차로 복구하는 것이 가장 안정적입니다.
-      1.  `firewall_manager/fat.db` 데이터베이스 파일을 삭제합니다.
-      2.  `python3 -m alembic -c firewall_manager/alembic.ini upgrade head` 명령을 실행하여 모든 마이그레이션을 처음부터 다시 적용하고 깨끗한 DB를 생성합니다.
-    - **마이그레이션 생성 전:** 새로운 마이그레이션을 생성(`--autogenerate`)하기 전에는, 항상 `upgrade head`를 먼저 실행하여 DB가 최신 상태임을 보장해야 합니다.
+#### 디렉토리 구조
+
+```
+firewall_manager/app/
+├── api/              # API 라우터 및 엔드포인트
+│   └── api_v1/
+│       └── endpoints/
+├── crud/             # 데이터베이스 CRUD 작업
+├── models/           # SQLAlchemy 모델
+├── schemas/          # Pydantic 스키마
+├── services/         # 비즈니스 로직
+│   ├── firewall/     # 방화벽 벤더별 Collector
+│   ├── sync/         # 동기화 로직
+│   ├── analysis/     # 정책 분석 로직
+│   └── policy_indexer.py  # 정책 인덱싱
+├── core/             # 설정 및 보안
+└── db/               # 데이터베이스 세션
+```
+
+#### 주요 컴포넌트
+
+**정책 인덱서 (`services/policy_indexer.py`)**
+- **Pure Python 기반**: Pandas 대신 순수 Python `set`과 `dict` 사용으로 성능 최적화
+- **IP 범위 병합**: 개별 IP/CIDR을 숫자 범위로 변환 후 연속 범위 병합
+- **데이터 압축**: DB 저장 공간 절약 및 범위 기반 검색 성능 개선
+- **IPv4 전용**: 불필요한 `ip_version` 컬럼 제거
+
+**벤더 Collector (`services/firewall/`)**
+- Factory 패턴으로 벤더별 Collector 생성
+- `FirewallInterface` 추상 클래스 기반 구현
+- 각 벤더별 특화된 데이터 수집 로직
+
+### 4.2. 프론트엔드
+
+#### 디렉토리 구조
+
+```
+app/frontend/
+├── js/
+│   ├── api.js                    # API 클라이언트
+│   ├── router.js                 # 라우팅
+│   ├── main.js                   # 진입점
+│   ├── utils/                    # 공통 유틸리티
+│   │   ├── grid.js               # 그리드 관련 유틸리티
+│   │   ├── modal.js              # 모달 유틸리티
+│   │   ├── message.js            # 빈 상태 메시지
+│   │   ├── date.js               # 날짜 포맷팅
+│   │   ├── dom.js                # DOM 조작
+│   │   └── export.js             # 엑셀 내보내기
+│   ├── components/               # 재사용 컴포넌트
+│   │   ├── navbar.js
+│   │   └── objectDetailModal.js
+│   └── pages/                    # 페이지별 로직
+│       ├── dashboard.js
+│       ├── devices.js
+│       ├── policies.js
+│       ├── objects.js
+│       └── analysis.js
+├── templates/                     # HTML 템플릿
+└── styles/                        # CSS 스타일
+```
+
+#### 주요 특징
+
+**공통 유틸리티 모듈화**
+- 그리드 높이 조절, 이벤트 핸들러 생성
+- 모달 (confirm, alert, form) 공통 처리
+- 빈 상태 메시지 표시
+- 날짜 포맷팅 및 DOM 조작 유틸리티
+
+**사용자 경험 개선**
+- 데이터 없을 때 명확한 안내 메시지 표시
+- 그리드와 메시지 박스 자동 토글
+- 페이지별 맞춤 메시지:
+  - 정책/객체: "장비를 선택하세요"
+  - 분석: "분석 내용이 없습니다"
+  - 장비/대시보드: "장비를 추가하세요"
+
+**AG Grid 통합**
+- 동적 높이 조절 (세로 스크롤 제거)
+- 필터링 및 정렬 기능
+- 엑셀 내보내기 지원
+
+### 4.3. 데이터베이스
+
+#### 스키마
+
+- **devices**: 장비 정보 및 동기화 상태
+- **policies**: 정책 정보
+- **network_objects**: 네트워크 객체
+- **network_groups**: 네트워크 그룹
+- **services**: 서비스 객체
+- **service_groups**: 서비스 그룹
+- **policy_address_members**: 정책-주소 인덱스 (범위 병합)
+- **policy_service_members**: 정책-서비스 인덱스
+- **analysis_tasks**: 분석 작업
+- **analysis_results**: 분석 결과
+
+#### 마이그레이션 (Alembic)
+
+**SQLite 특화 가이드라인**
+
+- **`batch_alter_table` 사용**: 컬럼 추가/삭제, 제약조건 변경 시 필수
+- **마이그레이션 실패 시 복구**:
+  1. `firewall_manager/fat.db` 파일 삭제
+  2. `python3 -m alembic -c firewall_manager/alembic.ini upgrade head` 실행
+- **마이그레이션 생성 전**: 항상 `upgrade head` 먼저 실행하여 DB 최신 상태 보장
 
 ---
-> 📘 **참고:** 문서의 간결성을 위해 변경되지 않은 섹션은 생략했습니다. 위 내용은 기존 `AGENTS.md` 파일에 병합되어야 할 추가 및 수정 사항입니다.
+
+## 5. 개발 가이드라인
+
+### 5.1. 코드 스타일
+
+- **백엔드**: PEP 8 준수, 타입 힌트 사용
+- **프론트엔드**: ES6+ 모듈 시스템, 함수형 프로그래밍 지향
+- **주석**: JSDoc 스타일 주석 사용
+
+### 5.2. 함수 설계 원칙
+
+- **단일 책임 원칙**: 각 함수는 하나의 명확한 역할만 수행
+- **재사용성**: 공통 로직은 유틸리티 모듈로 분리
+- **에러 처리**: 명확한 에러 메시지 및 사용자 피드백
+
+### 5.3. 성능 최적화
+
+- **병렬 처리**: `Promise.all()`로 여러 장비 데이터 동시 수집
+- **인덱싱**: IP 범위 및 서비스 기반 빠른 검색
+- **메모리 최적화**: Pandas 대신 순수 Python 자료구조 사용
+
+### 5.4. 확장성
+
+- **벤더 추가**: `FirewallInterface` 구현 및 Factory에 등록
+- **분석 유형 추가**: `services/analysis/`에 새 분석 로직 추가
+- **API 확장**: 새로운 엔드포인트는 `api/api_v1/endpoints/`에 추가
+
+---
+
+## 참고 문서
+
+- [DATABASE.md](./DATABASE.md) - 데이터베이스 스키마 상세
+- [CURRENT_ARCHITECTURE.md](./CURRENT_ARCHITECTURE.md) - 아키텍처 개요
+- [SETUP.md](./SETUP.md) - 상세 설치 가이드

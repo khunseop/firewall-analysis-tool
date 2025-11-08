@@ -2,6 +2,7 @@ import { api } from "../api.js";
 import { showObjectDetailModal } from '../components/objectDetailModal.js';
 import { adjustGridHeight, createGridEventHandlers, createCommonGridOptions } from '../utils/grid.js';
 import { exportGridToExcel } from '../utils/export.js';
+import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
 
 // ==================== 전역 변수 ====================
 
@@ -294,47 +295,92 @@ async function loadDevicesIntoSelect() {
 async function searchAndLoadPolicies() {
   const sel = document.getElementById('policy-device-select');
   const deviceIds = Array.from(sel?.selectedOptions || []).map(o=>parseInt(o.value,10)).filter(Boolean);
+  const gridDiv = document.getElementById('policies-grid');
+  const messageContainer = document.getElementById('policies-message-container');
+  
   if (!deviceIds.length) {
-    // 선택된 장비가 없으면 그리드를 빈 상태로 초기화
+    // 선택된 장비가 없으면 그리드를 숨기고 메시지 표시
+    if (gridDiv) gridDiv.style.display = 'none';
+    showEmptyMessage(messageContainer, '장비를 선택하세요', 'fa-mouse-pointer');
     if (policyGridApi) {
-      if (typeof policyGridApi.setGridOption==='function') policyGridApi.setGridOption('rowData', []);
-      else if (typeof policyGridApi.setRowData==='function') policyGridApi.setRowData([]);
+      if (typeof policyGridApi.setGridOption === 'function') {
+        policyGridApi.setGridOption('rowData', []);
+      } else if (typeof policyGridApi.setRowData === 'function') {
+        policyGridApi.setRowData([]);
+      }
     }
     return;
   }
+  
+  // 장비가 선택되면 메시지 숨기고 그리드 표시
+  hideEmptyMessage(messageContainer);
+  if (gridDiv) gridDiv.style.display = 'block';
 
-  const payload = buildSearchPayload(deviceIds);
-  const response = await api.searchPolicies(payload);
+  try {
+    const payload = buildSearchPayload(deviceIds);
+    const response = await api.searchPolicies(payload);
 
-  if (response && Array.isArray(response.policies)) {
-    // Update the set of valid object names
-    validObjectNames = new Set(response.valid_object_names || []);
+    if (response && Array.isArray(response.policies)) {
+      // Update the set of valid object names
+      validObjectNames = new Set(response.valid_object_names || []);
 
-    // Inject seq-based row ID and device_name
-    const rows = response.policies.map((r, idx) => {
-      const device = allDevices.find(d => d.id === r.device_id);
-      const deviceName = device ? device.name : `장비 ${r.device_id}`;
-      return { ...r, _seq_row: idx + 1, device_name: deviceName };
-    });
+      // Inject seq-based row ID and device_name
+      const rows = response.policies.map((r, idx) => {
+        const device = allDevices.find(d => d.id === r.device_id);
+        const deviceName = device ? device.name : `장비 ${r.device_id}`;
+        return { ...r, _seq_row: idx + 1, device_name: deviceName };
+      });
 
+      if (policyGridApi) {
+        if (typeof policyGridApi.setGridOption === 'function') {
+          policyGridApi.setGridOption('rowData', rows);
+        } else if (typeof policyGridApi.setRowData === 'function') {
+          policyGridApi.setRowData(rows);
+        }
+        // Refresh cells to apply the new link logic
+        policyGridApi.refreshCells({ force: true });
+        // 컬럼 크기를 내용에 맞춰 자동 조절
+        setTimeout(() => {
+          if (typeof policyGridApi.autoSizeAllColumns === 'function') {
+            policyGridApi.autoSizeAllColumns({ skipHeader: false });
+          }
+          const gridDiv = document.getElementById('policies-grid');
+          if (gridDiv) {
+            adjustGridHeight(gridDiv);
+          }
+        }, 600);
+      }
+      
+      // 데이터가 없으면 메시지 표시
+      if (rows.length === 0) {
+        showEmptyMessage(messageContainer, '장비를 선택하세요', 'fa-mouse-pointer');
+        if (gridDiv) gridDiv.style.display = 'none';
+      } else {
+        hideEmptyMessage(messageContainer);
+        if (gridDiv) gridDiv.style.display = 'block';
+      }
+    } else {
+      // 응답이 없거나 형식이 잘못된 경우
+      showEmptyMessage(messageContainer, '장비를 선택하세요', 'fa-mouse-pointer');
+      if (gridDiv) gridDiv.style.display = 'none';
+      if (policyGridApi) {
+        if (typeof policyGridApi.setGridOption === 'function') {
+          policyGridApi.setGridOption('rowData', []);
+        } else if (typeof policyGridApi.setRowData === 'function') {
+          policyGridApi.setRowData([]);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load policies:', error);
+    showEmptyMessage(messageContainer, '장비를 선택하세요', 'fa-mouse-pointer');
+    if (gridDiv) gridDiv.style.display = 'none';
     if (policyGridApi) {
       if (typeof policyGridApi.setGridOption === 'function') {
-        policyGridApi.setGridOption('rowData', rows);
+        policyGridApi.setGridOption('rowData', []);
       } else if (typeof policyGridApi.setRowData === 'function') {
-        policyGridApi.setRowData(rows);
+        policyGridApi.setRowData([]);
       }
-      // Refresh cells to apply the new link logic
-      policyGridApi.refreshCells({ force: true });
-      // 컬럼 크기를 내용에 맞춰 자동 조절
-      setTimeout(() => {
-        if (typeof policyGridApi.autoSizeAllColumns === 'function') {
-          policyGridApi.autoSizeAllColumns({ skipHeader: false });
-        }
-        const gridDiv = document.getElementById('policies-grid');
-        if (gridDiv) {
-          adjustGridHeight(gridDiv);
-        }
-      }, 600);
     }
   }
 }
@@ -383,6 +429,13 @@ export async function initPolicies(){
   await loadDevicesIntoSelect();
   const sel = document.getElementById('policy-device-select');
   if (!sel) return;
+  
+  // 초기 상태: 메시지 표시
+  const messageContainer = document.getElementById('policies-message-container');
+  const gridDiv = document.getElementById('policies-grid');
+  showEmptyMessage(messageContainer, '장비를 선택하세요', 'fa-mouse-pointer');
+  if (gridDiv) gridDiv.style.display = 'none';
+  
   // Initialize Tom Select for device selector only
   try {
     if (window.TomSelect && sel) {

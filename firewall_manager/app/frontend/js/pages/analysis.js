@@ -1,6 +1,7 @@
 import { api } from '../api.js';
 import { adjustGridHeight, createGridEventHandlers, createCommonGridOptions } from '../utils/grid.js';
 import { exportGridToExcel } from '../utils/export.js';
+import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
 
 // ==================== 전역 변수 ====================
 
@@ -106,6 +107,8 @@ function resetStatusUI() {
     const startButton = document.getElementById('btn-start-analysis');
     const resetFiltersBtn = document.getElementById('btn-reset-filters');
     const exportBtn = document.getElementById('btn-export-excel');
+    const gridDiv = document.getElementById('analysis-result-grid');
+    const messageContainer = document.getElementById('analysis-message-container');
 
     if (startButton) {
         startButton.disabled = false;
@@ -114,7 +117,7 @@ function resetStatusUI() {
     if (resetFiltersBtn) resetFiltersBtn.style.display = 'none';
     if (exportBtn) exportBtn.style.display = 'none';
     
-    // 그리드를 빈 상태로 초기화 (메시지 표시를 위해 그리드는 유지)
+    // 그리드를 빈 상태로 초기화
     if (resultGridApi) {
         try {
             resultGridApi.setGridOption('rowData', []);
@@ -126,6 +129,10 @@ function resetStatusUI() {
         const columnDefs = getColumnDefs('redundancy');
         createGrid(columnDefs, []);
     }
+    
+    // 메시지 표시, 그리드 숨김
+    showEmptyMessage(messageContainer, '분석 내용이 없습니다', 'fa-chart-line');
+    if (gridDiv) gridDiv.style.display = 'none';
 }
 
 function stopPolling() {
@@ -146,6 +153,9 @@ function displayResults(resultData, analysisType, source = 'latest') {
         resetStatusUI(); // 태스크 완료 시에만 전체 UI 초기화
     }
 
+    const gridDiv = document.getElementById('analysis-result-grid');
+    const messageContainer = document.getElementById('analysis-message-container');
+    
     // 결과가 있든 없든 그리드를 생성하여 메시지 표시
     const columnDefs = getColumnDefs(analysisType);
     createGrid(columnDefs, resultData || []);
@@ -156,12 +166,20 @@ function displayResults(resultData, analysisType, source = 'latest') {
         const exportBtn = document.getElementById('btn-export-excel');
         if (resetFiltersBtn) resetFiltersBtn.style.display = 'inline-block';
         if (exportBtn) exportBtn.style.display = 'inline-block';
+        
+        // 그리드 표시, 메시지 숨김
+        hideEmptyMessage(messageContainer);
+        if (gridDiv) gridDiv.style.display = 'block';
     } else {
         // 결과가 없을 때는 버튼 숨김
         const resetFiltersBtn = document.getElementById('btn-reset-filters');
         const exportBtn = document.getElementById('btn-export-excel');
         if (resetFiltersBtn) resetFiltersBtn.style.display = 'none';
         if (exportBtn) exportBtn.style.display = 'none';
+        
+        // 메시지 표시, 그리드 숨김
+        showEmptyMessage(messageContainer, '분석 내용이 없습니다', 'fa-chart-line');
+        if (gridDiv) gridDiv.style.display = 'none';
     }
 }
 

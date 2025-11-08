@@ -2,6 +2,7 @@ import { api } from '../api.js';
 import { navigate } from '../router.js';
 import { formatDateTime } from '../utils/date.js';
 import { updateElementText, updateElements } from '../utils/dom.js';
+import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
 
 let deviceStatsGrid = null;
 
@@ -119,8 +120,21 @@ async function loadStatistics() {
     });
 
     // 장비별 통계 그리드 업데이트
-    if (deviceStatsGrid) {
-      deviceStatsGrid.setGridOption('rowData', deviceStatsData);
+    const messageContainer = document.getElementById('device-stats-message-container');
+    const gridDiv = document.getElementById('device-stats-grid');
+    
+    if (deviceStatsData.length === 0) {
+      // 장비가 없으면 메시지 표시
+      showEmptyMessage(messageContainer, '장비를 추가하세요', 'fa-plus-circle');
+      if (gridDiv) gridDiv.style.display = 'none';
+    } else {
+      // 장비가 있으면 메시지 숨기고 그리드 표시
+      hideEmptyMessage(messageContainer);
+      if (gridDiv) gridDiv.style.display = 'block';
+      
+      if (deviceStatsGrid) {
+        deviceStatsGrid.setGridOption('rowData', deviceStatsData);
+      }
     }
 
     // 동기화 상태 요약 업데이트
@@ -231,7 +245,6 @@ function createAnalysisResultCard(device, result) {
         <div class="level-right">
           <button class="button is-small is-primary" onclick="viewAnalysisDetails(${device.id})">
             <span>상세 보기</span>
-            <span class="icon is-small"><i class="fas fa-arrow-right"></i></span>
           </button>
         </div>
       </div>
@@ -263,7 +276,7 @@ function createAnalysisResultCard(device, result) {
       </div>
       <div class="mt-3 pt-3" style="border-top: 1px solid #e5e7eb;">
         <p class="is-size-7 has-text-grey">
-          <i class="far fa-clock"></i> 분석 시간: ${analysisTime}
+          분석 시간: ${analysisTime}
         </p>
       </div>
     </div>
@@ -285,13 +298,12 @@ function createNoAnalysisResultCard(device) {
         </div>
         <div class="level-right">
           <button class="button is-small is-primary" onclick="startAnalysis(${device.id})">
-            <span class="icon is-small"><i class="fas fa-play"></i></span>
             <span>분석 시작</span>
           </button>
         </div>
       </div>
       <p class="has-text-grey has-text-centered py-3">
-        <i class="far fa-info-circle"></i> 아직 분석 결과가 없습니다. 분석을 시작해주세요.
+        아직 분석 결과가 없습니다. 분석을 시작해주세요.
       </p>
     </div>
   `;
@@ -312,7 +324,7 @@ function createAnalysisErrorCard(device) {
         </div>
       </div>
       <p class="has-text-danger has-text-centered py-3">
-        <i class="fas fa-exclamation-triangle"></i> 분석 결과를 불러오는 중 오류가 발생했습니다.
+        분석 결과를 불러오는 중 오류가 발생했습니다.
       </p>
     </div>
   `;
