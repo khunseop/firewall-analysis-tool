@@ -108,6 +108,24 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   font-family: 'Pretendard', sans-serif;
 }
 
+/* 정책 그리드 자동 높이 조절 - 페이지네이션과 함께 사용 */
+#policies-grid.ag-theme-quartz {
+  /* 높이는 JavaScript에서 동적으로 설정되므로 CSS에서는 최소값만 설정 */
+  height: auto;
+  min-height: 200px;
+  max-height: none;
+}
+
+/* 정책 그리드 세로 스크롤 완전 제거 */
+#policies-grid.ag-theme-quartz .ag-body-viewport {
+  overflow-y: hidden !important;
+  overflow-x: auto !important;
+}
+
+#policies-grid.ag-theme-quartz .ag-body-horizontal-scroll {
+  overflow-x: auto !important;
+}
+
 .actions {
   display: flex;
   gap: .5rem;

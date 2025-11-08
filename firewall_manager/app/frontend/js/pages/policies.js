@@ -5,6 +5,63 @@ let policyGridApi;
 let allDevices = []; // 장비 목록 저장
 let validObjectNames = new Set(); // 유효한 객체 이름 저장
 
+// 그리드 높이를 페이지 크기에 맞춰 조절하는 함수 (세로 스크롤 없이 모든 행 표시)
+function adjustPolicyGridHeight() {
+  if (!policyGridApi) return;
+  
+  const gridDiv = document.getElementById('policies-grid');
+  if (!gridDiv) return;
+  
+  // 실제 렌더링된 요소들의 높이를 측정
+  const headerElement = gridDiv.querySelector('.ag-header');
+  const headerHeight = headerElement ? headerElement.offsetHeight : 0;
+  
+  const paginationElement = gridDiv.querySelector('.ag-paging-panel');
+  const paginationHeight = paginationElement ? paginationElement.offsetHeight : 0;
+  
+  // 그리드 본문 영역의 실제 높이 측정
+  // ag-body-viewport는 스크롤 가능한 영역이므로 scrollHeight를 사용
+  const bodyViewport = gridDiv.querySelector('.ag-body-viewport');
+  let bodyHeight = 0;
+  
+  if (bodyViewport) {
+    // scrollHeight는 실제 내용의 높이를 반환
+    bodyHeight = bodyViewport.scrollHeight;
+    
+    // bodyViewport의 padding/margin도 고려
+    const bodyViewportStyle = window.getComputedStyle(bodyViewport);
+    const paddingTop = parseInt(bodyViewportStyle.paddingTop) || 0;
+    const paddingBottom = parseInt(bodyViewportStyle.paddingBottom) || 0;
+    bodyHeight += paddingTop + paddingBottom;
+  } else {
+    // fallback: 행 요소들의 높이 합계
+    const rowElements = gridDiv.querySelectorAll('.ag-row:not(.ag-header-row)');
+    rowElements.forEach(row => {
+      bodyHeight += row.offsetHeight || 0;
+    });
+  }
+  
+  // ag-center-cols-container의 높이도 확인 (더 정확한 측정)
+  const centerColsContainer = gridDiv.querySelector('.ag-center-cols-container');
+  if (centerColsContainer && centerColsContainer.offsetHeight > bodyHeight) {
+    bodyHeight = centerColsContainer.offsetHeight;
+  }
+  
+  // 높이 계산: 헤더 + 본문 높이 + 페이지네이션
+  // 여백은 제거 (ag-grid가 자체적으로 처리)
+  const calculatedHeight = headerHeight + bodyHeight + paginationHeight;
+  const minHeight = 200; // 최소 높이
+  const finalHeight = Math.max(calculatedHeight, minHeight);
+  
+  gridDiv.style.height = `${finalHeight}px`;
+  
+  // 세로 스크롤 강제 제거
+  if (bodyViewport) {
+    bodyViewport.style.overflowY = 'hidden';
+    bodyViewport.style.overflowX = 'auto';
+  }
+}
+
 // Function to render object links in a cell
 function objectCellRenderer(params) {
     if (!params.value) return '';
@@ -48,51 +105,248 @@ async function initGrid() {
   const gridDiv = document.getElementById('policies-grid');
   if (!gridDiv) return;
   const getCols = () => ([
-    { field:'device_name', headerName:'장비', width:150, filter:'agTextColumnFilter', pinned:'left' },
-    { field:'seq', headerName:'순서', width:90, sort:'asc' },
-    { field:'vsys', headerName:'가상시스템', width:120 },
-    { field:'rule_name', headerName:'정책명', minWidth:250, maxWidth: 400 },
-    { field:'enable', headerName:'활성화', width:100, valueFormatter:p=>p.value===true?'활성':p.value===false?'비활성':'' },
-    { field:'action', headerName:'액션', width:110 },
-    {
-      field:'source', headerName:'출발지', minWidth:250, maxWidth: 400, wrapText:true, autoHeight:true,
-      cellRenderer: objectCellRenderer
+    { 
+      field:'device_name', 
+      headerName:'장비', 
+      filter:'agTextColumnFilter', 
+      pinned:'left',
+      sortable: false,
+      minWidth: 120,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        debounceMs: 200
+      }
+    },
+    { 
+      field:'seq', 
+      headerName:'순서', 
+      filter: false,
+      sortable: false,
+      minWidth: 80
+    },
+    { 
+      field:'vsys', 
+      headerName:'가상시스템', 
+      filter:'agTextColumnFilter',
+      sortable: false,
+      minWidth: 120,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        debounceMs: 200
+      }
+    },
+    { 
+      field:'rule_name', 
+      headerName:'정책명', 
+      filter:'agTextColumnFilter',
+      sortable: false,
+      minWidth: 150,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        debounceMs: 200
+      }
+    },
+    { 
+      field:'enable', 
+      headerName:'활성화', 
+      valueFormatter:p=>p.value===true?'활성':p.value===false?'비활성':'',
+      filter:'agTextColumnFilter',
+      sortable: false,
+      minWidth: 100,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        debounceMs: 200
+      }
+    },
+    { 
+      field:'action', 
+      headerName:'액션', 
+      filter:'agTextColumnFilter',
+      sortable: false,
+      minWidth: 100,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        debounceMs: 200
+      }
     },
     {
-      field:'user', headerName:'사용자', minWidth:250, wrapText:true, autoHeight:true,
-      cellRenderer: objectCellRenderer
+      field:'source', 
+      headerName:'출발지', 
+      wrapText:true, 
+      autoHeight:true,
+      cellRenderer: objectCellRenderer,
+      filter:'agTextColumnFilter',
+      sortable: false,
+      minWidth: 150,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        debounceMs: 200
+      }
     },
     {
-      field:'destination', headerName:'목적지', minWidth:250, maxWidth: 400, wrapText:true, autoHeight:true,
-      cellRenderer: objectCellRenderer
+      field:'user', 
+      headerName:'사용자', 
+      wrapText:true, 
+      autoHeight:true,
+      cellRenderer: objectCellRenderer,
+      filter:'agTextColumnFilter',
+      sortable: false,
+      minWidth: 150,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        debounceMs: 200
+      }
     },
     {
-      field:'service', headerName:'서비스', minWidth:250, maxWidth: 400, wrapText:true, autoHeight:true,
-      cellRenderer: objectCellRenderer
+      field:'destination', 
+      headerName:'목적지', 
+      wrapText:true, 
+      autoHeight:true,
+      cellRenderer: objectCellRenderer,
+      filter:'agTextColumnFilter',
+      sortable: false,
+      minWidth: 150,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        debounceMs: 200
+      }
     },
     {
-      field:'application', headerName:'애플리케이션', minWidth:250, wrapText:true, autoHeight:true,
-      cellRenderer: objectCellRenderer
+      field:'service', 
+      headerName:'서비스', 
+      wrapText:true, 
+      autoHeight:true,
+      cellRenderer: objectCellRenderer,
+      filter:'agTextColumnFilter',
+      sortable: false,
+      minWidth: 150,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        debounceMs: 200
+      }
     },
-    { field:'security_profile', headerName:'보안프로파일', width:180 },
-    { field:'category', headerName:'카테고리', width:140 },
-    { field:'description', headerName:'설명', minWidth:300, maxWidth: 1000 },
-    { field:'last_hit_date', headerName:'마지막매칭일시', minWidth:200 },
+    {
+      field:'application', 
+      headerName:'애플리케이션', 
+      wrapText:true, 
+      autoHeight:true,
+      cellRenderer: objectCellRenderer,
+      filter:'agTextColumnFilter',
+      sortable: false,
+      minWidth: 150,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        debounceMs: 200
+      }
+    },
+    { 
+      field:'security_profile', 
+      headerName:'보안프로파일', 
+      filter:'agTextColumnFilter',
+      sortable: false,
+      minWidth: 150,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        debounceMs: 200
+      }
+    },
+    { 
+      field:'category', 
+      headerName:'카테고리', 
+      filter:'agTextColumnFilter',
+      sortable: false,
+      minWidth: 120,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        debounceMs: 200
+      }
+    },
+    { 
+      field:'description', 
+      headerName:'설명', 
+      filter:'agTextColumnFilter',
+      sortable: false,
+      minWidth: 200,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        debounceMs: 200
+      }
+    },
+    { 
+      field:'last_hit_date', 
+      headerName:'마지막매칭일시', 
+      filter:'agDateColumnFilter',
+      sortable: false,
+      minWidth: 180,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        comparator: (filterLocalDateAtMidnight, cellValue) => {
+          if (!cellValue) return -1;
+          const cellDate = new Date(cellValue);
+          if (cellDate < filterLocalDateAtMidnight) {
+            return -1;
+          } else if (cellDate > filterLocalDateAtMidnight) {
+            return 1;
+          } else {
+            return 0;
+          }
+        }
+      }
+    },
   ]);
   const options = {
     columnDefs: getCols(),
     rowData: [],
-    defaultColDef:{ resizable:false, sortable:false, filter:true },
-    autoSizeStrategy: { type: 'fitGridWidth', defaultMaxWidth: 300 },
+    defaultColDef:{ 
+      resizable: true, 
+      sortable: false, 
+      filter: true 
+    },
     enableCellTextSelection: true,
     getRowId: params => String(params.data.id),
+    enableFilterHandlers: true,
+    suppressSizeToFit: true, // 그리드 너비에 맞추지 않고 내용에 맞춰 크기 조절
+    suppressHorizontalScroll: false, // 가로 스크롤 허용
+    suppressVerticalScroll: true, // 세로 스크롤 제거 (모든 행 표시)
     onGridReady: params => {
         policyGridApi = params.api;
+        // 그리드 높이를 페이지 크기에 맞춰 동적으로 조절
+        setTimeout(() => {
+          adjustPolicyGridHeight();
+        }, 200);
     },
-    onFirstDataRendered: params => params.api.autoSizeAllColumns(),
+    onFirstDataRendered: params => {
+      // 모든 컬럼을 내용과 헤더에 맞춰 자동 크기 조절
+      // skipHeader: false로 헤더도 포함하여 크기 계산
+      setTimeout(() => {
+        params.api.autoSizeAllColumns({ skipHeader: false });
+        adjustPolicyGridHeight();
+      }, 200);
+    },
+    onModelUpdated: params => {
+      // 데이터 모델이 업데이트될 때마다 컬럼 크기 조절
+      if (params.api.getDisplayedRowCount() > 0) {
+        setTimeout(() => {
+          params.api.autoSizeAllColumns({ skipHeader: false });
+          adjustPolicyGridHeight();
+        }, 200);
+      }
+    },
+    onPaginationChanged: () => {
+      setTimeout(() => {
+        adjustPolicyGridHeight();
+      }, 200);
+    },
+    onRowDataUpdated: () => {
+      // 행 데이터 업데이트 후 높이 조절
+      setTimeout(() => {
+        adjustPolicyGridHeight();
+      }, 200);
+    },
   };
   options.pagination = true;
   options.paginationPageSize = 50;
+  options.paginationPageSizeSelector = [50, 100, 200];
 
   if (typeof agGrid !== 'undefined') {
       if (agGrid.createGrid) {
@@ -153,6 +407,13 @@ async function searchAndLoadPolicies() {
       }
       // Refresh cells to apply the new link logic
       policyGridApi.refreshCells({ force: true });
+      // 컬럼 크기를 내용에 맞춰 자동 조절
+      setTimeout(() => {
+        if (typeof policyGridApi.autoSizeAllColumns === 'function') {
+          policyGridApi.autoSizeAllColumns({ skipHeader: false });
+        }
+        adjustPolicyGridHeight();
+      }, 600);
     }
   }
 }
@@ -214,26 +475,85 @@ export async function initPolicies(){
   } catch {}
 
   const bind = () => {
-    const btnSearch = document.getElementById('btn-search');
-    const btnReset = document.getElementById('btn-reset');
-    const btnExport = document.getElementById('btn-export-excel');
-    if (btnSearch) btnSearch.onclick = () => searchAndLoadPolicies();
-    if (btnReset) btnReset.onclick = () => {
-      // Reset all filter inputs
-      document.querySelectorAll('input[id^="f-"]').forEach(el => {
-        el.value = '';
-      });
-      // Reset ag-grid filters
-      if (policyGridApi) {
-        if (typeof policyGridApi.setFilterModel==='function') policyGridApi.setFilterModel(null);
-      }
-      // TomSelect는 별도로 초기화해야 할 수 있지만, 여기서는 간단히 값만 비웁니다.
-      // sel.tomselect.clear(); (필요 시)
-      searchAndLoadPolicies();
-    };
-    if (btnExport) btnExport.onclick = () => exportToExcel();
-    // re-query when device selection changes
+    // 장비 선택 변경 시 자동 검색
     sel.onchange = () => searchAndLoadPolicies();
+    
+    // 상세 검색 모달
+    const modal = document.getElementById('modal-advanced-search');
+    const btnAdvancedSearch = document.getElementById('btn-advanced-search');
+    const btnCloseModal = document.getElementById('close-advanced-search');
+    const btnCancelModal = document.getElementById('cancel-advanced-search');
+    const btnApplySearch = document.getElementById('btn-apply-search');
+    const btnClearSearch = document.getElementById('btn-clear-search');
+    
+    const openModal = () => {
+      if (modal) modal.classList.add('is-active');
+    };
+    
+    const closeModal = () => {
+      if (modal) modal.classList.remove('is-active');
+    };
+    
+    if (btnAdvancedSearch) btnAdvancedSearch.onclick = openModal;
+    if (btnCloseModal) btnCloseModal.onclick = closeModal;
+    if (btnCancelModal) btnCancelModal.onclick = closeModal;
+    
+    // 모달 배경 클릭으로 닫기
+    if (modal) {
+      const background = modal.querySelector('.modal-background');
+      if (background) background.onclick = closeModal;
+    }
+    
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal && modal.classList.contains('is-active')) {
+        closeModal();
+      }
+    });
+    
+    // 상세 검색 적용
+    if (btnApplySearch) {
+      btnApplySearch.onclick = () => {
+        searchAndLoadPolicies();
+        closeModal();
+      };
+    }
+    
+    // 상세 검색 초기화
+    if (btnClearSearch) {
+      btnClearSearch.onclick = () => {
+        document.querySelectorAll('#modal-advanced-search input[id^="f-"]').forEach(el => {
+          el.value = '';
+        });
+        const selectEnable = document.getElementById('f-enable');
+        if (selectEnable) selectEnable.value = '';
+      };
+    }
+    
+    // 필터 초기화 버튼
+    const btnResetFilters = document.getElementById('btn-reset-filters');
+    if (btnResetFilters) {
+      btnResetFilters.onclick = () => {
+        // ag-grid 필터 초기화
+        if (policyGridApi) {
+          if (typeof policyGridApi.setFilterModel === 'function') {
+            policyGridApi.setFilterModel(null);
+          }
+        }
+        // 상세 검색 필터 초기화
+        document.querySelectorAll('#modal-advanced-search input[id^="f-"]').forEach(el => {
+          el.value = '';
+        });
+        const selectEnable = document.getElementById('f-enable');
+        if (selectEnable) selectEnable.value = '';
+        // 장비 선택은 유지하고 데이터만 다시 로드
+        searchAndLoadPolicies();
+      };
+    }
+    
+    // 엑셀 내보내기 버튼
+    const btnExport = document.getElementById('btn-export-excel');
+    if (btnExport) btnExport.onclick = () => exportToExcel();
   };
   bind();
 

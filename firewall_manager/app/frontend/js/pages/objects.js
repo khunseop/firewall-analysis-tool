@@ -7,64 +7,117 @@ let serviceGroupsGrid = null;
 
 let currentTab = 'network-objects';
 
+// 그리드 높이를 자동으로 조절하는 함수 (세로 스크롤 없이 모든 행 표시)
+function adjustGridHeight(gridDiv) {
+  if (!gridDiv) return;
+  
+  // 실제 렌더링된 요소들의 높이를 측정
+  const headerElement = gridDiv.querySelector('.ag-header');
+  const headerHeight = headerElement ? headerElement.offsetHeight : 0;
+  
+  const paginationElement = gridDiv.querySelector('.ag-paging-panel');
+  const paginationHeight = paginationElement ? paginationElement.offsetHeight : 0;
+  
+  // 그리드 본문 영역의 실제 높이 측정
+  const bodyViewport = gridDiv.querySelector('.ag-body-viewport');
+  let bodyHeight = 0;
+  
+  if (bodyViewport) {
+    bodyHeight = bodyViewport.scrollHeight;
+    
+    // bodyViewport의 padding/margin도 고려
+    const bodyViewportStyle = window.getComputedStyle(bodyViewport);
+    const paddingTop = parseInt(bodyViewportStyle.paddingTop) || 0;
+    const paddingBottom = parseInt(bodyViewportStyle.paddingBottom) || 0;
+    bodyHeight += paddingTop + paddingBottom;
+  } else {
+    // fallback: 행 요소들의 높이 합계
+    const rowElements = gridDiv.querySelectorAll('.ag-row:not(.ag-header-row)');
+    rowElements.forEach(row => {
+      bodyHeight += row.offsetHeight || 0;
+    });
+  }
+  
+  // ag-center-cols-container의 높이도 확인 (더 정확한 측정)
+  const centerColsContainer = gridDiv.querySelector('.ag-center-cols-container');
+  if (centerColsContainer && centerColsContainer.offsetHeight > bodyHeight) {
+    bodyHeight = centerColsContainer.offsetHeight;
+  }
+  
+  // 높이 계산: 헤더 + 본문 높이 + 페이지네이션
+  const calculatedHeight = headerHeight + bodyHeight + paginationHeight;
+  const minHeight = 200;
+  const finalHeight = Math.max(calculatedHeight, minHeight);
+  
+  gridDiv.style.height = `${finalHeight}px`;
+  
+  // 세로 스크롤 강제 제거
+  if (bodyViewport) {
+    bodyViewport.style.overflowY = 'hidden';
+    bodyViewport.style.overflowX = 'auto';
+  }
+}
+
 // 네트워크 객체 그리드 컬럼 정의
 const networkObjectsColumns = [
-  { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'name', headerName: '이름', minWidth: 200, filter: 'agTextColumnFilter' },
-  { field: 'ip_address', headerName: 'IP 주소', minWidth: 200, filter: 'agTextColumnFilter' },
-  { field: 'type', headerName: '타입', width: 120, filter: 'agTextColumnFilter' },
-  { field: 'description', headerName: '설명', minWidth: 300, filter: 'agTextColumnFilter' }
+  { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', minWidth: 120, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+  { field: 'name', headerName: '이름', filter: 'agTextColumnFilter', minWidth: 150, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+  { field: 'ip_address', headerName: 'IP 주소', filter: 'agTextColumnFilter', minWidth: 150, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+  { field: 'type', headerName: '타입', filter: 'agTextColumnFilter', minWidth: 100, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+  { field: 'description', headerName: '설명', filter: 'agTextColumnFilter', minWidth: 200, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } }
 ];
 
 // 네트워크 그룹 그리드 컬럼 정의
 const networkGroupsColumns = [
-  { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'name', headerName: '이름', minWidth: 200, filter: 'agTextColumnFilter', maxWidth: 400 },
-    {
-        field: 'members',
-        headerName: '멤버',
-        minWidth: 400,
-        filter: 'agTextColumnFilter',
-        wrapText: true,
-        autoHeight: true,
-        maxWidth: 500,
-        cellRenderer: params => {
-            if (!params.value) return '';
-            const members = String(params.value).split(',').map(s => s.trim()).filter(Boolean);
-            return members.join('<br>');
-        }
-    },
-  { field: 'description', headerName: '설명', minWidth: 300, filter: 'agTextColumnFilter' }
+  { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', minWidth: 120, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+  { field: 'name', headerName: '이름', filter: 'agTextColumnFilter', minWidth: 150, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+  {
+    field: 'members',
+    headerName: '멤버',
+    filter: 'agTextColumnFilter',
+    wrapText: true,
+    autoHeight: true,
+    minWidth: 200,
+    sortable: false,
+    filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 },
+    cellRenderer: params => {
+      if (!params.value) return '';
+      const members = String(params.value).split(',').map(s => s.trim()).filter(Boolean);
+      return members.join('<br>');
+    }
+  },
+  { field: 'description', headerName: '설명', filter: 'agTextColumnFilter', minWidth: 200, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } }
 ];
 
 // 서비스 객체 그리드 컬럼 정의
 const servicesColumns = [
-  { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'name', headerName: '이름', minWidth: 200, filter: 'agTextColumnFilter' },
-  { field: 'protocol', headerName: '프로토콜', width: 120, filter: 'agTextColumnFilter' },
-  { field: 'port', headerName: '포트', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'description', headerName: '설명', minWidth: 300, filter: 'agTextColumnFilter' }
+  { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', minWidth: 120, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+  { field: 'name', headerName: '이름', filter: 'agTextColumnFilter', minWidth: 150, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+  { field: 'protocol', headerName: '프로토콜', filter: 'agTextColumnFilter', minWidth: 100, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+  { field: 'port', headerName: '포트', filter: 'agTextColumnFilter', minWidth: 100, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+  { field: 'description', headerName: '설명', filter: 'agTextColumnFilter', minWidth: 200, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } }
 ];
 
 // 서비스 그룹 그리드 컬럼 정의
 const serviceGroupsColumns = [
-  { field: 'device_name', headerName: '장비', width: 150, filter: 'agTextColumnFilter' },
-  { field: 'name', headerName: '이름', minWidth: 200, filter: 'agTextColumnFilter', maxWidth: 400 },
-    {
-        field: 'members',
-        headerName: '멤버',
-        minWidth: 400,
-        filter: 'agTextColumnFilter',
-        wrapText: true,
-        autoHeight: true,
-        maxWidth: 500,
-        cellRenderer: params => {
-            if (!params.value) return '';
-            const members = String(params.value).split(',').map(s => s.trim()).filter(Boolean);
-            return members.join('<br>');
-        }
-    },
-  { field: 'description', headerName: '설명', minWidth: 300, filter: 'agTextColumnFilter' }
+  { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', minWidth: 120, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+  { field: 'name', headerName: '이름', filter: 'agTextColumnFilter', minWidth: 150, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+  {
+    field: 'members',
+    headerName: '멤버',
+    filter: 'agTextColumnFilter',
+    wrapText: true,
+    autoHeight: true,
+    minWidth: 200,
+    sortable: false,
+    filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 },
+    cellRenderer: params => {
+      if (!params.value) return '';
+      const members = String(params.value).split(',').map(s => s.trim()).filter(Boolean);
+      return members.join('<br>');
+    }
+  },
+  { field: 'description', headerName: '설명', filter: 'agTextColumnFilter', minWidth: 200, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } }
 ];
 
 // 그리드 정리
@@ -92,22 +145,58 @@ async function initGrids() {
   // 기존 그리드 정리
   destroyGrids();
 
+  // 공통 그리드 옵션
+  const commonGridOptions = {
+    defaultColDef: {
+      resizable: true,
+      sortable: false,
+      filter: true,
+    },
+    enableCellTextSelection: true,
+    suppressSizeToFit: true,
+    suppressHorizontalScroll: false,
+    suppressVerticalScroll: true,
+    enableFilterHandlers: true,
+    pagination: true,
+    paginationPageSize: 50,
+    paginationPageSizeSelector: [50, 100, 200],
+  };
+
   // 네트워크 객체 그리드
   const networkObjectsEl = document.getElementById('network-objects-grid');
   if (networkObjectsEl) {
     networkObjectsGrid = agGrid.createGrid(networkObjectsEl, {
+      ...commonGridOptions,
       columnDefs: networkObjectsColumns,
-      defaultColDef: {
-        sortable: true,
-        resizable: false,
-        filter: true,
+      onGridReady: params => {
+        setTimeout(() => {
+          adjustGridHeight(networkObjectsEl);
+        }, 200);
       },
-      autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 120 },
-      enableCellTextSelection: true,
-      pagination: true,
-      paginationPageSize: 50,
-      paginationPageSizeSelector: [50, 100, 200],
-      onFirstDataRendered: params => params.api.autoSizeAllColumns(),
+      onFirstDataRendered: params => {
+        setTimeout(() => {
+          params.api.autoSizeAllColumns({ skipHeader: false });
+          adjustGridHeight(networkObjectsEl);
+        }, 200);
+      },
+      onModelUpdated: params => {
+        if (params.api.getDisplayedRowCount() > 0) {
+          setTimeout(() => {
+            params.api.autoSizeAllColumns({ skipHeader: false });
+            adjustGridHeight(networkObjectsEl);
+          }, 200);
+        }
+      },
+      onPaginationChanged: () => {
+        setTimeout(() => {
+          adjustGridHeight(networkObjectsEl);
+        }, 200);
+      },
+      onRowDataUpdated: () => {
+        setTimeout(() => {
+          adjustGridHeight(networkObjectsEl);
+        }, 200);
+      },
     });
   }
 
@@ -115,18 +204,37 @@ async function initGrids() {
   const networkGroupsEl = document.getElementById('network-groups-grid');
   if (networkGroupsEl) {
     networkGroupsGrid = agGrid.createGrid(networkGroupsEl, {
+      ...commonGridOptions,
       columnDefs: networkGroupsColumns,
-      defaultColDef: {
-        sortable: true,
-        resizable: false,
-        filter: true,
+      onGridReady: params => {
+        setTimeout(() => {
+          adjustGridHeight(networkGroupsEl);
+        }, 200);
       },
-      autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 120 },
-      enableCellTextSelection: true,
-      pagination: true,
-      paginationPageSize: 50,
-      paginationPageSizeSelector: [50, 100, 200],
-      onFirstDataRendered: params => params.api.autoSizeAllColumns(),
+      onFirstDataRendered: params => {
+        setTimeout(() => {
+          params.api.autoSizeAllColumns({ skipHeader: false });
+          adjustGridHeight(networkGroupsEl);
+        }, 200);
+      },
+      onModelUpdated: params => {
+        if (params.api.getDisplayedRowCount() > 0) {
+          setTimeout(() => {
+            params.api.autoSizeAllColumns({ skipHeader: false });
+            adjustGridHeight(networkGroupsEl);
+          }, 200);
+        }
+      },
+      onPaginationChanged: () => {
+        setTimeout(() => {
+          adjustGridHeight(networkGroupsEl);
+        }, 200);
+      },
+      onRowDataUpdated: () => {
+        setTimeout(() => {
+          adjustGridHeight(networkGroupsEl);
+        }, 200);
+      },
     });
   }
 
@@ -134,18 +242,37 @@ async function initGrids() {
   const servicesEl = document.getElementById('services-grid');
   if (servicesEl) {
     servicesGrid = agGrid.createGrid(servicesEl, {
+      ...commonGridOptions,
       columnDefs: servicesColumns,
-      defaultColDef: {
-        sortable: true,
-        resizable: false,
-        filter: true,
+      onGridReady: params => {
+        setTimeout(() => {
+          adjustGridHeight(servicesEl);
+        }, 200);
       },
-      autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 120 },
-      enableCellTextSelection: true,
-      pagination: true,
-      paginationPageSize: 50,
-      paginationPageSizeSelector: [50, 100, 200],
-      onFirstDataRendered: params => params.api.autoSizeAllColumns(),
+      onFirstDataRendered: params => {
+        setTimeout(() => {
+          params.api.autoSizeAllColumns({ skipHeader: false });
+          adjustGridHeight(servicesEl);
+        }, 200);
+      },
+      onModelUpdated: params => {
+        if (params.api.getDisplayedRowCount() > 0) {
+          setTimeout(() => {
+            params.api.autoSizeAllColumns({ skipHeader: false });
+            adjustGridHeight(servicesEl);
+          }, 200);
+        }
+      },
+      onPaginationChanged: () => {
+        setTimeout(() => {
+          adjustGridHeight(servicesEl);
+        }, 200);
+      },
+      onRowDataUpdated: () => {
+        setTimeout(() => {
+          adjustGridHeight(servicesEl);
+        }, 200);
+      },
     });
   }
 
@@ -153,18 +280,37 @@ async function initGrids() {
   const serviceGroupsEl = document.getElementById('service-groups-grid');
   if (serviceGroupsEl) {
     serviceGroupsGrid = agGrid.createGrid(serviceGroupsEl, {
+      ...commonGridOptions,
       columnDefs: serviceGroupsColumns,
-      defaultColDef: {
-        sortable: true,
-        resizable: false,
-        filter: true,
+      onGridReady: params => {
+        setTimeout(() => {
+          adjustGridHeight(serviceGroupsEl);
+        }, 200);
       },
-      autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 120 },
-      enableCellTextSelection: true,
-      pagination: true,
-      paginationPageSize: 50,
-      paginationPageSizeSelector: [50, 100, 200],
-      onFirstDataRendered: params => params.api.autoSizeAllColumns(),
+      onFirstDataRendered: params => {
+        setTimeout(() => {
+          params.api.autoSizeAllColumns({ skipHeader: false });
+          adjustGridHeight(serviceGroupsEl);
+        }, 200);
+      },
+      onModelUpdated: params => {
+        if (params.api.getDisplayedRowCount() > 0) {
+          setTimeout(() => {
+            params.api.autoSizeAllColumns({ skipHeader: false });
+            adjustGridHeight(serviceGroupsEl);
+          }, 200);
+        }
+      },
+      onPaginationChanged: () => {
+        setTimeout(() => {
+          adjustGridHeight(serviceGroupsEl);
+        }, 200);
+      },
+      onRowDataUpdated: () => {
+        setTimeout(() => {
+          adjustGridHeight(serviceGroupsEl);
+        }, 200);
+      },
     });
   }
 }
@@ -267,18 +413,35 @@ async function loadData(deviceIds) {
     const mergedData = results.flat();
 
     // 해당 그리드에 데이터 설정
+    let currentGrid = null;
+    let gridElement = null;
+    
     if (currentTab === 'network-objects' && networkObjectsGrid) {
-      networkObjectsGrid.setGridOption('rowData', mergedData);
-      networkObjectsGrid.autoSizeAllColumns();
+      currentGrid = networkObjectsGrid;
+      gridElement = document.getElementById('network-objects-grid');
+      currentGrid.setGridOption('rowData', mergedData);
     } else if (currentTab === 'network-groups' && networkGroupsGrid) {
-      networkGroupsGrid.setGridOption('rowData', mergedData);
-      networkGroupsGrid.autoSizeAllColumns();
+      currentGrid = networkGroupsGrid;
+      gridElement = document.getElementById('network-groups-grid');
+      currentGrid.setGridOption('rowData', mergedData);
     } else if (currentTab === 'services' && servicesGrid) {
-      servicesGrid.setGridOption('rowData', mergedData);
-      servicesGrid.autoSizeAllColumns();
+      currentGrid = servicesGrid;
+      gridElement = document.getElementById('services-grid');
+      currentGrid.setGridOption('rowData', mergedData);
     } else if (currentTab === 'service-groups' && serviceGroupsGrid) {
-      serviceGroupsGrid.setGridOption('rowData', mergedData);
-      serviceGroupsGrid.autoSizeAllColumns();
+      currentGrid = serviceGroupsGrid;
+      gridElement = document.getElementById('service-groups-grid');
+      currentGrid.setGridOption('rowData', mergedData);
+    }
+    
+    // 컬럼 크기 조절 및 높이 조절
+    if (currentGrid && gridElement) {
+      setTimeout(() => {
+        if (typeof currentGrid.autoSizeAllColumns === 'function') {
+          currentGrid.autoSizeAllColumns({ skipHeader: false });
+        }
+        adjustGridHeight(gridElement);
+      }, 600);
     }
   } catch (err) {
     console.error(`Failed to load ${currentTab}:`, err);
@@ -308,6 +471,24 @@ function switchTab(tabName) {
   }
 
   currentTab = tabName;
+
+  // 탭 전환 시 그리드 높이 조절
+  setTimeout(() => {
+    let gridElement = null;
+    if (tabName === 'network-objects') {
+      gridElement = document.getElementById('network-objects-grid');
+    } else if (tabName === 'network-groups') {
+      gridElement = document.getElementById('network-groups-grid');
+    } else if (tabName === 'services') {
+      gridElement = document.getElementById('services-grid');
+    } else if (tabName === 'service-groups') {
+      gridElement = document.getElementById('service-groups-grid');
+    }
+    
+    if (gridElement) {
+      adjustGridHeight(gridElement);
+    }
+  }, 100);
 
   // 현재 선택된 장비로 데이터 로드
   const select = document.getElementById('object-device-select');
