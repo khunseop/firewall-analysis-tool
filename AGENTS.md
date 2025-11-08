@@ -20,7 +20,7 @@
 - **폐쇄망 환경**: 오프라인 환경에서 운용 가능
 - **통합 조회**: 여러 장비의 정책을 한 번에 검색 및 비교
 - **정책 분석**: 중복 정책 자동 탐지 및 분석
-- **실시간 동기화**: 백그라운드 동기화 및 상태 추적
+- **실시간 동기화**: 백그라운드 동기화 및 WebSocket을 통한 실시간 상태 추적
 
 ---
 
@@ -83,7 +83,10 @@ python3 firewall_manager/smoke_test.py
 - **CRUD 작업**: 장비 정보(이름, IP, 벤더, 인증정보, 설명) 관리
 - **연결 테스트**: `POST /devices/{id}/test-connection`으로 실제 접속 테스트
 - **백그라운드 동기화**: FastAPI BackgroundTasks로 비동기 처리
-- **동기화 상태 추적**: 실시간 진행 상태 및 단계 표시
+- **실시간 상태 추적**: WebSocket을 통한 실시간 진행 상태 및 단계 표시
+  - 동기화 시작부터 완료까지 모든 단계를 실시간으로 UI에 반영
+  - 장비 목록 페이지와 대시보드에서 동시에 상태 업데이트
+  - 자동 재연결 기능으로 네트워크 오류 시에도 안정적 동작
 
 #### 고급 기능
 
@@ -104,6 +107,7 @@ python3 firewall_manager/smoke_test.py
 - `POST /devices/{id}/test-connection` - 연결 테스트
 - `POST /firewall/sync-all/{device_id}` - 전체 동기화 시작
 - `GET /firewall/sync/{device_id}/status` - 동기화 상태 조회
+- `WS /api/v1/ws/sync-status` - WebSocket 실시간 동기화 상태 업데이트
 
 ### 3.2. 정책 및 객체 조회
 
@@ -168,6 +172,7 @@ firewall_manager/app/
 ├── api/              # API 라우터 및 엔드포인트
 │   └── api_v1/
 │       └── endpoints/
+│           └── websocket.py  # WebSocket 엔드포인트
 ├── crud/             # 데이터베이스 CRUD 작업
 ├── models/           # SQLAlchemy 모델
 ├── schemas/          # Pydantic 스키마
@@ -175,6 +180,7 @@ firewall_manager/app/
 │   ├── firewall/     # 방화벽 벤더별 Collector
 │   ├── sync/         # 동기화 로직
 │   ├── analysis/     # 정책 분석 로직
+│   ├── websocket_manager.py  # WebSocket 연결 관리
 │   └── policy_indexer.py  # 정책 인덱싱
 ├── core/             # 설정 및 보안
 └── db/               # 데이터베이스 세션
@@ -192,6 +198,12 @@ firewall_manager/app/
 - Factory 패턴으로 벤더별 Collector 생성
 - `FirewallInterface` 추상 클래스 기반 구현
 - 각 벤더별 특화된 데이터 수집 로직
+
+**WebSocket 매니저 (`services/websocket_manager.py`)**
+- **연결 관리**: 활성 WebSocket 연결 추적 및 관리
+- **브로드캐스트**: 동기화 상태 변경 시 모든 연결된 클라이언트에 실시간 전송
+- **자동 정리**: 연결이 끊어진 클라이언트 자동 제거
+- **에러 처리**: 브로드캐스트 실패 시에도 DB 업데이트는 계속 진행
 
 ### 4.2. 프론트엔드
 
@@ -244,6 +256,13 @@ app/frontend/
 - 필터링 및 정렬 기능
 - 엑셀 내보내기 지원
 
+**WebSocket 실시간 업데이트**
+- **자동 연결**: 페이지 로드 시 WebSocket 자동 연결
+- **자동 재연결**: 연결 끊김 시 3초 후 자동 재연결 시도
+- **실시간 그리드 업데이트**: 동기화 상태 변경 시 그리드 즉시 반영
+- **상태별 시각화**: 동기화 상태에 따른 색상 및 점멸 효과
+- **다중 페이지 지원**: 장비 목록 페이지와 대시보드에서 동시 사용
+
 ### 4.3. 데이터베이스
 
 #### 스키마
@@ -290,12 +309,14 @@ app/frontend/
 - **병렬 처리**: `Promise.all()`로 여러 장비 데이터 동시 수집
 - **인덱싱**: IP 범위 및 서비스 기반 빠른 검색
 - **메모리 최적화**: Pandas 대신 순수 Python 자료구조 사용
+- **실시간 업데이트**: WebSocket을 통한 폴링 없이 즉시 상태 반영
 
 ### 5.4. 확장성
 
 - **벤더 추가**: `FirewallInterface` 구현 및 Factory에 등록
 - **분석 유형 추가**: `services/analysis/`에 새 분석 로직 추가
 - **API 확장**: 새로운 엔드포인트는 `api/api_v1/endpoints/`에 추가
+- **WebSocket 확장**: `websocket_manager`에 새로운 브로드캐스트 메서드 추가 가능
 
 ---
 
