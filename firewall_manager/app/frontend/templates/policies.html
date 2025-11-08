@@ -1,24 +1,38 @@
 <div class="container is-fluid">
   <h1 class="title is-5 mb-4">정책조회</h1>
 
-  <!-- 검색 필터 -->
+  <!-- 장비 선택 -->
   <div class="box mb-4">
-    <div class="level is-mobile mb-3">
+    <div class="field">
+      <label class="label">장비</label>
+      <div class="control">
+        <select id="policy-device-select" multiple></select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 정책 그리드 -->
+  <div class="box">
+    <!-- 그리드 툴바 -->
+    <div class="level is-mobile mb-4">
       <div class="level-left">
         <div class="level-item">
-          <p class="subtitle is-6 mb-0">
-            <strong>검색 필터</strong>
-          </p>
+          <button class="button is-link is-small" id="btn-advanced-search">
+            <span class="icon is-small">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6.5 11.5C9.26142 11.5 11.5 9.26142 11.5 6.5C11.5 3.73858 9.26142 1.5 6.5 1.5C3.73858 1.5 1.5 3.73858 1.5 6.5C1.5 9.26142 3.73858 11.5 6.5 11.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M10.5 10.5L14.5 14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span>상세 검색</span>
+          </button>
         </div>
       </div>
       <div class="level-right">
         <div class="level-item">
           <div class="buttons">
-            <button class="button is-link is-small" id="btn-search">
-              검색
-            </button>
-            <button class="button is-light is-small" id="btn-reset">
-              초기화
+            <button class="button is-light is-small" id="btn-reset-filters">
+              필터 초기화
             </button>
             <button class="button is-success is-small" id="btn-export-excel">
               엑셀 내보내기
@@ -28,54 +42,131 @@
       </div>
     </div>
     
-    <div class="columns is-variable is-2 is-multiline">
-      <!-- Device and Rule Name -->
-      <div class="column is-3">
-        <div class="field">
-          <label class="label is-small">장비</label>
-          <div class="control">
-            <select id="policy-device-select" multiple></select>
-          </div>
-        </div>
-      </div>
-      <div class="column is-3">
-        <div class="field">
-          <label class="label is-small">정책명</label>
-          <div class="control">
-            <input id="f-rule-name" class="input is-small" placeholder="쉼표(,)로 여러 정책명 입력" />
-          </div>
-        </div>
-      </div>
-      <!-- IP and Service -->
-      <div class="column is-2">
-        <div class="field">
-          <label class="label is-small">출발지</label>
-          <div class="control">
-            <input id="f-src" class="input is-small" placeholder="쉼표(,)로 여러 IP값 입력" />
-          </div>
-        </div>
-      </div>
-      <div class="column is-2">
-        <div class="field">
-          <label class="label is-small">목적지</label>
-          <div class="control">
-            <input id="f-dst" class="input is-small" placeholder="쉼표(,)로 여러 IP값 입력" />
-          </div>
-        </div>
-      </div>
-      <div class="column is-2">
-        <div class="field">
-          <label class="label is-small">서비스</label>
-          <div class="control">
-            <input id="f-svc" class="input is-small" placeholder="쉼표(,)로 여러 포트값 입력" />
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- 그리드 -->
+    <div id="policies-grid" class="ag-theme-quartz"></div>
   </div>
+</div>
 
-  <!-- 정책 그리드 -->
-  <div id="policies-grid" class="ag-theme-quartz" style="height: calc(100vh - 100px);"></div>
+<!-- 상세 검색 모달 -->
+<div class="modal" id="modal-advanced-search">
+  <div class="modal-background"></div>
+  <div class="modal-card">
+    <header class="modal-card-head">
+      <p class="modal-card-title">상세 검색</p>
+      <button class="delete" aria-label="close" id="close-advanced-search"></button>
+    </header>
+    <section class="modal-card-body">
+      <div class="columns is-multiline">
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">정책명</label>
+            <div class="control">
+              <input id="f-rule-name" class="input is-small" placeholder="쉼표(,)로 여러 정책명 입력" />
+            </div>
+          </div>
+        </div>
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">가상시스템</label>
+            <div class="control">
+              <input id="f-vsys" class="input is-small" placeholder="가상시스템명" />
+            </div>
+          </div>
+        </div>
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">출발지 IP</label>
+            <div class="control">
+              <input id="f-src" class="input is-small" placeholder="쉼표(,)로 여러 IP값 입력" />
+            </div>
+          </div>
+        </div>
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">목적지 IP</label>
+            <div class="control">
+              <input id="f-dst" class="input is-small" placeholder="쉼표(,)로 여러 IP값 입력" />
+            </div>
+          </div>
+        </div>
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">서비스/포트</label>
+            <div class="control">
+              <input id="f-svc" class="input is-small" placeholder="쉼표(,)로 여러 포트값 입력" />
+            </div>
+          </div>
+        </div>
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">사용자</label>
+            <div class="control">
+              <input id="f-user" class="input is-small" placeholder="사용자명" />
+            </div>
+          </div>
+        </div>
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">애플리케이션</label>
+            <div class="control">
+              <input id="f-app" class="input is-small" placeholder="애플리케이션명" />
+            </div>
+          </div>
+        </div>
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">액션</label>
+            <div class="control">
+              <input id="f-action" class="input is-small" placeholder="allow, deny 등" />
+            </div>
+          </div>
+        </div>
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">활성화 상태</label>
+            <div class="control">
+              <div class="select is-fullwidth is-small">
+                <select id="f-enable" class="is-small">
+                  <option value="">전체</option>
+                  <option value="true">활성</option>
+                  <option value="false">비활성</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">설명</label>
+            <div class="control">
+              <input id="f-desc" class="input is-small" placeholder="설명 검색" />
+            </div>
+          </div>
+        </div>
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">마지막 매칭일시 (시작)</label>
+            <div class="control">
+              <input id="f-hit-from" class="input is-small" type="datetime-local" />
+            </div>
+          </div>
+        </div>
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">마지막 매칭일시 (종료)</label>
+            <div class="control">
+              <input id="f-hit-to" class="input is-small" type="datetime-local" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <footer class="modal-card-foot">
+      <button class="button is-primary is-small" id="btn-apply-search">검색</button>
+      <button class="button is-light is-small" id="btn-clear-search">초기화</button>
+      <button class="button is-light is-small" id="cancel-advanced-search">취소</button>
+    </footer>
+  </div>
 </div>
 
 

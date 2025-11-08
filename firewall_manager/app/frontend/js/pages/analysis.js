@@ -5,21 +5,73 @@ let resultGridApi = null;
 let deviceSelect = null;
 let statusInterval = null;
 
+// 그리드 높이를 자동으로 조절하는 함수 (세로 스크롤 없이 모든 행 표시)
+function adjustAnalysisGridHeight() {
+  const gridDiv = document.getElementById('analysis-result-grid');
+  if (!gridDiv) return;
+  
+  // 실제 렌더링된 요소들의 높이를 측정
+  const headerElement = gridDiv.querySelector('.ag-header');
+  const headerHeight = headerElement ? headerElement.offsetHeight : 0;
+  
+  const paginationElement = gridDiv.querySelector('.ag-paging-panel');
+  const paginationHeight = paginationElement ? paginationElement.offsetHeight : 0;
+  
+  // 그리드 본문 영역의 실제 높이 측정
+  const bodyViewport = gridDiv.querySelector('.ag-body-viewport');
+  let bodyHeight = 0;
+  
+  if (bodyViewport) {
+    bodyHeight = bodyViewport.scrollHeight;
+    
+    // bodyViewport의 padding/margin도 고려
+    const bodyViewportStyle = window.getComputedStyle(bodyViewport);
+    const paddingTop = parseInt(bodyViewportStyle.paddingTop) || 0;
+    const paddingBottom = parseInt(bodyViewportStyle.paddingBottom) || 0;
+    bodyHeight += paddingTop + paddingBottom;
+  } else {
+    // fallback: 행 요소들의 높이 합계
+    const rowElements = gridDiv.querySelectorAll('.ag-row:not(.ag-header-row)');
+    rowElements.forEach(row => {
+      bodyHeight += row.offsetHeight || 0;
+    });
+  }
+  
+  // ag-center-cols-container의 높이도 확인 (더 정확한 측정)
+  const centerColsContainer = gridDiv.querySelector('.ag-center-cols-container');
+  if (centerColsContainer && centerColsContainer.offsetHeight > bodyHeight) {
+    bodyHeight = centerColsContainer.offsetHeight;
+  }
+  
+  // 높이 계산: 헤더 + 본문 높이 + 페이지네이션
+  const calculatedHeight = headerHeight + bodyHeight + paginationHeight;
+  const minHeight = 200;
+  const finalHeight = Math.max(calculatedHeight, minHeight);
+  
+  gridDiv.style.height = `${finalHeight}px`;
+  
+  // 세로 스크롤 강제 제거
+  if (bodyViewport) {
+    bodyViewport.style.overflowY = 'hidden';
+    bodyViewport.style.overflowX = 'auto';
+  }
+}
+
 function getColumnDefs(analysisType) {
     const commonColumns = [
-        { field: 'policy.seq', headerName: 'Seq', width: 80, valueGetter: params => params.data.policy?.seq },
-        { field: 'policy.rule_name', headerName: '규칙 이름', minWidth: 200, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.rule_name },
-        { field: 'policy.source', headerName: '출발지', minWidth: 250, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.source },
-        { field: 'policy.destination', headerName: '목적지', minWidth: 250, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.destination },
-        { field: 'policy.service', headerName: '서비스', minWidth: 200, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.service },
-        { field: 'policy.action', headerName: 'Action', width: 100, valueGetter: params => params.data.policy?.action },
-        { field: 'policy.description', headerName: '설명', minWidth: 300, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.description }
+        { field: 'policy.seq', headerName: 'Seq', minWidth: 80, sortable: false, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.seq, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+        { field: 'policy.rule_name', headerName: '규칙 이름', minWidth: 200, sortable: false, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.rule_name, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+        { field: 'policy.source', headerName: '출발지', minWidth: 250, sortable: false, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.source, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+        { field: 'policy.destination', headerName: '목적지', minWidth: 250, sortable: false, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.destination, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+        { field: 'policy.service', headerName: '서비스', minWidth: 200, sortable: false, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.service, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+        { field: 'policy.action', headerName: 'Action', minWidth: 100, sortable: false, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.action, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+        { field: 'policy.description', headerName: '설명', minWidth: 300, sortable: false, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.description, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } }
     ];
 
     if (analysisType === 'redundancy') { // 서버에서 사용하는 실제 값으로 변경
         return [
-            { field: 'set_number', headerName: 'No', width: 80, sort: 'asc' },
-            { field: 'type', headerName: '구분', width: 100 },
+            { field: 'set_number', headerName: 'No', minWidth: 80, sortable: false, filter: 'agTextColumnFilter', filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+            { field: 'type', headerName: '구분', minWidth: 100, sortable: false, filter: 'agTextColumnFilter', filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
             ...commonColumns
         ];
     }
@@ -36,20 +88,63 @@ function createGrid(columnDefs, rowData) {
     if (gridEl) {
         const gridOptions = {
             columnDefs: columnDefs,
-            rowData: rowData,
+            rowData: rowData || [],
             defaultColDef: {
+                resizable: true,
                 sortable: false,
-                resizable: false,
                 filter: true,
             },
+            enableCellTextSelection: true,
+            getRowId: params => {
+                // set_number와 type을 조합하여 고유 ID 생성
+                if (params.data.set_number !== undefined && params.data.type) {
+                    return `${params.data.set_number}_${params.data.type}_${params.data.policy?.id || params.rowIndex}`;
+                }
+                return String(params.data.policy?.id || params.rowIndex);
+            },
+            enableFilterHandlers: true,
+            suppressSizeToFit: true,
+            suppressHorizontalScroll: false,
+            suppressVerticalScroll: true,
+            overlayNoRowsTemplate: '<div style="padding: 20px; text-align: center; color: #666;">분석 결과가 없습니다.</div>',
             pagination: true,
             paginationPageSize: 50,
-            enableCellTextSelection: true,
+            paginationPageSizeSelector: [50, 100, 200],
             onGridReady: (params) => {
                 resultGridApi = params.api;
+                setTimeout(() => {
+                    adjustAnalysisGridHeight();
+                }, 200);
             },
             onFirstDataRendered: (params) => {
-                params.api.autoSizeAllColumns();
+                setTimeout(() => {
+                    if (params.api.getDisplayedRowCount() > 0) {
+                        params.api.autoSizeAllColumns({ skipHeader: false });
+                    }
+                    adjustAnalysisGridHeight();
+                }, 200);
+            },
+            onModelUpdated: (params) => {
+                if (params.api.getDisplayedRowCount() > 0) {
+                    setTimeout(() => {
+                        params.api.autoSizeAllColumns({ skipHeader: false });
+                        adjustAnalysisGridHeight();
+                    }, 200);
+                } else {
+                    setTimeout(() => {
+                        adjustAnalysisGridHeight();
+                    }, 200);
+                }
+            },
+            onPaginationChanged: () => {
+                setTimeout(() => {
+                    adjustAnalysisGridHeight();
+                }, 200);
+            },
+            onRowDataUpdated: () => {
+                setTimeout(() => {
+                    adjustAnalysisGridHeight();
+                }, 200);
             }
         };
         resultGridApi = agGrid.createGrid(gridEl, gridOptions);
@@ -85,34 +180,30 @@ async function loadDevices() {
     }
 }
 
-function updateStatusLog(message) {
-    const statusContainer = document.getElementById('analysis-status-container');
-    const statusText = document.getElementById('analysis-status-text');
-    if (statusContainer.style.display === 'none') {
-        statusContainer.style.display = 'block';
-    }
-    const timestamp = new Date().toLocaleTimeString();
-    statusText.innerHTML += `<p class="is-size-7 has-text-grey">[${timestamp}] ${message}</p>`;
-    statusText.scrollTop = statusText.scrollHeight;
-}
-
 function resetStatusUI() {
     stopPolling();
-    const statusContainer = document.getElementById('analysis-status-container');
-    const statusText = document.getElementById('analysis-status-text');
-    const resultBox = document.getElementById('analysis-result-box');
     const startButton = document.getElementById('btn-start-analysis');
+    const resetFiltersBtn = document.getElementById('btn-reset-filters');
+    const exportBtn = document.getElementById('btn-export-excel');
 
-    if (statusText) statusText.innerHTML = '';
-    if (statusContainer) statusContainer.style.display = 'none';
-    if (resultBox) resultBox.style.display = 'none';
     if (startButton) {
         startButton.disabled = false;
         startButton.classList.remove('is-loading');
     }
+    if (resetFiltersBtn) resetFiltersBtn.style.display = 'none';
+    if (exportBtn) exportBtn.style.display = 'none';
+    
+    // 그리드를 빈 상태로 초기화 (메시지 표시를 위해 그리드는 유지)
     if (resultGridApi) {
-        try { resultGridApi.destroy(); } catch (e) {}
-        resultGridApi = null;
+        try {
+            resultGridApi.setGridOption('rowData', []);
+        } catch (e) {
+            console.warn('Failed to reset grid data:', e);
+        }
+    } else {
+        // 그리드가 없으면 생성 (빈 상태)
+        const columnDefs = getColumnDefs('redundancy');
+        createGrid(columnDefs, []);
     }
 }
 
@@ -130,32 +221,36 @@ function stopPolling() {
 
 // 저장된 결과 또는 태스크 완료 후 결과를 그리드에 표시
 function displayResults(resultData, analysisType, source = 'latest') {
-    const resultBox = document.getElementById('analysis-result-box');
     if (source === 'task') {
         resetStatusUI(); // 태스크 완료 시에만 전체 UI 초기화
     }
 
+    // 결과가 있든 없든 그리드를 생성하여 메시지 표시
+    const columnDefs = getColumnDefs(analysisType);
+    createGrid(columnDefs, resultData || []);
+    
     if(resultData && resultData.length > 0) {
-        const columnDefs = getColumnDefs(analysisType);
-        createGrid(columnDefs, resultData);
-        if (resultBox) resultBox.style.display = 'block';
+        // 버튼 표시
+        const resetFiltersBtn = document.getElementById('btn-reset-filters');
+        const exportBtn = document.getElementById('btn-export-excel');
+        if (resetFiltersBtn) resetFiltersBtn.style.display = 'inline-block';
+        if (exportBtn) exportBtn.style.display = 'inline-block';
     } else {
-        if (resultBox) resultBox.style.display = 'none';
-        if (source === 'task') {
-            updateStatusLog('분석이 완료되었지만, 중복된 정책이 발견되지 않았습니다.');
-        }
+        // 결과가 없을 때는 버튼 숨김
+        const resetFiltersBtn = document.getElementById('btn-reset-filters');
+        const exportBtn = document.getElementById('btn-export-excel');
+        if (resetFiltersBtn) resetFiltersBtn.style.display = 'none';
+        if (exportBtn) exportBtn.style.display = 'none';
     }
 }
 
 async function displayTaskResults(taskId) {
     try {
-        updateStatusLog('분석 결과를 가져오는 중...');
         const results = await api.getAnalysisResults(taskId);
-        updateStatusLog('결과 표시 완료.');
         displayResults(results, 'redundancy', 'task');
     } catch (error) {
         console.error('결과를 가져오는 데 실패했습니다:', error);
-        updateStatusLog(`결과 로딩 실패: ${error.message}`);
+        alert(`결과 로딩 실패: ${error.message}`);
     }
 }
 
@@ -171,26 +266,24 @@ function startPolling(deviceId) {
             const task = await api.getAnalysisStatus(deviceId);
             switch (task.task_status) {
                 case 'in_progress':
-                    updateStatusLog(`분석 진행 중... (상태: ${task.task_status}, 단계: ${task.task_step || 'N/A'})`);
+                    // 로그 없이 진행 상태만 표시 (버튼 로딩 상태로 표시)
                     break;
                 case 'success':
                     stopPolling();
-                    updateStatusLog('분석 성공.');
-                    // Playwright가 메시지를 감지할 수 있도록 짧은 지연 추가
                     setTimeout(() => displayTaskResults(task.id), 100);
                     break;
                 case 'failure':
                     stopPolling();
-                    updateStatusLog(`분석 실패. (Task ID: ${task.id})`);
+                    alert(`분석 실패. (Task ID: ${task.id})`);
                     break;
                 case 'pending':
-                    updateStatusLog(`분석 대기 중... (상태: ${task.task_status})`);
+                    // 로그 없이 대기 상태만 표시
                     break;
             }
         } catch (error) {
             stopPolling();
             console.error('상태 조회 실패:', error);
-            updateStatusLog('상태 조회 실패.');
+            alert('상태 조회 실패.');
         }
     }, 3000);
 }
@@ -202,13 +295,12 @@ async function startAnalysis() {
         return;
     }
     resetStatusUI();
-    updateStatusLog('분석 시작을 요청합니다...');
     try {
         await api.startAnalysis(deviceId);
         startPolling(deviceId);
     } catch (error) {
         console.error('분석 시작 실패:', error);
-        updateStatusLog(`분석 시작 실패: ${error.message}`);
+        alert(`분석 시작 실패: ${error.message}`);
         stopPolling();
     }
 }
@@ -225,25 +317,19 @@ async function loadLatestResult() {
 
     // 새 장비를 선택했으므로 이전 상태와 결과를 초기화
     resetStatusUI();
-    updateStatusLog('최신 분석 결과를 조회합니다...');
 
     try {
         const latestResult = await api.getLatestAnalysisResult(deviceId, analysisType);
         if (latestResult && latestResult.result_data && latestResult.result_data.length > 0) {
-            updateStatusLog(`최신 분석 결과를 표시합니다. (생성일: ${new Date(latestResult.created_at).toLocaleString()})`);
             displayResults(latestResult.result_data, latestResult.analysis_type);
         } else {
-            updateStatusLog('최신 분석 결과에 데이터가 없습니다.');
+            resetStatusUI();
         }
     } catch (error) {
-        if (error.status === 404) {
-            updateStatusLog('저장된 최신 분석 결과가 없습니다.');
-        } else {
+        if (error.status !== 404) {
             console.error('최신 분석 결과 로드 실패:', error);
-            updateStatusLog(`오류: 최신 분석 결과를 불러오지 못했습니다. (${error.message})`);
         }
-        const resultBox = document.getElementById('analysis-result-box');
-        if (resultBox) resultBox.style.display = 'none';
+        resetStatusUI();
     }
 }
 
@@ -271,6 +357,10 @@ async function exportToExcel() {
 export async function initAnalysis() {
     await loadDevices();
 
+    // 초기 그리드 생성 (빈 상태)
+    const columnDefs = getColumnDefs('redundancy');
+    createGrid(columnDefs, []);
+
     const startButton = document.getElementById('btn-start-analysis');
     if (startButton) {
         startButton.addEventListener('click', startAnalysis);
@@ -279,6 +369,16 @@ export async function initAnalysis() {
     const exportButton = document.getElementById('btn-export-excel');
     if (exportButton) {
         exportButton.addEventListener('click', exportToExcel);
+    }
+
+    // 필터 초기화 버튼
+    const resetFiltersBtn = document.getElementById('btn-reset-filters');
+    if (resetFiltersBtn) {
+        resetFiltersBtn.addEventListener('click', () => {
+            if (resultGridApi && typeof resultGridApi.setFilterModel === 'function') {
+                resultGridApi.setFilterModel(null);
+            }
+        });
     }
 
     // 페이지 초기 로드 시 첫 번째 장비의 최신 결과를 불러옴
