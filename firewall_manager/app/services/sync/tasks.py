@@ -178,7 +178,15 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
         loop = asyncio.get_running_loop()
 
         try:
+            # 연결 시도
             await loop.run_in_executor(None, getattr(collector, 'connect', lambda: None))
+            
+            # 연결 완료 후 상태 업데이트
+            async with SessionLocal() as db:
+                device = await crud.device.get_device(db=db, device_id=device_id)
+                if device:
+                    await crud.device.update_sync_status(db, device=device, status="in_progress", step="Connected")
+                    await db.commit()
 
             # --- Data Collection Sequence ---
             collection_sequence = [
@@ -191,12 +199,33 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
 
             collected_dfs = {}
             for data_type, step_msg, export_func, schema_create in collection_sequence:
+                # 데이터 수집 시작 전 상태 업데이트
                 async with SessionLocal() as db:
-                    await crud.device.update_sync_status(db, device=device, status="in_progress", step=step_msg)
-                    await db.commit()
+                    device = await crud.device.get_device(db=db, device_id=device_id)
+                    if device:
+                        await crud.device.update_sync_status(db, device=device, status="in_progress", step=step_msg)
+                        await db.commit()
 
+                # 실제 데이터 수집 수행 (여기서 시간이 걸림)
+                logging.info(f"[orchestrator] Starting export for {data_type}")
                 df = await loop.run_in_executor(None, export_func)
                 collected_dfs[data_type] = pd.DataFrame() if df is None else df
+                logging.info(f"[orchestrator] Export completed for {data_type}, rows: {len(collected_dfs[data_type])}")
+                
+                # 데이터 수집 완료 후 상태 업데이트
+                async with SessionLocal() as db:
+                    device = await crud.device.get_device(db=db, device_id=device_id)
+                    if device:
+                        completed_msg_map = {
+                            "network_objects": "Network objects collected",
+                            "network_groups": "Network groups collected",
+                            "services": "Services collected",
+                            "service_groups": "Service groups collected",
+                            "policies": "Policies collected",
+                        }
+                        completed_msg = completed_msg_map.get(data_type, f"{data_type} collected")
+                        await crud.device.update_sync_status(db, device=device, status="in_progress", step=completed_msg)
+                        await db.commit()
 
             # --- Post-Collection Processing ---
             # Hit Date Collection
@@ -204,8 +233,10 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
             if device.vendor == 'paloalto':
                 logging.info(f"[orchestrator] Palo Alto device detected. Starting last_hit_date collection for device_id={device_id}")
                 async with SessionLocal() as db:
-                    await crud.device.update_sync_status(db, device=device, status="in_progress", step="Collecting usage history...")
-                    await db.commit()
+                    device = await crud.device.get_device(db=db, device_id=device_id)
+                    if device:
+                        await crud.device.update_sync_status(db, device=device, status="in_progress", step="Collecting usage history...")
+                        await db.commit()
                 try:
                     policies_df = collected_dfs["policies"]
                     vsys_list = policies_df["vsys"].unique().tolist() if "vsys" in policies_df.columns and not policies_df["vsys"].isnull().all() else None
@@ -256,6 +287,13 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                         collected_dfs["policies"] = policies_df
                         merged_hits = policies_df["last_hit_date"].notna().sum() if "last_hit_date" in policies_df.columns else 0
                         logging.info(f"[orchestrator] last_hit_date merge complete. Non-null hits: {merged_hits}")
+                        
+                        # Usage history 수집 완료 후 상태 업데이트
+                        async with SessionLocal() as db:
+                            device = await crud.device.get_device(db=db, device_id=device_id)
+                            if device:
+                                await crud.device.update_sync_status(db, device=device, status="in_progress", step="Usage history collected")
+                                await db.commit()
                     else:
                         logging.info("[orchestrator] No last_hit_date records returned; skipping merge.")
                 except Exception as e:
@@ -266,29 +304,65 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
 
             # --- DB Synchronization ---
             for data_type, _, _, schema_create in collection_sequence:
+                # 동기화 시작 전 상태 업데이트
+                async with SessionLocal() as db:
+                    device = await crud.device.get_device(db=db, device_id=device_id)
+                    if device:
+                        syncing_msg_map = {
+                            "network_objects": "Synchronizing network objects...",
+                            "network_groups": "Synchronizing network groups...",
+                            "services": "Synchronizing services...",
+                            "service_groups": "Synchronizing service groups...",
+                            "policies": "Synchronizing policies...",
+                        }
+                        syncing_msg = syncing_msg_map.get(data_type, f"Synchronizing {data_type}...")
+                        await crud.device.update_sync_status(db, device=device, status="in_progress", step=syncing_msg)
+                        await db.commit()
+                
+                # 실제 동기화 수행
+                logging.info(f"[orchestrator] Starting DB sync for {data_type}")
                 df = collected_dfs[data_type]
                 df["device_id"] = device_id
                 items_to_sync = dataframe_to_pydantic(df, schema_create)
                 await sync_data_task(device_id, data_type, items_to_sync)
+                logging.info(f"[orchestrator] DB sync completed for {data_type}")
+                
+                # 동기화 완료 후 상태 업데이트
+                async with SessionLocal() as db:
+                    device = await crud.device.get_device(db=db, device_id=device_id)
+                    if device:
+                        synced_msg_map = {
+                            "network_objects": "Network objects synchronized",
+                            "network_groups": "Network groups synchronized",
+                            "services": "Services synchronized",
+                            "service_groups": "Service groups synchronized",
+                            "policies": "Policies synchronized",
+                        }
+                        synced_msg = synced_msg_map.get(data_type, f"{data_type} synchronized")
+                        await crud.device.update_sync_status(db, device=device, status="in_progress", step=synced_msg)
+                        await db.commit()
 
 
             # --- Policy Indexing ---
             async with SessionLocal() as db:
-                await crud.device.update_sync_status(db, device=device, status="in_progress", step="Indexing policies...")
-                await db.commit()
-
-                result = await db.execute(select(models.Policy).where(models.Policy.device_id == device_id, models.Policy.is_indexed == False))
-                policies_to_index = result.scalars().all()
-                if policies_to_index:
-                    await rebuild_policy_indices(db=db, device_id=device_id, policies=policies_to_index)
-                    for p in policies_to_index:
-                        p.is_indexed = True
-                    db.add_all(policies_to_index)
+                device = await crud.device.get_device(db=db, device_id=device_id)
+                if device:
+                    await crud.device.update_sync_status(db, device=device, status="in_progress", step="Indexing policies...")
                     await db.commit()
 
-                device_to_update = await crud.device.get_device(db=db, device_id=device_id)
-                await crud.device.update_sync_status(db=db, device=device_to_update, status="success")
-                await db.commit()
+                    result = await db.execute(select(models.Policy).where(models.Policy.device_id == device_id, models.Policy.is_indexed == False))
+                    policies_to_index = result.scalars().all()
+                    if policies_to_index:
+                        await rebuild_policy_indices(db=db, device_id=device_id, policies=policies_to_index)
+                        for p in policies_to_index:
+                            p.is_indexed = True
+                        db.add_all(policies_to_index)
+                        await db.commit()
+
+                    device_to_update = await crud.device.get_device(db=db, device_id=device_id)
+                    if device_to_update:
+                        await crud.device.update_sync_status(db=db, device=device_to_update, status="success")
+                        await db.commit()
 
             logging.info(f"[orchestrator] sync-all finished successfully for device_id={device_id}")
 

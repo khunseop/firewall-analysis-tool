@@ -5,6 +5,7 @@ import { updateElementText, updateElements } from '../utils/dom.js';
 import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
 
 let deviceStatsGrid = null;
+let currentDeviceStatsData = []; // 현재 장비 통계 데이터 (동기화 상태 요약 업데이트용)
 
 // ==================== 유틸리티 함수 ====================
 
@@ -39,6 +40,7 @@ async function collectDeviceStats(device) {
     const syncData = syncStatusData.status === 'fulfilled' ? syncStatusData.value : null;
 
     return {
+      id: device.id,
       name: device.name,
       vendor: device.vendor,
       ip_address: device.ip_address,
@@ -54,6 +56,7 @@ async function collectDeviceStats(device) {
   } catch (err) {
     console.error(`Failed to load stats for device ${device.id}:`, err);
     return {
+      id: device.id,
       name: device.name,
       vendor: device.vendor,
       ip_address: device.ip_address,
@@ -137,6 +140,9 @@ async function loadStatistics() {
       }
     }
 
+    // 전역 변수에 저장 (WebSocket 업데이트용)
+    currentDeviceStatsData = deviceStatsData;
+
     // 동기화 상태 요약 업데이트
     updateSyncStatusSummary(deviceStatsData);
   } catch (err) {
@@ -147,11 +153,14 @@ async function loadStatistics() {
 
 // ==================== 동기화 상태 관련 함수 ====================
 
+let dashboardWebSocket = null;
+
 /**
  * 동기화 상태에 따른 색상 반환
  */
 function getSyncStatusColor(status) {
   const statusMap = {
+    pending: 'is-warning',
     success: 'is-success',
     in_progress: 'is-info',
     failure: 'is-danger',
@@ -165,6 +174,7 @@ function getSyncStatusColor(status) {
  */
 function getSyncStatusText(status) {
   const statusMap = {
+    pending: '대기중',
     success: '성공',
     in_progress: '진행중',
     failure: '실패',
@@ -418,11 +428,44 @@ function initDeviceStatsGrid() {
       headerName: '동기화 상태', 
       filter: 'agTextColumnFilter',
       width: 120,
+      headerClass: 'text-left',
+      cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
       cellRenderer: (params) => {
         const status = params.value || 'unknown';
-        const color = getSyncStatusColor(status);
-        const text = getSyncStatusText(status);
-        return `<span class="tag ${color}">${text}</span>`;
+        const step = params.data?.sync_step || '';
+        
+        // 상태별 색상 및 스타일
+        const statusConfig = {
+          'success': { color: '#48c774', class: 'sync-status-success' },
+          'in_progress': { color: '#3273dc', class: 'sync-status-progress' },
+          'pending': { color: '#ff9800', class: 'sync-status-pending' },
+          'failure': { color: '#f14668', class: 'sync-status-failure' },
+          'error': { color: '#f14668', class: 'sync-status-failure' }
+        };
+        
+        const config = statusConfig[status] || { color: '#95a5a6', class: 'sync-status-unknown' };
+        const statusText = getSyncStatusText(status);
+        const tooltipText = step ? `${statusText}: ${step}` : statusText;
+        
+        // 진행중일 때 점멸 효과
+        const blinkStyle = status === 'in_progress' ? 'animation: blink 1s ease-in-out infinite;' : '';
+        
+        return `
+          <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; padding: 0;" title="${tooltipText}">
+            <span 
+              class="${config.class}" 
+              style="
+                display: block;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background-color: ${config.color};
+                flex-shrink: 0;
+                ${blinkStyle}
+              "
+            ></span>
+          </div>
+        `;
       }
     }
   ];
@@ -435,6 +478,7 @@ function initDeviceStatsGrid() {
       sortable: true,
       filter: true
     },
+    getRowId: (params) => String(params.data.id),
     autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 500 },
     enableCellTextSelection: true
   };
@@ -493,6 +537,131 @@ window.viewAnalysisDetails = function(deviceId) {
   navigate(`/analysis?device_id=${deviceId}`);
 };
 
+// ==================== WebSocket 관련 함수 ====================
+
+/**
+ * WebSocket 연결 시작
+ */
+function connectDashboardWebSocket() {
+  if (dashboardWebSocket && dashboardWebSocket.readyState === WebSocket.OPEN) {
+    return Promise.resolve();
+  }
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}/api/v1/ws/sync-status`;
+
+  return new Promise((resolve, reject) => {
+    try {
+      dashboardWebSocket = new WebSocket(wsUrl);
+
+      dashboardWebSocket.onopen = () => {
+        console.log('대시보드 WebSocket 연결됨');
+        resolve();
+      };
+
+    dashboardWebSocket.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.type === 'device_sync_status') {
+          // 그리드 즉시 업데이트 (실시간 반영)
+          if (deviceStatsGrid) {
+            const rowNode = deviceStatsGrid.getRowNode(String(message.device_id));
+            if (rowNode && rowNode.data) {
+              // 그리드에 행이 있으면 즉시 업데이트
+              const updatedData = {
+                ...rowNode.data,
+                sync_status: message.status,
+                sync_step: message.step || null  // sync_step은 collectDeviceStats에서 last_sync_step을 매핑한 필드
+              };
+              
+              // 완료 상태일 때 타임스탬프 업데이트
+              if (message.status === 'success' || message.status === 'failure') {
+                updatedData.sync_time = new Date().toISOString();
+              }
+              
+              try {
+                rowNode.setData(updatedData);
+              } catch (e) {
+                // setData가 실패하면 applyTransaction 사용
+                console.warn(`대시보드 그리드 업데이트 실패, 대체 방법 사용:`, e);
+                deviceStatsGrid.applyTransaction({ update: [updatedData] });
+                
+                // 셀 강제 새로고침
+                try {
+                  if (deviceStatsGrid.refreshCells) {
+                    deviceStatsGrid.refreshCells({ 
+                      rowNodes: [rowNode],
+                      columns: ['sync_status'],
+                      force: true 
+                    });
+                  } else if (deviceStatsGrid.redrawRows) {
+                    deviceStatsGrid.redrawRows({ rowNodes: [rowNode] });
+                  }
+                } catch (refreshError) {
+                  console.warn(`대시보드 셀 새로고침 실패:`, refreshError);
+                }
+              }
+              
+              // 동기화 상태 요약도 업데이트
+              const deviceIndex = currentDeviceStatsData.findIndex(d => d.id === message.device_id);
+              if (deviceIndex !== -1) {
+                currentDeviceStatsData[deviceIndex] = updatedData;
+                updateSyncStatusSummary(currentDeviceStatsData);
+              }
+            } else {
+              // 그리드에 행이 없으면 전체 데이터 다시 로드 (초기 로드 전에 메시지가 온 경우)
+              loadStatistics();
+              return; // loadStatistics()가 완료되면 자동으로 업데이트됨
+            }
+          }
+          
+          // 완료 상태일 때만 전체 통계 다시 로드 (통계 수치 업데이트)
+          // 진행 중일 때는 그리드 업데이트만으로 충분
+          if (message.status === 'success' || message.status === 'failure') {
+            loadStatistics();
+          }
+        }
+      } catch (e) {
+        console.error('WebSocket 메시지 파싱 실패:', e);
+      }
+    };
+
+      dashboardWebSocket.onerror = (error) => {
+        console.error('대시보드 WebSocket 오류:', error);
+        // 연결 실패 시에만 reject (이미 연결된 경우는 무시)
+        if (dashboardWebSocket.readyState !== WebSocket.OPEN) {
+          reject(error);
+        }
+      };
+
+      dashboardWebSocket.onclose = () => {
+        console.log('대시보드 WebSocket 연결 종료됨. 3초 후 재연결 시도...');
+        // 재연결은 백그라운드에서 진행 (Promise와 무관)
+        setTimeout(() => {
+          if (dashboardWebSocket && dashboardWebSocket.readyState === WebSocket.CLOSED) {
+            connectDashboardWebSocket().catch(() => {
+              // 재연결 실패는 무시 (백그라운드 작업)
+            });
+          }
+        }, 3000);
+      };
+    } catch (e) {
+      console.error('대시보드 WebSocket 연결 실패:', e);
+      reject(e);
+    }
+  });
+}
+
+/**
+ * WebSocket 연결 종료
+ */
+function disconnectDashboardWebSocket() {
+  if (dashboardWebSocket) {
+    dashboardWebSocket.close();
+    dashboardWebSocket = null;
+  }
+}
+
 // ==================== 대시보드 초기화 ====================
 
 /**
@@ -501,9 +670,24 @@ window.viewAnalysisDetails = function(deviceId) {
 export async function initDashboard() {
   initDeviceStatsGrid();
   setupEventListeners();
+  
+  // WebSocket 연결 후 초기 데이터 로드 (연결 완료를 기다림)
+  try {
+    await connectDashboardWebSocket();
+  } catch (e) {
+    console.warn('WebSocket 연결 실패, 폴링 모드로 진행:', e);
+  }
+  
   await Promise.all([
     loadStatistics(),
     loadAnalysisResults()
   ]);
+}
+
+/**
+ * 대시보드 정리
+ */
+export function cleanupDashboard() {
+  disconnectDashboardWebSocket();
 }
 

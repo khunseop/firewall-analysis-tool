@@ -1,7 +1,8 @@
 const routes = {};
+let currentCleanup = null;
 
 export function addRoute(path, config) {
-  // config: { template: string, init?: (rootEl: HTMLElement) => void }
+  // config: { template: string, init?: (rootEl: HTMLElement) => void, cleanup?: () => void }
   routes[path] = config;
 }
 
@@ -22,6 +23,17 @@ export function navigate(path) {
 export async function render() {
   const { path } = getCurrentPath();
   const app = document.getElementById("app");
+  
+  // 이전 페이지 cleanup 실행
+  if (currentCleanup && typeof currentCleanup === 'function') {
+    try {
+      currentCleanup();
+    } catch (e) {
+      console.error('Cleanup 오류:', e);
+    }
+    currentCleanup = null;
+  }
+  
   const route = routes[path] || routes["#/dashboard"];
   // Reset container
   app.innerHTML = "";
@@ -32,6 +44,10 @@ export async function render() {
       app.innerHTML = html;
       if (typeof route.init === 'function') {
         route.init(app);
+      }
+      // cleanup 함수 저장
+      if (typeof route.cleanup === 'function') {
+        currentCleanup = route.cleanup;
       }
     } catch (e) {
       app.innerHTML = `<p class="help is-danger">페이지를 불러오지 못했습니다.</p>`;

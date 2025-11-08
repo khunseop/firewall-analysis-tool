@@ -16,7 +16,7 @@ const labelToCode = new Map(VENDOR_OPTIONS.map(v => [v.label, v.code]));
 let gridOptions;
 let gridApi;
 let gridHostEl;
-let pollTimer = null;
+let websocket = null;
 
 // ==================== 유틸리티 함수 ====================
 
@@ -253,32 +253,72 @@ async function loadGrid(gridDiv) {
 }
 
 /**
- * 동기화 상태 셀 렌더러
+ * 동기화 상태에 따른 색상 반환
+ */
+function getSyncStatusColor(status) {
+  const statusMap = {
+    pending: 'is-warning',
+    success: 'is-success',
+    in_progress: 'is-info',
+    failure: 'is-danger',
+    error: 'is-danger'
+  };
+  return statusMap[status] || 'is-light';
+}
+
+/**
+ * 동기화 상태에 따른 텍스트 반환
+ */
+function getSyncStatusText(status) {
+  const statusMap = {
+    pending: '대기중',
+    success: '성공',
+    in_progress: '진행중',
+    failure: '실패',
+    error: '오류'
+  };
+  return statusMap[status] || '알 수 없음';
+}
+
+/**
+ * 동기화 상태 셀 렌더러 (동그라미 아이콘 + 호버 툴팁)
  */
 function statusCellRenderer(params) {
-  const status = params.value;
-  const step = params.data?.last_sync_step;
-  const el = document.createElement('span');
+  const status = params.value || 'unknown';
+  const step = params.data?.last_sync_step || '';
   
-  if (status === 'in_progress') {
-    const stepText = step || '진행 중...';
-    el.innerHTML = `
-      <span class="icon is-small" style="margin-right:6px">
-        <svg class="spinner" width="14" height="14" viewBox="0 0 50 50">
-          <circle cx="25" cy="25" r="20" fill="none" stroke="#3273dc" stroke-width="6" stroke-linecap="round" stroke-dasharray="31.4 31.4">
-            <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.8s" repeatCount="indefinite" />
-          </circle>
-        </svg>
-      </span> ${stepText}`;
-  } else if (status === 'success') {
-    el.innerHTML = `<span class="tag is-success is-light">성공</span>`;
-  } else if (status === 'failure') {
-    el.innerHTML = `<span class="tag is-danger is-light">실패</span>`;
-  } else {
-    el.textContent = status || '-';
-  }
+  // 상태별 색상 및 스타일
+  const statusConfig = {
+    'success': { color: '#48c774', class: 'sync-status-success' },
+    'in_progress': { color: '#3273dc', class: 'sync-status-progress' },
+    'pending': { color: '#ff9800', class: 'sync-status-pending' },
+    'failure': { color: '#f14668', class: 'sync-status-failure' },
+    'error': { color: '#f14668', class: 'sync-status-failure' }
+  };
   
-  return el;
+  const config = statusConfig[status] || { color: '#95a5a6', class: 'sync-status-unknown' };
+  const statusText = getSyncStatusText(status);
+  const tooltipText = step ? `${statusText}: ${step}` : statusText;
+  
+  // 진행중일 때 점멸 효과
+  const blinkStyle = status === 'in_progress' ? 'animation: blink 1s ease-in-out infinite;' : '';
+  
+  return `
+    <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; padding: 0;" title="${tooltipText}">
+      <span 
+        class="${config.class}" 
+        style="
+          display: block;
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background-color: ${config.color};
+          flex-shrink: 0;
+          ${blinkStyle}
+        "
+      ></span>
+    </div>
+  `;
 }
 
 /**
@@ -298,8 +338,11 @@ function getColumns() {
     { field: 'description', headerName: '설명' },
     { 
       field: 'last_sync_status', 
-      headerName: '진행 상태', 
-      cellRenderer: statusCellRenderer 
+      headerName: '동기화 상태',
+      width: 120,
+      cellRenderer: statusCellRenderer,
+      headerClass: 'text-left',
+      cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' }
     },
     { field: 'last_sync_at', headerName: '마지막 동기화' },
   ];
@@ -420,8 +463,7 @@ async function handleSync() {
     }
   }
   
-  // 폴링 시작: in_progress 상태가 없어질 때까지 주기적으로 갱신
-  startPolling();
+  // WebSocket을 통해 실시간 상태 업데이트가 자동으로 반영됨
 }
 
 /**
@@ -442,65 +484,131 @@ function handleSearch(event) {
   }
 }
 
-// ==================== 폴링 관련 함수 ====================
+// ==================== WebSocket 관련 함수 ====================
 
 /**
- * 폴링 시작
+ * WebSocket 연결 시작
  */
-async function startPolling() {
-  stopPolling();
-  
-  const tick = async () => {
-    let nextInterval = 8000; // 기본 폴링 간격
-    
+function connectWebSocket() {
+  // 이미 연결되어 있으면 재연결하지 않음
+  if (websocket && websocket.readyState === WebSocket.OPEN) {
+    return Promise.resolve();
+  }
+
+  // WebSocket URL 구성 (ws:// 또는 wss://)
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}/api/v1/ws/sync-status`;
+
+  return new Promise((resolve, reject) => {
     try {
-      const latestDevices = await api.listDevices();
-      const apiRef = gridApi || (gridOptions && gridOptions.api);
+      websocket = new WebSocket(wsUrl);
 
-      if (apiRef && latestDevices) {
-        const rowsToUpdate = [];
-        let hasInProgress = false;
+      websocket.onopen = () => {
+        console.log('WebSocket 연결됨');
+        resolve();
+      };
 
-        latestDevices.forEach(device => {
-          const rowNode = apiRef.getRowNode(String(device.id));
-          if (rowNode) {
-            // 기존 행과 데이터 비교하여 변경된 경우에만 업데이트 목록에 추가
-            const currentData = rowNode.data;
-            if (JSON.stringify(currentData) !== JSON.stringify(device)) {
-              rowsToUpdate.push(device);
-            }
-          }
-          if (device.last_sync_status === 'in_progress') {
-            hasInProgress = true;
-          }
-        });
-
-        if (rowsToUpdate.length > 0) {
-          apiRef.applyTransaction({ update: rowsToUpdate });
+    websocket.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.type === 'device_sync_status') {
+          handleSyncStatusUpdate(message);
         }
-
-        if (hasInProgress) {
-          nextInterval = 2000; // 동기화 진행 중일 때는 더 자주 폴링
-        }
+      } catch (e) {
+        console.error('WebSocket 메시지 파싱 실패:', e);
       }
+    };
+
+      websocket.onerror = (error) => {
+        console.error('WebSocket 오류:', error);
+        // 연결 실패 시에만 reject (이미 연결된 경우는 무시)
+        if (websocket.readyState !== WebSocket.OPEN) {
+          reject(error);
+        }
+      };
+
+      websocket.onclose = () => {
+        console.log('WebSocket 연결 종료됨. 3초 후 재연결 시도...');
+        // 재연결은 백그라운드에서 진행 (Promise와 무관)
+        setTimeout(() => {
+          if (websocket && websocket.readyState === WebSocket.CLOSED) {
+            connectWebSocket().catch(() => {
+              // 재연결 실패는 무시 (백그라운드 작업)
+            });
+          }
+        }, 3000);
+      };
     } catch (e) {
-      console.error("Polling failed:", e);
-      nextInterval = 15000; // 에러 발생 시 폴링 간격 늘림
-    } finally {
-      pollTimer = setTimeout(tick, nextInterval);
+      console.error('WebSocket 연결 실패:', e);
+      reject(e);
     }
-  };
-  
-  pollTimer = setTimeout(tick, 1500); // 즉시 첫 실행
+  });
 }
 
 /**
- * 폴링 중지
+ * WebSocket 연결 종료
  */
-function stopPolling() {
-  if (pollTimer) {
-    clearTimeout(pollTimer);
-    pollTimer = null;
+function disconnectWebSocket() {
+  if (websocket) {
+    websocket.close();
+    websocket = null;
+  }
+}
+
+/**
+ * 동기화 상태 업데이트 처리
+ */
+function handleSyncStatusUpdate(message) {
+  const { device_id, status, step } = message;
+  const apiRef = gridApi || (gridOptions && gridOptions.api);
+
+  if (!apiRef) {
+    // 그리드가 아직 초기화되지 않았으면 전체 데이터 다시 로드
+    reload();
+    return;
+  }
+
+  const rowNode = apiRef.getRowNode(String(device_id));
+  
+  if (rowNode && rowNode.data) {
+    // 그리드에 행이 있으면 즉시 업데이트
+    const updatedData = {
+      ...rowNode.data,
+      last_sync_status: status,
+      last_sync_step: step || null
+    };
+
+    // 완료 상태일 때 타임스탬프도 업데이트 (서버에서 설정됨)
+    if (status === 'success' || status === 'failure') {
+      updatedData.last_sync_at = new Date().toISOString();
+    }
+
+    // rowNode.setData를 사용하여 데이터 업데이트 (셀 자동 새로고침)
+    try {
+      rowNode.setData(updatedData);
+    } catch (e) {
+      // setData가 실패하면 applyTransaction 사용
+      console.warn(`그리드 업데이트 실패, 대체 방법 사용:`, e);
+      apiRef.applyTransaction({ update: [updatedData] });
+      
+      // 셀 강제 새로고침
+      try {
+        if (apiRef.refreshCells) {
+          apiRef.refreshCells({ 
+            rowNodes: [rowNode],
+            columns: ['last_sync_status'],
+            force: true 
+          });
+        } else if (apiRef.redrawRows) {
+          apiRef.redrawRows({ rowNodes: [rowNode] });
+        }
+      } catch (refreshError) {
+        console.warn(`셀 새로고침 실패:`, refreshError);
+      }
+    }
+  } else {
+    // 그리드에 행이 없으면 전체 데이터 다시 로드 (초기 로드 전에 메시지가 온 경우)
+    reload();
   }
 }
 
@@ -509,7 +617,7 @@ function stopPolling() {
 /**
  * 장비 페이지 초기화
  */
-export function initDevices(root) {
+export async function initDevices(root) {
   const addBtn = root.querySelector('#btn-add');
   const editBtn = root.querySelector('#btn-edit');
   const deleteBtn = root.querySelector('#btn-delete');
@@ -522,8 +630,21 @@ export function initDevices(root) {
   if (syncBtn) syncBtn.onclick = handleSync;
   if (search) search.oninput = handleSearch;
   
-  reload();
-  startPolling();
+  // WebSocket 연결 후 초기 데이터 로드 (연결 완료를 기다림)
+  try {
+    await connectWebSocket();
+  } catch (e) {
+    console.warn('WebSocket 연결 실패, 폴링 모드로 진행:', e);
+  }
+  
+  await reload();
+}
+
+/**
+ * 페이지 언마운트 시 WebSocket 연결 종료
+ */
+export function cleanupDevices() {
+  disconnectWebSocket();
 }
 
 

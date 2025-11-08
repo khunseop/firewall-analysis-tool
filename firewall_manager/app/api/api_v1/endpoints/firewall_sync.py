@@ -88,7 +88,7 @@ async def sync_device_data(device_id: int, data_type: str, background_tasks: Bac
         items_to_sync = dataframe_to_pydantic(df, schema_create)
 
         logging.info(f"Adding background task for {data_type} sync on device {device_id}")
-        background_tasks.add_task(sync_data_task, device_id, data_type, items_to_sync, True)
+        background_tasks.add_task(sync_data_task, device_id, data_type, items_to_sync)
         return {"msg": f"{data_type.replace('_', ' ').title()} synchronization started in the background."}
     finally:
         if connected:
@@ -104,7 +104,8 @@ async def sync_all(device_id: int, background_tasks: BackgroundTasks, db: AsyncS
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
 
-    await crud.device.update_sync_status(db=db, device=device, status="in_progress")
+    # 동기화 시작 전 대기중 상태로 설정
+    await crud.device.update_sync_status(db=db, device=device, status="pending", step="대기중...")
     await db.commit()
 
     background_tasks.add_task(run_sync_all_orchestrator, device_id)

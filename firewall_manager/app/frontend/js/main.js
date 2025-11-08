@@ -1,12 +1,12 @@
 import { startRouter, addRoute } from "./router.js";
-import { initDashboard } from "./pages/dashboard.js";
-import { initDevices } from "./pages/devices.js";
+import { initDashboard, cleanupDashboard } from "./pages/dashboard.js";
+import { initDevices, cleanupDevices } from "./pages/devices.js";
 import { initPolicies } from "./pages/policies.js";
 import { initObjects } from "./pages/objects.js";
 import { initAnalysis } from "./pages/analysis.js";
 
-addRoute("#/dashboard", { template: "dashboard.html", init: initDashboard });
-addRoute("#/devices", { template: "devices.html", init: initDevices });
+addRoute("#/dashboard", { template: "dashboard.html", init: initDashboard, cleanup: cleanupDashboard });
+addRoute("#/devices", { template: "devices.html", init: initDevices, cleanup: cleanupDevices });
 addRoute("#/policies", { template: "policies.html", init: initPolicies });
 addRoute("#/objects", { template: "objects.html", init: initObjects });
 addRoute("#/analysis", { template: "analysis.html", init: initAnalysis });
