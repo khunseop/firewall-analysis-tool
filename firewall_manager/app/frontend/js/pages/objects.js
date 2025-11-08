@@ -60,7 +60,7 @@ function adjustGridHeight(gridDiv) {
 
 // 네트워크 객체 그리드 컬럼 정의
 const networkObjectsColumns = [
-  { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', minWidth: 120, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+  { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', pinned: 'left', minWidth: 120, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
   { field: 'name', headerName: '이름', filter: 'agTextColumnFilter', minWidth: 150, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
   { field: 'ip_address', headerName: 'IP 주소', filter: 'agTextColumnFilter', minWidth: 150, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
   { field: 'type', headerName: '타입', filter: 'agTextColumnFilter', minWidth: 100, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
@@ -69,7 +69,7 @@ const networkObjectsColumns = [
 
 // 네트워크 그룹 그리드 컬럼 정의
 const networkGroupsColumns = [
-  { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', minWidth: 120, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+  { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', pinned: 'left', minWidth: 120, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
   { field: 'name', headerName: '이름', filter: 'agTextColumnFilter', minWidth: 150, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
   {
     field: 'members',
@@ -91,7 +91,7 @@ const networkGroupsColumns = [
 
 // 서비스 객체 그리드 컬럼 정의
 const servicesColumns = [
-  { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', minWidth: 120, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+  { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', pinned: 'left', minWidth: 120, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
   { field: 'name', headerName: '이름', filter: 'agTextColumnFilter', minWidth: 150, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
   { field: 'protocol', headerName: '프로토콜', filter: 'agTextColumnFilter', minWidth: 100, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
   { field: 'port', headerName: '포트', filter: 'agTextColumnFilter', minWidth: 100, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
@@ -100,7 +100,7 @@ const servicesColumns = [
 
 // 서비스 그룹 그리드 컬럼 정의
 const serviceGroupsColumns = [
-  { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', minWidth: 120, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+  { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', pinned: 'left', minWidth: 120, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
   { field: 'name', headerName: '이름', filter: 'agTextColumnFilter', minWidth: 150, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
   {
     field: 'members',
@@ -153,6 +153,7 @@ async function initGrids() {
       filter: true,
     },
     enableCellTextSelection: true,
+    getRowId: params => String(params.data.id),
     suppressSizeToFit: true,
     suppressHorizontalScroll: false,
     suppressVerticalScroll: true,
@@ -566,6 +567,26 @@ export async function initObjects() {
       }
     });
   });
+
+  // 필터 초기화 버튼 이벤트
+  const btnResetFilters = document.getElementById('btn-reset-objects-filters');
+  if (btnResetFilters) {
+    btnResetFilters.onclick = () => {
+      // 모든 그리드의 필터 초기화
+      if (networkObjectsGrid && typeof networkObjectsGrid.setFilterModel === 'function') {
+        networkObjectsGrid.setFilterModel(null);
+      }
+      if (networkGroupsGrid && typeof networkGroupsGrid.setFilterModel === 'function') {
+        networkGroupsGrid.setFilterModel(null);
+      }
+      if (servicesGrid && typeof servicesGrid.setFilterModel === 'function') {
+        servicesGrid.setFilterModel(null);
+      }
+      if (serviceGroupsGrid && typeof serviceGroupsGrid.setFilterModel === 'function') {
+        serviceGroupsGrid.setFilterModel(null);
+      }
+    };
+  }
 
   // 엑셀 내보내기 버튼 이벤트
   const btnExport = document.getElementById('btn-export-objects-excel');

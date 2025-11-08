@@ -1,8 +1,10 @@
 <div class="container is-fluid">
   <h1 class="title is-5 mb-4">장비관리</h1>
   
-  <div class="box is-transparent mb-4">
-    <div class="level is-mobile">
+  <!-- 장비 그리드 -->
+  <div class="box">
+    <!-- 그리드 툴바 -->
+    <div class="level is-mobile mb-4">
       <div class="level-left">
         <div class="level-item">
           <div class="buttons">
@@ -23,9 +25,10 @@
         </div>
       </div>
     </div>
+    
+    <!-- 그리드 -->
+    <div id="devices-grid" class="ag-theme-quartz"></div>
   </div>
-  
-  <div id="devices-grid" class="ag-theme-quartz"></div>
 
   <!-- Bulma modal for create/update device -->
   <div class="modal" id="modal-device">
