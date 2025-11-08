@@ -1,4 +1,8 @@
 import { api } from '../api.js';
+import { adjustGridHeight, createGridEventHandlers, createCommonGridOptions } from '../utils/grid.js';
+import { exportGridToExcel } from '../utils/export.js';
+
+// ==================== 전역 변수 ====================
 
 let networkObjectsGrid = null;
 let networkGroupsGrid = null;
@@ -6,57 +10,6 @@ let servicesGrid = null;
 let serviceGroupsGrid = null;
 
 let currentTab = 'network-objects';
-
-// 그리드 높이를 자동으로 조절하는 함수 (세로 스크롤 없이 모든 행 표시)
-function adjustGridHeight(gridDiv) {
-  if (!gridDiv) return;
-  
-  // 실제 렌더링된 요소들의 높이를 측정
-  const headerElement = gridDiv.querySelector('.ag-header');
-  const headerHeight = headerElement ? headerElement.offsetHeight : 0;
-  
-  const paginationElement = gridDiv.querySelector('.ag-paging-panel');
-  const paginationHeight = paginationElement ? paginationElement.offsetHeight : 0;
-  
-  // 그리드 본문 영역의 실제 높이 측정
-  const bodyViewport = gridDiv.querySelector('.ag-body-viewport');
-  let bodyHeight = 0;
-  
-  if (bodyViewport) {
-    bodyHeight = bodyViewport.scrollHeight;
-    
-    // bodyViewport의 padding/margin도 고려
-    const bodyViewportStyle = window.getComputedStyle(bodyViewport);
-    const paddingTop = parseInt(bodyViewportStyle.paddingTop) || 0;
-    const paddingBottom = parseInt(bodyViewportStyle.paddingBottom) || 0;
-    bodyHeight += paddingTop + paddingBottom;
-  } else {
-    // fallback: 행 요소들의 높이 합계
-    const rowElements = gridDiv.querySelectorAll('.ag-row:not(.ag-header-row)');
-    rowElements.forEach(row => {
-      bodyHeight += row.offsetHeight || 0;
-    });
-  }
-  
-  // ag-center-cols-container의 높이도 확인 (더 정확한 측정)
-  const centerColsContainer = gridDiv.querySelector('.ag-center-cols-container');
-  if (centerColsContainer && centerColsContainer.offsetHeight > bodyHeight) {
-    bodyHeight = centerColsContainer.offsetHeight;
-  }
-  
-  // 높이 계산: 헤더 + 본문 높이 + 페이지네이션
-  const calculatedHeight = headerHeight + bodyHeight + paginationHeight;
-  const minHeight = 200;
-  const finalHeight = Math.max(calculatedHeight, minHeight);
-  
-  gridDiv.style.height = `${finalHeight}px`;
-  
-  // 세로 스크롤 강제 제거
-  if (bodyViewport) {
-    bodyViewport.style.overflowY = 'hidden';
-    bodyViewport.style.overflowX = 'auto';
-  }
-}
 
 // 네트워크 객체 그리드 컬럼 정의
 const networkObjectsColumns = [
@@ -154,9 +107,7 @@ async function initGrids() {
     },
     enableCellTextSelection: true,
     getRowId: params => String(params.data.id),
-    suppressSizeToFit: true,
     suppressHorizontalScroll: false,
-    suppressVerticalScroll: true,
     enableFilterHandlers: true,
     pagination: true,
     paginationPageSize: 50,
@@ -501,52 +452,29 @@ function switchTab(tabName) {
   }
 }
 
-// 엑셀 내보내기
+/**
+ * 엑셀 내보내기
+ */
 async function exportToExcel() {
-  let currentGrid = null;
-  let fileName = '';
+  const gridMap = {
+    'network-objects': { grid: networkObjectsGrid, name: 'network_objects' },
+    'network-groups': { grid: networkGroupsGrid, name: 'network_groups' },
+    'services': { grid: servicesGrid, name: 'services' },
+    'service-groups': { grid: serviceGroupsGrid, name: 'service_groups' }
+  };
   
-  switch (currentTab) {
-    case 'network-objects':
-      currentGrid = networkObjectsGrid;
-      fileName = 'network_objects';
-      break;
-    case 'network-groups':
-      currentGrid = networkGroupsGrid;
-      fileName = 'network_groups';
-      break;
-    case 'services':
-      currentGrid = servicesGrid;
-      fileName = 'services';
-      break;
-    case 'service-groups':
-      currentGrid = serviceGroupsGrid;
-      fileName = 'service_groups';
-      break;
-  }
-  
-  if (!currentGrid) {
+  const current = gridMap[currentTab];
+  if (!current || !current.grid) {
     alert('데이터가 없습니다.');
     return;
   }
   
-  try {
-    // Get filtered rows from grid
-    const rowData = [];
-    currentGrid.forEachNodeAfterFilter((node) => {
-      rowData.push(node.data);
-    });
-    
-    if (rowData.length === 0) {
-      alert('내보낼 데이터가 없습니다.');
-      return;
-    }
-    
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-    await api.exportToExcel(rowData, `${fileName}_${timestamp}`);
-  } catch (error) {
-    alert(`내보내기 실패: ${error.message}`);
-  }
+  await exportGridToExcel(
+    current.grid,
+    api.exportToExcel,
+    current.name,
+    '데이터가 없습니다.'
+  );
 }
 
 // 초기화

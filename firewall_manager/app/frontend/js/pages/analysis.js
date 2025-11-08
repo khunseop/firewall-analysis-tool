@@ -1,61 +1,12 @@
-
 import { api } from '../api.js';
+import { adjustGridHeight, createGridEventHandlers, createCommonGridOptions } from '../utils/grid.js';
+import { exportGridToExcel } from '../utils/export.js';
+
+// ==================== 전역 변수 ====================
 
 let resultGridApi = null;
 let deviceSelect = null;
 let statusInterval = null;
-
-// 그리드 높이를 자동으로 조절하는 함수 (세로 스크롤 없이 모든 행 표시)
-function adjustAnalysisGridHeight() {
-  const gridDiv = document.getElementById('analysis-result-grid');
-  if (!gridDiv) return;
-  
-  // 실제 렌더링된 요소들의 높이를 측정
-  const headerElement = gridDiv.querySelector('.ag-header');
-  const headerHeight = headerElement ? headerElement.offsetHeight : 0;
-  
-  const paginationElement = gridDiv.querySelector('.ag-paging-panel');
-  const paginationHeight = paginationElement ? paginationElement.offsetHeight : 0;
-  
-  // 그리드 본문 영역의 실제 높이 측정
-  const bodyViewport = gridDiv.querySelector('.ag-body-viewport');
-  let bodyHeight = 0;
-  
-  if (bodyViewport) {
-    bodyHeight = bodyViewport.scrollHeight;
-    
-    // bodyViewport의 padding/margin도 고려
-    const bodyViewportStyle = window.getComputedStyle(bodyViewport);
-    const paddingTop = parseInt(bodyViewportStyle.paddingTop) || 0;
-    const paddingBottom = parseInt(bodyViewportStyle.paddingBottom) || 0;
-    bodyHeight += paddingTop + paddingBottom;
-  } else {
-    // fallback: 행 요소들의 높이 합계
-    const rowElements = gridDiv.querySelectorAll('.ag-row:not(.ag-header-row)');
-    rowElements.forEach(row => {
-      bodyHeight += row.offsetHeight || 0;
-    });
-  }
-  
-  // ag-center-cols-container의 높이도 확인 (더 정확한 측정)
-  const centerColsContainer = gridDiv.querySelector('.ag-center-cols-container');
-  if (centerColsContainer && centerColsContainer.offsetHeight > bodyHeight) {
-    bodyHeight = centerColsContainer.offsetHeight;
-  }
-  
-  // 높이 계산: 헤더 + 본문 높이 + 페이지네이션
-  const calculatedHeight = headerHeight + bodyHeight + paginationHeight;
-  const minHeight = 200;
-  const finalHeight = Math.max(calculatedHeight, minHeight);
-  
-  gridDiv.style.height = `${finalHeight}px`;
-  
-  // 세로 스크롤 강제 제거
-  if (bodyViewport) {
-    bodyViewport.style.overflowY = 'hidden';
-    bodyViewport.style.overflowX = 'auto';
-  }
-}
 
 function getColumnDefs(analysisType) {
     const commonColumns = [
@@ -103,49 +54,19 @@ function createGrid(columnDefs, rowData) {
                 return String(params.data.policy?.id || params.rowIndex);
             },
             enableFilterHandlers: true,
-            suppressSizeToFit: true,
             suppressHorizontalScroll: false,
-            suppressVerticalScroll: true,
             overlayNoRowsTemplate: '<div style="padding: 20px; text-align: center; color: #666;">분석 결과가 없습니다.</div>',
             pagination: true,
             paginationPageSize: 50,
             paginationPageSizeSelector: [50, 100, 200],
             onGridReady: (params) => {
                 resultGridApi = params.api;
-                setTimeout(() => {
-                    adjustAnalysisGridHeight();
-                }, 200);
-            },
-            onFirstDataRendered: (params) => {
-                setTimeout(() => {
-                    if (params.api.getDisplayedRowCount() > 0) {
-                        params.api.autoSizeAllColumns({ skipHeader: false });
-                    }
-                    adjustAnalysisGridHeight();
-                }, 200);
-            },
-            onModelUpdated: (params) => {
-                if (params.api.getDisplayedRowCount() > 0) {
-                    setTimeout(() => {
-                        params.api.autoSizeAllColumns({ skipHeader: false });
-                        adjustAnalysisGridHeight();
-                    }, 200);
-                } else {
-                    setTimeout(() => {
-                        adjustAnalysisGridHeight();
-                    }, 200);
+                const gridDiv = document.getElementById('analysis-result-grid');
+                if (gridDiv) {
+                    const handlers = createGridEventHandlers(gridDiv, params.api);
+                    Object.assign(gridOptions, handlers);
                 }
             },
-            onPaginationChanged: () => {
-                setTimeout(() => {
-                    adjustAnalysisGridHeight();
-                }, 200);
-            },
-            onRowDataUpdated: () => {
-                setTimeout(() => {
-                    adjustAnalysisGridHeight();
-                }, 200);
-            }
         };
         resultGridApi = agGrid.createGrid(gridEl, gridOptions);
     }
@@ -334,24 +255,12 @@ async function loadLatestResult() {
 }
 
 async function exportToExcel() {
-    if (!resultGridApi) {
-      alert('데이터가 없습니다.');
-      return;
-    }
-    try {
-      const rowData = [];
-      resultGridApi.forEachNodeAfterFilter((node) => {
-        rowData.push(node.data);
-      });
-      if (rowData.length === 0) {
-        alert('내보낼 데이터가 없습니다.');
-        return;
-      }
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-      await api.exportToExcel(rowData, `analysis_result_${timestamp}`);
-    } catch (error) {
-      alert(`내보내기 실패: ${error.message}`);
-    }
+    await exportGridToExcel(
+        resultGridApi,
+        api.exportToExcel,
+        'analysis_result',
+        '데이터가 없습니다.'
+    );
 }
 
 export async function initAnalysis() {

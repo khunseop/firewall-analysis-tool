@@ -1,40 +1,12 @@
 import { api } from '../api.js';
 import { navigate } from '../router.js';
+import { formatDateTime } from '../utils/date.js';
+import { updateElementText, updateElements } from '../utils/dom.js';
 
 let deviceStatsGrid = null;
 
 // ==================== 유틸리티 함수 ====================
 
-/**
- * 날짜를 한국어 형식으로 포맷팅
- */
-function formatDateTime(dateString) {
-  if (!dateString) return '없음';
-  return new Date(dateString).toLocaleString('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
-
-/**
- * DOM 요소의 텍스트를 안전하게 업데이트
- */
-function updateElementText(id, text) {
-  const element = document.getElementById(id);
-  if (element) element.textContent = text;
-}
-
-/**
- * 여러 DOM 요소를 한 번에 업데이트
- */
-function updateElements(updates) {
-  Object.entries(updates).forEach(([id, text]) => {
-    updateElementText(id, text);
-  });
-}
 
 /**
  * 기본 에러 상태로 통계 카드 업데이트

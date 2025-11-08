@@ -1,66 +1,13 @@
 import { api } from "../api.js";
 import { showObjectDetailModal } from '../components/objectDetailModal.js';
+import { adjustGridHeight, createGridEventHandlers, createCommonGridOptions } from '../utils/grid.js';
+import { exportGridToExcel } from '../utils/export.js';
+
+// ==================== 전역 변수 ====================
 
 let policyGridApi;
 let allDevices = []; // 장비 목록 저장
 let validObjectNames = new Set(); // 유효한 객체 이름 저장
-
-// 그리드 높이를 페이지 크기에 맞춰 조절하는 함수 (세로 스크롤 없이 모든 행 표시)
-function adjustPolicyGridHeight() {
-  if (!policyGridApi) return;
-  
-  const gridDiv = document.getElementById('policies-grid');
-  if (!gridDiv) return;
-  
-  // 실제 렌더링된 요소들의 높이를 측정
-  const headerElement = gridDiv.querySelector('.ag-header');
-  const headerHeight = headerElement ? headerElement.offsetHeight : 0;
-  
-  const paginationElement = gridDiv.querySelector('.ag-paging-panel');
-  const paginationHeight = paginationElement ? paginationElement.offsetHeight : 0;
-  
-  // 그리드 본문 영역의 실제 높이 측정
-  // ag-body-viewport는 스크롤 가능한 영역이므로 scrollHeight를 사용
-  const bodyViewport = gridDiv.querySelector('.ag-body-viewport');
-  let bodyHeight = 0;
-  
-  if (bodyViewport) {
-    // scrollHeight는 실제 내용의 높이를 반환
-    bodyHeight = bodyViewport.scrollHeight;
-    
-    // bodyViewport의 padding/margin도 고려
-    const bodyViewportStyle = window.getComputedStyle(bodyViewport);
-    const paddingTop = parseInt(bodyViewportStyle.paddingTop) || 0;
-    const paddingBottom = parseInt(bodyViewportStyle.paddingBottom) || 0;
-    bodyHeight += paddingTop + paddingBottom;
-  } else {
-    // fallback: 행 요소들의 높이 합계
-    const rowElements = gridDiv.querySelectorAll('.ag-row:not(.ag-header-row)');
-    rowElements.forEach(row => {
-      bodyHeight += row.offsetHeight || 0;
-    });
-  }
-  
-  // ag-center-cols-container의 높이도 확인 (더 정확한 측정)
-  const centerColsContainer = gridDiv.querySelector('.ag-center-cols-container');
-  if (centerColsContainer && centerColsContainer.offsetHeight > bodyHeight) {
-    bodyHeight = centerColsContainer.offsetHeight;
-  }
-  
-  // 높이 계산: 헤더 + 본문 높이 + 페이지네이션
-  // 여백은 제거 (ag-grid가 자체적으로 처리)
-  const calculatedHeight = headerHeight + bodyHeight + paginationHeight;
-  const minHeight = 200; // 최소 높이
-  const finalHeight = Math.max(calculatedHeight, minHeight);
-  
-  gridDiv.style.height = `${finalHeight}px`;
-  
-  // 세로 스크롤 강제 제거
-  if (bodyViewport) {
-    bodyViewport.style.overflowY = 'hidden';
-    bodyViewport.style.overflowX = 'auto';
-  }
-}
 
 // Function to render object links in a cell
 function objectCellRenderer(params) {
@@ -305,43 +252,14 @@ async function initGrid() {
     enableCellTextSelection: true,
     getRowId: params => String(params.data.id),
     enableFilterHandlers: true,
-    suppressSizeToFit: true, // 그리드 너비에 맞추지 않고 내용에 맞춰 크기 조절
     suppressHorizontalScroll: false, // 가로 스크롤 허용
-    suppressVerticalScroll: true, // 세로 스크롤 제거 (모든 행 표시)
     onGridReady: params => {
-        policyGridApi = params.api;
-        // 그리드 높이를 페이지 크기에 맞춰 동적으로 조절
-        setTimeout(() => {
-          adjustPolicyGridHeight();
-        }, 200);
-    },
-    onFirstDataRendered: params => {
-      // 모든 컬럼을 내용과 헤더에 맞춰 자동 크기 조절
-      // skipHeader: false로 헤더도 포함하여 크기 계산
-      setTimeout(() => {
-        params.api.autoSizeAllColumns({ skipHeader: false });
-        adjustPolicyGridHeight();
-      }, 200);
-    },
-    onModelUpdated: params => {
-      // 데이터 모델이 업데이트될 때마다 컬럼 크기 조절
-      if (params.api.getDisplayedRowCount() > 0) {
-        setTimeout(() => {
-          params.api.autoSizeAllColumns({ skipHeader: false });
-          adjustPolicyGridHeight();
-        }, 200);
+      policyGridApi = params.api;
+      const gridDiv = document.getElementById('policies-grid');
+      if (gridDiv) {
+        const handlers = createGridEventHandlers(gridDiv, params.api);
+        Object.assign(options, handlers);
       }
-    },
-    onPaginationChanged: () => {
-      setTimeout(() => {
-        adjustPolicyGridHeight();
-      }, 200);
-    },
-    onRowDataUpdated: () => {
-      // 행 데이터 업데이트 후 높이 조절
-      setTimeout(() => {
-        adjustPolicyGridHeight();
-      }, 200);
     },
   };
   options.pagination = true;
@@ -412,7 +330,10 @@ async function searchAndLoadPolicies() {
         if (typeof policyGridApi.autoSizeAllColumns === 'function') {
           policyGridApi.autoSizeAllColumns({ skipHeader: false });
         }
-        adjustPolicyGridHeight();
+        const gridDiv = document.getElementById('policies-grid');
+        if (gridDiv) {
+          adjustGridHeight(gridDiv);
+        }
       }, 600);
     }
   }
@@ -558,27 +479,12 @@ export async function initPolicies(){
   bind();
 
   async function exportToExcel() {
-    if (!policyGridApi) {
-      alert('데이터가 없습니다.');
-      return;
-    }
-    try {
-      // Get filtered rows from grid
-      const rowData = [];
-      policyGridApi.forEachNodeAfterFilter((node) => {
-        rowData.push(node.data);
-      });
-      
-      if (rowData.length === 0) {
-        alert('내보낼 데이터가 없습니다.');
-        return;
-      }
-      
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-      await api.exportToExcel(rowData, `policies_${timestamp}`);
-    } catch (error) {
-      alert(`내보내기 실패: ${error.message}`);
-    }
+    await exportGridToExcel(
+      policyGridApi,
+      api.exportToExcel,
+      'policies',
+      '데이터가 없습니다.'
+    );
   }
 
   // 초기 로딩 시 자동 선택/자동 조회를 수행하지 않습니다.

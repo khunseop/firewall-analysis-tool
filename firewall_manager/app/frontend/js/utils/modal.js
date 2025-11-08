@@ -1,0 +1,173 @@
+/**
+ * 모달 열기 (공통 로직)
+ * @param {HTMLElement} modal - 모달 요소
+ * @param {Function} onClose - 닫기 콜백
+ */
+function setupModalCloseHandlers(modal, onClose) {
+  if (!modal) return;
+
+  const handleEsc = (e) => {
+    if (e.key === 'Escape') onClose();
+  };
+
+  document.addEventListener('keydown', handleEsc);
+
+  const background = modal.querySelector('.modal-background');
+  if (background) {
+    background.onclick = onClose;
+  }
+
+  return () => {
+    document.removeEventListener('keydown', handleEsc);
+  };
+}
+
+/**
+ * 확인 모달 열기
+ * @param {Object} options - 옵션
+ * @param {string} options.title - 제목 (기본값: '확인')
+ * @param {string} options.message - 메시지 (기본값: '이 작업을 진행하시겠습니까?')
+ * @param {string} options.okText - 확인 버튼 텍스트 (기본값: '확인')
+ * @param {string} options.cancelText - 취소 버튼 텍스트 (기본값: '취소')
+ * @returns {Promise<boolean>} 확인 여부
+ */
+export function openConfirm({ 
+  title = '확인', 
+  message = '이 작업을 진행하시겠습니까?', 
+  okText = '확인', 
+  cancelText = '취소' 
+} = {}) {
+  return new Promise(resolve => {
+    const modal = document.getElementById('modal-confirm');
+    if (!modal) {
+      return resolve(false);
+    }
+
+    modal.classList.add('is-active');
+    const $ = (sel) => modal.querySelector(sel);
+    
+    $('#confirm-title').textContent = title;
+    $('#confirm-message').textContent = message;
+    $('#confirm-ok').textContent = okText;
+    $('#confirm-cancel').textContent = cancelText;
+    
+    const close = (val) => {
+      modal.classList.remove('is-active');
+      document.removeEventListener('keydown', handleEsc);
+      resolve(val);
+    };
+    
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') close(false);
+    };
+    
+    setupModalCloseHandlers(modal, () => close(false));
+    
+    $('#confirm-close').onclick = () => close(false);
+    $('#confirm-cancel').onclick = () => close(false);
+    $('#confirm-ok').onclick = () => close(true);
+  });
+}
+
+/**
+ * 알림 모달 열기
+ * @param {Object} options - 옵션
+ * @param {string} options.title - 제목 (기본값: '알림')
+ * @param {string} options.message - 메시지 (기본값: '처리되었습니다.')
+ * @param {string} options.okText - 확인 버튼 텍스트 (기본값: '확인')
+ * @returns {Promise<void>}
+ */
+export function openAlert({ 
+  title = '알림', 
+  message = '처리되었습니다.', 
+  okText = '확인' 
+} = {}) {
+  return new Promise(resolve => {
+    const modal = document.getElementById('modal-alert');
+    if (!modal) {
+      return resolve();
+    }
+
+    modal.classList.add('is-active');
+    const $ = (sel) => modal.querySelector(sel);
+    
+    $('#alert-title').textContent = title;
+    $('#alert-message').textContent = message;
+    $('#alert-ok').textContent = okText;
+    
+    const close = () => {
+      modal.classList.remove('is-active');
+      document.removeEventListener('keydown', handleEsc);
+      resolve();
+    };
+    
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') close();
+    };
+    
+    setupModalCloseHandlers(modal, close);
+    
+    $('#alert-close').onclick = close;
+    $('#alert-ok').onclick = close;
+  });
+}
+
+/**
+ * 폼 모달 열기
+ * @param {HTMLElement} modal - 모달 요소
+ * @param {Function} onSubmit - 제출 콜백
+ * @returns {Function} 닫기 함수
+ */
+export function openFormModal(modal, onSubmit) {
+  if (!modal) return () => {};
+
+  modal.classList.add('is-active');
+  
+  const close = () => {
+    modal.classList.remove('is-active');
+    document.removeEventListener('keydown', handleEsc);
+  };
+  
+  const handleEsc = (e) => {
+    if (e.key === 'Escape') close();
+  };
+  
+  setupModalCloseHandlers(modal, close);
+  
+  const background = modal.querySelector('.modal-background');
+  if (background) {
+    background.onclick = close;
+  }
+  
+  const closeBtn = modal.querySelector('#close-device, [data-modal-close]');
+  const cancelBtn = modal.querySelector('#cancel-device, [data-modal-cancel]');
+  const submitBtn = modal.querySelector('#submit-device, [data-modal-submit]');
+  
+  if (closeBtn) closeBtn.onclick = close;
+  if (cancelBtn) cancelBtn.onclick = (e) => { e.preventDefault(); close(); };
+  
+  if (submitBtn && onSubmit) {
+    submitBtn.onclick = async (e) => {
+      e.preventDefault();
+      const form = modal.querySelector('form');
+      if (!form) return;
+      
+      const fd = new FormData(form);
+      const payload = Object.fromEntries(fd.entries());
+      
+      try {
+        await onSubmit(payload);
+        close();
+      } catch (err) {
+        const errorEl = modal.querySelector('#form-error, .form-error');
+        if (errorEl) {
+          errorEl.textContent = err.message || '요청 실패';
+          errorEl.classList.remove('is-hidden');
+        }
+      }
+    };
+  }
+  
+  return close;
+}
+
