@@ -44,7 +44,7 @@ function getSelectedDays() {
 /**
  * 폼 초기화
  */
-function resetForm() {
+export function resetForm() {
   document.getElementById('schedule-name').value = '';
   document.getElementById('schedule-enabled').checked = true;
   document.getElementById('schedule-time').value = '09:00';
@@ -62,7 +62,7 @@ function resetForm() {
 /**
  * 폼에 스케줄 데이터 채우기
  */
-function fillScheduleForm(schedule) {
+export function fillScheduleForm(schedule) {
   document.getElementById('schedule-name').value = schedule.name || '';
   document.getElementById('schedule-enabled').checked = schedule.enabled !== false;
   document.getElementById('schedule-time').value = schedule.time || '09:00';
@@ -84,7 +84,7 @@ function fillScheduleForm(schedule) {
 /**
  * 장비 그리드 초기화
  */
-function initDevicesGrid(devices) {
+export function initDevicesGrid(devices) {
   const columnDefs = [
     {
       headerName: '',
@@ -127,7 +127,7 @@ function initDevicesGrid(devices) {
 /**
  * 스케줄 그리드 초기화
  */
-function initSchedulesGrid(schedules) {
+export function initSchedulesGrid(schedules) {
   const columnDefs = [
     { headerName: 'ID', field: 'id', width: 80 },
     { headerName: '이름', field: 'name', flex: 1 },
@@ -241,7 +241,7 @@ function initSchedulesGrid(schedules) {
 /**
  * 장비 목록 로드
  */
-async function loadDevices() {
+export async function loadDevices() {
   try {
     const devices = await api.listDevices();
     initDevicesGrid(devices);
@@ -259,7 +259,7 @@ async function loadDevices() {
 /**
  * 스케줄 목록 로드
  */
-async function loadSchedules() {
+export async function loadSchedules() {
   try {
     const schedules = await api.listSchedules();
     initSchedulesGrid(schedules);
@@ -279,7 +279,7 @@ async function loadSchedules() {
 /**
  * 스케줄 저장
  */
-async function saveSchedule() {
+export async function saveSchedule() {
   const name = document.getElementById('schedule-name').value.trim();
   const enabled = document.getElementById('schedule-enabled').checked;
   const time = document.getElementById('schedule-time').value;
@@ -330,7 +330,7 @@ async function saveSchedule() {
 /**
  * 스케줄 수정
  */
-async function editSchedule(scheduleId) {
+export async function editSchedule(scheduleId) {
   try {
     const schedule = await api.getSchedule(scheduleId);
     fillScheduleForm(schedule);
@@ -345,7 +345,7 @@ async function editSchedule(scheduleId) {
 /**
  * 스케줄 삭제
  */
-async function deleteSchedule(scheduleId) {
+export async function deleteSchedule(scheduleId) {
   const confirmed = await openConfirm('확인', '이 스케줄을 삭제하시겠습니까?');
   if (!confirmed) return;
 
@@ -364,7 +364,7 @@ async function deleteSchedule(scheduleId) {
 /**
  * 요일 버튼 클릭 핸들러
  */
-function setupDayButtons() {
+export function setupDayButtons() {
   document.querySelectorAll('.day-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       btn.classList.toggle('is-primary');

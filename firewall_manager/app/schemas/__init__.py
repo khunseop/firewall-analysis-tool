@@ -12,3 +12,4 @@ from .analysis import (
     AnalysisResult, AnalysisResultCreate, AnalysisResultUpdate
 )
 from .sync_schedule import SyncSchedule, SyncScheduleCreate, SyncScheduleUpdate
+from .settings import Settings, SettingsCreate, SettingsUpdate

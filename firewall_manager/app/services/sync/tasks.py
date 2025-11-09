@@ -22,7 +22,37 @@ from app.services.sync.transform import (
 from app.services.sync.collector import create_collector_from_device
 from app.services.policy_indexer import rebuild_policy_indices
 
-_DEVICE_SYNC_SEMAPHORE = asyncio.Semaphore(1)
+# 동적 세마포어를 위한 전역 변수
+_device_sync_semaphore: asyncio.Semaphore | None = None
+
+
+async def get_sync_semaphore() -> asyncio.Semaphore:
+    """DB에서 설정값을 읽어서 세마포어를 생성하거나 반환합니다."""
+    global _device_sync_semaphore
+    
+    # 이미 생성된 세마포어가 있으면 반환
+    if _device_sync_semaphore is not None:
+        return _device_sync_semaphore
+    
+    # DB에서 설정값 읽기
+    async with SessionLocal() as db:
+        setting = await crud.settings.get_setting(db, key="sync_parallel_limit")
+        if setting:
+            limit = int(setting.value)
+        else:
+            # 기본값 4
+            limit = 4
+    
+    # 세마포어 생성
+    _device_sync_semaphore = asyncio.Semaphore(limit)
+    logging.info(f"[sync] 동기화 병렬 처리 개수 설정: {limit}")
+    return _device_sync_semaphore
+
+
+async def reset_sync_semaphore():
+    """세마포어를 리셋하여 다음 호출 시 DB에서 다시 읽도록 합니다."""
+    global _device_sync_semaphore
+    _device_sync_semaphore = None
 
 
 async def sync_data_task(
@@ -260,7 +290,8 @@ async def _collect_last_hit_date_parallel(
 
 async def run_sync_all_orchestrator(device_id: int) -> None:
     """Run full device sync sequentially for one device."""
-    async with _DEVICE_SYNC_SEMAPHORE:
+    semaphore = await get_sync_semaphore()
+    async with semaphore:
         logging.info(f"[orchestrator] Starting sync-all for device_id={device_id}")
         device = None
         async with SessionLocal() as db:

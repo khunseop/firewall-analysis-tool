@@ -1,0 +1,183 @@
+<div class="container is-fluid">
+  <h1 class="title is-5 mb-4">설정</h1>
+  
+  <!-- 탭 메뉴 -->
+  <div class="tabs is-boxed mb-4">
+    <ul>
+      <li class="tab-item" data-tab="general">
+        <a>일반 설정</a>
+      </li>
+      <li class="tab-item is-active" data-tab="schedules">
+        <a>동기화 스케줄</a>
+      </li>
+    </ul>
+  </div>
+  
+  <!-- 일반 설정 탭 -->
+  <div id="tab-general" class="tab-content" style="display: none;">
+    <div class="box">
+      <h2 class="subtitle is-6 mb-4">동기화 설정</h2>
+      
+      <div class="field">
+        <label class="label">동기화 병렬 처리 개수</label>
+        <div class="control">
+          <input 
+            class="input is-small" 
+            id="sync-parallel-limit" 
+            type="number" 
+            min="1" 
+            max="10" 
+            placeholder="1-10 사이의 숫자를 입력하세요"
+          />
+        </div>
+        <p class="help">동시에 동기화할 수 있는 장비의 개수입니다. (1-10)</p>
+      </div>
+      
+      <div class="field is-grouped">
+        <div class="control">
+          <button class="button is-primary is-small" id="btn-save-settings">저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 동기화 스케줄 탭 -->
+  <div id="tab-schedules" class="tab-content">
+    <!-- 스케줄 설정 영역 -->
+    <div class="box mb-4">
+      <h2 class="subtitle is-6 mb-4">스케줄 설정</h2>
+      
+      <div class="columns is-multiline">
+        <!-- 스케줄 이름 -->
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">스케줄 이름 <span class="has-text-danger">*</span></label>
+            <div class="control">
+              <input class="input is-small" id="schedule-name" type="text" placeholder="예: 평일 오전 동기화" />
+            </div>
+          </div>
+        </div>
+        
+        <!-- 활성화 여부 -->
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">활성화</label>
+            <div class="control">
+              <label class="checkbox">
+                <input type="checkbox" id="schedule-enabled" checked />
+                <span style="margin-left: 0.5rem;">스케줄 활성화</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 요일 선택 -->
+        <div class="column is-12">
+          <div class="field">
+            <label class="label">요일 <span class="has-text-danger">*</span></label>
+            <div class="control">
+              <div class="buttons">
+                <button class="button is-small day-btn" data-day="0">월</button>
+                <button class="button is-small day-btn" data-day="1">화</button>
+                <button class="button is-small day-btn" data-day="2">수</button>
+                <button class="button is-small day-btn" data-day="3">목</button>
+                <button class="button is-small day-btn" data-day="4">금</button>
+                <button class="button is-small day-btn" data-day="5">토</button>
+                <button class="button is-small day-btn" data-day="6">일</button>
+              </div>
+              <p class="help">동기화를 실행할 요일을 선택하세요 (복수 선택 가능)</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 시간 설정 -->
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">시간 <span class="has-text-danger">*</span></label>
+            <div class="control">
+              <input class="input is-small" id="schedule-time" type="time" value="09:00" />
+            </div>
+            <p class="help">동기화를 실행할 시간 (HH:MM)</p>
+          </div>
+        </div>
+        
+        <!-- 설명 -->
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">설명</label>
+            <div class="control">
+              <input class="input is-small" id="schedule-description" type="text" placeholder="스케줄 설명 (선택)" />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 버튼 -->
+      <div class="field is-grouped">
+        <div class="control">
+          <button class="button is-primary is-small" id="btn-save-schedule">저장</button>
+        </div>
+        <div class="control">
+          <button class="button is-light is-small" id="btn-cancel-schedule">취소</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 장비 선택 그리드 -->
+    <div class="box">
+      <h2 class="subtitle is-6 mb-4">동기화할 장비 선택</h2>
+      <p class="help mb-4">체크박스로 선택한 장비들이 위에서 설정한 시간에 순서대로 동기화됩니다.</p>
+      
+      <!-- 메시지 컨테이너 -->
+      <div id="devices-message-container"></div>
+      <!-- 그리드 -->
+      <div id="devices-grid" class="ag-theme-quartz"></div>
+    </div>
+    
+    <!-- 스케줄 목록 -->
+    <div class="box mt-4">
+      <h2 class="subtitle is-6 mb-4">등록된 스케줄</h2>
+      
+      <!-- 메시지 컨테이너 -->
+      <div id="schedules-message-container"></div>
+      <!-- 그리드 -->
+      <div id="schedules-grid" class="ag-theme-quartz"></div>
+    </div>
+  </div>
+  
+  <!-- Small unified confirm modal -->
+  <div class="modal is-compact" id="modal-confirm">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <header class="modal-card-head">
+        <p class="modal-card-title" id="confirm-title">확인</p>
+        <button class="delete" aria-label="close" id="confirm-close"></button>
+      </header>
+      <section class="modal-card-body">
+        <p id="confirm-message">이 작업을 진행하시겠습니까?</p>
+      </section>
+      <footer class="modal-card-foot is-justify-content-flex-end">
+        <button class="button is-light is-small" id="confirm-cancel">취소</button>
+        <button class="button is-primary is-small" id="confirm-ok">확인</button>
+      </footer>
+    </div>
+  </div>
+  
+  <!-- Small unified alert modal -->
+  <div class="modal is-compact" id="modal-alert">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <header class="modal-card-head">
+        <p class="modal-card-title" id="alert-title">알림</p>
+        <button class="delete" aria-label="close" id="alert-close"></button>
+      </header>
+      <section class="modal-card-body">
+        <p id="alert-message">메시지</p>
+      </section>
+      <footer class="modal-card-foot is-justify-content-flex-end">
+        <button class="button is-primary is-small" id="alert-ok">확인</button>
+      </footer>
+    </div>
+  </div>
+</div>
+

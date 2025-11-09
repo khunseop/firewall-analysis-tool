@@ -8,3 +8,4 @@ from .change_log import ChangeLog
 from .policy_members import PolicyAddressMember, PolicyServiceMember
 from .analysis import AnalysisTask, RedundancyPolicySet, AnalysisResult
 from .sync_schedule import SyncSchedule
+from .settings import Settings

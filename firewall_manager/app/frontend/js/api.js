@@ -112,6 +112,10 @@ export const api = {
   createSchedule: (payload) => request(`/sync-schedules`, { method: "POST", body: JSON.stringify(payload) }),
   updateSchedule: (id, payload) => request(`/sync-schedules/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
   deleteSchedule: (id) => request(`/sync-schedules/${id}`, { method: "DELETE" }),
+  // Settings APIs
+  getSettings: () => request(`/settings`),
+  getSetting: (key) => request(`/settings/${key}`),
+  updateSetting: (key, payload) => request(`/settings/${key}`, { method: "PUT", body: JSON.stringify(payload) }),
 };
 
 

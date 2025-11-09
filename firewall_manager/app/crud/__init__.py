@@ -7,3 +7,4 @@ from . import crud_service_group as service_group
 from . import crud_change_log as change_log
 from . import crud_analysis as analysis
 from . import crud_sync_schedule as sync_schedule
+from . import crud_settings as settings
