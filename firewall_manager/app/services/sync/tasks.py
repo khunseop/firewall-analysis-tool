@@ -161,6 +161,103 @@ async def sync_data_task(
             logging.error(f"Failed to sync {data_type} for device_id {device_id}: {e}", exc_info=True)
             raise
 
+
+async def _collect_last_hit_date_parallel(
+    collector,
+    device: models.Device,
+    vsys_list: List[str] | None,
+    loop: asyncio.AbstractEventLoop
+) -> pd.DataFrame | None:
+    """병렬로 메인 장비와 HA Peer의 last_hit_date를 수집합니다.
+    
+    Args:
+        collector: 메인 장비 collector
+        device: Device 모델 (ha_peer_ip, use_ssh_for_last_hit_date 확인용)
+        vsys_list: VSYS 리스트
+        loop: asyncio event loop
+        
+    Returns:
+        병합된 hit_date_df 또는 None (수집 실패 시)
+    """
+    async def _collect_main_device() -> pd.DataFrame | None:
+        """메인 장비의 last_hit_date 수집"""
+        try:
+            if device.use_ssh_for_last_hit_date:
+                logging.info("[orchestrator] Collecting main device last_hit_date via SSH.")
+                return await loop.run_in_executor(
+                    None, 
+                    lambda: collector.export_last_hit_date_ssh(vsys=vsys_list)
+                )
+            else:
+                logging.info("[orchestrator] Collecting main device last_hit_date via API.")
+                return await loop.run_in_executor(
+                    None,
+                    lambda: collector.export_last_hit_date(vsys=vsys_list)
+                )
+        except Exception as e:
+            logging.warning(f"[orchestrator] Failed to collect last_hit_date from main device: {e}")
+            return None
+    
+    async def _collect_ha_peer() -> pd.DataFrame | None:
+        """HA Peer의 last_hit_date 수집"""
+        if not device.ha_peer_ip:
+            return None
+            
+        ha_collector = None
+        try:
+            logging.info(f"[orchestrator] Collecting HA peer ({device.ha_peer_ip}) last_hit_date.")
+            ha_collector = create_collector_from_device(device, use_ha_ip=True)
+            
+            # 연결
+            await loop.run_in_executor(None, ha_collector.connect)
+            
+            # last_hit_date 수집
+            if device.use_ssh_for_last_hit_date:
+                hit_date_df = await loop.run_in_executor(
+                    None,
+                    lambda: ha_collector.export_last_hit_date_ssh(vsys=vsys_list)
+                )
+            else:
+                hit_date_df = await loop.run_in_executor(
+                    None,
+                    lambda: ha_collector.export_last_hit_date(vsys=vsys_list)
+                )
+            
+            return hit_date_df
+        except Exception as e:
+            logging.warning(f"[orchestrator] Failed to collect last_hit_date from HA peer {device.ha_peer_ip}: {e}")
+            return None
+        finally:
+            if ha_collector:
+                try:
+                    await loop.run_in_executor(None, ha_collector.disconnect)
+                except Exception:
+                    pass
+    
+    # 메인 장비와 HA Peer를 병렬로 수집
+    main_result, ha_result = await asyncio.gather(
+        _collect_main_device(),
+        _collect_ha_peer(),
+        return_exceptions=False
+    )
+    
+    # 결과 병합
+    results = []
+    if main_result is not None and not main_result.empty:
+        results.append(main_result)
+    if ha_result is not None and not ha_result.empty:
+        results.append(ha_result)
+    
+    if not results:
+        logging.info("[orchestrator] No last_hit_date records collected from either device.")
+        return None
+    
+    # 모든 결과를 하나의 DataFrame으로 병합
+    hit_date_df = pd.concat(results).reset_index(drop=True)
+    logging.info(f"[orchestrator] Collected {len(hit_date_df)} last_hit records from {'main device' + (' and HA peer' if ha_result is not None and not ha_result.empty else '')}.")
+    return hit_date_df
+
+
 async def run_sync_all_orchestrator(device_id: int) -> None:
     """Run full device sync sequentially for one device."""
     async with _DEVICE_SYNC_SEMAPHORE:
@@ -242,29 +339,14 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                     vsys_list = policies_df["vsys"].unique().tolist() if "vsys" in policies_df.columns and not policies_df["vsys"].isnull().all() else None
 
                     logging.info(f"[orchestrator] Collecting last_hit_date for VSYS: {vsys_list if vsys_list else 'all'}")
-
-                    if device.use_ssh_for_last_hit_date:
-                        logging.info("[orchestrator] Using SSH for last_hit_date collection.")
-                        hit_date_df = await loop.run_in_executor(None, lambda: collector.export_last_hit_date_ssh(vsys=vsys_list))
-                    else:
-                        logging.info("[orchestrator] Using API for last_hit_date collection.")
-                        # Primary device collection
-                        hit_date_df = await loop.run_in_executor(None, lambda: collector.export_last_hit_date(vsys=vsys_list))
-
-                        # HA Peer device collection
-                        if device.ha_peer_ip:
-                            logging.info(f"[orchestrator] HA Peer IP detected ({device.ha_peer_ip}). Collecting its last_hit_date as well.")
-                            ha_collector = create_collector_from_device(device, use_ha_ip=True)
-                            try:
-                                await loop.run_in_executor(None, ha_collector.connect)
-                                ha_hit_date_df = await loop.run_in_executor(None, lambda: ha_collector.export_last_hit_date(vsys=vsys_list))
-                                if ha_hit_date_df is not None and not ha_hit_date_df.empty:
-                                    hit_date_df = pd.concat([hit_date_df, ha_hit_date_df]).reset_index(drop=True)
-                                    logging.info(f"[orchestrator] Concatenated hit dates. Total records: {len(hit_date_df)}")
-                            except Exception as ha_e:
-                                logging.warning(f"[orchestrator] Failed to collect last_hit_date from HA peer {device.ha_peer_ip}: {ha_e}")
-                            finally:
-                                await loop.run_in_executor(None, ha_collector.disconnect)
+                    
+                    # 병렬로 메인 장비와 HA Peer의 last_hit_date 수집
+                    hit_date_df = await _collect_last_hit_date_parallel(
+                        collector=collector,
+                        device=device,
+                        vsys_list=vsys_list,
+                        loop=loop
+                    )
 
                     if hit_date_df is not None and not hit_date_df.empty:
                         logging.info(f"[orchestrator] Retrieved {len(hit_date_df)} last_hit records; processing...")
