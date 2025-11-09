@@ -1,22 +1,34 @@
 /**
- * 날짜를 한국어 형식으로 포맷팅
+ * 날짜를 YYYY-MM-DD HH:mm:ss 형식으로 포맷팅
  * @param {string|Date} dateString - 날짜 문자열 또는 Date 객체
- * @param {Object} options - 포맷 옵션
- * @returns {string} 포맷된 날짜 문자열
+ * @returns {string} 포맷된 날짜 문자열 (예: "2025-11-09 11:47:50")
  */
-export function formatDateTime(dateString, options = {}) {
+export function formatDateTime(dateString) {
   if (!dateString) return '없음';
   
-  const defaultOptions = {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    ...options
-  };
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '없음';
   
-  return new Date(dateString).toLocaleString('ko-KR', defaultOptions);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+/**
+ * 숫자에 세자리마다 콤마 추가
+ * @param {number|string} num - 포맷할 숫자
+ * @returns {string} 포맷된 숫자 문자열 (예: "1,234,567")
+ */
+export function formatNumber(num) {
+  if (num === null || num === undefined || num === '') return '0';
+  const numValue = typeof num === 'string' ? parseFloat(num) : num;
+  if (isNaN(numValue)) return String(num);
+  return numValue.toLocaleString('ko-KR');
 }
 
 /**

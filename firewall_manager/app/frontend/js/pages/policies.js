@@ -3,6 +3,7 @@ import { showObjectDetailModal } from '../components/objectDetailModal.js';
 import { adjustGridHeight, createGridEventHandlers, createCommonGridOptions } from '../utils/grid.js';
 import { exportGridToExcel } from '../utils/export.js';
 import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
+import { formatDateTime, formatNumber } from '../utils/date.js';
 
 // ==================== 전역 변수 ====================
 
@@ -70,7 +71,8 @@ async function initGrid() {
       headerName:'순서', 
       filter: false,
       sortable: false,
-      minWidth: 80
+      minWidth: 80,
+      valueFormatter: (params) => formatNumber(params.value)
     },
     { 
       field:'vsys', 
@@ -226,6 +228,7 @@ async function initGrid() {
       filter:'agDateColumnFilter',
       sortable: false,
       minWidth: 180,
+      valueFormatter: (params) => formatDateTime(params.value),
       filterParams: {
         buttons: ['apply', 'reset'],
         comparator: (filterLocalDateAtMidnight, cellValue) => {
