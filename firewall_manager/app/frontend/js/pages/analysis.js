@@ -2,6 +2,7 @@ import { api } from '../api.js';
 import { adjustGridHeight, createGridEventHandlers, createCommonGridOptions } from '../utils/grid.js';
 import { exportGridToExcel } from '../utils/export.js';
 import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
+import { formatNumber } from '../utils/date.js';
 
 // ==================== 전역 변수 ====================
 
@@ -11,7 +12,7 @@ let statusInterval = null;
 
 function getColumnDefs(analysisType) {
     const commonColumns = [
-        { field: 'policy.seq', headerName: 'Seq', minWidth: 80, sortable: false, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.seq, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+        { field: 'policy.seq', headerName: 'Seq', minWidth: 80, sortable: false, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.seq, valueFormatter: params => formatNumber(params.value), filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
         { field: 'policy.rule_name', headerName: '규칙 이름', minWidth: 200, sortable: false, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.rule_name, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
         { field: 'policy.source', headerName: '출발지', minWidth: 250, sortable: false, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.source, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
         { field: 'policy.destination', headerName: '목적지', minWidth: 250, sortable: false, filter: 'agTextColumnFilter', valueGetter: params => params.data.policy?.destination, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
@@ -22,7 +23,7 @@ function getColumnDefs(analysisType) {
 
     if (analysisType === 'redundancy') { // 서버에서 사용하는 실제 값으로 변경
         return [
-            { field: 'set_number', headerName: 'No', minWidth: 80, sortable: false, filter: 'agTextColumnFilter', filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
+            { field: 'set_number', headerName: 'No', minWidth: 80, sortable: false, filter: 'agTextColumnFilter', valueFormatter: params => formatNumber(params.value), filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
             { field: 'type', headerName: '구분', minWidth: 100, sortable: false, filter: 'agTextColumnFilter', filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
             ...commonColumns
         ];

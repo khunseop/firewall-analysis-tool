@@ -1,6 +1,7 @@
 import { api } from "../api.js";
 import { openConfirm, openAlert, openFormModal } from "../utils/modal.js";
 import { showEmptyMessage, hideEmptyMessage } from "../utils/message.js";
+import { formatDateTime } from "../utils/date.js";
 
 // ==================== 상수 및 전역 변수 ====================
 
@@ -344,7 +345,11 @@ function getColumns() {
       headerClass: 'text-left',
       cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' }
     },
-    { field: 'last_sync_at', headerName: '마지막 동기화' },
+    { 
+      field: 'last_sync_at', 
+      headerName: '마지막 동기화',
+      valueFormatter: (params) => formatDateTime(params.value)
+    },
   ];
 }
 

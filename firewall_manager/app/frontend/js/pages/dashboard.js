@@ -1,6 +1,6 @@
 import { api } from '../api.js';
 import { navigate } from '../router.js';
-import { formatDateTime } from '../utils/date.js';
+import { formatDateTime, formatNumber } from '../utils/date.js';
 import { updateElementText, updateElements } from '../utils/dom.js';
 import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
 
@@ -101,9 +101,9 @@ async function loadStatistics() {
     const devices = await api.listDevices();
     
     // 총 장비 수 및 활성 장비 수 업데이트
-    updateElementText('stat-total-devices', devices.length);
+    updateElementText('stat-total-devices', formatNumber(devices.length));
     const activeDevices = devices.filter(d => d.last_sync_status === 'success').length;
-    updateElementText('stat-active-devices', `활성: ${activeDevices}`);
+    updateElementText('stat-active-devices', `활성: ${formatNumber(activeDevices)}`);
 
     // 각 장비의 통계 데이터 수집 (병렬 처리)
     const deviceStatsData = await Promise.all(
@@ -113,13 +113,13 @@ async function loadStatistics() {
     // 전체 통계 집계
     const totals = aggregateStatistics(deviceStatsData);
 
-    // 통계 카드 업데이트
+    // 통계 카드 업데이트 (숫자 포맷 적용)
     updateElements({
-      'stat-total-policies': totals.totalPolicies,
-      'stat-active-policies': totals.totalActivePolicies,
-      'stat-disabled-policies': totals.totalDisabledPolicies,
-      'stat-network-objects': totals.totalNetworkObjects,
-      'stat-service-objects': totals.totalServices
+      'stat-total-policies': formatNumber(totals.totalPolicies),
+      'stat-active-policies': formatNumber(totals.totalActivePolicies),
+      'stat-disabled-policies': formatNumber(totals.totalDisabledPolicies),
+      'stat-network-objects': formatNumber(totals.totalNetworkObjects),
+      'stat-service-objects': formatNumber(totals.totalServices)
     });
 
     // 장비별 통계 그리드 업데이트
@@ -262,25 +262,25 @@ function createAnalysisResultCard(device, result) {
         <div class="column is-3">
           <div class="has-text-centered">
             <p class="heading">중복 세트</p>
-            <p class="title is-4 has-text-danger">${duplicateSets}</p>
+            <p class="title is-4 has-text-danger">${formatNumber(duplicateSets)}</p>
           </div>
         </div>
         <div class="column is-3">
           <div class="has-text-centered">
             <p class="heading">영향받는 정책</p>
-            <p class="title is-4">${totalAffected}</p>
+            <p class="title is-4">${formatNumber(totalAffected)}</p>
           </div>
         </div>
         <div class="column is-3">
           <div class="has-text-centered">
             <p class="heading">상위 정책</p>
-            <p class="title is-4">${upperPolicies.length}</p>
+            <p class="title is-4">${formatNumber(upperPolicies.length)}</p>
           </div>
         </div>
         <div class="column is-3">
           <div class="has-text-centered">
             <p class="heading">하위 정책</p>
-            <p class="title is-4">${lowerPolicies.length}</p>
+            <p class="title is-4">${formatNumber(lowerPolicies.length)}</p>
           </div>
         </div>
       </div>
@@ -418,11 +418,41 @@ function initDeviceStatsGrid() {
     { field: 'name', headerName: '장비명', filter: 'agTextColumnFilter', width: 150 },
     { field: 'vendor', headerName: '벤더', filter: 'agTextColumnFilter', width: 100 },
     { field: 'ip_address', headerName: 'IP 주소', filter: 'agTextColumnFilter', width: 130 },
-    { field: 'policies', headerName: '정책 수', filter: 'agNumberColumnFilter', width: 100 },
-    { field: 'active_policies', headerName: '활성 정책', filter: 'agNumberColumnFilter', width: 100 },
-    { field: 'disabled_policies', headerName: '비활성 정책', filter: 'agNumberColumnFilter', width: 120 },
-    { field: 'network_objects', headerName: '네트워크 객체', filter: 'agNumberColumnFilter', width: 130 },
-    { field: 'services', headerName: '서비스 객체', filter: 'agNumberColumnFilter', width: 130 },
+    { 
+      field: 'policies', 
+      headerName: '정책 수', 
+      filter: 'agNumberColumnFilter', 
+      width: 100,
+      valueFormatter: (params) => formatNumber(params.value)
+    },
+    { 
+      field: 'active_policies', 
+      headerName: '활성 정책', 
+      filter: 'agNumberColumnFilter', 
+      width: 100,
+      valueFormatter: (params) => formatNumber(params.value)
+    },
+    { 
+      field: 'disabled_policies', 
+      headerName: '비활성 정책', 
+      filter: 'agNumberColumnFilter', 
+      width: 120,
+      valueFormatter: (params) => formatNumber(params.value)
+    },
+    { 
+      field: 'network_objects', 
+      headerName: '네트워크 객체', 
+      filter: 'agNumberColumnFilter', 
+      width: 130,
+      valueFormatter: (params) => formatNumber(params.value)
+    },
+    { 
+      field: 'services', 
+      headerName: '서비스 객체', 
+      filter: 'agNumberColumnFilter', 
+      width: 130,
+      valueFormatter: (params) => formatNumber(params.value)
+    },
     { 
       field: 'sync_status', 
       headerName: '동기화 상태', 
