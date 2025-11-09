@@ -18,6 +18,7 @@ async function request(path, options = {}) {
 
 export const api = {
   listDevices: () => request(`/devices`),
+  getDashboardStats: () => request(`/devices/dashboard/stats`),
   createDevice: (payload) => request(`/devices`, { method: "POST", body: JSON.stringify(payload) }),
   updateDevice: (id, payload) => request(`/devices/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
   deleteDevice: (id) => request(`/devices/${id}`, { method: "DELETE" }),

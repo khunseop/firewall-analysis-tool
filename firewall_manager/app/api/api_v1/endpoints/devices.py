@@ -23,11 +23,20 @@ async def create_device(
 @router.get("/", response_model=List[schemas.Device])
 async def read_devices(
     skip: int = 0,
-    limit: int = 100,
+    limit: int | None = None,
     db: AsyncSession = Depends(get_db)
 ):
+    """장비 목록 조회 (limit이 None이면 모든 장비 조회)"""
     devices = await crud.device.get_devices(db, skip=skip, limit=limit)
     return devices
+
+
+@router.get("/dashboard/stats", response_model=schemas.DashboardStatsResponse)
+async def get_dashboard_stats(
+    db: AsyncSession = Depends(get_db)
+):
+    """대시보드 통계 조회 (전체 통계 + 장비별 통계)"""
+    return await crud.device.get_dashboard_stats(db)
 
 @router.get("/{device_id}", response_model=schemas.Device)
 async def read_device(

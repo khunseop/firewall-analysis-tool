@@ -25,102 +25,60 @@ function setStatisticsError() {
 // ==================== 통계 계산 함수 ====================
 
 /**
- * 장비의 통계 데이터를 수집
+ * 장비 통계 데이터를 API 응답 형식에서 그리드 형식으로 변환
  */
-async function collectDeviceStats(device) {
-  try {
-    const [policyCounts, objectCounts, syncStatusData] = await Promise.allSettled([
-      api.getPolicyCount(device.id),
-      api.getObjectCount(device.id),
-      api.syncStatus(device.id).catch(() => null)
-    ]);
-
-    const policyCount = policyCounts.status === 'fulfilled' ? policyCounts.value : {};
-    const objectCount = objectCounts.status === 'fulfilled' ? objectCounts.value : {};
-    const syncData = syncStatusData.status === 'fulfilled' ? syncStatusData.value : null;
-
-    return {
-      id: device.id,
-      name: device.name,
-      vendor: device.vendor,
-      ip_address: device.ip_address,
-      policies: policyCount.total || 0,
-      active_policies: policyCount.active || 0,
-      disabled_policies: policyCount.disabled || 0,
-      network_objects: objectCount.network_objects || 0,
-      services: objectCount.services || 0,
-      sync_status: syncData?.last_sync_status || 'unknown',
-      sync_step: syncData?.last_sync_step || '',
-      sync_time: syncData?.last_sync_at || null
-    };
-  } catch (err) {
-    console.error(`Failed to load stats for device ${device.id}:`, err);
-    return {
-      id: device.id,
-      name: device.name,
-      vendor: device.vendor,
-      ip_address: device.ip_address,
-      policies: 0,
-      active_policies: 0,
-      disabled_policies: 0,
-      network_objects: 0,
-      services: 0,
-      sync_status: 'error',
-      sync_step: '',
-      sync_time: null
-    };
-  }
-}
-
-/**
- * 전체 통계를 집계
- */
-function aggregateStatistics(deviceStatsData) {
-  return deviceStatsData.reduce((acc, device) => ({
-    totalPolicies: acc.totalPolicies + device.policies,
-    totalActivePolicies: acc.totalActivePolicies + device.active_policies,
-    totalDisabledPolicies: acc.totalDisabledPolicies + device.disabled_policies,
-    totalNetworkObjects: acc.totalNetworkObjects + device.network_objects,
-    totalServices: acc.totalServices + device.services
-  }), {
-    totalPolicies: 0,
-    totalActivePolicies: 0,
-    totalDisabledPolicies: 0,
-    totalNetworkObjects: 0,
-    totalServices: 0
-  });
+function transformDeviceStats(deviceStats) {
+  return {
+    id: deviceStats.id,
+    name: deviceStats.name,
+    vendor: deviceStats.vendor,
+    ip_address: deviceStats.ip_address,
+    policies: deviceStats.policies || 0,
+    active_policies: deviceStats.active_policies || 0,
+    disabled_policies: deviceStats.disabled_policies || 0,
+    network_objects: deviceStats.network_objects || 0,
+    services: deviceStats.services || 0,
+    sync_status: deviceStats.sync_status || 'unknown',
+    sync_step: deviceStats.sync_step || '',
+    sync_time: deviceStats.sync_time || null
+  };
 }
 
 // ==================== 통계 로드 함수 ====================
 
 /**
- * 통계 데이터 가져오기
+ * 통계 데이터 가져오기 (새로운 집계 API 사용)
  */
 async function loadStatistics() {
+  // 로딩 상태 표시
+  const loadingElements = ['stat-total-devices', 'stat-total-policies', 'stat-network-objects', 'stat-service-objects'];
+  loadingElements.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '...';
+  });
+
   try {
-    const devices = await api.listDevices();
-    
-    // 총 장비 수 및 활성 장비 수 업데이트
-    updateElementText('stat-total-devices', formatNumber(devices.length));
-    const activeDevices = devices.filter(d => d.last_sync_status === 'success').length;
-    updateElementText('stat-active-devices', `활성: ${formatNumber(activeDevices)}`);
-
-    // 각 장비의 통계 데이터 수집 (병렬 처리)
-    const deviceStatsData = await Promise.all(
-      devices.map(device => collectDeviceStats(device))
-    );
-
-    // 전체 통계 집계
-    const totals = aggregateStatistics(deviceStatsData);
+    // 새로운 집계 API 사용 (한 번의 호출로 모든 통계 조회)
+    const stats = await api.getDashboardStats();
 
     // 통계 카드 업데이트 (숫자 포맷 적용)
     updateElements({
-      'stat-total-policies': formatNumber(totals.totalPolicies),
-      'stat-active-policies': formatNumber(totals.totalActivePolicies),
-      'stat-disabled-policies': formatNumber(totals.totalDisabledPolicies),
-      'stat-network-objects': formatNumber(totals.totalNetworkObjects),
-      'stat-service-objects': formatNumber(totals.totalServices)
+      'stat-total-devices': formatNumber(stats.total_devices),
+      'stat-total-policies': formatNumber(stats.total_policies),
+      'stat-active-policies': formatNumber(stats.total_active_policies),
+      'stat-disabled-policies': formatNumber(stats.total_disabled_policies),
+      'stat-network-objects': formatNumber(stats.total_network_objects),
+      'stat-service-objects': formatNumber(stats.total_services)
     });
+
+    // 활성 장비 수 표시 (이미 통계 카드에 표시되어 있으면 생략)
+    const activeDevicesEl = document.getElementById('stat-active-devices');
+    if (activeDevicesEl) {
+      activeDevicesEl.textContent = `활성: ${formatNumber(stats.active_devices)}`;
+    }
+
+    // 장비별 통계 데이터 변환
+    const deviceStatsData = stats.device_stats.map(transformDeviceStats);
 
     // 장비별 통계 그리드 업데이트
     const messageContainer = document.getElementById('device-stats-message-container');
@@ -184,39 +142,10 @@ function getSyncStatusText(status) {
 }
 
 /**
- * 동기화 상태 카드 HTML 생성
- */
-function createSyncStatusCard(device) {
-  const statusColor = getSyncStatusColor(device.sync_status);
-  const statusText = getSyncStatusText(device.sync_status);
-  const syncTimeText = formatDateTime(device.sync_time);
-
-  return `
-    <div class="column is-3">
-      <div class="box sync-status-card">
-        <div class="level mb-2">
-          <div class="level-left">
-            <strong>${device.name}</strong>
-          </div>
-          <div class="level-right">
-            <span class="tag ${statusColor}">${statusText}</span>
-          </div>
-        </div>
-        <div class="content is-small">
-          <p class="mb-1"><strong>벤더:</strong> ${device.vendor}</p>
-          <p class="mb-1"><strong>IP:</strong> ${device.ip_address}</p>
-          <p class="mb-1"><strong>마지막 동기화:</strong> ${syncTimeText}</p>
-          ${device.sync_step ? `<p class="mb-1"><strong>단계:</strong> ${device.sync_step}</p>` : ''}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * 동기화 상태 요약 업데이트
+ * 동기화 상태 요약 업데이트 (간소화: 통계만 표시)
  */
 function updateSyncStatusSummary(deviceStatsData) {
+  // 동기화 상태 요약 섹션이 있으면 간단한 통계만 표시
   const container = document.getElementById('sync-status-summary');
   if (!container) return;
 
@@ -225,9 +154,48 @@ function updateSyncStatusSummary(deviceStatsData) {
     return;
   }
 
-  container.innerHTML = deviceStatsData
-    .map(device => createSyncStatusCard(device))
+  // 상태별 통계 계산
+  const statusCounts = deviceStatsData.reduce((acc, device) => {
+    const status = device.sync_status || 'unknown';
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {});
+
+  const statusLabels = {
+    'success': '성공',
+    'in_progress': '진행중',
+    'pending': '대기중',
+    'failure': '실패',
+    'error': '오류',
+    'unknown': '알 수 없음'
+  };
+
+  const statusHtml = Object.entries(statusCounts)
+    .map(([status, count]) => {
+      const label = statusLabels[status] || status;
+      const color = getSyncStatusColor(status);
+      return `
+        <div class="column is-2">
+          <div class="box has-text-centered">
+            <p class="heading">${label}</p>
+            <p class="title is-4"><span class="tag ${color}">${formatNumber(count)}</span></p>
+          </div>
+        </div>
+      `;
+    })
     .join('');
+
+  container.innerHTML = `
+    <div class="columns is-multiline">
+      ${statusHtml}
+    </div>
+    <div class="mt-3">
+      <p class="is-size-7 has-text-grey">
+        총 ${formatNumber(deviceStatsData.length)}개 장비 | 
+        상세 정보는 아래 장비별 통계 그리드를 참조하세요.
+      </p>
+    </div>
+  `;
 }
 
 // ==================== 분석 결과 관련 함수 ====================
@@ -510,7 +478,13 @@ function initDeviceStatsGrid() {
     },
     getRowId: (params) => String(params.data.id),
     autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 500 },
-    enableCellTextSelection: true
+    enableCellTextSelection: true,
+    pagination: true,
+    paginationPageSize: 50,
+    paginationPageSizeSelector: [25, 50, 100, 200],
+    domLayout: 'normal',
+    animateRows: true,
+    suppressRowHoverHighlight: false
   };
 
   if (typeof agGrid !== 'undefined') {

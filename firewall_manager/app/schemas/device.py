@@ -39,3 +39,31 @@ class DeviceSyncStatus(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class DeviceStats(BaseModel):
+    """장비별 통계 정보"""
+    id: int
+    name: str
+    vendor: str
+    ip_address: str
+    policies: int = 0
+    active_policies: int = 0
+    disabled_policies: int = 0
+    network_objects: int = 0
+    services: int = 0
+    sync_status: Optional[str] = None
+    sync_step: Optional[str] = None
+    sync_time: Optional[datetime] = None
+
+
+class DashboardStatsResponse(BaseModel):
+    """대시보드 통계 응답"""
+    total_devices: int
+    active_devices: int
+    total_policies: int
+    total_active_policies: int
+    total_disabled_policies: int
+    total_network_objects: int
+    total_services: int
+    device_stats: list[DeviceStats]
