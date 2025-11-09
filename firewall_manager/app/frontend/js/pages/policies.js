@@ -1,7 +1,7 @@
 import { api } from "../api.js";
 import { showObjectDetailModal } from '../components/objectDetailModal.js';
 import { adjustGridHeight, createGridEventHandlers, createCommonGridOptions } from '../utils/grid.js';
-import { exportGridToExcel } from '../utils/export.js';
+import { exportGridToExcelClient } from '../utils/excel.js';
 import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
 import { formatDateTime, formatNumber } from '../utils/date.js';
 
@@ -10,6 +10,200 @@ import { formatDateTime, formatNumber } from '../utils/date.js';
 let policyGridApi;
 let allDevices = []; // 장비 목록 저장
 let validObjectNames = new Set(); // 유효한 객체 이름 저장
+
+// 컬럼 정의 함수 (전역으로 이동)
+const getCols = () => ([
+  { 
+    field:'device_name', 
+    headerName:'장비', 
+    filter:'agTextColumnFilter', 
+    pinned:'left',
+    sortable: false,
+    minWidth: 120,
+    filterParams: {
+      buttons: ['apply', 'reset'],
+      debounceMs: 200
+    }
+  },
+  { 
+    field:'seq', 
+    headerName:'순서', 
+    filter: false,
+    sortable: false,
+    minWidth: 80,
+    valueFormatter: (params) => formatNumber(params.value)
+  },
+  { 
+    field:'vsys', 
+    headerName:'가상시스템', 
+    filter:'agTextColumnFilter',
+    sortable: false,
+    minWidth: 120,
+    filterParams: {
+      buttons: ['apply', 'reset'],
+      debounceMs: 200
+    }
+  },
+  { 
+    field:'rule_name', 
+    headerName:'정책명', 
+    filter:'agTextColumnFilter',
+    sortable: false,
+    minWidth: 150,
+    filterParams: {
+      buttons: ['apply', 'reset'],
+      debounceMs: 200
+    }
+  },
+  { 
+    field:'enable', 
+    headerName:'활성화', 
+    valueFormatter:p=>p.value===true?'활성':p.value===false?'비활성':'',
+    filter:'agTextColumnFilter',
+    sortable: false,
+    minWidth: 100,
+    filterParams: {
+      buttons: ['apply', 'reset'],
+      debounceMs: 200
+    }
+  },
+  { 
+    field:'action', 
+    headerName:'액션', 
+    filter:'agTextColumnFilter',
+    sortable: false,
+    minWidth: 100,
+    filterParams: {
+      buttons: ['apply', 'reset'],
+      debounceMs: 200
+    }
+  },
+  {
+    field:'source', 
+    headerName:'출발지', 
+    wrapText:true, 
+    autoHeight:true,
+    cellRenderer: objectCellRenderer,
+    filter:'agTextColumnFilter',
+    sortable: false,
+    minWidth: 150,
+    filterParams: {
+      buttons: ['apply', 'reset'],
+      debounceMs: 200
+    }
+  },
+  {
+    field:'user', 
+    headerName:'사용자', 
+    wrapText:true, 
+    autoHeight:true,
+    cellRenderer: objectCellRenderer,
+    filter:'agTextColumnFilter',
+    sortable: false,
+    minWidth: 150,
+    filterParams: {
+      buttons: ['apply', 'reset'],
+      debounceMs: 200
+    }
+  },
+  {
+    field:'destination', 
+    headerName:'목적지', 
+    wrapText:true, 
+    autoHeight:true,
+    cellRenderer: objectCellRenderer,
+    filter:'agTextColumnFilter',
+    sortable: false,
+    minWidth: 150,
+    filterParams: {
+      buttons: ['apply', 'reset'],
+      debounceMs: 200
+    }
+  },
+  {
+    field:'service', 
+    headerName:'서비스', 
+    wrapText:true, 
+    autoHeight:true,
+    cellRenderer: objectCellRenderer,
+    filter:'agTextColumnFilter',
+    sortable: false,
+    minWidth: 150,
+    filterParams: {
+      buttons: ['apply', 'reset'],
+      debounceMs: 200
+    }
+  },
+  {
+    field:'application', 
+    headerName:'애플리케이션', 
+    wrapText:true, 
+    autoHeight:true,
+    cellRenderer: objectCellRenderer,
+    filter:'agTextColumnFilter',
+    sortable: false,
+    minWidth: 150,
+    filterParams: {
+      buttons: ['apply', 'reset'],
+      debounceMs: 200
+    }
+  },
+  { 
+    field:'security_profile', 
+    headerName:'보안프로파일', 
+    filter:'agTextColumnFilter',
+    sortable: false,
+    minWidth: 150,
+    filterParams: {
+      buttons: ['apply', 'reset'],
+      debounceMs: 200
+    }
+  },
+  { 
+    field:'category', 
+    headerName:'카테고리', 
+    filter:'agTextColumnFilter',
+    sortable: false,
+    minWidth: 120,
+    filterParams: {
+      buttons: ['apply', 'reset'],
+      debounceMs: 200
+    }
+  },
+  { 
+    field:'description', 
+    headerName:'설명', 
+    filter:'agTextColumnFilter',
+    sortable: false,
+    minWidth: 200,
+    filterParams: {
+      buttons: ['apply', 'reset'],
+      debounceMs: 200
+    }
+  },
+  { 
+    field:'last_hit_date', 
+    headerName:'마지막매칭일시', 
+    filter:'agDateColumnFilter',
+    sortable: false,
+    minWidth: 180,
+    valueFormatter: (params) => formatDateTime(params.value),
+    filterParams: {
+      buttons: ['apply', 'reset'],
+      comparator: (filterLocalDateAtMidnight, cellValue) => {
+        if (!cellValue) return -1;
+        const cellDate = new Date(cellValue);
+        if (cellDate < filterLocalDateAtMidnight) {
+          return -1;
+        } else if (cellDate > filterLocalDateAtMidnight) {
+          return 1;
+        } else {
+          return 0;
+        }
+      }
+    }
+  },
+]);
 
 // Function to render object links in a cell
 function objectCellRenderer(params) {
@@ -53,198 +247,6 @@ function objectCellRenderer(params) {
 async function initGrid() {
   const gridDiv = document.getElementById('policies-grid');
   if (!gridDiv) return;
-  const getCols = () => ([
-    { 
-      field:'device_name', 
-      headerName:'장비', 
-      filter:'agTextColumnFilter', 
-      pinned:'left',
-      sortable: false,
-      minWidth: 120,
-      filterParams: {
-        buttons: ['apply', 'reset'],
-        debounceMs: 200
-      }
-    },
-    { 
-      field:'seq', 
-      headerName:'순서', 
-      filter: false,
-      sortable: false,
-      minWidth: 80,
-      valueFormatter: (params) => formatNumber(params.value)
-    },
-    { 
-      field:'vsys', 
-      headerName:'가상시스템', 
-      filter:'agTextColumnFilter',
-      sortable: false,
-      minWidth: 120,
-      filterParams: {
-        buttons: ['apply', 'reset'],
-        debounceMs: 200
-      }
-    },
-    { 
-      field:'rule_name', 
-      headerName:'정책명', 
-      filter:'agTextColumnFilter',
-      sortable: false,
-      minWidth: 150,
-      filterParams: {
-        buttons: ['apply', 'reset'],
-        debounceMs: 200
-      }
-    },
-    { 
-      field:'enable', 
-      headerName:'활성화', 
-      valueFormatter:p=>p.value===true?'활성':p.value===false?'비활성':'',
-      filter:'agTextColumnFilter',
-      sortable: false,
-      minWidth: 100,
-      filterParams: {
-        buttons: ['apply', 'reset'],
-        debounceMs: 200
-      }
-    },
-    { 
-      field:'action', 
-      headerName:'액션', 
-      filter:'agTextColumnFilter',
-      sortable: false,
-      minWidth: 100,
-      filterParams: {
-        buttons: ['apply', 'reset'],
-        debounceMs: 200
-      }
-    },
-    {
-      field:'source', 
-      headerName:'출발지', 
-      wrapText:true, 
-      autoHeight:true,
-      cellRenderer: objectCellRenderer,
-      filter:'agTextColumnFilter',
-      sortable: false,
-      minWidth: 150,
-      filterParams: {
-        buttons: ['apply', 'reset'],
-        debounceMs: 200
-      }
-    },
-    {
-      field:'user', 
-      headerName:'사용자', 
-      wrapText:true, 
-      autoHeight:true,
-      cellRenderer: objectCellRenderer,
-      filter:'agTextColumnFilter',
-      sortable: false,
-      minWidth: 150,
-      filterParams: {
-        buttons: ['apply', 'reset'],
-        debounceMs: 200
-      }
-    },
-    {
-      field:'destination', 
-      headerName:'목적지', 
-      wrapText:true, 
-      autoHeight:true,
-      cellRenderer: objectCellRenderer,
-      filter:'agTextColumnFilter',
-      sortable: false,
-      minWidth: 150,
-      filterParams: {
-        buttons: ['apply', 'reset'],
-        debounceMs: 200
-      }
-    },
-    {
-      field:'service', 
-      headerName:'서비스', 
-      wrapText:true, 
-      autoHeight:true,
-      cellRenderer: objectCellRenderer,
-      filter:'agTextColumnFilter',
-      sortable: false,
-      minWidth: 150,
-      filterParams: {
-        buttons: ['apply', 'reset'],
-        debounceMs: 200
-      }
-    },
-    {
-      field:'application', 
-      headerName:'애플리케이션', 
-      wrapText:true, 
-      autoHeight:true,
-      cellRenderer: objectCellRenderer,
-      filter:'agTextColumnFilter',
-      sortable: false,
-      minWidth: 150,
-      filterParams: {
-        buttons: ['apply', 'reset'],
-        debounceMs: 200
-      }
-    },
-    { 
-      field:'security_profile', 
-      headerName:'보안프로파일', 
-      filter:'agTextColumnFilter',
-      sortable: false,
-      minWidth: 150,
-      filterParams: {
-        buttons: ['apply', 'reset'],
-        debounceMs: 200
-      }
-    },
-    { 
-      field:'category', 
-      headerName:'카테고리', 
-      filter:'agTextColumnFilter',
-      sortable: false,
-      minWidth: 120,
-      filterParams: {
-        buttons: ['apply', 'reset'],
-        debounceMs: 200
-      }
-    },
-    { 
-      field:'description', 
-      headerName:'설명', 
-      filter:'agTextColumnFilter',
-      sortable: false,
-      minWidth: 200,
-      filterParams: {
-        buttons: ['apply', 'reset'],
-        debounceMs: 200
-      }
-    },
-    { 
-      field:'last_hit_date', 
-      headerName:'마지막매칭일시', 
-      filter:'agDateColumnFilter',
-      sortable: false,
-      minWidth: 180,
-      valueFormatter: (params) => formatDateTime(params.value),
-      filterParams: {
-        buttons: ['apply', 'reset'],
-        comparator: (filterLocalDateAtMidnight, cellValue) => {
-          if (!cellValue) return -1;
-          const cellDate = new Date(cellValue);
-          if (cellDate < filterLocalDateAtMidnight) {
-            return -1;
-          } else if (cellDate > filterLocalDateAtMidnight) {
-            return 1;
-          } else {
-            return 0;
-          }
-        }
-      }
-    },
-  ]);
   const options = {
     columnDefs: getCols(),
     rowData: [],
@@ -535,11 +537,13 @@ export async function initPolicies(){
   bind();
 
   async function exportToExcel() {
-    await exportGridToExcel(
+    const columnDefs = getCols();
+    await exportGridToExcelClient(
       policyGridApi,
-      api.exportToExcel,
+      columnDefs,
       'policies',
-      '데이터가 없습니다.'
+      '데이터가 없습니다.',
+      { type: 'policy' }
     );
   }
 

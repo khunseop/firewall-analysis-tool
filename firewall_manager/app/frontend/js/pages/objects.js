@@ -1,6 +1,6 @@
 import { api } from '../api.js';
 import { adjustGridHeight, createGridEventHandlers, createCommonGridOptions } from '../utils/grid.js';
-import { exportGridToExcel } from '../utils/export.js';
+import { exportGridToExcelClient } from '../utils/excel.js';
 import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
 
 // ==================== 전역 변수 ====================
@@ -486,10 +486,26 @@ function switchTab(tabName) {
  */
 async function exportToExcel() {
   const gridMap = {
-    'network-objects': { grid: networkObjectsGrid, name: 'network_objects' },
-    'network-groups': { grid: networkGroupsGrid, name: 'network_groups' },
-    'services': { grid: servicesGrid, name: 'services' },
-    'service-groups': { grid: serviceGroupsGrid, name: 'service_groups' }
+    'network-objects': { 
+      grid: networkObjectsGrid, 
+      name: 'network_objects',
+      columnDefs: networkObjectsColumns
+    },
+    'network-groups': { 
+      grid: networkGroupsGrid, 
+      name: 'network_groups',
+      columnDefs: networkGroupsColumns
+    },
+    'services': { 
+      grid: servicesGrid, 
+      name: 'services',
+      columnDefs: servicesColumns
+    },
+    'service-groups': { 
+      grid: serviceGroupsGrid, 
+      name: 'service_groups',
+      columnDefs: serviceGroupsColumns
+    }
   };
   
   const current = gridMap[currentTab];
@@ -498,11 +514,12 @@ async function exportToExcel() {
     return;
   }
   
-  await exportGridToExcel(
+  await exportGridToExcelClient(
     current.grid,
-    api.exportToExcel,
+    current.columnDefs,
     current.name,
-    '데이터가 없습니다.'
+    '데이터가 없습니다.',
+    { type: 'object' }
   );
 }
 
