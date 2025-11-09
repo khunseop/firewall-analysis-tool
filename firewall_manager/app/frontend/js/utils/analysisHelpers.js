@@ -16,25 +16,22 @@ export async function processAnalysisResults(resultData, analysisType, allDevice
     
     // 영향도 분석 결과는 객체 형태
     if (analysisType === 'impact' && resultData && !Array.isArray(resultData)) {
-        const affectedPolicies = resultData.affected_policies || [];
-        const conflictPolicies = resultData.conflict_policies || [];
+        const blockingPolicies = resultData.blocking_policies || [];
+        const shadowedPolicies = resultData.shadowed_policies || [];
         
-        // 영향받는 정책들 처리 (고유 ID를 위해 인덱스 추가)
-        processedData = affectedPolicies.map((item, index) => ({
+        // 차단 정책에 걸리는 경우 처리 (고유 ID를 위해 인덱스 추가)
+        processedData = blockingPolicies.map((item, index) => ({
             ...item,
             device_name: allDevices.find(d => d.id === item.policy?.device_id)?.name || `장비 ${item.policy?.device_id}`,
-            _impact_index: `affected_${index}` // 고유 ID 생성을 위한 인덱스
+            _impact_index: `blocking_${index}` // 고유 ID 생성을 위한 인덱스
         }));
         
-        // 충돌 정책들도 추가 (고유 ID를 위해 인덱스 추가)
-        conflictPolicies.forEach((item, index) => {
+        // Shadow되는 정책들도 추가 (고유 ID를 위해 인덱스 추가)
+        shadowedPolicies.forEach((item, index) => {
             processedData.push({
                 ...item,
                 device_name: allDevices.find(d => d.id === item.policy?.device_id)?.name || `장비 ${item.policy?.device_id}`,
-                impact_type: '충돌',
-                current_position: null,
-                new_position: null,
-                _impact_index: `conflict_${index}` // 고유 ID 생성을 위한 인덱스
+                _impact_index: `shadowed_${index}` // 고유 ID 생성을 위한 인덱스
             });
         });
     } else if (resultData && Array.isArray(resultData) && resultData.length > 0) {

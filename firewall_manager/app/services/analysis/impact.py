@@ -98,7 +98,12 @@ class ImpactAnalyzer:
         return src_overlap and dst_overlap and svc_overlap
 
     async def analyze(self) -> Dict[str, Any]:
-        """영향도 분석을 실행하고 결과를 반환합니다."""
+        """영향도 분석을 실행하고 결과를 반환합니다.
+        
+        분석 내용:
+        1. 출발지와 목적지 사이의 차단 정책에 걸리는지 확인
+        2. 출발지와 목적지 사이의 정책 중 shadow되는 정책 확인
+        """
         logger.info(f"Task ID {self.task.id}에 대한 영향도 분석 시작. 정책 ID: {self.target_policy_id}, 새 위치: {self.new_position}")
 
         policies = await self._get_policies_with_members()
@@ -119,62 +124,69 @@ class ImpactAnalyzer:
         if self.new_position < 0 or self.new_position >= len(policies):
             raise ValueError(f"새 위치 {self.new_position}가 유효하지 않습니다. (0-{len(policies)-1})")
         
-        # 영향받는 정책들 찾기
-        affected_policies = []
+        # 출발지와 목적지 위치 결정 (항상 작은 값이 출발지)
+        start_pos = min(original_position, self.new_position)
+        end_pos = max(original_position, self.new_position)
         
-        # 이동 후 위치에 있는 정책들과의 관계 분석
-        if original_position < self.new_position:
-            # 아래로 이동: 원래 위치와 새 위치 사이의 정책들 확인
-            for i in range(original_position + 1, self.new_position + 1):
-                if i < len(policies):
-                    policy = policies[i]
-                    if self._policies_overlap(target_policy, policy):
-                        affected_policies.append({
-                            "policy_id": policy.id,
-                            "policy": policy,
-                            "current_position": i,
-                            "new_position": i - 1,  # 위로 한 칸 이동
-                            "impact_type": "위치 변경",
-                            "reason": f"정책 '{target_policy.rule_name}'이 아래로 이동하여 순서가 변경됨"
-                        })
-        else:
-            # 위로 이동: 새 위치와 원래 위치 사이의 정책들 확인
-            for i in range(self.new_position, original_position):
-                if i < len(policies):
-                    policy = policies[i]
-                    if self._policies_overlap(target_policy, policy):
-                        affected_policies.append({
-                            "policy_id": policy.id,
-                            "policy": policy,
-                            "current_position": i,
-                            "new_position": i + 1,  # 아래로 한 칸 이동
-                            "impact_type": "위치 변경",
-                            "reason": f"정책 '{target_policy.rule_name}'이 위로 이동하여 순서가 변경됨"
-                        })
+        # 출발지와 목적지 사이의 정책들 확인 (경계 포함)
+        blocking_policies = []  # 이동한 정책이 걸리는 차단 정책들
+        shadowed_policies = []  # 이동한 정책에 의해 shadow되는 정책들
         
-        # 액션 충돌 확인 (deny가 allow를 가리는 경우)
-        conflict_policies = []
-        for affected in affected_policies:
-            affected_policy = affected["policy"]
-            if target_policy.action == 'deny' and affected_policy.action == 'allow':
-                conflict_policies.append({
-                    "policy_id": affected_policy.id,
-                    "policy": affected_policy,
-                    "conflict_type": "차단 정책이 허용 정책을 가림",
-                    "reason": f"정책 '{target_policy.rule_name}' (deny)이 정책 '{affected_policy.rule_name}' (allow)보다 먼저 평가됨"
+        # 출발지와 목적지 사이의 정책들을 순회
+        for i in range(start_pos, end_pos + 1):
+            if i == original_position:
+                continue  # 이동하는 정책 자신은 제외
+            
+            policy = policies[i]
+            
+            # 정책이 겹치는지 확인
+            if not self._policies_overlap(target_policy, policy):
+                continue
+            
+            # 1. 이동한 정책이 차단 정책에 걸리는지 확인
+            # 이동한 정책이 allow이고, 사이의 정책이 deny인 경우
+            if target_policy.action == 'allow' and policy.action == 'deny':
+                blocking_policies.append({
+                    "policy_id": policy.id,
+                    "policy": policy,
+                    "current_position": i,
+                    "impact_type": "차단 정책에 걸림",
+                    "reason": f"이동한 정책 '{target_policy.rule_name}' (allow)이 정책 '{policy.rule_name}' (deny)에 의해 차단됨"
                 })
+            
+            # 2. 이동한 정책이 다른 정책을 shadow하는지 확인
+            # 이동한 정책이 deny이고, 사이의 정책이 allow인 경우
+            # 또는 이동한 정책이 allow이고, 사이의 정책도 allow인 경우 (더 위에 있으면 shadow)
+            if target_policy.action == 'deny' and policy.action == 'allow':
+                shadowed_policies.append({
+                    "policy_id": policy.id,
+                    "policy": policy,
+                    "current_position": i,
+                    "impact_type": "Shadow됨",
+                    "reason": f"이동한 정책 '{target_policy.rule_name}' (deny)이 정책 '{policy.rule_name}' (allow)을 가림"
+                })
+            elif target_policy.action == 'allow' and policy.action == 'allow':
+                # 같은 액션이지만 이동한 정책이 더 위에 있으면 shadow
+                if self.new_position < i:
+                    shadowed_policies.append({
+                        "policy_id": policy.id,
+                        "policy": policy,
+                        "current_position": i,
+                        "impact_type": "Shadow됨",
+                        "reason": f"이동한 정책 '{target_policy.rule_name}' (allow)이 정책 '{policy.rule_name}' (allow)보다 먼저 평가되어 가림"
+                    })
         
         result = {
             "target_policy_id": target_policy.id,
             "target_policy": target_policy,
             "original_position": original_position,
             "new_position": self.new_position,
-            "affected_policies": affected_policies,
-            "conflict_policies": conflict_policies,
-            "total_affected": len(affected_policies),
-            "total_conflicts": len(conflict_policies)
+            "blocking_policies": blocking_policies,  # 차단 정책에 걸리는 경우
+            "shadowed_policies": shadowed_policies,  # shadow되는 정책들
+            "total_blocking": len(blocking_policies),
+            "total_shadowed": len(shadowed_policies)
         }
         
-        logger.info(f"영향받는 정책 {len(affected_policies)}개, 충돌 정책 {len(conflict_policies)}개 발견.")
+        logger.info(f"차단 정책 {len(blocking_policies)}개, Shadow 정책 {len(shadowed_policies)}개 발견.")
         return result
 

@@ -268,7 +268,7 @@ async function displayTaskResults(deviceId, analysisType) {
         if (latestResult && latestResult.result_data) {
             // 영향도 분석은 객체 형태, 나머지는 배열 형태
             if (analysisType === 'impact') {
-                if (latestResult.result_data.affected_policies || latestResult.result_data.conflict_policies) {
+                if (latestResult.result_data.blocking_policies || latestResult.result_data.shadowed_policies) {
                     await displayResults(latestResult.result_data, latestResult.analysis_type, 'task');
                 } else {
                     resetStatusUI();
@@ -408,7 +408,7 @@ async function loadLatestResult() {
         if (latestResult && latestResult.result_data) {
             // 영향도 분석은 객체 형태, 나머지는 배열 형태
             if (analysisType === 'impact') {
-                if (latestResult.result_data.affected_policies || latestResult.result_data.conflict_policies) {
+                if (latestResult.result_data.blocking_policies || latestResult.result_data.shadowed_policies) {
                     await displayResults(latestResult.result_data, latestResult.analysis_type);
                 } else {
                     resetStatusUI();

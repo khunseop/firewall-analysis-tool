@@ -363,24 +363,12 @@ export function getColumnDefs(analysisType, objectCellRenderer = null) {
             },
             { 
                 field: 'current_position', 
-                headerName: '현재 위치', 
+                headerName: '위치', 
                 filter: 'agNumberColumnFilter',
                 sortable: false,
                 minWidth: 100,
+                pinned: 'left',
                 valueGetter: params => params.data.current_position,
-                valueFormatter: params => formatNumber(params.value),
-                filterParams: {
-                    buttons: ['apply', 'reset'],
-                    debounceMs: 200
-                }
-            },
-            { 
-                field: 'new_position', 
-                headerName: '새 위치', 
-                filter: 'agNumberColumnFilter',
-                sortable: false,
-                minWidth: 100,
-                valueGetter: params => params.data.new_position,
                 valueFormatter: params => formatNumber(params.value),
                 filterParams: {
                     buttons: ['apply', 'reset'],
@@ -392,7 +380,23 @@ export function getColumnDefs(analysisType, objectCellRenderer = null) {
                 headerName: '영향 유형', 
                 filter: 'agTextColumnFilter',
                 sortable: false,
-                minWidth: 120,
+                minWidth: 150,
+                pinned: 'left',
+                cellStyle: params => {
+                    const impactType = params.value;
+                    if (impactType === '차단 정책에 걸림') {
+                        return {
+                            color: '#d32f2f',
+                            fontWeight: '500'
+                        };
+                    } else if (impactType === 'Shadow됨') {
+                        return {
+                            color: '#f57c00',
+                            fontWeight: '500'
+                        };
+                    }
+                    return null;
+                },
                 filterParams: {
                     buttons: ['apply', 'reset'],
                     debounceMs: 200
@@ -403,7 +407,9 @@ export function getColumnDefs(analysisType, objectCellRenderer = null) {
                 headerName: '사유', 
                 filter: 'agTextColumnFilter',
                 sortable: false,
-                minWidth: 200,
+                minWidth: 300,
+                wrapText: true,
+                autoHeight: true,
                 valueGetter: params => params.data.reason,
                 filterParams: {
                     buttons: ['apply', 'reset'],
