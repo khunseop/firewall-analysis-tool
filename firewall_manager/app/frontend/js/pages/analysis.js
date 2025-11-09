@@ -1,9 +1,11 @@
 import { api } from '../api.js';
 import { showObjectDetailModal } from '../components/objectDetailModal.js';
-import { adjustGridHeight, createGridEventHandlers, createCommonGridOptions } from '../utils/grid.js';
+import { adjustGridHeight, createGridEventHandlers, createObjectCellRenderer } from '../utils/grid.js';
 import { exportGridToExcelClient } from '../utils/excel.js';
 import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
-import { formatDateTime, formatNumber } from '../utils/date.js';
+import { getColumnDefs } from '../utils/analysisColumns.js';
+import { processAnalysisResults, loadValidObjectNames } from '../utils/analysisHelpers.js';
+import { initImpactAnalysis, loadPoliciesForImpact, getImpactAnalysisParams } from '../components/impactAnalysis.js';
 
 // ==================== 전역 변수 ====================
 
@@ -12,307 +14,21 @@ let deviceSelect = null;
 let statusInterval = null;
 let allDevices = []; // 장비 목록 저장
 let validObjectNames = new Set(); // 유효한 객체 이름 저장
+let objectCellRenderer = null; // 동적으로 생성되는 셀 렌더러
 
-// Function to render object links in a cell (정책조회와 동일)
-function objectCellRenderer(params) {
-    if (!params.value) return '';
-    const deviceId = params.data.policy?.device_id;
-    if (!deviceId) return params.value;
-    
-    const objectNames = params.value.split(',').map(s => s.trim()).filter(Boolean);
-
-    const container = document.createElement('div');
-    container.style.height = '100%';
-    container.style.maxHeight = '150px'
-    container.style.overflowY = 'auto';
-    container.style.lineHeight = '1.5';
-
-    objectNames.forEach(name => {
-        const line = document.createElement('div');
-        if (validObjectNames.has(name)) {
-            const link = document.createElement('a');
-            link.href = '#';
-            link.textContent = name;
-            link.style.cursor = 'pointer';
-            link.onclick = async (e) => {
-                e.preventDefault();
-                try {
-                    const objectDetails = await api.getObjectDetails(deviceId, name);
-                    showObjectDetailModal(objectDetails);
-                } catch (error) {
-                    alert(`객체 '${name}'의 상세 정보를 가져오는 데 실패했습니다: ${error.message}`);
-                }
-            };
-            line.appendChild(link);
-        } else {
-            line.textContent = name;
-        }
-        container.appendChild(line);
-    });
-
-    return container;
+// 객체 클릭 핸들러
+async function handleObjectClick(deviceId, objectName) {
+    try {
+        const objectDetails = await api.getObjectDetails(deviceId, objectName);
+        showObjectDetailModal(objectDetails);
+    } catch (error) {
+        alert(`객체 '${objectName}'의 상세 정보를 가져오는 데 실패했습니다: ${error.message}`);
+    }
 }
 
-function getColumnDefs(analysisType) {
-    // 정책조회와 동일한 컬럼 정의
-    const policyColumns = [
-        { 
-            field: 'seq', 
-            headerName: '순서', 
-            filter: false,
-            sortable: false,
-            minWidth: 80,
-            valueGetter: params => params.data.policy?.seq,
-            valueFormatter: (params) => formatNumber(params.value),
-            filterParams: {
-                buttons: ['apply', 'reset'],
-                debounceMs: 200
-            }
-        },
-        { 
-            field: 'vsys', 
-            headerName: '가상시스템', 
-            filter: 'agTextColumnFilter',
-            sortable: false,
-            minWidth: 120,
-            valueGetter: params => params.data.policy?.vsys,
-            filterParams: {
-                buttons: ['apply', 'reset'],
-                debounceMs: 200
-            }
-        },
-        { 
-            field: 'rule_name', 
-            headerName: '정책명', 
-            filter: 'agTextColumnFilter',
-            sortable: false,
-            minWidth: 150,
-            valueGetter: params => params.data.policy?.rule_name,
-            filterParams: {
-                buttons: ['apply', 'reset'],
-                debounceMs: 200
-            }
-        },
-        { 
-            field: 'enable', 
-            headerName: '활성화', 
-            valueGetter: params => params.data.policy?.enable,
-            valueFormatter: p => p.value === true ? '활성' : p.value === false ? '비활성' : '',
-            filter: 'agTextColumnFilter',
-            sortable: false,
-            minWidth: 100,
-            filterParams: {
-                buttons: ['apply', 'reset'],
-                debounceMs: 200
-            }
-        },
-        { 
-            field: 'action', 
-            headerName: '액션', 
-            filter: 'agTextColumnFilter',
-            sortable: false,
-            minWidth: 100,
-            valueGetter: params => params.data.policy?.action,
-            filterParams: {
-                buttons: ['apply', 'reset'],
-                debounceMs: 200
-            }
-        },
-        {
-            field: 'source', 
-            headerName: '출발지', 
-            wrapText: true, 
-            autoHeight: true,
-            cellRenderer: objectCellRenderer,
-            filter: 'agTextColumnFilter',
-            sortable: false,
-            minWidth: 150,
-            valueGetter: params => params.data.policy?.source,
-            filterParams: {
-                buttons: ['apply', 'reset'],
-                debounceMs: 200
-            }
-        },
-        {
-            field: 'user', 
-            headerName: '사용자', 
-            wrapText: true, 
-            autoHeight: true,
-            cellRenderer: objectCellRenderer,
-            filter: 'agTextColumnFilter',
-            sortable: false,
-            minWidth: 150,
-            valueGetter: params => params.data.policy?.user,
-            filterParams: {
-                buttons: ['apply', 'reset'],
-                debounceMs: 200
-            }
-        },
-        {
-            field: 'destination', 
-            headerName: '목적지', 
-            wrapText: true, 
-            autoHeight: true,
-            cellRenderer: objectCellRenderer,
-            filter: 'agTextColumnFilter',
-            sortable: false,
-            minWidth: 150,
-            valueGetter: params => params.data.policy?.destination,
-            filterParams: {
-                buttons: ['apply', 'reset'],
-                debounceMs: 200
-            }
-        },
-        {
-            field: 'service', 
-            headerName: '서비스', 
-            wrapText: true, 
-            autoHeight: true,
-            cellRenderer: objectCellRenderer,
-            filter: 'agTextColumnFilter',
-            sortable: false,
-            minWidth: 150,
-            valueGetter: params => params.data.policy?.service,
-            filterParams: {
-                buttons: ['apply', 'reset'],
-                debounceMs: 200
-            }
-        },
-        {
-            field: 'application', 
-            headerName: '애플리케이션', 
-            wrapText: true, 
-            autoHeight: true,
-            cellRenderer: objectCellRenderer,
-            filter: 'agTextColumnFilter',
-            sortable: false,
-            minWidth: 150,
-            valueGetter: params => params.data.policy?.application,
-            filterParams: {
-                buttons: ['apply', 'reset'],
-                debounceMs: 200
-            }
-        },
-        { 
-            field: 'security_profile', 
-            headerName: '보안프로파일', 
-            filter: 'agTextColumnFilter',
-            sortable: false,
-            minWidth: 150,
-            valueGetter: params => params.data.policy?.security_profile,
-            filterParams: {
-                buttons: ['apply', 'reset'],
-                debounceMs: 200
-            }
-        },
-        { 
-            field: 'category', 
-            headerName: '카테고리', 
-            filter: 'agTextColumnFilter',
-            sortable: false,
-            minWidth: 120,
-            valueGetter: params => params.data.policy?.category,
-            filterParams: {
-                buttons: ['apply', 'reset'],
-                debounceMs: 200
-            }
-        },
-        { 
-            field: 'description', 
-            headerName: '설명', 
-            filter: 'agTextColumnFilter',
-            sortable: false,
-            minWidth: 200,
-            valueGetter: params => params.data.policy?.description,
-            filterParams: {
-                buttons: ['apply', 'reset'],
-                debounceMs: 200
-            }
-        },
-        { 
-            field: 'last_hit_date', 
-            headerName: '마지막매칭일시', 
-            filter: 'agDateColumnFilter',
-            sortable: false,
-            minWidth: 180,
-            valueGetter: params => params.data.policy?.last_hit_date,
-            valueFormatter: (params) => formatDateTime(params.value),
-            filterParams: {
-                buttons: ['apply', 'reset'],
-                comparator: (filterLocalDateAtMidnight, cellValue) => {
-                    if (!cellValue) return -1;
-                    const cellDate = new Date(cellValue);
-                    if (cellDate < filterLocalDateAtMidnight) {
-                        return -1;
-                    } else if (cellDate > filterLocalDateAtMidnight) {
-                        return 1;
-                    } else {
-                        return 0;
-                    }
-                }
-            }
-        },
-    ];
-
-    if (analysisType === 'redundancy') {
-        return [
-            { 
-                field: 'device_name', 
-                headerName: '장비', 
-                filter: 'agTextColumnFilter', 
-                pinned: 'left',
-                sortable: false,
-                minWidth: 120,
-                filterParams: {
-                    buttons: ['apply', 'reset'],
-                    debounceMs: 200
-                }
-            },
-            { 
-                field: 'set_number', 
-                headerName: '중복번호', 
-                minWidth: 100, 
-                sortable: false, 
-                filter: 'agTextColumnFilter', 
-                pinned: 'left',
-                valueFormatter: params => formatNumber(params.value), 
-                filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } 
-            },
-            { 
-                field: 'type', 
-                headerName: '구분', 
-                minWidth: 100, 
-                sortable: false, 
-                filter: 'agTextColumnFilter',
-                pinned: 'left',
-                valueFormatter: params => {
-                    if (params.value === 'UPPER') return '상위 정책';
-                    if (params.value === 'LOWER') return '하위 정책';
-                    return params.value || '';
-                },
-                cellStyle: params => {
-                    const typeValue = params.data?.type || params.value;
-                    if (typeValue === 'UPPER') {
-                        return {
-                            color: '#1976d2',
-                            fontWeight: '500',
-                            textAlign: 'center'
-                        };
-                    } else if (typeValue === 'LOWER') {
-                        return {
-                            color: '#f57c00',
-                            fontWeight: '500',
-                            textAlign: 'center'
-                        };
-                    }
-                    return { textAlign: 'center' };
-                },
-                filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } 
-            },
-            ...policyColumns
-        ];
-    }
-    return policyColumns;
+function getColumnDefsWithRenderer(analysisType) {
+    // analysisColumns.js에서 컬럼 정의 가져오기 (objectCellRenderer 포함)
+    return getColumnDefs(analysisType, objectCellRenderer);
 }
 
 function createGrid(columnDefs, rowData) {
@@ -333,11 +49,24 @@ function createGrid(columnDefs, rowData) {
             },
             enableCellTextSelection: true,
             getRowId: params => {
-                // set_number와 type을 조합하여 고유 ID 생성
+                // 분석 타입에 따라 고유 ID 생성
                 if (params.data.set_number !== undefined && params.data.type) {
+                    // 중복 정책 분석: set_number + type + policy_id 조합
                     return `${params.data.set_number}_${params.data.type}_${params.data.policy?.id || params.rowIndex}`;
                 }
-                return String(params.data.policy?.id || params.rowIndex);
+                if (params.data.object_name) {
+                    // 미참조 객체 분석: object_name + object_type 조합
+                    return `${params.data.object_name}_${params.data.object_type}`;
+                }
+                // 영향도 분석: policy_id + _impact_index 조합 (같은 정책이 affected와 conflict에 모두 나타날 수 있음)
+                if (params.data._impact_index !== undefined || params.data.impact_type !== undefined || params.data.current_position !== undefined) {
+                    const policyId = params.data.policy?.id || params.data.policy_id || 'unknown';
+                    const impactIndex = params.data._impact_index || `impact_${params.rowIndex}`;
+                    // _impact_index를 사용하여 완전히 고유한 ID 생성
+                    return `impact_${policyId}_${impactIndex}`;
+                }
+                // 기타 분석 (미사용 정책 등): policy_id 또는 rowIndex 사용
+                return String(params.data.policy?.id || params.data.policy_id || params.rowIndex);
             },
             getRowStyle: params => {
                 // Upper policy와 Lower policy를 행 단위로 구분
@@ -386,24 +115,36 @@ async function loadDevices() {
             selectEl.appendChild(opt);
         });
 
-        if (window.TomSelect && selectEl) {
+            if (window.TomSelect && selectEl) {
             if (selectEl.tomselect) {
                 try { selectEl.tomselect.destroy(); } catch (e) {}
             }
             deviceSelect = new window.TomSelect(selectEl, {
                 placeholder: '분석할 장비를 선택하세요',
                 maxOptions: null,
-                onChange: () => loadLatestResult() // 장비 변경 시 최신 결과 로드
+                onChange: async () => {
+                    await loadLatestResult();
+                    // 영향도 분석이 선택되어 있으면 정책 목록 로드
+                    const analysisTypeSelect = document.getElementById('analysis-type-select');
+                    if (analysisTypeSelect && analysisTypeSelect.value === 'impact') {
+                        await loadPoliciesForImpact(); // impactAnalysis.js에서 import
+                    }
+                }
             });
+            // 영향도 분석 컴포넌트에 deviceSelect 전달
+            initImpactAnalysis(deviceSelect);
         }
     } catch (err) {
         console.error('Failed to load devices:', err);
     }
 }
 
+// loadPoliciesForImpact는 impactAnalysis.js에서 import하여 사용
+
 function resetStatusUI() {
     stopPolling();
     const startButton = document.getElementById('btn-start-analysis');
+    const impactStartButton = document.getElementById('btn-start-impact-analysis');
     const resetFiltersBtn = document.getElementById('btn-reset-filters');
     const exportBtn = document.getElementById('btn-export-excel');
     const gridDiv = document.getElementById('analysis-result-grid');
@@ -412,6 +153,10 @@ function resetStatusUI() {
     if (startButton) {
         startButton.disabled = false;
         startButton.classList.remove('is-loading');
+    }
+    if (impactStartButton) {
+        impactStartButton.disabled = false;
+        impactStartButton.classList.remove('is-loading');
     }
     if (resetFiltersBtn) resetFiltersBtn.style.display = 'none';
     if (exportBtn) exportBtn.style.display = 'none';
@@ -425,7 +170,9 @@ function resetStatusUI() {
         }
     } else {
         // 그리드가 없으면 생성 (빈 상태)
-        const columnDefs = getColumnDefs('redundancy');
+        const analysisTypeSelect = document.getElementById('analysis-type-select');
+        const analysisType = analysisTypeSelect ? analysisTypeSelect.value : 'redundancy';
+        const columnDefs = getColumnDefsWithRenderer(analysisType);
         createGrid(columnDefs, []);
     }
     
@@ -440,9 +187,14 @@ function stopPolling() {
         statusInterval = null;
     }
     const startButton = document.getElementById('btn-start-analysis');
+    const impactStartButton = document.getElementById('btn-start-impact-analysis');
     if (startButton) {
         startButton.disabled = false;
         startButton.classList.remove('is-loading');
+    }
+    if (impactStartButton) {
+        impactStartButton.disabled = false;
+        impactStartButton.classList.remove('is-loading');
     }
 }
 
@@ -455,40 +207,22 @@ async function displayResults(resultData, analysisType, source = 'latest') {
     const gridDiv = document.getElementById('analysis-result-grid');
     const messageContainer = document.getElementById('analysis-message-container');
     
-    // 결과 데이터에 장비 이름 추가 및 validObjectNames 설정
-    let processedData = [];
-    if (resultData && resultData.length > 0) {
-        // 첫 번째 정책의 device_id로 장비 정보 찾기
-        const firstPolicy = resultData[0]?.policy;
-        if (firstPolicy?.device_id) {
-            const device = allDevices.find(d => d.id === firstPolicy.device_id);
-            const deviceName = device ? device.name : `장비 ${firstPolicy.device_id}`;
-            
-            // validObjectNames 설정을 위해 정책 검색 API 호출
-            try {
-                const searchResponse = await api.searchPolicies({
-                    device_ids: [firstPolicy.device_id],
-                    limit: 1
-                });
-                if (searchResponse && searchResponse.valid_object_names) {
-                    validObjectNames = new Set(searchResponse.valid_object_names);
-                }
-            } catch (error) {
-                console.warn('valid_object_names를 가져오는 데 실패했습니다:', error);
-            }
-            
-            // 각 결과에 장비 이름 추가
-            processedData = resultData.map(item => ({
-                ...item,
-                device_name: deviceName
-            }));
-        } else {
-            processedData = resultData;
+    // 모듈화된 함수로 결과 데이터 처리
+    let processedData = await processAnalysisResults(resultData, analysisType, allDevices);
+    
+    // validObjectNames 설정 (정책 관련 분석인 경우)
+    if (analysisType !== 'unreferenced_objects' && processedData.length > 0) {
+        const firstItem = processedData[0];
+        const deviceId = firstItem?.policy?.device_id || firstItem?.device_id;
+        if (deviceId) {
+            validObjectNames = await loadValidObjectNames(deviceId);
+            // objectCellRenderer 재생성
+            objectCellRenderer = createObjectCellRenderer(validObjectNames, handleObjectClick);
         }
     }
     
     // 결과가 있든 없든 그리드를 생성하여 메시지 표시
-    const columnDefs = getColumnDefs(analysisType);
+    const columnDefs = getColumnDefsWithRenderer(analysisType);
     createGrid(columnDefs, processedData);
     
     if(processedData && processedData.length > 0) {
@@ -527,23 +261,53 @@ async function displayResults(resultData, analysisType, source = 'latest') {
     }
 }
 
-async function displayTaskResults(taskId) {
+async function displayTaskResults(deviceId, analysisType) {
     try {
-        const results = await api.getAnalysisResults(taskId);
-        await displayResults(results, 'redundancy', 'task');
+        // 모든 분석 타입은 getLatestAnalysisResult를 사용
+        const latestResult = await api.getLatestAnalysisResult(deviceId, analysisType);
+        if (latestResult && latestResult.result_data) {
+            // 영향도 분석은 객체 형태, 나머지는 배열 형태
+            if (analysisType === 'impact') {
+                if (latestResult.result_data.affected_policies || latestResult.result_data.conflict_policies) {
+                    await displayResults(latestResult.result_data, latestResult.analysis_type, 'task');
+                } else {
+                    resetStatusUI();
+                }
+            } else if (Array.isArray(latestResult.result_data) && latestResult.result_data.length > 0) {
+                await displayResults(latestResult.result_data, latestResult.analysis_type, 'task');
+            } else {
+                resetStatusUI();
+            }
+        } else {
+            resetStatusUI();
+        }
     } catch (error) {
         console.error('결과를 가져오는 데 실패했습니다:', error);
-        alert(`결과 로딩 실패: ${error.message}`);
+        if (error.status !== 404) {
+            alert(`결과 로딩 실패: ${error.message}`);
+        }
+        resetStatusUI();
     }
 }
 
-function startPolling(deviceId) {
+function startPolling(deviceId, analysisType) {
     stopPolling();
     const startButton = document.getElementById('btn-start-analysis');
-    if (startButton) {
-        startButton.disabled = true;
-        startButton.classList.add('is-loading');
+    const impactStartButton = document.getElementById('btn-start-impact-analysis');
+    
+    // 분석 타입에 따라 적절한 버튼에 로딩 상태 적용
+    if (analysisType === 'impact') {
+        if (impactStartButton) {
+            impactStartButton.disabled = true;
+            impactStartButton.classList.add('is-loading');
+        }
+    } else {
+        if (startButton) {
+            startButton.disabled = true;
+            startButton.classList.add('is-loading');
+        }
     }
+    
     statusInterval = setInterval(async () => {
         try {
             const task = await api.getAnalysisStatus(deviceId);
@@ -553,7 +317,7 @@ function startPolling(deviceId) {
                     break;
                 case 'success':
                     stopPolling();
-                    setTimeout(() => displayTaskResults(task.id), 100);
+                    setTimeout(() => displayTaskResults(deviceId, analysisType), 100);
                     break;
                 case 'failure':
                     stopPolling();
@@ -577,10 +341,48 @@ async function startAnalysis() {
         alert('분석할 장비를 선택하세요.');
         return;
     }
-    resetStatusUI();
+    
+    const analysisTypeSelect = document.getElementById('analysis-type-select');
+    const analysisType = analysisTypeSelect ? analysisTypeSelect.value : 'redundancy';
+    
+    let params = {};
+    if (analysisType === 'unused') {
+        const daysInput = document.getElementById('analysis-params-input');
+        params.days = daysInput ? parseInt(daysInput.value) || 90 : 90;
+    } else if (analysisType === 'impact') {
+        // 모듈화된 함수로 영향도 분석 파라미터 추출
+        const impactParams = getImpactAnalysisParams();
+        if (!impactParams) {
+            return; // 에러 메시지는 getImpactAnalysisParams에서 표시됨
+        }
+        params = impactParams;
+    }
+    
+    // UI 상태 초기화 (버튼 로딩 상태는 제외)
+    const gridDiv = document.getElementById('analysis-result-grid');
+    const messageContainer = document.getElementById('analysis-message-container');
+    const resetFiltersBtn = document.getElementById('btn-reset-filters');
+    const exportBtn = document.getElementById('btn-export-excel');
+    
+    if (resetFiltersBtn) resetFiltersBtn.style.display = 'none';
+    if (exportBtn) exportBtn.style.display = 'none';
+    
+    // 그리드를 빈 상태로 초기화
+    if (resultGridApi) {
+        try {
+            resultGridApi.setGridOption('rowData', []);
+        } catch (e) {
+            console.warn('Failed to reset grid data:', e);
+        }
+    }
+    
+    // 메시지 표시, 그리드 숨김
+    showEmptyMessage(messageContainer, '분석 중...', 'fa-chart-line');
+    if (gridDiv) gridDiv.style.display = 'none';
+    
     try {
-        await api.startAnalysis(deviceId);
-        startPolling(deviceId);
+        await api.startAnalysis(deviceId, analysisType, params);
+        startPolling(deviceId, analysisType);
     } catch (error) {
         console.error('분석 시작 실패:', error);
         alert(`분석 시작 실패: ${error.message}`);
@@ -590,21 +392,32 @@ async function startAnalysis() {
 
 async function loadLatestResult() {
     const deviceId = deviceSelect.getValue();
-    // 현재는 '중복 정책 분석'만 지원하므로, 실제 API가 요구하는 'redundancy' 값으로 하드코딩
-    const analysisType = 'redundancy';
-
     if (!deviceId) {
         resetStatusUI();
         return;
     }
+    
+    const analysisTypeSelect = document.getElementById('analysis-type-select');
+    const analysisType = analysisTypeSelect ? analysisTypeSelect.value : 'redundancy';
 
     // 새 장비를 선택했으므로 이전 상태와 결과를 초기화
     resetStatusUI();
 
     try {
         const latestResult = await api.getLatestAnalysisResult(deviceId, analysisType);
-        if (latestResult && latestResult.result_data && latestResult.result_data.length > 0) {
-            await displayResults(latestResult.result_data, latestResult.analysis_type);
+        if (latestResult && latestResult.result_data) {
+            // 영향도 분석은 객체 형태, 나머지는 배열 형태
+            if (analysisType === 'impact') {
+                if (latestResult.result_data.affected_policies || latestResult.result_data.conflict_policies) {
+                    await displayResults(latestResult.result_data, latestResult.analysis_type);
+                } else {
+                    resetStatusUI();
+                }
+            } else if (Array.isArray(latestResult.result_data) && latestResult.result_data.length > 0) {
+                await displayResults(latestResult.result_data, latestResult.analysis_type);
+            } else {
+                resetStatusUI();
+            }
         } else {
             resetStatusUI();
         }
@@ -617,7 +430,9 @@ async function loadLatestResult() {
 }
 
 async function exportToExcel() {
-    const columnDefs = getColumnDefs('redundancy');
+    const analysisTypeSelect = document.getElementById('analysis-type-select');
+    const analysisType = analysisTypeSelect ? analysisTypeSelect.value : 'redundancy';
+    const columnDefs = getColumnDefsWithRenderer(analysisType);
     await exportGridToExcelClient(
         resultGridApi,
         columnDefs,
@@ -627,16 +442,72 @@ async function exportToExcel() {
     );
 }
 
+function setupAnalysisTypeSelect() {
+    const analysisTypeSelect = document.getElementById('analysis-type-select');
+    const paramsColumn = document.getElementById('analysis-params-column');
+    const paramsLabel = document.getElementById('analysis-params-label');
+    const paramsInput = document.getElementById('analysis-params-input');
+    const impactUI = document.getElementById('impact-analysis-ui');
+    const startButton = document.getElementById('btn-start-analysis');
+    
+    if (!analysisTypeSelect || !paramsColumn) return;
+    
+    analysisTypeSelect.addEventListener('change', async () => {
+        const analysisType = analysisTypeSelect.value;
+        
+        if (analysisType === 'unused') {
+            paramsColumn.style.display = 'block';
+            impactUI.style.display = 'none';
+            if (startButton) startButton.style.display = 'inline-block';
+            paramsLabel.textContent = '기준일수';
+            paramsInput.type = 'number';
+            paramsInput.placeholder = '90';
+            paramsInput.value = '90';
+            paramsInput.min = '1';
+        } else if (analysisType === 'impact') {
+            paramsColumn.style.display = 'none';
+            impactUI.style.display = 'block';
+            if (startButton) startButton.style.display = 'none'; // 첫 번째 박스의 분석하기 버튼 숨김
+            // 장비가 선택되어 있으면 정책 목록 로드
+            const deviceId = deviceSelect ? deviceSelect.getValue() : null;
+            if (deviceId) {
+                await loadPoliciesForImpact();
+            }
+        } else {
+            paramsColumn.style.display = 'none';
+            impactUI.style.display = 'none';
+            if (startButton) startButton.style.display = 'inline-block';
+        }
+        
+        // 분석 타입 변경 시 최신 결과 다시 로드
+        loadLatestResult();
+    });
+}
+
 export async function initAnalysis() {
     await loadDevices();
 
+    // 초기 objectCellRenderer 생성 (빈 Set으로 시작)
+    objectCellRenderer = createObjectCellRenderer(validObjectNames, handleObjectClick);
+
+    // 분석 타입 선택 UI 설정
+    setupAnalysisTypeSelect();
+
     // 초기 그리드 생성 (빈 상태)
-    const columnDefs = getColumnDefs('redundancy');
+    const analysisTypeSelect = document.getElementById('analysis-type-select');
+    const analysisType = analysisTypeSelect ? analysisTypeSelect.value : 'redundancy';
+    const columnDefs = getColumnDefsWithRenderer(analysisType);
     createGrid(columnDefs, []);
 
     const startButton = document.getElementById('btn-start-analysis');
     if (startButton) {
         startButton.addEventListener('click', startAnalysis);
+    }
+
+    // 영향도 분석 전용 분석 버튼
+    const impactStartButton = document.getElementById('btn-start-impact-analysis');
+    if (impactStartButton) {
+        impactStartButton.addEventListener('click', startAnalysis);
     }
 
     const exportButton = document.getElementById('btn-export-excel');

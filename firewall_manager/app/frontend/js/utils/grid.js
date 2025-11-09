@@ -119,3 +119,50 @@ export function createCommonGridOptions(options = {}) {
   };
 }
 
+/**
+ * 객체 이름을 링크로 렌더링하는 셀 렌더러
+ * @param {Object} params - AG Grid 셀 파라미터
+ * @param {Set} validObjectNames - 유효한 객체 이름 Set
+ * @param {Function} onObjectClick - 객체 클릭 시 호출할 함수 (deviceId, objectName) => void
+ * @returns {HTMLElement} 렌더링된 컨테이너 요소
+ */
+export function createObjectCellRenderer(validObjectNames, onObjectClick) {
+  return function objectCellRenderer(params) {
+    if (!params.value) return '';
+    
+    // analysis.js에서는 policy.device_id, policies.js에서는 device_id
+    const deviceId = params.data.policy?.device_id || params.data.device_id;
+    if (!deviceId) return params.value;
+    
+    const objectNames = params.value.split(',').map(s => s.trim()).filter(Boolean);
+
+    const container = document.createElement('div');
+    container.style.height = '100%';
+    container.style.maxHeight = '150px';
+    container.style.overflowY = 'auto';
+    container.style.lineHeight = '1.5';
+
+    objectNames.forEach(name => {
+      const line = document.createElement('div');
+      if (validObjectNames.has(name)) {
+        const link = document.createElement('a');
+        link.href = '#';
+        link.textContent = name;
+        link.style.cursor = 'pointer';
+        link.onclick = async (e) => {
+          e.preventDefault();
+          if (onObjectClick) {
+            await onObjectClick(deviceId, name);
+          }
+        };
+        line.appendChild(link);
+      } else {
+        line.textContent = name;
+      }
+      container.appendChild(line);
+    });
+
+    return container;
+  };
+}
+

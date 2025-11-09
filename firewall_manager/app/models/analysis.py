@@ -6,6 +6,9 @@ import datetime
 
 class AnalysisTaskType(str, enum.Enum):
     REDUNDANCY = "redundancy"
+    UNUSED = "unused"
+    IMPACT = "impact"
+    UNREFERENCED_OBJECTS = "unreferenced_objects"
 
 class AnalysisTaskStatus(str, enum.Enum):
     PENDING = "pending"

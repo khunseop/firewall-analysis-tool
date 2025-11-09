@@ -31,8 +31,23 @@ export const api = {
   getNetworkGroups: (deviceId) => request(`/firewall/${deviceId}/network-groups`),
   getServices: (deviceId) => request(`/firewall/${deviceId}/services`),
   getServiceGroups: (deviceId) => request(`/firewall/${deviceId}/service-groups`),
+  getPolicies: (deviceId) => request(`/firewall/${deviceId}/policies`),
   getObjectDetails: (deviceId, name) => request(`/firewall/object/details?device_id=${deviceId}&name=${encodeURIComponent(name)}`),
-  startAnalysis: (deviceId) => request(`/analysis/redundancy/${deviceId}`, { method: "POST" }),
+  startAnalysis: (deviceId, analysisType, params = {}) => {
+    const { days, targetPolicyId, newPosition } = params;
+    if (analysisType === 'redundancy') {
+      return request(`/analysis/redundancy/${deviceId}`, { method: "POST" });
+    } else if (analysisType === 'unused') {
+      const url = `/analysis/unused/${deviceId}${days ? `?days=${days}` : ''}`;
+      return request(url, { method: "POST" });
+    } else if (analysisType === 'impact') {
+      const url = `/analysis/impact/${deviceId}?target_policy_id=${targetPolicyId}&new_position=${newPosition}`;
+      return request(url, { method: "POST" });
+    } else if (analysisType === 'unreferenced_objects') {
+      return request(`/analysis/unreferenced-objects/${deviceId}`, { method: "POST" });
+    }
+    throw new Error(`Unknown analysis type: ${analysisType}`);
+  },
   getAnalysisStatus: (deviceId) => request(`/analysis/${deviceId}/status`),
   getAnalysisResults: (taskId) => request(`/analysis/redundancy/${taskId}/results`),
   getLatestAnalysisResult: (deviceId, analysisType) => request(`/analysis/${deviceId}/latest-result?analysis_type=${analysisType}`),

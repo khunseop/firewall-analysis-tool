@@ -18,10 +18,20 @@
           <div class="control">
             <div class="select is-fullwidth">
               <select id="analysis-type-select">
-                <option selected>중복 정책 분석</option>
-                <option disabled>Shadow 정책 분석 (예정)</option>
+                <option value="redundancy">중복 정책 분석</option>
+                <option value="unused">미사용 정책 분석</option>
+                <option value="unreferenced_objects">미참조 객체 분석</option>
+                <option value="impact">정책 위치 이동 영향도 분석</option>
               </select>
             </div>
+          </div>
+        </div>
+      </div>
+      <div class="column is-2" id="analysis-params-column" style="display: none;">
+        <div class="field">
+          <label class="label" id="analysis-params-label">파라미터</label>
+          <div class="control">
+            <input class="input is-small" type="number" id="analysis-params-input" placeholder="90" min="1" value="90">
           </div>
         </div>
       </div>
@@ -30,6 +40,50 @@
           <label class="label">&nbsp;</label>
           <div class="control">
             <button class="button is-primary is-small" id="btn-start-analysis">분석하기</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 영향도 분석 전용 설정 박스 -->
+  <div class="box mb-4" id="impact-analysis-ui" style="display: none;">
+    <h2 class="title is-6 mb-4">정책 이동 설정</h2>
+    <div class="columns">
+      <div class="column is-4">
+        <div class="field">
+          <label class="label">대상 정책</label>
+          <div class="control">
+            <select id="impact-target-policy-select"></select>
+          </div>
+        </div>
+      </div>
+      <div class="column is-3">
+        <div class="field">
+          <label class="label">이동 방향</label>
+          <div class="control">
+            <div class="select is-fullwidth">
+              <select id="impact-move-direction">
+                <option value="above">위로 이동</option>
+                <option value="below">아래로 이동</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="column is-4">
+        <div class="field">
+          <label class="label">목적지 정책</label>
+          <div class="control">
+            <select id="impact-destination-policy-select"></select>
+          </div>
+        </div>
+      </div>
+      <div class="column is-1">
+        <div class="field">
+          <label class="label">&nbsp;</label>
+          <div class="control">
+            <button class="button is-primary is-small is-fullwidth" id="btn-start-impact-analysis">분석하기</button>
           </div>
         </div>
       </div>
