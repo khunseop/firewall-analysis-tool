@@ -26,6 +26,8 @@
       </div>
     </div>
     
+    <!-- 메시지 컨테이너 -->
+    <div id="devices-message-container"></div>
     <!-- 그리드 -->
     <div id="devices-grid" class="ag-theme-quartz"></div>
   </div>
@@ -40,60 +42,114 @@
       </header>
       <section class="modal-card-body">
         <form id="device-form">
-          <div class="field">
-            <label class="label">이름</label>
-            <div class="control">
-              <input class="input" name="name" required />
+          <div class="columns is-multiline">
+            <!-- 1행: 이름 | IP 주소 -->
+            <div class="column is-6">
+              <div class="field">
+                <label class="label">이름 <span class="has-text-danger">*</span></label>
+                <div class="control">
+                  <input class="input is-small" name="name" required />
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="field">
-            <label class="label">IP 주소</label>
-            <div class="control">
-              <input class="input" name="ip_address" required />
+            <div class="column is-6">
+              <div class="field">
+                <label class="label">IP 주소 <span class="has-text-danger">*</span></label>
+                <div class="control">
+                  <input class="input is-small" name="ip_address" required />
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="field">
-            <label class="label">HA Peer IP</label>
-            <div class="control">
-              <input class="input" name="ha_peer_ip" />
+            
+            <!-- 2행: HA Peer IP | 벤더 -->
+            <div class="column is-6">
+              <div class="field">
+                <label class="label">HA Peer IP <span class="has-text-grey is-size-7">(선택)</span></label>
+                <div class="control">
+                  <input class="input is-small" name="ha_peer_ip" />
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="field">
-            <label class="label">벤더</label>
-            <div class="control select is-fullwidth">
-              <select name="vendor" id="vendor-select"></select>
+            <div class="column is-6">
+              <div class="field">
+                <label class="label">벤더 <span class="has-text-danger">*</span></label>
+                <div class="control select is-fullwidth is-small">
+                  <select name="vendor" id="vendor-select" required></select>
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="field">
-            <label class="label">사용자명</label>
-            <div class="control">
-              <input class="input" name="username" required />
+            
+            <!-- 3행: 모델 | OS 버전 -->
+            <div class="column is-6">
+              <div class="field">
+                <label class="label">모델 <span class="has-text-grey is-size-7">(선택)</span></label>
+                <div class="control">
+                  <input class="input is-small" name="model" />
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="field">
-            <label class="label">비밀번호</label>
-            <div class="control">
-              <input class="input" type="password" name="password" id="password-input" />
+            <div class="column is-6">
+              <div class="field">
+                <label class="label">OS 버전 <span class="has-text-grey is-size-7">(선택)</span></label>
+                <div class="control">
+                  <input class="input is-small" name="os_version" />
+                </div>
+              </div>
             </div>
-            <p class="help">수정 시 비워두면 비밀번호는 변경되지 않습니다.</p>
-          </div>
-          <div class="field">
-            <label class="label">비밀번호 확인</label>
-            <div class="control">
-              <input class="input" type="password" name="password_confirm" />
+            
+            <!-- 4행: 사용자명 | (빈 공간) -->
+            <div class="column is-6">
+              <div class="field">
+                <label class="label">사용자명 <span class="has-text-danger">*</span></label>
+                <div class="control">
+                  <input class="input is-small" name="username" required />
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="field">
-            <label class="label">설명</label>
-            <div class="control">
-              <textarea class="textarea" name="description"></textarea>
+            <div class="column is-6">
+              <!-- 빈 공간 -->
             </div>
-          </div>
-          <div class="field">
-            <label class="checkbox">
-              <input type="checkbox" name="use_ssh_for_last_hit_date">
-              last_hit_date SSH로 수집
-            </label>
+            
+            <!-- 5행: 비밀번호 | 비밀번호 확인 -->
+            <div class="column is-6">
+              <div class="field">
+                <label class="label">비밀번호 <span class="has-text-danger">*</span></label>
+                <div class="control">
+                  <input class="input is-small" type="password" name="password" id="password-input" />
+                </div>
+                <p class="help">수정 시 비워두면 비밀번호는 변경되지 않습니다.</p>
+              </div>
+            </div>
+            <div class="column is-6">
+              <div class="field">
+                <label class="label">비밀번호 확인 <span class="has-text-danger">*</span></label>
+                <div class="control">
+                  <input class="input is-small" type="password" name="password_confirm" />
+                </div>
+              </div>
+            </div>
+            
+            <!-- 6행: 설명 (전체 너비) -->
+            <div class="column is-12">
+              <div class="field">
+                <label class="label">설명 <span class="has-text-grey is-size-7">(선택)</span></label>
+                <div class="control">
+                  <textarea class="textarea is-small" name="description"></textarea>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 7행: 체크박스 -->
+            <div class="column is-12">
+              <div class="field">
+                <div class="control">
+                  <label class="checkbox" style="font-size: 0.875rem; font-weight: normal;">
+                    <input type="checkbox" name="use_ssh_for_last_hit_date">
+                    <span style="margin-left: 0.5rem;">마지막 매칭일시 SSH로 수집하기 <span class="has-text-grey is-size-7">(선택)</span></span>
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
           <p class="help is-danger is-hidden" id="form-error"></p>
         </form>

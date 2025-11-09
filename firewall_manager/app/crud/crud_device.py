@@ -59,6 +59,9 @@ async def update_sync_status(
     db: AsyncSession, device: Device, status: str, step: str | None = None
 ) -> Device:
     """Update device sync status, step, and optionally timestamp."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     device.last_sync_status = status
     device.last_sync_step = step
 
@@ -70,4 +73,13 @@ async def update_sync_status(
         device.last_sync_step = "Completed" # Mark final step on success
 
     db.add(device)
+    
+    # WebSocket으로 상태 변경 브로드캐스트
+    try:
+        from app.services.websocket_manager import websocket_manager
+        await websocket_manager.broadcast_device_status(device.id, status, step)
+    except Exception as e:
+        # WebSocket 브로드캐스트 실패해도 DB 업데이트는 계속 진행
+        logger.warning(f"WebSocket 브로드캐스트 실패: {e}")
+    
     return device

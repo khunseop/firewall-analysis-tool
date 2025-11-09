@@ -185,6 +185,7 @@ class MockCollector(FirewallInterface):
         self.client = MockFirewall(hostname, username, password)
 
     def connect(self) -> bool:
+        time.sleep(random.uniform(0.5, 2.0))  # 연결 시뮬레이션
         self._connected = True
         return True
 
@@ -196,23 +197,23 @@ class MockCollector(FirewallInterface):
         return True
 
     def export_security_rules(self, **kwargs):
-        time.sleep(random.uniform(0.1, 5.5))
+        time.sleep(random.uniform(3.1, 5.5))
         return self.client.export_security_rules()
 
     def export_network_objects(self, **kwargs):
-        time.sleep(random.uniform(0.1, 5.5))
+        time.sleep(random.uniform(3.1, 5.5))
         return self.client.export_network_objects()
 
     def export_network_group_objects(self, **kwargs):
-        time.sleep(random.uniform(0.1, 5.5))
+        time.sleep(random.uniform(3.1, 5.5))
         return self.client.export_network_group_objects()
 
     def export_service_objects(self, **kwargs):
-        time.sleep(random.uniform(0.1, 5.5))
+        time.sleep(random.uniform(3.1, 5.5))
         return self.client.export_service_objects()
 
     def export_service_group_objects(self, **kwargs):
-        time.sleep(random.uniform(0.1, 5.5))
+        time.sleep(random.uniform(3.1, 5.5))
         return self.client.export_service_group_objects()
 
     def get_system_info(self, **kwargs):
