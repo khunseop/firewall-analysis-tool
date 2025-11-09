@@ -106,6 +106,12 @@ export const api = {
     }
     return res.json();
   },
+  // Sync Schedule APIs
+  listSchedules: () => request(`/sync-schedules`),
+  getSchedule: (id) => request(`/sync-schedules/${id}`),
+  createSchedule: (payload) => request(`/sync-schedules`, { method: "POST", body: JSON.stringify(payload) }),
+  updateSchedule: (id, payload) => request(`/sync-schedules/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+  deleteSchedule: (id) => request(`/sync-schedules/${id}`, { method: "DELETE" }),
 };
 
 

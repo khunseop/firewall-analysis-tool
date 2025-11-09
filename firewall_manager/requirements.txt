@@ -12,3 +12,4 @@ requests
 httpx
 paramiko
 scp
+apscheduler

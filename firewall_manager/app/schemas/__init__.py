@@ -11,3 +11,4 @@ from .analysis import (
     RedundancyPolicySet, RedundancyPolicySetCreate,
     AnalysisResult, AnalysisResultCreate, AnalysisResultUpdate
 )
+from .sync_schedule import SyncSchedule, SyncScheduleCreate, SyncScheduleUpdate

@@ -1,4 +1,5 @@
 from pathlib import Path
+import logging
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -10,6 +11,9 @@ from fastapi.openapi.docs import (
 from fastapi.responses import FileResponse
 
 from app.api.api_v1.api import api_router as api_v1_router
+from app.services.scheduler import sync_scheduler
+
+logger = logging.getLogger(__name__)
 
 
 SWAGGER_UI_HTML_PATH = "/docs"
@@ -71,3 +75,18 @@ def serve_index():
 def serve_analysis_page():
     analysis_file = FRONTEND_DIR / "templates/analysis.html"
     return FileResponse(analysis_file)
+
+
+@app.on_event("startup")
+async def startup_event():
+    """애플리케이션 시작 시 스케줄러 초기화"""
+    sync_scheduler.start()
+    await sync_scheduler.load_schedules()
+    logger.info("Application started and scheduler initialized")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """애플리케이션 종료 시 스케줄러 정리"""
+    sync_scheduler.stop()
+    logger.info("Application shutdown and scheduler stopped")
