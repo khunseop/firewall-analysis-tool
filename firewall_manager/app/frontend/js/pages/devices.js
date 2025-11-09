@@ -489,6 +489,88 @@ function handleSearch(event) {
   }
 }
 
+/**
+ * 엑셀 서식 다운로드 핸들러
+ */
+async function handleDownloadTemplate() {
+  try {
+    await api.downloadDeviceTemplate();
+    await openAlert({ 
+      title: '다운로드 완료', 
+      message: '엑셀 서식 파일이 다운로드되었습니다.' 
+    });
+  } catch (e) {
+    await openAlert({ 
+      title: '다운로드 실패', 
+      message: e.message || '엑셀 서식 다운로드에 실패했습니다.' 
+    });
+  }
+}
+
+/**
+ * 엑셀 파일 업로드 핸들러
+ */
+async function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  // 파일 확장자 확인
+  if (!file.name.match(/\.(xlsx|xls)$/i)) {
+    await openAlert({ 
+      title: '파일 형식 오류', 
+      message: '엑셀 파일(.xlsx, .xls)만 업로드 가능합니다.' 
+    });
+    event.target.value = ''; // 파일 선택 초기화
+    return;
+  }
+  
+  // 확인 대화상자
+  const ok = await openConfirm({
+    title: '일괄 등록 확인',
+    message: `'${file.name}' 파일로 장비를 일괄 등록하시겠습니까?`,
+    okText: '등록',
+    cancelText: '취소'
+  });
+  
+  if (!ok) {
+    event.target.value = ''; // 파일 선택 초기화
+    return;
+  }
+  
+  try {
+    const result = await api.bulkImportDevices(file);
+    
+    // 결과 메시지 구성
+    let message = result.message || `총 ${result.total}개 중 ${result.success_count}개 장비가 등록되었습니다.`;
+    
+    if (result.failed_count > 0) {
+      message += `\n\n실패: ${result.failed_count}개`;
+      if (result.failed_devices && result.failed_devices.length > 0) {
+        message += '\n\n' + result.failed_devices.slice(0, 10).join('\n');
+        if (result.failed_devices.length > 10) {
+          message += `\n... 외 ${result.failed_devices.length - 10}개`;
+        }
+      }
+    }
+    
+    await openAlert({ 
+      title: '일괄 등록 완료', 
+      message: message 
+    });
+    
+    // 그리드 새로고침
+    await reload();
+    
+  } catch (e) {
+    await openAlert({ 
+      title: '일괄 등록 실패', 
+      message: e.message || '엑셀 파일 처리에 실패했습니다.' 
+    });
+  } finally {
+    event.target.value = ''; // 파일 선택 초기화
+  }
+}
+
 // ==================== WebSocket 관련 함수 ====================
 
 /**
@@ -627,12 +709,16 @@ export async function initDevices(root) {
   const editBtn = root.querySelector('#btn-edit');
   const deleteBtn = root.querySelector('#btn-delete');
   const syncBtn = root.querySelector('#btn-sync');
+  const downloadTemplateBtn = root.querySelector('#btn-download-template');
+  const fileUpload = root.querySelector('#file-upload');
   const search = root.querySelector('#devices-search');
   
   if (addBtn) addBtn.onclick = handleAdd;
   if (editBtn) editBtn.onclick = handleEdit;
   if (deleteBtn) deleteBtn.onclick = handleDelete;
   if (syncBtn) syncBtn.onclick = handleSync;
+  if (downloadTemplateBtn) downloadTemplateBtn.onclick = handleDownloadTemplate;
+  if (fileUpload) fileUpload.onchange = handleFileUpload;
   if (search) search.oninput = handleSearch;
   
   // WebSocket 연결 후 초기 데이터 로드 (연결 완료를 기다림)

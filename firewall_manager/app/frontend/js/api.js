@@ -73,6 +73,39 @@ export const api = {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   },
+  downloadDeviceTemplate: async () => {
+    const res = await fetch(`${BASE}/devices/excel-template`);
+    if (!res.ok) {
+      let detail = "Template download failed";
+      try { const data = await res.json(); detail = data.detail || data.msg || detail; } catch {}
+      throw new Error(detail);
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = "device_template.xlsx";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  },
+  bulkImportDevices: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${BASE}/devices/bulk-import`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      let detail = "Import failed";
+      try { const data = await res.json(); detail = data.detail || data.msg || detail; } catch {}
+      const error = new Error(detail);
+      error.status = res.status;
+      throw error;
+    }
+    return res.json();
+  },
 };
 
 
