@@ -94,10 +94,11 @@ class Resolver:
         # Check if this is a group (exists in group_map)
         if name in group_map:
             members = group_map[name]
-            # If group has no members, return empty set (not "any")
+            # If group has no members, return group name as a special marker
+            # This ensures empty groups are distinguishable from each other
             if not members:
-                closure_cache[name] = set()
-                return set()
+                closure_cache[name] = {f"__GROUP__:{name}"}
+                return {f"__GROUP__:{name}"}
             
             # Expand group members recursively
             expanded_members: Set[str] = set()
@@ -200,17 +201,41 @@ async def rebuild_policy_indices(
         # --- Data Compression & Row Creation ---
         # Address members (Source and Destination)
         for direction, members in [('source', src_members), ('destination', dst_members)]:
-            # IP Range Merging
-            merged_ranges = merge_ip_ranges(members)
+            # Separate IP-parseable members from group markers
+            ip_members = {m for m in members if not m.startswith("__GROUP__:")}
+            group_markers = {m for m in members if m.startswith("__GROUP__:")}
+            
+            # IP Range Merging for parseable IPs
+            merged_ranges = merge_ip_ranges(ip_members)
             for start_ip, end_ip in merged_ranges:
                  addr_rows.append({
                     "device_id": device_id, "policy_id": policy.id, "direction": direction,
                     "token_type": 'ipv4_range',
                     "ip_start": start_ip, "ip_end": end_ip
                 })
+            
+            # Store empty group markers as tokens (group name only, no IP range)
+            for marker in group_markers:
+                group_name = marker.replace("__GROUP__:", "", 1)
+                addr_rows.append({
+                    "device_id": device_id, "policy_id": policy.id, "direction": direction,
+                    "token": group_name,
+                    "token_type": 'unknown',  # Empty group, not a valid IP
+                    "ip_start": None, "ip_end": None
+                })
 
         # Service members
         for token in filter(None, svc_members):
+            # Handle empty service group markers
+            if token.startswith("__GROUP__:"):
+                group_name = token.replace("__GROUP__:", "", 1)
+                svc_rows.append({
+                    "device_id": device_id, "policy_id": policy.id, "token": group_name,
+                    "token_type": 'unknown',  # Empty group, not a valid service
+                    "protocol": None, "port_start": None, "port_end": None
+                })
+                continue
+            
             token_lower = token.lower()
             if '/' in token_lower:
                 proto, port_str = token_lower.split('/', 1)

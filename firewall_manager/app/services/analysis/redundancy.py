@@ -46,15 +46,34 @@ class RedundancyAnalyzer:
 
     def _normalize_policy_key(self, policy: Policy) -> Tuple:
         """정책의 중복 여부를 판단하기 위한 고유 키를 생성합니다."""
-        src_addrs = tuple(sorted([
-            f"{m.ip_start}-{m.ip_end}" for m in policy.address_members if m.direction == 'source'
-        ]))
-        dst_addrs = tuple(sorted([
-            f"{m.ip_start}-{m.ip_end}" for m in policy.address_members if m.direction == 'destination'
-        ]))
-        services = tuple(sorted([
-            f"{m.protocol}/{m.port_start}-{m.port_end}" for m in policy.service_members
-        ]))
+        # Source addresses: include IP ranges and empty group tokens
+        src_addrs = []
+        for m in policy.address_members:
+            if m.direction == 'source':
+                if m.ip_start is not None and m.ip_end is not None:
+                    src_addrs.append(f"{m.ip_start}-{m.ip_end}")
+                elif m.token and m.token_type == 'unknown':  # Empty group
+                    src_addrs.append(f"__GROUP__:{m.token}")
+        src_addrs = tuple(sorted(src_addrs))
+        
+        # Destination addresses: include IP ranges and empty group tokens
+        dst_addrs = []
+        for m in policy.address_members:
+            if m.direction == 'destination':
+                if m.ip_start is not None and m.ip_end is not None:
+                    dst_addrs.append(f"{m.ip_start}-{m.ip_end}")
+                elif m.token and m.token_type == 'unknown':  # Empty group
+                    dst_addrs.append(f"__GROUP__:{m.token}")
+        dst_addrs = tuple(sorted(dst_addrs))
+        
+        # Services: include port ranges and empty group tokens
+        services = []
+        for m in policy.service_members:
+            if m.port_start is not None and m.port_end is not None:
+                services.append(f"{m.protocol}/{m.port_start}-{m.port_end}")
+            elif m.token and m.token_type == 'unknown':  # Empty group
+                services.append(f"__GROUP__:{m.token}")
+        services = tuple(sorted(services))
 
         key_fields = [policy.action, src_addrs, policy.user, dst_addrs, services, policy.application]
         if self.vendor == 'paloalto':

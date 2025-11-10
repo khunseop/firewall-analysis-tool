@@ -10,7 +10,8 @@ class PolicyAddressMember(Base):
     device_id = Column(Integer, ForeignKey("devices.id"), nullable=False)
     policy_id = Column(Integer, ForeignKey("policies.id"), nullable=False)
     direction = Column(String, nullable=False)  # 'source' or 'destination'
-    token_type = Column(String, nullable=True)  # 'ipv4_range'
+    token = Column(String, nullable=True)  # original token (for empty groups)
+    token_type = Column(String, nullable=True)  # 'ipv4_range' | 'unknown'
     ip_start = Column(BigInteger, nullable=True)
     ip_end = Column(BigInteger, nullable=True)
 
