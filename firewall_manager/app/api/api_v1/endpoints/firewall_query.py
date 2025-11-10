@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Union
 
 from app import crud, schemas, models
 from app.db.session import get_db
@@ -76,6 +76,23 @@ async def search_policies(req: schemas.PolicySearchRequest, db: AsyncSession = D
         valid_object_names.update(group.name for group in service_groups)
 
     return schemas.PolicySearchResponse(policies=policies, valid_object_names=list(valid_object_names))
+
+
+@router.post("/objects/search", response_model=List[Union[schemas.NetworkObject, schemas.NetworkGroup, schemas.Service, schemas.ServiceGroup]])
+async def search_objects(req: schemas.ObjectSearchRequest, db: AsyncSession = Depends(get_db)):
+    if not req.device_ids:
+        return []
+
+    if req.object_type == 'network_object':
+        return await crud.network_object.search_network_objects(db=db, req=req)
+    elif req.object_type == 'network_group':
+        return await crud.network_group.search_network_groups(db=db, req=req)
+    elif req.object_type == 'service':
+        return await crud.service.search_services(db=db, req=req)
+    elif req.object_type == 'service_group':
+        return await crud.service_group.search_service_groups(db=db, req=req)
+    else:
+        raise HTTPException(status_code=400, detail="Invalid object type specified")
 
 
 @router.get("/{device_id}/network-objects", response_model=List[schemas.NetworkObject])

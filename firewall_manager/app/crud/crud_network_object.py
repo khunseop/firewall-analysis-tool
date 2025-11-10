@@ -2,9 +2,31 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import delete, update, func
 
+from typing import List
+from app import schemas
 from app.models.network_object import NetworkObject
 from app.schemas.network_object import NetworkObjectCreate
 from datetime import datetime
+
+async def search_network_objects(db: AsyncSession, req: schemas.ObjectSearchRequest) -> List[NetworkObject]:
+    stmt = select(NetworkObject).where(
+        NetworkObject.is_active == True,
+        NetworkObject.device_id.in_(req.device_ids)
+    )
+
+    if req.name:
+        stmt = stmt.where(NetworkObject.name.ilike(f"%{req.name.strip()}%"))
+    if req.ip_address:
+        stmt = stmt.where(NetworkObject.ip_address.ilike(f"%{req.ip_address.strip()}%"))
+    if req.type:
+        stmt = stmt.where(NetworkObject.type.ilike(f"%{req.type.strip()}%"))
+    if req.description:
+        stmt = stmt.where(NetworkObject.description.ilike(f"%{req.description.strip()}%"))
+
+    stmt = stmt.order_by(NetworkObject.device_id.asc(), NetworkObject.name.asc())
+
+    result = await db.execute(stmt)
+    return result.scalars().all()
 
 async def get_network_object_by_name_and_device(db: AsyncSession, device_id: int, name: str):
     result = await db.execute(

@@ -26,6 +26,7 @@ export const api = {
   syncAll: (id) => request(`/firewall/sync-all/${id}`, { method: "POST" }),
   syncStatus: (id) => request(`/firewall/sync/${id}/status`),
   searchPolicies: (payload) => request(`/firewall/policies/search`, { method: "POST", body: JSON.stringify(payload) }),
+  searchObjects: (payload) => request(`/firewall/objects/search`, { method: "POST", body: JSON.stringify(payload) }),
   getPolicyCount: (deviceId) => request(`/firewall/${deviceId}/policies/count`),
   getObjectCount: (deviceId) => request(`/firewall/${deviceId}/objects/count`),
   getNetworkObjects: (deviceId) => request(`/firewall/${deviceId}/network-objects`),

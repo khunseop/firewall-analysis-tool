@@ -2,9 +2,31 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import delete, update, func
 
+from typing import List
+from app import schemas
 from app.models.service import Service
 from app.schemas.service import ServiceCreate
 from datetime import datetime
+
+async def search_services(db: AsyncSession, req: schemas.ObjectSearchRequest) -> List[Service]:
+    stmt = select(Service).where(
+        Service.is_active == True,
+        Service.device_id.in_(req.device_ids)
+    )
+
+    if req.name:
+        stmt = stmt.where(Service.name.ilike(f"%{req.name.strip()}%"))
+    if req.protocol:
+        stmt = stmt.where(Service.protocol.ilike(f"%{req.protocol.strip()}%"))
+    if req.port:
+        stmt = stmt.where(Service.port.ilike(f"%{req.port.strip()}%"))
+    if req.description:
+        stmt = stmt.where(Service.description.ilike(f"%{req.description.strip()}%"))
+
+    stmt = stmt.order_by(Service.device_id.asc(), Service.name.asc())
+
+    result = await db.execute(stmt)
+    return result.scalars().all()
 
 async def get_service_by_name_and_device(db: AsyncSession, device_id: int, name: str):
     result = await db.execute(

@@ -1,5 +1,6 @@
 from .device import Device, DeviceCreate, DeviceUpdate, DeviceSyncStatus, DeviceStats, DashboardStatsResponse
 from .policy import Policy, PolicyCreate, PolicySearchRequest, PolicySearchResponse, PolicyCountResponse, ObjectCountResponse
+from .object import ObjectSearchRequest
 from .network_object import NetworkObject, NetworkObjectCreate
 from .network_group import NetworkGroup, NetworkGroupCreate
 from .service import Service, ServiceCreate

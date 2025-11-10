@@ -46,8 +46,11 @@
       <div class="level-right">
         <div class="level-item">
           <div class="buttons">
+            <button class="button is-info is-small" id="btn-advanced-object-search">
+              상세 검색
+            </button>
             <button class="button is-light is-small" id="btn-reset-objects-filters">
-              필터 초기화
+              초기화
             </button>
             <button class="button is-success is-small" id="btn-export-objects-excel">
               엑셀 내보내기
@@ -83,5 +86,122 @@
         <div id="service-groups-grid" class="ag-theme-quartz"></div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- 상세 검색 모달 -->
+<div class="modal" id="modal-advanced-object-search">
+  <div class="modal-background"></div>
+  <div class="modal-card">
+    <header class="modal-card-head">
+      <p class="modal-card-title">객체 상세 검색</p>
+      <button class="delete" aria-label="close" id="close-advanced-object-search"></button>
+    </header>
+    <section class="modal-card-body">
+      <!-- Network Object Filters -->
+      <div id="filter-network_object" class="filter-pane">
+        <div class="field">
+          <label class="label">이름</label>
+          <div class="control">
+            <input class="input" type="text" id="f-no-name" placeholder="객체 이름">
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">IP 주소</label>
+          <div class="control">
+            <input class="input" type="text" id="f-no-ip" placeholder="IP 또는 CIDR">
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">타입</label>
+          <div class="control">
+            <input class="input" type="text" id="f-no-type" placeholder="예: ip-netmask">
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">설명</label>
+          <div class="control">
+            <input class="input" type="text" id="f-no-desc" placeholder="설명">
+          </div>
+        </div>
+      </div>
+
+      <!-- Network Group Filters -->
+      <div id="filter-network_group" class="filter-pane is-hidden">
+         <div class="field">
+          <label class="label">이름</label>
+          <div class="control">
+            <input class="input" type="text" id="f-ng-name" placeholder="그룹 이름">
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">멤버</label>
+          <div class="control">
+            <input class="input" type="text" id="f-ng-members" placeholder="멤버 이름 (쉼표로 구분)">
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">설명</label>
+          <div class="control">
+            <input class="input" type="text" id="f-ng-desc" placeholder="설명">
+          </div>
+        </div>
+      </div>
+
+      <!-- Service Filters -->
+      <div id="filter-service" class="filter-pane is-hidden">
+        <div class="field">
+          <label class="label">이름</label>
+          <div class="control">
+            <input class="input" type="text" id="f-svc-name" placeholder="서비스 이름">
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">프로토콜</label>
+          <div class="control">
+            <input class="input" type="text" id="f-svc-protocol" placeholder="예: tcp, udp">
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">포트</label>
+          <div class="control">
+            <input class="input" type="text" id="f-svc-port" placeholder="예: 80, 443">
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">설명</label>
+          <div class="control">
+            <input class="input" type="text" id="f-svc-desc" placeholder="설명">
+          </div>
+        </div>
+      </div>
+
+      <!-- Service Group Filters -->
+      <div id="filter-service_group" class="filter-pane is-hidden">
+        <div class="field">
+          <label class="label">이름</label>
+          <div class="control">
+            <input class="input" type="text" id="f-sg-name" placeholder="서비스 그룹 이름">
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">멤버</label>
+          <div class="control">
+            <input class="input" type="text" id="f-sg-members" placeholder="멤버 이름 (쉼표로 구분)">
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">설명</label>
+          <div class="control">
+            <input class="input" type="text" id="f-sg-desc" placeholder="설명">
+          </div>
+        </div>
+      </div>
+    </section>
+    <footer class="modal-card-foot">
+      <button class="button is-success" id="btn-apply-object-search">적용</button>
+      <button class="button" id="btn-clear-object-search">초기화</button>
+      <button class="button" id="cancel-advanced-object-search">취소</button>
+    </footer>
   </div>
 </div>

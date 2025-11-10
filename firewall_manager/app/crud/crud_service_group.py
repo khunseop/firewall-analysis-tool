@@ -2,9 +2,35 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import delete, update, func
 
+from typing import List
+from app import schemas
+from sqlalchemy import and_
 from app.models.service_group import ServiceGroup
 from app.schemas.service_group import ServiceGroupCreate
 from datetime import datetime
+
+async def search_service_groups(db: AsyncSession, req: schemas.ObjectSearchRequest) -> List[ServiceGroup]:
+    stmt = select(ServiceGroup).where(
+        ServiceGroup.is_active == True,
+        ServiceGroup.device_id.in_(req.device_ids)
+    )
+
+    if req.name:
+        stmt = stmt.where(ServiceGroup.name.ilike(f"%{req.name.strip()}%"))
+    if req.description:
+        stmt = stmt.where(ServiceGroup.description.ilike(f"%{req.description.strip()}%"))
+    if req.members:
+        member_conditions = [
+            ServiceGroup.members.ilike(f"%{member.strip()}%")
+            for member in req.members.split(',') if member.strip()
+        ]
+        if member_conditions:
+            stmt = stmt.where(and_(*member_conditions))
+
+    stmt = stmt.order_by(ServiceGroup.device_id.asc(), ServiceGroup.name.asc())
+
+    result = await db.execute(stmt)
+    return result.scalars().all()
 
 async def get_service_group_by_name_and_device(db: AsyncSession, device_id: int, name: str):
     result = await db.execute(

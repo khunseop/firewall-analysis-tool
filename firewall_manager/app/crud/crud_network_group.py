@@ -2,9 +2,35 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import delete, update, func
 
+from typing import List
+from app import schemas
+from sqlalchemy import and_
 from app.models.network_group import NetworkGroup
 from app.schemas.network_group import NetworkGroupCreate
 from datetime import datetime
+
+async def search_network_groups(db: AsyncSession, req: schemas.ObjectSearchRequest) -> List[NetworkGroup]:
+    stmt = select(NetworkGroup).where(
+        NetworkGroup.is_active == True,
+        NetworkGroup.device_id.in_(req.device_ids)
+    )
+
+    if req.name:
+        stmt = stmt.where(NetworkGroup.name.ilike(f"%{req.name.strip()}%"))
+    if req.description:
+        stmt = stmt.where(NetworkGroup.description.ilike(f"%{req.description.strip()}%"))
+    if req.members:
+        member_conditions = [
+            NetworkGroup.members.ilike(f"%{member.strip()}%")
+            for member in req.members.split(',') if member.strip()
+        ]
+        if member_conditions:
+            stmt = stmt.where(and_(*member_conditions))
+
+    stmt = stmt.order_by(NetworkGroup.device_id.asc(), NetworkGroup.name.asc())
+
+    result = await db.execute(stmt)
+    return result.scalars().all()
 
 async def get_network_group_by_name_and_device(db: AsyncSession, device_id: int, name: str):
     result = await db.execute(
