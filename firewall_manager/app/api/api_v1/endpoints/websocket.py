@@ -39,3 +39,4 @@ async def websocket_endpoint(websocket: WebSocket):
         logger.error(f"WebSocket 오류: {e}", exc_info=True)
         websocket_manager.disconnect(websocket)
 
+

@@ -168,3 +168,4 @@ class UnreferencedObjectsAnalyzer:
         logger.info(f"{len(results)}개의 미참조 객체가 발견되었습니다.")
         return results
 
+
