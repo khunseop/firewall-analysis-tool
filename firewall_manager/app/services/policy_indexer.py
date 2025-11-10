@@ -91,18 +91,25 @@ class Resolver:
             return {name}
         visited.add(name)
 
-        members = group_map.get(name)
-        if not members:
+        # Check if this is a group (exists in group_map)
+        if name in group_map:
+            members = group_map[name]
+            # If group has no members, return empty set (not "any")
+            if not members:
+                closure_cache[name] = set()
+                return set()
+            
+            # Expand group members recursively
+            expanded_members: Set[str] = set()
+            for member_name in members:
+                expanded_members.update(self._expand_groups(member_name, group_map, closure_cache, visited.copy()))
+            
+            closure_cache[name] = expanded_members
+            return expanded_members
+        else:
             # It's a base object, not a group
             closure_cache[name] = {name}
             return {name}
-
-        expanded_members: Set[str] = set()
-        for member_name in members:
-            expanded_members.update(self._expand_groups(member_name, group_map, closure_cache, visited.copy()))
-
-        closure_cache[name] = expanded_members
-        return expanded_members
 
     def pre_resolve_objects(
         self,
