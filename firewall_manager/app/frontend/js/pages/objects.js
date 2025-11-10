@@ -295,9 +295,8 @@ async function loadDevices() {
         placeholder: '장비 선택',
         plugins: ['remove_button'],
         maxOptions: null,
-        onChange: function() {
-          const selectedDevices = this.getValue();
-          loadData(selectedDevices);
+        onChange: function(value) {
+          loadData(value);
         }
       });
       // 초기 로딩 시 자동 선택/자동 로드를 수행하지 않습니다.
@@ -308,9 +307,25 @@ async function loadDevices() {
 }
 
 // 데이터 로드 (멀티 장비 지원)
-async function loadData() {
-    const select = document.getElementById('object-device-select');
-    const deviceIds = Array.from(select?.selectedOptions || []).map(o=>parseInt(o.value,10)).filter(Boolean);
+async function loadData(deviceIds) {
+    // deviceIds를 배열로 변환 (단일 값이거나 문자열일 경우 대비)
+    let deviceIdArray = [];
+    if (Array.isArray(deviceIds)) {
+        deviceIdArray = deviceIds;
+    } else if (deviceIds) {
+        deviceIdArray = [deviceIds];
+    } else {
+        const select = document.getElementById('object-device-select');
+        if (select && select.tomselect) {
+            const selected = select.tomselect.getValue();
+            if (Array.isArray(selected)) {
+                deviceIdArray = selected.map(id => parseInt(id, 10));
+            } else if (selected) {
+                deviceIdArray = [parseInt(selected, 10)];
+            }
+        }
+    }
+
 
     const messageContainerMap = {
         'network-objects': 'network-objects-message-container',
@@ -322,7 +337,7 @@ async function loadData() {
     const currentMessageContainer = document.getElementById(messageContainerMap[currentTab.replace('-', '_')]);
     const currentGridElement = document.getElementById(`${currentTab}-grid`);
 
-    if (deviceIds.length === 0) {
+    if (deviceIdArray.length === 0) {
         const grids = [networkObjectsGrid, networkGroupsGrid, servicesGrid, serviceGroupsGrid];
         grids.forEach(grid => {
             if (grid) {
@@ -339,13 +354,13 @@ async function loadData() {
     if (currentGridElement) currentGridElement.style.display = 'block';
 
     try {
-        const payload = buildObjectSearchPayload(deviceIds);
+        const payload = buildObjectSearchPayload(deviceIdArray);
         let mergedData;
 
         if (payload.hasSearchParams) {
             mergedData = await api.searchObjects(payload.data);
         } else {
-            const dataPromises = deviceIds.map(async (deviceId) => {
+            const dataPromises = deviceIdArray.map(async (deviceId) => {
                 let data = [];
                 if (currentTab === 'network-objects') data = await api.getNetworkObjects(deviceId);
                 else if (currentTab === 'network-groups') data = await api.getNetworkGroups(deviceId);
@@ -396,9 +411,15 @@ async function loadData() {
 
 function buildObjectSearchPayload(deviceIds) {
     const v = (id) => document.getElementById(id)?.value?.trim() || null;
+
+    let objectType = currentTab.replace('-', '_');
+    if (objectType.endsWith('s')) {
+        objectType = objectType.slice(0, -1);
+    }
+
     let payload = {
         device_ids: deviceIds,
-        object_type: currentTab.replace('-', '_')
+        object_type: objectType
     };
     let hasSearchParams = false;
 
@@ -491,7 +512,7 @@ function switchTab(tabName) {
   if (select && select.tomselect) {
     const selectedDevices = select.tomselect.getValue();
     if (selectedDevices && selectedDevices.length > 0) {
-      loadData();
+      loadData(selectedDevices);
     }
   }
 }

@@ -68,11 +68,44 @@ def test_policy_search_scenarios(client: TestClient, device_id: int):
     _search_and_assert("Search with no results expected", {"src_ips": ["99.99.99.99/32"]}, min_results=0)
 
 
+# This is not a standard test, but a way to inject specific data for E2E tests.
+def seed_specific_test_data(client: TestClient, device_id: int):
+    logging.info("\n--- Seeding specific data for E2E tests ---")
+
+    # Using a direct, internal endpoint would be better, but for this smoke test,
+    # we'll use the sync logic and re-sync. To do this, we need a way to add
+    # data to the mock source. Since we can't directly modify the mock object
+    # in the running app, we will add the data directly to the database.
+    # This is a HACK for the smoke test but is acceptable for now.
+
+    # We need to run this within an async context to use the DB session
+    import asyncio
+    from app.db.session import SessionLocal
+    from app.models.network_object import NetworkObject
+
+    async def _seed():
+        async with SessionLocal() as db:
+            # Clean up old test data if it exists
+            from sqlalchemy import delete
+            await db.execute(delete(NetworkObject).where(NetworkObject.name.like("TEST_SNAT_IP%")))
+
+            # Create new test data
+            db.add_all([
+                NetworkObject(device_id=device_id, name="TEST_SNAT_IP_1", ip_address="10.10.10.1", type="host", description="E2E test data 1", is_active=True),
+                NetworkObject(device_id=device_id, name="TEST_SNAT_IP_2", ip_address="10.10.10.2", type="host", description="E2E test data 2", is_active=True),
+            ])
+            await db.commit()
+            logging.info("  - Seeded 2 'TEST_SNAT_IP' network objects.")
+
+    asyncio.run(_seed())
+
+
 if __name__ == "__main__":
     setup_database()
     with TestClient(app) as client:
         device = create_test_device(client)
         run_sync(client, device["id"])
         test_policy_search_scenarios(client, device["id"])
+        seed_specific_test_data(client, device["id"])
 
     print(json.dumps({"status": "ok"}))

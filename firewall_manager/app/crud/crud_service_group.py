@@ -4,7 +4,7 @@ from sqlalchemy import delete, update, func
 
 from typing import List
 from app import schemas
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 from app.models.service_group import ServiceGroup
 from app.schemas.service_group import ServiceGroupCreate
 from datetime import datetime
@@ -15,10 +15,17 @@ async def search_service_groups(db: AsyncSession, req: schemas.ObjectSearchReque
         ServiceGroup.device_id.in_(req.device_ids)
     )
 
-    if req.name:
-        stmt = stmt.where(ServiceGroup.name.ilike(f"%{req.name.strip()}%"))
-    if req.description:
-        stmt = stmt.where(ServiceGroup.description.ilike(f"%{req.description.strip()}%"))
+    def add_multi_value_filter(stmt, column, value):
+        if not value:
+            return stmt
+        values = [v.strip() for v in value.split(',') if v.strip()]
+        if values:
+            stmt = stmt.where(or_(*[column.ilike(f"%{v}%") for v in values]))
+        return stmt
+
+    stmt = add_multi_value_filter(stmt, ServiceGroup.name, req.name)
+    stmt = add_multi_value_filter(stmt, ServiceGroup.description, req.description)
+
     if req.members:
         member_conditions = [
             ServiceGroup.members.ilike(f"%{member.strip()}%")

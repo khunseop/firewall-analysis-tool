@@ -4,6 +4,7 @@ from sqlalchemy import delete, update, func
 
 from typing import List
 from app import schemas
+from sqlalchemy import or_
 from app.models.network_object import NetworkObject
 from app.schemas.network_object import NetworkObjectCreate
 from datetime import datetime
@@ -14,14 +15,18 @@ async def search_network_objects(db: AsyncSession, req: schemas.ObjectSearchRequ
         NetworkObject.device_id.in_(req.device_ids)
     )
 
-    if req.name:
-        stmt = stmt.where(NetworkObject.name.ilike(f"%{req.name.strip()}%"))
-    if req.ip_address:
-        stmt = stmt.where(NetworkObject.ip_address.ilike(f"%{req.ip_address.strip()}%"))
-    if req.type:
-        stmt = stmt.where(NetworkObject.type.ilike(f"%{req.type.strip()}%"))
-    if req.description:
-        stmt = stmt.where(NetworkObject.description.ilike(f"%{req.description.strip()}%"))
+    def add_multi_value_filter(stmt, column, value):
+        if not value:
+            return stmt
+        values = [v.strip() for v in value.split(',') if v.strip()]
+        if values:
+            stmt = stmt.where(or_(*[column.ilike(f"%{v}%") for v in values]))
+        return stmt
+
+    stmt = add_multi_value_filter(stmt, NetworkObject.name, req.name)
+    stmt = add_multi_value_filter(stmt, NetworkObject.ip_address, req.ip_address)
+    stmt = add_multi_value_filter(stmt, NetworkObject.type, req.type)
+    stmt = add_multi_value_filter(stmt, NetworkObject.description, req.description)
 
     stmt = stmt.order_by(NetworkObject.device_id.asc(), NetworkObject.name.asc())
 
