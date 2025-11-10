@@ -307,14 +307,68 @@ async function loadDevices() {
   }
 }
 
-// 데이터 로드 (멀티 장비 지원)
-async function loadData(deviceIds) {
+// 검색 페이로드 빌드 함수
+function buildObjectSearchPayload(deviceIds, objectType) {
+  const g = (id) => document.getElementById(id);
+  const v = (id) => g(id)?.value?.trim() || null;
+  const splitCsv = (val) => (val || '').split(',').map(s => s.trim()).filter(Boolean);
+
+  const payload = {
+    device_ids: deviceIds,
+    object_type: objectType,
+    name: v('obj-f-name'),
+    description: v('obj-f-description'),
+  };
+
+  // 객체 타입별 필터 추가
+  if (objectType === 'network-objects') {
+    payload.ip_address = v('obj-f-ip-address');
+    payload.type = v('obj-f-type');
+  } else if (objectType === 'network-groups') {
+    payload.members = v('obj-f-members-network');
+  } else if (objectType === 'services') {
+    payload.protocol = v('obj-f-protocol');
+    payload.port = v('obj-f-port');
+  } else if (objectType === 'service-groups') {
+    payload.members = v('obj-f-members-service');
+  }
+
+  // 쉼표로 구분된 값들을 배열로 변환
+  if (payload.name) {
+    payload.names = splitCsv(payload.name);
+  }
+  if (payload.ip_address) {
+    payload.ip_addresses = splitCsv(payload.ip_address);
+  }
+  if (payload.protocol) {
+    payload.protocols = splitCsv(payload.protocol);
+  }
+  if (payload.port) {
+    payload.ports = splitCsv(payload.port);
+  }
+
+  // 필터가 모두 비어있는지 확인
+  const hasFilters = payload.name || payload.description || 
+                     (objectType === 'network-objects' && (payload.ip_address || payload.type)) ||
+                     (objectType === 'network-groups' && payload.members) ||
+                     (objectType === 'services' && (payload.protocol || payload.port)) ||
+                     (objectType === 'service-groups' && payload.members);
+
+  if (!hasFilters && deviceIds.length > 0) {
+    payload.limit = 500; // 필터가 없으면 기본 제한
+  }
+
+  return payload;
+}
+
+// 데이터 로드 (멀티 장비 지원, 검색 필터 지원)
+async function loadData(deviceIds, useSearch = false) {
   // deviceIds를 배열로 변환 (단일 값이거나 문자열일 경우 대비)
   let deviceIdArray = [];
   if (Array.isArray(deviceIds)) {
-    deviceIdArray = deviceIds;
+    deviceIdArray = deviceIds.map(id => parseInt(id, 10)).filter(Boolean);
   } else if (deviceIds) {
-    deviceIdArray = [deviceIds];
+    deviceIdArray = [parseInt(deviceIds, 10)].filter(Boolean);
   }
 
   // 메시지 컨테이너 ID 매핑
@@ -358,31 +412,57 @@ async function loadData(deviceIds) {
   if (currentGridElement) currentGridElement.style.display = 'block';
 
   try {
-    // 여러 장비의 데이터를 병렬로 가져오기
-    const dataPromises = deviceIdArray.map(async (deviceId) => {
-      const device = allDevices.find(d => d.id === parseInt(deviceId));
-      const deviceName = device ? device.name : `장비 ${deviceId}`;
-      
-      let data = [];
-      if (currentTab === 'network-objects') {
-        data = await api.getNetworkObjects(deviceId);
-      } else if (currentTab === 'network-groups') {
-        data = await api.getNetworkGroups(deviceId);
-      } else if (currentTab === 'services') {
-        data = await api.getServices(deviceId);
-      } else if (currentTab === 'service-groups') {
-        data = await api.getServiceGroups(deviceId);
-      }
-      
-      // 각 항목에 device_name 추가
-      return data.map(item => ({
-        ...item,
-        device_name: deviceName
-      }));
-    });
+    let mergedData = [];
 
-    const results = await Promise.all(dataPromises);
-    const mergedData = results.flat();
+    if (useSearch) {
+      // 검색 API 사용
+      const payload = buildObjectSearchPayload(deviceIdArray, currentTab);
+      const response = await api.searchObjects(payload);
+      
+      // 응답에서 현재 탭에 해당하는 데이터 추출
+      if (currentTab === 'network-objects') {
+        mergedData = response.network_objects || [];
+      } else if (currentTab === 'network-groups') {
+        mergedData = response.network_groups || [];
+      } else if (currentTab === 'services') {
+        mergedData = response.services || [];
+      } else if (currentTab === 'service-groups') {
+        mergedData = response.service_groups || [];
+      }
+
+      // device_name 추가
+      mergedData = mergedData.map(item => {
+        const device = allDevices.find(d => d.id === item.device_id);
+        const deviceName = device ? device.name : `장비 ${item.device_id}`;
+        return { ...item, device_name: deviceName };
+      });
+    } else {
+      // 기존 방식: 여러 장비의 데이터를 병렬로 가져오기
+      const dataPromises = deviceIdArray.map(async (deviceId) => {
+        const device = allDevices.find(d => d.id === deviceId);
+        const deviceName = device ? device.name : `장비 ${deviceId}`;
+        
+        let data = [];
+        if (currentTab === 'network-objects') {
+          data = await api.getNetworkObjects(deviceId);
+        } else if (currentTab === 'network-groups') {
+          data = await api.getNetworkGroups(deviceId);
+        } else if (currentTab === 'services') {
+          data = await api.getServices(deviceId);
+        } else if (currentTab === 'service-groups') {
+          data = await api.getServiceGroups(deviceId);
+        }
+        
+        // 각 항목에 device_name 추가
+        return data.map(item => ({
+          ...item,
+          device_name: deviceName
+        }));
+      });
+
+      const results = await Promise.all(dataPromises);
+      mergedData = results.flat();
+    }
 
     // 해당 그리드에 데이터 설정
     let currentGrid = null;
@@ -418,7 +498,7 @@ async function loadData(deviceIds) {
     
     // 데이터가 없으면 메시지 표시
     if (mergedData.length === 0) {
-      showEmptyMessage(currentMessageContainer, '장비를 선택하세요', 'fa-mouse-pointer');
+      showEmptyMessage(currentMessageContainer, '검색 결과가 없습니다', 'fa-search');
       if (gridElement) gridElement.style.display = 'none';
     } else {
       hideEmptyMessage(currentMessageContainer);
@@ -559,6 +639,18 @@ export async function initObjects() {
       if (serviceGroupsGrid && typeof serviceGroupsGrid.setFilterModel === 'function') {
         serviceGroupsGrid.setFilterModel(null);
       }
+      // 상세 검색 필터 초기화
+      document.querySelectorAll('#modal-objects-advanced-search input[id^="obj-f-"]').forEach(el => {
+        el.value = '';
+      });
+      // 장비 선택은 유지하고 데이터만 다시 로드
+      const select = document.getElementById('object-device-select');
+      if (select && select.tomselect) {
+        const selectedDevices = select.tomselect.getValue();
+        if (selectedDevices && selectedDevices.length > 0) {
+          loadData(selectedDevices, false);
+        }
+      }
     };
   }
 
@@ -567,4 +659,90 @@ export async function initObjects() {
   if (btnExport) {
     btnExport.onclick = () => exportToExcel();
   }
+
+  // 상세 검색 모달 이벤트
+  const modal = document.getElementById('modal-objects-advanced-search');
+  const btnAdvancedSearch = document.getElementById('btn-objects-advanced-search');
+  const btnCloseModal = document.getElementById('close-objects-advanced-search');
+  const btnCancelModal = document.getElementById('cancel-objects-advanced-search');
+  const btnApplySearch = document.getElementById('btn-objects-apply-search');
+  const btnClearSearch = document.getElementById('btn-objects-clear-search');
+  
+  // 탭별 필터 필드 표시/숨김 함수
+  function updateFilterVisibility() {
+    const filterFields = document.querySelectorAll('[data-filter-type]');
+    filterFields.forEach(field => {
+      const filterType = field.getAttribute('data-filter-type');
+      if (filterType === currentTab) {
+        field.style.display = 'block';
+      } else {
+        field.style.display = 'none';
+      }
+    });
+  }
+  
+  const openModal = () => {
+    updateFilterVisibility();
+    if (modal) modal.classList.add('is-active');
+  };
+  
+  const closeModal = () => {
+    if (modal) modal.classList.remove('is-active');
+  };
+  
+  if (btnAdvancedSearch) btnAdvancedSearch.onclick = openModal;
+  if (btnCloseModal) btnCloseModal.onclick = closeModal;
+  if (btnCancelModal) btnCancelModal.onclick = closeModal;
+  
+  // 모달 배경 클릭으로 닫기
+  if (modal) {
+    const background = modal.querySelector('.modal-background');
+    if (background) background.onclick = closeModal;
+  }
+  
+  // ESC 키로 모달 닫기
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal && modal.classList.contains('is-active')) {
+      closeModal();
+    }
+  });
+  
+  // 상세 검색 적용
+  if (btnApplySearch) {
+    btnApplySearch.onclick = () => {
+      const select = document.getElementById('object-device-select');
+      if (select && select.tomselect) {
+        const selectedDevices = select.tomselect.getValue();
+        if (selectedDevices && selectedDevices.length > 0) {
+          loadData(selectedDevices, true); // 검색 모드로 로드
+        } else {
+          alert('장비를 선택하세요');
+          return;
+        }
+      }
+      closeModal();
+    };
+  }
+  
+  // 상세 검색 초기화
+  if (btnClearSearch) {
+    btnClearSearch.onclick = () => {
+      document.querySelectorAll('#modal-objects-advanced-search input[id^="obj-f-"]').forEach(el => {
+        el.value = '';
+      });
+    };
+  }
+  
+  // 탭 전환 시 필터 필드 업데이트
+  const originalSwitchTab = switchTab;
+  switchTab = function(tabName) {
+    originalSwitchTab(tabName);
+    // 모달이 열려있으면 필터 필드 업데이트
+    if (modal && modal.classList.contains('is-active')) {
+      updateFilterVisibility();
+    }
+  };
+  
+  // 초기 필터 필드 표시 상태 설정 (네트워크 객체가 기본 탭)
+  updateFilterVisibility();
 }

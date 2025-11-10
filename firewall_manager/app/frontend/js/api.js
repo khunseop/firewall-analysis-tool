@@ -32,6 +32,7 @@ export const api = {
   getNetworkGroups: (deviceId) => request(`/firewall/${deviceId}/network-groups`),
   getServices: (deviceId) => request(`/firewall/${deviceId}/services`),
   getServiceGroups: (deviceId) => request(`/firewall/${deviceId}/service-groups`),
+  searchObjects: (payload) => request(`/firewall/objects/search`, { method: "POST", body: JSON.stringify(payload) }),
   getPolicies: (deviceId) => request(`/firewall/${deviceId}/policies`),
   getObjectDetails: (deviceId, name) => request(`/firewall/object/details?device_id=${deviceId}&name=${encodeURIComponent(name)}`),
   startAnalysis: (deviceId, analysisType, params = {}) => {

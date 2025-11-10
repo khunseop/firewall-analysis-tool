@@ -42,6 +42,17 @@
             </ul>
           </div>
         </div>
+        <div class="level-item">
+          <button class="button is-link is-small" id="btn-objects-advanced-search">
+            <span class="icon is-small">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6.5 11.5C9.26142 11.5 11.5 9.26142 11.5 6.5C11.5 3.73858 9.26142 1.5 6.5 1.5C3.73858 1.5 1.5 3.73858 1.5 6.5C1.5 9.26142 3.73858 11.5 6.5 11.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M10.5 10.5L14.5 14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span>상세 검색</span>
+          </button>
+        </div>
       </div>
       <div class="level-right">
         <div class="level-item">
@@ -83,5 +94,98 @@
         <div id="service-groups-grid" class="ag-theme-quartz"></div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- 상세 검색 모달 -->
+<div class="modal" id="modal-objects-advanced-search">
+  <div class="modal-background"></div>
+  <div class="modal-card">
+    <header class="modal-card-head">
+      <p class="modal-card-title">상세 검색</p>
+      <button class="delete" aria-label="close" id="close-objects-advanced-search"></button>
+    </header>
+    <section class="modal-card-body">
+      <div class="columns is-multiline">
+        <!-- 공통 필터 -->
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">이름</label>
+            <div class="control">
+              <input id="obj-f-name" class="input is-small" placeholder="쉼표(,)로 여러 이름 입력" />
+            </div>
+          </div>
+        </div>
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">설명</label>
+            <div class="control">
+              <input id="obj-f-description" class="input is-small" placeholder="설명 검색" />
+            </div>
+          </div>
+        </div>
+        
+        <!-- 네트워크 객체 필터 -->
+        <div class="column is-6" data-filter-type="network-objects" style="display: none;">
+          <div class="field">
+            <label class="label">IP 주소</label>
+            <div class="control">
+              <input id="obj-f-ip-address" class="input is-small" placeholder="쉼표(,)로 여러 IP값 입력" />
+            </div>
+          </div>
+        </div>
+        <div class="column is-6" data-filter-type="network-objects" style="display: none;">
+          <div class="field">
+            <label class="label">타입</label>
+            <div class="control">
+              <input id="obj-f-type" class="input is-small" placeholder="ip, range, fqdn 등" />
+            </div>
+          </div>
+        </div>
+        
+        <!-- 네트워크 그룹 필터 -->
+        <div class="column is-6" data-filter-type="network-groups" style="display: none;">
+          <div class="field">
+            <label class="label">멤버</label>
+            <div class="control">
+              <input id="obj-f-members-network" class="input is-small" placeholder="멤버 이름 검색" />
+            </div>
+          </div>
+        </div>
+        
+        <!-- 서비스 객체 필터 -->
+        <div class="column is-6" data-filter-type="services" style="display: none;">
+          <div class="field">
+            <label class="label">프로토콜</label>
+            <div class="control">
+              <input id="obj-f-protocol" class="input is-small" placeholder="쉼표(,)로 여러 프로토콜 입력" />
+            </div>
+          </div>
+        </div>
+        <div class="column is-6" data-filter-type="services" style="display: none;">
+          <div class="field">
+            <label class="label">포트</label>
+            <div class="control">
+              <input id="obj-f-port" class="input is-small" placeholder="쉼표(,)로 여러 포트값 입력" />
+            </div>
+          </div>
+        </div>
+        
+        <!-- 서비스 그룹 필터 -->
+        <div class="column is-6" data-filter-type="service-groups" style="display: none;">
+          <div class="field">
+            <label class="label">멤버</label>
+            <div class="control">
+              <input id="obj-f-members-service" class="input is-small" placeholder="멤버 이름 검색" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <footer class="modal-card-foot">
+      <button class="button is-primary is-small" id="btn-objects-apply-search">검색</button>
+      <button class="button is-light is-small" id="btn-objects-clear-search">초기화</button>
+      <button class="button is-light is-small" id="cancel-objects-advanced-search">취소</button>
+    </footer>
   </div>
 </div>

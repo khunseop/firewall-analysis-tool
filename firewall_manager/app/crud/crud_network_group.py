@@ -53,3 +53,35 @@ async def count_network_groups_by_device(db: AsyncSession, device_id: int) -> in
         )
     )
     return result.scalar() or 0
+
+
+async def search_network_groups(db: AsyncSession, device_ids: list[int], names: list[str] = None,
+                                 members: str = None, description: str = None,
+                                 skip: int = 0, limit: int | None = None):
+    """네트워크 그룹 검색"""
+    from sqlalchemy import or_
+    
+    stmt = select(NetworkGroup).where(
+        NetworkGroup.is_active == True,
+        NetworkGroup.device_id.in_(device_ids),
+    )
+    
+    # 이름 필터 (여러 값 OR)
+    if names:
+        name_conditions = [NetworkGroup.name.ilike(f"%{name.strip()}%") for name in names]
+        stmt = stmt.where(or_(*name_conditions))
+    
+    # 멤버 필터
+    if members:
+        stmt = stmt.where(NetworkGroup.members.ilike(f"%{members.strip()}%"))
+    
+    # 설명 필터
+    if description:
+        stmt = stmt.where(NetworkGroup.description.ilike(f"%{description.strip()}%"))
+    
+    stmt = stmt.offset(skip)
+    if limit:
+        stmt = stmt.limit(limit)
+    
+    result = await db.execute(stmt)
+    return result.scalars().all()

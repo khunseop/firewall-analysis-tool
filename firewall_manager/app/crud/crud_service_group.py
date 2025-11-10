@@ -53,3 +53,35 @@ async def count_service_groups_by_device(db: AsyncSession, device_id: int) -> in
         )
     )
     return result.scalar() or 0
+
+
+async def search_service_groups(db: AsyncSession, device_ids: list[int], names: list[str] = None,
+                                members: str = None, description: str = None,
+                                skip: int = 0, limit: int | None = None):
+    """서비스 그룹 검색"""
+    from sqlalchemy import or_
+    
+    stmt = select(ServiceGroup).where(
+        ServiceGroup.is_active == True,
+        ServiceGroup.device_id.in_(device_ids),
+    )
+    
+    # 이름 필터 (여러 값 OR)
+    if names:
+        name_conditions = [ServiceGroup.name.ilike(f"%{name.strip()}%") for name in names]
+        stmt = stmt.where(or_(*name_conditions))
+    
+    # 멤버 필터
+    if members:
+        stmt = stmt.where(ServiceGroup.members.ilike(f"%{members.strip()}%"))
+    
+    # 설명 필터
+    if description:
+        stmt = stmt.where(ServiceGroup.description.ilike(f"%{description.strip()}%"))
+    
+    stmt = stmt.offset(skip)
+    if limit:
+        stmt = stmt.limit(limit)
+    
+    result = await db.execute(stmt)
+    return result.scalars().all()

@@ -53,3 +53,40 @@ async def count_network_objects_by_device(db: AsyncSession, device_id: int) -> i
         )
     )
     return result.scalar() or 0
+
+
+async def search_network_objects(db: AsyncSession, device_ids: list[int], names: list[str] = None, 
+                                  ip_addresses: list[str] = None, type: str = None, 
+                                  description: str = None, skip: int = 0, limit: int | None = None):
+    """네트워크 객체 검색"""
+    from sqlalchemy import or_
+    
+    stmt = select(NetworkObject).where(
+        NetworkObject.is_active == True,
+        NetworkObject.device_id.in_(device_ids),
+    )
+    
+    # 이름 필터 (여러 값 OR)
+    if names:
+        name_conditions = [NetworkObject.name.ilike(f"%{name.strip()}%") for name in names]
+        stmt = stmt.where(or_(*name_conditions))
+    
+    # IP 주소 필터 (여러 값 OR)
+    if ip_addresses:
+        ip_conditions = [NetworkObject.ip_address.ilike(f"%{ip.strip()}%") for ip in ip_addresses]
+        stmt = stmt.where(or_(*ip_conditions))
+    
+    # 타입 필터
+    if type:
+        stmt = stmt.where(NetworkObject.type.ilike(f"%{type.strip()}%"))
+    
+    # 설명 필터
+    if description:
+        stmt = stmt.where(NetworkObject.description.ilike(f"%{description.strip()}%"))
+    
+    stmt = stmt.offset(skip)
+    if limit:
+        stmt = stmt.limit(limit)
+    
+    result = await db.execute(stmt)
+    return result.scalars().all()
