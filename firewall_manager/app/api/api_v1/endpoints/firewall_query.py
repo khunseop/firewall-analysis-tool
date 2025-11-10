@@ -99,32 +99,61 @@ async def read_db_device_service_groups(device_id: int, db: AsyncSession = Depen
 
 
 from typing import Union
+import logging
+
+logger = logging.getLogger(__name__)
 
 @router.get("/object/details", response_model=Union[schemas.NetworkObject, schemas.NetworkGroup, schemas.Service, schemas.ServiceGroup, schemas.Msg])
 async def get_object_details(device_id: int, name: str, db: AsyncSession = Depends(get_db)):
-    # Try to find the object in the order of likelihood
+    """객체 상세 정보 조회 - 네트워크 객체, 네트워크 그룹, 서비스, 서비스 그룹 순서로 검색"""
+    # 입력 검증
+    if not name or not name.strip():
+        raise HTTPException(status_code=400, detail="Object name cannot be empty")
+    
+    name = name.strip()
+    
+    try:
+        # Try to find the object in the order of likelihood
 
-    # 1. Network Object
-    net_obj = await crud.network_object.get_network_object_by_name_and_device(db, device_id=device_id, name=name)
-    if net_obj:
-        return net_obj
+        # 1. Network Object
+        try:
+            net_obj = await crud.network_object.get_network_object_by_name_and_device(db, device_id=device_id, name=name)
+            if net_obj:
+                return net_obj
+        except Exception as e:
+            logger.error(f"Error fetching network object '{name}' from device {device_id}: {e}", exc_info=True)
 
-    # 2. Network Group
-    net_group = await crud.network_group.get_network_group_by_name_and_device(db, device_id=device_id, name=name)
-    if net_group:
-        return net_group
+        # 2. Network Group
+        try:
+            net_group = await crud.network_group.get_network_group_by_name_and_device(db, device_id=device_id, name=name)
+            if net_group:
+                return net_group
+        except Exception as e:
+            logger.error(f"Error fetching network group '{name}' from device {device_id}: {e}", exc_info=True)
 
-    # 3. Service Object
-    svc_obj = await crud.service.get_service_by_name_and_device(db, device_id=device_id, name=name)
-    if svc_obj:
-        return svc_obj
+        # 3. Service Object
+        try:
+            svc_obj = await crud.service.get_service_by_name_and_device(db, device_id=device_id, name=name)
+            if svc_obj:
+                return svc_obj
+        except Exception as e:
+            logger.error(f"Error fetching service '{name}' from device {device_id}: {e}", exc_info=True)
 
-    # 4. Service Group
-    svc_group = await crud.service_group.get_service_group_by_name_and_device(db, device_id=device_id, name=name)
-    if svc_group:
-        return svc_group
+        # 4. Service Group
+        try:
+            svc_group = await crud.service_group.get_service_group_by_name_and_device(db, device_id=device_id, name=name)
+            if svc_group:
+                return svc_group
+        except Exception as e:
+            logger.error(f"Error fetching service group '{name}' from device {device_id}: {e}", exc_info=True)
 
-    raise HTTPException(status_code=404, detail=f"Object '{name}' not found in device '{device_id}'")
+        raise HTTPException(status_code=404, detail=f"Object '{name}' not found in device '{device_id}'")
+    except HTTPException:
+        # HTTPException은 그대로 전파
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in get_object_details for device {device_id}, name '{name}': {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve object details: {str(e)}")
 
 
 @router.get("/sync/{device_id}/status", response_model=schemas.DeviceSyncStatus)
