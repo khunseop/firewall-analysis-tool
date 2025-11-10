@@ -1,28 +1,198 @@
-# TODO List
+# TODO 리스트
 
-## UX/UI Refinement (Completed)
-- [x] Enhance overall look and feel with a more sophisticated and polished design.
-- [x] Maintain the existing minimalist aesthetic without adding flashy elements.
-- [x] Apply a monochrome color scheme with blue as the primary accent color.
-- [x] Implement the 'Pretendard' web font locally to improve typography and readability.
-- [x] Refine UI component details (buttons, modals, inputs) for a consistent user experience.
+## 1. 대시보드
 
-## Policy Analysis Feature
+- [ ] 정책 분석 결과 섹션 구현
+  - 현재 "정책 분석 기능은 추후 구현 예정입니다." 메시지만 표시됨
+  - 최근 분석 결과 요약 표시
+  - 분석 타입별 통계 및 차트 추가
+  - 분석 결과 링크 제공
 
-### Backend (Completed)
-- [x] Add database models for `AnalysisTask` and `RedundancyPolicySet`.
-- [x] Create Alembic migration for the new models.
-- [x] Implement CRUD functions for the new models.
-- [x] Implement core redundancy analysis service logic.
-  - [x] Ensure only one analysis task can run at a time using a lock.
-  - [x] Adapt legacy analysis logic to use SQLAlchemy and pre-calculated index tables.
-- [x] Add API endpoints to start, monitor, and retrieve analysis results.
+- [ ] 대시보드 차트/그래프 추가
+  - 장비별 정책 수 추이 (시간별)
+  - 정책 액션 분포 (allow/deny)
+  - 동기화 성공률 통계
 
-### Frontend (Pending)
-- [ ] Create a new "Policy Analysis" page.
-- [ ] Add a button to trigger the redundancy analysis for a selected device.
-- [ ] Implement UI to show the status of the running/last analysis task (e.g., pending, in_progress, success, failure).
-- [ ] Create a component to display the redundancy analysis results in a table format.
-  - The table should group policies by `set_number`.
-  - Clearly distinguish between `UPPER` and `LOWER` rule types.
-  - Display all relevant policy details for easy comparison.
+## 2. 장비관리
+
+- [ ] 그리드 컬럼 개선
+  - [ ] 체크박스 컬럼 너비 조정 (현재 너무 큼)
+  - [ ] 벤더 컬럼 추가 (현재 폼에는 있으나 그리드에 없음)
+  - [ ] 모델명 컬럼 추가
+    - DB 스키마에 `model` 필드 추가 필요 (마이그레이션)
+    - `Device` 모델에 `model` 필드 추가
+    - `DeviceCreate`, `DeviceUpdate` 스키마에 `model` 필드 추가
+    - 그리드 컬럼 정의에 `model` 추가 (`devices.js`의 `getColumns()` 함수)
+  - [ ] OS 버전 컬럼 추가 고려
+    - 폼에는 있으나 DB 스키마 및 그리드에 없음
+
+- [ ] 장비 그룹 기능 추가
+  - 장비 그룹 테이블 생성 (마이그레이션)
+  - 장비에 그룹 필드 추가
+  - 그룹별 필터링 기능
+  - 그룹별 통계 표시
+
+## 3. 정책조회
+
+- [ ] 정책 상세 정보 모달 개선
+  - 정책 상세 정보 표시 강화
+  - 정책 히스토리 조회 기능
+
+- [ ] 정책 비교 기능
+  - 여러 정책 선택하여 비교
+  - 차이점 하이라이트
+
+- [ ] 정책 검색 성능 개선
+  - 대용량 데이터 처리 최적화
+  - 검색 결과 캐싱
+
+
+## 4. 객체조회
+
+- [ ] 객체 상세조회 필터 추가
+  - 현재 객체 상세 모달에 필터 기능 없음
+  - 객체 타입별 필터 옵션 추가
+  - 검색 기능 강화
+
+- [ ] 객체 타입별 하위메뉴 분리
+  - 현재 탭 방식에서 라우터 기반 하위메뉴로 변경
+  - `/objects/network-objects`, `/objects/network-groups`, `/objects/services`, `/objects/service-groups` 등
+  - 각 페이지별 독립적인 URL 및 상태 관리
+
+- [ ] 객체 참조 관계 시각화
+  - 객체가 사용되는 정책 목록 표시
+
+## 5. 정책분석
+
+- [ ] 각 분석 타입별 하위메뉴 분리
+  - 현재 드롭다운 선택 방식에서 라우터 기반 하위메뉴로 변경
+  - `/analysis/redundancy`, `/analysis/unused`, `/analysis/unreferenced-objects`, `/analysis/impact`, `/analysis/risky-ports` 등
+  - 각 분석 타입별 독립적인 페이지 및 설정 UI
+
+
+## 6. 공통
+
+### 6.1. 사용자 경험 개선
+
+- [ ] 작업 중인 내용 유지 기능
+  - 페이지 새로고침 시 필터/검색 조건 유지 (localStorage 활용)
+  - 그리드 정렬/필터 상태 저장 및 복원
+  - 장비 선택 상태 유지
+
+- [ ] 알림 기능 추가
+  - 동기화 완료/실패 알림
+  - 분석 완료 알림
+  - 시스템 이벤트 알림
+  - 브라우저 알림 API 활용
+  - 알림 설정 페이지 추가
+
+- [ ] UI 개선
+  - 반응형 디자인 강화
+  - 아이콘 및 시각적 피드백 강화
+
+- [ ] 로딩 인디케이터 강화
+  - 전체 페이지 로딩 상태 표시
+  - 개별 작업별 로딩 상태 표시
+  - 진행률 표시 (퍼센트, 단계별 진행 상황)
+  - 스켈레톤 UI 적용
+
+### 6.2. 보안 및 인증
+
+- [ ] 로그인 기능 추가
+  - 사용자 인증 시스템 구현
+  - JWT 토큰 기반 인증
+  - 비밀번호 해싱 (bcrypt)
+  - 사용자 관리 페이지
+
+- [ ] 세션 기능 도입
+  - 세션 만료 시간 설정
+  - 자동 로그아웃 기능
+  - 세션 갱신 기능
+  - 동시 로그인 제한
+
+- [ ] 기타 보안 개선
+  - CSRF 보호
+  - XSS 방지 강화
+  - SQL Injection 방지 검증
+  - API Rate Limiting
+  - 입력 값 검증 강화
+  - 보안 헤더 설정 (CSP, HSTS 등)
+  - 비밀번호 정책 강화
+  - 로그인 시도 제한
+
+### 6.3. 성능 및 최적화
+
+- [ ] 데이터베이스 최적화
+  - 인덱스 최적화
+  - 쿼리 성능 개선
+  - 연결 풀링 최적화
+
+- [ ] 프론트엔드 최적화
+  - 코드 스플리팅
+  - 이미지 최적화
+  - 번들 크기 최적화
+  - 캐싱 전략 개선
+
+- [ ] API 최적화
+  - 응답 캐싱
+  - 페이지네이션 개선
+  - 배치 요청 지원
+
+### 6.4. 모니터링 및 로깅
+
+- [ ] 로깅 시스템 개선
+  - 구조화된 로깅
+  - 로그 레벨 관리
+  - 로그 파일 로테이션
+  - 에러 추적 시스템 연동
+
+- [ ] 모니터링 대시보드
+  - 시스템 리소스 모니터링
+  - API 응답 시간 모니터링
+  - 에러율 모니터링
+  - 사용자 활동 추적
+
+### 6.5. 문서화 및 테스트
+
+- [ ] API 문서화 개선
+  - Swagger/OpenAPI 문서 보완
+  - 사용 예제 추가
+
+- [ ] 테스트 코드 작성
+  - 단위 테스트
+  - 통합 테스트
+  - E2E 테스트
+
+- [ ] 사용자 가이드 작성
+  - 기능별 사용 설명서
+  - FAQ 작성
+
+## 우선순위
+
+### 높음 (High Priority)
+1. 장비관리 - 모델명 컬럼 추가 (DB 스키마 및 그리드)
+2. 장비관리 - 체크박스 컬럼 너비 조정
+3. 공통 - 작업 중인 내용 유지 기능
+4. 공통 - 로딩 인디케이터 강화
+5. 공통 - 알림 기능 추가
+
+### 중간 (Medium Priority)
+1. 정책분석 - 각 분석 타입별 하위메뉴 분리
+2. 객체조회 - 객체 타입별 하위메뉴 분리
+3. 객체조회 - 객체 상세조회 필터 추가
+4. 장비관리 - 벤더 컬럼 추가
+5. 대시보드 - 정책 분석 결과 섹션 구현
+
+### 낮음 (Low Priority)
+1. 보안 및 인증 기능 (로그인, 세션)
+2. 장비 그룹 기능
+3. 모니터링 및 로깅 개선
+4. 테스트 코드 작성
+
+## 참고사항
+
+- 각 작업은 독립적으로 진행 가능하도록 설계
+- 마이그레이션이 필요한 작업은 DB 백업 후 진행
+- UI 변경 시 기존 사용자 경험 고려
+- 성능 개선 작업은 프로파일링 후 진행 권장
+
