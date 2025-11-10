@@ -2,6 +2,8 @@ import { api } from "../api.js";
 import { openConfirm, openAlert, openFormModal } from "../utils/modal.js";
 import { showEmptyMessage, hideEmptyMessage } from "../utils/message.js";
 import { formatDateTime } from "../utils/date.js";
+import { saveSearchParams, loadSearchParams } from "../utils/storage.js";
+import { notifySyncComplete } from "../utils/notification.js";
 
 // ==================== 상수 및 전역 변수 ====================
 
@@ -65,6 +67,7 @@ function fillDeviceForm(initial = {}) {
   setFormField(form, 'name', initial.name);
   setFormField(form, 'ip_address', initial.ip_address);
   setFormField(form, 'ha_peer_ip', initial.ha_peer_ip);
+  setFormField(form, 'model', initial.model);
   setFormField(form, 'username', initial.username);
   setFormField(form, 'description', initial.description);
   
@@ -327,7 +330,11 @@ function statusCellRenderer(params) {
  */
 function getColumns() {
   return [
-    { field: 'id', headerName: 'ID', maxWidth: 100 },
+    { 
+      field: 'id', 
+      headerName: 'ID', 
+      maxWidth: 100
+    },
     { field: 'name', headerName: '이름' },
     { 
       field: 'vendor', 
@@ -335,6 +342,7 @@ function getColumns() {
       maxWidth: 150, 
       valueFormatter: p => codeToLabel.get(normalizeVendorCode(p.value)) || p.value 
     },
+    { field: 'model', headerName: '모델', maxWidth: 150 },
     { field: 'ip_address', headerName: 'IP 주소' },
     { field: 'description', headerName: '설명' },
     { 
@@ -477,6 +485,9 @@ async function handleSync() {
 function handleSearch(event) {
   const value = event.target.value;
   applyQuickFilter(value);
+  
+  // 검색 조건 저장
+  saveSearchParams('devices', { searchText: value });
   
   // 헤더 체크박스 갱신
   const apiRef = gridApi || (gridOptions && gridOptions.api);
@@ -668,6 +679,12 @@ function handleSyncStatusUpdate(message) {
     // 완료 상태일 때 타임스탬프도 업데이트 (서버에서 설정됨)
     if (status === 'success' || status === 'failure') {
       updatedData.last_sync_at = new Date().toISOString();
+      
+      // 동기화 완료 알림
+      const deviceName = updatedData.name || `장비 ${device_id}`;
+      notifySyncComplete(deviceName, status === 'success').catch(err => {
+        console.warn('알림 표시 실패:', err);
+      });
     }
 
     // rowNode.setData를 사용하여 데이터 업데이트 (셀 자동 새로고침)
@@ -719,7 +736,15 @@ export async function initDevices(root) {
   if (syncBtn) syncBtn.onclick = handleSync;
   if (downloadTemplateBtn) downloadTemplateBtn.onclick = handleDownloadTemplate;
   if (fileUpload) fileUpload.onchange = handleFileUpload;
-  if (search) search.oninput = handleSearch;
+  if (search) {
+    search.oninput = handleSearch;
+    
+    // 저장된 검색 조건 복원
+    const savedState = loadSearchParams('devices');
+    if (savedState && savedState.searchText) {
+      search.value = savedState.searchText;
+    }
+  }
   
   // WebSocket 연결 후 초기 데이터 로드 (연결 완료를 기다림)
   try {
@@ -729,6 +754,11 @@ export async function initDevices(root) {
   }
   
   await reload();
+  
+  // 저장된 검색 조건 적용
+  if (search && search.value) {
+    applyQuickFilter(search.value);
+  }
 }
 
 /**

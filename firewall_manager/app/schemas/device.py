@@ -11,6 +11,7 @@ class DeviceBase(BaseModel):
     description: Optional[str] = None
     ha_peer_ip: Optional[str] = None
     use_ssh_for_last_hit_date: Optional[bool] = False
+    model: Optional[str] = None
 
 # Schema for creating a new device
 class DeviceCreate(DeviceBase):

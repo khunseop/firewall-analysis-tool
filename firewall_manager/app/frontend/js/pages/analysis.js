@@ -7,6 +7,9 @@ import { getColumnDefs } from '../utils/analysisColumns.js';
 import { processAnalysisResults, loadValidObjectNames } from '../utils/analysisHelpers.js';
 import { initImpactAnalysis, loadPoliciesForImpact, getImpactAnalysisParams } from '../components/impactAnalysis.js';
 import { generateServiceCreationScript, downloadScript } from '../utils/scriptGenerator.js';
+import { notifyAnalysisComplete } from '../utils/notification.js';
+import { setButtonLoading } from '../utils/loading.js';
+import { saveSearchParams, loadSearchParams } from '../utils/storage.js';
 
 // ==================== 전역 변수 ====================
 
@@ -124,6 +127,10 @@ async function loadDevices() {
                 placeholder: '분석할 장비를 선택하세요',
                 maxOptions: null,
                 onChange: async () => {
+                    // 장비 선택 상태 저장
+                    const deviceId = deviceSelect.getValue();
+                    saveSearchParams('analysis', { deviceId });
+                    
                     await loadLatestResult();
                     // 영향도 분석이 선택되어 있으면 정책 목록 로드
                     const analysisTypeSelect = document.getElementById('analysis-type-select');
@@ -132,6 +139,13 @@ async function loadDevices() {
                     }
                 }
             });
+            
+            // 저장된 장비 선택 복원
+            const savedState = loadSearchParams('analysis');
+            if (savedState && savedState.deviceId) {
+                deviceSelect.setValue(savedState.deviceId);
+            }
+            
             // 영향도 분석 컴포넌트에 deviceSelect 전달
             initImpactAnalysis(deviceSelect);
         }
@@ -191,14 +205,8 @@ function stopPolling() {
     }
     const startButton = document.getElementById('btn-start-analysis');
     const impactStartButton = document.getElementById('btn-start-impact-analysis');
-    if (startButton) {
-        startButton.disabled = false;
-        startButton.classList.remove('is-loading');
-    }
-    if (impactStartButton) {
-        impactStartButton.disabled = false;
-        impactStartButton.classList.remove('is-loading');
-    }
+    setButtonLoading(startButton, false);
+    setButtonLoading(impactStartButton, false);
 }
 
 // 저장된 결과 또는 태스크 완료 후 결과를 그리드에 표시
@@ -307,15 +315,9 @@ function startPolling(deviceId, analysisType) {
     
     // 분석 타입에 따라 적절한 버튼에 로딩 상태 적용
     if (analysisType === 'impact') {
-        if (impactStartButton) {
-            impactStartButton.disabled = true;
-            impactStartButton.classList.add('is-loading');
-        }
+        setButtonLoading(impactStartButton, true);
     } else {
-        if (startButton) {
-            startButton.disabled = true;
-            startButton.classList.add('is-loading');
-        }
+        setButtonLoading(startButton, true);
     }
     
     statusInterval = setInterval(async () => {
@@ -327,10 +329,20 @@ function startPolling(deviceId, analysisType) {
                     break;
                 case 'success':
                     stopPolling();
+                    const device = allDevices.find(d => d.id === deviceId);
+                    const deviceName = device ? device.name : `장비 ${deviceId}`;
+                    notifyAnalysisComplete(deviceName, analysisType, true).catch(err => {
+                        console.warn('알림 표시 실패:', err);
+                    });
                     setTimeout(() => displayTaskResults(deviceId, analysisType), 100);
                     break;
                 case 'failure':
                     stopPolling();
+                    const deviceFail = allDevices.find(d => d.id === deviceId);
+                    const deviceNameFail = deviceFail ? deviceFail.name : `장비 ${deviceId}`;
+                    notifyAnalysisComplete(deviceNameFail, analysisType, false).catch(err => {
+                        console.warn('알림 표시 실패:', err);
+                    });
                     alert(`분석 실패. (Task ID: ${task.id})`);
                     break;
                 case 'pending':

@@ -108,6 +108,19 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   font-family: 'Pretendard', sans-serif;
 }
 
+/* 체크박스 컬럼 너비 조정 */
+#devices-grid.ag-theme-quartz .ag-selection-checkbox {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+}
+
+#devices-grid.ag-theme-quartz .ag-header-cell[col-id="ag-Grid-AutoColumn"] {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+}
+
 /* 정책 그리드 자동 높이 조절 - 페이지네이션과 함께 사용 */
 #policies-grid.ag-theme-quartz {
   /* 높이는 JavaScript에서 동적으로 설정되므로 CSS에서는 최소값만 설정 */
@@ -298,6 +311,11 @@ input:focus, textarea:focus, select:focus, .select select:focus {
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* AG Grid 헤더 왼쪽 정렬 */

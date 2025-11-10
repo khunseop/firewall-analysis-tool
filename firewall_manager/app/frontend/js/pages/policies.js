@@ -4,6 +4,7 @@ import { adjustGridHeight, createGridEventHandlers, createCommonGridOptions } fr
 import { exportGridToExcelClient } from '../utils/excel.js';
 import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
 import { formatDateTime, formatNumber } from '../utils/date.js';
+import { saveSearchParams, loadSearchParams, saveGridFilters, loadGridFilters, savePageState, loadPageState } from '../utils/storage.js';
 
 // ==================== 전역 변수 ====================
 
@@ -259,12 +260,28 @@ async function initGrid() {
     getRowId: params => String(params.data.id),
     enableFilterHandlers: true,
     suppressHorizontalScroll: false, // 가로 스크롤 허용
-    onGridReady: params => {
+      onGridReady: params => {
       policyGridApi = params.api;
       const gridDiv = document.getElementById('policies-grid');
       if (gridDiv) {
         const handlers = createGridEventHandlers(gridDiv, params.api);
         Object.assign(options, handlers);
+      }
+      
+      // 필터 변경 시 저장
+      if (params.api && typeof params.api.addEventListener === 'function') {
+        params.api.addEventListener('filterChanged', () => {
+          const filterModel = params.api.getFilterModel();
+          saveGridFilters('policies', filterModel);
+        });
+        
+        // 정렬 변경 시 저장
+        params.api.addEventListener('sortChanged', () => {
+          const sortModel = params.api.getSortModel();
+          if (sortModel && sortModel.length > 0) {
+            savePageState('policies_sort', { sortModel });
+          }
+        });
       }
     },
   };
@@ -302,6 +319,13 @@ async function searchAndLoadPolicies() {
   const deviceIds = Array.from(sel?.selectedOptions || []).map(o=>parseInt(o.value,10)).filter(Boolean);
   const gridDiv = document.getElementById('policies-grid');
   const messageContainer = document.getElementById('policies-message-container');
+  
+  // 검색 조건 저장
+  const searchPayload = buildSearchPayload(deviceIds);
+  saveSearchParams('policies', {
+    deviceIds,
+    searchPayload
+  });
   
   if (!deviceIds.length) {
     // 선택된 장비가 없으면 그리드를 숨기고 메시지 표시
@@ -342,6 +366,19 @@ async function searchAndLoadPolicies() {
         } else if (typeof policyGridApi.setRowData === 'function') {
           policyGridApi.setRowData(rows);
         }
+        
+        // 저장된 필터 복원
+        const savedFilters = loadGridFilters('policies');
+        if (savedFilters && typeof policyGridApi.setFilterModel === 'function') {
+          policyGridApi.setFilterModel(savedFilters);
+        }
+        
+        // 저장된 정렬 복원
+        const savedSort = loadPageState('policies_sort');
+        if (savedSort && savedSort.sortModel && typeof policyGridApi.setSortModel === 'function') {
+          policyGridApi.setSortModel(savedSort.sortModel);
+        }
+        
         // Refresh cells to apply the new link logic
         policyGridApi.refreshCells({ force: true });
         // 컬럼 크기를 내용에 맞춰 자동 조절
@@ -435,11 +472,8 @@ export async function initPolicies(){
   const sel = document.getElementById('policy-device-select');
   if (!sel) return;
   
-  // 초기 상태: 메시지 표시
-  const messageContainer = document.getElementById('policies-message-container');
-  const gridDiv = document.getElementById('policies-grid');
-  showEmptyMessage(messageContainer, '장비를 선택하세요', 'fa-mouse-pointer');
-  if (gridDiv) gridDiv.style.display = 'none';
+  // 저장된 검색 조건 복원
+  const savedState = loadSearchParams('policies');
   
   // Initialize Tom Select for device selector only
   try {
@@ -450,8 +484,62 @@ export async function initPolicies(){
         plugins: ['remove_button'],
         maxOptions: null,
       });
+      
+      // 저장된 장비 선택 복원
+      if (savedState && savedState.deviceIds && savedState.deviceIds.length > 0) {
+        sel.tomselect.setValue(savedState.deviceIds);
+      }
+      
+      // 저장된 상세 검색 필터 복원
+      if (savedState && savedState.searchPayload) {
+        const payload = savedState.searchPayload;
+        const g = (id) => document.getElementById(id);
+        const setValue = (id, value) => {
+          const el = g(id);
+          if (el && value !== null && value !== '') {
+            el.value = value;
+          }
+        };
+        
+        setValue('f-rule-name', payload.rule_name);
+        setValue('f-vsys', payload.vsys);
+        setValue('f-user', payload.user);
+        setValue('f-app', payload.application);
+        setValue('f-desc', payload.description);
+        setValue('f-action', payload.action);
+        setValue('f-hit-from', payload.last_hit_date_from);
+        setValue('f-hit-to', payload.last_hit_date_to);
+        setValue('f-src', payload.src_ips ? payload.src_ips.join(', ') : '');
+        setValue('f-dst', payload.dst_ips ? payload.dst_ips.join(', ') : '');
+        setValue('f-svc', payload.services ? payload.services.join(', ') : '');
+        
+        if (payload.enable !== null && payload.enable !== undefined) {
+          const enableSelect = g('f-enable');
+          if (enableSelect) {
+            enableSelect.value = payload.enable ? 'true' : 'false';
+          }
+        }
+      }
     }
   } catch {}
+  
+  // 초기 상태: 메시지 표시
+  const messageContainer = document.getElementById('policies-message-container');
+  const gridDiv = document.getElementById('policies-grid');
+  
+  // 저장된 장비가 있으면 자동 검색
+  if (savedState && savedState.deviceIds && savedState.deviceIds.length > 0) {
+    // 장비가 선택되면 메시지 숨기고 그리드 표시 준비
+    hideEmptyMessage(messageContainer);
+    if (gridDiv) gridDiv.style.display = 'block';
+    // 저장된 상태로 자동 검색 실행
+    setTimeout(() => {
+      searchAndLoadPolicies();
+    }, 100);
+  } else {
+    showEmptyMessage(messageContainer, '장비를 선택하세요', 'fa-mouse-pointer');
+    if (gridDiv) gridDiv.style.display = 'none';
+  }
 
   const bind = () => {
     // 장비 선택 변경 시 자동 검색
