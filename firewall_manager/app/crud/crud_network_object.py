@@ -58,8 +58,9 @@ async def count_network_objects_by_device(db: AsyncSession, device_id: int) -> i
 async def search_network_objects(db: AsyncSession, device_ids: list[int], names: list[str] = None, 
                                   ip_addresses: list[str] = None, type: str = None, 
                                   description: str = None, skip: int = 0, limit: int | None = None):
-    """네트워크 객체 검색"""
-    from sqlalchemy import or_
+    """네트워크 객체 검색 - IP 범위/대역 검색 지원"""
+    from sqlalchemy import or_, and_
+    from app.services.normalize import parse_ipv4_numeric
     
     stmt = select(NetworkObject).where(
         NetworkObject.is_active == True,
@@ -71,10 +72,31 @@ async def search_network_objects(db: AsyncSession, device_ids: list[int], names:
         name_conditions = [NetworkObject.name.ilike(f"%{name.strip()}%") for name in names]
         stmt = stmt.where(or_(*name_conditions))
     
-    # IP 주소 필터 (여러 값 OR)
+    # IP 주소 필터 (여러 값 OR) - 범위 기반 검색 지원
     if ip_addresses:
-        ip_conditions = [NetworkObject.ip_address.ilike(f"%{ip.strip()}%") for ip in ip_addresses]
-        stmt = stmt.where(or_(*ip_conditions))
+        ip_conditions = []
+        for ip_str in ip_addresses:
+            ip_str = ip_str.strip()
+            # IP 주소를 숫자 범위로 파싱 시도
+            _, search_start, search_end = parse_ipv4_numeric(ip_str)
+            
+            if search_start is not None and search_end is not None:
+                # 숫자 범위로 파싱 가능한 경우: 범위 기반 검색
+                # 검색 범위와 객체 범위가 겹치는지 확인
+                ip_conditions.append(
+                    and_(
+                        NetworkObject.ip_start.isnot(None),
+                        NetworkObject.ip_end.isnot(None),
+                        NetworkObject.ip_start <= search_end,
+                        NetworkObject.ip_end >= search_start
+                    )
+                )
+            else:
+                # 파싱 불가능한 경우 (FQDN 등): 문자열 매칭
+                ip_conditions.append(NetworkObject.ip_address.ilike(f"%{ip_str}%"))
+        
+        if ip_conditions:
+            stmt = stmt.where(or_(*ip_conditions))
     
     # 타입 필터
     if type:

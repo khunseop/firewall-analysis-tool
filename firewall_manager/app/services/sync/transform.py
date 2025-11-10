@@ -73,6 +73,33 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     if pydantic_model is schemas.ServiceCreate and not df.empty and "protocol" in df.columns:
         df["protocol"] = df["protocol"].apply(lambda x: str(x).lower() if x is not None else x)
 
+    # 4b) Calculate ip_start and ip_end for network objects
+    if pydantic_model is schemas.NetworkObjectCreate and not df.empty and "ip_address" in df.columns:
+        from app.services.normalize import parse_ipv4_numeric
+        def _parse_ip_numeric(ip_str):
+            if pd.isna(ip_str) or ip_str is None:
+                return (None, None, None)
+            version, start, end = parse_ipv4_numeric(str(ip_str))
+            return (version, start, end)
+        
+        ip_numeric = df["ip_address"].apply(_parse_ip_numeric)
+        df["ip_version"] = ip_numeric.apply(lambda x: x[0])
+        df["ip_start"] = ip_numeric.apply(lambda x: x[1])
+        df["ip_end"] = ip_numeric.apply(lambda x: x[2])
+
+    # 4c) Calculate port_start and port_end for services
+    if pydantic_model is schemas.ServiceCreate and not df.empty and "port" in df.columns:
+        from app.services.normalize import parse_port_numeric
+        def _parse_port_numeric(port_str):
+            if pd.isna(port_str) or port_str is None:
+                return (None, None)
+            start, end = parse_port_numeric(str(port_str))
+            return (start, end)
+        
+        port_numeric = df["port"].apply(_parse_port_numeric)
+        df["port_start"] = port_numeric.apply(lambda x: x[0])
+        df["port_end"] = port_numeric.apply(lambda x: x[1])
+
     # 5) Ensure integer columns with potential missing values are handled correctly
     if "seq" in df.columns:
         df["seq"] = df["seq"].astype("Int64")
