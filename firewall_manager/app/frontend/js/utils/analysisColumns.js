@@ -418,7 +418,245 @@ export function getColumnDefs(analysisType, objectCellRenderer = null) {
             },
             ...policyColumns
         ];
+    } else if (analysisType === 'risky_ports') {
+        return [
+            { 
+                field: 'device_name', 
+                headerName: '장비', 
+                filter: 'agTextColumnFilter', 
+                pinned: 'left',
+                sortable: false,
+                minWidth: 120,
+                filterParams: {
+                    buttons: ['apply', 'reset'],
+                    debounceMs: 200
+                }
+            },
+            ...policyColumns.slice(0, 4), // seq, vsys, rule_name, enable
+            {
+                field: 'original_services',
+                headerName: '원본 서비스',
+                wrapText: true,
+                autoHeight: true,
+                filter: 'agTextColumnFilter',
+                sortable: false,
+                minWidth: 200,
+                valueGetter: params => {
+                    const serviceObjects = params.data.original_service_objects || [];
+                    if (serviceObjects.length > 0) {
+                        return serviceObjects.map(obj => {
+                            if (obj.type === 'group') {
+                                return obj.name;
+                            } else {
+                                return obj.name || obj.token || '';
+                            }
+                        }).join(', ');
+                    }
+                    const services = params.data.original_services || [];
+                    return Array.isArray(services) ? services.join(', ') : '';
+                },
+                filterParams: {
+                    buttons: ['apply', 'reset'],
+                    debounceMs: 200
+                }
+            },
+            {
+                field: 'removed_risky_ports',
+                headerName: '제거된 위험 포트',
+                wrapText: true,
+                autoHeight: true,
+                filter: 'agTextColumnFilter',
+                sortable: false,
+                minWidth: 200,
+                cellStyle: { color: '#d32f2f', fontWeight: '500' },
+                valueGetter: params => {
+                    const removed = params.data.removed_risky_ports || [];
+                    if (!Array.isArray(removed) || removed.length === 0) return '';
+                    return removed.map(r => r.risky_port_def || `${r.protocol}/${r.port}`).join(', ');
+                },
+                cellRenderer: (params) => {
+                    const removed = params.data.removed_risky_ports || [];
+                    if (!Array.isArray(removed) || removed.length === 0) return '';
+                    const displayText = removed.map(r => r.risky_port_def || `${r.protocol}/${r.port}`).join(', ');
+                    return `<span style="color: #d32f2f; font-weight: 500; cursor: pointer;" title="클릭하여 상세 정보 보기">${displayText}</span>`;
+                },
+                onCellClicked: (params) => {
+                    if (params.data && params.data.removed_risky_ports && params.data.removed_risky_ports.length > 0) {
+                        showRiskyPortsDetailModal(params.data);
+                    }
+                },
+                filterParams: {
+                    buttons: ['apply', 'reset'],
+                    debounceMs: 200
+                }
+            },
+            {
+                field: 'filtered_services',
+                headerName: '제거 후 서비스',
+                wrapText: true,
+                autoHeight: true,
+                filter: 'agTextColumnFilter',
+                sortable: false,
+                minWidth: 250,
+                cellRenderer: params => {
+                    const serviceObjects = params.data.filtered_service_objects || [];
+                    if (serviceObjects.length === 0) {
+                        const services = params.data.filtered_services || [];
+                        return Array.isArray(services) ? services.join(', ') : '';
+                    }
+                    
+                    return serviceObjects.map(obj => {
+                        const displayName = obj.name || obj.token || '';
+                        // 원본 객체명과 다르면 원본 표시
+                        if (obj.original_name && obj.original_name !== obj.name) {
+                            return `<span title="원본: ${obj.original_name}">${displayName}</span>`;
+                        }
+                        return displayName;
+                    }).join(', ');
+                },
+                valueGetter: params => {
+                    const serviceObjects = params.data.filtered_service_objects || [];
+                    if (serviceObjects.length > 0) {
+                        return serviceObjects.map(obj => {
+                            // 원본 객체명과 다르면 원본 포함하여 표시
+                            if (obj.original_name && obj.original_name !== obj.name) {
+                                return `${obj.name} (원본: ${obj.original_name})`;
+                            }
+                            return obj.name || obj.token || '';
+                        }).join(', ');
+                    }
+                    const services = params.data.filtered_services || [];
+                    return Array.isArray(services) ? services.join(', ') : '';
+                },
+                filterParams: {
+                    buttons: ['apply', 'reset'],
+                    debounceMs: 200
+                }
+            },
+            ...policyColumns.slice(4) // 나머지 정책 컬럼들
+        ];
     }
     return policyColumns;
+}
+
+/**
+ * 위험 포트 상세 정보 모달 표시 (단순화 버전)
+ */
+window.showRiskyPortsDetailModal = function(data) {
+    const removed = data.removed_risky_ports || [];
+    const originalServiceObjects = data.original_service_objects || [];
+    const filteredServiceObjects = data.filtered_service_objects || [];
+    
+    // 모달 HTML 생성
+    let modalHtml = `
+        <div class="modal is-active" id="risky-ports-detail-modal">
+            <div class="modal-background"></div>
+            <div class="modal-card" style="max-width: 900px;">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">위험 포트 제거 상세 정보</p>
+                    <button class="delete" aria-label="close" onclick="document.getElementById('risky-ports-detail-modal').remove()"></button>
+                </header>
+                <section class="modal-card-body">
+                    <div class="content">
+                        <h4 class="mb-4">정책: <strong>${data.policy?.rule_name || 'N/A'}</strong></h4>
+    `;
+    
+    // 위험 포트가 제거된 경우
+    if (removed.length > 0) {
+        modalHtml += `
+                        <div class="notification is-warning is-light mb-4">
+                            <strong>제거된 위험 포트:</strong> ${removed.map(r => `${r.protocol}/${r.port}`).join(', ')}
+                        </div>
+        `;
+    } else {
+        modalHtml += `
+                        <div class="notification is-success is-light mb-4">
+                            <strong>위험 포트 없음:</strong> 원본 서비스를 그대로 사용할 수 있습니다.
+                        </div>
+        `;
+    }
+    
+    // 원본 서비스와 제거 후 서비스 비교 테이블
+    modalHtml += `
+                        <table class="table is-fullwidth is-striped">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40%;">원본 서비스</th>
+                                    <th style="width: 60%;">제거 후 서비스</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+    `;
+    
+    // 원본 서비스 객체별로 매핑
+    originalServiceObjects.forEach(originalObj => {
+        const originalName = originalObj.name || originalObj.token || '';
+        
+        // 제거 후 서비스 객체 찾기 (original_name으로 매칭)
+        const filteredObj = filteredServiceObjects.find(f => 
+            f.original_name === originalName || (f.original_name === originalName && f.name === originalName)
+        );
+        
+        let originalDisplay = '';
+        if (originalObj.type === 'group') {
+            originalDisplay = `<strong>${originalName}</strong> <span class="tag is-info is-light">그룹</span>`;
+        } else {
+            originalDisplay = `<strong>${originalName}</strong>`;
+        }
+        
+        let filteredDisplay = '';
+        if (filteredObj) {
+            const filteredName = filteredObj.name || filteredObj.token || '';
+            if (filteredObj.type === 'group') {
+                filteredDisplay = `<strong>${filteredName}</strong> <span class="tag is-info is-light">그룹</span>`;
+            } else {
+                filteredDisplay = `<strong>${filteredName}</strong>`;
+            }
+            
+            // 원본과 다르면 원본 표시
+            if (filteredObj.original_name && filteredObj.original_name !== filteredObj.name) {
+                filteredDisplay += `<br><small class="has-text-grey">(원본: ${filteredObj.original_name})</small>`;
+            }
+            
+            // 필터된 토큰 표시
+            if (filteredObj.filtered_tokens && filteredObj.filtered_tokens.length > 0) {
+                filteredDisplay += `<br><small class="has-text-grey">${filteredObj.filtered_tokens.join(', ')}</small>`;
+            }
+        } else {
+            // 매칭되는 제거 후 서비스가 없으면 원본 그대로 사용
+            filteredDisplay = `<strong>${originalName}</strong> <span class="tag is-success is-light">원본 그대로</span>`;
+        }
+        
+        modalHtml += `
+            <tr>
+                <td>${originalDisplay}</td>
+                <td>${filteredDisplay}</td>
+            </tr>
+        `;
+    });
+    
+    modalHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                <footer class="modal-card-foot">
+                    <button class="button is-primary" onclick="document.getElementById('risky-ports-detail-modal').remove()">닫기</button>
+                </footer>
+            </div>
+        </div>
+    `;
+    
+    // 모달 추가
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = modalHtml;
+    document.body.appendChild(tempDiv.firstElementChild);
+    
+    // 배경 클릭 시 닫기
+    const modal = document.getElementById('risky-ports-detail-modal');
+    const background = modal.querySelector('.modal-background');
+    if (background) {
+        background.addEventListener('click', () => modal.remove());
+    }
 }
 

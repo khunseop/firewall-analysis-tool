@@ -95,6 +95,63 @@ async function saveSettings() {
   }
 }
 
+/**
+ * 위험 포트 설정 로드
+ */
+async function loadRiskyPorts() {
+  try {
+    const setting = await api.getSetting('risky_ports');
+    if (setting && setting.value) {
+      try {
+        const riskyPorts = JSON.parse(setting.value);
+        if (Array.isArray(riskyPorts)) {
+          document.getElementById('risky-ports-input').value = riskyPorts.join('\n');
+        }
+      } catch (e) {
+        console.error('Failed to parse risky ports:', e);
+      }
+    }
+  } catch (error) {
+    if (error.status !== 404) {
+      console.error('Failed to load risky ports:', error);
+    }
+  }
+}
+
+/**
+ * 위험 포트 설정 저장
+ */
+async function saveRiskyPorts() {
+  const input = document.getElementById('risky-ports-input');
+  const value = input.value.trim();
+  
+  // 입력값을 줄바꿈으로 분리하고 빈 줄 제거
+  const ports = value.split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+  
+  // 형식 검증 (프로토콜/포트 또는 프로토콜/포트-포트)
+  const portPattern = /^[a-z]+\/\d+(-\d+)?$/i;
+  const invalidPorts = ports.filter(port => !portPattern.test(port));
+  
+  if (invalidPorts.length > 0) {
+    await openAlert('오류', `잘못된 형식의 포트가 있습니다:\n${invalidPorts.join('\n')}`);
+    return;
+  }
+  
+  try {
+    // JSON 배열로 변환하여 저장
+    await api.updateSetting('risky_ports', {
+      value: JSON.stringify(ports),
+      description: '위험 포트 목록 (프로토콜/포트 또는 프로토콜/포트-포트 형식)'
+    });
+    await openAlert('성공', '위험 포트 설정이 저장되었습니다');
+  } catch (error) {
+    console.error('Failed to save risky ports:', error);
+    await openAlert('오류', `위험 포트 설정 저장에 실패했습니다: ${error.message}`);
+  }
+}
+
 // ==================== 페이지 초기화 ====================
 
 /**
@@ -110,6 +167,13 @@ export function initSettings(rootEl) {
     saveSettingsBtn.addEventListener('click', saveSettings);
   }
   loadSettings();
+  
+  // 위험 포트 설정 초기화
+  const saveRiskyPortsBtn = document.getElementById('btn-save-risky-ports');
+  if (saveRiskyPortsBtn) {
+    saveRiskyPortsBtn.addEventListener('click', saveRiskyPorts);
+  }
+  loadRiskyPorts();
   
   // 동기화 스케줄 탭 초기화 (schedules.js의 함수 재사용)
   setupDayButtons();

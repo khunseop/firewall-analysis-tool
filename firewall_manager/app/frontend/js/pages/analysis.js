@@ -6,6 +6,7 @@ import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
 import { getColumnDefs } from '../utils/analysisColumns.js';
 import { processAnalysisResults, loadValidObjectNames } from '../utils/analysisHelpers.js';
 import { initImpactAnalysis, loadPoliciesForImpact, getImpactAnalysisParams } from '../components/impactAnalysis.js';
+import { generateServiceCreationScript, downloadScript } from '../utils/scriptGenerator.js';
 
 // ==================== 전역 변수 ====================
 
@@ -146,6 +147,7 @@ function resetStatusUI() {
     const startButton = document.getElementById('btn-start-analysis');
     const impactStartButton = document.getElementById('btn-start-impact-analysis');
     const resetFiltersBtn = document.getElementById('btn-reset-filters');
+    const generateScriptBtn = document.getElementById('btn-generate-script');
     const exportBtn = document.getElementById('btn-export-excel');
     const gridDiv = document.getElementById('analysis-result-grid');
     const messageContainer = document.getElementById('analysis-message-container');
@@ -159,6 +161,7 @@ function resetStatusUI() {
         impactStartButton.classList.remove('is-loading');
     }
     if (resetFiltersBtn) resetFiltersBtn.style.display = 'none';
+    if (generateScriptBtn) generateScriptBtn.style.display = 'none';
     if (exportBtn) exportBtn.style.display = 'none';
     
     // 그리드를 빈 상태로 초기화
@@ -228,8 +231,13 @@ async function displayResults(resultData, analysisType, source = 'latest') {
     if(processedData && processedData.length > 0) {
         // 버튼 표시
         const resetFiltersBtn = document.getElementById('btn-reset-filters');
+        const generateScriptBtn = document.getElementById('btn-generate-script');
         const exportBtn = document.getElementById('btn-export-excel');
         if (resetFiltersBtn) resetFiltersBtn.style.display = 'inline-block';
+        // 위험 포트 분석인 경우에만 생성 스크립트 버튼 표시
+        if (generateScriptBtn) {
+            generateScriptBtn.style.display = analysisType === 'risky_ports' ? 'inline-block' : 'none';
+        }
         if (exportBtn) exportBtn.style.display = 'inline-block';
         
         // 그리드 표시, 메시지 숨김
@@ -251,8 +259,10 @@ async function displayResults(resultData, analysisType, source = 'latest') {
     } else {
         // 결과가 없을 때는 버튼 숨김
         const resetFiltersBtn = document.getElementById('btn-reset-filters');
+        const generateScriptBtn = document.getElementById('btn-generate-script');
         const exportBtn = document.getElementById('btn-export-excel');
         if (resetFiltersBtn) resetFiltersBtn.style.display = 'none';
+        if (generateScriptBtn) generateScriptBtn.style.display = 'none';
         if (exportBtn) exportBtn.style.display = 'none';
         
         // 메시지 표시, 그리드 숨김
@@ -442,6 +452,56 @@ async function exportToExcel() {
     );
 }
 
+async function generateScript() {
+    const deviceId = deviceSelect.getValue();
+    if (!deviceId) {
+        alert('장비를 선택하세요.');
+        return;
+    }
+    
+    const analysisTypeSelect = document.getElementById('analysis-type-select');
+    const analysisType = analysisTypeSelect ? analysisTypeSelect.value : 'risky_ports';
+    
+    if (analysisType !== 'risky_ports') {
+        alert('생성 스크립트는 위험 포트 분석에서만 사용할 수 있습니다.');
+        return;
+    }
+    
+    try {
+        // 현재 그리드의 데이터 가져오기
+        const rowData = [];
+        if (resultGridApi) {
+            resultGridApi.forEachNode((node) => {
+                if (node.data) {
+                    rowData.push(node.data);
+                }
+            });
+        }
+        
+        if (rowData.length === 0) {
+            alert('생성할 데이터가 없습니다.');
+            return;
+        }
+        
+        // 장비 정보에서 벤더 타입 가져오기
+        const device = allDevices.find(d => d.id === deviceId);
+        const vendor = device?.vendor || 'palo_alto';
+        
+        // 스크립트 생성
+        const scriptText = generateServiceCreationScript(rowData, vendor);
+        
+        // 파일명 생성
+        const deviceName = device ? device.name.replace(/\s+/g, '_') : `device_${deviceId}`;
+        const filename = `service_creation_script_${deviceName}_${new Date().toISOString().split('T')[0]}`;
+        
+        // 다운로드
+        downloadScript(scriptText, filename);
+    } catch (error) {
+        console.error('스크립트 생성 실패:', error);
+        alert(`스크립트 생성 실패: ${error.message}`);
+    }
+}
+
 function setupAnalysisTypeSelect() {
     const analysisTypeSelect = document.getElementById('analysis-type-select');
     const paramsColumn = document.getElementById('analysis-params-column');
@@ -513,6 +573,12 @@ export async function initAnalysis() {
     const exportButton = document.getElementById('btn-export-excel');
     if (exportButton) {
         exportButton.addEventListener('click', exportToExcel);
+    }
+
+    // 생성 스크립트 버튼
+    const generateScriptButton = document.getElementById('btn-generate-script');
+    if (generateScriptButton) {
+        generateScriptButton.addEventListener('click', generateScript);
     }
 
     // 필터 초기화 버튼

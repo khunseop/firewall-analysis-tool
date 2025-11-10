@@ -38,6 +38,38 @@ export async function processAnalysisResults(resultData, analysisType, allDevice
         if (analysisType === 'unreferenced_objects') {
             // 미참조 객체 분석 결과는 그대로 사용
             processedData = resultData;
+        } else if (analysisType === 'risky_ports') {
+            // 위험 포트 분석 결과 처리
+            const firstItem = resultData[0];
+            const deviceId = firstItem?.policy?.device_id || firstItem?.device_id;
+            
+            if (deviceId) {
+                const device = allDevices.find(d => d.id === deviceId);
+                const deviceName = device ? device.name : `장비 ${deviceId}`;
+                
+                // 각 결과에 장비 이름 추가 및 서비스 토큰 포맷팅
+                processedData = resultData.map(item => ({
+                    ...item,
+                    device_name: deviceName,
+                    // 서비스 토큰 배열을 문자열로 변환 (이미 배열이면 그대로 사용)
+                    original_services: Array.isArray(item.original_services) 
+                        ? item.original_services 
+                        : (item.original_services ? [item.original_services] : []),
+                    // original_service_objects 명시적으로 보존 (그룹/개별 구분 정보)
+                    original_service_objects: Array.isArray(item.original_service_objects) 
+                        ? item.original_service_objects 
+                        : (item.original_service_objects ? [item.original_service_objects] : []),
+                    // filtered_service_objects 명시적으로 보존 (제거 후 그룹/개별 구분 정보)
+                    filtered_service_objects: Array.isArray(item.filtered_service_objects) 
+                        ? item.filtered_service_objects 
+                        : (item.filtered_service_objects ? [item.filtered_service_objects] : []),
+                    filtered_services: Array.isArray(item.filtered_services) 
+                        ? item.filtered_services 
+                        : (item.filtered_services ? [item.filtered_services] : [])
+                }));
+            } else {
+                processedData = resultData;
+            }
         } else {
             // 중복 정책, 미사용 정책 분석 결과 처리
             const firstItem = resultData[0];

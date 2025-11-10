@@ -47,6 +47,8 @@ export const api = {
       return request(url, { method: "POST" });
     } else if (analysisType === 'unreferenced_objects') {
       return request(`/analysis/unreferenced-objects/${deviceId}`, { method: "POST" });
+    } else if (analysisType === 'risky_ports') {
+      return request(`/analysis/risky-ports/${deviceId}`, { method: "POST" });
     }
     throw new Error(`Unknown analysis type: ${analysisType}`);
   },

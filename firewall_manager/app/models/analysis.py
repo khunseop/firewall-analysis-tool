@@ -9,6 +9,7 @@ class AnalysisTaskType(str, enum.Enum):
     UNUSED = "unused"
     IMPACT = "impact"
     UNREFERENCED_OBJECTS = "unreferenced_objects"
+    RISKY_PORTS = "risky_ports"
 
 class AnalysisTaskStatus(str, enum.Enum):
     PENDING = "pending"

@@ -34,10 +34,23 @@ async def update_setting(
     setting_in: schemas.SettingsUpdate,
     db: AsyncSession = Depends(get_db)
 ):
-    """설정 업데이트"""
+    """설정 업데이트 (없으면 생성)"""
     setting = await crud.settings.get_setting(db, key=key)
     if setting is None:
-        raise HTTPException(status_code=404, detail="Setting not found")
+        # 설정이 없으면 생성
+        setting_create = schemas.SettingsCreate(
+            key=key,
+            value=setting_in.value,
+            description=setting_in.description
+        )
+        created_setting = await crud.settings.create_setting(db, setting_create)
+        
+        # sync_parallel_limit이 변경되면 세마포어 리셋
+        if key == "sync_parallel_limit":
+            from app.services.sync.tasks import reset_sync_semaphore
+            await reset_sync_semaphore()
+        
+        return created_setting
     
     updated_setting = await crud.settings.update_setting(db=db, db_obj=setting, obj_in=setting_in)
     

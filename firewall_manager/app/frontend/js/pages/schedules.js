@@ -88,8 +88,6 @@ export function initDevicesGrid(devices) {
   const columnDefs = [
     {
       headerName: '',
-      checkboxSelection: true,
-      headerCheckboxSelection: true,
       width: 50,
       pinned: 'left',
       lockPosition: true,
@@ -103,8 +101,12 @@ export function initDevicesGrid(devices) {
   const gridOptions = {
     columnDefs,
     rowData: devices,
-    rowSelection: 'multiple',
-    suppressRowClickSelection: true,
+    rowSelection: {
+      mode: 'multiRow',
+      checkboxes: true,
+      enableClickSelection: false,
+      headerCheckbox: true,
+    },
     getRowId: (params) => params.data.id.toString(),
     onSelectionChanged: () => {
       const selectedRows = devicesGridApi.getSelectedRows();
@@ -217,11 +219,20 @@ export function initSchedulesGrid(schedules) {
       const maxHeight = 600;
       const calculatedHeight = Math.min(headerHeight + rowCount * rowHeight, maxHeight);
       gridDiv.style.height = `${calculatedHeight}px`;
-      schedulesGridApi.sizeColumnsToFit();
+      
+      // 그리드가 보이는지 확인 후 sizeColumnsToFit 호출
+      if (gridDiv.offsetWidth > 0) {
+        schedulesGridApi.sizeColumnsToFit();
+      }
     };
     
-    schedulesGridApi.addEventListener('firstDataRendered', updateHeight);
-    schedulesGridApi.addEventListener('modelUpdated', updateHeight);
+    schedulesGridApi.addEventListener('firstDataRendered', () => {
+      // 약간의 지연을 두어 그리드가 렌더링된 후 실행
+      setTimeout(updateHeight, 100);
+    });
+    schedulesGridApi.addEventListener('modelUpdated', () => {
+      setTimeout(updateHeight, 100);
+    });
     
     // 이벤트 위임으로 버튼 클릭 처리
     gridDiv.addEventListener('click', (e) => {

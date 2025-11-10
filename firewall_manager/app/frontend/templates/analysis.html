@@ -22,6 +22,7 @@
                 <option value="unused">미사용 정책 분석</option>
                 <option value="unreferenced_objects">미참조 객체 분석</option>
                 <option value="impact">정책 위치 이동 영향도 분석</option>
+                <option value="risky_ports">위험 포트 분석</option>
               </select>
             </div>
           </div>
@@ -104,6 +105,9 @@
           <div class="buttons">
             <button class="button is-light is-small" id="btn-reset-filters" style="display: none;">
               필터 초기화
+            </button>
+            <button class="button is-info is-small" id="btn-generate-script" style="display: none;">
+              생성 스크립트 다운로드
             </button>
             <button class="button is-success is-small" id="btn-export-excel" style="display: none;">
               엑셀 내보내기
