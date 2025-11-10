@@ -1,7 +1,7 @@
 """Add token to policy_address_members
 
-Revision ID: a1b2c3d4e5f6
-Revises: 96102c4e15f4
+Revision ID: h1i2j3k4l5m6
+Revises: g2d3e4f5a6b7
 Create Date: 2025-11-10 16:43:32.000000
 
 """
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'a1b2c3d4e5f6'
-down_revision: Union[str, Sequence[str], None] = '96102c4e15f4'
+revision: str = 'h1i2j3k4l5m6'
+down_revision: Union[str, Sequence[str], None] = 'g2d3e4f5a6b7'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
