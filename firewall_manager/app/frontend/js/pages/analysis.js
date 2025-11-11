@@ -331,7 +331,7 @@ function startPolling(deviceId, analysisType) {
                     stopPolling();
                     const device = allDevices.find(d => d.id === deviceId);
                     const deviceName = device ? device.name : `장비 ${deviceId}`;
-                    notifyAnalysisComplete(deviceName, analysisType, true).catch(err => {
+                    notifyAnalysisComplete(deviceName, analysisType, true, deviceId).catch(err => {
                         console.warn('알림 표시 실패:', err);
                     });
                     setTimeout(() => displayTaskResults(deviceId, analysisType), 100);
@@ -340,7 +340,7 @@ function startPolling(deviceId, analysisType) {
                     stopPolling();
                     const deviceFail = allDevices.find(d => d.id === deviceId);
                     const deviceNameFail = deviceFail ? deviceFail.name : `장비 ${deviceId}`;
-                    notifyAnalysisComplete(deviceNameFail, analysisType, false).catch(err => {
+                    notifyAnalysisComplete(deviceNameFail, analysisType, false, deviceId).catch(err => {
                         console.warn('알림 표시 실패:', err);
                     });
                     alert(`분석 실패. (Task ID: ${task.id})`);

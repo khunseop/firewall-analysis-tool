@@ -8,3 +8,4 @@ from . import crud_change_log as change_log
 from . import crud_analysis as analysis
 from . import crud_sync_schedule as sync_schedule
 from . import crud_settings as settings
+from . import crud_notification_log as notification_log

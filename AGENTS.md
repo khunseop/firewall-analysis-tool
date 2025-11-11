@@ -21,6 +21,7 @@
 - **통합 조회**: 여러 장비의 정책을 한 번에 검색 및 비교
 - **정책 분석**: 중복 정책 자동 탐지 및 분석
 - **실시간 동기화**: 백그라운드 동기화 및 WebSocket을 통한 실시간 상태 추적
+- **시스템 로그**: 동기화 및 분석 작업의 로그 기록 및 조회
 
 ---
 
@@ -109,6 +110,23 @@ python3 firewall_manager/smoke_test.py
 - `GET /firewall/sync/{device_id}/status` - 동기화 상태 조회
 - `WS /api/v1/ws/sync-status` - WebSocket 실시간 동기화 상태 업데이트
 
+### 3.4. 시스템 로그
+
+#### 주요 기능
+
+- **로그 기록**: 동기화 및 분석 작업 완료/실패 시 자동 로그 기록
+- **로그 조회**: 설정 페이지에서 카테고리 및 타입별 필터링 조회
+- **실시간 알림**: 네비바에 알림 메시지 표시 (아래에서 위로 올라가는 애니메이션)
+- **카테고리 분류**: 
+  - `sync`: 장비 동기화 관련 로그
+  - `analysis`: 정책 분석 관련 로그
+  - `system`: 시스템 이벤트 로그 (예약)
+
+#### API 엔드포인트
+
+- `POST /notifications` - 알림 로그 생성
+- `GET /notifications` - 알림 로그 목록 조회 (카테고리/타입 필터링 지원)
+
 ### 3.2. 정책 및 객체 조회
 
 #### 정책 조회
@@ -172,10 +190,14 @@ firewall_manager/app/
 ├── api/              # API 라우터 및 엔드포인트
 │   └── api_v1/
 │       └── endpoints/
-│           └── websocket.py  # WebSocket 엔드포인트
+│           ├── websocket.py  # WebSocket 엔드포인트
+│           └── notifications.py  # 알림 로그 API 엔드포인트
 ├── crud/             # 데이터베이스 CRUD 작업
+│   └── crud_notification_log.py  # 알림 로그 CRUD
 ├── models/           # SQLAlchemy 모델
+│   └── notification_log.py  # 알림 로그 모델
 ├── schemas/          # Pydantic 스키마
+│   └── notification_log.py  # 알림 로그 스키마
 ├── services/         # 비즈니스 로직
 │   ├── firewall/     # 방화벽 벤더별 Collector
 │   ├── sync/         # 동기화 로직
@@ -221,7 +243,9 @@ app/frontend/
 │   │   ├── message.js            # 빈 상태 메시지
 │   │   ├── date.js               # 날짜 포맷팅
 │   │   ├── dom.js                # DOM 조작
-│   │   └── export.js             # 엑셀 내보내기
+│   │   ├── export.js             # 엑셀 내보내기
+│   │   ├── notification.js       # 알림 로그 저장 및 티커 표시
+│   │   └── notificationTicker.js # 네비바 알림 티커 (아래→위 애니메이션)
 │   ├── components/               # 재사용 컴포넌트
 │   │   ├── navbar.js
 │   │   └── objectDetailModal.js
@@ -230,7 +254,8 @@ app/frontend/
 │       ├── devices.js
 │       ├── policies.js
 │       ├── objects.js
-│       └── analysis.js
+│       ├── analysis.js
+│       └── settings.js            # 설정 페이지 (일반 설정, 스케줄, 알림 로그)
 ├── templates/                     # HTML 템플릿
 └── styles/                        # CSS 스타일
 ```
@@ -263,6 +288,14 @@ app/frontend/
 - **상태별 시각화**: 동기화 상태에 따른 색상 및 점멸 효과
 - **다중 페이지 지원**: 장비 목록 페이지와 대시보드에서 동시 사용
 
+**알림 시스템**
+- **네비바 티커**: 동기화/분석 완료 시 네비바 오른쪽에 알림 메시지 표시
+  - 아래에서 위로 올라가는 애니메이션
+  - 회색 텍스트로 5초간 표시
+  - 여러 알림이 있을 경우 큐 방식으로 순차 표시
+- **로그 저장**: 모든 알림이 데이터베이스에 자동 저장
+- **로그 조회**: 설정 > 알림 로그 탭에서 카테고리/타입별 필터링 조회 가능
+
 ### 4.3. 데이터베이스
 
 #### 스키마
@@ -277,6 +310,7 @@ app/frontend/
 - **policy_service_members**: 정책-서비스 인덱스
 - **analysis_tasks**: 분석 작업
 - **analysis_results**: 분석 결과
+- **notification_logs**: 시스템 로그 (동기화/분석 작업 기록)
 
 #### 마이그레이션 (Alembic)
 

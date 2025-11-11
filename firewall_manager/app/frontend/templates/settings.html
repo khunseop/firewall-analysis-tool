@@ -7,8 +7,11 @@
       <li class="tab-item" data-tab="general">
         <a>일반 설정</a>
       </li>
-      <li class="tab-item is-active" data-tab="schedules">
+      <li class="tab-item" data-tab="schedules">
         <a>동기화 스케줄</a>
+      </li>
+      <li class="tab-item is-active" data-tab="logs">
+        <a>알림 로그</a>
       </li>
     </ul>
   </div>
@@ -165,6 +168,51 @@
       <div id="schedules-message-container"></div>
       <!-- 그리드 -->
       <div id="schedules-grid" class="ag-theme-quartz"></div>
+    </div>
+  </div>
+  
+  <!-- 알림 로그 탭 -->
+  <div id="tab-logs" class="tab-content">
+    <div class="box">
+      <div class="level mb-4">
+        <div class="level-left">
+          <div class="level-item">
+            <h2 class="subtitle is-6 mb-0">알림 로그</h2>
+          </div>
+        </div>
+        <div class="level-right">
+          <div class="level-item">
+            <div class="field has-addons">
+              <div class="control">
+                <div class="select is-small">
+                  <select id="log-filter-category">
+                    <option value="">전체 카테고리</option>
+                    <option value="sync">동기화</option>
+                    <option value="analysis">분석</option>
+                    <option value="system">시스템</option>
+                  </select>
+                </div>
+              </div>
+              <div class="control">
+                <div class="select is-small">
+                  <select id="log-filter-type">
+                    <option value="">전체 타입</option>
+                    <option value="info">정보</option>
+                    <option value="success">성공</option>
+                    <option value="warning">경고</option>
+                    <option value="error">오류</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 메시지 컨테이너 -->
+      <div id="logs-message-container"></div>
+      <!-- 그리드 -->
+      <div id="logs-grid" class="ag-theme-quartz"></div>
     </div>
   </div>
   

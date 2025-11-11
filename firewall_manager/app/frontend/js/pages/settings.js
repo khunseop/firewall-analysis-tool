@@ -1,5 +1,5 @@
 import { api } from "../api.js";
-import { openAlert } from "../utils/modal.js";
+import { showEmptyMessage, hideEmptyMessage } from "../utils/message.js";
 // schedules.js의 함수들을 재사용
 import { 
   loadDevices, 
@@ -196,14 +196,170 @@ export function initSettings(rootEl) {
   loadDevices();
   loadSchedules();
   
+  // 알림 로그 탭 초기화
+  initNotificationLogs();
+  
   // URL 해시에 따라 탭 전환
   const hash = window.location.hash;
   if (hash === '#/settings/schedules') {
     switchTab('schedules');
+  } else if (hash === '#/settings/logs') {
+    switchTab('logs');
   } else if (hash === '#/settings') {
-    // 기본 탭은 일반 설정
-    switchTab('general');
+    // 기본 탭은 알림 로그
+    switchTab('logs');
   }
+}
+
+// ==================== 알림 로그 ====================
+
+let logsGrid = null;
+
+/**
+ * 알림 로그 그리드 초기화
+ */
+function initLogsGrid() {
+  const gridDiv = document.getElementById('logs-grid');
+  if (!gridDiv) return;
+
+  const columnDefs = [
+    {
+      headerName: '시간',
+      field: 'timestamp',
+      width: 180,
+      valueFormatter: (params) => {
+        if (!params.value) return '';
+        const date = new Date(params.value);
+        return date.toLocaleString('ko-KR');
+      },
+      sort: 'desc'
+    },
+    {
+      headerName: '제목',
+      field: 'title',
+      flex: 1,
+      minWidth: 150
+    },
+    {
+      headerName: '메시지',
+      field: 'message',
+      flex: 2,
+      minWidth: 200
+    },
+    {
+      headerName: '타입',
+      field: 'type',
+      width: 100,
+      cellRenderer: (params) => {
+        const typeMap = {
+          'info': '정보',
+          'success': '성공',
+          'warning': '경고',
+          'error': '오류'
+        };
+        return typeMap[params.value] || params.value;
+      },
+      cellStyle: (params) => {
+        const colorMap = {
+          'info': { color: '#6b7280' },
+          'success': { color: '#10b981' },
+          'warning': { color: '#f59e0b' },
+          'error': { color: '#ef4444' }
+        };
+        return colorMap[params.value] || {};
+      }
+    },
+    {
+      headerName: '카테고리',
+      field: 'category',
+      width: 120,
+      cellRenderer: (params) => {
+        const categoryMap = {
+          'sync': '동기화',
+          'analysis': '분석',
+          'system': '시스템'
+        };
+        return categoryMap[params.value] || params.value || '-';
+      }
+    },
+    {
+      headerName: '장비',
+      field: 'device_name',
+      width: 150,
+      cellRenderer: (params) => params.value || '-'
+    },
+  ];
+
+  const gridOptions = {
+    columnDefs,
+    defaultColDef: {
+      sortable: true,
+      filter: true,
+      resizable: true
+    },
+    rowData: [],
+    pagination: true,
+    paginationPageSize: 50,
+    paginationPageSizeSelector: [25, 50, 100, 200],
+    domLayout: 'autoHeight',
+    suppressNoRowsOverlay: false
+  };
+
+  logsGrid = agGrid.createGrid(gridDiv, gridOptions);
+}
+
+/**
+ * 알림 로그 로드
+ */
+async function loadNotificationLogs() {
+  const category = document.getElementById('log-filter-category')?.value || '';
+  const type = document.getElementById('log-filter-type')?.value || '';
+
+  try {
+    const response = await api.getNotifications({
+      skip: 0,
+      limit: 1000,
+      category: category || undefined,
+      type: type || undefined
+    });
+
+    if (logsGrid) {
+      logsGrid.setGridOption('rowData', response.items || []);
+    }
+
+    const messageContainer = document.getElementById('logs-message-container');
+    if (response.items && response.items.length === 0) {
+      showEmptyMessage(messageContainer, '알림 로그가 없습니다.');
+    } else {
+      hideEmptyMessage(messageContainer);
+    }
+  } catch (error) {
+    console.error('Failed to load notification logs:', error);
+    const messageContainer = document.getElementById('logs-message-container');
+    showEmptyMessage(messageContainer, '알림 로그를 불러오는데 실패했습니다.');
+  }
+}
+
+/**
+ * 알림 로그 탭 초기화
+ */
+function initNotificationLogs() {
+  // 그리드 초기화
+  initLogsGrid();
+
+  // 필터 이벤트
+  const categoryFilter = document.getElementById('log-filter-category');
+  const typeFilter = document.getElementById('log-filter-type');
+
+  if (categoryFilter) {
+    categoryFilter.addEventListener('change', loadNotificationLogs);
+  }
+  if (typeFilter) {
+    typeFilter.addEventListener('change', loadNotificationLogs);
+  }
+
+  // 초기 로드
+  loadNotificationLogs();
 }
 
 /**
@@ -211,5 +367,9 @@ export function initSettings(rootEl) {
  */
 export function cleanupSettings() {
   cleanupSchedules();
+  if (logsGrid) {
+    logsGrid.destroy();
+    logsGrid = null;
+  }
 }
 

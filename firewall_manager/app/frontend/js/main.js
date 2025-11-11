@@ -6,6 +6,7 @@ import { initObjects } from "./pages/objects.js";
 import { initAnalysis } from "./pages/analysis.js";
 import { initSchedules, cleanupSchedules } from "./pages/schedules.js";
 import { initSettings, cleanupSettings } from "./pages/settings.js";
+import { initNotificationTicker } from "./utils/notificationTicker.js";
 
 addRoute("#/dashboard", { template: "dashboard.html", init: initDashboard, cleanup: cleanupDashboard });
 addRoute("#/devices", { template: "devices.html", init: initDevices, cleanup: cleanupDevices });
@@ -27,6 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if ($target) $target.classList.toggle('is-active');
     });
   });
+  
+  // 알림 티커 초기화
+  initNotificationTicker();
 });
 
 startRouter();

@@ -682,7 +682,7 @@ function handleSyncStatusUpdate(message) {
       
       // 동기화 완료 알림
       const deviceName = updatedData.name || `장비 ${device_id}`;
-      notifySyncComplete(deviceName, status === 'success').catch(err => {
+      notifySyncComplete(deviceName, status === 'success', device_id).catch(err => {
         console.warn('알림 표시 실패:', err);
       });
     }

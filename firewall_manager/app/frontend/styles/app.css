@@ -331,3 +331,37 @@ input:focus, textarea:focus, select:focus, .select select:focus {
 .minimal-navbar .navbar-item:nth-child(3) { animation-delay: 0.15s; }
 .minimal-navbar .navbar-item:nth-child(4) { animation-delay: 0.2s; }
 .minimal-navbar .navbar-item:nth-child(5) { animation-delay: 0.25s; }
+
+/* Notification Ticker Styles */
+.notification-ticker {
+  position: relative;
+  width: 400px;
+  height: 2rem;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.notification-ticker-item {
+  position: absolute;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(100%);
+  transition: opacity 0.4s ease, transform 0.5s ease;
+  color: var(--color-text-secondary);
+  bottom: 0;
+  right: 0;
+}
+
+.notification-ticker-item.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.notification-ticker-item.hide {
+  opacity: 0;
+  transform: translateY(-100%);
+}

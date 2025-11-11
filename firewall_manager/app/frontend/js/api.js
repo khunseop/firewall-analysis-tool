@@ -119,6 +119,17 @@ export const api = {
   getSettings: () => request(`/settings`),
   getSetting: (key) => request(`/settings/${key}`),
   updateSetting: (key, payload) => request(`/settings/${key}`, { method: "PUT", body: JSON.stringify(payload) }),
+  // Notification APIs
+  createNotification: (payload) => request(`/notifications`, { method: "POST", body: JSON.stringify(payload) }),
+  getNotifications: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.skip !== undefined) queryParams.append('skip', params.skip);
+    if (params.limit !== undefined) queryParams.append('limit', params.limit);
+    if (params.category) queryParams.append('category', params.category);
+    if (params.type) queryParams.append('type', params.type);
+    const query = queryParams.toString();
+    return request(`/notifications${query ? `?${query}` : ''}`);
+  },
 };
 
 
