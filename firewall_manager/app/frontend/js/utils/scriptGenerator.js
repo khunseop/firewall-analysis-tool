@@ -22,6 +22,8 @@ export function generateServiceCreationScript(resultData, vendor = 'palo_alto') 
     // 모든 정책에서 filtered_service_objects 수집
     const serviceObjects = new Map(); // name -> object
     const serviceGroups = new Map(); // name -> group
+    // 여러 포트 범위를 가진 서비스 객체를 그룹으로 변환하기 위한 맵
+    const serviceObjectsToGroups = new Map(); // originalName -> [memberServiceNames]
     
     resultData.forEach(item => {
         const filteredObjects = item.filtered_service_objects || [];
@@ -51,6 +53,11 @@ export function generateServiceCreationScript(resultData, vendor = 'palo_alto') 
         serviceObjects.forEach((obj, name) => {
             const tokens = obj.filtered_tokens || [];
             if (tokens.length === 0) {
+                return;
+            }
+            
+            // 기존 방화벽에 존재하는 서비스 객체는 생성하지 않음 (원본 그대로 재사용)
+            if (obj.original_name && obj.original_name === name) {
                 return;
             }
             
@@ -95,13 +102,32 @@ export function generateServiceCreationScript(resultData, vendor = 'palo_alto') 
                     }
                     mergedRanges.push(currentRange);
                     
-                    // 포트 문자열 생성
-                    const portStrings = mergedRanges.map(r => 
-                        r.start === r.end ? r.start.toString() : `${r.start}-${r.end}`
-                    );
-                    
-                    // Palo Alto CLI 형식: set service <name> protocol <protocol> port <port>
-                    scriptLines.push(`set service ${name} protocol ${protocol} port ${portStrings.join(',')}`);
+                    // 포트 범위가 1개면 서비스 객체로 생성, 2개 이상이면 각각 개별 서비스 객체 생성 후 그룹으로 변환
+                    if (mergedRanges.length === 1) {
+                        // 포트 범위가 1개면 그대로 서비스 객체 생성
+                        const portString = mergedRanges[0].start === mergedRanges[0].end 
+                            ? mergedRanges[0].start.toString() 
+                            : `${mergedRanges[0].start}-${mergedRanges[0].end}`;
+                        scriptLines.push(`set service ${name} protocol ${protocol} port ${portString}`);
+                    } else {
+                        // 포트 범위가 2개 이상이면 각각 개별 서비스 객체 생성
+                        const memberServiceNames = [];
+                        mergedRanges.forEach((range, index) => {
+                            const portString = range.start === range.end 
+                                ? range.start.toString() 
+                                : `${range.start}-${range.end}`;
+                            // 프로토콜을 포함한 멤버 이름 생성 (프로토콜별 이름 충돌 방지)
+                            const memberServiceName = `${name}_${protocol.toUpperCase()}_${index + 1}`;
+                            memberServiceNames.push(memberServiceName);
+                            scriptLines.push(`set service ${memberServiceName} protocol ${protocol} port ${portString}`);
+                        });
+                        
+                        // 서비스 그룹으로 변환할 정보 저장
+                        if (!serviceObjectsToGroups.has(name)) {
+                            serviceObjectsToGroups.set(name, []);
+                        }
+                        serviceObjectsToGroups.get(name).push(...memberServiceNames);
+                    }
                 });
                 
                 scriptLines.push('');
@@ -132,58 +158,22 @@ export function generateServiceCreationScript(resultData, vendor = 'palo_alto') 
         });
     }
     
-    // 서비스 그룹 생성 스크립트
-    if (serviceGroups.size > 0) {
+    // 여러 포트 범위를 가진 서비스 객체를 서비스 그룹으로 변환
+    if (serviceObjectsToGroups.size > 0) {
         scriptLines.push('# ============================================');
-        scriptLines.push('# 서비스 그룹 생성');
+        scriptLines.push('# 서비스 그룹 생성 (여러 포트 범위를 가진 서비스 객체 변환)');
         scriptLines.push('# ============================================');
         scriptLines.push('');
         scriptLines.push('# 주의: 서비스 그룹을 생성하기 전에 위의 서비스 객체들이 먼저 생성되어 있어야 합니다.');
         scriptLines.push('');
         
-        serviceGroups.forEach((group, name) => {
-            const tokens = group.filtered_tokens || [];
-            if (tokens.length === 0) {
-                return;
-            }
-            
-            // 필터된 토큰들에 해당하는 서비스 객체 이름 찾기
-            // 1. 먼저 이미 생성된 서비스 객체 중에서 찾기
-            const memberServiceNames = new Set();
-            tokens.forEach(token => {
-                serviceObjects.forEach((obj, objName) => {
-                    const objTokens = obj.filtered_tokens || [];
-                    if (objTokens.includes(token)) {
-                        memberServiceNames.add(objName);
-                    }
-                });
-            });
-            
-            // 2. 매칭되는 서비스 객체가 없으면 토큰을 서비스 객체 이름으로 변환
-            // (이 경우 별도로 서비스 객체를 생성해야 함)
-            tokens.forEach(token => {
-                let found = false;
-                serviceObjects.forEach((obj, objName) => {
-                    const objTokens = obj.filtered_tokens || [];
-                    if (objTokens.includes(token)) {
-                        found = true;
-                    }
-                });
-                if (!found) {
-                    // 토큰을 서비스 객체 이름으로 변환 (예: tcp/80 -> tcp_80_Safe)
-                    const serviceName = token.replace(/\//g, '_').replace(/-/g, '_') + '_Safe';
-                    memberServiceNames.add(serviceName);
-                }
-            });
-            
-            const members = Array.from(memberServiceNames);
-            
+        serviceObjectsToGroups.forEach((members, originalName) => {
             if (vendor === 'palo_alto') {
                 // Palo Alto CLI 형식: set service-group <name> members [ <member1> <member2> ... ]
-                scriptLines.push(`set service-group ${name} members [ ${members.join(' ')} ]`);
+                scriptLines.push(`set service-group ${originalName} members [ ${members.join(' ')} ]`);
                 scriptLines.push('');
             } else if (vendor === 'secui_ngf' || vendor === 'secui_mf2') {
-                scriptLines.push(`service-group ${name}`);
+                scriptLines.push(`service-group ${originalName}`);
                 members.forEach(member => {
                     scriptLines.push(`  member ${member}`);
                 });
@@ -193,7 +183,115 @@ export function generateServiceCreationScript(resultData, vendor = 'palo_alto') 
         });
     }
     
-    if (serviceObjects.size === 0 && serviceGroups.size === 0) {
+    // 서비스 그룹 생성 스크립트
+    if (serviceGroups.size > 0) {
+        scriptLines.push('# ============================================');
+        scriptLines.push('# 서비스 그룹 생성');
+        scriptLines.push('# ============================================');
+        scriptLines.push('');
+        scriptLines.push('# 주의: 서비스 그룹을 생성하기 전에 위의 서비스 객체들이 먼저 생성되어 있어야 합니다.');
+        scriptLines.push('');
+        
+        // 실제로 스크립트에 생성될 서비스 객체 이름 집합 생성
+        const createdServiceNames = new Set();
+        serviceObjects.forEach((obj, name) => {
+            // 원본 서비스 객체는 스크립트에 생성하지 않지만, 그룹 멤버로는 사용 가능
+            if (obj.original_name && obj.original_name === name) {
+                // 원본 객체는 스크립트에 생성하지 않음 (이미 방화벽에 존재)
+                // 하지만 그룹 멤버로는 사용 가능하므로 createdServiceNames에 추가하지 않음
+            } else {
+                // 새로 생성되는 서비스 객체
+                createdServiceNames.add(name);
+                
+                // 여러 포트 범위로 분리된 경우, 분리된 멤버 이름도 추가
+                if (serviceObjectsToGroups.has(name)) {
+                    const members = serviceObjectsToGroups.get(name);
+                    members.forEach(member => createdServiceNames.add(member));
+                }
+            }
+        });
+        
+        // 모든 filtered_service_objects에서 서비스 객체 이름 수집 (원본 포함)
+        // 그룹의 filtered_members에 포함된 멤버가 실제로 존재하는지 확인하기 위해
+        const allServiceObjectNames = new Set();
+        resultData.forEach(item => {
+            const filteredObjects = item.filtered_service_objects || [];
+            filteredObjects.forEach(obj => {
+                if (obj.type === 'service') {
+                    allServiceObjectNames.add(obj.name);
+                }
+            });
+        });
+        
+        serviceGroups.forEach((group, name) => {
+            // serviceObjectsToGroups에 포함된 그룹은 이미 위에서 처리했으므로 제외
+            if (serviceObjectsToGroups.has(name)) {
+                return;
+            }
+            
+            // 백엔드에서 제공하는 filtered_members 사용
+            const filteredMembers = group.filtered_members || [];
+            
+            if (filteredMembers.length === 0) {
+                return;
+            }
+            
+            // filtered_members에 포함된 멤버를 실제 스크립트에 생성된 멤버 이름으로 변환
+            // 1. 새로 생성되는 서비스 객체 (스크립트에 생성됨) - createdServiceNames에 포함
+            // 2. 여러 포트 범위로 분리된 서비스 객체의 원래 이름 -> 분리된 멤버 이름들로 변환
+            // 3. 원본 서비스 객체 (스크립트에 생성하지 않지만, 그룹 멤버로는 사용 가능)
+            const validMembers = [];
+            
+            filteredMembers.forEach(member => {
+                // 여러 포트 범위로 분리된 서비스 객체의 원래 이름인지 확인
+                // 예: Svc_1024_2048_Safe -> Svc_1024_2048_Safe_TCP_1, Svc_1024_2048_Safe_TCP_2 등으로 분리됨
+                if (serviceObjectsToGroups.has(member)) {
+                    // 분리된 멤버 이름들을 추가
+                    const separatedMembers = serviceObjectsToGroups.get(member);
+                    validMembers.push(...separatedMembers);
+                }
+                // 새로 생성되는 서비스 객체인지 확인 (스크립트에 생성됨)
+                else if (createdServiceNames.has(member)) {
+                    validMembers.push(member);
+                }
+                // 원본 서비스 객체인지 확인 (filtered_service_objects에 있지만 스크립트에 생성하지 않음)
+                else if (allServiceObjectNames.has(member)) {
+                    // 원본 서비스 객체인지 확인 (original_name === name)
+                    for (const item of resultData) {
+                        const filteredObjects = item.filtered_service_objects || [];
+                        const found = filteredObjects.find(obj => 
+                            obj.type === 'service' && 
+                            obj.name === member && 
+                            obj.original_name === member
+                        );
+                        if (found) {
+                            validMembers.push(member); // 원본 서비스 객체는 그룹 멤버로 사용 가능
+                            break;
+                        }
+                    }
+                }
+            });
+            
+            if (validMembers.length === 0) {
+                return;
+            }
+            
+            if (vendor === 'palo_alto') {
+                // Palo Alto CLI 형식: set service-group <name> members [ <member1> <member2> ... ]
+                scriptLines.push(`set service-group ${name} members [ ${validMembers.join(' ')} ]`);
+                scriptLines.push('');
+            } else if (vendor === 'secui_ngf' || vendor === 'secui_mf2') {
+                scriptLines.push(`service-group ${name}`);
+                validMembers.forEach(member => {
+                    scriptLines.push(`  member ${member}`);
+                });
+                scriptLines.push('exit');
+                scriptLines.push('');
+            }
+        });
+    }
+    
+    if (serviceObjects.size === 0 && serviceGroups.size === 0 && serviceObjectsToGroups.size === 0) {
         scriptLines.push('# 생성할 서비스 객체/그룹이 없습니다.');
     }
     

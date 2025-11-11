@@ -419,6 +419,16 @@ export function getColumnDefs(analysisType, objectCellRenderer = null) {
             ...policyColumns
         ];
     } else if (analysisType === 'risky_ports') {
+        // 서비스 컬럼 찾기 및 수정
+        const serviceColumnIndex = policyColumns.findIndex(col => col.field === 'service');
+        const modifiedServiceColumn = serviceColumnIndex >= 0 ? { ...policyColumns[serviceColumnIndex] } : null;
+        
+        // 서비스 컬럼은 원본 그대로 사용 (수정하지 않음)
+        // 위험 포트가 제거된 서비스도 원본 이름으로 표시
+        
+        // 서비스를 제외한 나머지 컬럼들
+        const otherColumns = policyColumns.filter(col => col.field !== 'service');
+        
         return [
             { 
                 field: 'device_name', 
@@ -433,28 +443,15 @@ export function getColumnDefs(analysisType, objectCellRenderer = null) {
                 }
             },
             ...policyColumns.slice(0, 4), // seq, vsys, rule_name, enable
-            {
-                field: 'original_services',
-                headerName: '원본 서비스',
-                wrapText: true,
+            modifiedServiceColumn || { 
+                field: 'service', 
+                headerName: '서비스', 
+                wrapText: true, 
                 autoHeight: true,
                 filter: 'agTextColumnFilter',
                 sortable: false,
-                minWidth: 200,
-                valueGetter: params => {
-                    const serviceObjects = params.data.original_service_objects || [];
-                    if (serviceObjects.length > 0) {
-                        return serviceObjects.map(obj => {
-                            if (obj.type === 'group') {
-                                return obj.name;
-                            } else {
-                                return obj.name || obj.token || '';
-                            }
-                        }).join(', ');
-                    }
-                    const services = params.data.original_services || [];
-                    return Array.isArray(services) ? services.join(', ') : '';
-                },
+                minWidth: 150,
+                valueGetter: params => params.data.policy?.service,
                 filterParams: {
                     buttons: ['apply', 'reset'],
                     debounceMs: 200
@@ -462,7 +459,7 @@ export function getColumnDefs(analysisType, objectCellRenderer = null) {
             },
             {
                 field: 'removed_risky_ports',
-                headerName: '제거된 위험 포트',
+                headerName: '찾은 위험 포트',
                 wrapText: true,
                 autoHeight: true,
                 filter: 'agTextColumnFilter',
@@ -478,11 +475,27 @@ export function getColumnDefs(analysisType, objectCellRenderer = null) {
                     const removed = params.data.removed_risky_ports || [];
                     if (!Array.isArray(removed) || removed.length === 0) return '';
                     const displayText = removed.map(r => r.risky_port_def || `${r.protocol}/${r.port}`).join(', ');
-                    return `<span style="color: #d32f2f; font-weight: 500; cursor: pointer;" title="클릭하여 상세 정보 보기">${displayText}</span>`;
+                    const span = document.createElement('span');
+                    span.style.color = '#d32f2f';
+                    span.style.fontWeight = '500';
+                    span.style.cursor = 'pointer';
+                    span.title = '클릭하여 상세 정보 보기';
+                    span.textContent = displayText;
+                    span.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (params.data && params.data.removed_risky_ports && params.data.removed_risky_ports.length > 0) {
+                            if (typeof window.showRiskyPortsDetailModal === 'function') {
+                                window.showRiskyPortsDetailModal(params.data);
+                            }
+                        }
+                    });
+                    return span;
                 },
                 onCellClicked: (params) => {
                     if (params.data && params.data.removed_risky_ports && params.data.removed_risky_ports.length > 0) {
-                        showRiskyPortsDetailModal(params.data);
+                        if (typeof window.showRiskyPortsDetailModal === 'function') {
+                            window.showRiskyPortsDetailModal(params.data);
+                        }
                     }
                 },
                 filterParams: {
@@ -502,23 +515,66 @@ export function getColumnDefs(analysisType, objectCellRenderer = null) {
                     const serviceObjects = params.data.filtered_service_objects || [];
                     if (serviceObjects.length === 0) {
                         const services = params.data.filtered_services || [];
-                        return Array.isArray(services) ? services.join(', ') : '';
+                        if (!Array.isArray(services) || services.length === 0) return '';
+                        const container = document.createElement('div');
+                        container.style.height = '100%';
+                        container.style.maxHeight = '150px';
+                        container.style.overflowY = 'auto';
+                        container.style.lineHeight = '1.5';
+                        services.forEach(service => {
+                            const line = document.createElement('div');
+                            line.textContent = service;
+                            container.appendChild(line);
+                        });
+                        return container;
                     }
                     
-                    return serviceObjects.map(obj => {
+                    const container = document.createElement('div');
+                    container.style.height = '100%';
+                    container.style.maxHeight = '150px';
+                    container.style.overflowY = 'auto';
+                    container.style.lineHeight = '1.5';
+                    
+                    serviceObjects.forEach(obj => {
                         const displayName = obj.name || obj.token || '';
+                        const line = document.createElement('div');
                         // 새로 생성되는 객체명(_Safe로 끝나는 경우)을 파란색으로 표시
                         if (displayName.endsWith('_Safe') || (obj.original_name && obj.original_name !== obj.name)) {
-                            return `<span style="color: #1976d2; font-weight: 500;">${displayName}</span>`;
+                            const span = document.createElement('span');
+                            span.style.color = '#1976d2';
+                            span.style.fontWeight = '500';
+                            span.textContent = displayName;
+                            line.appendChild(span);
+                        } else {
+                            line.textContent = displayName;
                         }
-                        return displayName;
-                    }).join(', ');
+                        
+                        // 서비스 그룹인 경우 멤버 목록 표시 (filtered_members 사용)
+                        if (obj.type === 'group' && obj.filtered_members && obj.filtered_members.length > 0) {
+                            const membersDiv = document.createElement('div');
+                            membersDiv.style.marginLeft = '20px';
+                            membersDiv.style.marginTop = '4px';
+                            membersDiv.style.fontSize = '0.9em';
+                            membersDiv.style.color = '#666';
+                            membersDiv.textContent = `멤버: ${obj.filtered_members.join(', ')}`;
+                            line.appendChild(membersDiv);
+                        }
+                        
+                        container.appendChild(line);
+                    });
+                    
+                    return container;
                 },
                 valueGetter: params => {
                     const serviceObjects = params.data.filtered_service_objects || [];
                     if (serviceObjects.length > 0) {
                         return serviceObjects.map(obj => {
-                            return obj.name || obj.token || '';
+                            const name = obj.name || obj.token || '';
+                            // 서비스 그룹인 경우 멤버 목록도 포함
+                            if (obj.type === 'group' && obj.filtered_members && obj.filtered_members.length > 0) {
+                                return `${name} [${obj.filtered_members.join(', ')}]`;
+                            }
+                            return name;
                         }).join(', ');
                     }
                     const services = params.data.filtered_services || [];
@@ -529,7 +585,7 @@ export function getColumnDefs(analysisType, objectCellRenderer = null) {
                     debounceMs: 200
                 }
             },
-            ...policyColumns.slice(4) // 나머지 정책 컬럼들
+            ...otherColumns.slice(4) // action, source, destination, application 등 (서비스 제외)
         ];
     }
     return policyColumns;
@@ -549,7 +605,7 @@ window.showRiskyPortsDetailModal = function(data) {
             <div class="modal-background"></div>
             <div class="modal-card" style="max-width: 900px;">
                 <header class="modal-card-head">
-                    <p class="modal-card-title">위험 포트 제거 상세 정보</p>
+                    <p class="modal-card-title">위험 포트 분석 상세 정보</p>
                     <button class="delete" aria-label="close" onclick="document.getElementById('risky-ports-detail-modal').remove()"></button>
                 </header>
                 <section class="modal-card-body">
@@ -561,38 +617,43 @@ window.showRiskyPortsDetailModal = function(data) {
     if (removed.length > 0) {
         modalHtml += `
                         <div class="notification is-warning is-light mb-4">
-                            <strong>제거된 위험 포트:</strong> ${removed.map(r => `${r.protocol}/${r.port}`).join(', ')}
+                            <strong>찾은 위험 포트:</strong> ${removed.map(r => `${r.protocol}/${r.port}`).join(', ')}
                         </div>
         `;
     } else {
         modalHtml += `
                         <div class="notification is-success is-light mb-4">
-                            <strong>위험 포트 없음:</strong> 원본 서비스를 그대로 사용할 수 있습니다.
+                            <strong>위험 포트 없음:</strong> 기존 서비스를 그대로 사용할 수 있습니다.
                         </div>
         `;
     }
     
-    // 원본 서비스와 제거 후 서비스 비교 테이블
+    // 위험 포트가 제거된 서비스 이름 집합 생성
+    const servicesWithRemovedPorts = new Set();
+    removed.forEach(rp => {
+        if (rp.service_name) {
+            servicesWithRemovedPorts.add(rp.service_name);
+        }
+    });
+    
+    // 변경 전과 변경 후 서비스 비교 테이블
     modalHtml += `
                         <table class="table is-fullwidth is-striped">
                             <thead>
                                 <tr>
-                                    <th style="width: 40%;">원본 서비스</th>
-                                    <th style="width: 60%;">제거 후 서비스</th>
+                                    <th style="width: 40%;">변경 전</th>
+                                    <th style="width: 60%;">변경 후</th>
                                 </tr>
                             </thead>
                             <tbody>
     `;
     
-    // 원본 서비스 객체별로 매핑
+    // 원본 서비스 객체를 모두 표시 (필터링하지 않음)
     originalServiceObjects.forEach(originalObj => {
         const originalName = originalObj.name || originalObj.token || '';
+        const hasRemovedPorts = servicesWithRemovedPorts.has(originalName);
         
-        // 제거 후 서비스 객체 찾기 (original_name으로 매칭)
-        const filteredObj = filteredServiceObjects.find(f => 
-            f.original_name === originalName || (f.original_name === originalName && f.name === originalName)
-        );
-        
+        // 변경 전 표시 (원본)
         let originalDisplay = '';
         if (originalObj.type === 'group') {
             originalDisplay = `<strong>${originalName}</strong> <span class="tag is-info is-light">그룹</span>`;
@@ -600,23 +661,31 @@ window.showRiskyPortsDetailModal = function(data) {
             originalDisplay = `<strong>${originalName}</strong>`;
         }
         
+        // 변경 후 표시
         let filteredDisplay = '';
-        if (filteredObj) {
-            const filteredName = filteredObj.name || filteredObj.token || '';
-            if (filteredObj.type === 'group') {
-                filteredDisplay = `<strong>${filteredName}</strong> <span class="tag is-info is-light">그룹</span>`;
-            } else {
-                // 새로 생성되는 객체명(_Safe로 끝나는 경우)을 파란색으로 표시
-                if (filteredName.endsWith('_Safe') || (filteredObj.original_name && filteredObj.original_name !== filteredObj.name)) {
-                    filteredDisplay = `<strong style="color: #1976d2;">${filteredName}</strong>`;
-                } else {
-                    filteredDisplay = `<strong>${filteredName}</strong>`;
-                }
-            }
+        
+        if (hasRemovedPorts) {
+            // 위험 포트가 제거된 서비스: Safe 버전 찾기
+            const safeName = `${originalName}_Safe`;
+            const filteredObj = filteredServiceObjects.find(f => 
+                f.name === safeName || (f.original_name === originalName && f.name.endsWith('_Safe'))
+            );
             
-            // 필터된 토큰 표시
-            if (filteredObj.filtered_tokens && filteredObj.filtered_tokens.length > 0) {
-                filteredDisplay += `<br><small class="has-text-grey">${filteredObj.filtered_tokens.join(', ')}</small>`;
+            if (filteredObj) {
+                const filteredName = filteredObj.name || filteredObj.token || '';
+                if (filteredObj.type === 'group') {
+                    filteredDisplay = `<strong style="color: #1976d2;">${filteredName}</strong> <span class="tag is-info is-light">그룹</span>`;
+                } else {
+                    filteredDisplay = `<strong style="color: #1976d2;">${filteredName}</strong>`;
+                }
+                
+                // 필터된 토큰 표시
+                if (filteredObj.filtered_tokens && filteredObj.filtered_tokens.length > 0) {
+                    filteredDisplay += `<br><small class="has-text-grey">${filteredObj.filtered_tokens.join(', ')}</small>`;
+                }
+            } else {
+                // Safe 버전을 찾지 못한 경우
+                filteredDisplay = `<strong style="color: #d32f2f;">삭제됨</strong>`;
             }
         } else {
             // 매칭되는 제거 후 서비스가 없으면 원본 그대로 사용

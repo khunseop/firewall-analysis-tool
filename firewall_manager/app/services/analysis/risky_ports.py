@@ -318,10 +318,12 @@ class RiskyPortsAnalyzer:
                     # 서비스 그룹인 경우
                     expanded_tokens = self._expand_service_groups(service_name)
                     original_service_tokens.update(expanded_tokens)
+                    group_members = self._get_service_group_members(service_name)
                     original_service_objects.append({
                         "type": "group",
                         "name": service_name,
-                        "expanded_tokens": list(expanded_tokens)
+                        "expanded_tokens": list(expanded_tokens),
+                        "members": group_members
                     })
                 elif service_name in self.service_value_map:
                     # 개별 서비스 객체인 경우
@@ -413,44 +415,9 @@ class RiskyPortsAnalyzer:
                 if rp.get("service_name"):
                     services_with_removed_ports.add(rp["service_name"])
             
+            # 먼저 개별 서비스 객체들을 생성
             for obj in original_service_objects:
-                if obj["type"] == "group":
-                    # 서비스 그룹인 경우
-                    group_name = obj["name"]
-                    original_expanded_tokens = set(obj.get("expanded_tokens", []))
-                    
-                    if group_name in services_with_removed_ports:
-                        # 위험 포트가 제거된 그룹: Safe 버전 생성
-                        group_filtered_tokens = []
-                        for original_token in original_expanded_tokens:
-                            if original_token in removed_token_to_filtered:
-                                group_filtered_tokens.extend(removed_token_to_filtered[original_token])
-                            else:
-                                # 위험 포트가 없는 토큰은 그대로 유지
-                                group_filtered_tokens.append(original_token)
-                        
-                        # 중복 제거
-                        group_filtered_tokens = list(set(group_filtered_tokens))
-                        
-                        if group_filtered_tokens:
-                            safe_group_name = f"{group_name}_Safe"
-                            filtered_service_objects.append({
-                                "type": "group",
-                                "name": safe_group_name,
-                                "original_name": group_name,
-                                "filtered_tokens": group_filtered_tokens,
-                                "members": []
-                            })
-                    else:
-                        # 위험 포트가 없는 그룹: 원본 그대로 사용
-                        filtered_service_objects.append({
-                            "type": "group",
-                            "name": group_name,
-                            "original_name": group_name,
-                            "filtered_tokens": list(original_expanded_tokens),
-                            "members": []
-                        })
-                else:
+                if obj["type"] == "service":
                     # 개별 서비스인 경우
                     service_name = obj["name"]
                     service_token = obj.get("token", service_name)
@@ -506,6 +473,76 @@ class RiskyPortsAnalyzer:
                             "original_name": service_name,
                             "token": service_token,
                             "filtered_tokens": original_tokens
+                        })
+            
+            # 그룹 객체 처리 (개별 서비스 객체 생성 후)
+            for obj in original_service_objects:
+                if obj["type"] == "group":
+                    # 서비스 그룹인 경우
+                    group_name = obj["name"]
+                    original_expanded_tokens = set(obj.get("expanded_tokens", []))
+                    group_members = obj.get("members", [])
+                    
+                    if group_name in services_with_removed_ports:
+                        # 위험 포트가 제거된 그룹: Safe 버전 생성
+                        group_filtered_tokens = []
+                        for original_token in original_expanded_tokens:
+                            if original_token in removed_token_to_filtered:
+                                group_filtered_tokens.extend(removed_token_to_filtered[original_token])
+                            else:
+                                # 위험 포트가 없는 토큰은 그대로 유지
+                                group_filtered_tokens.append(original_token)
+                        
+                        # 중복 제거
+                        group_filtered_tokens = list(set(group_filtered_tokens))
+                        
+                        if group_filtered_tokens:
+                            safe_group_name = f"{group_name}_Safe"
+                            
+                            # Safe 그룹의 필터된 멤버 목록 생성
+                            # filtered_service_objects에 실제로 생성된 서비스 객체만 포함
+                            filtered_members = []
+                            for member_name in group_members:
+                                # 이 멤버가 위험 포트를 가지고 있는지 확인
+                                member_has_risky = member_name in services_with_removed_ports
+                                
+                                if member_has_risky:
+                                    # Safe 버전이 filtered_service_objects에 있는지 확인
+                                    safe_member_name = f"{member_name}_Safe"
+                                    found_safe = any(
+                                        f_obj.get("type") == "service" and 
+                                        f_obj.get("name") == safe_member_name
+                                        for f_obj in filtered_service_objects
+                                    )
+                                    if found_safe:
+                                        filtered_members.append(safe_member_name)
+                                else:
+                                    # 원본 멤버가 filtered_service_objects에 있는지 확인
+                                    found_original = any(
+                                        f_obj.get("type") == "service" and 
+                                        f_obj.get("name") == member_name and
+                                        f_obj.get("original_name") == member_name
+                                        for f_obj in filtered_service_objects
+                                    )
+                                    if found_original:
+                                        filtered_members.append(member_name)
+                            
+                            filtered_service_objects.append({
+                                "type": "group",
+                                "name": safe_group_name,
+                                "original_name": group_name,
+                                "filtered_tokens": group_filtered_tokens,
+                                "members": group_members,
+                                "filtered_members": filtered_members
+                            })
+                    else:
+                        # 위험 포트가 없는 그룹: 원본 그대로 사용
+                        filtered_service_objects.append({
+                            "type": "group",
+                            "name": group_name,
+                            "original_name": group_name,
+                            "filtered_tokens": list(original_expanded_tokens),
+                            "members": group_members
                         })
             
             # 서비스 그룹 권장사항 생성 (위험 포트가 발견된 그룹에 대해)
