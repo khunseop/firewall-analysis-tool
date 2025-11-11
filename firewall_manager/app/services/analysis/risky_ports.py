@@ -158,8 +158,27 @@ class RiskyPortsAnalyzer:
         """서비스 그룹의 멤버 목록을 반환"""
         return self.service_group_map.get(group_name, [])
     
-    def _check_service_has_risky_port(self, service_name: str) -> bool:
-        """서비스 객체에 위험 포트가 포함되어 있는지 확인"""
+    def _check_service_has_risky_port(self, service_name: str, visited: Optional[Set[str]] = None) -> bool:
+        """
+        서비스 객체 또는 서비스 그룹에 위험 포트가 포함되어 있는지 확인
+        서비스 그룹인 경우 재귀적으로 멤버들을 확인
+        """
+        # 순환 참조 방지
+        if visited is None:
+            visited = set()
+        if service_name in visited:
+            return False
+        visited.add(service_name)
+        
+        # 서비스 그룹인 경우 멤버들을 재귀적으로 확인
+        if service_name in self.service_group_map:
+            members = self.service_group_map[service_name]
+            for member_name in members:
+                if self._check_service_has_risky_port(member_name, visited.copy()):
+                    return True
+            return False
+        
+        # 개별 서비스 객체인 경우
         tokens = self.service_value_map.get(service_name, set())
         for token in tokens:
             protocol, port_start, port_end = self._parse_service_token(token)
@@ -483,7 +502,17 @@ class RiskyPortsAnalyzer:
                     original_expanded_tokens = set(obj.get("expanded_tokens", []))
                     group_members = obj.get("members", [])
                     
-                    if group_name in services_with_removed_ports:
+                    # 그룹 자체에 위험 포트가 제거되었는지 확인
+                    group_has_removed_ports = group_name in services_with_removed_ports
+                    
+                    # 그룹의 멤버 중 위험 포트를 가진 멤버가 있는지 확인
+                    group_members_have_risky = any(
+                        self._check_service_has_risky_port(member_name) 
+                        for member_name in group_members
+                    )
+                    
+                    # 그룹 자체에 위험 포트가 제거되었거나, 멤버 중 위험 포트를 가진 멤버가 있으면 Safe 버전 생성
+                    if group_has_removed_ports or group_members_have_risky:
                         # 위험 포트가 제거된 그룹: Safe 버전 생성
                         group_filtered_tokens = []
                         for original_token in original_expanded_tokens:
@@ -496,36 +525,61 @@ class RiskyPortsAnalyzer:
                         # 중복 제거
                         group_filtered_tokens = list(set(group_filtered_tokens))
                         
+                        # 그룹 자체에 위험 포트가 제거되지 않았어도 멤버가 위험 포트를 가지고 있으면
+                        # 원본 토큰을 그대로 사용 (그룹 자체는 위험 포트가 없으므로)
+                        if not group_has_removed_ports:
+                            group_filtered_tokens = list(original_expanded_tokens)
+                        
                         if group_filtered_tokens:
                             safe_group_name = f"{group_name}_Safe"
                             
                             # Safe 그룹의 필터된 멤버 목록 생성
-                            # filtered_service_objects에 실제로 생성된 서비스 객체만 포함
+                            # 위험 포트가 없는 멤버만 포함 (위험 포트가 있는 멤버는 제외)
+                            # 그룹 멤버는 방화벽에 이미 존재하는 객체이므로, 
+                            # filtered_service_objects에 없어도 무조건 포함
                             filtered_members = []
+                            risky_members = []
+                            
                             for member_name in group_members:
                                 # 이 멤버가 위험 포트를 가지고 있는지 확인
-                                member_has_risky = member_name in services_with_removed_ports
+                                # services_with_removed_ports는 현재 정책에서 직접 사용된 서비스만 포함하므로,
+                                # 그룹 멤버의 경우 _check_service_has_risky_port를 사용하여 확인
+                                member_has_risky = (
+                                    member_name in services_with_removed_ports or 
+                                    self._check_service_has_risky_port(member_name)
+                                )
                                 
                                 if member_has_risky:
-                                    # Safe 버전이 filtered_service_objects에 있는지 확인
-                                    safe_member_name = f"{member_name}_Safe"
-                                    found_safe = any(
-                                        f_obj.get("type") == "service" and 
-                                        f_obj.get("name") == safe_member_name
-                                        for f_obj in filtered_service_objects
+                                    risky_members.append(member_name)
+                                    check_result = self._check_service_has_risky_port(member_name)
+                                    logger.info(
+                                        f"그룹 {safe_group_name}의 멤버 {member_name}: "
+                                        f"위험 포트 포함으로 제외됨 "
+                                        f"(services_with_removed_ports={member_name in services_with_removed_ports}, "
+                                        f"_check_service_has_risky_port={check_result})"
                                     )
-                                    if found_safe:
-                                        filtered_members.append(safe_member_name)
                                 else:
-                                    # 원본 멤버가 filtered_service_objects에 있는지 확인
-                                    found_original = any(
-                                        f_obj.get("type") == "service" and 
-                                        f_obj.get("name") == member_name and
-                                        f_obj.get("original_name") == member_name
-                                        for f_obj in filtered_service_objects
+                                    # 위험 포트가 없는 멤버는 무조건 포함
+                                    # (그룹 멤버는 방화벽에 이미 존재하는 객체이므로)
+                                    filtered_members.append(member_name)
+                                    logger.debug(
+                                        f"그룹 {safe_group_name}의 멤버 {member_name}: "
+                                        f"위험 포트 없음, 포함됨"
                                     )
-                                    if found_original:
-                                        filtered_members.append(member_name)
+                            
+                            # 검증 로그
+                            if not filtered_members:
+                                logger.warning(
+                                    f"그룹 {safe_group_name}의 filtered_members가 비어있습니다. "
+                                    f"원본 멤버={group_members}, 위험 포트가 있는 멤버={risky_members}"
+                                )
+                            else:
+                                logger.info(
+                                    f"그룹 {safe_group_name}의 filtered_members 생성 완료: "
+                                    f"원본 멤버={group_members} ({len(group_members)}개), "
+                                    f"필터된 멤버={filtered_members} ({len(filtered_members)}개), "
+                                    f"제외된 멤버={risky_members} ({len(risky_members)}개)"
+                                )
                             
                             filtered_service_objects.append({
                                 "type": "group",

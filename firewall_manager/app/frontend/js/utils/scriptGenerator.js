@@ -184,6 +184,9 @@ export function generateServiceCreationScript(resultData, vendor = 'palo_alto') 
     }
     
     // 서비스 그룹 생성 스크립트
+    console.log(`[ScriptGenerator] 전체 serviceGroups: ${Array.from(serviceGroups.keys()).join(', ')}`);
+    console.log(`[ScriptGenerator] 전체 serviceObjectsToGroups: ${Array.from(serviceObjectsToGroups.keys()).join(', ')}`);
+    
     if (serviceGroups.size > 0) {
         scriptLines.push('# ============================================');
         scriptLines.push('# 서비스 그룹 생성');
@@ -226,53 +229,50 @@ export function generateServiceCreationScript(resultData, vendor = 'palo_alto') 
         serviceGroups.forEach((group, name) => {
             // serviceObjectsToGroups에 포함된 그룹은 이미 위에서 처리했으므로 제외
             if (serviceObjectsToGroups.has(name)) {
+                console.log(`[ScriptGenerator] 그룹 ${name}은 serviceObjectsToGroups에 포함되어 제외됨`);
                 return;
             }
             
             // 백엔드에서 제공하는 filtered_members 사용
+            // filtered_members에는 위험 포트가 없는 멤버만 포함되어 있으며,
+            // 이들은 방화벽에 이미 존재하는 객체이므로 그대로 사용 가능
             const filteredMembers = group.filtered_members || [];
             
+            console.log(`[ScriptGenerator] 그룹 ${name} 처리 중: filtered_members=${JSON.stringify(filteredMembers)}`);
+            
             if (filteredMembers.length === 0) {
+                console.log(`[ScriptGenerator] 그룹 ${name}의 filtered_members가 비어있어서 스킵됨`);
                 return;
             }
             
-            // filtered_members에 포함된 멤버를 실제 스크립트에 생성된 멤버 이름으로 변환
-            // 1. 새로 생성되는 서비스 객체 (스크립트에 생성됨) - createdServiceNames에 포함
-            // 2. 여러 포트 범위로 분리된 서비스 객체의 원래 이름 -> 분리된 멤버 이름들로 변환
-            // 3. 원본 서비스 객체 (스크립트에 생성하지 않지만, 그룹 멤버로는 사용 가능)
+            // filtered_members에 있는 멤버 이름을 그대로 사용
+            // 그룹 멤버는 방화벽에 이미 존재하는 객체이므로 변환 불필요
+            // 단, 새로 생성된 _Safe 버전의 서비스 객체가 있으면 그것을 우선 사용
             const validMembers = [];
             
             filteredMembers.forEach(member => {
-                // 여러 포트 범위로 분리된 서비스 객체의 원래 이름인지 확인
-                // 예: Svc_1024_2048_Safe -> Svc_1024_2048_Safe_TCP_1, Svc_1024_2048_Safe_TCP_2 등으로 분리됨
-                if (serviceObjectsToGroups.has(member)) {
-                    // 분리된 멤버 이름들을 추가
-                    const separatedMembers = serviceObjectsToGroups.get(member);
+                // 먼저 _Safe 버전이 새로 생성되었는지 확인
+                const safeMemberName = `${member}_Safe`;
+                if (createdServiceNames.has(safeMemberName)) {
+                    // 새로 생성된 _Safe 버전 사용
+                    validMembers.push(safeMemberName);
+                    console.log(`[ScriptGenerator] 멤버 ${member} -> ${safeMemberName} (새로 생성된 Safe 버전 사용)`);
+                } else if (serviceObjectsToGroups.has(safeMemberName)) {
+                    // 여러 포트 범위로 분리된 _Safe 버전 사용
+                    const separatedMembers = serviceObjectsToGroups.get(safeMemberName);
                     validMembers.push(...separatedMembers);
-                }
-                // 새로 생성되는 서비스 객체인지 확인 (스크립트에 생성됨)
-                else if (createdServiceNames.has(member)) {
+                    console.log(`[ScriptGenerator] 멤버 ${member} -> ${separatedMembers.join(', ')} (분리된 Safe 버전 사용)`);
+                } else {
+                    // 원본 멤버 그대로 사용 (방화벽에 이미 존재하는 객체)
                     validMembers.push(member);
-                }
-                // 원본 서비스 객체인지 확인 (filtered_service_objects에 있지만 스크립트에 생성하지 않음)
-                else if (allServiceObjectNames.has(member)) {
-                    // 원본 서비스 객체인지 확인 (original_name === name)
-                    for (const item of resultData) {
-                        const filteredObjects = item.filtered_service_objects || [];
-                        const found = filteredObjects.find(obj => 
-                            obj.type === 'service' && 
-                            obj.name === member && 
-                            obj.original_name === member
-                        );
-                        if (found) {
-                            validMembers.push(member); // 원본 서비스 객체는 그룹 멤버로 사용 가능
-                            break;
-                        }
-                    }
+                    console.log(`[ScriptGenerator] 멤버 ${member} (원본 그대로 사용)`);
                 }
             });
             
+            console.log(`[ScriptGenerator] 그룹 ${name}의 validMembers: ${JSON.stringify(validMembers)}`);
+            
             if (validMembers.length === 0) {
+                console.log(`[ScriptGenerator] 그룹 ${name}의 validMembers가 비어있어서 스킵됨`);
                 return;
             }
             
