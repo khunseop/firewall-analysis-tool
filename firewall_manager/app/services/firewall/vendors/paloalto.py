@@ -286,7 +286,18 @@ class PaloAltoAPI(FirewallInterface):
                 try:
                     # Palo Alto는 epoch timestamp를 문자열로 반환
                     last_hit_ts = member_texts[2] if len(member_texts) > 2 else None
-                    last_hit_date = None if last_hit_ts == 0 else datetime.datetime.fromtimestamp(int(last_hit_ts)).strftime("%Y-%m-%d %H:%M:%S")
+                    # None, 빈 문자열, 0, 또는 변환 불가능한 값일 때 None 반환
+                    if last_hit_ts is None or last_hit_ts == '' or last_hit_ts == 0 or last_hit_ts == '0':
+                        last_hit_date = None
+                    else:
+                        try:
+                            ts_int = int(last_hit_ts)
+                            if ts_int == 0:
+                                last_hit_date = None
+                            else:
+                                last_hit_date = datetime.datetime.fromtimestamp(ts_int).strftime("%Y-%m-%d %H:%M:%S")
+                        except (ValueError, TypeError):
+                            last_hit_date = None
                 except IndexError:
                     last_hit_date = None
 
