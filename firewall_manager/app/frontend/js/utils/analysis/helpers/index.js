@@ -1,8 +1,4 @@
-import { api } from '../api.js';
-
-/**
- * 분석 결과 처리 관련 헬퍼 함수들
- */
+import { processImpactResults } from './impact.js';
 
 /**
  * 분석 결과 데이터를 그리드에 표시하기 위한 형태로 변환
@@ -16,28 +12,7 @@ export async function processAnalysisResults(resultData, analysisType, allDevice
     
     // 영향도 분석 결과는 객체 형태
     if (analysisType === 'impact' && resultData && !Array.isArray(resultData)) {
-        const blockingPolicies = resultData.blocking_policies || [];
-        const shadowedPolicies = resultData.shadowed_policies || [];
-        
-        // 차단 정책에 걸리는 경우 처리 (고유 ID를 위해 인덱스 추가)
-        processedData = blockingPolicies.map((item, index) => ({
-            ...item,
-            device_name: allDevices.find(d => d.id === item.policy?.device_id)?.name || `장비 ${item.policy?.device_id}`,
-            _impact_index: `blocking_${item.target_policy_id || 'unknown'}_${index}`, // 고유 ID 생성을 위한 인덱스
-            target_policy_id: item.target_policy_id || resultData.target_policy_ids?.[0] || null,
-            target_policy_name: item.target_policy_name || resultData.target_policies?.[0]?.rule_name || null
-        }));
-        
-        // Shadow되는 정책들도 추가 (고유 ID를 위해 인덱스 추가)
-        shadowedPolicies.forEach((item, index) => {
-            processedData.push({
-                ...item,
-                device_name: allDevices.find(d => d.id === item.policy?.device_id)?.name || `장비 ${item.policy?.device_id}`,
-                _impact_index: `shadowed_${item.target_policy_id || 'unknown'}_${index}`, // 고유 ID 생성을 위한 인덱스
-                target_policy_id: item.target_policy_id || resultData.target_policy_ids?.[0] || null,
-                target_policy_name: item.target_policy_name || resultData.target_policies?.[0]?.rule_name || null
-            });
-        });
+        return processImpactResults(resultData, allDevices);
     } else if (resultData && Array.isArray(resultData) && resultData.length > 0) {
         if (analysisType === 'unreferenced_objects') {
             // 미참조 객체 분석 결과는 그대로 사용
@@ -51,19 +26,15 @@ export async function processAnalysisResults(resultData, analysisType, allDevice
                 const device = allDevices.find(d => d.id === deviceId);
                 const deviceName = device ? device.name : `장비 ${deviceId}`;
                 
-                // 각 결과에 장비 이름 추가 및 서비스 토큰 포맷팅
                 processedData = resultData.map(item => ({
                     ...item,
                     device_name: deviceName,
-                    // 서비스 토큰 배열을 문자열로 변환 (이미 배열이면 그대로 사용)
                     original_services: Array.isArray(item.original_services) 
                         ? item.original_services 
                         : (item.original_services ? [item.original_services] : []),
-                    // original_service_objects 명시적으로 보존 (그룹/개별 구분 정보)
                     original_service_objects: Array.isArray(item.original_service_objects) 
                         ? item.original_service_objects 
                         : (item.original_service_objects ? [item.original_service_objects] : []),
-                    // filtered_service_objects 명시적으로 보존 (제거 후 그룹/개별 구분 정보)
                     filtered_service_objects: Array.isArray(item.filtered_service_objects) 
                         ? item.filtered_service_objects 
                         : (item.filtered_service_objects ? [item.filtered_service_objects] : []),
@@ -83,7 +54,6 @@ export async function processAnalysisResults(resultData, analysisType, allDevice
                 const device = allDevices.find(d => d.id === deviceId);
                 const deviceName = device ? device.name : `장비 ${deviceId}`;
                 
-                // 각 결과에 장비 이름 추가
                 processedData = resultData.map(item => ({
                     ...item,
                     device_name: deviceName
@@ -100,11 +70,12 @@ export async function processAnalysisResults(resultData, analysisType, allDevice
 /**
  * validObjectNames 설정을 위한 API 호출
  * @param {number} deviceId - 장비 ID
+ * @param {Object} apiClient - API 클라이언트
  * @returns {Set} 유효한 객체 이름 Set
  */
-export async function loadValidObjectNames(deviceId) {
+export async function loadValidObjectNames(deviceId, apiClient) {
     try {
-        const searchResponse = await api.searchPolicies({
+        const searchResponse = await apiClient.searchPolicies({
             device_ids: [deviceId],
             limit: 1
         });

@@ -3,9 +3,9 @@ import { showObjectDetailModal } from '../components/objectDetailModal.js';
 import { adjustGridHeight, createGridEventHandlers, createObjectCellRenderer, createCommonGridOptions } from '../utils/grid.js';
 import { exportGridToExcelClient } from '../utils/excel.js';
 import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
-import { getColumnDefs } from '../utils/analysisColumns.js';
-import { processAnalysisResults, loadValidObjectNames } from '../utils/analysisHelpers.js';
-import { initImpactAnalysis, loadPoliciesForImpact, getImpactAnalysisParams } from '../components/impactAnalysis.js';
+import { getColumnDefs } from '../utils/analysis/columns/index.js';
+import { processAnalysisResults, loadValidObjectNames } from '../utils/analysis/helpers/index.js';
+import { initImpactAnalysis, loadPoliciesForImpact, getImpactAnalysisParams } from './analysis/impactAnalysis.js';
 import { generateServiceCreationScript, downloadScript } from '../utils/scriptGenerator.js';
 import { notifyAnalysisComplete } from '../utils/notification.js';
 import { setButtonLoading } from '../utils/loading.js';
@@ -61,12 +61,13 @@ function createGrid(columnDefs, rowData) {
                     // 미참조 객체 분석: object_name + object_type 조합
                     return `${params.data.object_name}_${params.data.object_type}`;
                 }
-                // 영향도 분석: policy_id + _impact_index 조합 (같은 정책이 affected와 conflict에 모두 나타날 수 있음)
+                // 영향도 분석: target_policy_id + policy_id + _impact_index 조합 (여러 대상 정책 지원)
                 if (params.data._impact_index !== undefined || params.data.impact_type !== undefined || params.data.current_position !== undefined) {
+                    const targetPolicyId = params.data.target_policy_id || 'unknown';
                     const policyId = params.data.policy?.id || params.data.policy_id || 'unknown';
                     const impactIndex = params.data._impact_index || `impact_${params.rowIndex}`;
-                    // _impact_index를 사용하여 완전히 고유한 ID 생성
-                    return `impact_${policyId}_${impactIndex}`;
+                    // target_policy_id와 policy_id, _impact_index를 사용하여 완전히 고유한 ID 생성
+                    return `impact_${targetPolicyId}_${policyId}_${impactIndex}`;
                 }
                 // 기타 분석 (미사용 정책 등): policy_id 또는 rowIndex 사용
                 return String(params.data.policy?.id || params.data.policy_id || params.rowIndex);
@@ -221,7 +222,7 @@ async function displayResults(resultData, analysisType, source = 'latest') {
         const firstItem = processedData[0];
         const deviceId = firstItem?.policy?.device_id || firstItem?.device_id;
         if (deviceId) {
-            validObjectNames = await loadValidObjectNames(deviceId);
+            validObjectNames = await loadValidObjectNames(deviceId, api);
             // objectCellRenderer 재생성
             objectCellRenderer = createObjectCellRenderer(validObjectNames, handleObjectClick);
         }
@@ -249,10 +250,14 @@ async function displayResults(resultData, analysisType, source = 'latest') {
         
         // 그리드 높이 조절 및 셀 새로고침
         setTimeout(() => {
-            if (resultGridApi) {
-                resultGridApi.refreshCells({ force: true });
-                if (typeof resultGridApi.autoSizeAllColumns === 'function') {
-                    resultGridApi.autoSizeAllColumns({ skipHeader: false });
+            if (resultGridApi && typeof resultGridApi.isDestroyed === 'function' && !resultGridApi.isDestroyed()) {
+                try {
+                    resultGridApi.refreshCells({ force: true });
+                    if (typeof resultGridApi.autoSizeAllColumns === 'function') {
+                        resultGridApi.autoSizeAllColumns({ skipHeader: false });
+                    }
+                } catch (e) {
+                    console.warn('Grid API 호출 실패 (이미 destroy됨):', e);
                 }
             }
             if (gridDiv) {
@@ -371,7 +376,11 @@ async function startAnalysis() {
         if (!impactParams) {
             return; // 에러 메시지는 getImpactAnalysisParams에서 표시됨
         }
-        params = impactParams;
+        // targetPolicyIds를 사용하도록 수정
+        params = {
+            targetPolicyIds: impactParams.targetPolicyIds,
+            newPosition: impactParams.newPosition
+        };
     }
     
     // UI 상태 초기화 (버튼 로딩 상태는 제외)

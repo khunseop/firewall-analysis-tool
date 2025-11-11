@@ -14,11 +14,11 @@ logger = logging.getLogger(__name__)
 class ImpactAnalyzer:
     """정책 위치 이동 시 영향도 분석을 위한 클래스"""
 
-    def __init__(self, db_session: AsyncSession, task: AnalysisTask, target_policy_id: int, new_position: int):
+    def __init__(self, db_session: AsyncSession, task: AnalysisTask, target_policy_ids: List[int], new_position: int):
         self.db = db_session
         self.task = task
         self.device_id = task.device_id
-        self.target_policy_id = target_policy_id
+        self.target_policy_ids = target_policy_ids if isinstance(target_policy_ids, list) else [target_policy_ids]
         self.new_position = new_position
 
     async def _get_policies_with_members(self) -> List[Policy]:
@@ -97,29 +97,8 @@ class ImpactAnalyzer:
         
         return src_overlap and dst_overlap and svc_overlap
 
-    async def analyze(self) -> Dict[str, Any]:
-        """영향도 분석을 실행하고 결과를 반환합니다.
-        
-        분석 내용:
-        1. 출발지와 목적지 사이의 차단 정책에 걸리는지 확인
-        2. 출발지와 목적지 사이의 정책 중 shadow되는 정책 확인
-        """
-        logger.info(f"Task ID {self.task.id}에 대한 영향도 분석 시작. 정책 ID: {self.target_policy_id}, 새 위치: {self.new_position}")
-
-        policies = await self._get_policies_with_members()
-        
-        # 대상 정책 찾기
-        target_policy = None
-        original_position = None
-        for i, policy in enumerate(policies):
-            if policy.id == self.target_policy_id:
-                target_policy = policy
-                original_position = i
-                break
-        
-        if not target_policy:
-            raise ValueError(f"정책 ID {self.target_policy_id}를 찾을 수 없습니다.")
-        
+    async def _analyze_single_policy(self, target_policy: Policy, original_position: int, policies: List[Policy]) -> Dict[str, Any]:
+        """단일 정책에 대한 영향도 분석을 수행합니다."""
         # 새 위치가 유효한지 확인
         if self.new_position < 0 or self.new_position >= len(policies):
             raise ValueError(f"새 위치 {self.new_position}가 유효하지 않습니다. (0-{len(policies)-1})")
@@ -151,7 +130,9 @@ class ImpactAnalyzer:
                     "policy": policy,
                     "current_position": i,
                     "impact_type": "차단 정책에 걸림",
-                    "reason": f"이동한 정책 '{target_policy.rule_name}' (allow)이 정책 '{policy.rule_name}' (deny)에 의해 차단됨"
+                    "reason": f"이동한 정책 '{target_policy.rule_name}' (allow)이 정책 '{policy.rule_name}' (deny)에 의해 차단됨",
+                    "target_policy_id": target_policy.id,
+                    "target_policy_name": target_policy.rule_name
                 })
             
             # 2. 이동한 정책이 다른 정책을 shadow하는지 확인
@@ -163,7 +144,9 @@ class ImpactAnalyzer:
                     "policy": policy,
                     "current_position": i,
                     "impact_type": "Shadow됨",
-                    "reason": f"이동한 정책 '{target_policy.rule_name}' (deny)이 정책 '{policy.rule_name}' (allow)을 가림"
+                    "reason": f"이동한 정책 '{target_policy.rule_name}' (deny)이 정책 '{policy.rule_name}' (allow)을 가림",
+                    "target_policy_id": target_policy.id,
+                    "target_policy_name": target_policy.rule_name
                 })
             elif target_policy.action == 'allow' and policy.action == 'allow':
                 # 같은 액션이지만 이동한 정책이 더 위에 있으면 shadow
@@ -173,20 +156,94 @@ class ImpactAnalyzer:
                         "policy": policy,
                         "current_position": i,
                         "impact_type": "Shadow됨",
-                        "reason": f"이동한 정책 '{target_policy.rule_name}' (allow)이 정책 '{policy.rule_name}' (allow)보다 먼저 평가되어 가림"
+                        "reason": f"이동한 정책 '{target_policy.rule_name}' (allow)이 정책 '{policy.rule_name}' (allow)보다 먼저 평가되어 가림",
+                        "target_policy_id": target_policy.id,
+                        "target_policy_name": target_policy.rule_name
                     })
         
-        result = {
+        return {
             "target_policy_id": target_policy.id,
             "target_policy": target_policy,
             "original_position": original_position,
             "new_position": self.new_position,
-            "blocking_policies": blocking_policies,  # 차단 정책에 걸리는 경우
-            "shadowed_policies": shadowed_policies,  # shadow되는 정책들
+            "blocking_policies": blocking_policies,
+            "shadowed_policies": shadowed_policies,
             "total_blocking": len(blocking_policies),
             "total_shadowed": len(shadowed_policies)
         }
+
+    async def analyze(self) -> Dict[str, Any]:
+        """영향도 분석을 실행하고 결과를 반환합니다.
         
-        logger.info(f"차단 정책 {len(blocking_policies)}개, Shadow 정책 {len(shadowed_policies)}개 발견.")
+        여러 정책에 대해 개별적으로 분석을 수행하고 결과를 통합합니다.
+        
+        분석 내용:
+        1. 출발지와 목적지 사이의 차단 정책에 걸리는지 확인
+        2. 출발지와 목적지 사이의 정책 중 shadow되는 정책 확인
+        """
+        logger.info(f"Task ID {self.task.id}에 대한 영향도 분석 시작. 정책 ID: {self.target_policy_ids}, 새 위치: {self.new_position}")
+
+        policies = await self._get_policies_with_members()
+        
+        # 대상 정책들 찾기
+        target_policies_info = []
+        for policy_id in self.target_policy_ids:
+            target_policy = None
+            original_position = None
+            for i, policy in enumerate(policies):
+                if policy.id == policy_id:
+                    target_policy = policy
+                    original_position = i
+                    break
+            
+            if not target_policy:
+                raise ValueError(f"정책 ID {policy_id}를 찾을 수 없습니다.")
+            
+            target_policies_info.append({
+                "policy": target_policy,
+                "original_position": original_position
+            })
+        
+        # 각 정책에 대해 개별 분석 수행
+        all_blocking_policies = []
+        all_shadowed_policies = []
+        policy_results = []
+        
+        for target_info in target_policies_info:
+            target_policy = target_info["policy"]
+            original_position = target_info["original_position"]
+            
+            single_result = await self._analyze_single_policy(target_policy, original_position, policies)
+            policy_results.append(single_result)
+            
+            # 결과 통합 (중복 제거를 위해 policy_id와 current_position 조합으로 확인)
+            seen_blocking = set()
+            seen_shadowed = set()
+            
+            for bp in single_result["blocking_policies"]:
+                key = (bp["policy_id"], bp["current_position"], bp["target_policy_id"])
+                if key not in seen_blocking:
+                    seen_blocking.add(key)
+                    all_blocking_policies.append(bp)
+            
+            for sp in single_result["shadowed_policies"]:
+                key = (sp["policy_id"], sp["current_position"], sp["target_policy_id"])
+                if key not in seen_shadowed:
+                    seen_shadowed.add(key)
+                    all_shadowed_policies.append(sp)
+        
+        # 통합 결과 생성
+        result = {
+            "target_policy_ids": self.target_policy_ids,
+            "target_policies": [info["policy"] for info in target_policies_info],
+            "new_position": self.new_position,
+            "blocking_policies": all_blocking_policies,
+            "shadowed_policies": all_shadowed_policies,
+            "total_blocking": len(all_blocking_policies),
+            "total_shadowed": len(all_shadowed_policies),
+            "policy_results": policy_results  # 개별 정책별 상세 결과
+        }
+        
+        logger.info(f"{len(self.target_policy_ids)}개 정책 분석 완료. 차단 정책 {len(all_blocking_policies)}개, Shadow 정책 {len(all_shadowed_policies)}개 발견.")
         return result
 

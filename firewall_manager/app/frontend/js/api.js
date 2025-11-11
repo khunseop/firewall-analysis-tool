@@ -36,14 +36,17 @@ export const api = {
   getPolicies: (deviceId) => request(`/firewall/${deviceId}/policies`),
   getObjectDetails: (deviceId, name) => request(`/firewall/object/details?device_id=${deviceId}&name=${encodeURIComponent(name)}`),
   startAnalysis: (deviceId, analysisType, params = {}) => {
-    const { days, targetPolicyId, newPosition } = params;
+    const { days, targetPolicyId, targetPolicyIds, newPosition } = params;
     if (analysisType === 'redundancy') {
       return request(`/analysis/redundancy/${deviceId}`, { method: "POST" });
     } else if (analysisType === 'unused') {
       const url = `/analysis/unused/${deviceId}${days ? `?days=${days}` : ''}`;
       return request(url, { method: "POST" });
     } else if (analysisType === 'impact') {
-      const url = `/analysis/impact/${deviceId}?target_policy_id=${targetPolicyId}&new_position=${newPosition}`;
+      // 여러 정책 ID 지원 (targetPolicyIds 우선, 하위 호환을 위해 targetPolicyId도 지원)
+      const policyIds = targetPolicyIds || (targetPolicyId ? [targetPolicyId] : []);
+      const policyIdsParam = policyIds.map(id => `target_policy_id=${id}`).join('&');
+      const url = `/analysis/impact/${deviceId}?${policyIdsParam}&new_position=${newPosition}`;
       return request(url, { method: "POST" });
     } else if (analysisType === 'unreferenced_objects') {
       return request(`/analysis/unreferenced-objects/${deviceId}`, { method: "POST" });

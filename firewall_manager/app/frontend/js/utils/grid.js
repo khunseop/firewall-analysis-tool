@@ -81,8 +81,12 @@ export function createGridEventHandlers(gridDiv, gridApi, delay = 200) {
     }
     
     adjustTimeout = setTimeout(() => {
-      if (api && typeof api.autoSizeAllColumns === 'function') {
-        api.autoSizeAllColumns({ skipHeader: false });
+      if (api && typeof api.isDestroyed === 'function' && !api.isDestroyed() && typeof api.autoSizeAllColumns === 'function') {
+        try {
+          api.autoSizeAllColumns({ skipHeader: false });
+        } catch (e) {
+          console.warn('Grid API 호출 실패:', e);
+        }
       }
       adjustGridHeight(gridDiv);
       adjustTimeout = null;
@@ -105,15 +109,21 @@ export function createGridEventHandlers(gridDiv, gridApi, delay = 200) {
     },
     onFirstDataRendered: (params) => {
       setTimeout(() => {
-        if (params.api.getDisplayedRowCount() > 0) {
-          params.api.autoSizeAllColumns({ skipHeader: false });
+        if (params.api && typeof params.api.isDestroyed === 'function' && !params.api.isDestroyed()) {
+          try {
+            if (params.api.getDisplayedRowCount() > 0) {
+              params.api.autoSizeAllColumns({ skipHeader: false });
+            }
+          } catch (e) {
+            console.warn('Grid API 호출 실패:', e);
+          }
         }
         adjustGridHeight(gridDiv);
       }, delay);
     },
     onModelUpdated: (params) => {
       const api = params.api || gridApi;
-      if (api && api.getDisplayedRowCount() > 0) {
+      if (api && typeof api.isDestroyed === 'function' && !api.isDestroyed() && api.getDisplayedRowCount() > 0) {
         adjust(api);
       } else {
         setTimeout(() => adjustGridHeight(gridDiv), delay);
@@ -221,8 +231,12 @@ export function createGridEventHandlersWithFilter(gridDiv, filterKey, saveGridFi
     }
     
     adjustTimeout = setTimeout(() => {
-      if (api && typeof api.autoSizeAllColumns === 'function') {
-        api.autoSizeAllColumns({ skipHeader: false });
+      if (api && typeof api.isDestroyed === 'function' && !api.isDestroyed() && typeof api.autoSizeAllColumns === 'function') {
+        try {
+          api.autoSizeAllColumns({ skipHeader: false });
+        } catch (e) {
+          console.warn('Grid API 호출 실패:', e);
+        }
       }
       adjustGridHeight(gridDiv);
       adjustTimeout = null;
@@ -248,8 +262,17 @@ export function createGridEventHandlersWithFilter(gridDiv, filterKey, saveGridFi
       adjust(params.api);
     },
     onModelUpdated: (params) => {
-      if (params.api.getDisplayedRowCount() > 0) {
-        adjust(params.api);
+      if (params.api && typeof params.api.isDestroyed === 'function' && !params.api.isDestroyed()) {
+        try {
+          if (params.api.getDisplayedRowCount() > 0) {
+            adjust(params.api);
+          } else {
+            setTimeout(() => adjustGridHeight(gridDiv), delay);
+          }
+        } catch (e) {
+          console.warn('Grid API 호출 실패:', e);
+          setTimeout(() => adjustGridHeight(gridDiv), delay);
+        }
       } else {
         setTimeout(() => adjustGridHeight(gridDiv), delay);
       }

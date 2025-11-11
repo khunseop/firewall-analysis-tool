@@ -1,4 +1,4 @@
-import { api } from '../api.js';
+import { api } from '../../api.js';
 
 /**
  * 영향도 분석 관련 UI 및 로직 관리
@@ -60,13 +60,26 @@ export async function loadPoliciesForImpact() {
                 placeholder: '대상 정책 선택 (여러 개 선택 가능, 붙여넣기 지원)',
                 maxOptions: null,
                 multiple: true, // 다중 선택 활성화
+                plugins: ['remove_button'], // 정책조회의 장비 선택과 동일한 UI
                 onChange: () => {
                     updateDestinationPolicySelect();
                 }
             });
 
             // 붙여넣기 이벤트 핸들러 추가
-            setupPasteHandler(targetPolicySelect, targetSelectEl);
+            // TomSelect의 onInitialize 이벤트를 사용하여 완전히 초기화된 후 실행
+            targetPolicySelect.on('initialize', () => {
+                setupPasteHandler(targetPolicySelect, targetSelectEl);
+            });
+            
+            // 이미 초기화된 경우를 대비한 폴백
+            if (targetPolicySelect.isReady) {
+                setupPasteHandler(targetPolicySelect, targetSelectEl);
+            } else {
+                setTimeout(() => {
+                    setupPasteHandler(targetPolicySelect, targetSelectEl);
+                }, 200);
+            }
         }
 
         // 목적지 정책 선택 초기화
@@ -99,14 +112,54 @@ export async function loadPoliciesForImpact() {
  * @param {HTMLElement} selectEl - select 엘리먼트
  */
 function setupPasteHandler(tomSelect, selectEl) {
-    if (!tomSelect || !selectEl) return;
+    if (!tomSelect || !selectEl) {
+        console.warn('setupPasteHandler: tomSelect 또는 selectEl이 없습니다.');
+        return;
+    }
+
+    // allPolicies가 로드되었는지 확인
+    if (!allPolicies || allPolicies.length === 0) {
+        console.warn('setupPasteHandler: allPolicies가 로드되지 않았습니다.');
+        return;
+    }
 
     // TomSelect의 입력 필드 찾기
-    const wrapper = selectEl.closest('.ts-wrapper');
-    if (!wrapper) return;
+    // 방법 1: TomSelect 인스턴스의 control_input 속성 사용 (가장 안정적)
+    let input = tomSelect.control_input;
+    
+    // 방법 2: DOM에서 직접 찾기
+    if (!input) {
+        const wrapper = selectEl.closest('.ts-wrapper') || document.querySelector(`#${selectEl.id}`)?.closest('.ts-wrapper');
+        if (wrapper) {
+            input = wrapper.querySelector('input.ts-input') || 
+                    wrapper.querySelector('input[type="text"]') || 
+                    wrapper.querySelector('input');
+        }
+    }
+    
+    // 방법 3: selectEl의 부모에서 찾기
+    if (!input && selectEl.parentElement) {
+        input = selectEl.parentElement.querySelector('input.ts-input') || 
+                selectEl.parentElement.querySelector('input[type="text"]') || 
+                selectEl.parentElement.querySelector('input');
+    }
+    
+    if (!input) {
+        console.warn('setupPasteHandler: 입력 필드를 찾을 수 없습니다. selectEl:', selectEl);
+        // 재시도 (DOM이 아직 완전히 렌더링되지 않았을 수 있음)
+        setTimeout(() => {
+            setupPasteHandler(tomSelect, selectEl);
+        }, 300);
+        return;
+    }
 
-    const input = wrapper.querySelector('input.ts-input');
-    if (!input) return;
+    // 이미 이벤트 리스너가 등록되어 있는지 확인 (data 속성 사용)
+    if (input.dataset.pasteHandlerAttached === 'true') {
+        return; // 이미 등록됨
+    }
+    
+    // 이벤트 리스너 등록 표시
+    input.dataset.pasteHandlerAttached = 'true';
 
     // 붙여넣기 이벤트 리스너 추가
     input.addEventListener('paste', (e) => {
@@ -114,10 +167,16 @@ function setupPasteHandler(tomSelect, selectEl) {
         
         // 클립보드 데이터 가져오기
         const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-        if (!pastedText || !pastedText.trim()) return;
+        if (!pastedText || !pastedText.trim()) {
+            console.log('붙여넣기: 빈 텍스트');
+            return;
+        }
 
         // 기본 붙여넣기 동작 방지
         e.preventDefault();
+
+        console.log('붙여넣기 텍스트:', pastedText);
+        console.log('사용 가능한 정책 수:', allPolicies.length);
 
         // 텍스트 파싱 (줄바꿈, 쉼표, 탭 등으로 구분)
         const lines = pastedText
@@ -125,7 +184,12 @@ function setupPasteHandler(tomSelect, selectEl) {
             .map(line => line.trim())
             .filter(line => line.length > 0);
 
-        if (lines.length === 0) return;
+        if (lines.length === 0) {
+            console.log('붙여넣기: 파싱된 라인이 없음');
+            return;
+        }
+
+        console.log('파싱된 라인:', lines);
 
         // 각 라인을 정책과 매칭
         const matchedPolicyIds = [];
@@ -140,6 +204,7 @@ function setupPasteHandler(tomSelect, selectEl) {
                 const policy = allPolicies.find(p => p.seq === seq && p.rule_name === ruleName);
                 if (policy) {
                     matchedPolicyIds.push(policy.id);
+                    console.log(`매칭 성공 [seq] 형식: ${line} -> ${policy.id}`);
                     return;
                 }
             }
@@ -151,12 +216,14 @@ function setupPasteHandler(tomSelect, selectEl) {
                 let policy = allPolicies.find(p => p.id === numValue);
                 if (policy) {
                     matchedPolicyIds.push(policy.id);
+                    console.log(`매칭 성공 (정책 ID): ${line} -> ${policy.id}`);
                     return;
                 }
                 // 정책 ID로 매칭 실패 시 seq로 시도
                 policy = allPolicies.find(p => p.seq === numValue);
                 if (policy) {
                     matchedPolicyIds.push(policy.id);
+                    console.log(`매칭 성공 (seq): ${line} -> ${policy.id}`);
                     return;
                 }
             }
@@ -165,12 +232,17 @@ function setupPasteHandler(tomSelect, selectEl) {
             const policy = allPolicies.find(p => p.rule_name === line);
             if (policy) {
                 matchedPolicyIds.push(policy.id);
+                console.log(`매칭 성공 (정책명): ${line} -> ${policy.id}`);
                 return;
             }
 
             // 매칭 실패
+            console.log(`매칭 실패: ${line}`);
             unmatchedLines.push(line);
         });
+
+        console.log('매칭된 정책 ID:', matchedPolicyIds);
+        console.log('매칭 실패:', unmatchedLines);
 
         // 매칭된 정책들을 TomSelect에 추가
         if (matchedPolicyIds.length > 0) {
@@ -179,10 +251,13 @@ function setupPasteHandler(tomSelect, selectEl) {
             
             // 중복 제거하면서 추가
             const uniqueIds = [...new Set([...newValues.map(v => String(v)), ...matchedPolicyIds.map(id => String(id))])];
+            console.log('설정할 값:', uniqueIds);
             tomSelect.setValue(uniqueIds);
             
             // 입력 필드 초기화
-            input.value = '';
+            if (input) {
+                input.value = '';
+            }
             tomSelect.refreshOptions(false);
 
             // 결과 알림
@@ -191,13 +266,12 @@ function setupPasteHandler(tomSelect, selectEl) {
                 const moreMsg = unmatchedLines.length > 5 ? ` 외 ${unmatchedLines.length - 5}개` : '';
                 alert(`${matchedPolicyIds.length}개 정책이 추가되었습니다.\n\n매칭되지 않은 항목: ${unmatchedMsg}${moreMsg}`);
             } else {
-                // 간단한 피드백 (선택사항)
                 console.log(`${matchedPolicyIds.length}개 정책이 추가되었습니다.`);
             }
         } else {
-            alert(`매칭되는 정책을 찾을 수 없습니다.\n\n입력 형식:\n- 정책 ID: 1, 2, 3\n- 정책명: Policy1, Policy2\n- [seq] 형식: [1] Policy1`);
+            alert(`매칭되는 정책을 찾을 수 없습니다.\n\n입력 형식:\n- 정책 ID: 1, 2, 3\n- 정책명: Policy1, Policy2\n- [seq] 형식: [1] Policy1\n\n현재 정책 수: ${allPolicies.length}개`);
         }
-    });
+    }, true); // capture phase에서도 실행
 }
 
 /**

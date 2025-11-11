@@ -1,7 +1,7 @@
 
 from typing import Any, List
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud, schemas
@@ -124,17 +124,21 @@ async def start_unused_analysis(
 @router.post("/impact/{device_id}", response_model=schemas.Msg)
 async def start_impact_analysis(
     device_id: int,
-    target_policy_id: int,
-    new_position: int,
+    target_policy_id: List[int] = Query(..., description="분석할 대상 정책 ID 목록"),
+    new_position: int = Query(..., description="이동할 새 위치"),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     """
     정책 위치 이동 시 영향도 분석을 시작합니다.
+    여러 정책을 동시에 분석할 수 있습니다.
     """
     device = await crud.device.get_device(db, device_id=device_id)
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
+
+    if not target_policy_id or len(target_policy_id) == 0:
+        raise HTTPException(status_code=400, detail="At least one target policy ID is required")
 
     running_task = await crud.analysis.get_running_analysis_task(db)
     if running_task:
@@ -142,7 +146,7 @@ async def start_impact_analysis(
 
     background_tasks.add_task(run_impact_analysis_task, db, device_id, target_policy_id, new_position)
 
-    return {"msg": f"Impact analysis has been started in the background."}
+    return {"msg": f"Impact analysis has been started in the background for {len(target_policy_id)} policy(ies)."}
 
 @router.post("/unreferenced-objects/{device_id}", response_model=schemas.Msg)
 async def start_unreferenced_objects_analysis(

@@ -349,11 +349,28 @@ export function getColumnDefs(analysisType, objectCellRenderer = null) {
     } else if (analysisType === 'impact') {
         return [
             { 
+                field: 'target_policy_name', 
+                headerName: '대상 정책', 
+                filter: 'agTextColumnFilter',
+                sortable: false,
+                minWidth: 150,
+                pinned: 'left',
+                valueGetter: params => params.data.target_policy_name,
+                cellStyle: {
+                    fontWeight: '500',
+                    color: '#1976d2'
+                },
+                filterParams: {
+                    buttons: ['apply', 'reset'],
+                    debounceMs: 200
+                }
+            },
+            { 
                 field: 'policy_id', 
-                headerName: '정책 ID', 
+                headerName: '영향받는 정책 ID', 
                 filter: 'agNumberColumnFilter',
                 sortable: false,
-                minWidth: 100,
+                minWidth: 120,
                 pinned: 'left',
                 valueGetter: params => params.data.policy?.id,
                 filterParams: {
