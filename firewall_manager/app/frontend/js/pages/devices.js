@@ -193,7 +193,9 @@ function createGrid(gridDiv, data) {
   }
   
   const commonOptions = createCommonGridOptions({
-    paginationAutoPageSize: true,
+    pagination: true,
+    paginationPageSize: 50,
+    paginationPageSizeSelector: [50, 100, 200],
     animateRows: true,
     autoSizeStrategy: { 
       type: 'fitGridWidth', 

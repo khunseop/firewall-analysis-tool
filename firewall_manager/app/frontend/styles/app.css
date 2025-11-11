@@ -535,6 +535,40 @@ input.ts-hidden-accessible {
   margin-bottom: 1rem;
 }
 
+/* Button Groups - Compact spacing */
+.buttons .button {
+  font-size: 0.8125rem; /* 13px */
+  padding: 0.375em 0.75em;
+  height: auto;
+  min-height: 2em;
+}
+
+.buttons .button + .button {
+  margin-left: 0.375rem;
+}
+
+.buttons .file {
+  margin-left: 0.375rem;
+}
+
+/* File Upload Button - Compact */
+.file.is-small .file-cta {
+  font-size: 0.8125rem; /* 13px */
+  padding: 0.375em 0.75em;
+  border-radius: 6px;
+  font-family: 'Pretendard', sans-serif;
+  height: auto;
+  min-height: 2em;
+}
+
+/* Search Input - Compact */
+.field .input.is-small {
+  font-size: 0.8125rem; /* 13px */
+  padding: 0.375em 0.75em;
+  height: auto;
+  min-height: 2em;
+}
+
 .is-hidden {
   display: none;
 }
