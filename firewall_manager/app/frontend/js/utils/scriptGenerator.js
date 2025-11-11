@@ -100,18 +100,12 @@ export function generateServiceCreationScript(resultData, vendor = 'palo_alto') 
                         r.start === r.end ? r.start.toString() : `${r.start}-${r.end}`
                     );
                     
-                    // 원본 이름이 있으면 주석 추가
-                    if (obj.original_name && obj.original_name !== name) {
-                        scriptLines.push(`# 원본: ${obj.original_name}`);
-                    }
-                    
                     // Palo Alto CLI 형식: set service <name> protocol <protocol> port <port>
-                    scriptLines.push(`set service ${name} protocol ${protocol} port ${portStrings.join(' ')}`);
+                    scriptLines.push(`set service ${name} protocol ${protocol} port ${portStrings.join(',')}`);
                 });
                 
                 scriptLines.push('');
             } else if (vendor === 'secui_ngf' || vendor === 'secui_mf2') {
-                scriptLines.push(`# 서비스 객체: ${name} (원본: ${obj.original_name || name})`);
                 scriptLines.push(`service ${name}`);
                 
                 // 토큰들을 프로토콜별로 그룹화
@@ -186,13 +180,9 @@ export function generateServiceCreationScript(resultData, vendor = 'palo_alto') 
             
             if (vendor === 'palo_alto') {
                 // Palo Alto CLI 형식: set service-group <name> members [ <member1> <member2> ... ]
-                if (group.original_name && group.original_name !== name) {
-                    scriptLines.push(`# 서비스 그룹: ${name} (원본: ${group.original_name})`);
-                }
                 scriptLines.push(`set service-group ${name} members [ ${members.join(' ')} ]`);
                 scriptLines.push('');
             } else if (vendor === 'secui_ngf' || vendor === 'secui_mf2') {
-                scriptLines.push(`# 서비스 그룹: ${name} (원본: ${group.original_name || name})`);
                 scriptLines.push(`service-group ${name}`);
                 members.forEach(member => {
                     scriptLines.push(`  member ${member}`);

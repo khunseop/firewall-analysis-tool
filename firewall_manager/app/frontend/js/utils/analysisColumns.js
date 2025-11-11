@@ -507,9 +507,9 @@ export function getColumnDefs(analysisType, objectCellRenderer = null) {
                     
                     return serviceObjects.map(obj => {
                         const displayName = obj.name || obj.token || '';
-                        // 원본 객체명과 다르면 원본 표시
-                        if (obj.original_name && obj.original_name !== obj.name) {
-                            return `<span title="원본: ${obj.original_name}">${displayName}</span>`;
+                        // 새로 생성되는 객체명(_Safe로 끝나는 경우)을 파란색으로 표시
+                        if (displayName.endsWith('_Safe') || (obj.original_name && obj.original_name !== obj.name)) {
+                            return `<span style="color: #1976d2; font-weight: 500;">${displayName}</span>`;
                         }
                         return displayName;
                     }).join(', ');
@@ -518,10 +518,6 @@ export function getColumnDefs(analysisType, objectCellRenderer = null) {
                     const serviceObjects = params.data.filtered_service_objects || [];
                     if (serviceObjects.length > 0) {
                         return serviceObjects.map(obj => {
-                            // 원본 객체명과 다르면 원본 포함하여 표시
-                            if (obj.original_name && obj.original_name !== obj.name) {
-                                return `${obj.name} (원본: ${obj.original_name})`;
-                            }
                             return obj.name || obj.token || '';
                         }).join(', ');
                     }
@@ -610,12 +606,12 @@ window.showRiskyPortsDetailModal = function(data) {
             if (filteredObj.type === 'group') {
                 filteredDisplay = `<strong>${filteredName}</strong> <span class="tag is-info is-light">그룹</span>`;
             } else {
-                filteredDisplay = `<strong>${filteredName}</strong>`;
-            }
-            
-            // 원본과 다르면 원본 표시
-            if (filteredObj.original_name && filteredObj.original_name !== filteredObj.name) {
-                filteredDisplay += `<br><small class="has-text-grey">(원본: ${filteredObj.original_name})</small>`;
+                // 새로 생성되는 객체명(_Safe로 끝나는 경우)을 파란색으로 표시
+                if (filteredName.endsWith('_Safe') || (filteredObj.original_name && filteredObj.original_name !== filteredObj.name)) {
+                    filteredDisplay = `<strong style="color: #1976d2;">${filteredName}</strong>`;
+                } else {
+                    filteredDisplay = `<strong>${filteredName}</strong>`;
+                }
             }
             
             // 필터된 토큰 표시
