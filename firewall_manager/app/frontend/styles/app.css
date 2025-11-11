@@ -1,31 +1,45 @@
-/* Import Pretendard font */
+/* ============================================================================
+   FAT: Firewall Analysis Tool - Main Stylesheet
+   ============================================================================ */
+
+/* ============================================================================
+   1. FONTS
+   ============================================================================ */
+
 @font-face {
-    font-family: 'Pretendard';
-    font-style: normal;
-    font-weight: 400;
-    src: local('Pretendard'), url('./fonts/Pretendard-Regular.woff') format('woff');
-}
-@font-face {
-    font-family: 'Pretendard';
-    font-style: normal;
-    font-weight: 500;
-    src: local('Pretendard'), url('./fonts/Pretendard-Medium.woff') format('woff');
-}
-@font-face {
-    font-family: 'Pretendard';
-    font-style: normal;
-    font-weight: 600;
-    src: local('Pretendard'), url('./fonts/Pretendard-SemiBold.woff') format('woff');
-}
-@font-face {
-    font-family: 'Pretendard';
-    font-style: normal;
-    font-weight: 700;
-    src: local('Pretendard'), url('./fonts/Pretendard-Bold.woff') format('woff');
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Pretendard'), url('./fonts/Pretendard-Regular.woff') format('woff');
 }
 
-/* Color & Theme Variables */
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 500;
+  src: local('Pretendard'), url('./fonts/Pretendard-Medium.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 600;
+  src: local('Pretendard'), url('./fonts/Pretendard-SemiBold.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 700;
+  src: local('Pretendard'), url('./fonts/Pretendard-Bold.woff') format('woff');
+}
+
+/* ============================================================================
+   2. CSS VARIABLES
+   ============================================================================ */
+
 :root {
+  /* Colors */
   --color-primary: #3b82f6; /* Blue 500 */
   --color-primary-hover: #2563eb; /* Blue 600 */
   --color-text-primary: #111827; /* Gray 900 */
@@ -33,16 +47,22 @@
   --color-background: #f9fafb; /* Gray 50 */
   --color-surface: #ffffff;
   --color-border: #e5e7eb; /* Gray 200 */
+  
+  /* Spacing & Layout */
   --border-radius: 8px;
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --transition-short: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Reset & Global Styles */
+/* ============================================================================
+   3. GLOBAL STYLES
+   ============================================================================ */
+
 html {
   color-scheme: light;
 }
+
 body {
   background: var(--color-background);
   color: var(--color-text-primary);
@@ -52,8 +72,16 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* General component overrides */
-.card, .box, .menu, .panel, .message {
+/* ============================================================================
+   4. BASE COMPONENTS
+   ============================================================================ */
+
+/* Card, Box, Panel */
+.card,
+.box,
+.menu,
+.panel,
+.message {
   background: var(--color-surface);
   color: var(--color-text-primary);
   border-radius: var(--border-radius);
@@ -61,26 +89,47 @@ body {
   border: 1px solid var(--color-border);
 }
 
-/* Force light controls even when OS is dark */
-input, textarea, select, .select select {
+.box.is-transparent {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 1px solid var(--color-border) !important;
+  padding: 1.25rem !important;
+}
+
+/* Table */
+.table {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+/* Form Controls */
+input,
+textarea,
+select,
+.select select {
   color-scheme: light;
   background: var(--color-surface);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border);
   border-radius: 6px;
   transition: var(--transition-short);
+  font-family: 'Pretendard', sans-serif;
 }
 
-input:focus, textarea:focus, select:focus, .select select:focus {
+input:focus,
+textarea:focus,
+select:focus,
+.select select:focus {
   border-color: var(--color-primary) !important;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent) !important;
 }
 
-/* Custom button styles */
+/* Buttons */
 .button {
   border-radius: 6px;
   font-weight: 500;
   transition: var(--transition-short);
+  font-family: 'Pretendard', sans-serif;
 }
 
 .button.is-primary {
@@ -88,23 +137,160 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   border-color: transparent;
   color: var(--color-surface);
 }
+
 .button.is-primary:hover {
   background-color: var(--color-primary-hover);
   border-color: transparent;
   color: var(--color-surface);
 }
+
 .button.is-primary:focus {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 25%, transparent);
 }
 
-.table {
+/* ============================================================================
+   5. LAYOUT COMPONENTS
+   ============================================================================ */
+
+/* Navbar */
+.minimal-navbar {
   background: var(--color-surface);
-  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
+  min-height: 3.5rem;
+  box-shadow: var(--shadow-sm);
 }
 
-/* ==================== AG Grid 통합 스타일 ==================== */
+.minimal-navbar .navbar-brand {
+  min-height: 3.5rem;
+}
 
-/* 기본 그리드 테마 설정 */
+.minimal-navbar .navbar-menu {
+  box-shadow: none;
+  background: transparent;
+}
+
+.minimal-navbar .navbar-logo {
+  padding: 0.5rem 0.75rem;
+}
+
+.minimal-navbar .logo-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  transition: var(--transition-short);
+}
+
+.minimal-navbar .navbar-logo:hover .logo-text {
+  color: var(--color-primary);
+}
+
+.minimal-navbar .navbar-item {
+  padding: 1rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  transition: var(--transition-short);
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.minimal-navbar .navbar-item:nth-child(1) { animation-delay: 0.05s; }
+.minimal-navbar .navbar-item:nth-child(2) { animation-delay: 0.1s; }
+.minimal-navbar .navbar-item:nth-child(3) { animation-delay: 0.15s; }
+.minimal-navbar .navbar-item:nth-child(4) { animation-delay: 0.2s; }
+.minimal-navbar .navbar-item:nth-child(5) { animation-delay: 0.25s; }
+
+.minimal-navbar .navbar-item:hover {
+  color: var(--color-text-primary);
+  background: transparent;
+  transform: translateY(-1px);
+}
+
+.minimal-navbar .navbar-item.is-active {
+  color: var(--color-primary);
+  background: transparent;
+  font-weight: 600;
+}
+
+/* Section */
+.minimal-section {
+  padding: 2rem 1.5rem;
+  background-color: transparent;
+  min-height: calc(100vh - 3.5rem);
+}
+
+/* ============================================================================
+   6. MODAL COMPONENTS
+   ============================================================================ */
+
+.modal-background {
+  background-color: rgba(10, 10, 10, 0.45) !important;
+}
+
+.modal-card {
+  border-radius: var(--border-radius) !important;
+  overflow: hidden !important;
+  max-width: 540px !important;
+  width: 90% !important;
+  box-shadow: var(--shadow-md);
+  border: none;
+}
+
+.modal-card.is-narrow {
+  max-width: 420px;
+}
+
+.modal-card.is-wide {
+  max-width: 960px;
+}
+
+.modal-card-head {
+  background: var(--color-surface) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  padding: 1rem 1.5rem !important;
+}
+
+.modal-card-title {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  color: var(--color-text-primary) !important;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.modal-card-body {
+  background: var(--color-surface) !important;
+  padding: 1.5rem !important;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.modal-card-foot {
+  background: #f9fafb !important;
+  border-top: 1px solid var(--color-border) !important;
+  padding: 1rem 1.5rem !important;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+}
+
+.modal-card .label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin-bottom: 0.5rem;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.modal-card .help {
+  font-size: 0.8125rem;
+  margin-top: 0.25rem;
+  font-family: 'Pretendard', sans-serif;
+}
+
+/* ============================================================================
+   7. AG GRID STYLES
+   ============================================================================ */
+
+/* Base Theme */
 .ag-theme-quartz {
   font-family: 'Pretendard', sans-serif;
   font-size: 14px;
@@ -116,7 +302,7 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   box-shadow: var(--shadow-sm);
 }
 
-/* 헤더 스타일 - 미니멀하게 */
+/* Header */
 .ag-theme-quartz .ag-header {
   background: #f9fafb;
   border-bottom: 1px solid var(--color-border);
@@ -136,7 +322,16 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   color: var(--color-text-primary);
 }
 
-/* 행 스타일 - 미니멀하게 */
+.ag-theme-quartz .ag-header-cell-resize {
+  width: 2px;
+  background: transparent;
+}
+
+.ag-theme-quartz .ag-header-cell-resize:hover {
+  background: var(--color-primary);
+}
+
+/* Rows */
 .ag-theme-quartz .ag-row {
   border-bottom: 1px solid #f3f4f6;
   font-size: 14px;
@@ -154,7 +349,7 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   background: #fafbfc;
 }
 
-/* 셀 스타일 */
+/* Cells */
 .ag-theme-quartz .ag-cell {
   padding: 8px 12px;
   line-height: 1.5;
@@ -162,7 +357,7 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   align-items: center;
 }
 
-/* 필터 아이콘 및 입력 스타일 */
+/* Filters */
 .ag-theme-quartz .ag-header-cell-filtered .ag-header-cell-text::after {
   content: '';
   display: inline-block;
@@ -193,7 +388,7 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 
-/* 페이지네이션 스타일 */
+/* Pagination */
 .ag-theme-quartz .ag-paging-panel {
   padding: 12px;
   border-top: 1px solid var(--color-border);
@@ -226,7 +421,7 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   font-size: 13px;
 }
 
-/* 체크박스 컬럼 너비 조정 */
+/* Checkbox Column */
 .ag-theme-quartz .ag-selection-checkbox {
   width: 40px !important;
   min-width: 40px !important;
@@ -239,7 +434,7 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   max-width: 40px !important;
 }
 
-/* 정책 그리드 자동 높이 조절 - 페이지네이션과 함께 사용 */
+/* Grid Height & Scroll */
 #policies-grid.ag-theme-quartz,
 #analysis-result-grid.ag-theme-quartz,
 #devices-grid.ag-theme-quartz,
@@ -250,7 +445,6 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   max-height: none;
 }
 
-/* 모든 그리드 세로 스크롤 제거 (필요시 가로 스크롤만 허용) */
 .ag-theme-quartz .ag-body-viewport {
   overflow-y: hidden !important;
   overflow-x: auto !important;
@@ -260,142 +454,32 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   overflow-x: auto !important;
 }
 
-/* 빈 상태 오버레이 */
+/* Overlay */
 .ag-theme-quartz .ag-overlay-no-rows-wrapper {
   color: var(--color-text-secondary);
   font-size: 14px;
   font-family: 'Pretendard', sans-serif;
 }
 
-/* 컬럼 리사이즈 핸들 */
-.ag-theme-quartz .ag-header-cell-resize {
-  width: 2px;
-  background: transparent;
+/* ============================================================================
+   8. TOM SELECT STYLES
+   ============================================================================ */
+
+.ts-hidden-accessible,
+.tomselected,
+input.tomselected,
+input.ts-hidden-accessible {
+  display: none !important;
+  position: absolute !important;
+  left: -9999px !important;
 }
 
-.ag-theme-quartz .ag-header-cell-resize:hover {
-  background: var(--color-primary);
-}
-
-.actions {
-  display: flex;
-  gap: .5rem;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
-}
-
-.is-hidden {
-  display: none;
-}
-
-/* Minimal Navbar Styles */
-.minimal-navbar {
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-  min-height: 3.5rem;
-  box-shadow: var(--shadow-sm);
-}
-.minimal-navbar .navbar-brand {
-  min-height: 3.5rem;
-}
-.minimal-navbar .navbar-menu {
-  box-shadow: none;
-  background: transparent;
-}
-.minimal-navbar .navbar-logo {
-  padding: 0.5rem 0.75rem;
-}
-.minimal-navbar .logo-text {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  transition: var(--transition-short);
-}
-.minimal-navbar .navbar-logo:hover .logo-text {
-  color: var(--color-primary);
-}
-.minimal-navbar .navbar-item {
-  padding: 1rem 1.5rem;
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  transition: var(--transition-short);
-}
-.minimal-navbar .navbar-item:hover {
-  color: var(--color-text-primary);
-  background: transparent;
-  transform: translateY(-1px);
-}
-.minimal-navbar .navbar-item.is-active {
-  color: var(--color-primary);
-  background: transparent;
-  font-weight: 600;
-}
-
-/* Section & Layout */
-.minimal-section {
-  padding: 2rem 1.5rem;
-  background-color: transparent; /* Let body color show through */
-  min-height: calc(100vh - 3.5rem);
-}
-.box.is-transparent {
-  background: transparent !important;
-  box-shadow: none !important;
-  border: 1px solid var(--color-border) !important;
-  padding: 1.25rem !important;
-}
-
-/* Modal Improvements */
-.modal-background {
-  background-color: rgba(10, 10, 10, 0.45) !important;
-}
-.modal-card {
-  border-radius: var(--border-radius) !important;
-  overflow: hidden !important;
-  max-width: 540px !important;
-  width: 90% !important;
-  box-shadow: var(--shadow-md);
-  border: none;
-}
-.modal-card.is-narrow { max-width: 420px; }
-.modal-card.is-wide { max-width: 960px; }
-.modal-card-head {
-  background: var(--color-surface) !important;
-  border-bottom: 1px solid var(--color-border) !important;
-  padding: 1rem 1.5rem !important;
-}
-.modal-card-title {
-  font-size: 1.1rem !important;
-  font-weight: 600 !important;
-  color: var(--color-text-primary) !important;
-}
-.modal-card-body {
-  background: var(--color-surface) !important;
-  padding: 1.5rem !important;
-}
-.modal-card-foot {
-  background: #f9fafb !important; /* Gray 50 footer */
-  border-top: 1px solid var(--color-border) !important;
-  padding: 1rem 1.5rem !important;
-}
-.modal-card .label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--color-text-primary);
-  margin-bottom: 0.5rem;
-}
-.modal-card .help {
-    font-size: 0.85rem;
-    margin-top: 0.25rem;
-}
-
-/* Tom-select fixes */
-.ts-hidden-accessible, .tomselected, input.tomselected, input.ts-hidden-accessible {
-  display: none !important; position: absolute !important; left: -9999px !important;
-}
 .ts-wrapper {
-  display: block !important; width: 100% !important; position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  position: relative !important;
 }
+
 .ts-wrapper .ts-control {
   min-height: 38px !important;
   padding: 6px 12px !important;
@@ -409,11 +493,14 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   width: 100% !important;
   box-sizing: border-box !important;
   transition: var(--transition-short);
+  font-family: 'Pretendard', sans-serif;
 }
+
 .ts-wrapper.focus .ts-control {
   border-color: var(--color-primary) !important;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent) !important;
 }
+
 .ts-wrapper.multi .ts-control > div {
   background: #f3f4f6 !important;
   border: 1px solid var(--color-border) !important;
@@ -421,6 +508,7 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   padding: 2px 8px !important;
   font-size: 0.875rem !important;
 }
+
 .ts-dropdown {
   position: absolute !important;
   z-index: 9999 !important;
@@ -431,46 +519,35 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   overflow-y: auto !important;
   border-radius: var(--border-radius);
 }
+
 .ts-wrapper.dropdown-active {
   z-index: 10000 !important;
 }
 
-/* Animation */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
+/* ============================================================================
+   9. UTILITY CLASSES
+   ============================================================================ */
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.is-hidden {
+  display: none;
 }
 
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-
-@keyframes skeleton-loading {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-/* AG Grid 헤더 왼쪽 정렬 */
 .text-left {
   text-align: left !important;
   justify-content: flex-start !important;
 }
-.minimal-navbar .navbar-item {
-  animation: fadeIn 0.3s ease forwards;
-}
-.minimal-navbar .navbar-item:nth-child(1) { animation-delay: 0.05s; }
-.minimal-navbar .navbar-item:nth-child(2) { animation-delay: 0.1s; }
-.minimal-navbar .navbar-item:nth-child(3) { animation-delay: 0.15s; }
-.minimal-navbar .navbar-item:nth-child(4) { animation-delay: 0.2s; }
-.minimal-navbar .navbar-item:nth-child(5) { animation-delay: 0.25s; }
 
-/* Notification Ticker Styles */
+/* ============================================================================
+   10. NOTIFICATION COMPONENTS
+   ============================================================================ */
+
 .notification-ticker {
   position: relative;
   width: 400px;
@@ -504,7 +581,11 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   transform: translateY(-100%);
 }
 
-/* Analysis Page Improvements */
+/* ============================================================================
+   11. PAGE-SPECIFIC STYLES
+   ============================================================================ */
+
+/* Analysis Page */
 #default-analysis-ui .field {
   margin-bottom: 0.75rem;
 }
@@ -538,7 +619,52 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   margin-bottom: 0.5rem;
 }
 
-/* Responsive improvements for analysis page */
+/* ============================================================================
+   12. ANIMATIONS
+   ============================================================================ */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ============================================================================
+   13. RESPONSIVE DESIGN
+   ============================================================================ */
+
 @media screen and (max-width: 768px) {
   #default-analysis-ui .columns,
   #impact-analysis-ui .columns {
