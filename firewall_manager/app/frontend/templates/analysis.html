@@ -18,10 +18,22 @@
           <div class="control">
             <div class="select is-fullwidth">
               <select id="analysis-type-select">
-                <option selected>중복 정책 분석</option>
-                <option disabled>Shadow 정책 분석 (예정)</option>
+                <option value="redundancy" selected>중복 정책 분석</option>
+                <option value="unused">미사용 정책 분석</option>
+                <option value="impact">영향도 분석</option>
+                <option value="unreferenced_objects">미참조 객체 분석</option>
+                <option value="risky_ports">위험 포트 분석</option>
               </select>
             </div>
+          </div>
+        </div>
+      </div>
+      <!-- 미사용 정책 분석 파라미터 입력 -->
+      <div class="column is-2" id="analysis-params-column" style="display: none;">
+        <div class="field">
+          <label class="label" id="analysis-params-label">기준일수</label>
+          <div class="control">
+            <input class="input is-small" type="number" id="analysis-params-input" placeholder="90" value="90" min="1">
           </div>
         </div>
       </div>
@@ -34,10 +46,56 @@
         </div>
       </div>
     </div>
+
+    <!-- 영향도 분석 UI -->
+    <div id="impact-analysis-ui" style="display: none;">
+      <div class="columns is-vcentered mt-4">
+        <div class="column is-4">
+          <div class="field">
+            <label class="label">대상 정책</label>
+            <div class="control">
+              <select id="impact-target-policy-select"></select>
+            </div>
+          </div>
+        </div>
+        <div class="column is-4">
+          <div class="field">
+            <label class="label">목적지 정책</label>
+            <div class="control">
+              <select id="impact-destination-policy-select"></select>
+            </div>
+          </div>
+        </div>
+        <div class="column is-2">
+          <div class="field">
+            <label class="label">이동 방향</label>
+            <div class="control">
+              <div class="select is-fullwidth">
+                <select id="impact-move-direction">
+                  <option value="below" selected>아래로</option>
+                  <option value="above">위로</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="column is-2">
+          <div class="field">
+            <label class="label">&nbsp;</label>
+            <div class="control">
+              <button class="button is-primary is-small" id="btn-start-impact-analysis">분석하기</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 분석 결과 그리드 -->
   <div class="box">
+    <!-- 메시지 컨테이너 -->
+    <div id="analysis-message-container"></div>
+
     <!-- 그리드 툴바 -->
     <div class="level is-mobile mb-4">
       <div class="level-left">
@@ -50,6 +108,9 @@
           <div class="buttons">
             <button class="button is-light is-small" id="btn-reset-filters" style="display: none;">
               필터 초기화
+            </button>
+            <button class="button is-info is-small" id="btn-generate-script" style="display: none;">
+              생성 스크립트
             </button>
             <button class="button is-success is-small" id="btn-export-excel" style="display: none;">
               엑셀 내보내기

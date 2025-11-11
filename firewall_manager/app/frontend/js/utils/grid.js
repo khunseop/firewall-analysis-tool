@@ -166,3 +166,51 @@ export function createObjectCellRenderer(validObjectNames, onObjectClick) {
   };
 }
 
+/**
+ * 공통 그리드 이벤트 핸들러 생성 (필터 저장 포함)
+ * @param {HTMLElement} gridDiv - 그리드 컨테이너 요소
+ * @param {string} filterKey - 필터 저장 키
+ * @param {Function} saveGridFilters - 필터 저장 함수
+ * @param {number} delay - 지연 시간 (ms, 기본값: 200)
+ * @returns {Object} 그리드 이벤트 핸들러 객체
+ */
+export function createGridEventHandlersWithFilter(gridDiv, filterKey, saveGridFilters, delay = 200) {
+  const adjust = (api) => {
+    setTimeout(() => {
+      if (api && typeof api.autoSizeAllColumns === 'function') {
+        api.autoSizeAllColumns({ skipHeader: false });
+      }
+      adjustGridHeight(gridDiv);
+    }, delay);
+  };
+
+  return {
+    onGridReady: (params) => {
+      // 필터 변경 시 저장
+      if (params.api && typeof params.api.addEventListener === 'function') {
+        params.api.addEventListener('filterChanged', () => {
+          const filterModel = params.api.getFilterModel();
+          saveGridFilters(filterKey, filterModel);
+        });
+      }
+      setTimeout(() => adjustGridHeight(gridDiv), delay);
+    },
+    onFirstDataRendered: (params) => {
+      adjust(params.api);
+    },
+    onModelUpdated: (params) => {
+      if (params.api.getDisplayedRowCount() > 0) {
+        adjust(params.api);
+      } else {
+        setTimeout(() => adjustGridHeight(gridDiv), delay);
+      }
+    },
+    onPaginationChanged: () => {
+      setTimeout(() => adjustGridHeight(gridDiv), delay);
+    },
+    onRowDataUpdated: () => {
+      setTimeout(() => adjustGridHeight(gridDiv), delay);
+    }
+  };
+}
+

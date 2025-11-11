@@ -1,306 +1,172 @@
 import { api } from '../api.js';
-import { adjustGridHeight, createGridEventHandlers, createCommonGridOptions } from '../utils/grid.js';
+import { adjustGridHeight, createCommonGridOptions, createGridEventHandlersWithFilter } from '../utils/grid.js';
 import { exportGridToExcelClient } from '../utils/excel.js';
 import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
 import { saveSearchParams, loadSearchParams, saveGridFilters, loadGridFilters } from '../utils/storage.js';
 
+// ==================== 상수 정의 ====================
+
+// 멤버 셀 렌더러 (공통)
+const membersCellRenderer = params => {
+  if (!params.value) return '';
+  const members = String(params.value).split(',').map(s => s.trim()).filter(Boolean);
+  return members.join('<br>');
+};
+
+// 공통 컬럼 속성
+const commonColumnProps = {
+  filter: 'agTextColumnFilter',
+  sortable: false,
+  filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 }
+};
+
+const deviceColumn = {
+  field: 'device_name',
+  headerName: '장비',
+  pinned: 'left',
+  minWidth: 120,
+  ...commonColumnProps
+};
+
+// 탭별 그리드 설정
+const TAB_CONFIG = {
+  'network-objects': {
+    id: 'network-objects-grid',
+    messageContainerId: 'network-objects-message-container',
+    filterKey: 'objects_network-objects',
+    exportName: 'network_objects',
+    columns: [
+      deviceColumn,
+      { field: 'name', headerName: '이름', minWidth: 150, ...commonColumnProps },
+      { field: 'ip_address', headerName: 'IP 주소', minWidth: 150, ...commonColumnProps },
+      { field: 'type', headerName: '타입', minWidth: 100, ...commonColumnProps },
+      { field: 'description', headerName: '설명', minWidth: 200, ...commonColumnProps }
+    ],
+    apiMethod: (deviceId) => api.getNetworkObjects(deviceId),
+    responseKey: 'network_objects'
+  },
+  'network-groups': {
+    id: 'network-groups-grid',
+    messageContainerId: 'network-groups-message-container',
+    filterKey: 'objects_network-groups',
+    exportName: 'network_groups',
+    columns: [
+      deviceColumn,
+      { field: 'name', headerName: '이름', minWidth: 150, ...commonColumnProps },
+      {
+        field: 'members',
+        headerName: '멤버',
+        wrapText: true,
+        autoHeight: true,
+        minWidth: 200,
+        cellRenderer: membersCellRenderer,
+        ...commonColumnProps
+      },
+      { field: 'description', headerName: '설명', minWidth: 200, ...commonColumnProps }
+    ],
+    apiMethod: (deviceId) => api.getNetworkGroups(deviceId),
+    responseKey: 'network_groups'
+  },
+  'services': {
+    id: 'services-grid',
+    messageContainerId: 'services-message-container',
+    filterKey: 'objects_services',
+    exportName: 'services',
+    columns: [
+      deviceColumn,
+      { field: 'name', headerName: '이름', minWidth: 150, ...commonColumnProps },
+      { field: 'protocol', headerName: '프로토콜', minWidth: 100, ...commonColumnProps },
+      { field: 'port', headerName: '포트', minWidth: 100, ...commonColumnProps },
+      { field: 'description', headerName: '설명', minWidth: 200, ...commonColumnProps }
+    ],
+    apiMethod: (deviceId) => api.getServices(deviceId),
+    responseKey: 'services'
+  },
+  'service-groups': {
+    id: 'service-groups-grid',
+    messageContainerId: 'service-groups-message-container',
+    filterKey: 'objects_service-groups',
+    exportName: 'service_groups',
+    columns: [
+      deviceColumn,
+      { field: 'name', headerName: '이름', minWidth: 150, ...commonColumnProps },
+      {
+        field: 'members',
+        headerName: '멤버',
+        wrapText: true,
+        autoHeight: true,
+        minWidth: 200,
+        cellRenderer: membersCellRenderer,
+        ...commonColumnProps
+      },
+      { field: 'description', headerName: '설명', minWidth: 200, ...commonColumnProps }
+    ],
+    apiMethod: (deviceId) => api.getServiceGroups(deviceId),
+    responseKey: 'service_groups'
+  }
+};
+
 // ==================== 전역 변수 ====================
 
-let networkObjectsGrid = null;
-let networkGroupsGrid = null;
-let servicesGrid = null;
-let serviceGroupsGrid = null;
-
+const grids = {}; // 탭별 그리드 인스턴스 저장
 let currentTab = 'network-objects';
-
-// 네트워크 객체 그리드 컬럼 정의
-const networkObjectsColumns = [
-  { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', pinned: 'left', minWidth: 120, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
-  { field: 'name', headerName: '이름', filter: 'agTextColumnFilter', minWidth: 150, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
-  { field: 'ip_address', headerName: 'IP 주소', filter: 'agTextColumnFilter', minWidth: 150, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
-  { field: 'type', headerName: '타입', filter: 'agTextColumnFilter', minWidth: 100, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
-  { field: 'description', headerName: '설명', filter: 'agTextColumnFilter', minWidth: 200, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } }
-];
-
-// 네트워크 그룹 그리드 컬럼 정의
-const networkGroupsColumns = [
-  { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', pinned: 'left', minWidth: 120, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
-  { field: 'name', headerName: '이름', filter: 'agTextColumnFilter', minWidth: 150, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
-  {
-    field: 'members',
-    headerName: '멤버',
-    filter: 'agTextColumnFilter',
-    wrapText: true,
-    autoHeight: true,
-    minWidth: 200,
-    sortable: false,
-    filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 },
-    cellRenderer: params => {
-      if (!params.value) return '';
-      const members = String(params.value).split(',').map(s => s.trim()).filter(Boolean);
-      return members.join('<br>');
-    }
-  },
-  { field: 'description', headerName: '설명', filter: 'agTextColumnFilter', minWidth: 200, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } }
-];
-
-// 서비스 객체 그리드 컬럼 정의
-const servicesColumns = [
-  { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', pinned: 'left', minWidth: 120, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
-  { field: 'name', headerName: '이름', filter: 'agTextColumnFilter', minWidth: 150, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
-  { field: 'protocol', headerName: '프로토콜', filter: 'agTextColumnFilter', minWidth: 100, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
-  { field: 'port', headerName: '포트', filter: 'agTextColumnFilter', minWidth: 100, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
-  { field: 'description', headerName: '설명', filter: 'agTextColumnFilter', minWidth: 200, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } }
-];
-
-// 서비스 그룹 그리드 컬럼 정의
-const serviceGroupsColumns = [
-  { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', pinned: 'left', minWidth: 120, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
-  { field: 'name', headerName: '이름', filter: 'agTextColumnFilter', minWidth: 150, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } },
-  {
-    field: 'members',
-    headerName: '멤버',
-    filter: 'agTextColumnFilter',
-    wrapText: true,
-    autoHeight: true,
-    minWidth: 200,
-    sortable: false,
-    filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 },
-    cellRenderer: params => {
-      if (!params.value) return '';
-      const members = String(params.value).split(',').map(s => s.trim()).filter(Boolean);
-      return members.join('<br>');
-    }
-  },
-  { field: 'description', headerName: '설명', filter: 'agTextColumnFilter', minWidth: 200, sortable: false, filterParams: { buttons: ['apply', 'reset'], debounceMs: 200 } }
-];
-
-// 그리드 정리
-function destroyGrids() {
-  if (networkObjectsGrid) {
-    try { networkObjectsGrid.destroy(); } catch (e) { console.warn('Failed to destroy networkObjectsGrid:', e); }
-    networkObjectsGrid = null;
-  }
-  if (networkGroupsGrid) {
-    try { networkGroupsGrid.destroy(); } catch (e) { console.warn('Failed to destroy networkGroupsGrid:', e); }
-    networkGroupsGrid = null;
-  }
-  if (servicesGrid) {
-    try { servicesGrid.destroy(); } catch (e) { console.warn('Failed to destroy servicesGrid:', e); }
-    servicesGrid = null;
-  }
-  if (serviceGroupsGrid) {
-    try { serviceGroupsGrid.destroy(); } catch (e) { console.warn('Failed to destroy serviceGroupsGrid:', e); }
-    serviceGroupsGrid = null;
-  }
-}
-
-// 그리드 초기화
-async function initGrids() {
-  // 기존 그리드 정리
-  destroyGrids();
-
-  // 공통 그리드 옵션
-  const commonGridOptions = {
-    defaultColDef: {
-      resizable: true,
-      sortable: false,
-      filter: true,
-    },
-    enableCellTextSelection: true,
-    getRowId: params => String(params.data.id),
-    suppressHorizontalScroll: false,
-    enableFilterHandlers: true,
-    pagination: true,
-    paginationPageSize: 50,
-    paginationPageSizeSelector: [50, 100, 200],
-  };
-
-  // 네트워크 객체 그리드
-  const networkObjectsEl = document.getElementById('network-objects-grid');
-  if (networkObjectsEl) {
-    networkObjectsGrid = agGrid.createGrid(networkObjectsEl, {
-      ...commonGridOptions,
-      columnDefs: networkObjectsColumns,
-      onGridReady: params => {
-        // 필터 변경 시 저장
-        if (params.api && typeof params.api.addEventListener === 'function') {
-          params.api.addEventListener('filterChanged', () => {
-            const filterModel = params.api.getFilterModel();
-            saveGridFilters('objects_network-objects', filterModel);
-          });
-        }
-        setTimeout(() => {
-          adjustGridHeight(networkObjectsEl);
-        }, 200);
-      },
-      onFirstDataRendered: params => {
-        setTimeout(() => {
-          params.api.autoSizeAllColumns({ skipHeader: false });
-          adjustGridHeight(networkObjectsEl);
-        }, 200);
-      },
-      onModelUpdated: params => {
-        if (params.api.getDisplayedRowCount() > 0) {
-          setTimeout(() => {
-            params.api.autoSizeAllColumns({ skipHeader: false });
-            adjustGridHeight(networkObjectsEl);
-          }, 200);
-        }
-      },
-      onPaginationChanged: () => {
-        setTimeout(() => {
-          adjustGridHeight(networkObjectsEl);
-        }, 200);
-      },
-      onRowDataUpdated: () => {
-        setTimeout(() => {
-          adjustGridHeight(networkObjectsEl);
-        }, 200);
-      },
-    });
-  }
-
-  // 네트워크 그룹 그리드
-  const networkGroupsEl = document.getElementById('network-groups-grid');
-  if (networkGroupsEl) {
-    networkGroupsGrid = agGrid.createGrid(networkGroupsEl, {
-      ...commonGridOptions,
-      columnDefs: networkGroupsColumns,
-      onGridReady: params => {
-        // 필터 변경 시 저장
-        if (params.api && typeof params.api.addEventListener === 'function') {
-          params.api.addEventListener('filterChanged', () => {
-            const filterModel = params.api.getFilterModel();
-            saveGridFilters('objects_network-groups', filterModel);
-          });
-        }
-        setTimeout(() => {
-          adjustGridHeight(networkGroupsEl);
-        }, 200);
-      },
-      onFirstDataRendered: params => {
-        setTimeout(() => {
-          params.api.autoSizeAllColumns({ skipHeader: false });
-          adjustGridHeight(networkGroupsEl);
-        }, 200);
-      },
-      onModelUpdated: params => {
-        if (params.api.getDisplayedRowCount() > 0) {
-          setTimeout(() => {
-            params.api.autoSizeAllColumns({ skipHeader: false });
-            adjustGridHeight(networkGroupsEl);
-          }, 200);
-        }
-      },
-      onPaginationChanged: () => {
-        setTimeout(() => {
-          adjustGridHeight(networkGroupsEl);
-        }, 200);
-      },
-      onRowDataUpdated: () => {
-        setTimeout(() => {
-          adjustGridHeight(networkGroupsEl);
-        }, 200);
-      },
-    });
-  }
-
-  // 서비스 객체 그리드
-  const servicesEl = document.getElementById('services-grid');
-  if (servicesEl) {
-    servicesGrid = agGrid.createGrid(servicesEl, {
-      ...commonGridOptions,
-      columnDefs: servicesColumns,
-      onGridReady: params => {
-        // 필터 변경 시 저장
-        if (params.api && typeof params.api.addEventListener === 'function') {
-          params.api.addEventListener('filterChanged', () => {
-            const filterModel = params.api.getFilterModel();
-            saveGridFilters('objects_services', filterModel);
-          });
-        }
-        setTimeout(() => {
-          adjustGridHeight(servicesEl);
-        }, 200);
-      },
-      onFirstDataRendered: params => {
-        setTimeout(() => {
-          params.api.autoSizeAllColumns({ skipHeader: false });
-          adjustGridHeight(servicesEl);
-        }, 200);
-      },
-      onModelUpdated: params => {
-        if (params.api.getDisplayedRowCount() > 0) {
-          setTimeout(() => {
-            params.api.autoSizeAllColumns({ skipHeader: false });
-            adjustGridHeight(servicesEl);
-          }, 200);
-        }
-      },
-      onPaginationChanged: () => {
-        setTimeout(() => {
-          adjustGridHeight(servicesEl);
-        }, 200);
-      },
-      onRowDataUpdated: () => {
-        setTimeout(() => {
-          adjustGridHeight(servicesEl);
-        }, 200);
-      },
-    });
-  }
-
-  // 서비스 그룹 그리드
-  const serviceGroupsEl = document.getElementById('service-groups-grid');
-  if (serviceGroupsEl) {
-    serviceGroupsGrid = agGrid.createGrid(serviceGroupsEl, {
-      ...commonGridOptions,
-      columnDefs: serviceGroupsColumns,
-      onGridReady: params => {
-        // 필터 변경 시 저장
-        if (params.api && typeof params.api.addEventListener === 'function') {
-          params.api.addEventListener('filterChanged', () => {
-            const filterModel = params.api.getFilterModel();
-            saveGridFilters('objects_service-groups', filterModel);
-          });
-        }
-        setTimeout(() => {
-          adjustGridHeight(serviceGroupsEl);
-        }, 200);
-      },
-      onFirstDataRendered: params => {
-        setTimeout(() => {
-          params.api.autoSizeAllColumns({ skipHeader: false });
-          adjustGridHeight(serviceGroupsEl);
-        }, 200);
-      },
-      onModelUpdated: params => {
-        if (params.api.getDisplayedRowCount() > 0) {
-          setTimeout(() => {
-            params.api.autoSizeAllColumns({ skipHeader: false });
-            adjustGridHeight(serviceGroupsEl);
-          }, 200);
-        }
-      },
-      onPaginationChanged: () => {
-        setTimeout(() => {
-          adjustGridHeight(serviceGroupsEl);
-        }, 200);
-      },
-      onRowDataUpdated: () => {
-        setTimeout(() => {
-          adjustGridHeight(serviceGroupsEl);
-        }, 200);
-      },
-    });
-  }
-}
-
-// 장비 목록을 저장할 변수
 let allDevices = [];
 
-// 장비 목록 로드
+// ==================== 그리드 관리 ====================
+
+/**
+ * 모든 그리드 정리
+ */
+function destroyGrids() {
+  Object.values(grids).forEach(grid => {
+    if (grid) {
+      try {
+        grid.destroy();
+      } catch (e) {
+        console.warn('Failed to destroy grid:', e);
+      }
+    }
+  });
+  Object.keys(grids).forEach(key => delete grids[key]);
+}
+
+/**
+ * 단일 그리드 초기화
+ */
+function initGrid(tabName) {
+  const config = TAB_CONFIG[tabName];
+  if (!config) return;
+
+  const gridEl = document.getElementById(config.id);
+  if (!gridEl) return;
+
+  const commonOptions = createCommonGridOptions();
+  const eventHandlers = createGridEventHandlersWithFilter(
+    gridEl,
+    config.filterKey,
+    saveGridFilters
+  );
+
+  grids[tabName] = agGrid.createGrid(gridEl, {
+    ...commonOptions,
+    columnDefs: config.columns,
+    ...eventHandlers
+  });
+}
+
+/**
+ * 모든 그리드 초기화
+ */
+async function initGrids() {
+  destroyGrids();
+  Object.keys(TAB_CONFIG).forEach(tabName => initGrid(tabName));
+}
+
+// ==================== 장비 관리 ====================
+
+/**
+ * 장비 목록 로드 및 Tom-select 초기화
+ */
 async function loadDevices() {
   try {
     allDevices = await api.listDevices();
@@ -318,7 +184,9 @@ async function loadDevices() {
     // Tom-select 초기화
     if (window.TomSelect && select) {
       if (select.tomselect) {
-        try { select.tomselect.destroy(); } catch (e) {}
+        try {
+          select.tomselect.destroy();
+        } catch (e) {}
       }
       select.tomselect = new window.TomSelect(select, {
         placeholder: '장비 선택',
@@ -329,14 +197,17 @@ async function loadDevices() {
           loadData(selectedDevices);
         }
       });
-      // 초기 로딩 시 자동 선택/자동 로드를 수행하지 않습니다.
     }
   } catch (err) {
     console.error('Failed to load devices:', err);
   }
 }
 
-// 검색 페이로드 빌드 함수
+// ==================== 검색 및 필터 ====================
+
+/**
+ * 검색 페이로드 빌드
+ */
 function buildObjectSearchPayload(deviceIds, objectType) {
   const g = (id) => document.getElementById(id);
   const v = (id) => g(id)?.value?.trim() || null;
@@ -346,60 +217,89 @@ function buildObjectSearchPayload(deviceIds, objectType) {
     device_ids: deviceIds,
     object_type: objectType,
     name: v('obj-f-name'),
-    description: v('obj-f-description'),
+    description: v('obj-f-description')
   };
 
   // 객체 타입별 필터 추가
-  if (objectType === 'network-objects') {
-    payload.ip_address = v('obj-f-ip-address');
-    payload.type = v('obj-f-type');
-  } else if (objectType === 'network-groups') {
-    payload.members = v('obj-f-members-network');
-  } else if (objectType === 'services') {
-    payload.protocol = v('obj-f-protocol');
-    payload.port = v('obj-f-port');
-  } else if (objectType === 'service-groups') {
-    payload.members = v('obj-f-members-service');
+  const typeFilters = {
+    'network-objects': () => {
+      payload.ip_address = v('obj-f-ip-address');
+      payload.type = v('obj-f-type');
+    },
+    'network-groups': () => {
+      payload.members = v('obj-f-members-network');
+    },
+    'services': () => {
+      payload.protocol = v('obj-f-protocol');
+      payload.port = v('obj-f-port');
+    },
+    'service-groups': () => {
+      payload.members = v('obj-f-members-service');
+    }
+  };
+
+  if (typeFilters[objectType]) {
+    typeFilters[objectType]();
   }
 
   // 쉼표로 구분된 값들을 배열로 변환
-  if (payload.name) {
-    payload.names = splitCsv(payload.name);
-  }
-  if (payload.ip_address) {
-    payload.ip_addresses = splitCsv(payload.ip_address);
-  }
-  if (payload.protocol) {
-    payload.protocols = splitCsv(payload.protocol);
-  }
-  if (payload.port) {
-    payload.ports = splitCsv(payload.port);
-  }
+  if (payload.name) payload.names = splitCsv(payload.name);
+  if (payload.ip_address) payload.ip_addresses = splitCsv(payload.ip_address);
+  if (payload.protocol) payload.protocols = splitCsv(payload.protocol);
+  if (payload.port) payload.ports = splitCsv(payload.port);
 
   // 필터가 모두 비어있는지 확인
-  const hasFilters = payload.name || payload.description || 
-                     (objectType === 'network-objects' && (payload.ip_address || payload.type)) ||
-                     (objectType === 'network-groups' && payload.members) ||
-                     (objectType === 'services' && (payload.protocol || payload.port)) ||
-                     (objectType === 'service-groups' && payload.members);
+  const hasFilters = Object.values(payload).some(
+    (val, idx) => idx > 1 && val !== null && val !== undefined && val !== ''
+  );
 
   if (!hasFilters && deviceIds.length > 0) {
-    payload.limit = 500; // 필터가 없으면 기본 제한
+    payload.limit = 500;
   }
 
   return payload;
 }
 
-// 데이터 로드 (멀티 장비 지원, 검색 필터 지원)
+/**
+ * 현재 탭의 그리드 및 메시지 컨테이너 가져오기
+ */
+function getCurrentTabElements() {
+  const config = TAB_CONFIG[currentTab];
+  if (!config) return { grid: null, gridEl: null, messageContainer: null };
+
+  return {
+    grid: grids[currentTab],
+    gridEl: document.getElementById(config.id),
+    messageContainer: document.getElementById(config.messageContainerId),
+    config
+  };
+}
+
+/**
+ * 모든 그리드 초기화 (장비 선택 해제 시)
+ */
+function clearAllGrids() {
+  Object.keys(TAB_CONFIG).forEach(tabName => {
+    const grid = grids[tabName];
+    if (grid && typeof grid.setGridOption === 'function') {
+      grid.setGridOption('rowData', []);
+      grid.setFilterModel(null);
+    }
+  });
+}
+
+/**
+ * 데이터 로드 (멀티 장비 지원, 검색 필터 지원)
+ */
 async function loadData(deviceIds, useSearch = false) {
-  // deviceIds를 배열로 변환 (단일 값이거나 문자열일 경우 대비)
+  // deviceIds를 배열로 변환
   let deviceIdArray = [];
   if (Array.isArray(deviceIds)) {
     deviceIdArray = deviceIds.map(id => parseInt(id, 10)).filter(Boolean);
   } else if (deviceIds) {
     deviceIdArray = [parseInt(deviceIds, 10)].filter(Boolean);
   }
-  
+
   // 검색 조건 저장
   if (deviceIdArray.length > 0) {
     const searchPayload = buildObjectSearchPayload(deviceIdArray, currentTab);
@@ -410,45 +310,17 @@ async function loadData(deviceIds, useSearch = false) {
     });
   }
 
-  // 메시지 컨테이너 ID 매핑
-  const messageContainerMap = {
-    'network-objects': 'network-objects-message-container',
-    'network-groups': 'network-groups-message-container',
-    'services': 'services-message-container',
-    'service-groups': 'service-groups-message-container'
-  };
-  
-  const currentMessageContainer = document.getElementById(messageContainerMap[currentTab]);
-  const currentGridElement = document.getElementById(`${currentTab}-grid`);
-  
+  const { grid, gridEl, messageContainer, config } = getCurrentTabElements();
+
   if (deviceIdArray.length === 0) {
-    // 선택된 장비가 없으면 빈 데이터 표시 및 필터 초기화
-    if (networkObjectsGrid) {
-      networkObjectsGrid.setGridOption('rowData', []);
-      networkObjectsGrid.setFilterModel(null);
-    }
-    if (networkGroupsGrid) {
-      networkGroupsGrid.setGridOption('rowData', []);
-      networkGroupsGrid.setFilterModel(null);
-    }
-    if (servicesGrid) {
-      servicesGrid.setGridOption('rowData', []);
-      servicesGrid.setFilterModel(null);
-    }
-    if (serviceGroupsGrid) {
-      serviceGroupsGrid.setGridOption('rowData', []);
-      serviceGroupsGrid.setFilterModel(null);
-    }
-    
-    // 메시지 표시 및 그리드 숨김
-    showEmptyMessage(currentMessageContainer, '장비를 선택하세요', 'fa-mouse-pointer');
-    if (currentGridElement) currentGridElement.style.display = 'none';
+    clearAllGrids();
+    showEmptyMessage(messageContainer, '장비를 선택하세요', 'fa-mouse-pointer');
+    if (gridEl) gridEl.style.display = 'none';
     return;
   }
-  
-  // 장비가 선택되면 메시지 숨기고 그리드 표시
-  hideEmptyMessage(currentMessageContainer);
-  if (currentGridElement) currentGridElement.style.display = 'block';
+
+  hideEmptyMessage(messageContainer);
+  if (gridEl) gridEl.style.display = 'block';
 
   try {
     let mergedData = [];
@@ -457,17 +329,7 @@ async function loadData(deviceIds, useSearch = false) {
       // 검색 API 사용
       const payload = buildObjectSearchPayload(deviceIdArray, currentTab);
       const response = await api.searchObjects(payload);
-      
-      // 응답에서 현재 탭에 해당하는 데이터 추출
-      if (currentTab === 'network-objects') {
-        mergedData = response.network_objects || [];
-      } else if (currentTab === 'network-groups') {
-        mergedData = response.network_groups || [];
-      } else if (currentTab === 'services') {
-        mergedData = response.services || [];
-      } else if (currentTab === 'service-groups') {
-        mergedData = response.service_groups || [];
-      }
+      mergedData = response[config.responseKey] || [];
 
       // device_name 추가
       mergedData = mergedData.map(item => {
@@ -480,89 +342,40 @@ async function loadData(deviceIds, useSearch = false) {
       const dataPromises = deviceIdArray.map(async (deviceId) => {
         const device = allDevices.find(d => d.id === deviceId);
         const deviceName = device ? device.name : `장비 ${deviceId}`;
-        
-        let data = [];
-        if (currentTab === 'network-objects') {
-          data = await api.getNetworkObjects(deviceId);
-        } else if (currentTab === 'network-groups') {
-          data = await api.getNetworkGroups(deviceId);
-        } else if (currentTab === 'services') {
-          data = await api.getServices(deviceId);
-        } else if (currentTab === 'service-groups') {
-          data = await api.getServiceGroups(deviceId);
-        }
-        
-        // 각 항목에 device_name 추가
-        return data.map(item => ({
-          ...item,
-          device_name: deviceName
-        }));
+        const data = await config.apiMethod(deviceId);
+        return data.map(item => ({ ...item, device_name: deviceName }));
       });
 
       const results = await Promise.all(dataPromises);
       mergedData = results.flat();
     }
 
-    // 해당 그리드에 데이터 설정
-    let currentGrid = null;
-    let gridElement = null;
-    
-    if (currentTab === 'network-objects' && networkObjectsGrid) {
-      currentGrid = networkObjectsGrid;
-      gridElement = document.getElementById('network-objects-grid');
-      currentGrid.setGridOption('rowData', mergedData);
-      
+    // 그리드에 데이터 설정
+    if (grid && gridEl) {
+      grid.setGridOption('rowData', mergedData);
+
       // 저장된 필터 복원
-      const savedFilters = loadGridFilters(`objects_${currentTab}`);
-      if (savedFilters && typeof currentGrid.setFilterModel === 'function') {
-        currentGrid.setFilterModel(savedFilters);
+      const savedFilters = loadGridFilters(config.filterKey);
+      if (savedFilters && typeof grid.setFilterModel === 'function') {
+        grid.setFilterModel(savedFilters);
       }
-    } else if (currentTab === 'network-groups' && networkGroupsGrid) {
-      currentGrid = networkGroupsGrid;
-      gridElement = document.getElementById('network-groups-grid');
-      currentGrid.setGridOption('rowData', mergedData);
-      
-      const savedFilters = loadGridFilters(`objects_${currentTab}`);
-      if (savedFilters && typeof currentGrid.setFilterModel === 'function') {
-        currentGrid.setFilterModel(savedFilters);
-      }
-    } else if (currentTab === 'services' && servicesGrid) {
-      currentGrid = servicesGrid;
-      gridElement = document.getElementById('services-grid');
-      currentGrid.setGridOption('rowData', mergedData);
-      
-      const savedFilters = loadGridFilters(`objects_${currentTab}`);
-      if (savedFilters && typeof currentGrid.setFilterModel === 'function') {
-        currentGrid.setFilterModel(savedFilters);
-      }
-    } else if (currentTab === 'service-groups' && serviceGroupsGrid) {
-      currentGrid = serviceGroupsGrid;
-      gridElement = document.getElementById('service-groups-grid');
-      currentGrid.setGridOption('rowData', mergedData);
-      
-      const savedFilters = loadGridFilters(`objects_${currentTab}`);
-      if (savedFilters && typeof currentGrid.setFilterModel === 'function') {
-        currentGrid.setFilterModel(savedFilters);
-      }
-    }
-    
-    // 컬럼 크기 조절 및 높이 조절
-    if (currentGrid && gridElement) {
+
+      // 컬럼 크기 조절 및 높이 조절
       setTimeout(() => {
-        if (typeof currentGrid.autoSizeAllColumns === 'function') {
-          currentGrid.autoSizeAllColumns({ skipHeader: false });
+        if (typeof grid.autoSizeAllColumns === 'function') {
+          grid.autoSizeAllColumns({ skipHeader: false });
         }
-        adjustGridHeight(gridElement);
+        adjustGridHeight(gridEl);
       }, 600);
     }
-    
+
     // 데이터가 없으면 메시지 표시
     if (mergedData.length === 0) {
-      showEmptyMessage(currentMessageContainer, '검색 결과가 없습니다', 'fa-search');
-      if (gridElement) gridElement.style.display = 'none';
+      showEmptyMessage(messageContainer, '검색 결과가 없습니다', 'fa-search');
+      if (gridEl) gridEl.style.display = 'none';
     } else {
-      hideEmptyMessage(currentMessageContainer);
-      if (gridElement) gridElement.style.display = 'block';
+      hideEmptyMessage(messageContainer);
+      if (gridEl) gridEl.style.display = 'block';
     }
   } catch (err) {
     console.error(`Failed to load ${currentTab}:`, err);
@@ -570,57 +383,47 @@ async function loadData(deviceIds, useSearch = false) {
   }
 }
 
-// 탭 전환
+// ==================== 탭 관리 ====================
+
+/**
+ * 탭 전환
+ */
 function switchTab(tabName) {
+  if (!TAB_CONFIG[tabName]) return;
+
   // 모든 탭 콘텐츠 숨기기
   document.querySelectorAll('.tab-content').forEach(content => {
     content.style.display = 'none';
   });
-  
+
   // 모든 탭 아이템 비활성화
   document.querySelectorAll('.tab-item').forEach(item => {
     item.classList.remove('is-active');
   });
-  
+
   // 선택된 탭 활성화
   const tabContent = document.getElementById(`tab-${tabName}`);
   const tabItem = document.querySelector(`.tab-item[data-tab="${tabName}"]`);
-  
-  if (tabContent) {
-    tabContent.style.display = 'block';
-  }
-  if (tabItem) {
-    tabItem.classList.add('is-active');
-  }
+
+  if (tabContent) tabContent.style.display = 'block';
+  if (tabItem) tabItem.classList.add('is-active');
 
   currentTab = tabName;
 
   // 탭 전환 시 그리드 높이 조절
   setTimeout(() => {
-    let gridElement = null;
-    if (tabName === 'network-objects') {
-      gridElement = document.getElementById('network-objects-grid');
-    } else if (tabName === 'network-groups') {
-      gridElement = document.getElementById('network-groups-grid');
-    } else if (tabName === 'services') {
-      gridElement = document.getElementById('services-grid');
-    } else if (tabName === 'service-groups') {
-      gridElement = document.getElementById('service-groups-grid');
-    }
-    
-    if (gridElement) {
-      adjustGridHeight(gridElement);
-    }
+    const { gridEl } = getCurrentTabElements();
+    if (gridEl) adjustGridHeight(gridEl);
   }, 100);
 
   // 저장된 상태 복원
   const savedState = loadSearchParams(`objects_${tabName}`);
   const select = document.getElementById('object-device-select');
-  
-  if (savedState && savedState.deviceIds && savedState.deviceIds.length > 0 && select && select.tomselect) {
+
+  if (savedState && savedState.deviceIds && savedState.deviceIds.length > 0 && select?.tomselect) {
     // 저장된 장비 선택 복원
     select.tomselect.setValue(savedState.deviceIds);
-    
+
     // 저장된 검색 필터 복원
     if (savedState.searchPayload) {
       const payload = savedState.searchPayload;
@@ -631,28 +434,34 @@ function switchTab(tabName) {
           el.value = value;
         }
       };
-      
+
       setValue('obj-f-name', payload.name);
       setValue('obj-f-description', payload.description);
-      
-      if (tabName === 'network-objects') {
-        setValue('obj-f-ip-address', payload.ip_address);
-        setValue('obj-f-type', payload.type);
-      } else if (tabName === 'network-groups') {
-        setValue('obj-f-members-network', payload.members);
-      } else if (tabName === 'services') {
-        setValue('obj-f-protocol', payload.protocol);
-        setValue('obj-f-port', payload.port);
-      } else if (tabName === 'service-groups') {
-        setValue('obj-f-members-service', payload.members);
+
+      // 탭별 필터 필드 복원
+      const filterRestoreMap = {
+        'network-objects': () => {
+          setValue('obj-f-ip-address', payload.ip_address);
+          setValue('obj-f-type', payload.type);
+        },
+        'network-groups': () => setValue('obj-f-members-network', payload.members),
+        'services': () => {
+          setValue('obj-f-protocol', payload.protocol);
+          setValue('obj-f-port', payload.port);
+        },
+        'service-groups': () => setValue('obj-f-members-service', payload.members)
+      };
+
+      if (filterRestoreMap[tabName]) {
+        filterRestoreMap[tabName]();
       }
     }
-    
+
     // 저장된 검색 모드로 데이터 로드
     loadData(savedState.deviceIds, savedState.useSearch || false);
   } else {
     // 저장된 상태가 없으면 현재 선택된 장비로 데이터 로드
-    if (select && select.tomselect) {
+    if (select?.tomselect) {
       const selectedDevices = select.tomselect.getValue();
       if (selectedDevices && selectedDevices.length > 0) {
         loadData(selectedDevices);
@@ -661,66 +470,47 @@ function switchTab(tabName) {
   }
 }
 
+// ==================== 엑셀 내보내기 ====================
+
 /**
  * 엑셀 내보내기
  */
 async function exportToExcel() {
-  const gridMap = {
-    'network-objects': { 
-      grid: networkObjectsGrid, 
-      name: 'network_objects',
-      columnDefs: networkObjectsColumns
-    },
-    'network-groups': { 
-      grid: networkGroupsGrid, 
-      name: 'network_groups',
-      columnDefs: networkGroupsColumns
-    },
-    'services': { 
-      grid: servicesGrid, 
-      name: 'services',
-      columnDefs: servicesColumns
-    },
-    'service-groups': { 
-      grid: serviceGroupsGrid, 
-      name: 'service_groups',
-      columnDefs: serviceGroupsColumns
-    }
-  };
-  
-  const current = gridMap[currentTab];
-  if (!current || !current.grid) {
+  const { grid, config } = getCurrentTabElements();
+
+  if (!grid || !config) {
     alert('데이터가 없습니다.');
     return;
   }
-  
+
   await exportGridToExcelClient(
-    current.grid,
-    current.columnDefs,
-    current.name,
+    grid,
+    config.columns,
+    config.exportName,
     '데이터가 없습니다.',
     { type: 'object' }
   );
 }
 
-// 초기화
+// ==================== 초기화 ====================
+
+/**
+ * 객체 페이지 초기화
+ */
 export async function initObjects() {
-  // currentTab을 초기 상태로 리셋
   currentTab = 'network-objects';
-  
+
   await initGrids();
-  await loadDevices(); // Tom-select 초기화
-  
-  // 첫 번째 탭 활성화 (switchTab 내부에서 저장된 상태 복원 및 데이터 로드 처리)
+  await loadDevices();
+
+  // 첫 번째 탭 활성화
   switchTab(currentTab);
 
   // 탭 클릭 이벤트
   document.querySelectorAll('.tab-item').forEach(item => {
     item.addEventListener('click', () => {
       const tabName = item.dataset.tab;
-      if (tabName) {
-        switchTab(tabName);
-      }
+      if (tabName) switchTab(tabName);
     });
   });
 
@@ -729,25 +519,20 @@ export async function initObjects() {
   if (btnResetFilters) {
     btnResetFilters.onclick = () => {
       // 모든 그리드의 필터 초기화
-      if (networkObjectsGrid && typeof networkObjectsGrid.setFilterModel === 'function') {
-        networkObjectsGrid.setFilterModel(null);
-      }
-      if (networkGroupsGrid && typeof networkGroupsGrid.setFilterModel === 'function') {
-        networkGroupsGrid.setFilterModel(null);
-      }
-      if (servicesGrid && typeof servicesGrid.setFilterModel === 'function') {
-        servicesGrid.setFilterModel(null);
-      }
-      if (serviceGroupsGrid && typeof serviceGroupsGrid.setFilterModel === 'function') {
-        serviceGroupsGrid.setFilterModel(null);
-      }
+      Object.values(grids).forEach(grid => {
+        if (grid && typeof grid.setFilterModel === 'function') {
+          grid.setFilterModel(null);
+        }
+      });
+
       // 상세 검색 필터 초기화
       document.querySelectorAll('#modal-objects-advanced-search input[id^="obj-f-"]').forEach(el => {
         el.value = '';
       });
+
       // 장비 선택은 유지하고 데이터만 다시 로드
       const select = document.getElementById('object-device-select');
-      if (select && select.tomselect) {
+      if (select?.tomselect) {
         const selectedDevices = select.tomselect.getValue();
         if (selectedDevices && selectedDevices.length > 0) {
           loadData(selectedDevices, false);
@@ -769,63 +554,58 @@ export async function initObjects() {
   const btnCancelModal = document.getElementById('cancel-objects-advanced-search');
   const btnApplySearch = document.getElementById('btn-objects-apply-search');
   const btnClearSearch = document.getElementById('btn-objects-clear-search');
-  
+
   // 탭별 필터 필드 표시/숨김 함수
   function updateFilterVisibility() {
     const filterFields = document.querySelectorAll('[data-filter-type]');
     filterFields.forEach(field => {
       const filterType = field.getAttribute('data-filter-type');
-      if (filterType === currentTab) {
-        field.style.display = 'block';
-      } else {
-        field.style.display = 'none';
-      }
+      field.style.display = filterType === currentTab ? 'block' : 'none';
     });
   }
-  
+
   const openModal = () => {
     updateFilterVisibility();
     if (modal) modal.classList.add('is-active');
   };
-  
+
   const closeModal = () => {
     if (modal) modal.classList.remove('is-active');
   };
-  
+
   if (btnAdvancedSearch) btnAdvancedSearch.onclick = openModal;
   if (btnCloseModal) btnCloseModal.onclick = closeModal;
   if (btnCancelModal) btnCancelModal.onclick = closeModal;
-  
+
   // 모달 배경 클릭으로 닫기
   if (modal) {
     const background = modal.querySelector('.modal-background');
     if (background) background.onclick = closeModal;
   }
-  
+
   // ESC 키로 모달 닫기
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && modal && modal.classList.contains('is-active')) {
+    if (e.key === 'Escape' && modal?.classList.contains('is-active')) {
       closeModal();
     }
   });
-  
+
   // 상세 검색 적용
   if (btnApplySearch) {
     btnApplySearch.onclick = () => {
       const select = document.getElementById('object-device-select');
-      if (select && select.tomselect) {
+      if (select?.tomselect) {
         const selectedDevices = select.tomselect.getValue();
         if (selectedDevices && selectedDevices.length > 0) {
-          loadData(selectedDevices, true); // 검색 모드로 로드
+          loadData(selectedDevices, true);
         } else {
           alert('장비를 선택하세요');
-          return;
         }
       }
       closeModal();
     };
   }
-  
+
   // 상세 검색 초기화
   if (btnClearSearch) {
     btnClearSearch.onclick = () => {
@@ -834,17 +614,16 @@ export async function initObjects() {
       });
     };
   }
-  
+
   // 탭 전환 시 필터 필드 업데이트
   const originalSwitchTab = switchTab;
   switchTab = function(tabName) {
     originalSwitchTab(tabName);
-    // 모달이 열려있으면 필터 필드 업데이트
-    if (modal && modal.classList.contains('is-active')) {
+    if (modal?.classList.contains('is-active')) {
       updateFilterVisibility();
     }
   };
-  
-  // 초기 필터 필드 표시 상태 설정 (네트워크 객체가 기본 탭)
+
+  // 초기 필터 필드 표시 상태 설정
   updateFilterVisibility();
 }
