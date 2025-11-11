@@ -1,45 +1,111 @@
-<div class="container is-fluid">
-  <h1 class="title is-5 mb-4">대시보드</h1>
+<div class="container is-fluid dashboard-container">
+  <div class="dashboard-header mb-5">
+    <h1 class="title is-4 mb-2">대시보드</h1>
+    <p class="subtitle is-6 has-text-grey">방화벽 정책 통합 관리 현황</p>
+  </div>
 
   <!-- 통계 카드 -->
-  <div class="columns is-multiline mb-4">
+  <div class="columns is-multiline mb-5">
     <div class="column is-3">
-      <div class="box">
-        <div class="heading">총 장비</div>
-        <div class="title is-3" id="stat-total-devices">-</div>
+      <div class="stat-card stat-card-devices">
+        <div class="stat-card-icon">
+          <i class="fas fa-server"></i>
+        </div>
+        <div class="stat-card-content">
+          <div class="stat-card-label">총 장비</div>
+          <div class="stat-card-value" id="stat-total-devices">-</div>
+          <div class="stat-card-subtitle" id="stat-active-devices-text"></div>
+        </div>
       </div>
     </div>
     <div class="column is-3">
-      <div class="box">
-        <div class="heading">총 정책</div>
-        <div class="title is-3" id="stat-total-policies">-</div>
+      <div class="stat-card stat-card-policies">
+        <div class="stat-card-icon">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="stat-card-content">
+          <div class="stat-card-label">총 정책</div>
+          <div class="stat-card-value" id="stat-total-policies">-</div>
+          <div class="stat-card-subtitle">
+            <span id="stat-active-policies-text"></span>
+            <span class="stat-card-divider">|</span>
+            <span id="stat-disabled-policies-text"></span>
+          </div>
+        </div>
       </div>
     </div>
     <div class="column is-3">
-      <div class="box">
-        <div class="heading">네트워크 객체</div>
-        <div class="title is-3" id="stat-network-objects">-</div>
+      <div class="stat-card stat-card-network">
+        <div class="stat-card-icon">
+          <i class="fas fa-network-wired"></i>
+        </div>
+        <div class="stat-card-content">
+          <div class="stat-card-label">네트워크 객체</div>
+          <div class="stat-card-value" id="stat-network-objects">-</div>
+          <div class="stat-card-subtitle">IP 주소 및 그룹</div>
+        </div>
       </div>
     </div>
     <div class="column is-3">
-      <div class="box">
-        <div class="heading">서비스 객체</div>
-        <div class="title is-3" id="stat-service-objects">-</div>
+      <div class="stat-card stat-card-service">
+        <div class="stat-card-icon">
+          <i class="fas fa-cogs"></i>
+        </div>
+        <div class="stat-card-content">
+          <div class="stat-card-label">서비스 객체</div>
+          <div class="stat-card-value" id="stat-service-objects">-</div>
+          <div class="stat-card-subtitle">포트 및 프로토콜</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 통계 요약 및 동기화 상태 -->
+  <div class="columns is-multiline mb-5">
+    <!-- 벤더별 통계 -->
+    <div class="column is-6">
+      <div class="dashboard-box">
+        <div class="dashboard-box-header">
+          <h2 class="dashboard-box-title">
+            벤더별 통계
+          </h2>
+        </div>
+        <div class="dashboard-box-body">
+          <div id="vendor-stats-container">
+            <div class="has-text-centered py-5">
+              <p class="has-text-grey">통계를 불러오는 중...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 동기화 상태 요약 -->
+    <div class="column is-6">
+      <div class="dashboard-box">
+        <div class="dashboard-box-header">
+          <h2 class="dashboard-box-title">
+            동기화 상태
+          </h2>
+        </div>
+        <div class="dashboard-box-body">
+          <div id="sync-status-summary"></div>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- 장비별 통계 -->
-  <div class="box mb-4">
-    <h2 class="subtitle is-5 mb-3">장비별 통계</h2>
-    <div id="device-stats-message-container"></div>
-    <div id="device-stats-grid" class="ag-theme-quartz"></div>
-  </div>
-
-  <!-- 정책 분석 결과 (추후 구현) -->
-  <div class="box">
-    <h2 class="subtitle is-5 mb-3">정책 분석 결과</h2>
-    <p class="has-text-grey">정책 분석 기능은 추후 구현 예정입니다.</p>
+  <div class="dashboard-box mb-5">
+    <div class="dashboard-box-header">
+      <h2 class="dashboard-box-title">
+        장비별 상세 통계
+      </h2>
+    </div>
+    <div class="dashboard-box-body">
+      <div id="device-stats-message-container"></div>
+      <div id="device-stats-grid" class="ag-theme-quartz"></div>
+    </div>
   </div>
 </div>
 

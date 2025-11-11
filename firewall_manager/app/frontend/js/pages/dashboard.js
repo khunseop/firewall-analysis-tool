@@ -66,16 +66,24 @@ async function loadStatistics() {
     updateElements({
       'stat-total-devices': formatNumber(stats.total_devices),
       'stat-total-policies': formatNumber(stats.total_policies),
-      'stat-active-policies': formatNumber(stats.total_active_policies),
-      'stat-disabled-policies': formatNumber(stats.total_disabled_policies),
       'stat-network-objects': formatNumber(stats.total_network_objects),
       'stat-service-objects': formatNumber(stats.total_services)
     });
 
-    // 활성 장비 수 표시 (이미 통계 카드에 표시되어 있으면 생략)
-    const activeDevicesEl = document.getElementById('stat-active-devices');
-    if (activeDevicesEl) {
-      activeDevicesEl.textContent = `활성: ${formatNumber(stats.active_devices)}`;
+    // 활성 장비 수 표시
+    const activeDevicesTextEl = document.getElementById('stat-active-devices-text');
+    if (activeDevicesTextEl) {
+      activeDevicesTextEl.textContent = `활성: ${formatNumber(stats.active_devices)}`;
+    }
+
+    // 정책 통계 서브타이틀 업데이트
+    const activePoliciesTextEl = document.getElementById('stat-active-policies-text');
+    const disabledPoliciesTextEl = document.getElementById('stat-disabled-policies-text');
+    if (activePoliciesTextEl) {
+      activePoliciesTextEl.textContent = `활성: ${formatNumber(stats.total_active_policies)}`;
+    }
+    if (disabledPoliciesTextEl) {
+      disabledPoliciesTextEl.textContent = `비활성: ${formatNumber(stats.total_disabled_policies)}`;
     }
 
     // 장비별 통계 데이터 변환
@@ -110,6 +118,9 @@ async function loadStatistics() {
 
     // 동기화 상태 요약 업데이트
     updateSyncStatusSummary(deviceStatsData);
+
+    // 벤더별 통계 업데이트
+    updateVendorStats(deviceStatsData);
   } catch (err) {
     console.error('Failed to load statistics:', err);
     setStatisticsError();
@@ -149,15 +160,14 @@ function getSyncStatusText(status) {
 }
 
 /**
- * 동기화 상태 요약 업데이트 (간소화: 통계만 표시)
+ * 동기화 상태 요약 업데이트 (개선된 카드 스타일)
  */
 function updateSyncStatusSummary(deviceStatsData) {
-  // 동기화 상태 요약 섹션이 있으면 간단한 통계만 표시
   const container = document.getElementById('sync-status-summary');
   if (!container) return;
 
   if (deviceStatsData.length === 0) {
-    container.innerHTML = '<div class="column"><p class="has-text-grey">등록된 장비가 없습니다.</p></div>';
+    container.innerHTML = '<div class="has-text-centered py-4"><p class="has-text-grey">등록된 장비가 없습니다.</p></div>';
     return;
   }
 
@@ -168,24 +178,50 @@ function updateSyncStatusSummary(deviceStatsData) {
     return acc;
   }, {});
 
-  const statusLabels = {
-    'success': '성공',
-    'in_progress': '진행중',
-    'pending': '대기중',
-    'failure': '실패',
-    'error': '오류',
-    'unknown': '알 수 없음'
+  const statusConfig = {
+    'success': { 
+      label: '성공', 
+      icon: 'fa-check-circle',
+      class: 'success'
+    },
+    'in_progress': { 
+      label: '진행중', 
+      icon: 'fa-sync-alt fa-spin',
+      class: 'in_progress'
+    },
+    'pending': { 
+      label: '대기중', 
+      icon: 'fa-clock',
+      class: 'pending'
+    },
+    'failure': { 
+      label: '실패', 
+      icon: 'fa-exclamation-circle',
+      class: 'failure'
+    },
+    'error': { 
+      label: '오류', 
+      icon: 'fa-times-circle',
+      class: 'error'
+    },
+    'unknown': { 
+      label: '알 수 없음', 
+      icon: 'fa-question-circle',
+      class: 'pending'
+    }
   };
 
   const statusHtml = Object.entries(statusCounts)
     .map(([status, count]) => {
-      const label = statusLabels[status] || status;
-      const color = getSyncStatusColor(status);
+      const config = statusConfig[status] || statusConfig['unknown'];
       return `
-        <div class="column is-2">
-          <div class="box has-text-centered">
-            <p class="heading">${label}</p>
-            <p class="title is-4"><span class="tag ${color}">${formatNumber(count)}</span></p>
+        <div class="column is-4">
+          <div class="sync-status-card ${config.class}">
+            <div class="sync-status-icon">
+              <i class="fas ${config.icon}"></i>
+            </div>
+            <div class="sync-status-label">${config.label}</div>
+            <div class="sync-status-value">${formatNumber(count)}</div>
           </div>
         </div>
       `;
@@ -196,189 +232,115 @@ function updateSyncStatusSummary(deviceStatsData) {
     <div class="columns is-multiline">
       ${statusHtml}
     </div>
-    <div class="mt-3">
+    <div class="mt-4 has-text-centered">
       <p class="is-size-7 has-text-grey">
-        총 ${formatNumber(deviceStatsData.length)}개 장비 | 
-        상세 정보는 아래 장비별 통계 그리드를 참조하세요.
-      </p>
-    </div>
-  `;
-}
-
-// ==================== 분석 결과 관련 함수 ====================
-
-/**
- * 분석 결과가 있는 경우의 카드 HTML 생성
- */
-function createAnalysisResultCard(device, result) {
-  const resultData = result.result_data;
-  const upperPolicies = resultData.filter(r => r.type === 'UPPER');
-  const lowerPolicies = resultData.filter(r => r.type === 'LOWER');
-  const duplicateSets = upperPolicies.length;
-  const totalAffected = resultData.length;
-  const analysisTime = formatDateTime(result.created_at);
-
-  return `
-    <div class="box analysis-result-card mb-3">
-      <div class="level mb-3">
-        <div class="level-left">
-          <div>
-            <strong class="is-size-5">${device.name}</strong>
-            <p class="is-size-7 has-text-grey mt-1">${device.vendor} | ${device.ip_address}</p>
-          </div>
-        </div>
-        <div class="level-right">
-          <button class="button is-small is-primary" onclick="viewAnalysisDetails(${device.id})">
-            <span>상세 보기</span>
-          </button>
-        </div>
-      </div>
-      <div class="columns is-multiline">
-        <div class="column is-3">
-          <div class="has-text-centered">
-            <p class="heading">중복 세트</p>
-            <p class="title is-4 has-text-danger">${formatNumber(duplicateSets)}</p>
-          </div>
-        </div>
-        <div class="column is-3">
-          <div class="has-text-centered">
-            <p class="heading">영향받는 정책</p>
-            <p class="title is-4">${formatNumber(totalAffected)}</p>
-          </div>
-        </div>
-        <div class="column is-3">
-          <div class="has-text-centered">
-            <p class="heading">상위 정책</p>
-            <p class="title is-4">${formatNumber(upperPolicies.length)}</p>
-          </div>
-        </div>
-        <div class="column is-3">
-          <div class="has-text-centered">
-            <p class="heading">하위 정책</p>
-            <p class="title is-4">${formatNumber(lowerPolicies.length)}</p>
-          </div>
-        </div>
-      </div>
-      <div class="mt-3 pt-3" style="border-top: 1px solid #e5e7eb;">
-        <p class="is-size-7 has-text-grey">
-          분석 시간: ${analysisTime}
-        </p>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * 분석 결과가 없는 경우의 카드 HTML 생성
- */
-function createNoAnalysisResultCard(device) {
-  return `
-    <div class="box analysis-result-card mb-3">
-      <div class="level">
-        <div class="level-left">
-          <div>
-            <strong class="is-size-5">${device.name}</strong>
-            <p class="is-size-7 has-text-grey mt-1">${device.vendor} | ${device.ip_address}</p>
-          </div>
-        </div>
-        <div class="level-right">
-          <button class="button is-small is-primary" onclick="startAnalysis(${device.id})">
-            <span>분석 시작</span>
-          </button>
-        </div>
-      </div>
-      <p class="has-text-grey has-text-centered py-3">
-        아직 분석 결과가 없습니다. 분석을 시작해주세요.
+        총 ${formatNumber(deviceStatsData.length)}개 장비
       </p>
     </div>
   `;
 }
 
 /**
- * 분석 결과 오류 카드 HTML 생성
+ * 벤더별 통계 업데이트
+ * 
+ * ApexCharts 사용 예제 (로컬 파일 추가 후 활성화):
+ * 
+ * if (typeof ApexCharts !== 'undefined') {
+ *   // ApexCharts로 파이 차트 또는 바 차트 생성
+ *   const chart = new ApexCharts(document.querySelector("#vendor-chart"), {
+ *     series: vendorList.map(v => v.deviceCount),
+ *     chart: { type: 'donut', height: 300 },
+ *     labels: vendorList.map(v => vendorLabelMap[v.vendor] || v.vendor),
+ *     // ... 기타 옵션
+ *   });
+ *   chart.render();
+ * }
  */
-function createAnalysisErrorCard(device) {
-  return `
-    <div class="box analysis-result-card mb-3">
-      <div class="level">
-        <div class="level-left">
-          <div>
-            <strong class="is-size-5">${device.name}</strong>
-            <p class="is-size-7 has-text-grey mt-1">${device.vendor} | ${device.ip_address}</p>
-          </div>
-        </div>
-      </div>
-      <p class="has-text-danger has-text-centered py-3">
-        분석 결과를 불러오는 중 오류가 발생했습니다.
-      </p>
-    </div>
-  `;
-}
-
-/**
- * 장비의 분석 결과를 수집
- */
-async function collectAnalysisResult(device) {
-  try {
-    const result = await api.getLatestAnalysisResult(device.id, 'redundancy');
-    
-    if (result && result.result_data) {
-      return { device, result, type: 'success' };
-    }
-    return { device, result: null, type: 'no_result' };
-  } catch (err) {
-    if (err.status === 404) {
-      return { device, result: null, type: 'no_result' };
-    }
-    console.error(`Failed to load analysis result for device ${device.id}:`, err);
-    return { device, result: null, type: 'error' };
-  }
-}
-
-/**
- * 정책 분석 결과 로드
- */
-async function loadAnalysisResults() {
-  const container = document.getElementById('analysis-results-container');
+function updateVendorStats(deviceStatsData) {
+  const container = document.getElementById('vendor-stats-container');
   if (!container) return;
 
-  try {
-    const devices = await api.listDevices();
-    
-    if (devices.length === 0) {
-      container.innerHTML = '<div class="has-text-centered py-5"><p class="has-text-grey">등록된 장비가 없습니다.</p></div>';
-      return;
-    }
-
-    // 모든 장비의 분석 결과를 병렬로 수집
-    const results = await Promise.all(
-      devices.map(device => collectAnalysisResult(device))
-    );
-
-    // 결과에 따라 HTML 생성
-    const resultsHtml = results.map(({ device, result, type }) => {
-      switch (type) {
-        case 'success':
-          return createAnalysisResultCard(device, result);
-        case 'no_result':
-          return createNoAnalysisResultCard(device);
-        case 'error':
-          return createAnalysisErrorCard(device);
-        default:
-          return '';
-      }
-    }).filter(html => html);
-
-    if (resultsHtml.length === 0) {
-      container.innerHTML = '<div class="has-text-centered py-5"><p class="has-text-grey">분석 결과가 없습니다.</p></div>';
-    } else {
-      container.innerHTML = resultsHtml.join('');
-    }
-  } catch (err) {
-    console.error('Failed to load analysis results:', err);
-    container.innerHTML = '<div class="has-text-centered py-5"><p class="has-text-danger">분석 결과를 불러오는 중 오류가 발생했습니다.</p></div>';
+  if (deviceStatsData.length === 0) {
+    container.innerHTML = '<div class="has-text-centered py-4"><p class="has-text-grey">장비 데이터가 없습니다.</p></div>';
+    return;
   }
+
+  // 벤더별 통계 집계
+  const vendorStats = deviceStatsData.reduce((acc, device) => {
+    const vendor = device.vendor || 'Unknown';
+    if (!acc[vendor]) {
+      acc[vendor] = {
+        vendor: vendor,
+        deviceCount: 0,
+        totalPolicies: 0,
+        totalActivePolicies: 0,
+        totalNetworkObjects: 0,
+        totalServices: 0
+      };
+    }
+    acc[vendor].deviceCount += 1;
+    acc[vendor].totalPolicies += device.policies || 0;
+    acc[vendor].totalActivePolicies += device.active_policies || 0;
+    acc[vendor].totalNetworkObjects += device.network_objects || 0;
+    acc[vendor].totalServices += device.services || 0;
+    return acc;
+  }, {});
+
+  const vendorList = Object.values(vendorStats).sort((a, b) => b.deviceCount - a.deviceCount);
+
+  const vendorLabelMap = {
+    'paloalto': 'Palo Alto',
+    'ngf': 'SECUI NGF',
+    'mf2': 'SECUI MF2',
+    'mock': 'Mock'
+  };
+
+  const vendorHtml = vendorList.map(vendor => {
+    const vendorLabel = vendorLabelMap[vendor.vendor.toLowerCase()] || vendor.vendor;
+
+    return `
+      <div class="vendor-stat-card mb-3">
+        <div class="level mb-2">
+          <div class="level-left">
+            <div>
+              <strong class="is-size-5">${vendorLabel}</strong>
+              <p class="is-size-7 has-text-grey mt-1">${formatNumber(vendor.deviceCount)}개 장비</p>
+            </div>
+          </div>
+        </div>
+        <div class="columns is-multiline">
+          <div class="column is-6">
+            <div class="vendor-stat-item">
+              <span class="vendor-stat-label">정책</span>
+              <span class="vendor-stat-value">${formatNumber(vendor.totalPolicies)}</span>
+            </div>
+          </div>
+          <div class="column is-6">
+            <div class="vendor-stat-item">
+              <span class="vendor-stat-label">활성 정책</span>
+              <span class="vendor-stat-value">${formatNumber(vendor.totalActivePolicies)}</span>
+            </div>
+          </div>
+          <div class="column is-6">
+            <div class="vendor-stat-item">
+              <span class="vendor-stat-label">네트워크 객체</span>
+              <span class="vendor-stat-value">${formatNumber(vendor.totalNetworkObjects)}</span>
+            </div>
+          </div>
+          <div class="column is-6">
+            <div class="vendor-stat-item">
+              <span class="vendor-stat-label">서비스 객체</span>
+              <span class="vendor-stat-value">${formatNumber(vendor.totalServices)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.innerHTML = vendorHtml;
 }
+
 
 // ==================== 그리드 초기화 함수 ====================
 
@@ -526,39 +488,9 @@ function setupEventListeners() {
   if (refreshSyncStatusBtn) {
     refreshSyncStatusBtn.addEventListener('click', loadStatistics);
   }
-
-  const refreshAnalysisBtn = document.getElementById('refresh-analysis-results');
-  if (refreshAnalysisBtn) {
-    refreshAnalysisBtn.addEventListener('click', loadAnalysisResults);
-  }
 }
 
 // ==================== 전역 함수 (HTML에서 호출) ====================
-
-/**
- * 분석 시작 함수 (전역으로 노출)
- */
-window.startAnalysis = async function(deviceId) {
-  if (!confirm('중복 정책 분석을 시작하시겠습니까?')) {
-    return;
-  }
-
-  try {
-    await api.startAnalysis(deviceId);
-    alert('분석이 시작되었습니다. 완료되면 결과가 표시됩니다.');
-    // 잠시 후 결과 새로고침
-    setTimeout(loadAnalysisResults, 2000);
-  } catch (err) {
-    alert(`분석 시작 실패: ${err.message}`);
-  }
-};
-
-/**
- * 분석 상세 보기 함수 (전역으로 노출)
- */
-window.viewAnalysisDetails = function(deviceId) {
-  navigate(`/analysis?device_id=${deviceId}`);
-};
 
 // ==================== WebSocket 관련 함수 ====================
 
@@ -625,11 +557,12 @@ function connectDashboardWebSocket() {
                 }
               }
               
-              // 동기화 상태 요약도 업데이트
+              // 동기화 상태 요약 및 벤더별 통계도 업데이트
               const deviceIndex = currentDeviceStatsData.findIndex(d => d.id === message.device_id);
               if (deviceIndex !== -1) {
                 currentDeviceStatsData[deviceIndex] = updatedData;
                 updateSyncStatusSummary(currentDeviceStatsData);
+                updateVendorStats(currentDeviceStatsData);
               }
             } else {
               // 그리드에 행이 없으면 전체 데이터 다시 로드 (초기 로드 전에 메시지가 온 경우)
@@ -641,7 +574,14 @@ function connectDashboardWebSocket() {
           // 완료 상태일 때만 전체 통계 다시 로드 (통계 수치 업데이트)
           // 진행 중일 때는 그리드 업데이트만으로 충분
           if (message.status === 'success' || message.status === 'failure') {
+            // 전체 통계 다시 로드 (벤더별 통계도 함께 업데이트됨)
             loadStatistics();
+          } else {
+            // 진행 중일 때는 벤더별 통계만 업데이트
+            const deviceIndex = currentDeviceStatsData.findIndex(d => d.id === message.device_id);
+            if (deviceIndex !== -1) {
+              updateVendorStats(currentDeviceStatsData);
+            }
           }
         }
       } catch (e) {
@@ -701,10 +641,7 @@ export async function initDashboard() {
     console.warn('WebSocket 연결 실패, 폴링 모드로 진행:', e);
   }
   
-  await Promise.all([
-    loadStatistics(),
-    loadAnalysisResults()
-  ]);
+  await loadStatistics();
 }
 
 /**
