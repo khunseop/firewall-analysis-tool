@@ -572,23 +572,25 @@ async function loadData(deviceIds, useSearch = false) {
 
 // 탭 전환
 function switchTab(tabName) {
-  // 탭 메뉴 활성화 상태 변경
-  document.querySelectorAll('.tabs li').forEach(li => {
-    if (li.dataset.tab === tabName) {
-      li.classList.add('is-active');
-    } else {
-      li.classList.remove('is-active');
-    }
+  // 모든 탭 콘텐츠 숨기기
+  document.querySelectorAll('.tab-content').forEach(content => {
+    content.style.display = 'none';
   });
-
-  // 탭 컨텐츠 표시/숨김
-  document.querySelectorAll('.tab-pane').forEach(pane => {
-    pane.style.display = 'none';
+  
+  // 모든 탭 아이템 비활성화
+  document.querySelectorAll('.tab-item').forEach(item => {
+    item.classList.remove('is-active');
   });
-
-  const activePane = document.getElementById(`${tabName}-content`);
-  if (activePane) {
-    activePane.style.display = 'block';
+  
+  // 선택된 탭 활성화
+  const tabContent = document.getElementById(`tab-${tabName}`);
+  const tabItem = document.querySelector(`.tab-item[data-tab="${tabName}"]`);
+  
+  if (tabContent) {
+    tabContent.style.display = 'block';
+  }
+  if (tabItem) {
+    tabItem.classList.add('is-active');
   }
 
   currentTab = tabName;
@@ -709,51 +711,13 @@ export async function initObjects() {
   await initGrids();
   await loadDevices(); // Tom-select 초기화
   
-  // 저장된 상태 복원
-  const savedState = loadSearchParams(`objects_${currentTab}`);
-  const select = document.getElementById('object-device-select');
-  
-  if (savedState && savedState.deviceIds && savedState.deviceIds.length > 0 && select && select.tomselect) {
-    // 저장된 장비 선택 복원
-    select.tomselect.setValue(savedState.deviceIds);
-    
-    // 저장된 검색 필터 복원
-    if (savedState.searchPayload) {
-      const payload = savedState.searchPayload;
-      const g = (id) => document.getElementById(id);
-      const setValue = (id, value) => {
-        const el = g(id);
-        if (el && value !== null && value !== '') {
-          el.value = value;
-        }
-      };
-      
-      setValue('obj-f-name', payload.name);
-      setValue('obj-f-description', payload.description);
-      
-      if (currentTab === 'network-objects') {
-        setValue('obj-f-ip-address', payload.ip_address);
-        setValue('obj-f-type', payload.type);
-      } else if (currentTab === 'network-groups') {
-        setValue('obj-f-members-network', payload.members);
-      } else if (currentTab === 'services') {
-        setValue('obj-f-protocol', payload.protocol);
-        setValue('obj-f-port', payload.port);
-      } else if (currentTab === 'service-groups') {
-        setValue('obj-f-members-service', payload.members);
-      }
-    }
-    
-    // 저장된 검색 모드로 데이터 로드
-    loadData(savedState.deviceIds, savedState.useSearch || false);
-  } else {
-    loadData([]); // 최초 로딩 시 그리드 클리어
-  }
+  // 첫 번째 탭 활성화 (switchTab 내부에서 저장된 상태 복원 및 데이터 로드 처리)
+  switchTab(currentTab);
 
   // 탭 클릭 이벤트
-  document.querySelectorAll('.tabs li').forEach(li => {
-    li.addEventListener('click', () => {
-      const tabName = li.dataset.tab;
+  document.querySelectorAll('.tab-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const tabName = item.dataset.tab;
       if (tabName) {
         switchTab(tabName);
       }
