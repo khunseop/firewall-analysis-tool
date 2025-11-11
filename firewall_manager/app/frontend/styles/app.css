@@ -365,3 +365,57 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   opacity: 0;
   transform: translateY(-100%);
 }
+
+/* Analysis Page Improvements */
+#default-analysis-ui .field {
+  margin-bottom: 0.75rem;
+}
+
+#default-analysis-ui .label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin-bottom: 0.5rem;
+}
+
+#impact-analysis-ui {
+  margin-top: 1rem;
+}
+
+#impact-analysis-ui hr {
+  background-color: var(--color-border);
+  height: 1px;
+  border: none;
+  margin: 1rem 0;
+}
+
+#impact-analysis-ui .field {
+  margin-bottom: 0.75rem;
+}
+
+#impact-analysis-ui .label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin-bottom: 0.5rem;
+}
+
+/* Responsive improvements for analysis page */
+@media screen and (max-width: 768px) {
+  #default-analysis-ui .columns,
+  #impact-analysis-ui .columns {
+    margin-left: 0;
+    margin-right: 0;
+  }
+  
+  #default-analysis-ui .column,
+  #impact-analysis-ui .column {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  #btn-start-analysis,
+  #btn-start-impact-analysis {
+    width: 100%;
+  }
+}

@@ -15,6 +15,7 @@ import { saveSearchParams, loadSearchParams } from '../utils/storage.js';
 
 let resultGridApi = null;
 let deviceSelect = null;
+let analysisTypeSelect = null; // 분석 종류 TomSelect 인스턴스
 let statusInterval = null;
 let allDevices = []; // 장비 목록 저장
 let validObjectNames = new Set(); // 유효한 객체 이름 저장
@@ -133,8 +134,7 @@ async function loadDevices() {
                     
                     await loadLatestResult();
                     // 영향도 분석이 선택되어 있으면 정책 목록 로드
-                    const analysisTypeSelect = document.getElementById('analysis-type-select');
-                    if (analysisTypeSelect && analysisTypeSelect.value === 'impact') {
+                    if (analysisTypeSelect && analysisTypeSelect.getValue() === 'impact') {
                         await loadPoliciesForImpact(); // impactAnalysis.js에서 import
                     }
                 }
@@ -364,8 +364,7 @@ async function startAnalysis() {
         return;
     }
     
-    const analysisTypeSelect = document.getElementById('analysis-type-select');
-    const analysisType = analysisTypeSelect ? analysisTypeSelect.value : 'redundancy';
+    const analysisType = analysisTypeSelect ? analysisTypeSelect.getValue() : 'redundancy';
     
     let params = {};
     if (analysisType === 'unused') {
@@ -419,8 +418,7 @@ async function loadLatestResult() {
         return;
     }
     
-    const analysisTypeSelect = document.getElementById('analysis-type-select');
-    const analysisType = analysisTypeSelect ? analysisTypeSelect.value : 'redundancy';
+    const analysisType = analysisTypeSelect ? analysisTypeSelect.getValue() : 'redundancy';
 
     // 새 장비를 선택했으므로 이전 상태와 결과를 초기화
     resetStatusUI();
@@ -452,8 +450,7 @@ async function loadLatestResult() {
 }
 
 async function exportToExcel() {
-    const analysisTypeSelect = document.getElementById('analysis-type-select');
-    const analysisType = analysisTypeSelect ? analysisTypeSelect.value : 'redundancy';
+    const analysisType = analysisTypeSelect ? analysisTypeSelect.getValue() : 'redundancy';
     const columnDefs = getColumnDefsWithRenderer(analysisType);
     await exportGridToExcelClient(
         resultGridApi,
@@ -471,8 +468,7 @@ async function generateScript() {
         return;
     }
     
-    const analysisTypeSelect = document.getElementById('analysis-type-select');
-    const analysisType = analysisTypeSelect ? analysisTypeSelect.value : 'risky_ports';
+    const analysisType = analysisTypeSelect ? analysisTypeSelect.getValue() : 'risky_ports';
     
     if (analysisType !== 'risky_ports') {
         alert('생성 스크립트는 위험 포트 분석에서만 사용할 수 있습니다.');
@@ -515,45 +511,59 @@ async function generateScript() {
 }
 
 function setupAnalysisTypeSelect() {
-    const analysisTypeSelect = document.getElementById('analysis-type-select');
+    const analysisTypeSelectEl = document.getElementById('analysis-type-select');
     const paramsColumn = document.getElementById('analysis-params-column');
     const paramsLabel = document.getElementById('analysis-params-label');
     const paramsInput = document.getElementById('analysis-params-input');
     const impactUI = document.getElementById('impact-analysis-ui');
+    const defaultUI = document.getElementById('default-analysis-ui');
     const startButton = document.getElementById('btn-start-analysis');
     
-    if (!analysisTypeSelect || !paramsColumn) return;
+    if (!analysisTypeSelectEl || !paramsColumn) return;
     
-    analysisTypeSelect.addEventListener('change', async () => {
-        const analysisType = analysisTypeSelect.value;
-        
-        if (analysisType === 'unused') {
-            paramsColumn.style.display = 'block';
-            impactUI.style.display = 'none';
-            if (startButton) startButton.style.display = 'inline-block';
-            paramsLabel.textContent = '기준일수';
-            paramsInput.type = 'number';
-            paramsInput.placeholder = '90';
-            paramsInput.value = '90';
-            paramsInput.min = '1';
-        } else if (analysisType === 'impact') {
-            paramsColumn.style.display = 'none';
-            impactUI.style.display = 'block';
-            if (startButton) startButton.style.display = 'none'; // 첫 번째 박스의 분석하기 버튼 숨김
-            // 장비가 선택되어 있으면 정책 목록 로드
-            const deviceId = deviceSelect ? deviceSelect.getValue() : null;
-            if (deviceId) {
-                await loadPoliciesForImpact();
-            }
-        } else {
-            paramsColumn.style.display = 'none';
-            impactUI.style.display = 'none';
-            if (startButton) startButton.style.display = 'inline-block';
+    // TomSelect로 초기화
+    if (window.TomSelect && analysisTypeSelectEl) {
+        if (analysisTypeSelectEl.tomselect) {
+            try { analysisTypeSelectEl.tomselect.destroy(); } catch (e) {}
         }
-        
-        // 분석 타입 변경 시 최신 결과 다시 로드
-        loadLatestResult();
-    });
+        analysisTypeSelect = new window.TomSelect(analysisTypeSelectEl, {
+            placeholder: '분석 종류 선택',
+            maxOptions: null,
+            onChange: async (value) => {
+                const analysisType = value;
+                
+                if (analysisType === 'unused') {
+                    paramsColumn.style.display = 'block';
+                    impactUI.style.display = 'none';
+                    if (startButton) startButton.style.display = 'inline-flex';
+                    if (defaultUI) defaultUI.style.display = 'block';
+                    paramsLabel.textContent = '기준일수';
+                    paramsInput.type = 'number';
+                    paramsInput.placeholder = '90';
+                    paramsInput.value = '90';
+                    paramsInput.min = '1';
+                } else if (analysisType === 'impact') {
+                    paramsColumn.style.display = 'none';
+                    impactUI.style.display = 'block';
+                    if (startButton) startButton.style.display = 'none'; // 첫 번째 박스의 분석하기 버튼 숨김
+                    if (defaultUI) defaultUI.style.display = 'block'; // 기본 UI는 유지 (장비 선택용)
+                    // 장비가 선택되어 있으면 정책 목록 로드
+                    const deviceId = deviceSelect ? deviceSelect.getValue() : null;
+                    if (deviceId) {
+                        await loadPoliciesForImpact();
+                    }
+                } else {
+                    paramsColumn.style.display = 'none';
+                    impactUI.style.display = 'none';
+                    if (startButton) startButton.style.display = 'inline-flex';
+                    if (defaultUI) defaultUI.style.display = 'block';
+                }
+                
+                // 분석 타입 변경 시 최신 결과 다시 로드
+                loadLatestResult();
+            }
+        });
+    }
 }
 
 export async function initAnalysis() {
@@ -566,8 +576,7 @@ export async function initAnalysis() {
     setupAnalysisTypeSelect();
 
     // 초기 그리드 생성 (빈 상태)
-    const analysisTypeSelect = document.getElementById('analysis-type-select');
-    const analysisType = analysisTypeSelect ? analysisTypeSelect.value : 'redundancy';
+    const analysisType = analysisTypeSelect ? analysisTypeSelect.getValue() : 'redundancy';
     const columnDefs = getColumnDefsWithRenderer(analysisType);
     createGrid(columnDefs, []);
 

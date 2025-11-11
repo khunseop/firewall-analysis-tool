@@ -3,20 +3,21 @@
 
   <!-- 장비 선택 및 분석 설정 -->
   <div class="box mb-4">
-    <div class="columns is-vcentered">
-      <div class="column is-4">
-        <div class="field">
-          <label class="label">장비</label>
-          <div class="control">
-            <select id="analysis-device-select"></select>
+    <!-- 기본 분석 설정 -->
+    <div id="default-analysis-ui">
+      <div class="columns is-vcentered is-mobile">
+        <div class="column is-12-mobile is-5-tablet is-4-desktop">
+          <div class="field">
+            <label class="label">장비</label>
+            <div class="control">
+              <select id="analysis-device-select"></select>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="column is-3">
-        <div class="field">
-          <label class="label">분석 종류</label>
-          <div class="control">
-            <div class="select is-fullwidth">
+        <div class="column is-12-mobile is-4-tablet is-3-desktop">
+          <div class="field">
+            <label class="label">분석 종류</label>
+            <div class="control">
               <select id="analysis-type-select">
                 <option value="redundancy" selected>중복 정책 분석</option>
                 <option value="unused">미사용 정책 분석</option>
@@ -27,21 +28,21 @@
             </div>
           </div>
         </div>
-      </div>
-      <!-- 미사용 정책 분석 파라미터 입력 -->
-      <div class="column is-2" id="analysis-params-column" style="display: none;">
-        <div class="field">
-          <label class="label" id="analysis-params-label">기준일수</label>
-          <div class="control">
-            <input class="input is-small" type="number" id="analysis-params-input" placeholder="90" value="90" min="1">
+        <!-- 미사용 정책 분석 파라미터 입력 -->
+        <div class="column is-12-mobile is-3-tablet is-2-desktop" id="analysis-params-column" style="display: none;">
+          <div class="field">
+            <label class="label" id="analysis-params-label">기준일수</label>
+            <div class="control">
+              <input class="input is-small" type="number" id="analysis-params-input" placeholder="90" value="90" min="1">
+            </div>
           </div>
         </div>
-      </div>
-      <div class="column">
-        <div class="field">
-          <label class="label">&nbsp;</label>
-          <div class="control">
-            <button class="button is-primary is-small" id="btn-start-analysis">분석하기</button>
+        <div class="column is-12-mobile is-12-tablet is-3-desktop">
+          <div class="field">
+            <label class="label is-hidden-mobile">&nbsp;</label>
+            <div class="control">
+              <button class="button is-primary is-small is-fullwidth-mobile" id="btn-start-analysis">분석하기</button>
+            </div>
           </div>
         </div>
       </div>
@@ -49,8 +50,9 @@
 
     <!-- 영향도 분석 UI -->
     <div id="impact-analysis-ui" style="display: none;">
-      <div class="columns is-vcentered mt-4">
-        <div class="column is-4">
+      <hr class="my-4">
+      <div class="columns is-vcentered is-mobile">
+        <div class="column is-12-mobile is-6-tablet is-4-desktop">
           <div class="field">
             <label class="label">대상 정책</label>
             <div class="control">
@@ -58,7 +60,7 @@
             </div>
           </div>
         </div>
-        <div class="column is-4">
+        <div class="column is-12-mobile is-6-tablet is-4-desktop">
           <div class="field">
             <label class="label">목적지 정책</label>
             <div class="control">
@@ -66,7 +68,7 @@
             </div>
           </div>
         </div>
-        <div class="column is-2">
+        <div class="column is-12-mobile is-6-tablet is-2-desktop">
           <div class="field">
             <label class="label">이동 방향</label>
             <div class="control">
@@ -79,11 +81,11 @@
             </div>
           </div>
         </div>
-        <div class="column is-2">
+        <div class="column is-12-mobile is-6-tablet is-2-desktop">
           <div class="field">
-            <label class="label">&nbsp;</label>
+            <label class="label is-hidden-mobile">&nbsp;</label>
             <div class="control">
-              <button class="button is-primary is-small" id="btn-start-impact-analysis">분석하기</button>
+              <button class="button is-primary is-small is-fullwidth-mobile" id="btn-start-impact-analysis">분석하기</button>
             </div>
           </div>
         </div>
