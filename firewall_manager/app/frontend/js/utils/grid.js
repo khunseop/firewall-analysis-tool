@@ -18,6 +18,13 @@ export function adjustGridHeight(gridDiv, minHeight = 200) {
   let bodyHeight = 0;
   
   if (bodyViewport) {
+    // 필터가 열려있을 수 있으므로 잠시 스크롤을 허용하여 정확한 높이 측정
+    const originalOverflow = bodyViewport.style.overflowY;
+    bodyViewport.style.overflowY = 'auto';
+    
+    // 강제 리플로우
+    void bodyViewport.offsetHeight;
+    
     bodyHeight = bodyViewport.scrollHeight;
     
     // bodyViewport의 padding/margin도 고려
@@ -25,6 +32,9 @@ export function adjustGridHeight(gridDiv, minHeight = 200) {
     const paddingTop = parseInt(bodyViewportStyle.paddingTop) || 0;
     const paddingBottom = parseInt(bodyViewportStyle.paddingBottom) || 0;
     bodyHeight += paddingTop + paddingBottom;
+    
+    // 원래 상태로 복원
+    bodyViewport.style.overflowY = originalOverflow || 'hidden';
   } else {
     // fallback: 행 요소들의 높이 합계
     const rowElements = gridDiv.querySelectorAll('.ag-row:not(.ag-header-row)');
@@ -35,8 +45,11 @@ export function adjustGridHeight(gridDiv, minHeight = 200) {
   
   // ag-center-cols-container의 높이도 확인 (더 정확한 측정)
   const centerColsContainer = gridDiv.querySelector('.ag-center-cols-container');
-  if (centerColsContainer && centerColsContainer.offsetHeight > bodyHeight) {
-    bodyHeight = centerColsContainer.offsetHeight;
+  if (centerColsContainer) {
+    const containerHeight = centerColsContainer.offsetHeight;
+    if (containerHeight > bodyHeight) {
+      bodyHeight = containerHeight;
+    }
   }
   
   // 높이 계산: 헤더 + 본문 높이 + 페이지네이션
@@ -59,17 +72,35 @@ export function adjustGridHeight(gridDiv, minHeight = 200) {
  * @param {number} delay - 지연 시간 (ms, 기본값: 200)
  */
 export function createGridEventHandlers(gridDiv, gridApi, delay = 200) {
-  const adjust = () => {
-    setTimeout(() => {
-      if (gridApi && typeof gridApi.autoSizeAllColumns === 'function') {
-        gridApi.autoSizeAllColumns({ skipHeader: false });
+  let adjustTimeout = null;
+  
+  const adjust = (api = gridApi) => {
+    // 이전 타이머 취소
+    if (adjustTimeout) {
+      clearTimeout(adjustTimeout);
+    }
+    
+    adjustTimeout = setTimeout(() => {
+      if (api && typeof api.autoSizeAllColumns === 'function') {
+        api.autoSizeAllColumns({ skipHeader: false });
       }
       adjustGridHeight(gridDiv);
+      adjustTimeout = null;
     }, delay);
   };
 
   return {
-    onGridReady: () => {
+    onGridReady: (params) => {
+      const api = params.api || gridApi;
+      // 필터 변경 이벤트 리스너 추가
+      if (api && typeof api.addEventListener === 'function') {
+        api.addEventListener('filterChanged', () => {
+          adjust(api);
+        });
+        api.addEventListener('filterModified', () => {
+          adjust(api);
+        });
+      }
       setTimeout(() => adjustGridHeight(gridDiv), delay);
     },
     onFirstDataRendered: (params) => {
@@ -81,8 +112,9 @@ export function createGridEventHandlers(gridDiv, gridApi, delay = 200) {
       }, delay);
     },
     onModelUpdated: (params) => {
-      if (params.api.getDisplayedRowCount() > 0) {
-        adjust();
+      const api = params.api || gridApi;
+      if (api && api.getDisplayedRowCount() > 0) {
+        adjust(api);
       } else {
         setTimeout(() => adjustGridHeight(gridDiv), delay);
       }
@@ -107,6 +139,10 @@ export function createCommonGridOptions(options = {}) {
       resizable: true,
       sortable: false,
       filter: true,
+      filterParams: {
+        buttons: ['apply', 'reset'],
+        debounceMs: 200
+      }
     },
     enableCellTextSelection: true,
     getRowId: params => String(params.data.id),
@@ -115,6 +151,7 @@ export function createCommonGridOptions(options = {}) {
     pagination: true,
     paginationPageSize: 50,
     paginationPageSizeSelector: [50, 100, 200],
+    domLayout: 'normal', // autoHeight 대신 normal 사용하여 높이 조절 제어
     ...options
   };
 }
@@ -175,22 +212,34 @@ export function createObjectCellRenderer(validObjectNames, onObjectClick) {
  * @returns {Object} 그리드 이벤트 핸들러 객체
  */
 export function createGridEventHandlersWithFilter(gridDiv, filterKey, saveGridFilters, delay = 200) {
+  let adjustTimeout = null;
+  
   const adjust = (api) => {
-    setTimeout(() => {
+    // 이전 타이머 취소
+    if (adjustTimeout) {
+      clearTimeout(adjustTimeout);
+    }
+    
+    adjustTimeout = setTimeout(() => {
       if (api && typeof api.autoSizeAllColumns === 'function') {
         api.autoSizeAllColumns({ skipHeader: false });
       }
       adjustGridHeight(gridDiv);
+      adjustTimeout = null;
     }, delay);
   };
 
   return {
     onGridReady: (params) => {
-      // 필터 변경 시 저장
+      // 필터 변경 시 저장 및 높이 조절
       if (params.api && typeof params.api.addEventListener === 'function') {
         params.api.addEventListener('filterChanged', () => {
           const filterModel = params.api.getFilterModel();
           saveGridFilters(filterKey, filterModel);
+          adjust(params.api);
+        });
+        params.api.addEventListener('filterModified', () => {
+          adjust(params.api);
         });
       }
       setTimeout(() => adjustGridHeight(gridDiv), delay);

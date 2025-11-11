@@ -102,41 +102,179 @@ input:focus, textarea:focus, select:focus, .select select:focus {
   color: var(--color-text-primary);
 }
 
+/* ==================== AG Grid 통합 스타일 ==================== */
+
+/* 기본 그리드 테마 설정 */
 .ag-theme-quartz {
-  height: 60vh;
-  min-height: 360px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 헤더 스타일 - 미니멀하게 */
+.ag-theme-quartz .ag-header {
+  background: #f9fafb;
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  min-height: 40px;
+}
+
+.ag-theme-quartz .ag-header-cell {
+  padding: 8px 12px;
+  border-right: 1px solid var(--color-border);
+}
+
+.ag-theme-quartz .ag-header-cell-text {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* 행 스타일 - 미니멀하게 */
+.ag-theme-quartz .ag-row {
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+}
+
+.ag-theme-quartz .ag-row:hover {
+  background: #f9fafb;
+}
+
+.ag-theme-quartz .ag-row-even {
+  background: var(--color-surface);
+}
+
+.ag-theme-quartz .ag-row-odd {
+  background: #fafbfc;
+}
+
+/* 셀 스타일 */
+.ag-theme-quartz .ag-cell {
+  padding: 8px 12px;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+}
+
+/* 필터 아이콘 및 입력 스타일 */
+.ag-theme-quartz .ag-header-cell-filtered .ag-header-cell-text::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  margin-left: 6px;
+}
+
+.ag-theme-quartz .ag-filter-wrapper {
+  padding: 8px;
+}
+
+.ag-theme-quartz .ag-filter-input,
+.ag-theme-quartz .ag-filter-select {
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
   font-family: 'Pretendard', sans-serif;
 }
 
+.ag-theme-quartz .ag-filter-input:focus,
+.ag-theme-quartz .ag-filter-select:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+/* 페이지네이션 스타일 */
+.ag-theme-quartz .ag-paging-panel {
+  padding: 12px;
+  border-top: 1px solid var(--color-border);
+  background: #f9fafb;
+  font-size: 13px;
+}
+
+.ag-theme-quartz .ag-paging-button {
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+}
+
+.ag-theme-quartz .ag-paging-button:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: var(--color-primary);
+}
+
+.ag-theme-quartz .ag-paging-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ag-theme-quartz .ag-paging-row-summary-panel {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
 /* 체크박스 컬럼 너비 조정 */
-#devices-grid.ag-theme-quartz .ag-selection-checkbox {
+.ag-theme-quartz .ag-selection-checkbox {
   width: 40px !important;
   min-width: 40px !important;
   max-width: 40px !important;
 }
 
-#devices-grid.ag-theme-quartz .ag-header-cell[col-id="ag-Grid-AutoColumn"] {
+.ag-theme-quartz .ag-header-cell[col-id="ag-Grid-AutoColumn"] {
   width: 40px !important;
   min-width: 40px !important;
   max-width: 40px !important;
 }
 
 /* 정책 그리드 자동 높이 조절 - 페이지네이션과 함께 사용 */
-#policies-grid.ag-theme-quartz {
-  /* 높이는 JavaScript에서 동적으로 설정되므로 CSS에서는 최소값만 설정 */
+#policies-grid.ag-theme-quartz,
+#analysis-result-grid.ag-theme-quartz,
+#devices-grid.ag-theme-quartz,
+#objects-grid.ag-theme-quartz,
+#logs-grid.ag-theme-quartz {
   height: auto;
   min-height: 200px;
   max-height: none;
 }
 
-/* 정책 그리드 세로 스크롤 완전 제거 */
-#policies-grid.ag-theme-quartz .ag-body-viewport {
+/* 모든 그리드 세로 스크롤 제거 (필요시 가로 스크롤만 허용) */
+.ag-theme-quartz .ag-body-viewport {
   overflow-y: hidden !important;
   overflow-x: auto !important;
 }
 
-#policies-grid.ag-theme-quartz .ag-body-horizontal-scroll {
+.ag-theme-quartz .ag-body-horizontal-scroll {
   overflow-x: auto !important;
+}
+
+/* 빈 상태 오버레이 */
+.ag-theme-quartz .ag-overlay-no-rows-wrapper {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-family: 'Pretendard', sans-serif;
+}
+
+/* 컬럼 리사이즈 핸들 */
+.ag-theme-quartz .ag-header-cell-resize {
+  width: 2px;
+  background: transparent;
+}
+
+.ag-theme-quartz .ag-header-cell-resize:hover {
+  background: var(--color-primary);
 }
 
 .actions {

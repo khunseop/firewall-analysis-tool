@@ -248,24 +248,21 @@ function objectCellRenderer(params) {
 async function initGrid() {
   const gridDiv = document.getElementById('policies-grid');
   if (!gridDiv) return;
+  
+  const commonOptions = createCommonGridOptions();
+  const handlers = createGridEventHandlers(gridDiv, null);
+  
   const options = {
+    ...commonOptions,
     columnDefs: getCols(),
     rowData: [],
-    defaultColDef:{ 
-      resizable: true, 
-      sortable: false, 
-      filter: true 
-    },
-    enableCellTextSelection: true,
-    getRowId: params => String(params.data.id),
-    enableFilterHandlers: true,
     suppressHorizontalScroll: false, // 가로 스크롤 허용
-      onGridReady: params => {
+    onGridReady: params => {
       policyGridApi = params.api;
       const gridDiv = document.getElementById('policies-grid');
       if (gridDiv) {
-        const handlers = createGridEventHandlers(gridDiv, params.api);
-        Object.assign(options, handlers);
+        const updatedHandlers = createGridEventHandlers(gridDiv, params.api);
+        Object.assign(options, updatedHandlers);
       }
       
       // 필터 변경 시 저장
@@ -284,10 +281,8 @@ async function initGrid() {
         });
       }
     },
+    ...handlers
   };
-  options.pagination = true;
-  options.paginationPageSize = 50;
-  options.paginationPageSizeSelector = [50, 100, 200];
 
   if (typeof agGrid !== 'undefined') {
       if (agGrid.createGrid) {

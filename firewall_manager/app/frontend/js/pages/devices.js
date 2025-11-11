@@ -4,6 +4,7 @@ import { showEmptyMessage, hideEmptyMessage } from "../utils/message.js";
 import { formatDateTime } from "../utils/date.js";
 import { saveSearchParams, loadSearchParams } from "../utils/storage.js";
 import { notifySyncComplete } from "../utils/notification.js";
+import { createCommonGridOptions, createGridEventHandlers, adjustGridHeight } from "../utils/grid.js";
 
 // ==================== 상수 및 전역 변수 ====================
 
@@ -170,6 +171,13 @@ function updateGridData(data) {
   if (input && input.value) {
     applyQuickFilter(input.value);
   }
+  
+  // 높이 조절
+  if (gridHostEl) {
+    setTimeout(() => {
+      adjustGridHeight(gridHostEl);
+    }, 200);
+  }
 }
 
 /**
@@ -184,13 +192,26 @@ function createGrid(gridDiv, data) {
     }
   }
   
+  const commonOptions = createCommonGridOptions({
+    paginationAutoPageSize: true,
+    animateRows: true,
+    autoSizeStrategy: { 
+      type: 'fitGridWidth', 
+      defaultMinWidth: 10, 
+      defaultMaxWidth: 400 
+    }
+  });
+  
+  const handlers = createGridEventHandlers(gridDiv, null);
+  
   gridOptions = {
+    ...commonOptions,
     columnDefs: getColumns(),
     rowData: data,
     defaultColDef: { 
-      resizable: true, 
+      ...commonOptions.defaultColDef,
       sortable: true, 
-      filter: false 
+      filter: false // 빠른 필터 사용
     },
     rowSelection: { 
       mode: 'multiRow', 
@@ -198,16 +219,21 @@ function createGrid(gridDiv, data) {
       headerCheckbox: true, 
       enableClickSelection: true
     },
-    pagination: true,
-    paginationAutoPageSize: true,
-    animateRows: true,
-    getRowId: (params) => String(params.data.id),
-    autoSizeStrategy: { 
-      type: 'fitGridWidth', 
-      defaultMinWidth: 10, 
-      defaultMaxWidth: 400 
+    onGridReady: (params) => {
+      gridApi = params.api;
+      gridHostEl = gridDiv;
+      
+      // 빠른 필터 적용
+      const input = document.getElementById('devices-search');
+      if (input && input.value) {
+        applyQuickFilter(input.value);
+      }
+      
+      // 이벤트 핸들러 적용
+      const updatedHandlers = createGridEventHandlers(gridDiv, params.api);
+      Object.assign(gridOptions, updatedHandlers);
     },
-    enableCellTextSelection: true,
+    ...handlers
   };
   
   if (agGrid.createGrid) {
@@ -217,13 +243,10 @@ function createGrid(gridDiv, data) {
     gridApi = gridOptions.api;
   }
   
-  gridHostEl = gridDiv;
-  
-  // 빠른 필터 적용
-  const input = document.getElementById('devices-search');
-  if (input && input.value) {
-    applyQuickFilter(input.value);
-  }
+  // 초기 높이 조절
+  setTimeout(() => {
+    adjustGridHeight(gridDiv);
+  }, 200);
 }
 
 /**

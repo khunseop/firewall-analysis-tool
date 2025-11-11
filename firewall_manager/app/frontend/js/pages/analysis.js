@@ -1,6 +1,6 @@
 import { api } from '../api.js';
 import { showObjectDetailModal } from '../components/objectDetailModal.js';
-import { adjustGridHeight, createGridEventHandlers, createObjectCellRenderer } from '../utils/grid.js';
+import { adjustGridHeight, createGridEventHandlers, createObjectCellRenderer, createCommonGridOptions } from '../utils/grid.js';
 import { exportGridToExcelClient } from '../utils/excel.js';
 import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
 import { getColumnDefs } from '../utils/analysisColumns.js';
@@ -44,15 +44,13 @@ function createGrid(columnDefs, rowData) {
 
     const gridEl = document.getElementById('analysis-result-grid');
     if (gridEl) {
+        const commonOptions = createCommonGridOptions();
+        const handlers = createGridEventHandlers(gridEl, null);
+        
         const gridOptions = {
+            ...commonOptions,
             columnDefs: columnDefs,
             rowData: rowData || [],
-            defaultColDef: {
-                resizable: true,
-                sortable: false,
-                filter: true,
-            },
-            enableCellTextSelection: true,
             getRowId: params => {
                 // 분석 타입에 따라 고유 ID 생성
                 if (params.data.set_number !== undefined && params.data.type) {
@@ -86,20 +84,17 @@ function createGrid(columnDefs, rowData) {
                 }
                 return null;
             },
-            enableFilterHandlers: true,
             suppressHorizontalScroll: false,
             overlayNoRowsTemplate: '<div style="padding: 20px; text-align: center; color: #666;">분석 결과가 없습니다.</div>',
-            pagination: true,
-            paginationPageSize: 50,
-            paginationPageSizeSelector: [50, 100, 200],
             onGridReady: (params) => {
                 resultGridApi = params.api;
                 const gridDiv = document.getElementById('analysis-result-grid');
                 if (gridDiv) {
-                    const handlers = createGridEventHandlers(gridDiv, params.api);
-                    Object.assign(gridOptions, handlers);
+                    const updatedHandlers = createGridEventHandlers(gridDiv, params.api);
+                    Object.assign(gridOptions, updatedHandlers);
                 }
             },
+            ...handlers
         };
         resultGridApi = agGrid.createGrid(gridEl, gridOptions);
     }

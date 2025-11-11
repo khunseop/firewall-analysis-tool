@@ -3,6 +3,7 @@ import { navigate } from '../router.js';
 import { formatDateTime, formatNumber } from '../utils/date.js';
 import { updateElementText, updateElements } from '../utils/dom.js';
 import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
+import { createCommonGridOptions, createGridEventHandlers, adjustGridHeight } from '../utils/grid.js';
 
 let deviceStatsGrid = null;
 let currentDeviceStatsData = []; // 현재 장비 통계 데이터 (동기화 상태 요약 업데이트용)
@@ -95,6 +96,12 @@ async function loadStatistics() {
       
       if (deviceStatsGrid) {
         deviceStatsGrid.setGridOption('rowData', deviceStatsData);
+        // 높이 조절
+        setTimeout(() => {
+          if (gridDiv) {
+            adjustGridHeight(gridDiv);
+          }
+        }, 200);
       }
     }
 
@@ -468,23 +475,30 @@ function initDeviceStatsGrid() {
     }
   ];
 
+  const commonOptions = createCommonGridOptions({
+    paginationPageSizeSelector: [25, 50, 100, 200],
+    autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 500 },
+    animateRows: true,
+    suppressRowHoverHighlight: false
+  });
+  
+  const handlers = createGridEventHandlers(gridDiv, null);
+  
   const gridOptions = {
+    ...commonOptions,
     columnDefs: columnDefs,
     rowData: [],
     defaultColDef: {
-      resizable: true,
-      sortable: true,
-      filter: true
+      ...commonOptions.defaultColDef,
+      sortable: true
     },
     getRowId: (params) => String(params.data.id),
-    autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 500 },
-    enableCellTextSelection: true,
-    pagination: true,
-    paginationPageSize: 50,
-    paginationPageSizeSelector: [25, 50, 100, 200],
-    domLayout: 'normal',
-    animateRows: true,
-    suppressRowHoverHighlight: false
+    onGridReady: (params) => {
+      deviceStatsGrid = params.api;
+      const updatedHandlers = createGridEventHandlers(gridDiv, params.api);
+      Object.assign(gridOptions, updatedHandlers);
+    },
+    ...handlers
   };
 
   if (typeof agGrid !== 'undefined') {
@@ -495,6 +509,11 @@ function initDeviceStatsGrid() {
       deviceStatsGrid = gridOptions.api;
     }
   }
+  
+  // 초기 높이 조절
+  setTimeout(() => {
+    adjustGridHeight(gridDiv);
+  }, 200);
 }
 
 // ==================== 이벤트 리스너 설정 ====================

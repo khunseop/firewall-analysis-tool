@@ -1,5 +1,6 @@
 import { api } from "../api.js";
 import { showEmptyMessage, hideEmptyMessage } from "../utils/message.js";
+import { createCommonGridOptions } from "../utils/grid.js";
 // schedules.js의 함수들을 재사용
 import { 
   loadDevices, 
@@ -290,19 +291,20 @@ function initLogsGrid() {
     },
   ];
 
-  const gridOptions = {
-    columnDefs,
-    defaultColDef: {
-      sortable: true,
-      filter: true,
-      resizable: true
-    },
-    rowData: [],
-    pagination: true,
-    paginationPageSize: 50,
+  const commonOptions = createCommonGridOptions({
     paginationPageSizeSelector: [25, 50, 100, 200],
-    domLayout: 'autoHeight',
+    domLayout: 'autoHeight', // 로그 그리드는 autoHeight 유지
     suppressNoRowsOverlay: false
+  });
+
+  const gridOptions = {
+    ...commonOptions,
+    columnDefs,
+    rowData: [],
+    defaultColDef: {
+      ...commonOptions.defaultColDef,
+      sortable: true // 로그 그리드는 정렬 허용
+    }
   };
 
   logsGrid = agGrid.createGrid(gridDiv, gridOptions);
