@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from app.db.session import Base
 import enum
 import datetime
+from zoneinfo import ZoneInfo
 
 class AnalysisTaskType(str, enum.Enum):
     REDUNDANCY = "redundancy"
@@ -51,6 +52,6 @@ class AnalysisResult(Base):
     device_id = Column(Integer, ForeignKey('devices.id'), nullable=False, index=True)
     analysis_type = Column(String, nullable=False, index=True)
     result_data = Column(JSON, nullable=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None), onupdate=lambda: datetime.datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None))
 
     device = relationship("Device")

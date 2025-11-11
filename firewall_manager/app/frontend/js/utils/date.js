@@ -1,5 +1,5 @@
 /**
- * 날짜를 YYYY-MM-DD HH:mm:ss 형식으로 포맷팅
+ * 날짜를 YYYY-MM-DD HH:mm:ss 형식으로 포맷팅 (한국 시간 기준)
  * @param {string|Date} dateString - 날짜 문자열 또는 Date 객체
  * @returns {string} 포맷된 날짜 문자열 (예: "2025-11-09 11:47:50")
  */
@@ -9,14 +9,27 @@ export function formatDateTime(dateString) {
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return '없음';
   
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
+  // 한국 시간(KST)으로 변환하여 포맷팅
+  const formatter = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
   
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  const parts = formatter.formatToParts(date);
+  const year = parts.find(p => p.type === 'year').value;
+  const month = parts.find(p => p.type === 'month').value;
+  const day = parts.find(p => p.type === 'day').value;
+  const hour = parts.find(p => p.type === 'hour').value;
+  const minute = parts.find(p => p.type === 'minute').value;
+  const second = parts.find(p => p.type === 'second').value;
+  
+  return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
 }
 
 /**

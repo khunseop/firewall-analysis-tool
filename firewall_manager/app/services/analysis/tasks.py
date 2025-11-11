@@ -2,9 +2,14 @@
 import asyncio
 import logging
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import List
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
+
+def get_kst_now():
+    """한국 시간(KST) 현재 시간 반환"""
+    return datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
 
 from app import crud
 from app.schemas.analysis import AnalysisTaskCreate, AnalysisTaskUpdate, AnalysisResultCreate
@@ -33,13 +38,13 @@ async def run_redundancy_analysis_task(db: AsyncSession, device_id: int):
         task_create = AnalysisTaskCreate(
             device_id=device_id,
             task_type=AnalysisTaskType.REDUNDANCY,
-            created_at=datetime.now()
+            created_at=get_kst_now()
         )
         task = await crud.analysis.create_analysis_task(db, obj_in=task_create)
 
         # 상태를 'in_progress'로 먼저 업데이트
         task_update = AnalysisTaskUpdate(
-            started_at=datetime.now(),
+            started_at=get_kst_now(),
             task_status='in_progress'
         )
         task = await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
@@ -68,7 +73,7 @@ async def run_redundancy_analysis_task(db: AsyncSession, device_id: int):
                 logger.info(f"Device ID {device_id}에 대한 영구 분석 결과를 저장했습니다.")
 
             task_update = AnalysisTaskUpdate(
-                completed_at=datetime.now(),
+                completed_at=get_kst_now(),
                 task_status='success'
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
@@ -77,7 +82,7 @@ async def run_redundancy_analysis_task(db: AsyncSession, device_id: int):
         except Exception as e:
             logger.error(f"분석 작업 실패. Task ID: {task.id}, Error: {e}", exc_info=True)
             task_update = AnalysisTaskUpdate(
-                completed_at=datetime.now(),
+                completed_at=get_kst_now(),
                 task_status='failure'
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
@@ -97,12 +102,12 @@ async def run_unused_analysis_task(db: AsyncSession, device_id: int, days: int =
         task_create = AnalysisTaskCreate(
             device_id=device_id,
             task_type=AnalysisTaskType.UNUSED,
-            created_at=datetime.now()
+            created_at=get_kst_now()
         )
         task = await crud.analysis.create_analysis_task(db, obj_in=task_create)
 
         task_update = AnalysisTaskUpdate(
-            started_at=datetime.now(),
+            started_at=get_kst_now(),
             task_status='in_progress'
         )
         task = await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
@@ -124,7 +129,7 @@ async def run_unused_analysis_task(db: AsyncSession, device_id: int, days: int =
                 logger.info(f"Device ID {device_id}에 대한 미사용 정책 분석 결과를 저장했습니다.")
 
             task_update = AnalysisTaskUpdate(
-                completed_at=datetime.now(),
+                completed_at=get_kst_now(),
                 task_status='success'
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
@@ -133,7 +138,7 @@ async def run_unused_analysis_task(db: AsyncSession, device_id: int, days: int =
         except Exception as e:
             logger.error(f"미사용 정책 분석 작업 실패. Task ID: {task.id}, Error: {e}", exc_info=True)
             task_update = AnalysisTaskUpdate(
-                completed_at=datetime.now(),
+                completed_at=get_kst_now(),
                 task_status='failure'
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
@@ -156,12 +161,12 @@ async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_poli
         task_create = AnalysisTaskCreate(
             device_id=device_id,
             task_type=AnalysisTaskType.IMPACT,
-            created_at=datetime.now()
+            created_at=get_kst_now()
         )
         task = await crud.analysis.create_analysis_task(db, obj_in=task_create)
 
         task_update = AnalysisTaskUpdate(
-            started_at=datetime.now(),
+            started_at=get_kst_now(),
             task_status='in_progress'
         )
         task = await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
@@ -187,7 +192,7 @@ async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_poli
                 logger.info(f"Device ID {device_id}에 대한 영향도 분석 결과를 저장했습니다.")
 
             task_update = AnalysisTaskUpdate(
-                completed_at=datetime.now(),
+                completed_at=get_kst_now(),
                 task_status='success'
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
@@ -196,7 +201,7 @@ async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_poli
         except Exception as e:
             logger.error(f"영향도 분석 작업 실패. Task ID: {task.id}, Error: {e}", exc_info=True)
             task_update = AnalysisTaskUpdate(
-                completed_at=datetime.now(),
+                completed_at=get_kst_now(),
                 task_status='failure'
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
@@ -216,12 +221,12 @@ async def run_unreferenced_objects_analysis_task(db: AsyncSession, device_id: in
         task_create = AnalysisTaskCreate(
             device_id=device_id,
             task_type=AnalysisTaskType.UNREFERENCED_OBJECTS,
-            created_at=datetime.now()
+            created_at=get_kst_now()
         )
         task = await crud.analysis.create_analysis_task(db, obj_in=task_create)
 
         task_update = AnalysisTaskUpdate(
-            started_at=datetime.now(),
+            started_at=get_kst_now(),
             task_status='in_progress'
         )
         task = await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
@@ -242,7 +247,7 @@ async def run_unreferenced_objects_analysis_task(db: AsyncSession, device_id: in
                 logger.info(f"Device ID {device_id}에 대한 미참조 객체 분석 결과를 저장했습니다.")
 
             task_update = AnalysisTaskUpdate(
-                completed_at=datetime.now(),
+                completed_at=get_kst_now(),
                 task_status='success'
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
@@ -251,7 +256,7 @@ async def run_unreferenced_objects_analysis_task(db: AsyncSession, device_id: in
         except Exception as e:
             logger.error(f"미참조 객체 분석 작업 실패. Task ID: {task.id}, Error: {e}", exc_info=True)
             task_update = AnalysisTaskUpdate(
-                completed_at=datetime.now(),
+                completed_at=get_kst_now(),
                 task_status='failure'
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
@@ -271,12 +276,12 @@ async def run_risky_ports_analysis_task(db: AsyncSession, device_id: int):
         task_create = AnalysisTaskCreate(
             device_id=device_id,
             task_type=AnalysisTaskType.RISKY_PORTS,
-            created_at=datetime.now()
+            created_at=get_kst_now()
         )
         task = await crud.analysis.create_analysis_task(db, obj_in=task_create)
 
         task_update = AnalysisTaskUpdate(
-            started_at=datetime.now(),
+            started_at=get_kst_now(),
             task_status='in_progress'
         )
         task = await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
@@ -297,7 +302,7 @@ async def run_risky_ports_analysis_task(db: AsyncSession, device_id: int):
                 logger.info(f"Device ID {device_id}에 대한 위험 포트 정책 분석 결과를 저장했습니다.")
 
             task_update = AnalysisTaskUpdate(
-                completed_at=datetime.now(),
+                completed_at=get_kst_now(),
                 task_status='success'
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
@@ -306,7 +311,7 @@ async def run_risky_ports_analysis_task(db: AsyncSession, device_id: int):
         except Exception as e:
             logger.error(f"위험 포트 정책 분석 작업 실패. Task ID: {task.id}, Error: {e}", exc_info=True)
             task_update = AnalysisTaskUpdate(
-                completed_at=datetime.now(),
+                completed_at=get_kst_now(),
                 task_status='failure'
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)

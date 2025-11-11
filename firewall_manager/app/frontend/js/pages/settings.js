@@ -231,7 +231,8 @@ function initLogsGrid() {
       valueFormatter: (params) => {
         if (!params.value) return '';
         const date = new Date(params.value);
-        return date.toLocaleString('ko-KR');
+        // 한국 시간(KST)으로 명시적으로 표시
+        return date.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
       },
       sort: 'desc'
     },

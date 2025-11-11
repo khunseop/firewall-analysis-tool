@@ -1,12 +1,13 @@
 from sqlalchemy import Column, Integer, String, DateTime, Text
 from app.db.session import Base
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 class NotificationLog(Base):
     __tablename__ = "notification_logs"
 
     id = Column(Integer, primary_key=True, index=True)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    timestamp = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None), nullable=False, index=True)
     title = Column(String, nullable=False)
     message = Column(Text, nullable=False)
     type = Column(String, nullable=False, index=True)  # 'info', 'success', 'warning', 'error'
