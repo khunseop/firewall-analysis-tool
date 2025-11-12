@@ -646,9 +646,16 @@ class RiskyPortsAnalyzer:
                                 if member_has_risky:
                                     risky_members.append(member_name)
                                     
-                                    # 멤버가 개별 서비스 객체인지 확인
-                                    if member_name in self.service_value_map:
-                                        # 개별 서비스 객체인 경우: 위험 포트를 제거한 Safe 버전 생성
+                                    # 멤버가 정책에서 직접 사용된 개별 서비스 객체인지 확인
+                                    # (original_service_objects에 type=="service"로 존재하는지 확인)
+                                    is_original_service = any(
+                                        obj.get("type") == "service" and obj.get("name") == member_name
+                                        for obj in original_service_objects
+                                    )
+                                    
+                                    # 멤버가 개별 서비스 객체로도 존재하고, 정책에서 직접 사용된 경우에만 개별 서비스 객체로 생성
+                                    if member_name in self.service_value_map and is_original_service:
+                                        # 정책에서 직접 사용된 개별 서비스 객체인 경우: 위험 포트를 제거한 Safe 버전 생성
                                         safe_member_name = f"{member_name}_Safe"
                                         
                                         # 이미 생성된 Safe 객체인지 확인 (중복 생성 방지)
@@ -730,6 +737,15 @@ class RiskyPortsAnalyzer:
                                         logger.info(
                                             f"그룹 {safe_group_name}의 멤버 {member_name}: "
                                             f"위험 포트를 포함한 서비스 그룹으로 제외됨"
+                                        )
+                                    elif member_name in self.service_value_map:
+                                        # 그룹 멤버가 service_value_map에 있지만 정책에서 직접 사용되지 않은 경우
+                                        # (그룹 내부 멤버만인 경우) 개별 서비스 객체로 생성하지 않고 제외
+                                        # 그룹의 filtered_tokens에 이미 위험 포트가 제거된 토큰이 포함되어 있음
+                                        logger.info(
+                                            f"그룹 {safe_group_name}의 멤버 {member_name}: "
+                                            f"그룹 내부 멤버만 존재하므로 개별 서비스 객체로 생성하지 않음 "
+                                            f"(그룹의 filtered_tokens에 이미 포함됨)"
                                         )
                                     else:
                                         # 알 수 없는 멤버 타입: 제외
