@@ -1,5 +1,5 @@
 
-from typing import Any, List
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -172,11 +172,13 @@ async def start_unreferenced_objects_analysis(
 @router.post("/risky-ports/{device_id}", response_model=schemas.Msg)
 async def start_risky_ports_analysis(
     device_id: int,
+    target_policy_id: Optional[List[int]] = Query(None),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     """
     지정된 장비에 대한 위험 포트 정책 분석을 시작합니다.
+    target_policy_id가 제공되면 해당 정책들만 분석하고, 없으면 모든 정책을 분석합니다.
     """
     device = await crud.device.get_device(db, device_id=device_id)
     if not device:
@@ -186,6 +188,6 @@ async def start_risky_ports_analysis(
     if running_task:
         raise HTTPException(status_code=409, detail=f"An analysis task (ID: {running_task.id}) is already in progress.")
 
-    background_tasks.add_task(run_risky_ports_analysis_task, db, device_id)
+    background_tasks.add_task(run_risky_ports_analysis_task, db, device_id, target_policy_id)
 
     return {"msg": "Risky ports analysis has been started in the background."}

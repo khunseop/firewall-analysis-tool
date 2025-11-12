@@ -3,7 +3,7 @@ import asyncio
 import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from typing import List
+from typing import List, Optional
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -262,16 +262,17 @@ async def run_unreferenced_objects_analysis_task(db: AsyncSession, device_id: in
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
 
 
-async def run_risky_ports_analysis_task(db: AsyncSession, device_id: int):
+async def run_risky_ports_analysis_task(db: AsyncSession, device_id: int, target_policy_ids: Optional[List[int]] = None):
     """
     위험 포트 정책 분석을 실행하고 결과를 저장합니다.
+    target_policy_ids가 제공되면 해당 정책들만 분석하고, 없으면 모든 정책을 분석합니다.
     """
     if analysis_lock.locked():
         logger.warning(f"분석 작업이 이미 진행 중입니다. Device ID: {device_id}")
         return
 
     async with analysis_lock:
-        logger.info(f"위험 포트 정책 분석 작업 시작. Device ID: {device_id}")
+        logger.info(f"위험 포트 정책 분석 작업 시작. Device ID: {device_id}, Target Policy IDs: {target_policy_ids}")
 
         task_create = AnalysisTaskCreate(
             device_id=device_id,
@@ -287,7 +288,7 @@ async def run_risky_ports_analysis_task(db: AsyncSession, device_id: int):
         task = await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
 
         try:
-            analyzer = RiskyPortsAnalyzer(db_session=db, task=task)
+            analyzer = RiskyPortsAnalyzer(db_session=db, task=task, target_policy_ids=target_policy_ids)
             results = await analyzer.analyze()
 
             if results:

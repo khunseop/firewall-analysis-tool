@@ -72,10 +72,11 @@ class RiskyPortDefinition:
 class RiskyPortsAnalyzer:
     """위험 포트 정책 분석을 위한 클래스"""
     
-    def __init__(self, db_session: AsyncSession, task: AnalysisTask):
+    def __init__(self, db_session: AsyncSession, task: AnalysisTask, target_policy_ids: Optional[List[int]] = None):
         self.db = db_session
         self.task = task
         self.device_id = task.device_id
+        self.target_policy_ids = target_policy_ids  # 분석할 정책 ID 목록 (None이면 모든 정책)
         self.risky_port_definitions: List[RiskyPortDefinition] = []
         self.service_resolver_cache: Dict[str, Set[str]] = {}
         self.service_group_map: Dict[str, List[str]] = {}
@@ -360,6 +361,12 @@ class RiskyPortsAnalyzer:
             )
             .order_by(Policy.seq)
         )
+        
+        # target_policy_ids가 제공되면 해당 정책들만 필터링
+        if self.target_policy_ids:
+            stmt = stmt.where(Policy.id.in_(self.target_policy_ids))
+            logger.info(f"정책 ID 필터 적용: {self.target_policy_ids}")
+        
         result = await self.db.execute(stmt)
         policies = result.scalars().all()
         logger.info(f"총 {len(policies)}개의 정책이 조회되었습니다 (활성화/비활성화 포함).")

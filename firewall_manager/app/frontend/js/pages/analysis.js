@@ -6,6 +6,7 @@ import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
 import { getColumnDefs } from '../utils/analysis/columns/index.js';
 import { processAnalysisResults, loadValidObjectNames } from '../utils/analysis/helpers/index.js';
 import { initImpactAnalysis, loadPoliciesForImpact, getImpactAnalysisParams } from './analysis/impactAnalysis.js';
+import { initRiskyPortsAnalysis, loadPoliciesForRiskyPorts, getRiskyPortsAnalysisParams } from './analysis/riskyPorts.js';
 import { generateServiceCreationScript } from '../utils/scriptGenerator.js';
 import { notifyAnalysisComplete } from '../utils/notification.js';
 import { setButtonLoading } from '../utils/loading.js';
@@ -32,7 +33,7 @@ async function handleObjectClick(deviceId, objectName) {
 }
 
 function getColumnDefsWithRenderer(analysisType) {
-    // analysisColumns.js에서 컬럼 정의 가져오기 (objectCellRenderer 포함)
+    // analysis/columns/index.js에서 컬럼 정의 가져오기 (objectCellRenderer 포함)
     return getColumnDefs(analysisType, objectCellRenderer);
 }
 
@@ -133,6 +134,10 @@ async function loadDevices() {
                     if (analysisTypeSelect && analysisTypeSelect.getValue() === 'impact') {
                         await loadPoliciesForImpact(); // impactAnalysis.js에서 import
                     }
+                    // 위험포트 분석이 선택되어 있으면 정책 목록 로드
+                    if (analysisTypeSelect && analysisTypeSelect.getValue() === 'risky_ports') {
+                        await loadPoliciesForRiskyPorts();
+                    }
                 }
             });
             
@@ -144,18 +149,19 @@ async function loadDevices() {
             
             // 영향도 분석 컴포넌트에 deviceSelect 전달
             initImpactAnalysis(deviceSelect);
+            // 위험포트 분석 컴포넌트에 deviceSelect 전달
+            initRiskyPortsAnalysis(deviceSelect);
         }
     } catch (err) {
         console.error('Failed to load devices:', err);
     }
 }
 
-// loadPoliciesForImpact는 impactAnalysis.js에서 import하여 사용
-
 function resetStatusUI() {
     stopPolling();
     const startButton = document.getElementById('btn-start-analysis');
     const impactStartButton = document.getElementById('btn-start-impact-analysis');
+    const riskyPortsStartButton = document.getElementById('btn-start-risky-ports-analysis');
     const resetFiltersBtn = document.getElementById('btn-reset-filters');
     const generateScriptBtn = document.getElementById('btn-generate-script');
     const exportBtn = document.getElementById('btn-export-excel');
@@ -169,6 +175,10 @@ function resetStatusUI() {
     if (impactStartButton) {
         impactStartButton.disabled = false;
         impactStartButton.classList.remove('is-loading');
+    }
+    if (riskyPortsStartButton) {
+        riskyPortsStartButton.disabled = false;
+        riskyPortsStartButton.classList.remove('is-loading');
     }
     if (resetFiltersBtn) resetFiltersBtn.style.display = 'none';
     if (generateScriptBtn) generateScriptBtn.style.display = 'none';
@@ -201,8 +211,10 @@ function stopPolling() {
     }
     const startButton = document.getElementById('btn-start-analysis');
     const impactStartButton = document.getElementById('btn-start-impact-analysis');
+    const riskyPortsStartButton = document.getElementById('btn-start-risky-ports-analysis');
     setButtonLoading(startButton, false);
     setButtonLoading(impactStartButton, false);
+    setButtonLoading(riskyPortsStartButton, false);
 }
 
 // 저장된 결과 또는 태스크 완료 후 결과를 그리드에 표시
@@ -312,10 +324,13 @@ function startPolling(deviceId, analysisType) {
     stopPolling();
     const startButton = document.getElementById('btn-start-analysis');
     const impactStartButton = document.getElementById('btn-start-impact-analysis');
+    const riskyPortsStartButton = document.getElementById('btn-start-risky-ports-analysis');
     
     // 분석 타입에 따라 적절한 버튼에 로딩 상태 적용
     if (analysisType === 'impact') {
         setButtonLoading(impactStartButton, true);
+    } else if (analysisType === 'risky_ports') {
+        setButtonLoading(riskyPortsStartButton, true);
     } else {
         setButtonLoading(startButton, true);
     }
@@ -380,6 +395,12 @@ async function startAnalysis() {
         params = {
             targetPolicyIds: impactParams.targetPolicyIds,
             newPosition: impactParams.newPosition
+        };
+    } else if (analysisType === 'risky_ports') {
+        // 위험포트 분석 파라미터 추출
+        const riskyPortsParams = getRiskyPortsAnalysisParams();
+        params = {
+            targetPolicyIds: riskyPortsParams.targetPolicyIds
         };
     }
     
@@ -653,6 +674,7 @@ function setupAnalysisTypeSelect() {
     const paramsLabel = document.getElementById('analysis-params-label');
     const paramsInput = document.getElementById('analysis-params-input');
     const impactUI = document.getElementById('impact-analysis-ui');
+    const riskyPortsUI = document.getElementById('risky-ports-analysis-ui');
     const defaultUI = document.getElementById('default-analysis-ui');
     const startButton = document.getElementById('btn-start-analysis');
     
@@ -672,6 +694,7 @@ function setupAnalysisTypeSelect() {
                 if (analysisType === 'unused') {
                     paramsColumn.style.display = 'block';
                     impactUI.style.display = 'none';
+                    riskyPortsUI.style.display = 'none';
                     if (startButton) startButton.style.display = 'inline-flex';
                     if (defaultUI) defaultUI.style.display = 'block';
                     paramsLabel.textContent = '기준일수';
@@ -682,6 +705,7 @@ function setupAnalysisTypeSelect() {
                 } else if (analysisType === 'impact') {
                     paramsColumn.style.display = 'none';
                     impactUI.style.display = 'block';
+                    riskyPortsUI.style.display = 'none';
                     if (startButton) startButton.style.display = 'none'; // 첫 번째 박스의 분석하기 버튼 숨김
                     if (defaultUI) defaultUI.style.display = 'block'; // 기본 UI는 유지 (장비 선택용)
                     // 장비가 선택되어 있으면 정책 목록 로드
@@ -689,9 +713,21 @@ function setupAnalysisTypeSelect() {
                     if (deviceId) {
                         await loadPoliciesForImpact();
                     }
+                } else if (analysisType === 'risky_ports') {
+                    paramsColumn.style.display = 'none';
+                    impactUI.style.display = 'none';
+                    riskyPortsUI.style.display = 'block';
+                    if (startButton) startButton.style.display = 'none'; // 첫 번째 박스의 분석하기 버튼 숨김
+                    if (defaultUI) defaultUI.style.display = 'block'; // 기본 UI는 유지 (장비 선택용)
+                    // 장비가 선택되어 있으면 정책 목록 로드
+                    const deviceId = deviceSelect ? deviceSelect.getValue() : null;
+                    if (deviceId) {
+                        await loadPoliciesForRiskyPorts();
+                    }
                 } else {
                     paramsColumn.style.display = 'none';
                     impactUI.style.display = 'none';
+                    riskyPortsUI.style.display = 'none';
                     if (startButton) startButton.style.display = 'inline-flex';
                     if (defaultUI) defaultUI.style.display = 'block';
                 }
@@ -726,6 +762,12 @@ export async function initAnalysis() {
     const impactStartButton = document.getElementById('btn-start-impact-analysis');
     if (impactStartButton) {
         impactStartButton.addEventListener('click', startAnalysis);
+    }
+
+    // 위험포트 분석 전용 분석 버튼
+    const riskyPortsStartButton = document.getElementById('btn-start-risky-ports-analysis');
+    if (riskyPortsStartButton) {
+        riskyPortsStartButton.addEventListener('click', startAnalysis);
     }
 
     const exportButton = document.getElementById('btn-export-excel');
