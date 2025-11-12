@@ -134,6 +134,31 @@ function promptFilename(defaultFilename) {
 }
 
 /**
+ * 엑셀 셀 값 정리 함수 (XML 특수 문자 및 제어 문자 처리)
+ * @param {*} value - 셀에 넣을 값
+ * @returns {string} 정리된 문자열 값
+ */
+function sanitizeCellValue(value) {
+    // null이나 undefined는 빈 문자열로 변환
+    if (value === null || value === undefined) {
+        return '';
+    }
+    
+    // 숫자나 불린 값은 문자열로 변환
+    if (typeof value === 'number' || typeof value === 'boolean') {
+        return String(value);
+    }
+    
+    // 문자열이 아닌 경우 문자열로 변환
+    let str = String(value);
+    
+    // 제어 문자 제거 (0x00-0x1F, 0x7F-0x9F, 단 줄바꿈과 탭은 유지)
+    str = str.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F-\x9F]/g, '');
+    
+    return str;
+}
+
+/**
  * 엑셀 파일 생성 및 다운로드 (클라이언트 사이드)
  * @param {Array} data - 평탄화된 데이터 배열
  * @param {Array} headers - 헤더 배열
@@ -150,8 +175,9 @@ async function createExcelFile(data, headers, filename, options = {}) {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Sheet1');
     
-    // 헤더 행 추가
-    const headerRow = worksheet.addRow(headers);
+    // 헤더 행 추가 (헤더도 정리)
+    const sanitizedHeaders = headers.map(h => sanitizeCellValue(h));
+    const headerRow = worksheet.addRow(sanitizedHeaders);
     
     // 헤더 스타일 적용 (회색 배경, 굵은 글씨, 중앙 정렬, 테두리)
     headerRow.eachCell((cell, colNumber) => {
@@ -178,13 +204,15 @@ async function createExcelFile(data, headers, filename, options = {}) {
         };
     });
     
-    // 데이터 행 추가
+    // 데이터 행 추가 (모든 값을 정리)
     data.forEach(row => {
-        // row가 배열이면 그대로 사용, 객체면 값 배열로 변환
-        const values = Array.isArray(row) ? row : headers.map((_, idx) => {
-            const field = Object.keys(row)[idx];
-            return row[field] || '';
-        });
+        // row가 배열이면 각 값을 정리, 객체면 값 배열로 변환 후 정리
+        const values = Array.isArray(row) 
+            ? row.map(val => sanitizeCellValue(val))
+            : headers.map((_, idx) => {
+                const field = Object.keys(row)[idx];
+                return sanitizeCellValue(row[field]);
+            });
         worksheet.addRow(values);
     });
     
@@ -241,7 +269,7 @@ async function createExcelFile(data, headers, filename, options = {}) {
         let hasLongContent = false;
         
         column.eachCell({ includeEmpty: false }, (cell) => {
-            const cellValue = String(cell.value || '');
+            const cellValue = sanitizeCellValue(cell.value);
             const cellLength = cellValue.length;
             
             // 셀 값이 길면 더 넓게 설정
@@ -352,28 +380,32 @@ export async function exportGridToExcelClient(gridApi, columnDefs, defaultFilena
             originalData.push(node.data);
         });
         
-        // 평탄화된 데이터를 헤더 순서에 맞게 값 배열로 변환
+        // 평탄화된 데이터를 헤더 순서에 맞게 값 배열로 변환 (값 정리 포함)
         const orderedData = flatData.map((row, rowIndex) => {
             return fields.map(field => {
                 const colDef = columnDefs.find(col => col.field === field);
                 
+                let value = '';
+                
                 // valueGetter가 있는 경우 원본 데이터에서 실행
                 if (colDef && colDef.valueGetter && originalData[rowIndex]) {
                     try {
-                        const value = colDef.valueGetter({ data: originalData[rowIndex] });
+                        value = colDef.valueGetter({ data: originalData[rowIndex] });
                         // valueFormatter가 있으면 적용
                         if (colDef.valueFormatter && value !== null && value !== undefined) {
-                            return colDef.valueFormatter({ value });
+                            value = colDef.valueFormatter({ value });
                         }
-                        return value || '';
                     } catch (e) {
                         console.warn(`valueGetter 실행 실패 (${field}):`, e);
-                        return row[field] || '';
+                        value = row[field] || '';
                     }
+                } else {
+                    // 평탄화된 데이터에서 직접 가져오기
+                    value = row[field] || '';
                 }
                 
-                // 평탄화된 데이터에서 직접 가져오기
-                return row[field] || '';
+                // 값 정리 (null/undefined 처리 및 제어 문자 제거)
+                return sanitizeCellValue(value);
             });
         });
         
