@@ -529,28 +529,110 @@ async function exportScriptToExcel(scriptText, filename) {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Script');
     
+    // 헤더 추가
+    const headerRow = worksheet.addRow(['주석', '명령어', '생성되는 서비스 객체명']);
+    headerRow.eachCell((cell) => {
+        cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE8E8E8' }
+        };
+        cell.font = { 
+            bold: true, 
+            size: 11,
+            color: { argb: 'FF333333' }
+        };
+        cell.alignment = { 
+            horizontal: 'center', 
+            vertical: 'middle',
+            wrapText: true
+        };
+        cell.border = {
+            top: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+            left: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+            bottom: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+            right: { style: 'thin', color: { argb: 'FFCCCCCC' } }
+        };
+    });
+    
     // 스크립트를 줄 단위로 분리
     const scriptLines = scriptText.split('\n');
     
-    // 각 줄을 별도 행으로 추가
-    scriptLines.forEach((line, index) => {
-        const row = worksheet.addRow([line]);
-        // 주석 줄은 회색으로 표시
-        if (line.trim().startsWith('#')) {
+    // 생성되는 서비스 객체명 추출을 위한 정규식
+    const serviceNamePattern = /set service\s+([^\s]+)/;
+    const serviceGroupNamePattern = /set service-group\s+([^\s]+)/;
+    
+    // 각 줄을 파싱하여 행 추가
+    scriptLines.forEach((line) => {
+        const trimmedLine = line.trim();
+        
+        // 빈 줄은 건너뛰기
+        if (!trimmedLine) {
+            worksheet.addRow(['', '', '']);
+            return;
+        }
+        
+        let comment = '';
+        let command = '';
+        let createdObjectName = '';
+        
+        if (trimmedLine.startsWith('#')) {
+            // 주석 줄
+            comment = trimmedLine;
+        } else {
+            // 명령어 줄
+            command = trimmedLine;
+            
+            // 생성되는 서비스 객체명 추출
+            const serviceMatch = trimmedLine.match(serviceNamePattern);
+            const groupMatch = trimmedLine.match(serviceGroupNamePattern);
+            
+            if (serviceMatch) {
+                createdObjectName = serviceMatch[1];
+            } else if (groupMatch) {
+                createdObjectName = groupMatch[1];
+            }
+        }
+        
+        const row = worksheet.addRow([comment, command, createdObjectName]);
+        
+        // 주석 컬럼 스타일
+        if (comment) {
             row.getCell(1).font = { color: { argb: 'FF666666' }, italic: true };
         }
+        
+        // 명령어 컬럼 스타일
+        if (command) {
+            row.getCell(2).font = { color: { argb: 'FF000000' }, name: 'Courier New' };
+        }
+        
+        // 생성되는 서비스 객체명 컬럼 스타일
+        if (createdObjectName) {
+            row.getCell(3).font = { color: { argb: 'FF1976D2' }, bold: true };
+        }
+        
+        // 모든 셀에 테두리 및 정렬 적용
+        row.eachCell((cell) => {
+            cell.border = {
+                top: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+                left: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+                bottom: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+                right: { style: 'thin', color: { argb: 'FFE0E0E0' } }
+            };
+            cell.alignment = { 
+                vertical: 'top',
+                wrapText: true
+            };
+        });
     });
     
-    // 컬럼 너비 설정 (충분히 넓게)
-    worksheet.getColumn(1).width = 100;
+    // 컬럼 너비 설정
+    worksheet.getColumn(1).width = 40;  // 주석
+    worksheet.getColumn(2).width = 80; // 명령어
+    worksheet.getColumn(3).width = 30; // 생성되는 서비스 객체명
     
-    // 모든 행에 자동 줄바꿈 적용
-    worksheet.eachRow((row) => {
-        row.getCell(1).alignment = { 
-            vertical: 'top',
-            wrapText: true
-        };
-    });
+    // 헤더 행 높이 설정
+    headerRow.height = 28;
     
     // 파일 다운로드
     const buffer = await workbook.xlsx.writeBuffer();

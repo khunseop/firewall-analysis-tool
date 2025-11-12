@@ -153,62 +153,6 @@ export function getRiskyPortsColumns(objectCellRenderer = null) {
                 debounceMs: 200
             }
         },
-        {
-            field: 'created_object_names',
-            headerName: '생성되는 객체명',
-            wrapText: true,
-            autoHeight: true,
-            filter: 'agTextColumnFilter',
-            sortable: false,
-            minWidth: 200,
-            cellRenderer: params => {
-                const serviceObjects = params.data.filtered_service_objects || [];
-                if (serviceObjects.length === 0) return '';
-                
-                const createdObjects = serviceObjects.filter(obj => {
-                    // Safe 버전이거나 원본과 다른 이름인 경우 생성되는 객체
-                    const name = obj.name || obj.token || '';
-                    return name.endsWith('_Safe') || (obj.original_name && obj.original_name !== obj.name);
-                });
-                
-                if (createdObjects.length === 0) return '';
-                
-                const container = document.createElement('div');
-                container.style.height = '100%';
-                container.style.maxHeight = '150px';
-                container.style.overflowY = 'auto';
-                container.style.lineHeight = '1.5';
-                
-                createdObjects.forEach(obj => {
-                    const displayName = obj.name || obj.token || '';
-                    const line = document.createElement('div');
-                    const span = document.createElement('span');
-                    span.style.color = '#1976d2';
-                    span.style.fontWeight = '500';
-                    span.textContent = displayName;
-                    line.appendChild(span);
-                    container.appendChild(line);
-                });
-                
-                return container;
-            },
-            valueGetter: params => {
-                const serviceObjects = params.data.filtered_service_objects || [];
-                if (serviceObjects.length === 0) return '';
-                
-                const createdObjects = serviceObjects.filter(obj => {
-                    // Safe 버전이거나 원본과 다른 이름인 경우 생성되는 객체
-                    const name = obj.name || obj.token || '';
-                    return name.endsWith('_Safe') || (obj.original_name && obj.original_name !== obj.name);
-                });
-                
-                return createdObjects.map(obj => obj.name || obj.token || '').join(', ');
-            },
-            filterParams: {
-                buttons: ['apply', 'reset'],
-                debounceMs: 200
-            }
-        },
         ...otherColumns.slice(4)
     ];
 }

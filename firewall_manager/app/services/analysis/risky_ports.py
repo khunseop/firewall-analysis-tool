@@ -275,8 +275,7 @@ class RiskyPortsAnalyzer:
         stmt = (
             select(Policy)
             .where(
-                Policy.device_id == self.device_id,
-                Policy.enable == True
+                Policy.device_id == self.device_id
             )
             .options(
                 selectinload(Policy.service_members)
@@ -285,7 +284,7 @@ class RiskyPortsAnalyzer:
         )
         result = await self.db.execute(stmt)
         policies = result.scalars().all()
-        logger.info(f"총 {len(policies)}개의 정책이 조회되었습니다.")
+        logger.info(f"총 {len(policies)}개의 정책이 조회되었습니다 (활성화/비활성화 포함).")
         return policies
     
     async def analyze(self) -> List[Dict[str, Any]]:
