@@ -263,6 +263,41 @@ class RiskyPortsAnalyzer:
                     safe_tokens.append(token)
         return list(set(safe_tokens))
     
+    def _calculate_port_range_size(self, tokens: List[str]) -> int:
+        """
+        토큰 리스트의 전체 포트 범위 크기 계산
+        프로토콜별로 범위를 병합하여 중복 제거 후 합산
+        """
+        protocol_ranges: Dict[str, List[Tuple[int, int]]] = {}
+        
+        for token in tokens:
+            protocol, port_start, port_end = self._parse_service_token(token)
+            if protocol and port_start is not None and port_end is not None:
+                if protocol not in protocol_ranges:
+                    protocol_ranges[protocol] = []
+                protocol_ranges[protocol].append((port_start, port_end))
+        
+        total_size = 0
+        for protocol, ranges in protocol_ranges.items():
+            # 범위 병합 (겹치는 범위 제거)
+            sorted_ranges = sorted(ranges)
+            merged_ranges = []
+            for start, end in sorted_ranges:
+                if not merged_ranges:
+                    merged_ranges.append((start, end))
+                else:
+                    last_start, last_end = merged_ranges[-1]
+                    if start <= last_end + 1:  # 겹치거나 연속된 경우
+                        merged_ranges[-1] = (last_start, max(last_end, end))
+                    else:
+                        merged_ranges.append((start, end))
+            
+            # 병합된 범위들의 크기 합산
+            for start, end in merged_ranges:
+                total_size += (end - start + 1)
+        
+        return total_size
+    
     def _split_port_range(
         self, 
         protocol: str, 
@@ -652,7 +687,7 @@ class RiskyPortsAnalyzer:
                                                 f"이미 생성된 Safe 버전 사용 (바깥에 생성됨): {safe_member_name}"
                                             )
                                         else:
-                                            # 새로 Safe 버전 생성 (그룹 멤버로만 사용, 그룹 내부에 생성)
+                                            # 새로 Safe 버전 생성
                                             member_tokens = self.service_value_map[member_name]
                                             safe_tokens = self._create_safe_tokens_from_service_tokens(
                                                 member_tokens, removed_token_to_filtered
@@ -660,18 +695,29 @@ class RiskyPortsAnalyzer:
                                             
                                             if safe_tokens:
                                                 filtered_members.append(safe_member_name)
-                                                safe_member_objects.append({
-                                                    "type": "service",
-                                                    "name": safe_member_name,
-                                                    "original_name": member_name,
-                                                    "token": member_name,
-                                                    "filtered_tokens": safe_tokens
-                                                })
-                                                created_safe_objects.add(safe_member_name)
-                                                logger.info(
-                                                    f"그룹 {safe_group_name}의 멤버 {member_name}: "
-                                                    f"Safe 버전 생성 (그룹 내부에만 생성): {safe_member_name}"
-                                                )
+                                                
+                                                # 정책에서 직접 사용된 서비스인 경우에만 filtered_service_objects에 추가
+                                                # 그룹 멤버로만 사용되는 서비스는 그룹의 filtered_members에만 포함
+                                                if is_original_service:
+                                                    safe_member_objects.append({
+                                                        "type": "service",
+                                                        "name": safe_member_name,
+                                                        "original_name": member_name,
+                                                        "token": member_name,
+                                                        "filtered_tokens": safe_tokens
+                                                    })
+                                                    created_safe_objects.add(safe_member_name)
+                                                    logger.info(
+                                                        f"그룹 {safe_group_name}의 멤버 {member_name}: "
+                                                        f"Safe 버전 생성 (정책에서 직접 사용됨, filtered_service_objects에 추가): {safe_member_name}"
+                                                    )
+                                                else:
+                                                    # 그룹 멤버로만 사용되는 경우, 그룹의 filtered_members에만 포함
+                                                    # filtered_service_objects에는 추가하지 않음 (중복 방지)
+                                                    logger.info(
+                                                        f"그룹 {safe_group_name}의 멤버 {member_name}: "
+                                                        f"Safe 버전 생성 (그룹 멤버로만 사용됨, filtered_members에만 포함): {safe_member_name}"
+                                                    )
                                             else:
                                                 logger.info(
                                                     f"그룹 {safe_group_name}의 멤버 {member_name}: "
@@ -770,6 +816,24 @@ class RiskyPortsAnalyzer:
                         }
                         service_group_recommendations.append(recommendation)
             
+            # 포트 범위 크기 계산 (검증용)
+            original_port_range_size = self._calculate_port_range_size(list(original_service_tokens))
+            filtered_port_range_size = self._calculate_port_range_size(filtered_service_tokens)
+            
+            # 제거된 위험 포트 범위 크기 계산
+            removed_port_tokens = []
+            for rp in removed_risky_ports:
+                port_range = rp.get("port_range", "")
+                protocol = rp.get("protocol", "")
+                if port_range and protocol:
+                    # port_range 형식: "10-20" 또는 "10"
+                    if '-' in port_range:
+                        port_start, port_end = map(int, port_range.split('-'))
+                    else:
+                        port_start = port_end = int(port_range)
+                    removed_port_tokens.append(f"{protocol}/{port_start}-{port_end}" if port_start != port_end else f"{protocol}/{port_start}")
+            removed_port_range_size = self._calculate_port_range_size(removed_port_tokens)
+            
             # 모든 정책을 결과에 추가 (위험 포트가 없는 정책도 포함)
             # 정책 내에서 위험 포트가 없는 서비스는 원본 그대로 사용하도록 filtered_service_objects에 포함됨
             results.append({
@@ -779,7 +843,11 @@ class RiskyPortsAnalyzer:
                 "original_service_objects": original_service_objects,  # 원본 서비스 객체 정보 추가
                 "filtered_services": filtered_service_tokens,
                 "filtered_service_objects": filtered_service_objects,  # 제거 후 서비스 객체 정보 추가
-                "service_group_recommendations": service_group_recommendations
+                "service_group_recommendations": service_group_recommendations,
+                # 검증용 포트 범위 크기
+                "original_port_range_size": original_port_range_size,
+                "removed_port_range_size": removed_port_range_size,
+                "filtered_port_range_size": filtered_port_range_size
             })
         
         logger.info(f"{len(results)}개의 정책이 분석되었습니다.")

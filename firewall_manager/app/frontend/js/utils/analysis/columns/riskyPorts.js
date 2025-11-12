@@ -153,6 +153,74 @@ export function getRiskyPortsColumns(objectCellRenderer = null) {
                 debounceMs: 200
             }
         },
+        {
+            field: 'port_range_sizes',
+            headerName: '포트 범위 크기 (검증)',
+            wrapText: true,
+            autoHeight: true,
+            filter: 'agTextColumnFilter',
+            sortable: true,
+            minWidth: 200,
+            cellRenderer: params => {
+                const originalSize = params.data.original_port_range_size || 0;
+                const removedSize = params.data.removed_port_range_size || 0;
+                const filteredSize = params.data.filtered_port_range_size || 0;
+                
+                const container = document.createElement('div');
+                container.style.lineHeight = '1.6';
+                
+                // 원본 범위 크기
+                const originalDiv = document.createElement('div');
+                originalDiv.innerHTML = `<strong>원본:</strong> <span style="color: #1976d2;">${originalSize.toLocaleString()}</span>`;
+                container.appendChild(originalDiv);
+                
+                // 제거된 범위 크기
+                if (removedSize > 0) {
+                    const removedDiv = document.createElement('div');
+                    removedDiv.innerHTML = `<strong>제거:</strong> <span style="color: #d32f2f;">${removedSize.toLocaleString()}</span>`;
+                    container.appendChild(removedDiv);
+                }
+                
+                // 필터된 범위 크기
+                const filteredDiv = document.createElement('div');
+                filteredDiv.innerHTML = `<strong>제거 후:</strong> <span style="color: #2e7d32;">${filteredSize.toLocaleString()}</span>`;
+                container.appendChild(filteredDiv);
+                
+                // 검증: 원본 = 제거 + 제거 후
+                if (removedSize > 0) {
+                    const expectedFiltered = originalSize - removedSize;
+                    const diff = Math.abs(filteredSize - expectedFiltered);
+                    if (diff > 0) {
+                        const warningDiv = document.createElement('div');
+                        warningDiv.style.marginTop = '4px';
+                        warningDiv.style.padding = '2px 4px';
+                        warningDiv.style.backgroundColor = '#fff3cd';
+                        warningDiv.style.borderRadius = '3px';
+                        warningDiv.style.fontSize = '0.85em';
+                        warningDiv.innerHTML = `⚠️ 차이: ${diff.toLocaleString()}`;
+                        container.appendChild(warningDiv);
+                    }
+                }
+                
+                return container;
+            },
+            valueGetter: params => {
+                const originalSize = params.data.original_port_range_size || 0;
+                const removedSize = params.data.removed_port_range_size || 0;
+                const filteredSize = params.data.filtered_port_range_size || 0;
+                return `원본:${originalSize} 제거:${removedSize} 제거후:${filteredSize}`;
+            },
+            comparator: (valueA, valueB) => {
+                // 원본 범위 크기로 정렬
+                const sizeA = parseInt(valueA.split(':')[1]) || 0;
+                const sizeB = parseInt(valueB.split(':')[1]) || 0;
+                return sizeA - sizeB;
+            },
+            filterParams: {
+                buttons: ['apply', 'reset'],
+                debounceMs: 200
+            }
+        },
         ...otherColumns.slice(4)
     ];
 }
