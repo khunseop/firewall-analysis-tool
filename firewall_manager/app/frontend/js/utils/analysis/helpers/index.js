@@ -45,6 +45,25 @@ export async function processAnalysisResults(resultData, analysisType, allDevice
             } else {
                 processedData = resultData;
             }
+        } else if (analysisType === 'over_permissive') {
+            // 과허용정책 분석 결과 처리
+            const firstItem = resultData[0];
+            const deviceId = firstItem?.policy?.device_id || firstItem?.device_id;
+            
+            if (deviceId) {
+                const device = allDevices.find(d => d.id === deviceId);
+                const deviceName = device ? device.name : `장비 ${deviceId}`;
+                
+                processedData = resultData.map(item => ({
+                    ...item,
+                    device_name: deviceName,
+                    source_range_size: item.source_range_size || 0,
+                    destination_range_size: item.destination_range_size || 0,
+                    service_range_size: item.service_range_size || 0
+                }));
+            } else {
+                processedData = resultData;
+            }
         } else {
             // 중복 정책, 미사용 정책 분석 결과 처리
             const firstItem = resultData[0];

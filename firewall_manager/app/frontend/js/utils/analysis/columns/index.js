@@ -142,6 +142,65 @@ export function getColumnDefs(analysisType, objectCellRenderer = null) {
         ];
     } else if (analysisType === 'risky_ports') {
         return getRiskyPortsColumns(objectCellRenderer);
+    } else if (analysisType === 'over_permissive') {
+        // 과허용정책 분석 컬럼 정의
+        const policyColumns = getPolicyColumns();
+        applyObjectRenderer(policyColumns, objectCellRenderer);
+        
+        return [
+            { 
+                field: 'device_name', 
+                headerName: '장비', 
+                filter: 'agTextColumnFilter', 
+                pinned: 'left',
+                sortable: false,
+                minWidth: 120,
+                filterParams: {
+                    buttons: ['apply', 'reset'],
+                    debounceMs: 200
+                }
+            },
+            { 
+                field: 'source_range_size', 
+                headerName: '출발지 범위 크기', 
+                filter: 'agNumberColumnFilter',
+                sortable: true,
+                minWidth: 150,
+                valueGetter: params => params.data.source_range_size,
+                valueFormatter: params => params.value ? formatNumber(params.value) : '0',
+                filterParams: {
+                    buttons: ['apply', 'reset'],
+                    debounceMs: 200
+                }
+            },
+            { 
+                field: 'destination_range_size', 
+                headerName: '목적지 범위 크기', 
+                filter: 'agNumberColumnFilter',
+                sortable: true,
+                minWidth: 150,
+                valueGetter: params => params.data.destination_range_size,
+                valueFormatter: params => params.value ? formatNumber(params.value) : '0',
+                filterParams: {
+                    buttons: ['apply', 'reset'],
+                    debounceMs: 200
+                }
+            },
+            { 
+                field: 'service_range_size', 
+                headerName: '서비스 범위 크기', 
+                filter: 'agNumberColumnFilter',
+                sortable: true,
+                minWidth: 150,
+                valueGetter: params => params.data.service_range_size,
+                valueFormatter: params => params.value ? formatNumber(params.value) : '0',
+                filterParams: {
+                    buttons: ['apply', 'reset'],
+                    debounceMs: 200
+                }
+            },
+            ...policyColumns
+        ];
     }
     
     // 기존 로직 (점진적 마이그레이션용 - 사용 안 함)

@@ -7,6 +7,7 @@ import { getColumnDefs } from '../utils/analysis/columns/index.js';
 import { processAnalysisResults, loadValidObjectNames } from '../utils/analysis/helpers/index.js';
 import { initImpactAnalysis, loadPoliciesForImpact, getImpactAnalysisParams } from './analysis/impactAnalysis.js';
 import { initRiskyPortsAnalysis, loadPoliciesForRiskyPorts, getRiskyPortsAnalysisParams } from './analysis/riskyPorts.js';
+import { initOverPermissiveAnalysis, loadPoliciesForOverPermissive, getOverPermissiveAnalysisParams } from './analysis/overPermissive.js';
 import { generateServiceCreationScript } from '../utils/scriptGenerator.js';
 import { notifyAnalysisComplete } from '../utils/notification.js';
 import { setButtonLoading } from '../utils/loading.js';
@@ -138,6 +139,10 @@ async function loadDevices() {
                     if (analysisTypeSelect && analysisTypeSelect.getValue() === 'risky_ports') {
                         await loadPoliciesForRiskyPorts();
                     }
+                    // 과허용정책 분석이 선택되어 있으면 정책 목록 로드
+                    if (analysisTypeSelect && analysisTypeSelect.getValue() === 'over_permissive') {
+                        await loadPoliciesForOverPermissive();
+                    }
                 }
             });
             
@@ -151,6 +156,8 @@ async function loadDevices() {
             initImpactAnalysis(deviceSelect);
             // 위험포트 분석 컴포넌트에 deviceSelect 전달
             initRiskyPortsAnalysis(deviceSelect);
+            // 과허용정책 분석 컴포넌트에 deviceSelect 전달
+            initOverPermissiveAnalysis(deviceSelect);
         }
     } catch (err) {
         console.error('Failed to load devices:', err);
@@ -162,6 +169,7 @@ function resetStatusUI() {
     const startButton = document.getElementById('btn-start-analysis');
     const impactStartButton = document.getElementById('btn-start-impact-analysis');
     const riskyPortsStartButton = document.getElementById('btn-start-risky-ports-analysis');
+    const overPermissiveStartButton = document.getElementById('btn-start-over-permissive-analysis');
     const resetFiltersBtn = document.getElementById('btn-reset-filters');
     const generateScriptBtn = document.getElementById('btn-generate-script');
     const exportBtn = document.getElementById('btn-export-excel');
@@ -179,6 +187,10 @@ function resetStatusUI() {
     if (riskyPortsStartButton) {
         riskyPortsStartButton.disabled = false;
         riskyPortsStartButton.classList.remove('is-loading');
+    }
+    if (overPermissiveStartButton) {
+        overPermissiveStartButton.disabled = false;
+        overPermissiveStartButton.classList.remove('is-loading');
     }
     if (resetFiltersBtn) resetFiltersBtn.style.display = 'none';
     if (generateScriptBtn) generateScriptBtn.style.display = 'none';
@@ -212,9 +224,11 @@ function stopPolling() {
     const startButton = document.getElementById('btn-start-analysis');
     const impactStartButton = document.getElementById('btn-start-impact-analysis');
     const riskyPortsStartButton = document.getElementById('btn-start-risky-ports-analysis');
+    const overPermissiveStartButton = document.getElementById('btn-start-over-permissive-analysis');
     setButtonLoading(startButton, false);
     setButtonLoading(impactStartButton, false);
     setButtonLoading(riskyPortsStartButton, false);
+    setButtonLoading(overPermissiveStartButton, false);
 }
 
 // 저장된 결과 또는 태스크 완료 후 결과를 그리드에 표시
@@ -325,12 +339,15 @@ function startPolling(deviceId, analysisType) {
     const startButton = document.getElementById('btn-start-analysis');
     const impactStartButton = document.getElementById('btn-start-impact-analysis');
     const riskyPortsStartButton = document.getElementById('btn-start-risky-ports-analysis');
+    const overPermissiveStartButton = document.getElementById('btn-start-over-permissive-analysis');
     
     // 분석 타입에 따라 적절한 버튼에 로딩 상태 적용
     if (analysisType === 'impact') {
         setButtonLoading(impactStartButton, true);
     } else if (analysisType === 'risky_ports') {
         setButtonLoading(riskyPortsStartButton, true);
+    } else if (analysisType === 'over_permissive') {
+        setButtonLoading(overPermissiveStartButton, true);
     } else {
         setButtonLoading(startButton, true);
     }
@@ -401,6 +418,12 @@ async function startAnalysis() {
         const riskyPortsParams = getRiskyPortsAnalysisParams();
         params = {
             targetPolicyIds: riskyPortsParams.targetPolicyIds
+        };
+    } else if (analysisType === 'over_permissive') {
+        // 과허용정책 분석 파라미터 추출
+        const overPermissiveParams = getOverPermissiveAnalysisParams();
+        params = {
+            targetPolicyIds: overPermissiveParams.targetPolicyIds
         };
     }
     
@@ -675,6 +698,7 @@ function setupAnalysisTypeSelect() {
     const paramsInput = document.getElementById('analysis-params-input');
     const impactUI = document.getElementById('impact-analysis-ui');
     const riskyPortsUI = document.getElementById('risky-ports-analysis-ui');
+    const overPermissiveUI = document.getElementById('over-permissive-analysis-ui');
     const defaultUI = document.getElementById('default-analysis-ui');
     const startButton = document.getElementById('btn-start-analysis');
     
@@ -695,6 +719,7 @@ function setupAnalysisTypeSelect() {
                     paramsColumn.style.display = 'block';
                     impactUI.style.display = 'none';
                     riskyPortsUI.style.display = 'none';
+                    overPermissiveUI.style.display = 'none';
                     if (startButton) startButton.style.display = 'inline-flex';
                     if (defaultUI) defaultUI.style.display = 'block';
                     paramsLabel.textContent = '기준일수';
@@ -706,6 +731,7 @@ function setupAnalysisTypeSelect() {
                     paramsColumn.style.display = 'none';
                     impactUI.style.display = 'block';
                     riskyPortsUI.style.display = 'none';
+                    overPermissiveUI.style.display = 'none';
                     if (startButton) startButton.style.display = 'none'; // 첫 번째 박스의 분석하기 버튼 숨김
                     if (defaultUI) defaultUI.style.display = 'block'; // 기본 UI는 유지 (장비 선택용)
                     // 장비가 선택되어 있으면 정책 목록 로드
@@ -717,6 +743,7 @@ function setupAnalysisTypeSelect() {
                     paramsColumn.style.display = 'none';
                     impactUI.style.display = 'none';
                     riskyPortsUI.style.display = 'block';
+                    overPermissiveUI.style.display = 'none';
                     if (startButton) startButton.style.display = 'none'; // 첫 번째 박스의 분석하기 버튼 숨김
                     if (defaultUI) defaultUI.style.display = 'block'; // 기본 UI는 유지 (장비 선택용)
                     // 장비가 선택되어 있으면 정책 목록 로드
@@ -724,10 +751,23 @@ function setupAnalysisTypeSelect() {
                     if (deviceId) {
                         await loadPoliciesForRiskyPorts();
                     }
+                } else if (analysisType === 'over_permissive') {
+                    paramsColumn.style.display = 'none';
+                    impactUI.style.display = 'none';
+                    riskyPortsUI.style.display = 'none';
+                    overPermissiveUI.style.display = 'block';
+                    if (startButton) startButton.style.display = 'none'; // 첫 번째 박스의 분석하기 버튼 숨김
+                    if (defaultUI) defaultUI.style.display = 'block'; // 기본 UI는 유지 (장비 선택용)
+                    // 장비가 선택되어 있으면 정책 목록 로드
+                    const deviceId = deviceSelect ? deviceSelect.getValue() : null;
+                    if (deviceId) {
+                        await loadPoliciesForOverPermissive();
+                    }
                 } else {
                     paramsColumn.style.display = 'none';
                     impactUI.style.display = 'none';
                     riskyPortsUI.style.display = 'none';
+                    overPermissiveUI.style.display = 'none';
                     if (startButton) startButton.style.display = 'inline-flex';
                     if (defaultUI) defaultUI.style.display = 'block';
                 }
@@ -768,6 +808,12 @@ export async function initAnalysis() {
     const riskyPortsStartButton = document.getElementById('btn-start-risky-ports-analysis');
     if (riskyPortsStartButton) {
         riskyPortsStartButton.addEventListener('click', startAnalysis);
+    }
+
+    // 과허용정책 분석 전용 분석 버튼
+    const overPermissiveStartButton = document.getElementById('btn-start-over-permissive-analysis');
+    if (overPermissiveStartButton) {
+        overPermissiveStartButton.addEventListener('click', startAnalysis);
     }
 
     const exportButton = document.getElementById('btn-export-excel');

@@ -24,6 +24,7 @@
                 <option value="impact">영향도 분석</option>
                 <option value="unreferenced_objects">미참조 객체 분석</option>
                 <option value="risky_ports">위험 포트 분석</option>
+                <option value="over_permissive">과허용정책 분석</option>
               </select>
             </div>
           </div>
@@ -111,6 +112,31 @@
             <p class="help is-hidden-mobile" style="visibility: hidden;">&nbsp;</p>
             <div class="control">
               <button class="button is-primary is-small is-fullwidth-mobile" id="btn-start-risky-ports-analysis">분석하기</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 과허용정책 분석 UI -->
+    <div id="over-permissive-analysis-ui" style="display: none;">
+      <hr class="my-4">
+      <div class="columns is-vcentered is-mobile">
+        <div class="column is-12-mobile is-8-tablet is-6-desktop">
+          <div class="field">
+            <label class="label">대상 정책</label>
+            <div class="control">
+              <select id="over-permissive-target-policy-select" multiple></select>
+            </div>
+            <p class="help">분석할 정책을 선택하세요. 선택하지 않으면 모든 정책을 분석합니다.</p>
+          </div>
+        </div>
+        <div class="column is-12-mobile is-4-tablet is-2-desktop">
+          <div class="field">
+            <label class="label is-hidden-mobile">&nbsp;</label>
+            <p class="help is-hidden-mobile" style="visibility: hidden;">&nbsp;</p>
+            <div class="control">
+              <button class="button is-primary is-small is-fullwidth-mobile" id="btn-start-over-permissive-analysis">분석하기</button>
             </div>
           </div>
         </div>

@@ -58,6 +58,14 @@ export const api = {
         return request(`/analysis/risky-ports/${deviceId}?${policyIdsParam}`, { method: "POST" });
       }
       return request(`/analysis/risky-ports/${deviceId}`, { method: "POST" });
+    } else if (analysisType === 'over_permissive') {
+      // 과허용정책 분석: 정책 ID 파라미터 추가
+      const policyIds = params.targetPolicyIds;
+      if (policyIds && policyIds.length > 0) {
+        const policyIdsParam = policyIds.map(id => `target_policy_id=${id}`).join('&');
+        return request(`/analysis/over-permissive/${deviceId}?${policyIdsParam}`, { method: "POST" });
+      }
+      return request(`/analysis/over-permissive/${deviceId}`, { method: "POST" });
     }
     throw new Error(`Unknown analysis type: ${analysisType}`);
   },

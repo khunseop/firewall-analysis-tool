@@ -11,6 +11,7 @@ class AnalysisTaskType(str, enum.Enum):
     IMPACT = "impact"
     UNREFERENCED_OBJECTS = "unreferenced_objects"
     RISKY_PORTS = "risky_ports"
+    OVER_PERMISSIVE = "over_permissive"
 
 class AnalysisTaskStatus(str, enum.Enum):
     PENDING = "pending"

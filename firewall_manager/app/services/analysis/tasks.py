@@ -19,6 +19,7 @@ from .unused import UnusedPolicyAnalyzer
 from .impact import ImpactAnalyzer
 from .unreferenced_objects import UnreferencedObjectsAnalyzer
 from .risky_ports import RiskyPortsAnalyzer
+from .over_permissive import OverPermissiveAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -311,6 +312,62 @@ async def run_risky_ports_analysis_task(db: AsyncSession, device_id: int, target
 
         except Exception as e:
             logger.error(f"위험 포트 정책 분석 작업 실패. Task ID: {task.id}, Error: {e}", exc_info=True)
+            task_update = AnalysisTaskUpdate(
+                completed_at=get_kst_now(),
+                task_status='failure'
+            )
+            await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+
+
+async def run_over_permissive_analysis_task(db: AsyncSession, device_id: int, target_policy_ids: Optional[List[int]] = None):
+    """
+    과허용정책 분석을 실행하고 결과를 저장합니다.
+    target_policy_ids가 제공되면 해당 정책들만 분석하고, 없으면 모든 정책을 분석합니다.
+    """
+    if analysis_lock.locked():
+        logger.warning(f"분석 작업이 이미 진행 중입니다. Device ID: {device_id}")
+        return
+
+    async with analysis_lock:
+        logger.info(f"과허용정책 분석 작업 시작. Device ID: {device_id}, Target Policy IDs: {target_policy_ids}")
+
+        task_create = AnalysisTaskCreate(
+            device_id=device_id,
+            task_type=AnalysisTaskType.OVER_PERMISSIVE,
+            created_at=get_kst_now()
+        )
+        task = await crud.analysis.create_analysis_task(db, obj_in=task_create)
+
+        task_update = AnalysisTaskUpdate(
+            started_at=get_kst_now(),
+            task_status='in_progress'
+        )
+        task = await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+
+        try:
+            analyzer = OverPermissiveAnalyzer(db_session=db, task=task, target_policy_ids=target_policy_ids)
+            results = await analyzer.analyze()
+
+            if results:
+                result_data_json = jsonable_encoder(results)
+
+                result_to_store = AnalysisResultCreate(
+                    device_id=device_id,
+                    analysis_type=AnalysisTaskType.OVER_PERMISSIVE.value,
+                    result_data=result_data_json
+                )
+                await crud.analysis.create_or_update_analysis_result(db, obj_in=result_to_store)
+                logger.info(f"Device ID {device_id}에 대한 과허용정책 분석 결과를 저장했습니다.")
+
+            task_update = AnalysisTaskUpdate(
+                completed_at=get_kst_now(),
+                task_status='success'
+            )
+            await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+            logger.info(f"과허용정책 분석 작업 성공. Task ID: {task.id}")
+
+        except Exception as e:
+            logger.error(f"과허용정책 분석 작업 실패. Task ID: {task.id}, Error: {e}", exc_info=True)
             task_update = AnalysisTaskUpdate(
                 completed_at=get_kst_now(),
                 task_status='failure'

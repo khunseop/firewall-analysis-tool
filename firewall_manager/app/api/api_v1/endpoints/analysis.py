@@ -11,7 +11,8 @@ from app.services.analysis.tasks import (
     run_unused_analysis_task,
     run_impact_analysis_task,
     run_unreferenced_objects_analysis_task,
-    run_risky_ports_analysis_task
+    run_risky_ports_analysis_task,
+    run_over_permissive_analysis_task
 )
 
 router = APIRouter()
@@ -191,3 +192,26 @@ async def start_risky_ports_analysis(
     background_tasks.add_task(run_risky_ports_analysis_task, db, device_id, target_policy_id)
 
     return {"msg": "Risky ports analysis has been started in the background."}
+
+@router.post("/over-permissive/{device_id}", response_model=schemas.Msg)
+async def start_over_permissive_analysis(
+    device_id: int,
+    target_policy_id: Optional[List[int]] = Query(None),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """
+    지정된 장비에 대한 과허용정책 분석을 시작합니다.
+    target_policy_id가 제공되면 해당 정책들만 분석하고, 없으면 모든 정책을 분석합니다.
+    """
+    device = await crud.device.get_device(db, device_id=device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    running_task = await crud.analysis.get_running_analysis_task(db)
+    if running_task:
+        raise HTTPException(status_code=409, detail=f"An analysis task (ID: {running_task.id}) is already in progress.")
+
+    background_tasks.add_task(run_over_permissive_analysis_task, db, device_id, target_policy_id)
+
+    return {"msg": "Over-permissive policy analysis has been started in the background."}
