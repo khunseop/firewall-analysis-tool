@@ -130,15 +130,7 @@ export function getRiskyPortsColumns(objectCellRenderer = null) {
                         line.textContent = displayName;
                     }
                     
-                    if (obj.type === 'group' && obj.filtered_members && obj.filtered_members.length > 0) {
-                        const membersDiv = document.createElement('div');
-                        membersDiv.style.marginLeft = '20px';
-                        membersDiv.style.marginTop = '4px';
-                        membersDiv.style.fontSize = '0.9em';
-                        membersDiv.style.color = '#666';
-                        membersDiv.textContent = `멤버: ${obj.filtered_members.join(', ')}`;
-                        line.appendChild(membersDiv);
-                    }
+                    // Safe 그룹 객체의 내부정보(멤버)는 표시하지 않음 (스트립트에 바로 넣기 위함)
                     
                     container.appendChild(line);
                 });
@@ -148,16 +140,69 @@ export function getRiskyPortsColumns(objectCellRenderer = null) {
             valueGetter: params => {
                 const serviceObjects = params.data.filtered_service_objects || [];
                 if (serviceObjects.length > 0) {
+                    // Safe 그룹 객체의 내부정보(멤버)는 표시하지 않음 (스트립트에 바로 넣기 위함)
                     return serviceObjects.map(obj => {
-                        const name = obj.name || obj.token || '';
-                        if (obj.type === 'group' && obj.filtered_members && obj.filtered_members.length > 0) {
-                            return `${name} [${obj.filtered_members.join(', ')}]`;
-                        }
-                        return name;
+                        return obj.name || obj.token || '';
                     }).join(', ');
                 }
                 const services = params.data.filtered_services || [];
                 return Array.isArray(services) ? services.join(', ') : '';
+            },
+            filterParams: {
+                buttons: ['apply', 'reset'],
+                debounceMs: 200
+            }
+        },
+        {
+            field: 'created_object_names',
+            headerName: '생성되는 객체명',
+            wrapText: true,
+            autoHeight: true,
+            filter: 'agTextColumnFilter',
+            sortable: false,
+            minWidth: 200,
+            cellRenderer: params => {
+                const serviceObjects = params.data.filtered_service_objects || [];
+                if (serviceObjects.length === 0) return '';
+                
+                const createdObjects = serviceObjects.filter(obj => {
+                    // Safe 버전이거나 원본과 다른 이름인 경우 생성되는 객체
+                    const name = obj.name || obj.token || '';
+                    return name.endsWith('_Safe') || (obj.original_name && obj.original_name !== obj.name);
+                });
+                
+                if (createdObjects.length === 0) return '';
+                
+                const container = document.createElement('div');
+                container.style.height = '100%';
+                container.style.maxHeight = '150px';
+                container.style.overflowY = 'auto';
+                container.style.lineHeight = '1.5';
+                
+                createdObjects.forEach(obj => {
+                    const displayName = obj.name || obj.token || '';
+                    const line = document.createElement('div');
+                    const span = document.createElement('span');
+                    span.style.color = '#1976d2';
+                    span.style.fontWeight = '500';
+                    span.textContent = displayName;
+                    line.appendChild(span);
+                    container.appendChild(line);
+                });
+                
+                return container;
+            },
+            valueGetter: params => {
+                const serviceObjects = params.data.filtered_service_objects || [];
+                if (serviceObjects.length === 0) return '';
+                
+                const createdObjects = serviceObjects.filter(obj => {
+                    // Safe 버전이거나 원본과 다른 이름인 경우 생성되는 객체
+                    const name = obj.name || obj.token || '';
+                    return name.endsWith('_Safe') || (obj.original_name && obj.original_name !== obj.name);
+                });
+                
+                return createdObjects.map(obj => obj.name || obj.token || '').join(', ');
             },
             filterParams: {
                 buttons: ['apply', 'reset'],

@@ -6,7 +6,7 @@ import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
 import { getColumnDefs } from '../utils/analysis/columns/index.js';
 import { processAnalysisResults, loadValidObjectNames } from '../utils/analysis/helpers/index.js';
 import { initImpactAnalysis, loadPoliciesForImpact, getImpactAnalysisParams } from './analysis/impactAnalysis.js';
-import { generateServiceCreationScript, downloadScript } from '../utils/scriptGenerator.js';
+import { generateServiceCreationScript } from '../utils/scriptGenerator.js';
 import { notifyAnalysisComplete } from '../utils/notification.js';
 import { setButtonLoading } from '../utils/loading.js';
 import { saveSearchParams, loadSearchParams } from '../utils/storage.js';
@@ -506,12 +506,63 @@ async function generateScript() {
         const deviceName = device ? device.name.replace(/\s+/g, '_') : `device_${deviceId}`;
         const filename = `service_creation_script_${deviceName}_${new Date().toISOString().split('T')[0]}`;
         
-        // 다운로드
-        downloadScript(scriptText, filename);
+        // 엑셀로 다운로드
+        await exportScriptToExcel(scriptText, filename);
     } catch (error) {
         console.error('스크립트 생성 실패:', error);
         alert(`스크립트 생성 실패: ${error.message}`);
     }
+}
+
+/**
+ * 스크립트를 엑셀 파일로 내보내기
+ * @param {string} scriptText - 스크립트 텍스트
+ * @param {string} filename - 파일명 (확장자 제외)
+ */
+async function exportScriptToExcel(scriptText, filename) {
+    if (!window.ExcelJS) {
+        alert('엑셀 라이브러리를 불러올 수 없습니다. 페이지를 새로고침해주세요.');
+        return;
+    }
+
+    // 워크북 생성
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Script');
+    
+    // 스크립트를 줄 단위로 분리
+    const scriptLines = scriptText.split('\n');
+    
+    // 각 줄을 별도 행으로 추가
+    scriptLines.forEach((line, index) => {
+        const row = worksheet.addRow([line]);
+        // 주석 줄은 회색으로 표시
+        if (line.trim().startsWith('#')) {
+            row.getCell(1).font = { color: { argb: 'FF666666' }, italic: true };
+        }
+    });
+    
+    // 컬럼 너비 설정 (충분히 넓게)
+    worksheet.getColumn(1).width = 100;
+    
+    // 모든 행에 자동 줄바꿈 적용
+    worksheet.eachRow((row) => {
+        row.getCell(1).alignment = { 
+            vertical: 'top',
+            wrapText: true
+        };
+    });
+    
+    // 파일 다운로드
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
 }
 
 function setupAnalysisTypeSelect() {

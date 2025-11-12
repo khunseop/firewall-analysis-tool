@@ -712,19 +712,18 @@ class RiskyPortsAnalyzer:
                         }
                         service_group_recommendations.append(recommendation)
             
-            # 위험 포트가 발견된 정책만 결과에 추가
+            # 모든 정책을 결과에 추가 (위험 포트가 없는 정책도 포함)
             # 정책 내에서 위험 포트가 없는 서비스는 원본 그대로 사용하도록 filtered_service_objects에 포함됨
-            if removed_risky_ports:
-                results.append({
-                    "policy": policy,
-                    "removed_risky_ports": removed_risky_ports,
-                    "original_services": list(original_service_tokens),
-                    "original_service_objects": original_service_objects,  # 원본 서비스 객체 정보 추가
-                    "filtered_services": filtered_service_tokens,
-                    "filtered_service_objects": filtered_service_objects,  # 제거 후 서비스 객체 정보 추가
-                    "service_group_recommendations": service_group_recommendations
-                })
+            results.append({
+                "policy": policy,
+                "removed_risky_ports": removed_risky_ports,
+                "original_services": list(original_service_tokens),
+                "original_service_objects": original_service_objects,  # 원본 서비스 객체 정보 추가
+                "filtered_services": filtered_service_tokens,
+                "filtered_service_objects": filtered_service_objects,  # 제거 후 서비스 객체 정보 추가
+                "service_group_recommendations": service_group_recommendations
+            })
         
-        logger.info(f"{len(results)}개의 위험 포트를 사용하는 정책이 발견되었습니다.")
+        logger.info(f"{len(results)}개의 정책이 분석되었습니다.")
         return results
 
