@@ -399,14 +399,22 @@ class RiskyPortsAnalyzer:
                                     service_name = obj["name"]
                                     break
                         
-                        removed_risky_ports.append({
-                            "protocol": protocol,
-                            "port": f"{risky_ports_in_range[0]}" if len(risky_ports_in_range) == 1 else f"{min(risky_ports_in_range)}-{max(risky_ports_in_range)}",
-                            "port_range": f"{min(risky_ports_in_range)}-{max(risky_ports_in_range)}",
-                            "risky_port_def": matching_risky[0].definition,
-                            "service_token": token,
-                            "service_name": service_name
-                        })
+                        # 매칭된 모든 위험 포트 정의를 포함하도록 수정
+                        # 각 위험 포트 정의마다 별도 항목 추가
+                        for risky_def in matching_risky:
+                            # 이 위험 포트 정의와 겹치는 포트 범위 계산
+                            overlap_start = max(port_start, risky_def.port_start)
+                            overlap_end = min(port_end, risky_def.port_end)
+                            
+                            if overlap_start <= overlap_end:
+                                removed_risky_ports.append({
+                                    "protocol": protocol,
+                                    "port": f"{overlap_start}" if overlap_start == overlap_end else f"{overlap_start}-{overlap_end}",
+                                    "port_range": f"{overlap_start}-{overlap_end}",
+                                    "risky_port_def": risky_def.definition,
+                                    "service_token": token,
+                                    "service_name": service_name
+                                })
                         
                         # 안전한 범위로 분리
                         safe_ranges = self._split_port_range(protocol, port_start, port_end, risky_ports_in_range)
