@@ -449,11 +449,22 @@ class RiskyPortsAnalyzer:
                     service_token = obj.get("token", service_name)
                     
                     # 이 서비스에서 위험 포트가 제거되었는지 확인
+                    # 1. removed_risky_ports에서 service_name 또는 service_token으로 확인
+                    # 2. removed_token_to_filtered에서 서비스의 원본 토큰들이 필터링되었는지 확인
                     service_has_removed = False
                     for rp in removed_risky_ports:
                         if rp.get("service_name") == service_name or rp.get("service_token") == service_token:
                             service_has_removed = True
                             break
+                    
+                    # service_name으로 찾지 못했어도, 서비스의 토큰이 removed_token_to_filtered에 있으면 위험 포트가 제거된 것으로 간주
+                    if not service_has_removed:
+                        if service_name in self.service_value_map:
+                            original_tokens = self.service_value_map[service_name]
+                            if any(token in removed_token_to_filtered for token in original_tokens):
+                                service_has_removed = True
+                        elif service_token in removed_token_to_filtered:
+                            service_has_removed = True
                     
                     if service_has_removed:
                         # 위험 포트가 제거된 서비스: Safe 버전 생성
@@ -462,17 +473,67 @@ class RiskyPortsAnalyzer:
                             original_tokens = self.service_value_map[service_name]
                             for original_token in original_tokens:
                                 if original_token in removed_token_to_filtered:
+                                    # 이미 필터링된 토큰 사용
                                     service_filtered_tokens.extend(removed_token_to_filtered[original_token])
                                 else:
-                                    # 위험 포트가 없는 토큰은 그대로 유지
-                                    service_filtered_tokens.append(original_token)
+                                    # removed_token_to_filtered에 없어도 위험 포트를 다시 검사
+                                    # (service_members에 없었거나 다른 이유로 누락되었을 수 있음)
+                                    protocol, port_start, port_end = self._parse_service_token(original_token)
+                                    if protocol and port_start is not None and port_end is not None:
+                                        matching_risky = self._find_matching_risky_ports(protocol, port_start, port_end)
+                                        if matching_risky:
+                                            # 위험 포트가 포함된 범위에서 제거
+                                            risky_ports_in_range = []
+                                            for risky_def in matching_risky:
+                                                for port in range(max(port_start, risky_def.port_start), 
+                                                                 min(port_end, risky_def.port_end) + 1):
+                                                    risky_ports_in_range.append(port)
+                                            
+                                            # 안전한 범위로 분리
+                                            safe_ranges = self._split_port_range(protocol, port_start, port_end, risky_ports_in_range)
+                                            for safe_range in safe_ranges:
+                                                if safe_range["port_start"] == safe_range["port_end"]:
+                                                    safe_token = f"{safe_range['protocol']}/{safe_range['port_start']}"
+                                                else:
+                                                    safe_token = f"{safe_range['protocol']}/{safe_range['port_start']}-{safe_range['port_end']}"
+                                                service_filtered_tokens.append(safe_token)
+                                        else:
+                                            # 위험 포트가 없는 토큰은 그대로 유지
+                                            service_filtered_tokens.append(original_token)
+                                    else:
+                                        # 파싱 실패한 토큰은 그대로 유지
+                                        service_filtered_tokens.append(original_token)
                         else:
                             # 직접 프로토콜/포트 형식인 경우
                             if service_token in removed_token_to_filtered:
                                 service_filtered_tokens.extend(removed_token_to_filtered[service_token])
                             else:
-                                # 위험 포트가 없는 토큰은 그대로 유지
-                                service_filtered_tokens.append(service_token)
+                                # removed_token_to_filtered에 없어도 위험 포트를 다시 검사
+                                protocol, port_start, port_end = self._parse_service_token(service_token)
+                                if protocol and port_start is not None and port_end is not None:
+                                    matching_risky = self._find_matching_risky_ports(protocol, port_start, port_end)
+                                    if matching_risky:
+                                        # 위험 포트가 포함된 범위에서 제거
+                                        risky_ports_in_range = []
+                                        for risky_def in matching_risky:
+                                            for port in range(max(port_start, risky_def.port_start), 
+                                                             min(port_end, risky_def.port_end) + 1):
+                                                risky_ports_in_range.append(port)
+                                        
+                                        # 안전한 범위로 분리
+                                        safe_ranges = self._split_port_range(protocol, port_start, port_end, risky_ports_in_range)
+                                        for safe_range in safe_ranges:
+                                            if safe_range["port_start"] == safe_range["port_end"]:
+                                                safe_token = f"{safe_range['protocol']}/{safe_range['port_start']}"
+                                            else:
+                                                safe_token = f"{safe_range['protocol']}/{safe_range['port_start']}-{safe_range['port_end']}"
+                                            service_filtered_tokens.append(safe_token)
+                                    else:
+                                        # 위험 포트가 없는 토큰은 그대로 유지
+                                        service_filtered_tokens.append(service_token)
+                                else:
+                                    # 파싱 실패한 토큰은 그대로 유지
+                                    service_filtered_tokens.append(service_token)
                         
                         # 중복 제거
                         service_filtered_tokens = list(set(service_filtered_tokens))
@@ -524,18 +585,39 @@ class RiskyPortsAnalyzer:
                         group_filtered_tokens = []
                         for original_token in original_expanded_tokens:
                             if original_token in removed_token_to_filtered:
+                                # 이미 필터링된 토큰 사용
                                 group_filtered_tokens.extend(removed_token_to_filtered[original_token])
                             else:
-                                # 위험 포트가 없는 토큰은 그대로 유지
-                                group_filtered_tokens.append(original_token)
+                                # removed_token_to_filtered에 없어도 위험 포트를 다시 검사
+                                # (service_members에 없었거나 다른 이유로 누락되었을 수 있음)
+                                protocol, port_start, port_end = self._parse_service_token(original_token)
+                                if protocol and port_start is not None and port_end is not None:
+                                    matching_risky = self._find_matching_risky_ports(protocol, port_start, port_end)
+                                    if matching_risky:
+                                        # 위험 포트가 포함된 범위에서 제거
+                                        risky_ports_in_range = []
+                                        for risky_def in matching_risky:
+                                            for port in range(max(port_start, risky_def.port_start), 
+                                                             min(port_end, risky_def.port_end) + 1):
+                                                risky_ports_in_range.append(port)
+                                        
+                                        # 안전한 범위로 분리
+                                        safe_ranges = self._split_port_range(protocol, port_start, port_end, risky_ports_in_range)
+                                        for safe_range in safe_ranges:
+                                            if safe_range["port_start"] == safe_range["port_end"]:
+                                                safe_token = f"{safe_range['protocol']}/{safe_range['port_start']}"
+                                            else:
+                                                safe_token = f"{safe_range['protocol']}/{safe_range['port_start']}-{safe_range['port_end']}"
+                                            group_filtered_tokens.append(safe_token)
+                                    else:
+                                        # 위험 포트가 없는 토큰은 그대로 유지
+                                        group_filtered_tokens.append(original_token)
+                                else:
+                                    # 파싱 실패한 토큰은 그대로 유지
+                                    group_filtered_tokens.append(original_token)
                         
                         # 중복 제거
                         group_filtered_tokens = list(set(group_filtered_tokens))
-                        
-                        # 그룹 자체에 위험 포트가 제거되지 않았어도 멤버가 위험 포트를 가지고 있으면
-                        # 원본 토큰을 그대로 사용 (그룹 자체는 위험 포트가 없으므로)
-                        if not group_has_removed_ports:
-                            group_filtered_tokens = list(original_expanded_tokens)
                         
                         if group_filtered_tokens:
                             safe_group_name = f"{group_name}_Safe"
