@@ -628,6 +628,11 @@ class RiskyPortsAnalyzer:
                             filtered_members = []
                             risky_members = []
                             safe_member_objects = []  # 새로 생성할 Safe 멤버 객체들
+                            # 이미 생성된 Safe 객체 이름 추적 (중복 생성 방지)
+                            created_safe_objects = set()
+                            for obj in filtered_service_objects:
+                                if obj.get("name", "").endswith("_Safe"):
+                                    created_safe_objects.add(obj["name"])
                             
                             for member_name in group_members:
                                 # 이 멤버가 위험 포트를 가지고 있는지 확인
@@ -644,61 +649,81 @@ class RiskyPortsAnalyzer:
                                     # 멤버가 개별 서비스 객체인지 확인
                                     if member_name in self.service_value_map:
                                         # 개별 서비스 객체인 경우: 위험 포트를 제거한 Safe 버전 생성
-                                        member_tokens = self.service_value_map[member_name]
-                                        safe_tokens = []
+                                        safe_member_name = f"{member_name}_Safe"
                                         
-                                        for token in member_tokens:
-                                            protocol, port_start, port_end = self._parse_service_token(token)
-                                            if protocol and port_start is not None and port_end is not None:
-                                                # 위험 포트 매칭 확인
-                                                matching_risky = self._find_matching_risky_ports(protocol, port_start, port_end)
-                                                if matching_risky:
-                                                    # 위험 포트가 포함된 범위에서 제거
-                                                    risky_ports_in_range = []
-                                                    for risky_def in matching_risky:
-                                                        for port in range(max(port_start, risky_def.port_start), 
-                                                                         min(port_end, risky_def.port_end) + 1):
-                                                            risky_ports_in_range.append(port)
-                                                    
-                                                    # 안전한 범위로 분리
-                                                    safe_ranges = self._split_port_range(protocol, port_start, port_end, risky_ports_in_range)
-                                                    for safe_range in safe_ranges:
-                                                        if safe_range["port_start"] == safe_range["port_end"]:
-                                                            safe_token = f"{safe_range['protocol']}/{safe_range['port_start']}"
-                                                        else:
-                                                            safe_token = f"{safe_range['protocol']}/{safe_range['port_start']}-{safe_range['port_end']}"
-                                                        safe_tokens.append(safe_token)
-                                                else:
-                                                    # 위험 포트가 없으면 그대로 유지
-                                                    safe_tokens.append(token)
-                                            else:
-                                                # 파싱 실패한 토큰은 그대로 유지
-                                                safe_tokens.append(token)
-                                        
-                                        # Safe 버전이 있으면 새 서비스 객체 생성
-                                        if safe_tokens:
-                                            safe_member_name = f"{member_name}_Safe"
+                                        # 이미 생성된 Safe 객체인지 확인 (중복 생성 방지)
+                                        if safe_member_name in created_safe_objects:
+                                            # 이미 생성된 Safe 객체를 그룹 멤버로 사용
                                             filtered_members.append(safe_member_name)
-                                            
-                                            # Safe 멤버 객체를 filtered_service_objects에 추가
-                                            safe_member_objects.append({
-                                                "type": "service",
-                                                "name": safe_member_name,
-                                                "original_name": member_name,
-                                                "token": member_name,
-                                                "filtered_tokens": list(set(safe_tokens))
-                                            })
-                                            
                                             logger.info(
                                                 f"그룹 {safe_group_name}의 멤버 {member_name}: "
-                                                f"위험 포트 포함, Safe 버전 생성: {safe_member_name} "
-                                                f"(원본 토큰={member_tokens}, Safe 토큰={safe_tokens})"
+                                                f"이미 생성된 Safe 버전 사용: {safe_member_name}"
                                             )
                                         else:
-                                            logger.info(
-                                                f"그룹 {safe_group_name}의 멤버 {member_name}: "
-                                                f"위험 포트 포함, Safe 버전 생성 불가 (모든 포트가 위험 포트)"
-                                            )
+                                            # 새로 Safe 버전 생성
+                                            member_tokens = self.service_value_map[member_name]
+                                            safe_tokens = []
+                                            
+                                            for token in member_tokens:
+                                                # removed_token_to_filtered를 먼저 확인 (개별 서비스 객체와 동일한 로직)
+                                                if token in removed_token_to_filtered:
+                                                    # 이미 필터링된 토큰 사용
+                                                    safe_tokens.extend(removed_token_to_filtered[token])
+                                                else:
+                                                    # removed_token_to_filtered에 없어도 위험 포트를 다시 검사
+                                                    # (service_members에 없었거나 다른 이유로 누락되었을 수 있음)
+                                                    protocol, port_start, port_end = self._parse_service_token(token)
+                                                    if protocol and port_start is not None and port_end is not None:
+                                                        matching_risky = self._find_matching_risky_ports(protocol, port_start, port_end)
+                                                        if matching_risky:
+                                                            # 위험 포트가 포함된 범위에서 제거
+                                                            risky_ports_in_range = []
+                                                            for risky_def in matching_risky:
+                                                                for port in range(max(port_start, risky_def.port_start), 
+                                                                                 min(port_end, risky_def.port_end) + 1):
+                                                                    risky_ports_in_range.append(port)
+                                                            
+                                                            # 안전한 범위로 분리
+                                                            safe_ranges = self._split_port_range(protocol, port_start, port_end, risky_ports_in_range)
+                                                            for safe_range in safe_ranges:
+                                                                if safe_range["port_start"] == safe_range["port_end"]:
+                                                                    safe_token = f"{safe_range['protocol']}/{safe_range['port_start']}"
+                                                                else:
+                                                                    safe_token = f"{safe_range['protocol']}/{safe_range['port_start']}-{safe_range['port_end']}"
+                                                                safe_tokens.append(safe_token)
+                                                        else:
+                                                            # 위험 포트가 없으면 그대로 유지
+                                                            safe_tokens.append(token)
+                                                    else:
+                                                        # 파싱 실패한 토큰은 그대로 유지
+                                                        safe_tokens.append(token)
+                                            
+                                            # Safe 버전이 있으면 새 서비스 객체 생성
+                                            if safe_tokens:
+                                                filtered_members.append(safe_member_name)
+                                                
+                                                # Safe 멤버 객체를 filtered_service_objects에 추가
+                                                safe_member_objects.append({
+                                                    "type": "service",
+                                                    "name": safe_member_name,
+                                                    "original_name": member_name,
+                                                    "token": member_name,
+                                                    "filtered_tokens": list(set(safe_tokens))
+                                                })
+                                                
+                                                # 생성된 Safe 객체 이름 추적
+                                                created_safe_objects.add(safe_member_name)
+                                                
+                                                logger.info(
+                                                    f"그룹 {safe_group_name}의 멤버 {member_name}: "
+                                                    f"위험 포트 포함, Safe 버전 생성: {safe_member_name} "
+                                                    f"(원본 토큰={member_tokens}, Safe 토큰={safe_tokens})"
+                                                )
+                                            else:
+                                                logger.info(
+                                                    f"그룹 {safe_group_name}의 멤버 {member_name}: "
+                                                    f"위험 포트 포함, Safe 버전 생성 불가 (모든 포트가 위험 포트)"
+                                                )
                                     elif member_name in self.service_group_map:
                                         # 서비스 그룹인 경우: 재귀적으로 처리하지 않고 제외
                                         # (그룹의 Safe 버전 생성은 복잡하므로 일단 제외)
