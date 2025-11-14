@@ -310,6 +310,25 @@ function getSyncStatusText(status) {
 }
 
 /**
+ * IP 주소 셀 렌더러 (클릭 가능한 링크)
+ */
+function ipAddressCellRenderer(params) {
+  const ip = params.value;
+  if (!ip) return '';
+  
+  // IP 주소를 https:// 링크로 변환 (새 탭에서 열림)
+  const url = `https://${ip}`;
+  return `
+    <a href="${url}" target="_blank" rel="noopener noreferrer" 
+       style="color: #3273dc; text-decoration: none; cursor: pointer;"
+       onmouseover="this.style.textDecoration='underline'"
+       onmouseout="this.style.textDecoration='none'">
+      ${ip}
+    </a>
+  `;
+}
+
+/**
  * 동기화 상태 셀 렌더러 (동그라미 아이콘 + 호버 툴팁)
  */
 function statusCellRenderer(params) {
@@ -368,7 +387,11 @@ function getColumns() {
       valueFormatter: p => codeToLabel.get(normalizeVendorCode(p.value)) || p.value 
     },
     { field: 'model', headerName: '모델', maxWidth: 150 },
-    { field: 'ip_address', headerName: 'IP 주소' },
+    { 
+      field: 'ip_address', 
+      headerName: 'IP 주소',
+      cellRenderer: ipAddressCellRenderer
+    },
     { field: 'description', headerName: '설명' },
     { 
       field: 'last_sync_status', 
