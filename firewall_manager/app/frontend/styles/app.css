@@ -215,7 +215,33 @@ select:focus,
 .minimal-section {
   padding: 2rem 1.5rem;
   background-color: transparent;
-  min-height: calc(100vh - 3.5rem);
+  flex: 1;
+  min-height: calc(100vh - 3.5rem - 3rem); /* footer 높이 고려 (슬림하게 조정) */
+}
+
+/* Footer */
+.minimal-footer {
+  background: transparent;
+  border-top: 1px solid rgba(229, 231, 235, 0.5);
+  padding: 0.75rem 1.5rem;
+  margin-top: auto;
+  box-shadow: none;
+}
+
+.minimal-footer .footer-text {
+  font-size: 0.75rem;
+  color: rgba(107, 114, 128, 0.6);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.minimal-footer .footer-divider {
+  color: rgba(229, 231, 235, 0.5);
+  margin: 0 0.125rem;
 }
 
 /* ============================================================================

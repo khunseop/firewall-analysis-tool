@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="/static/vendor/font-awesome/css/all.min.css" />
     <link rel="stylesheet" href="/app/styles/app.css" />
   </head>
-  <body>
+  <body style="display: flex; flex-direction: column; min-height: 100vh;">
     <nav class="navbar minimal-navbar" role="navigation" aria-label="main navigation">
       <div class="container is-fluid">
         <div class="navbar-brand">
@@ -49,6 +49,18 @@
         <div id="app"></div>
       </div>
     </section>
+
+    <footer class="footer minimal-footer">
+      <div class="container is-fluid">
+        <div class="content has-text-centered">
+          <p class="footer-text">
+            <span>© 2025 Firewall Analysis Tool</span>
+            <span class="footer-divider">|</span>
+            <span>Developed by hunseop.kim</span>
+          </p>
+        </div>
+      </div>
+    </footer>
 
     <script src="/static/vendor/ag-grid/ag-grid-community.js"></script>
     <script src="/static/vendor/tom-select/tom-select.complete.js"></script>
