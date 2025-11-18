@@ -5,11 +5,17 @@ import logging
 from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel
 
 from app.db.session import get_db
 from app import crud
 from app.services.deletion_workflow.workflow_manager import WorkflowManager
 from app.services.deletion_workflow.file_manager import FileManager
+
+
+class ResetRequest(BaseModel):
+    """워크플로우 초기화 요청 모델"""
+    delete_files: bool = True
 
 logger = logging.getLogger(__name__)
 
@@ -258,4 +264,27 @@ async def download_final_results(
             filename=f"deletion_workflow_{device_id}_final_results.zip",
             media_type="application/zip"
         )
+
+
+@router.post("/{device_id}/reset")
+async def reset_workflow(
+    device_id: int,
+    request_body: Optional[ResetRequest] = None,
+    db: AsyncSession = Depends(get_db)
+) -> Any:
+    """워크플로우 초기화"""
+    try:
+        delete_files = True
+        if request_body:
+            delete_files = request_body.delete_files
+        
+        manager = WorkflowManager(db, device_id)
+        await manager.reset_workflow(delete_files=delete_files)
+        return {
+            "msg": "워크플로우가 초기화되었습니다.",
+            "delete_files": delete_files
+        }
+    except Exception as e:
+        logger.error(f"워크플로우 초기화 실패: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 

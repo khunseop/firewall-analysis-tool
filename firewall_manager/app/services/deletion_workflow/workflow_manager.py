@@ -238,4 +238,26 @@ class WorkflowManager:
         )
         
         return result_files
+    
+    async def reset_workflow(self, delete_files: bool = True) -> None:
+        """
+        워크플로우 초기화
+        
+        Args:
+            delete_files: 임시 파일 삭제 여부 (기본값: True)
+        """
+        workflow = await crud.deletion_workflow.get_workflow_by_device(self.db, self.device_id)
+        
+        if workflow:
+            # DB 레코드 삭제
+            await crud.deletion_workflow.delete_workflow(self.db, workflow)
+            logger.info(f"워크플로우 DB 레코드 삭제 완료: device_id={self.device_id}")
+        
+        if delete_files:
+            # 임시 파일 삭제
+            deleted = self.file_manager.delete_workflow_files(self.device_id)
+            if deleted:
+                logger.info(f"워크플로우 임시 파일 삭제 완료: device_id={self.device_id}")
+            else:
+                logger.warning(f"워크플로우 임시 파일 삭제 실패 또는 파일 없음: device_id={self.device_id}")
 

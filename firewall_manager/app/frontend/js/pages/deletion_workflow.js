@@ -76,6 +76,12 @@ function setupEventHandlers() {
     }
   });
 
+  // 워크플로우 초기화
+  document.getElementById("btn-reset-workflow").addEventListener("click", async () => {
+    if (!currentDeviceId) return;
+    await resetWorkflow();
+  });
+
   // 워크플로우 시작
   document.getElementById("btn-start-workflow").addEventListener("click", async () => {
     if (!currentDeviceId) return;
@@ -451,6 +457,36 @@ async function downloadFinalResults() {
   } catch (error) {
     console.error("최종 결과 다운로드 실패:", error);
     openAlert("오류", `최종 결과 다운로드 실패: ${error.message}`);
+  }
+}
+
+/**
+ * 워크플로우 초기화
+ */
+async function resetWorkflow() {
+  if (!currentDeviceId) return;
+
+  // 확인 다이얼로그
+  const confirmed = confirm("워크플로우를 초기화하시겠습니까?\n\n초기화하면:\n- 워크플로우 상태가 초기화됩니다\n- 임시 파일들이 삭제됩니다\n\n계속하시겠습니까?");
+  if (!confirmed) return;
+
+  const btn = document.getElementById("btn-reset-workflow");
+  try {
+    setButtonLoading(btn, true);
+    await api.resetWorkflow(currentDeviceId, true);
+    openAlert("성공", "워크플로우가 초기화되었습니다.");
+    
+    // UI 초기화
+    hideWorkflowUI();
+    showEmptyMessage("workflow-message-container", "장비를 선택하세요");
+    
+    // 상태 다시 로드 (초기 상태로)
+    await loadWorkflowStatus();
+  } catch (error) {
+    console.error("워크플로우 초기화 실패:", error);
+    openAlert("오류", `워크플로우 초기화 실패: ${error.message}`);
+  } finally {
+    setButtonLoading(btn, false);
   }
 }
 

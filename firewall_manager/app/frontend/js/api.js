@@ -216,6 +216,21 @@ export const api = {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   },
+  resetWorkflow: async (deviceId, deleteFiles = true) => {
+    const res = await fetch(`${BASE}/deletion-workflow/${deviceId}/reset`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ delete_files: deleteFiles }),
+    });
+    if (!res.ok) {
+      let detail = "Reset failed";
+      try { const data = await res.json(); detail = data.detail || data.msg || detail; } catch {}
+      const error = new Error(detail);
+      error.status = res.status;
+      throw error;
+    }
+    return res.json();
+  },
 };
 
 
