@@ -64,7 +64,7 @@ class ApplicationAggregator:
         """
         컬럼명을 표준화된 이름으로 매핑합니다.
         application_info_column_mapping의 키값(표준 컬럼명)으로 변환하고,
-        내부 값 리스트의 원소들이 원본 컬럼에서 해당하는 열을 추출해서 컬럼명을 변경합니다.
+        내부 값 리스트의 원소들(원본 컬럼명)이 실제 엑셀 파일의 컬럼명과 일치하면 표준 컬럼명으로 변경합니다.
         
         Args:
             df: 원본 데이터프레임
@@ -75,19 +75,18 @@ class ApplicationAggregator:
         column_mapping_config = self.config.get('application_info_column_mapping', {})
         
         # 원본 코드 방식: {원본컬럼명: 표준컬럼명} 형태의 매핑 딕셔너리 생성
+        # application_info_column_mapping의 값 리스트에 있는 원본 컬럼명들을 표준 컬럼명으로 매핑
         column_mapping = {}
-        for standard_col, possible_cols in column_mapping_config.items():
-            for possible_col in possible_cols:
-                # 가능한 모든 원본 컬럼명을 표준 컬럼명으로 매핑
-                column_mapping[possible_col] = standard_col
-                # 대소문자 변형도 추가
-                column_mapping[possible_col.upper()] = standard_col
-                column_mapping[possible_col.lower()] = standard_col
+        for standard_col, original_cols_list in column_mapping_config.items():
+            # 리스트의 각 원본 컬럼명을 표준 컬럼명으로 매핑
+            for original_col in original_cols_list:
+                column_mapping[original_col] = standard_col
         
         # 처리된 컬럼들 기록
         processed_columns = []
         
         # 원본 코드 방식: 컬럼명을 매핑하여 최종 컬럼에 맞게 변경
+        # 실제 엑셀 파일의 컬럼명이 매핑 딕셔너리에 있으면 표준 컬럼명으로 변경
         for old_col, new_col in column_mapping.items():
             if old_col in df.columns:
                 df.rename(columns={old_col: new_col}, inplace=True)
