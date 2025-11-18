@@ -63,6 +63,8 @@ class ApplicationAggregator:
     def normalize_column_names(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         컬럼명을 표준화된 이름으로 매핑합니다.
+        application_info_column_mapping의 키값(표준 컬럼명)으로 변환하고,
+        내부 값 리스트의 원소들이 원본 컬럼에서 해당하는 열을 추출해서 컬럼명을 변경합니다.
         
         Args:
             df: 원본 데이터프레임
@@ -72,16 +74,32 @@ class ApplicationAggregator:
         """
         column_mapping = self.config.get('application_info_column_mapping', {})
         
-        # 역매핑 딕셔너리 생성: 예상 컬럼명 -> 표준 컬럼명
-        reverse_mapping = {}
-        for standard_col, possible_cols in column_mapping.items():
-            for possible_col in possible_cols:
-                reverse_mapping[possible_col.upper()] = standard_col
-                reverse_mapping[possible_col.lower()] = standard_col
-                reverse_mapping[possible_col] = standard_col
+        # 매핑 딕셔너리 생성: 원본 컬럼명 -> 표준 컬럼명
+        rename_dict = {}
+        processed_columns = []
+        
+        # 원본 컬럼명을 순회하면서 매칭되는 표준 컬럼명 찾기
+        for original_col in df.columns:
+            matched = False
+            # 각 표준 컬럼명과 그에 대응하는 가능한 컬럼명 리스트 확인
+            for standard_col, possible_cols in column_mapping.items():
+                # 원본 컬럼명이 가능한 컬럼명 리스트에 있는지 확인 (대소문자 무시)
+                for possible_col in possible_cols:
+                    if original_col.upper() == possible_col.upper() or original_col == possible_col:
+                        rename_dict[original_col] = standard_col
+                        processed_columns.append((original_col, standard_col))
+                        matched = True
+                        break
+                if matched:
+                    break
+        
+        if processed_columns:
+            logger.info(f"변경된 컬럼: {processed_columns}")
+        else:
+            logger.info("변경된 컬럼 없음")
         
         # 컬럼명 매핑 적용
-        df_renamed = df.rename(columns=lambda x: reverse_mapping.get(x, reverse_mapping.get(x.upper(), x)))
+        df_renamed = df.rename(columns=rename_dict)
         
         return df_renamed
     
@@ -113,9 +131,40 @@ class ApplicationAggregator:
                 # 각 시트 데이터를 읽기
                 df = pd.read_excel(xls, sheet_name=sheet_name)
                 
-                # 컬럼명 표준화
+                # 컬럼명 표준화 (application_info_column_mapping 기반)
                 df = self.normalize_column_names(df)
                 logger.info(f"표준화된 컬럼: {list(df.columns)}")
+                
+                # 이메일 생성 로직 (원본 코드 참조)
+                # WRITE_PERSON_EMAIL이 비어있고 WRITE_PERSON_ID가 있으면 자동 생성
+                if 'WRITE_PERSON_ID' in df.columns and 'REQUESTER_EMAIL' in df.columns:
+                    if 'WRITE_PERSON_EMAIL' not in df.columns:
+                        df['WRITE_PERSON_EMAIL'] = ""
+                    
+                    df['WRITE_PERSON_EMAIL'] = df.apply(
+                        lambda row: f"{row['WRITE_PERSON_ID']}@{row['REQUESTER_EMAIL'].split('@')[1]}" 
+                        if (pd.isna(row.get('WRITE_PERSON_EMAIL', '')) or str(row.get('WRITE_PERSON_EMAIL', '')) == "") 
+                        and pd.notna(row.get('WRITE_PERSON_ID')) 
+                        and pd.notna(row.get('REQUESTER_EMAIL')) 
+                        and '@' in str(row.get('REQUESTER_EMAIL', ''))
+                        else row.get('WRITE_PERSON_EMAIL', ''), 
+                        axis=1
+                    )
+                
+                # APPROVAL_PERSON_EMAIL이 비어있고 APPROVAL_PERSON_ID가 있으면 자동 생성
+                if 'APPROVAL_PERSON_ID' in df.columns and 'REQUESTER_EMAIL' in df.columns:
+                    if 'APPROVAL_PERSON_EMAIL' not in df.columns:
+                        df['APPROVAL_PERSON_EMAIL'] = ""
+                    
+                    df['APPROVAL_PERSON_EMAIL'] = df.apply(
+                        lambda row: f"{row['APPROVAL_PERSON_ID']}@{row['REQUESTER_EMAIL'].split('@')[1]}" 
+                        if (pd.isna(row.get('APPROVAL_PERSON_EMAIL', '')) or str(row.get('APPROVAL_PERSON_EMAIL', '')) == "") 
+                        and pd.notna(row.get('APPROVAL_PERSON_ID')) 
+                        and pd.notna(row.get('REQUESTER_EMAIL')) 
+                        and '@' in str(row.get('REQUESTER_EMAIL', ''))
+                        else row.get('APPROVAL_PERSON_EMAIL', ''), 
+                        axis=1
+                    )
                 
                 # 날짜 포맷 수정 ('REQUEST_START_DATE', 'REQUEST_END_DATE' 컬럼)
                 for date_column in ['REQUEST_START_DATE', 'REQUEST_END_DATE']:
@@ -134,31 +183,34 @@ class ApplicationAggregator:
                 if 'REQUEST_END_DATE' in final_df.columns:
                     final_df = final_df.sort_values(by='REQUEST_END_DATE', ascending=False)
                 
-                # 표준 컬럼 순서 정의
-                standard_columns = [
-                    "REQUEST_ID", "REQUEST_START_DATE", "REQUEST_END_DATE", "TITLE",
-                    "REQUESTER_ID", "REQUESTER_EMAIL", "REQUESTER_NAME", "REQUESTER_DEPT",
-                    "WRITE_PERSON_ID", "WRITE_PERSON_EMAIL", "WRITE_PERSON_NAME", "WRITE_PERSON_DEPT",
-                    "APPROVAL_PERSON_ID", "APPROVAL_PERSON_EMAIL", "APPROVAL_PERSON_NAME", "APPROVAL_PERSON_DEPT_NAME",
-                    "REQUEST_DATE", "REQUEST_STATUS", "PROGRESS", "MIS_ID", "GROUP_VERSION"
-                ]
+                # 표준 컬럼 순서 정의 (application_info_column_mapping의 키값 순서)
+                column_mapping = self.config.get('application_info_column_mapping', {})
+                standard_columns = list(column_mapping.keys())
                 
-                # 존재하는 표준 컬럼만 순서대로 정렬
+                # 존재하는 표준 컬럼만 순서대로 정렬하고, 없는 컬럼은 공백으로 채움
+                # 원본 코드의 reindex 방식 참조
                 existing_standard_cols = [col for col in standard_columns if col in final_df.columns]
+                missing_standard_cols = [col for col in standard_columns if col not in final_df.columns]
+                
                 # 표준 컬럼에 없는 나머지 컬럼들
                 remaining_cols = [col for col in final_df.columns if col not in standard_columns]
-                final_df = final_df[existing_standard_cols + remaining_cols]
+                
+                # 표준 컬럼 순서에 맞춰서 재정렬하고 부족한 컬럼은 공백으로 채움
+                final_df = final_df.reindex(columns=existing_standard_cols + missing_standard_cols + remaining_cols, fill_value="")
                 
                 logger.info(f"최종 데이터프레임에 {len(final_df)}개의 행이 포함됨")
+                logger.info(f"표준 컬럼 순서: {existing_standard_cols}")
+                if missing_standard_cols:
+                    logger.info(f"누락된 표준 컬럼 (공백으로 채움): {missing_standard_cols}")
                 
-                # 결과를 새로운 엑셀 파일로 저장
+                # 결과를 새로운 엑셀 파일로 저장 (스타일 미적용 - 일반 step 결과)
                 output_file_path = self.file_manager.create_step_file_path(self.device_id, 4)
                 self.excel_manager.save_dataframe_to_excel(
                     df=final_df,
                     file_path=output_file_path,
                     sheet_name="신청정보",
                     index=False,
-                    style=True
+                    style=False  # 일반 step 결과에는 스타일 미적용
                 )
                 
                 logger.info(f"Step 4 완료: 파일 저장됨 - {output_file_path}")
