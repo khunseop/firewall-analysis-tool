@@ -199,7 +199,18 @@ function updateWorkflowUI(status) {
     const currentStep = status.current_step || 0;
     
     for (let i = 1; i <= 7; i++) {
-      const hasFile = !!stepFiles[i.toString()] || (i === 1 && status.master_file_path);
+      // 파일 존재 여부 확인
+      let hasFile = false;
+      if (i === 1) {
+        // Step 1은 stepFiles['1'] 또는 master_file_path 확인
+        hasFile = !!stepFiles['1'] || !!status.master_file_path;
+      } else if (i === 7) {
+        // Step 7은 7_notice 또는 7_delete 확인
+        hasFile = !!stepFiles['7_notice'] || !!stepFiles['7_delete'];
+      } else {
+        // 다른 step은 stepFiles[stepNumber] 확인
+        hasFile = !!stepFiles[i.toString()];
+      }
       
       // 단계 완료 여부 판단: 현재 단계보다 작거나, 현재 단계이고 완료 상태
       const isCompleted = i < currentStep || (i === currentStep && status.status === "completed");
@@ -207,7 +218,8 @@ function updateWorkflowUI(status) {
       const isFailed = i === currentStep && status.status === "failed";
       
       if (isCompleted) {
-        updateStepStatus(i, "completed", hasFile);
+        // 완료된 step은 항상 다운로드 버튼 표시 (파일이 없으면 백엔드에서 404 반환)
+        updateStepStatus(i, "completed", true);
       } else if (isInProgress) {
         updateStepStatus(i, "in_progress", false);
       } else if (isFailed) {
@@ -269,10 +281,15 @@ function updateStepStatus(stepNumber, status, hasFile) {
   }
 
   // 다운로드 버튼 표시
-  if (hasFile) {
-    downloadBtn.style.display = "inline-block";
+  if (downloadBtn) {
+    if (hasFile) {
+      downloadBtn.style.display = "inline-block";
+      downloadBtn.disabled = false;
+    } else {
+      downloadBtn.style.display = "none";
+    }
   } else {
-    downloadBtn.style.display = "none";
+    console.warn(`다운로드 버튼을 찾을 수 없습니다: step-${stepNumber}-download`);
   }
 
   // 이전 단계 완료 여부 확인하여 실행 버튼 활성화
