@@ -101,7 +101,7 @@ class ConfigManager:
             },
             "parsing_patterns": {
                 "gsams3": {
-                    "pattern": "RS : (S\\d{8}[A-Z0-9]{4}) (\\d{8})~(\\d{8}) ([a-zA-Z0-9._-]+) (PS\\d{8}-\\d{1,3}(?:-v\\d{1,3})?|F\\d{9}|S\\d{9}|M\\d{9})(?: ([A-Za-z0-9!@#$%^&*()_+=-]{16}))?",
+                    "pattern": "",
                     "group_mapping": {
                         "ruleset_id": 1,
                         "start_date": 2,
@@ -143,7 +143,7 @@ class ConfigManager:
                 },
                 "request_type_mapping": {
                     "P": "GROUP",
-                    "F": "NORMAL",
+                    "F": "GENERAL",
                     "S": "SERVER",
                     "M": "PAM",
                     "description": "Request ID 첫 글자에 따른 타입 매핑"
