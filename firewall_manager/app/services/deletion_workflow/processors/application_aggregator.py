@@ -72,36 +72,34 @@ class ApplicationAggregator:
         Returns:
             컬럼명이 표준화된 데이터프레임
         """
-        column_mapping = self.config.get('application_info_column_mapping', {})
+        column_mapping_config = self.config.get('application_info_column_mapping', {})
         
-        # 매핑 딕셔너리 생성: 원본 컬럼명 -> 표준 컬럼명
-        rename_dict = {}
+        # 원본 코드 방식: {원본컬럼명: 표준컬럼명} 형태의 매핑 딕셔너리 생성
+        column_mapping = {}
+        for standard_col, possible_cols in column_mapping_config.items():
+            for possible_col in possible_cols:
+                # 가능한 모든 원본 컬럼명을 표준 컬럼명으로 매핑
+                column_mapping[possible_col] = standard_col
+                # 대소문자 변형도 추가
+                column_mapping[possible_col.upper()] = standard_col
+                column_mapping[possible_col.lower()] = standard_col
+        
+        # 처리된 컬럼들 기록
         processed_columns = []
         
-        # 원본 컬럼명을 순회하면서 매칭되는 표준 컬럼명 찾기
-        for original_col in df.columns:
-            matched = False
-            # 각 표준 컬럼명과 그에 대응하는 가능한 컬럼명 리스트 확인
-            for standard_col, possible_cols in column_mapping.items():
-                # 원본 컬럼명이 가능한 컬럼명 리스트에 있는지 확인 (대소문자 무시)
-                for possible_col in possible_cols:
-                    if original_col.upper() == possible_col.upper() or original_col == possible_col:
-                        rename_dict[original_col] = standard_col
-                        processed_columns.append((original_col, standard_col))
-                        matched = True
-                        break
-                if matched:
-                    break
+        # 원본 코드 방식: 컬럼명을 매핑하여 최종 컬럼에 맞게 변경
+        for old_col, new_col in column_mapping.items():
+            if old_col in df.columns:
+                df.rename(columns={old_col: new_col}, inplace=True)
+                processed_columns.append((old_col, new_col))
+                logger.info(f"컬럼명 변환: {old_col} -> {new_col}")
         
         if processed_columns:
             logger.info(f"변경된 컬럼: {processed_columns}")
         else:
             logger.info("변경된 컬럼 없음")
         
-        # 컬럼명 매핑 적용
-        df_renamed = df.rename(columns=rename_dict)
-        
-        return df_renamed
+        return df
     
     def process_applications(self, input_file_path: str) -> str:
         """
