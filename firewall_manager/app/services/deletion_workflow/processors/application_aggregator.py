@@ -66,6 +66,9 @@ class ApplicationAggregator:
         application_info_column_mapping의 키값(표준 컬럼명)으로 변환하고,
         내부 값 리스트의 원소들(원본 컬럼명)이 실제 엑셀 파일의 컬럼명과 일치하면 표준 컬럼명으로 변경합니다.
         
+        설정 구조: {"표준컬럼명": ["원본컬럼명1", "원본컬럼명2", ...]}
+        예: {"REQUEST_ID": ["REQUEST_ID", "Request ID", "요청ID", ...]}
+        
         Args:
             df: 원본 데이터프레임
             
@@ -74,19 +77,24 @@ class ApplicationAggregator:
         """
         column_mapping_config = self.config.get('application_info_column_mapping', {})
         
-        # 원본 코드 방식: {원본컬럼명: 표준컬럼명} 형태의 매핑 딕셔너리 생성
-        # application_info_column_mapping의 값 리스트에 있는 원본 컬럼명들을 표준 컬럼명으로 매핑
+        logger.info(f"원본 컬럼명: {list(df.columns)}")
+        logger.info(f"매핑 설정: {list(column_mapping_config.keys())}")
+        
+        # {원본컬럼명: 표준컬럼명} 형태의 매핑 딕셔너리 생성
+        # application_info_column_mapping의 구조: {표준컬럼명: [원본컬럼명들]}
         column_mapping = {}
         for standard_col, original_cols_list in column_mapping_config.items():
             # 리스트의 각 원본 컬럼명을 표준 컬럼명으로 매핑
             for original_col in original_cols_list:
                 column_mapping[original_col] = standard_col
         
+        logger.info(f"생성된 매핑 딕셔너리 키 개수: {len(column_mapping)}")
+        
         # 처리된 컬럼들 기록
         processed_columns = []
         
-        # 원본 코드 방식: 컬럼명을 매핑하여 최종 컬럼에 맞게 변경
         # 실제 엑셀 파일의 컬럼명이 매핑 딕셔너리에 있으면 표준 컬럼명으로 변경
+        # 원본 코드 방식: for old_col, new_col in column_mapping.items()
         for old_col, new_col in column_mapping.items():
             if old_col in df.columns:
                 df.rename(columns={old_col: new_col}, inplace=True)
@@ -95,8 +103,11 @@ class ApplicationAggregator:
         
         if processed_columns:
             logger.info(f"변경된 컬럼: {processed_columns}")
+            logger.info(f"변환 후 컬럼명: {list(df.columns)}")
         else:
-            logger.info("변경된 컬럼 없음")
+            logger.warning("변경된 컬럼 없음 - 원본 컬럼명과 매핑 설정이 일치하지 않을 수 있습니다.")
+            logger.info(f"원본 컬럼명: {list(df.columns)}")
+            logger.info(f"매핑 가능한 원본 컬럼명 예시: {list(column_mapping.keys())[:10]}")
         
         return df
     
