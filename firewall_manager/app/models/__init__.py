@@ -10,3 +10,4 @@ from .analysis import AnalysisTask, RedundancyPolicySet, AnalysisResult
 from .sync_schedule import SyncSchedule
 from .settings import Settings
 from .notification_log import NotificationLog
+from .deletion_workflow import DeletionWorkflow
