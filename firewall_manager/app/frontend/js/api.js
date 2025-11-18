@@ -175,7 +175,26 @@ export const api = {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `step_${stepNumber}_result.xlsx`;
+    
+    // Step 7은 ZIP 파일, 나머지는 Excel 파일
+    const contentType = res.headers.get('content-type') || '';
+    const isZip = contentType.includes('application/zip') || stepNumber === 7;
+    const extension = isZip ? '.zip' : '.xlsx';
+    const filename = isZip ? `step_${stepNumber}_results.zip` : `step_${stepNumber}_result.xlsx`;
+    
+    // Content-Disposition 헤더에서 파일명 추출 시도
+    const contentDisposition = res.headers.get('content-disposition');
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      if (filenameMatch && filenameMatch[1]) {
+        a.download = filenameMatch[1].replace(/['"]/g, '');
+      } else {
+        a.download = filename;
+      }
+    } else {
+      a.download = filename;
+    }
+    
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

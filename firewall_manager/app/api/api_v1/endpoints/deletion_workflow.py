@@ -139,7 +139,56 @@ async def download_step_result(
     
     file_manager = FileManager()
     import os
+    import zipfile
+    import tempfile
+    from fastapi.responses import FileResponse
     
+    # Step 7은 두 개의 파일(notice, delete)이 있으므로 ZIP으로 묶어서 다운로드
+    if step_number == 7:
+        notice_path = None
+        delete_path = None
+        
+        # DB에서 경로 확인
+        notice_path = workflow.step_files.get('7_notice')
+        delete_path = workflow.step_files.get('7_delete')
+        
+        # 디렉토리에서 최신 파일 찾기
+        latest_notice = file_manager.get_latest_file_by_pattern(device_id, 'step_7_notice_')
+        latest_delete = file_manager.get_latest_file_by_pattern(device_id, 'step_7_delete_')
+        
+        # 최신 파일 선택
+        if notice_path and os.path.exists(notice_path) and latest_notice and os.path.exists(latest_notice):
+            notice_mtime = os.path.getmtime(notice_path)
+            latest_notice_mtime = os.path.getmtime(latest_notice)
+            notice_path = latest_notice if latest_notice_mtime > notice_mtime else notice_path
+        elif latest_notice and os.path.exists(latest_notice):
+            notice_path = latest_notice
+        
+        if delete_path and os.path.exists(delete_path) and latest_delete and os.path.exists(latest_delete):
+            delete_mtime = os.path.getmtime(delete_path)
+            latest_delete_mtime = os.path.getmtime(latest_delete)
+            delete_path = latest_delete if latest_delete_mtime > delete_mtime else delete_path
+        elif latest_delete and os.path.exists(latest_delete):
+            delete_path = latest_delete
+        
+        if not notice_path and not delete_path:
+            raise HTTPException(status_code=404, detail="Step 7 결과 파일을 찾을 수 없습니다.")
+        
+        # ZIP 파일 생성
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as tmp_zip:
+            with zipfile.ZipFile(tmp_zip.name, 'w') as zipf:
+                if notice_path and os.path.exists(notice_path):
+                    zipf.write(notice_path, '중복정책_공지용.xlsx')
+                if delete_path and os.path.exists(delete_path):
+                    zipf.write(delete_path, '중복정책_삭제용.xlsx')
+            
+            return FileResponse(
+                tmp_zip.name,
+                filename=f"step_7_results.zip",
+                media_type="application/zip"
+            )
+    
+    # 다른 단계는 단일 파일 다운로드
     # DB에 저장된 경로 확인
     db_file_path = None
     if step_number == 1:
@@ -175,7 +224,6 @@ async def download_step_result(
     if not file_path or not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail=f"Step {step_number} 결과 파일을 찾을 수 없습니다.")
     
-    from fastapi.responses import FileResponse
     return FileResponse(file_path, filename=os.path.basename(file_path))
 
 
