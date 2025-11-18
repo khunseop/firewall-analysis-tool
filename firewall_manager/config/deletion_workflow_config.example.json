@@ -27,7 +27,15 @@
       "Application",
       "Security Profile",
       "Category",
-      "Description"
+      "Description",
+      "Request Type",
+      "Request ID",
+      "Group Version",
+      "Ruleset ID",
+      "MIS ID",
+      "Request User",
+      "Start Date",
+      "End Date"
     ],
     "no_history": [
       "예외",
@@ -66,6 +74,137 @@
   "except_list": [],
   "timeframes": {
     "recent_policy_days": 90
+  },
+  "application_info_column_mapping": {
+    "REQUEST_ID": [
+      "REQUEST_ID",
+      "Request ID",
+      "요청ID",
+      "신청ID",
+      "REQUESTID"
+    ],
+    "REQUEST_START_DATE": [
+      "REQUEST_START_DATE",
+      "Request Start Date",
+      "시작일",
+      "신청시작일",
+      "START_DATE"
+    ],
+    "REQUEST_END_DATE": [
+      "REQUEST_END_DATE",
+      "Request End Date",
+      "종료일",
+      "신청종료일",
+      "END_DATE"
+    ],
+    "TITLE": [
+      "TITLE",
+      "Title",
+      "제목",
+      "신청제목"
+    ],
+    "REQUESTER_ID": [
+      "REQUESTER_ID",
+      "Requester ID",
+      "신청자ID",
+      "요청자ID"
+    ],
+    "REQUESTER_EMAIL": [
+      "REQUESTER_EMAIL",
+      "Requester Email",
+      "신청자이메일",
+      "요청자이메일"
+    ],
+    "REQUESTER_NAME": [
+      "REQUESTER_NAME",
+      "Requester Name",
+      "신청자명",
+      "요청자명"
+    ],
+    "REQUESTER_DEPT": [
+      "REQUESTER_DEPT",
+      "Requester Dept",
+      "신청자부서",
+      "요청자부서"
+    ],
+    "WRITE_PERSON_ID": [
+      "WRITE_PERSON_ID",
+      "Write Person ID",
+      "작성자ID",
+      "작성자 ID"
+    ],
+    "WRITE_PERSON_EMAIL": [
+      "WRITE_PERSON_EMAIL",
+      "Write Person Email",
+      "작성자이메일",
+      "작성자 이메일"
+    ],
+    "WRITE_PERSON_NAME": [
+      "WRITE_PERSON_NAME",
+      "Write Person Name",
+      "작성자명",
+      "작성자 명"
+    ],
+    "WRITE_PERSON_DEPT": [
+      "WRITE_PERSON_DEPT",
+      "Write Person Dept",
+      "작성자부서",
+      "작성자 부서"
+    ],
+    "APPROVAL_PERSON_ID": [
+      "APPROVAL_PERSON_ID",
+      "Approval Person ID",
+      "승인자ID",
+      "승인자 ID"
+    ],
+    "APPROVAL_PERSON_EMAIL": [
+      "APPROVAL_PERSON_EMAIL",
+      "Approval Person Email",
+      "승인자이메일",
+      "승인자 이메일"
+    ],
+    "APPROVAL_PERSON_NAME": [
+      "APPROVAL_PERSON_NAME",
+      "Approval Person Name",
+      "승인자명",
+      "승인자 명"
+    ],
+    "APPROVAL_PERSON_DEPT_NAME": [
+      "APPROVAL_PERSON_DEPT_NAME",
+      "Approval Person Dept Name",
+      "승인자부서명",
+      "승인자 부서명"
+    ],
+    "REQUEST_DATE": [
+      "REQUEST_DATE",
+      "Request Date",
+      "신청일",
+      "요청일"
+    ],
+    "REQUEST_STATUS": [
+      "REQUEST_STATUS",
+      "Request Status",
+      "신청상태",
+      "요청상태"
+    ],
+    "PROGRESS": [
+      "PROGRESS",
+      "Progress",
+      "진행상태",
+      "진행 상태"
+    ],
+    "MIS_ID": [
+      "MIS_ID",
+      "MIS ID",
+      "MISID"
+    ],
+    "GROUP_VERSION": [
+      "GROUP_VERSION",
+      "Group Version",
+      "그룹버전",
+      "버전",
+      "VERSION"
+    ]
   },
   "parsing_patterns": {
     "gsams3": {

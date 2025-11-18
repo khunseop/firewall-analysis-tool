@@ -3,7 +3,7 @@ Step 1: RequestParser - 정책 description에서 신청정보 파싱
 """
 import re
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 from datetime import datetime
 import pandas as pd
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -60,6 +60,32 @@ class RequestParser:
         except ValueError:
             return date_str
     
+    def extract_group_version(self, request_id: str) -> Tuple[str, Optional[str]]:
+        """
+        Request ID에서 GROUP_VERSION을 분리합니다.
+        예: PS12345678-1-v12 -> (PS12345678-1, 12)
+        
+        Args:
+            request_id: Request ID 문자열
+            
+        Returns:
+            (request_id_without_version, group_version) 튜플
+        """
+        if not request_id:
+            return request_id, None
+        
+        # -v숫자 패턴 찾기 (예: -v12, -v1, -v123)
+        import re
+        version_pattern = r'-v(\d+)$'
+        match = re.search(version_pattern, request_id)
+        
+        if match:
+            version = match.group(1)
+            request_id_without_version = request_id[:match.start()]
+            return request_id_without_version, version
+        else:
+            return request_id, None
+    
     def parse_request_info(self, rule_name: str, description: Optional[str]) -> Dict[str, Any]:
         """
         규칙 이름과 설명에서 신청 정보를 파싱합니다.
@@ -74,6 +100,7 @@ class RequestParser:
         data_dict = {
             "Request Type": "Unknown",
             "Request ID": None,
+            "Group Version": None,
             "Ruleset ID": None,
             "MIS ID": None,
             "Request User": None,
@@ -103,8 +130,11 @@ class RequestParser:
                     request_id_idx = group_mapping.get('request_id', 1) - 1
                     
                     if gsams1_name_match.groups() and len(gsams1_name_match.groups()) > request_id_idx:
+                        request_id_full = gsams1_name_match.group(request_id_idx + 1)
+                        request_id_clean, group_version = self.extract_group_version(request_id_full)
                         data_dict['Request Type'] = "OLD"
-                        data_dict['Request ID'] = gsams1_name_match.group(request_id_idx + 1)
+                        data_dict['Request ID'] = request_id_clean
+                        data_dict['Group Version'] = group_version
             except Exception as e:
                 logger.warning(f"GSAMS1 rulename 패턴 처리 실패: {e}")
         
@@ -136,9 +166,13 @@ class RequestParser:
                     mis_id_idx = group_mapping.get('mis_id', 6) - 1
                     
                     if len(groups) > max(ruleset_id_idx, start_date_idx, end_date_idx, request_user_idx, request_id_idx, mis_id_idx):
+                        request_id_full = groups[request_id_idx] if request_id_idx < len(groups) else None
+                        request_id_clean, group_version = self.extract_group_version(request_id_full) if request_id_full else (None, None)
+                        
                         data_dict = {
                             "Request Type": None,
-                            "Request ID": groups[request_id_idx] if request_id_idx < len(groups) else None,
+                            "Request ID": request_id_clean,
+                            "Group Version": group_version,
                             "Ruleset ID": groups[ruleset_id_idx] if ruleset_id_idx < len(groups) else None,
                             "MIS ID": groups[mis_id_idx] if mis_id_idx < len(groups) and groups[mis_id_idx] else None,
                             "Request User": groups[request_user_idx] if request_user_idx < len(groups) else None,
@@ -235,14 +269,18 @@ class RequestParser:
                                 
                                 # Request ID 추출 (group(1).split('-')[1])
                                 request_id_full = gsams1_desc_match.group(request_id_idx + 1)
-                                request_id = request_id_full.split('-')[1] if '-' in request_id_full else request_id_full
+                                request_id_with_dash = request_id_full.split('-')[1] if '-' in request_id_full else request_id_full
+                                
+                                # GROUP_VERSION 분리 (-v12 형식 제거)
+                                request_id_clean, group_version = self.extract_group_version(request_id_with_dash)
                                 
                                 # 사용자 정보 (이미 파싱된 경우 사용)
                                 request_user = data_dict.get('Request User')
                                 
                                 data_dict = {
                                     "Request Type": "OLD",
-                                    "Request ID": request_id,
+                                    "Request ID": request_id_clean,
+                                    "Group Version": group_version,
                                     "Ruleset ID": None,
                                     "MIS ID": None,
                                     "Request User": request_user,

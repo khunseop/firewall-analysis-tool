@@ -60,6 +60,31 @@ class ApplicationAggregator:
             logger.error(f"날짜 포맷 변환 중 오류 발생: {e}")
             return ""
     
+    def normalize_column_names(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        컬럼명을 표준화된 이름으로 매핑합니다.
+        
+        Args:
+            df: 원본 데이터프레임
+            
+        Returns:
+            컬럼명이 표준화된 데이터프레임
+        """
+        column_mapping = self.config.get('application_info_column_mapping', {})
+        
+        # 역매핑 딕셔너리 생성: 예상 컬럼명 -> 표준 컬럼명
+        reverse_mapping = {}
+        for standard_col, possible_cols in column_mapping.items():
+            for possible_col in possible_cols:
+                reverse_mapping[possible_col.upper()] = standard_col
+                reverse_mapping[possible_col.lower()] = standard_col
+                reverse_mapping[possible_col] = standard_col
+        
+        # 컬럼명 매핑 적용
+        df_renamed = df.rename(columns=lambda x: reverse_mapping.get(x, reverse_mapping.get(x.upper(), x)))
+        
+        return df_renamed
+    
     def process_applications(self, input_file_path: str) -> str:
         """
         여러 시트가 있는 엑셀 파일을 읽어서 취합하고 가공합니다.
@@ -78,9 +103,6 @@ class ApplicationAggregator:
             all_sheets = xls.sheet_names
             logger.info(f"시트 목록: {all_sheets}")
             
-            # 최종 컬럼 정보 정의 (실제 컬럼은 입력 파일에 따라 결정)
-            # 여기서는 기본 구조만 제공
-            
             # 시트 데이터 저장 리스트
             processed_sheets = []
             
@@ -90,6 +112,10 @@ class ApplicationAggregator:
                 
                 # 각 시트 데이터를 읽기
                 df = pd.read_excel(xls, sheet_name=sheet_name)
+                
+                # 컬럼명 표준화
+                df = self.normalize_column_names(df)
+                logger.info(f"표준화된 컬럼: {list(df.columns)}")
                 
                 # 날짜 포맷 수정 ('REQUEST_START_DATE', 'REQUEST_END_DATE' 컬럼)
                 for date_column in ['REQUEST_START_DATE', 'REQUEST_END_DATE']:
@@ -107,6 +133,21 @@ class ApplicationAggregator:
                 # REQUEST_END_DATE 컬럼 내림차순 정렬
                 if 'REQUEST_END_DATE' in final_df.columns:
                     final_df = final_df.sort_values(by='REQUEST_END_DATE', ascending=False)
+                
+                # 표준 컬럼 순서 정의
+                standard_columns = [
+                    "REQUEST_ID", "REQUEST_START_DATE", "REQUEST_END_DATE", "TITLE",
+                    "REQUESTER_ID", "REQUESTER_EMAIL", "REQUESTER_NAME", "REQUESTER_DEPT",
+                    "WRITE_PERSON_ID", "WRITE_PERSON_EMAIL", "WRITE_PERSON_NAME", "WRITE_PERSON_DEPT",
+                    "APPROVAL_PERSON_ID", "APPROVAL_PERSON_EMAIL", "APPROVAL_PERSON_NAME", "APPROVAL_PERSON_DEPT_NAME",
+                    "REQUEST_DATE", "REQUEST_STATUS", "PROGRESS", "MIS_ID", "GROUP_VERSION"
+                ]
+                
+                # 존재하는 표준 컬럼만 순서대로 정렬
+                existing_standard_cols = [col for col in standard_columns if col in final_df.columns]
+                # 표준 컬럼에 없는 나머지 컬럼들
+                remaining_cols = [col for col in final_df.columns if col not in standard_columns]
+                final_df = final_df[existing_standard_cols + remaining_cols]
                 
                 logger.info(f"최종 데이터프레임에 {len(final_df)}개의 행이 포함됨")
                 
