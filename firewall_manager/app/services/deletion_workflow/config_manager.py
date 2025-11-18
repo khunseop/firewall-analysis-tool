@@ -99,9 +99,54 @@ class ConfigManager:
                 "recent_policy_days": 90
             },
             "parsing_patterns": {
-                "gsams3": "",
-                "gsams1_rulename": "",
-                "gsams1_description": ""
+                "gsams3": {
+                    "pattern": "RS : (S\\d{8}[A-Z0-9]{4}) (\\d{8})~(\\d{8}) ([a-zA-Z0-9._-]+) (PS\\d{8}-\\d{1,3}(?:-v\\d{1,3})?|F\\d{9}|S\\d{9}|M\\d{9})(?: ([A-Za-z0-9!@#$%^&*()_+=-]{16}))?",
+                    "group_mapping": {
+                        "ruleset_id": 1,
+                        "start_date": 2,
+                        "end_date": 3,
+                        "request_user": 4,
+                        "request_id": 5,
+                        "mis_id": 6
+                    },
+                    "description": "GSAMS3 형식 패턴. 형식: 'RS : (Ruleset ID) (Start Date)~(End Date) (User) (Request ID) (MIS ID)'. 그룹 매핑: 1=Ruleset ID(S+8자리숫자+4자리문자), 2=Start Date(8자리숫자), 3=End Date(8자리숫자), 4=Request User, 5=Request ID(PS/F/S/M+숫자), 6=MIS ID(16자리, optional)"
+                },
+                "gsams1_rulename": {
+                    "pattern": "",
+                    "group_mapping": {
+                        "request_id": 1
+                    },
+                    "description": "GSAMS1 규칙명 패턴. 그룹 매핑: 1=Request ID"
+                },
+                "gsams1_user": {
+                    "pattern": "",
+                    "group_mapping": {
+                        "request_user": 1
+                    },
+                    "remove_prefix": "*ACL*",
+                    "description": "GSAMS1 사용자 패턴. 그룹 매핑: 1=Request User (prefix '*ACL*' 제거)"
+                },
+                "gsams1_description": {
+                    "pattern": "",
+                    "group_mapping": {
+                        "request_id": 1
+                    },
+                    "description": "GSAMS1 description 패턴. 그룹 매핑: 1=Request ID (split('-')[1] 사용)"
+                },
+                "gsams1_date": {
+                    "pattern": "",
+                    "group_mapping": {
+                        "date_range": 0
+                    },
+                    "description": "GSAMS1 날짜 패턴. 전체 매칭에서 '~'로 분리하여 Start Date와 End Date 추출"
+                },
+                "request_type_mapping": {
+                    "P": "GROUP",
+                    "F": "NORMAL",
+                    "S": "SERVER",
+                    "M": "PAM",
+                    "description": "Request ID 첫 글자에 따른 타입 매핑"
+                }
             }
         }
     
