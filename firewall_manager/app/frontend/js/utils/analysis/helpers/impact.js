@@ -32,3 +32,6 @@ export function processImpactResults(resultData, allDevices) {
     return processedData;
 }
 
+
+
+

@@ -1,0 +1,42 @@
+[
+  {
+    "name": "ctd_mode",
+    "description": "Content-ID 확인 모드",
+    "expected_value": "disabled",
+    "command": "show system setting ctd mode",
+    "modify_command": "set system setting ctd-mode disabled",
+    "pattern": "CTD mode is: (\\w+)"
+  },
+  {
+    "name": "session_timeout",
+    "description": "세션 타임아웃",
+    "expected_value": "60",
+    "command": "show system setting session timeout",
+    "modify_command": "set system setting session timeout 60",
+    "pattern": "timeout: (\\d+)"
+  },
+  {
+    "name": "rematch",
+    "description": "재매칭 설정",
+    "expected_value": "yes",
+    "command": "show running security-policy global rematch",
+    "modify_command": "set rulebase security rules rematch yes",
+    "pattern": "rematch: (\\w+)"
+  },
+  {
+    "name": "dns_proxy",
+    "description": "DNS 프록시 설정",
+    "expected_value": "enabled",
+    "command": "show system setting dns-proxy",
+    "modify_command": "set system setting dns-proxy enabled",
+    "pattern": "DNS proxy: (\\w+)"
+  },
+  {
+    "name": "logging_level",
+    "description": "로깅 레벨",
+    "expected_value": "informational",
+    "command": "show system setting logging level",
+    "modify_command": "set system setting logging level informational",
+    "pattern": "level: (\\w+)"
+  }
+]

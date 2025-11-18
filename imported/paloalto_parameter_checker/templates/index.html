@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Palo Alto Parameter Checker</title>
+    <link href="{{ url_for('static', filename='bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #ca8a04;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.5;
+        }
+        .container-fluid { max-width: 1400px; padding: 1rem; }
+        .card {
+            background: var(--card-bg);
+            border: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+        }
+        .card-header {
+            background: none;
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+        }
+        .card-body { padding: 1rem; }
+        .nav-tabs {
+            border: none;
+            gap: 0.5rem;
+            padding: 0 0.5rem;
+        }
+        .nav-tabs .nav-link {
+            border: none;
+            color: var(--text-light);
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+        }
+        .nav-tabs .nav-link:hover {
+            background: rgba(37,99,235,0.05);
+            color: var(--primary);
+        }
+        .nav-tabs .nav-link.active {
+            background: var(--primary);
+            color: white;
+        }
+        .form-control {
+            border-radius: 0.375rem;
+            border: 1px solid var(--border);
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+        }
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
+        }
+        .btn {
+            border-radius: 0.375rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .table { margin: 0; }
+        .table th {
+            background: var(--bg);
+            color: var(--text);
+            font-weight: 500;
+            font-size: 0.875rem;
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+        }
+        .table td {
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+        }
+        .status-PASS { 
+            background-color: rgba(22,163,74,0.05) !important;
+            color: var(--success);
+        }
+        .status-FAIL { 
+            background-color: rgba(220,38,38,0.05) !important;
+            color: var(--danger);
+        }
+        .status-ERROR { 
+            background-color: rgba(202,138,4,0.05) !important;
+            color: var(--warning);
+        }
+        .stats-card {
+            padding: 1rem;
+            text-align: center;
+            background: var(--card-bg);
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+        }
+        .stats-card h4 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .stats-card small {
+            color: var(--text-light);
+            font-size: 0.75rem;
+        }
+        
+        /* Toast notifications */
+        #toastContainer {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        
+        .toast {
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin-bottom: 10px;
+            min-width: 250px;
+            opacity: 0;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .toast.show {
+            opacity: 1;
+        }
+        
+        .toast.success {
+            border-left: 4px solid var(--success);
+        }
+        
+        .toast.error {
+            border-left: 4px solid var(--danger);
+        }
+        
+        .toast.warning {
+            border-left: 4px solid var(--warning);
+        }
+        
+        .toast.info {
+            border-left: 4px solid var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div id="toastContainer"></div>
+    <div class="container-fluid mt-3">
+        <!-- Header -->
+        <div class="row mb-3">
+            <div class="col">
+                <h4 class="text-center mb-0">Palo Alto Parameter Checker</h4>
+            </div>
+        </div>
+        <!-- 탭 네비게이션 -->
+        <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="check-tab" data-bs-toggle="tab" data-bs-target="#check" type="button" role="tab">
+                    Check
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="parameters-tab" data-bs-toggle="tab" data-bs-target="#parameters" type="button" role="tab">
+                    Parameters
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab">
+                    Settings
+                </button>
+            </li>
+        </ul>
+
+        <!-- 탭 컨텐츠 -->
+        <div class="tab-content mt-3" id="mainTabContent">
+            
+            <!-- 점검 탭 -->
+            <div class="tab-pane fade show active" id="check" role="tabpanel">
+                <!-- SSH 연결 정보 -->
+                <div class="card mb-3">
+
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="hostInput" placeholder="IP Address">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="usernameInput" placeholder="Username">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="password" class="form-control" id="passwordInput" placeholder="Password">
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="button" class="btn btn-primary w-100" id="checkButton">
+                                    <span id="checkButtonText">Check</span>
+                                    <div id="checkSpinner" class="loading-spinner d-none"></div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 점검 결과 -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Results</h5>
+                        <div>
+                            <button type="button" class="btn btn-outline-success btn-sm me-2" id="downloadExcelBtn" disabled>
+                                Export
+                            </button>
+
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- 요약 정보 -->
+                        <div id="summarySection" class="row mb-3 d-none">
+                            <div class="col-md-3">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h4 id="totalCount" class="text-primary">0</h4>
+                                    <small>Total Count</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h4 id="passCount" class="text-success">0</h4>
+                                    <small>Pass</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h4 id="failCount" class="text-danger">0</h4>
+                                    <small>Fail</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <h4 id="errorCount" class="text-warning">0</h4>
+                                    <small>Error</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 결과 테이블 -->
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="resultsTable">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Parameter</th>
+                                        <th>Expected</th>
+                                        <th>Current</th>
+                                        <th>Status</th>
+                                        <th>Query</th>
+                                        <th>Modify</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="resultsTableBody">
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-5">
+                                            Enter SSH connection details and click "Start Check" to begin.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 매개변수 관리 탭 -->
+            <div class="tab-pane fade" id="parameters" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Parameters</h5>
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#parameterModal">
+                            Add
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <!-- 검색창 -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fa-solid fa-search"></i></span>
+                                    <input type="text" class="form-control" id="parameterSearchInput" placeholder="Search parameters...">
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 매개변수 목록 -->
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="parametersTable">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Description</th>
+                                        <th>Expected Value</th>
+                                        <th>Command</th>
+                                        <th>Pattern</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="parametersTableBody">
+                                    <!-- 동적으로 채워짐 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 설정 탭 -->
+            <div class="tab-pane fade" id="settings" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <h6>Export</h6>
+                                <p class="text-muted">Export current parameters to a JSON file.</p>
+                                <button type="button" class="btn btn-outline-primary" id="exportBtn">
+                                    Export
+                                </button>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <h6>Import</h6>
+                                <p class="text-muted">Import parameters from a JSON file.</p>
+                                <input type="file" class="d-none" id="importFileInput" accept=".json">
+                                <button type="button" class="btn btn-outline-success" id="importBtn">
+                                    Import
+                                </button>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <h6>Reset</h6>
+                                <p class="text-muted">Reset to default parameters.</p>
+                                <button type="button" class="btn btn-outline-warning" id="resetBtn">
+                                    Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 매개변수 추가/수정 모달 -->
+    <div class="modal fade" id="parameterModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="parameterModalTitle">Add Parameter</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="parameterForm">
+                        <input type="hidden" id="parameterIdInput">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="nameInput" class="form-label">Name *</label>
+                                <input type="text" class="form-control" id="nameInput" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="descriptionInput" class="form-label">Description *</label>
+                                <input type="text" class="form-control" id="descriptionInput" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="expectedValueInput" class="form-label">Expected Value *</label>
+                                <input type="text" class="form-control" id="expectedValueInput" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="patternInput" class="form-label">Pattern *</label>
+                                <input type="text" class="form-control" id="patternInput" required 
+                                       placeholder="e.g., CTD mode is: (\\w+)">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                                                            <label for="commandInput" class="form-label">Command *</label>
+                            <input type="text" class="form-control" id="commandInput" required
+                                   placeholder="e.g., show system setting ctd mode">
+                        </div>
+                        <div class="mb-3">
+                            <label for="modifyCommandInput" class="form-label">Modify Command *</label>
+                            <input type="text" class="form-control" id="modifyCommandInput" required
+                                   placeholder="e.g., set system setting ctd-mode disabled">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveParameterBtn">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
