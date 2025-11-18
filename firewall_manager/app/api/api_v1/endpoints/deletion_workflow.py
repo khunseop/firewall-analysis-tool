@@ -2,8 +2,8 @@
 정책 삭제 워크플로우 API 엔드포인트
 """
 import logging
-from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from typing import Any, Optional
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
@@ -61,10 +61,10 @@ async def start_workflow(
 async def execute_step(
     device_id: int,
     step_number: int,
-    csv_file: UploadFile = None,
-    excel_file: UploadFile = None,
-    redundancy_file: UploadFile = None,
-    vendor: str = "paloalto",
+    csv_file: Optional[UploadFile] = File(None),
+    excel_file: Optional[UploadFile] = File(None),
+    redundancy_file: Optional[UploadFile] = File(None),
+    vendor: str = Form("paloalto"),
     db: AsyncSession = Depends(get_db)
 ) -> Any:
     """특정 단계 실행"""

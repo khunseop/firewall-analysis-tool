@@ -92,20 +92,36 @@
 
 ## 진행 중 / 미완료 항목
 
-### ⏳ Phase 4: 프론트엔드
+### ✅ Phase 4: 프론트엔드
 
-- [ ] **워크플로우 페이지 UI**
-  - 경로: `/deletion-workflow/{device_id}`
+- [x] **워크플로우 페이지 UI**
+  - 파일: `firewall_manager/app/frontend/templates/deletion_workflow.html`
+  - 경로: `#/deletion-workflow`
   - 기능: 체크리스트 형태의 단계별 진행 상황 표시
-  - 상태: 미구현
+  - 상태: 완료
 
-- [ ] **체크리스트 컴포넌트**
+- [x] **체크리스트 컴포넌트**
+  - 파일: `firewall_manager/app/frontend/js/pages/deletion_workflow.js`
   - 기능: 각 단계마다 상태 표시, 실행 버튼, 결과 다운로드
-  - 상태: 미구현
+  - 상태: 완료
 
-- [ ] **파일 업로드/다운로드 UI**
+- [x] **파일 업로드/다운로드 UI**
   - 기능: Step 3, 4, 7에서 필요한 파일 업로드 UI
-  - 상태: 미구현
+  - 기능: 단계별 결과 다운로드, 마스터 파일 다운로드, 최종 결과 다운로드
+  - 상태: 완료
+
+- [x] **API 클라이언트 함수**
+  - 파일: `firewall_manager/app/frontend/js/api.js`
+  - 기능: 워크플로우 관련 API 호출 함수들
+  - 상태: 완료
+
+- [x] **라우터 등록**
+  - 파일: `firewall_manager/app/frontend/js/main.js`
+  - 상태: 완료
+
+- [x] **네비게이션 링크 추가**
+  - 파일: `firewall_manager/app/frontend/index.html`
+  - 상태: 완료
 
 ### ⏳ Phase 5: 통합 및 테스트
 

@@ -147,6 +147,75 @@ export const api = {
     const query = queryParams.toString();
     return request(`/notifications${query ? `?${query}` : ''}`);
   },
+  // Deletion Workflow APIs
+  getWorkflowStatus: (deviceId) => request(`/deletion-workflow/${deviceId}/status`),
+  startWorkflow: (deviceId) => request(`/deletion-workflow/${deviceId}/start`, { method: "POST" }),
+  executeStep: async (deviceId, stepNumber, formData) => {
+    const res = await fetch(`${BASE}/deletion-workflow/${deviceId}/step/${stepNumber}/execute`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      let detail = "Step execution failed";
+      try { const data = await res.json(); detail = data.detail || data.msg || detail; } catch {}
+      const error = new Error(detail);
+      error.status = res.status;
+      throw error;
+    }
+    return res.json();
+  },
+  downloadStepResult: async (deviceId, stepNumber) => {
+    const res = await fetch(`${BASE}/deletion-workflow/${deviceId}/step/${stepNumber}/download`);
+    if (!res.ok) {
+      let detail = "Download failed";
+      try { const data = await res.json(); detail = data.detail || data.msg || detail; } catch {}
+      throw new Error(detail);
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `step_${stepNumber}_result.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  },
+  downloadMasterFile: async (deviceId) => {
+    const res = await fetch(`${BASE}/deletion-workflow/${deviceId}/master/download`);
+    if (!res.ok) {
+      let detail = "Download failed";
+      try { const data = await res.json(); detail = data.detail || data.msg || detail; } catch {}
+      throw new Error(detail);
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `master_file.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  },
+  exportFinalResults: (deviceId) => request(`/deletion-workflow/${deviceId}/final/export`, { method: "POST" }),
+  downloadFinalResults: async (deviceId) => {
+    const res = await fetch(`${BASE}/deletion-workflow/${deviceId}/final/download`);
+    if (!res.ok) {
+      let detail = "Download failed";
+      try { const data = await res.json(); detail = data.detail || data.msg || detail; } catch {}
+      throw new Error(detail);
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `deletion_workflow_${deviceId}_final_results.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  },
 };
 
 

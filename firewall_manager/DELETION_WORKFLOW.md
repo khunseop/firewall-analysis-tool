@@ -347,23 +347,38 @@ CREATE TABLE deletion_workflows (
 - 워크플로우 완료 후 N일 경과 시 자동 삭제 (기본값: 7일)
 - `FileManager.cleanup_old_files()` 메서드로 수동 정리 가능
 
-## 사용 예시
+## 사용 방법
 
-### 1. 워크플로우 시작
+### 웹 UI 사용법
+
+1. **페이지 접근**: 네비게이션 메뉴에서 "정책삭제" 클릭
+2. **장비 선택**: 드롭다운에서 작업할 장비 선택
+3. **워크플로우 시작**: "워크플로우 시작" 버튼 클릭 (Step 1 자동 실행)
+4. **단계별 실행**: 각 단계의 "실행" 버튼을 순차적으로 클릭
+   - Step 3: CSV 파일 선택 후 실행
+   - Step 4: 엑셀 파일 선택 후 실행
+   - Step 6: 벤더 선택 후 실행
+   - Step 7: 중복정책 분석 결과 파일 선택 후 실행
+5. **결과 다운로드**: 각 단계 완료 후 "다운로드" 버튼으로 결과 파일 다운로드
+6. **최종 결과**: "최종 결과 생성" 버튼 클릭 후 "최종 결과 다운로드" 버튼으로 ZIP 파일 다운로드
+
+### API 사용 예시
+
+#### 1. 워크플로우 시작
 
 ```python
 # Step 1 실행
 POST /deletion-workflow/1/start
 ```
 
-### 2. Request ID 추출
+#### 2. Request ID 추출
 
 ```python
 # Step 2 실행
 POST /deletion-workflow/1/step/2/execute
 ```
 
-### 3. MIS ID 업데이트
+#### 3. MIS ID 업데이트
 
 ```python
 # Step 3 실행 (CSV 파일 업로드)
@@ -372,7 +387,7 @@ Content-Type: multipart/form-data
 csv_file: <file>
 ```
 
-### 4. 신청정보 가공
+#### 4. 신청정보 가공
 
 ```python
 # Step 4 실행 (엑셀 파일 업로드)
@@ -381,21 +396,23 @@ Content-Type: multipart/form-data
 excel_file: <file>
 ```
 
-### 5. 신청정보 매핑
+#### 5. 신청정보 매핑
 
 ```python
 # Step 5 실행
 POST /deletion-workflow/1/step/5/execute
 ```
 
-### 6. 예외처리
+#### 6. 예외처리
 
 ```python
 # Step 6 실행
-POST /deletion-workflow/1/step/6/execute?vendor=paloalto
+POST /deletion-workflow/1/step/6/execute
+Content-Type: multipart/form-data
+vendor: paloalto
 ```
 
-### 7. 중복정책 분류
+#### 7. 중복정책 분류
 
 ```python
 # Step 7 실행 (중복정책 분석 결과 파일 업로드)
@@ -404,7 +421,7 @@ Content-Type: multipart/form-data
 redundancy_file: <file>
 ```
 
-### 8. 최종 결과 생성 및 다운로드
+#### 8. 최종 결과 생성 및 다운로드
 
 ```python
 # 최종 결과 생성
@@ -422,12 +439,36 @@ GET /deletion-workflow/1/final/download
 4. **중복정책 분석**: Step 7을 실행하기 전에 RedundancyAnalyzer로 중복정책 분석을 먼저 실행해야 합니다.
 5. **임시 파일**: 모든 중간 결과는 임시 파일로 저장되며, 워크플로우 완료 후 정리됩니다.
 
+## 프론트엔드 구현
+
+### 페이지 구조
+- **경로**: `#/deletion-workflow`
+- **템플릿**: `firewall_manager/app/frontend/templates/deletion_workflow.html`
+- **JavaScript**: `firewall_manager/app/frontend/js/pages/deletion_workflow.js`
+
+### 주요 기능
+- 장비 선택 드롭다운
+- 워크플로우 상태 표시 (상태, 현재 단계)
+- 체크리스트 형태의 단계별 진행 상황
+- 각 단계별 실행 버튼 및 다운로드 버튼
+- 파일 업로드 UI (Step 3, 4, 7)
+- 벤더 선택 드롭다운 (Step 6)
+- 마스터 파일 다운로드
+- 최종 결과 생성 및 다운로드
+
+### UI 특징
+- 단계별 상태 표시 (대기/진행중/완료/실패)
+- 이전 단계 완료 여부에 따른 실행 버튼 활성화/비활성화
+- 완료된 단계의 결과 파일 다운로드 가능
+- 실시간 상태 업데이트
+
 ## 향후 개선 사항
 
-1. 프론트엔드 UI 구현 (체크리스트 형태의 워크플로우 페이지)
-2. 워크플로우 재시작 기능
-3. 단계별 롤백 기능
-4. 배치 처리 지원
-5. 실시간 진행 상태 추적 (WebSocket)
-6. 설정 파일 웹 UI에서 수정 가능
+1. 워크플로우 재시작 기능
+2. 단계별 롤백 기능
+3. 배치 처리 지원
+4. 실시간 진행 상태 추적 (WebSocket)
+5. 설정 파일 웹 UI에서 수정 가능
+6. 진행 상태 프로그레스 바 추가
+7. 단계별 상세 로그 표시
 

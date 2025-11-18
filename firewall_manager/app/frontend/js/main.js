@@ -6,6 +6,7 @@ import { initObjects } from "./pages/objects.js";
 import { initAnalysis } from "./pages/analysis.js";
 import { initSchedules, cleanupSchedules } from "./pages/schedules.js";
 import { initSettings, cleanupSettings } from "./pages/settings.js";
+import { initDeletionWorkflow } from "./pages/deletion_workflow.js";
 import { initNotificationTicker } from "./utils/notificationTicker.js";
 
 addRoute("#/dashboard", { template: "dashboard.html", init: initDashboard, cleanup: cleanupDashboard });
@@ -16,6 +17,7 @@ addRoute("#/analysis", { template: "analysis.html", init: initAnalysis });
 addRoute("#/schedules", { template: "schedules.html", init: initSchedules, cleanup: cleanupSchedules });
 addRoute("#/settings", { template: "settings.html", init: initSettings, cleanup: cleanupSettings });
 addRoute("#/settings/schedules", { template: "settings.html", init: initSettings, cleanup: cleanupSettings });
+addRoute("#/deletion-workflow", { template: "deletion_workflow.html", init: initDeletionWorkflow });
 
 // Bulma navbar burger toggle (per docs)
 document.addEventListener('DOMContentLoaded', () => {
