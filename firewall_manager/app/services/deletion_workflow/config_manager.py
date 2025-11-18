@@ -97,6 +97,11 @@ class ConfigManager:
             "except_list": [],
             "timeframes": {
                 "recent_policy_days": 90
+            },
+            "parsing_patterns": {
+                "gsams3": "",
+                "gsams1_rulename": "",
+                "gsams1_description": ""
             }
         }
     
