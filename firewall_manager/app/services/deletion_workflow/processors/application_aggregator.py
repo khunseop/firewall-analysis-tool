@@ -60,7 +60,7 @@ class ApplicationAggregator:
             logger.error(f"날짜 포맷 변환 중 오류 발생: {e}")
             return ""
     
-    def normalize_column_names(self, df: pd.DataFrame) -> pd.DataFrame:
+    def normalize_column_names(self, df: pd.DataFrame, sheet_name: str = "") -> pd.DataFrame:
         """
         컬럼명을 표준화된 이름으로 매핑합니다.
         application_info_column_mapping의 키값(표준 컬럼명)으로 변환하고,
@@ -69,45 +69,44 @@ class ApplicationAggregator:
         설정 구조: {"표준컬럼명": ["원본컬럼명1", "원본컬럼명2", ...]}
         예: {"REQUEST_ID": ["REQUEST_ID", "Request ID", "요청ID", ...]}
         
+        각 시트를 순회하면서 원본 컬럼명에 해당하는 컬럼이 있으면 그 열을 추출하고 표준 컬럼명으로 변경합니다.
+        
         Args:
             df: 원본 데이터프레임
+            sheet_name: 시트 이름 (로깅용)
             
         Returns:
             컬럼명이 표준화된 데이터프레임
         """
         column_mapping_config = self.config.get('application_info_column_mapping', {})
         
-        logger.info(f"원본 컬럼명: {list(df.columns)}")
-        logger.info(f"매핑 설정: {list(column_mapping_config.keys())}")
-        
-        # {원본컬럼명: 표준컬럼명} 형태의 매핑 딕셔너리 생성
-        # application_info_column_mapping의 구조: {표준컬럼명: [원본컬럼명들]}
-        column_mapping = {}
-        for standard_col, original_cols_list in column_mapping_config.items():
-            # 리스트의 각 원본 컬럼명을 표준 컬럼명으로 매핑
-            for original_col in original_cols_list:
-                column_mapping[original_col] = standard_col
-        
-        logger.info(f"생성된 매핑 딕셔너리 키 개수: {len(column_mapping)}")
+        logger.info(f"시트 '{sheet_name}' 원본 컬럼명: {list(df.columns)}")
         
         # 처리된 컬럼들 기록
         processed_columns = []
         
-        # 실제 엑셀 파일의 컬럼명이 매핑 딕셔너리에 있으면 표준 컬럼명으로 변경
-        # 원본 코드 방식: for old_col, new_col in column_mapping.items()
-        for old_col, new_col in column_mapping.items():
-            if old_col in df.columns:
-                df.rename(columns={old_col: new_col}, inplace=True)
-                processed_columns.append((old_col, new_col))
-                logger.info(f"컬럼명 변환: {old_col} -> {new_col}")
+        # 원본 코드 방식: 각 표준 컬럼명에 대해 원본 컬럼명 리스트를 순회하면서 매칭
+        # application_info_column_mapping의 구조: {표준컬럼명: [원본컬럼명들]}
+        for standard_col, original_cols_list in column_mapping_config.items():
+            # 이미 표준 컬럼명이 있으면 스킵 (중복 방지)
+            if standard_col in df.columns:
+                continue
+            
+            # 각 원본 컬럼명을 순회하면서 실제 엑셀 파일의 컬럼명과 일치하는지 확인
+            for original_col in original_cols_list:
+                # 실제 엑셀 파일의 컬럼명이 원본 컬럼명과 일치하면 표준 컬럼명으로 변경
+                if original_col in df.columns:
+                    df.rename(columns={original_col: standard_col}, inplace=True)
+                    processed_columns.append((original_col, standard_col))
+                    logger.info(f"시트 '{sheet_name}': {original_col} -> {standard_col} 변환")
+                    # 한 번 매칭되면 다음 표준 컬럼명으로 넘어감 (같은 표준 컬럼명에 대해 여러 원본 컬럼명이 있을 수 있음)
+                    break
         
         if processed_columns:
-            logger.info(f"변경된 컬럼: {processed_columns}")
-            logger.info(f"변환 후 컬럼명: {list(df.columns)}")
+            logger.info(f"시트 '{sheet_name}' 변경된 컬럼: {processed_columns}")
+            logger.info(f"시트 '{sheet_name}' 변환 후 컬럼명: {list(df.columns)}")
         else:
-            logger.warning("변경된 컬럼 없음 - 원본 컬럼명과 매핑 설정이 일치하지 않을 수 있습니다.")
-            logger.info(f"원본 컬럼명: {list(df.columns)}")
-            logger.info(f"매핑 가능한 원본 컬럼명 예시: {list(column_mapping.keys())[:10]}")
+            logger.warning(f"시트 '{sheet_name}': 변경된 컬럼 없음 - 원본 컬럼명과 매핑 설정이 일치하지 않을 수 있습니다.")
         
         return df
     
@@ -140,8 +139,8 @@ class ApplicationAggregator:
                 df = pd.read_excel(xls, sheet_name=sheet_name)
                 
                 # 컬럼명 표준화 (application_info_column_mapping 기반)
-                df = self.normalize_column_names(df)
-                logger.info(f"표준화된 컬럼: {list(df.columns)}")
+                # 각 시트를 순회하면서 원본 컬럼명에 해당하는 컬럼이 있으면 표준 컬럼명으로 변경
+                df = self.normalize_column_names(df, sheet_name=sheet_name)
                 
                 # 이메일 생성 로직 (원본 코드 참조)
                 # WRITE_PERSON_EMAIL이 비어있고 WRITE_PERSON_ID가 있으면 자동 생성
