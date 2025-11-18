@@ -165,6 +165,41 @@ class FileManager:
             return file_path_obj.stat().st_size
         return 0
     
+    def get_latest_file_by_pattern(self, device_id: int, pattern: str) -> Optional[str]:
+        """
+        패턴에 맞는 최신 파일 경로 반환
+        
+        Args:
+            device_id: 장비 ID
+            pattern: 파일명 패턴 (예: 'step_1_', 'master_', 'final_master_')
+            
+        Returns:
+            최신 파일 경로 (문자열), 없으면 None
+        """
+        try:
+            workflow_dir = self.get_workflow_dir(device_id)
+            if not workflow_dir.exists():
+                return None
+            
+            # 패턴에 맞는 파일 찾기
+            matching_files = []
+            for file_path in workflow_dir.iterdir():
+                if file_path.is_file() and pattern in file_path.name:
+                    matching_files.append(file_path)
+            
+            if not matching_files:
+                return None
+            
+            # 수정 시간 기준으로 정렬 (최신 파일이 맨 앞)
+            matching_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+            
+            latest_file = matching_files[0]
+            logger.debug(f"최신 파일 찾음: {latest_file.name} (수정 시간: {datetime.fromtimestamp(latest_file.stat().st_mtime)})")
+            return str(latest_file)
+        except Exception as e:
+            logger.error(f"최신 파일 찾기 실패: device_id={device_id}, pattern={pattern}, 오류: {e}")
+            return None
+    
     def cleanup_old_files(self, device_id: int, days: int = 7) -> int:
         """
         오래된 파일 정리 (지정된 일수 이상 경과한 파일 삭제)

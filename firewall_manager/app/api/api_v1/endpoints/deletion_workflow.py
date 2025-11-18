@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app import crud
 from app.services.deletion_workflow.workflow_manager import WorkflowManager
+from app.services.deletion_workflow.file_manager import FileManager
 
 logger = logging.getLogger(__name__)
 
@@ -125,26 +126,51 @@ async def download_step_result(
     step_number: int,
     db: AsyncSession = Depends(get_db)
 ) -> Any:
-    """단계별 결과 파일 다운로드"""
+    """단계별 결과 파일 다운로드 (최신 파일 우선)"""
     workflow = await crud.deletion_workflow.get_workflow_by_device(db, device_id)
     if not workflow:
         raise HTTPException(status_code=404, detail="워크플로우를 찾을 수 없습니다.")
     
-    file_path = None
-    if step_number == 1:
-        file_path = workflow.step_files.get('1') or workflow.master_file_path
-    else:
-        file_path = workflow.step_files.get(str(step_number))
+    file_manager = FileManager()
+    import os
     
-    if not file_path:
+    # DB에 저장된 경로 확인
+    db_file_path = None
+    if step_number == 1:
+        db_file_path = workflow.step_files.get('1') or workflow.master_file_path
+    else:
+        db_file_path = workflow.step_files.get(str(step_number))
+    
+    # 디렉토리에서 최신 파일 찾기
+    latest_file_path = None
+    if step_number == 1:
+        # Step 1은 step_1_ 또는 master_ 패턴
+        latest_file_path = file_manager.get_latest_file_by_pattern(device_id, 'step_1_')
+        if not latest_file_path:
+            latest_file_path = file_manager.get_latest_file_by_pattern(device_id, 'master_')
+    else:
+        # 다른 단계는 step_{step_number}_ 패턴
+        latest_file_path = file_manager.get_latest_file_by_pattern(device_id, f'step_{step_number}_')
+    
+    # DB 경로와 디렉토리 최신 파일 중 더 최신 파일 선택
+    file_path = None
+    if db_file_path and os.path.exists(db_file_path) and latest_file_path and os.path.exists(latest_file_path):
+        # 둘 다 있으면 수정 시간 비교
+        db_mtime = os.path.getmtime(db_file_path)
+        latest_mtime = os.path.getmtime(latest_file_path)
+        file_path = latest_file_path if latest_mtime > db_mtime else db_file_path
+    elif latest_file_path and os.path.exists(latest_file_path):
+        # 디렉토리 파일만 있으면 그것 사용
+        file_path = latest_file_path
+    elif db_file_path and os.path.exists(db_file_path):
+        # DB 파일만 있으면 그것 사용
+        file_path = db_file_path
+    
+    if not file_path or not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail=f"Step {step_number} 결과 파일을 찾을 수 없습니다.")
     
     from fastapi.responses import FileResponse
-    import os
-    if os.path.exists(file_path):
-        return FileResponse(file_path, filename=os.path.basename(file_path))
-    else:
-        raise HTTPException(status_code=404, detail="파일을 찾을 수 없습니다.")
+    return FileResponse(file_path, filename=os.path.basename(file_path))
 
 
 @router.get("/{device_id}/master/download")
@@ -152,17 +178,42 @@ async def download_master_file(
     device_id: int,
     db: AsyncSession = Depends(get_db)
 ) -> Any:
-    """마스터 파일 다운로드"""
+    """마스터 파일 다운로드 (최신 파일 우선)"""
     workflow = await crud.deletion_workflow.get_workflow_by_device(db, device_id)
-    if not workflow or not workflow.master_file_path:
+    if not workflow:
+        raise HTTPException(status_code=404, detail="워크플로우를 찾을 수 없습니다.")
+    
+    file_manager = FileManager()
+    import os
+    
+    # DB에 저장된 경로 확인
+    db_file_path = workflow.master_file_path
+    
+    # 디렉토리에서 최신 파일 찾기
+    latest_file_path = file_manager.get_latest_file_by_pattern(device_id, 'master_')
+    if not latest_file_path:
+        # master_가 없으면 step_1_도 확인 (Step 1 결과가 마스터일 수 있음)
+        latest_file_path = file_manager.get_latest_file_by_pattern(device_id, 'step_1_')
+    
+    # DB 경로와 디렉토리 최신 파일 중 더 최신 파일 선택
+    file_path = None
+    if db_file_path and os.path.exists(db_file_path) and latest_file_path and os.path.exists(latest_file_path):
+        # 둘 다 있으면 수정 시간 비교
+        db_mtime = os.path.getmtime(db_file_path)
+        latest_mtime = os.path.getmtime(latest_file_path)
+        file_path = latest_file_path if latest_mtime > db_mtime else db_file_path
+    elif latest_file_path and os.path.exists(latest_file_path):
+        # 디렉토리 파일만 있으면 그것 사용
+        file_path = latest_file_path
+    elif db_file_path and os.path.exists(db_file_path):
+        # DB 파일만 있으면 그것 사용
+        file_path = db_file_path
+    
+    if not file_path or not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="마스터 파일을 찾을 수 없습니다.")
     
     from fastapi.responses import FileResponse
-    import os
-    if os.path.exists(workflow.master_file_path):
-        return FileResponse(workflow.master_file_path, filename=os.path.basename(workflow.master_file_path))
-    else:
-        raise HTTPException(status_code=404, detail="파일을 찾을 수 없습니다.")
+    return FileResponse(file_path, filename=os.path.basename(file_path))
 
 
 @router.post("/{device_id}/final/export")

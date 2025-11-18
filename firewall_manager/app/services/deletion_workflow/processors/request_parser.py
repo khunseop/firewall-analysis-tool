@@ -81,10 +81,34 @@ class RequestParser:
             "End Date": self.convert_to_date('19000101'),
         }
         
-        if not description or pd.isna(description):
-            return data_dict
+        # description이 없어도 rule_name으로 파싱 시도
+        description = description if description and not pd.isna(description) else ""
         
-        # GSAMS3 패턴 처리
+        # GSAMS1 rulename 패턴 처리 (description보다 우선)
+        gsams1_rulename_config = self.config.get('parsing_patterns.gsams1_rulename', {})
+        # 하위 호환성: 문자열로 저장된 경우도 처리
+        if isinstance(gsams1_rulename_config, str):
+            pattern_gsams_1_rulename_str = gsams1_rulename_config if gsams1_rulename_config else None
+            gsams1_rulename_config = {}
+        else:
+            pattern_gsams_1_rulename_str = gsams1_rulename_config.get('pattern') if isinstance(gsams1_rulename_config, dict) else None
+        
+        gsams1_name_match = None
+        if pattern_gsams_1_rulename_str and rule_name:
+            try:
+                pattern_gsams_1_rulename = re.compile(pattern_gsams_1_rulename_str)
+                gsams1_name_match = pattern_gsams_1_rulename.match(str(rule_name))
+                if gsams1_name_match:
+                    group_mapping = gsams1_rulename_config.get('group_mapping', {}) if isinstance(gsams1_rulename_config, dict) else {}
+                    request_id_idx = group_mapping.get('request_id', 1) - 1
+                    
+                    if gsams1_name_match.groups() and len(gsams1_name_match.groups()) > request_id_idx:
+                        data_dict['Request Type'] = "OLD"
+                        data_dict['Request ID'] = gsams1_name_match.group(request_id_idx + 1)
+            except Exception as e:
+                logger.warning(f"GSAMS1 rulename 패턴 처리 실패: {e}")
+        
+        # GSAMS3 패턴 처리 (description이 있을 때만)
         gsams3_config = self.config.get('parsing_patterns.gsams3', {})
         # 하위 호환성: 문자열로 저장된 경우도 처리
         if isinstance(gsams3_config, str):
@@ -92,7 +116,9 @@ class RequestParser:
             gsams3_config = {}
         else:
             pattern_gsams_3_str = gsams3_config.get('pattern') if isinstance(gsams3_config, dict) else None
-        if pattern_gsams_3_str:
+        
+        gsams3_match = None
+        if pattern_gsams_3_str and description:
             try:
                 pattern_gsams_3 = re.compile(pattern_gsams_3_str)
                 gsams3_match = pattern_gsams_3.match(description)
@@ -131,114 +157,100 @@ class RequestParser:
             except Exception as e:
                 logger.warning(f"GSAMS3 패턴 매칭 처리 실패: {e}")
         
-        # GSAMS1 rulename 패턴 처리
-        gsams1_rulename_config = self.config.get('parsing_patterns.gsams1_rulename', {})
-        # 하위 호환성: 문자열로 저장된 경우도 처리
-        if isinstance(gsams1_rulename_config, str):
-            pattern_gsams_1_rulename_str = gsams1_rulename_config if gsams1_rulename_config else None
-            gsams1_rulename_config = {}
-        else:
-            pattern_gsams_1_rulename_str = gsams1_rulename_config.get('pattern') if isinstance(gsams1_rulename_config, dict) else None
-        if pattern_gsams_1_rulename_str:
-            try:
-                pattern_gsams_1_rulename = re.compile(pattern_gsams_1_rulename_str)
-                gsams1_name_match = pattern_gsams_1_rulename.match(str(rule_name))
-                if gsams1_name_match:
-                    group_mapping = gsams1_rulename_config.get('group_mapping', {}) if isinstance(gsams1_rulename_config, dict) else {}
-                    request_id_idx = group_mapping.get('request_id', 1) - 1
-                    
-                    if gsams1_name_match.groups() and len(gsams1_name_match.groups()) > request_id_idx:
-                        data_dict['Request Type'] = "OLD"
-                        data_dict['Request ID'] = gsams1_name_match.group(request_id_idx + 1)
-            except Exception as e:
-                logger.warning(f"GSAMS1 rulename 패턴 처리 실패: {e}")
+        # GSAMS3가 매칭되지 않은 경우에만 GSAMS1 패턴 처리
+        if not gsams3_match and description:
         
-        # GSAMS1 user 패턴 처리
-        gsams1_user_config = self.config.get('parsing_patterns.gsams1_user', {})
-        # 하위 호환성: 문자열로 저장된 경우도 처리
-        if isinstance(gsams1_user_config, str):
-            pattern_gsams_1_user_str = gsams1_user_config if gsams1_user_config else None
-            gsams1_user_config = {}
-        else:
-            pattern_gsams_1_user_str = gsams1_user_config.get('pattern') if isinstance(gsams1_user_config, dict) else None
-        if pattern_gsams_1_user_str:
-            try:
-                gsams1_user_match = re.search(pattern_gsams_1_user_str, description)
-                if gsams1_user_match:
-                    group_mapping = gsams1_user_config.get('group_mapping', {}) if isinstance(gsams1_user_config, dict) else {}
-                    request_user_idx = group_mapping.get('request_user', 1) - 1
-                    remove_prefix = gsams1_user_config.get('remove_prefix', '') if isinstance(gsams1_user_config, dict) else ''
-                    
-                    if gsams1_user_match.groups() and len(gsams1_user_match.groups()) > request_user_idx:
-                        user_value = gsams1_user_match.group(request_user_idx + 1)
-                        if remove_prefix and user_value:
-                            user_value = user_value.replace(remove_prefix, "")
-                        data_dict['Request User'] = user_value
-            except Exception as e:
-                logger.warning(f"GSAMS1 user 패턴 처리 실패: {e}")
-        
-        # GSAMS1 date 패턴 처리
-        gsams1_date_config = self.config.get('parsing_patterns.gsams1_date', {})
-        # 하위 호환성: 문자열로 저장된 경우도 처리
-        if isinstance(gsams1_date_config, str):
-            pattern_gsams_1_date_str = gsams1_date_config if gsams1_date_config else None
-            gsams1_date_config = {}
-        else:
-            pattern_gsams_1_date_str = gsams1_date_config.get('pattern') if isinstance(gsams1_date_config, dict) else None
-        if pattern_gsams_1_date_str:
-            try:
-                gsams1_date_match = re.search(pattern_gsams_1_date_str, description)
-                if gsams1_date_match:
-                    date_str = gsams1_date_match.group(0)
-                    if '~' in date_str:
-                        date_parts = date_str.split('~')
-                        if len(date_parts) == 2:
-                            start_date = date_parts[0].replace('[', '').replace('-', '').strip()
-                            end_date = date_parts[1].replace(']', '').replace('-', '').strip()
-                            data_dict['Start Date'] = self.convert_to_date(start_date)
-                            data_dict['End Date'] = self.convert_to_date(end_date)
-            except Exception as e:
-                logger.warning(f"GSAMS1 date 패턴 처리 실패: {e}")
-        
-        # GSAMS1 description 패턴 처리
-        gsams1_desc_config = self.config.get('parsing_patterns.gsams1_description', {})
-        # 하위 호환성: 문자열로 저장된 경우도 처리
-        if isinstance(gsams1_desc_config, str):
-            pattern_gsams_1_desc_str = gsams1_desc_config if gsams1_desc_config else None
-            gsams1_desc_config = {}
-        else:
-            pattern_gsams_1_desc_str = gsams1_desc_config.get('pattern') if isinstance(gsams1_desc_config, dict) else None
-        if pattern_gsams_1_desc_str:
-            try:
-                gsams1_desc_match = re.search(pattern_gsams_1_desc_str, description)
-                if gsams1_desc_match:
-                    group_mapping = gsams1_desc_config.get('group_mapping', {}) if isinstance(gsams1_desc_config, dict) else {}
-                    request_id_idx = group_mapping.get('request_id', 1) - 1
-                    
-                    if gsams1_desc_match.groups() and len(gsams1_desc_match.groups()) > request_id_idx:
-                        # 날짜 파싱
-                        date = description.split(';')[0]
-                        start_date = date.split('~')[0].replace('[', '').replace('-', '')
-                        end_date = date.split('~')[1].replace(']', '').replace('-', '')
+            # GSAMS1 user 패턴 처리
+            gsams1_user_config = self.config.get('parsing_patterns.gsams1_user', {})
+            # 하위 호환성: 문자열로 저장된 경우도 처리
+            if isinstance(gsams1_user_config, str):
+                pattern_gsams_1_user_str = gsams1_user_config if gsams1_user_config else None
+                gsams1_user_config = {}
+            else:
+                pattern_gsams_1_user_str = gsams1_user_config.get('pattern') if isinstance(gsams1_user_config, dict) else None
+            
+            gsams1_user_match = None
+            if pattern_gsams_1_user_str:
+                try:
+                    gsams1_user_match = re.search(pattern_gsams_1_user_str, description)
+                    if gsams1_user_match:
+                        group_mapping = gsams1_user_config.get('group_mapping', {}) if isinstance(gsams1_user_config, dict) else {}
+                        request_user_idx = group_mapping.get('request_user', 1) - 1
+                        remove_prefix = gsams1_user_config.get('remove_prefix', '') if isinstance(gsams1_user_config, dict) else ''
                         
-                        # Request ID 추출 (group(1).split('-')[1])
-                        request_id_full = gsams1_desc_match.group(request_id_idx + 1)
-                        request_id = request_id_full.split('-')[1] if '-' in request_id_full else request_id_full
-                        
-                        # 사용자 정보 (이미 파싱된 경우 사용)
-                        request_user = data_dict.get('Request User')
-                        
-                        data_dict = {
-                            "Request Type": "OLD",
-                            "Request ID": request_id,
-                            "Ruleset ID": None,
-                            "MIS ID": None,
-                            "Request User": request_user,
-                            "Start Date": self.convert_to_date(start_date),
-                            "End Date": self.convert_to_date(end_date),
-                        }
-            except Exception as e:
-                logger.warning(f"GSAMS1 description 패턴 처리 실패: {e}")
+                        if gsams1_user_match.groups() and len(gsams1_user_match.groups()) > request_user_idx:
+                            user_value = gsams1_user_match.group(request_user_idx + 1)
+                            if remove_prefix and user_value:
+                                user_value = user_value.replace(remove_prefix, "")
+                            data_dict['Request User'] = user_value
+                except Exception as e:
+                    logger.warning(f"GSAMS1 user 패턴 처리 실패: {e}")
+            
+            # GSAMS1 date 패턴 처리
+            gsams1_date_config = self.config.get('parsing_patterns.gsams1_date', {})
+            # 하위 호환성: 문자열로 저장된 경우도 처리
+            if isinstance(gsams1_date_config, str):
+                pattern_gsams_1_date_str = gsams1_date_config if gsams1_date_config else None
+                gsams1_date_config = {}
+            else:
+                pattern_gsams_1_date_str = gsams1_date_config.get('pattern') if isinstance(gsams1_date_config, dict) else None
+            
+            if pattern_gsams_1_date_str:
+                try:
+                    gsams1_date_match = re.search(pattern_gsams_1_date_str, description)
+                    if gsams1_date_match:
+                        date_str = gsams1_date_match.group(0)
+                        if '~' in date_str:
+                            date_parts = date_str.split('~')
+                            if len(date_parts) == 2:
+                                start_date = date_parts[0].replace('[', '').replace('-', '').strip()
+                                end_date = date_parts[1].replace(']', '').replace('-', '').strip()
+                                data_dict['Start Date'] = self.convert_to_date(start_date)
+                                data_dict['End Date'] = self.convert_to_date(end_date)
+                except Exception as e:
+                    logger.warning(f"GSAMS1 date 패턴 처리 실패: {e}")
+            
+            # GSAMS1 description 패턴 처리 (rulename 매칭이 없고, user/date 매칭이 있는 경우)
+            if not gsams1_name_match:
+                gsams1_desc_config = self.config.get('parsing_patterns.gsams1_description', {})
+                # 하위 호환성: 문자열로 저장된 경우도 처리
+                if isinstance(gsams1_desc_config, str):
+                    pattern_gsams_1_desc_str = gsams1_desc_config if gsams1_desc_config else None
+                    gsams1_desc_config = {}
+                else:
+                    pattern_gsams_1_desc_str = gsams1_desc_config.get('pattern') if isinstance(gsams1_desc_config, dict) else None
+                
+                if pattern_gsams_1_desc_str:
+                    try:
+                        gsams1_desc_match = re.search(pattern_gsams_1_desc_str, description)
+                        if gsams1_desc_match:
+                            group_mapping = gsams1_desc_config.get('group_mapping', {}) if isinstance(gsams1_desc_config, dict) else {}
+                            request_id_idx = group_mapping.get('request_id', 1) - 1
+                            
+                            if gsams1_desc_match.groups() and len(gsams1_desc_match.groups()) > request_id_idx:
+                                # 날짜 파싱
+                                date = description.split(';')[0]
+                                start_date = date.split('~')[0].replace('[', '').replace('-', '')
+                                end_date = date.split('~')[1].replace(']', '').replace('-', '')
+                                
+                                # Request ID 추출 (group(1).split('-')[1])
+                                request_id_full = gsams1_desc_match.group(request_id_idx + 1)
+                                request_id = request_id_full.split('-')[1] if '-' in request_id_full else request_id_full
+                                
+                                # 사용자 정보 (이미 파싱된 경우 사용)
+                                request_user = data_dict.get('Request User')
+                                
+                                data_dict = {
+                                    "Request Type": "OLD",
+                                    "Request ID": request_id,
+                                    "Ruleset ID": None,
+                                    "MIS ID": None,
+                                    "Request User": request_user,
+                                    "Start Date": self.convert_to_date(start_date),
+                                    "End Date": self.convert_to_date(end_date),
+                                }
+                    except Exception as e:
+                        logger.warning(f"GSAMS1 description 패턴 처리 실패: {e}")
         
         return data_dict
     
@@ -269,8 +281,11 @@ class RequestParser:
             # DataFrame 생성
             data_rows = []
             for policy in policies:
+                # 신청정보 파싱 (rule_name과 description 모두 사용)
+                parsed_info = self.parse_request_info(policy.rule_name, policy.description)
+                
+                # 기본 정책 정보
                 row = {
-                    "id": policy.id,
                     "Rule Name": policy.rule_name,
                     "Enable": "Y" if policy.enable else "N",
                     "Action": policy.action,
@@ -282,18 +297,23 @@ class RequestParser:
                     "Security Profile": policy.security_profile or "",
                     "Category": policy.category or "",
                     "Description": policy.description or "",
-                    "Vsys": policy.vsys or "",
-                    "Seq": policy.seq or 0,
                 }
                 
-                # 신청정보 파싱
-                parsed_info = self.parse_request_info(policy.rule_name, policy.description)
+                # 신청정보 추가 (파싱된 정보)
                 row.update(parsed_info)
                 
                 data_rows.append(row)
             
             # DataFrame 생성
             df = pd.DataFrame(data_rows)
+            
+            # 컬럼 순서 정리 (설정 파일의 columns.all 순서 기준)
+            column_order = self.config.get('columns.all', [])
+            # 존재하는 컬럼만 순서대로 정렬
+            existing_columns = [col for col in column_order if col in df.columns]
+            # 순서에 없는 컬럼은 뒤에 추가
+            remaining_columns = [col for col in df.columns if col not in existing_columns]
+            df = df[existing_columns + remaining_columns]
             
             # 파일 경로 생성
             file_path = self.file_manager.create_step_file_path(self.device_id, 1)

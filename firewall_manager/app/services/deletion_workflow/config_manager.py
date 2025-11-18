@@ -70,7 +70,8 @@ class ConfigManager:
                 "all": [
                     "예외", "만료여부", "신청이력", "Rule Name", "Enable", "Action",
                     "Source", "User", "Destination", "Service", "Application",
-                    "Security Profile", "Category", "Description"
+                    "Security Profile", "Category", "Description",
+                    "Request Type", "Request ID", "Ruleset ID", "MIS ID", "Request User", "Start Date", "End Date"
                 ],
                 "no_history": [
                     "예외", "Rule Name", "Enable", "Action",
