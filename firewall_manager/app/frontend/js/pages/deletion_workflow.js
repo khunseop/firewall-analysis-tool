@@ -31,6 +31,7 @@ const STEP_STATUS = {
 export async function initDeletionWorkflow(rootEl) {
   currentDeviceId = null;
   workflowStatus = null;
+  eventHandlersSetup = false; // 이벤트 핸들러 플래그 리셋
   
   // 초기 상태: 빈 메시지 표시
   showEmptyMessage("workflow-message-container", "장비를 선택하세요");
@@ -42,9 +43,15 @@ export async function initDeletionWorkflow(rootEl) {
   const savedState = loadSearchParams("deletion_workflow");
   if (savedState && savedState.deviceId) {
     const select = document.getElementById("device-select");
-    if (select && select.value) {
-      // 값이 이미 설정되어 있으면 워크플로우 상태 로드
-      await handleDeviceChange(parseInt(select.value, 10));
+    if (select) {
+      // Tom Select가 있으면 value를 확인하고, 없으면 일반 value 확인
+      const deviceId = select.tomselect 
+        ? select.tomselect.getValue() 
+        : select.value;
+      if (deviceId) {
+        // 값이 이미 설정되어 있으면 워크플로우 상태 로드
+        await handleDeviceChange(parseInt(deviceId, 10));
+      }
     }
   }
 }
@@ -69,15 +76,57 @@ async function loadDevices() {
     // 저장된 장비 선택 복원
     const savedState = loadSearchParams("deletion_workflow");
     const savedDeviceId = savedState?.deviceId || null;
-    if (savedDeviceId) {
-      select.value = savedDeviceId;
-    }
 
-    // 장비 선택 변경 이벤트
-    select.addEventListener("change", (e) => {
-      const deviceId = parseInt(e.target.value, 10);
-      handleDeviceChange(deviceId);
-    });
+    // Initialize Tom Select for device selector
+    try {
+      if (window.TomSelect && select) {
+        // 기존 Tom Select 인스턴스가 있으면 제거
+        if (select.tomselect) {
+          try {
+            select.tomselect.destroy();
+          } catch (e) {
+            console.warn("Tom Select destroy 실패:", e);
+          }
+        }
+        
+        // Tom Select 초기화
+        select.tomselect = new window.TomSelect(select, {
+          placeholder: "장비를 선택하세요",
+          plugins: ["remove_button"],
+          maxOptions: null,
+        });
+
+        // 저장된 장비 선택 복원
+        if (savedDeviceId) {
+          select.tomselect.setValue(savedDeviceId.toString());
+        }
+
+        // 장비 선택 변경 이벤트
+        select.tomselect.on("change", (value) => {
+          const deviceId = value ? parseInt(value, 10) : null;
+          handleDeviceChange(deviceId);
+        });
+      } else {
+        // Tom Select가 없으면 일반 select 사용
+        if (savedDeviceId) {
+          select.value = savedDeviceId;
+        }
+        select.addEventListener("change", (e) => {
+          const deviceId = parseInt(e.target.value, 10);
+          handleDeviceChange(deviceId);
+        });
+      }
+    } catch (error) {
+      console.error("Tom Select 초기화 실패:", error);
+      // Tom Select 초기화 실패 시 일반 select 사용
+      if (savedDeviceId) {
+        select.value = savedDeviceId;
+      }
+      select.addEventListener("change", (e) => {
+        const deviceId = parseInt(e.target.value, 10);
+        handleDeviceChange(deviceId);
+      });
+    }
   } catch (error) {
     console.error("장비 목록 로드 실패:", error);
     await openAlert({ 
@@ -112,23 +161,60 @@ async function handleDeviceChange(deviceId) {
   }
 }
 
+// 이벤트 핸들러가 등록되었는지 추적
+let eventHandlersSetup = false;
+
 /**
  * 이벤트 핸들러 설정
  */
 function setupEventHandlers() {
+  // 이미 설정되었으면 중복 등록 방지
+  if (eventHandlersSetup) {
+    return;
+  }
+  
   // 장비 선택은 Tom-select의 onChange에서 처리됨
 
-  // 워크플로우 초기화
-  document.getElementById("btn-reset-workflow").addEventListener("click", async () => {
-    if (!currentDeviceId) return;
-    await resetWorkflow();
-  });
+  // 워크플로우 초기화 버튼
+  const btnReset = document.getElementById("btn-reset-workflow");
+  if (btnReset) {
+    // 기존 리스너 제거 후 새로 등록
+    btnReset.replaceWith(btnReset.cloneNode(true));
+    const newBtnReset = document.getElementById("btn-reset-workflow");
+    newBtnReset.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log("Reset 버튼 클릭됨, currentDeviceId:", currentDeviceId);
+      if (!currentDeviceId) {
+        console.warn("currentDeviceId가 없어서 초기화를 건너뜁니다");
+        await openAlert({
+          title: "알림",
+          message: "장비를 먼저 선택해주세요."
+        });
+        return;
+      }
+      await resetWorkflow();
+    });
+    console.log("Reset 버튼 이벤트 리스너 등록 완료");
+  } else {
+    console.warn("Reset 버튼을 찾을 수 없습니다");
+  }
 
-  // 워크플로우 시작
-  document.getElementById("btn-start-workflow").addEventListener("click", async () => {
-    if (!currentDeviceId) return;
-    await startWorkflow();
-  });
+  // 워크플로우 시작 버튼
+  const btnStart = document.getElementById("btn-start-workflow");
+  if (btnStart) {
+    // 기존 리스너 제거 후 새로 등록
+    btnStart.replaceWith(btnStart.cloneNode(true));
+    const newBtnStart = document.getElementById("btn-start-workflow");
+    newBtnStart.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!currentDeviceId) return;
+      await startWorkflow();
+    });
+  }
+  
+  eventHandlersSetup = true;
 
   // 단계 실행 버튼들
   document.querySelectorAll(".step-execute-btn").forEach(btn => {
@@ -147,35 +233,53 @@ function setupEventHandlers() {
   });
 
   // 마스터 파일 다운로드
-  document.getElementById("btn-download-master").addEventListener("click", async () => {
-    if (!currentDeviceId) return;
-    await downloadMasterFile();
-  });
+  const btnDownloadMaster = document.getElementById("btn-download-master");
+  if (btnDownloadMaster) {
+    btnDownloadMaster.addEventListener("click", async () => {
+      if (!currentDeviceId) return;
+      await downloadMasterFile();
+    });
+  }
 
   // 최종 결과 생성
-  document.getElementById("btn-export-final").addEventListener("click", async () => {
-    if (!currentDeviceId) return;
-    await exportFinalResults();
-  });
+  const btnExportFinal = document.getElementById("btn-export-final");
+  if (btnExportFinal) {
+    btnExportFinal.addEventListener("click", async () => {
+      if (!currentDeviceId) return;
+      await exportFinalResults();
+    });
+  }
 
   // 최종 결과 다운로드
-  document.getElementById("btn-download-final").addEventListener("click", async () => {
-    if (!currentDeviceId) return;
-    await downloadFinalResults();
-  });
+  const btnDownloadFinal = document.getElementById("btn-download-final");
+  if (btnDownloadFinal) {
+    btnDownloadFinal.addEventListener("click", async () => {
+      if (!currentDeviceId) return;
+      await downloadFinalResults();
+    });
+  }
 
   // 파일 업로드 핸들러 - 파일명 표시
-  document.getElementById("file-mis-id").addEventListener("change", (e) => {
-    updateFileLabel(e.target, "file-mis-id-label");
-  });
+  const fileMisId = document.getElementById("file-mis-id");
+  if (fileMisId) {
+    fileMisId.addEventListener("change", (e) => {
+      updateFileLabel(e.target, "file-mis-id-label");
+    });
+  }
 
-  document.getElementById("file-application-info").addEventListener("change", (e) => {
-    updateFileLabel(e.target, "file-application-info-label");
-  });
+  const fileApplicationInfo = document.getElementById("file-application-info");
+  if (fileApplicationInfo) {
+    fileApplicationInfo.addEventListener("change", (e) => {
+      updateFileLabel(e.target, "file-application-info-label");
+    });
+  }
 
-  document.getElementById("file-redundancy").addEventListener("change", (e) => {
-    updateFileLabel(e.target, "file-redundancy-label");
-  });
+  const fileRedundancy = document.getElementById("file-redundancy");
+  if (fileRedundancy) {
+    fileRedundancy.addEventListener("change", (e) => {
+      updateFileLabel(e.target, "file-redundancy-label");
+    });
+  }
 }
 
 /**
@@ -550,21 +654,37 @@ async function downloadFinalResults() {
  * 워크플로우 초기화
  */
 async function resetWorkflow() {
-  if (!currentDeviceId) return;
+  console.log("resetWorkflow() 호출됨, currentDeviceId:", currentDeviceId);
+  if (!currentDeviceId) {
+    console.warn("currentDeviceId가 없어서 초기화를 건너뜁니다");
+    return;
+  }
 
   // 확인 다이얼로그
+  console.log("확인 다이얼로그 표시 중...");
   const confirmed = await openConfirm({
     title: "워크플로우 초기화",
     message: "워크플로우를 초기화하시겠습니까?\n\n초기화하면:\n- 워크플로우 상태가 초기화됩니다\n- 임시 파일들이 삭제됩니다",
     okText: "초기화",
     cancelText: "취소"
   });
-  if (!confirmed) return;
+  console.log("확인 다이얼로그 결과:", confirmed);
+  if (!confirmed) {
+    console.log("사용자가 취소했습니다");
+    return;
+  }
 
   const btn = document.getElementById("btn-reset-workflow");
+  if (!btn) {
+    console.error("Reset 버튼을 찾을 수 없습니다");
+    return;
+  }
+
   try {
+    console.log("워크플로우 초기화 API 호출 중...");
     setButtonLoading(btn, true);
     await api.resetWorkflow(currentDeviceId, true);
+    console.log("워크플로우 초기화 API 호출 완료");
     await openAlert({ 
       title: "성공", 
       message: "워크플로우가 초기화되었습니다." 
@@ -574,8 +694,20 @@ async function resetWorkflow() {
     hideWorkflowUI();
     showEmptyMessage("workflow-message-container", "장비를 선택하세요");
     
-    // 상태 다시 로드 (초기 상태로)
-    await loadWorkflowStatus();
+    // 장비 선택 초기화
+    const select = document.getElementById("device-select");
+    if (select) {
+      if (select.tomselect) {
+        select.tomselect.clear();
+      } else {
+        select.value = "";
+      }
+    }
+    
+    // 저장된 상태 초기화
+    saveSearchParams("deletion_workflow", { deviceId: null });
+    currentDeviceId = null;
+    workflowStatus = null;
   } catch (error) {
     console.error("워크플로우 초기화 실패:", error);
     await openAlert({ 

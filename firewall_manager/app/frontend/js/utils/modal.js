@@ -40,6 +40,7 @@ export function openConfirm({
   return new Promise(resolve => {
     const modal = document.getElementById('modal-confirm');
     if (!modal) {
+      console.error('modal-confirm 요소를 찾을 수 없습니다');
       return resolve(false);
     }
 
@@ -51,9 +52,14 @@ export function openConfirm({
     $('#confirm-ok').textContent = okText;
     $('#confirm-cancel').textContent = cancelText;
     
+    let cleanup = null;
+    
     const close = (val) => {
       modal.classList.remove('is-active');
-      document.removeEventListener('keydown', handleEsc);
+      if (cleanup) {
+        cleanup();
+        cleanup = null;
+      }
       resolve(val);
     };
     
@@ -61,7 +67,20 @@ export function openConfirm({
       if (e.key === 'Escape') close(false);
     };
     
-    setupModalCloseHandlers(modal, () => close(false));
+    document.addEventListener('keydown', handleEsc);
+    
+    // 배경 클릭 핸들러
+    const background = modal.querySelector('.modal-background');
+    if (background) {
+      background.onclick = () => close(false);
+    }
+    
+    cleanup = () => {
+      document.removeEventListener('keydown', handleEsc);
+      if (background) {
+        background.onclick = null;
+      }
+    };
     
     $('#confirm-close').onclick = () => close(false);
     $('#confirm-cancel').onclick = () => close(false);
