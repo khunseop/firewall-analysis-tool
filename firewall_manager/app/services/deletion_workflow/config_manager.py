@@ -31,8 +31,10 @@ class ConfigManager:
             기본 디렉토리 Path 객체
         """
         # 프로젝트 루트 기준으로 config 디렉토리 설정
+        # __file__ = firewall_manager/app/services/deletion_workflow/config_manager.py
+        # parents[3] = firewall_manager/ (프로젝트 루트)
         project_root = Path(__file__).resolve().parents[3]
-        config_dir = project_root / "firewall_manager" / "config"
+        config_dir = project_root / "config"
         config_dir.mkdir(parents=True, exist_ok=True)
         return config_dir
     

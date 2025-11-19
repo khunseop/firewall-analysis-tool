@@ -23,8 +23,10 @@ class FileManager:
         """
         if base_dir is None:
             # 프로젝트 루트 기준으로 temp 디렉토리 설정
+            # __file__ = firewall_manager/app/services/deletion_workflow/file_manager.py
+            # parents[3] = firewall_manager/ (프로젝트 루트)
             project_root = Path(__file__).resolve().parents[3]
-            self.base_dir = project_root / "firewall_manager" / "temp" / "deletion_workflow"
+            self.base_dir = project_root / "temp" / "deletion_workflow"
         else:
             self.base_dir = Path(base_dir)
         
