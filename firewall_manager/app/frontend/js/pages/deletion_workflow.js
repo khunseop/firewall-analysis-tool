@@ -1,10 +1,12 @@
 import { api } from "../api.js";
-import { openAlert } from "../utils/modal.js";
+import { openAlert, openConfirm } from "../utils/modal.js";
 import { showEmptyMessage, hideEmptyMessage } from "../utils/message.js";
 import { setButtonLoading } from "../utils/loading.js";
+import { saveSearchParams, loadSearchParams } from "../utils/storage.js";
 
 let currentDeviceId = null;
 let workflowStatus = null;
+let allDevices = [];
 
 const STEP_NAMES = {
   1: "신청정보 파싱",
@@ -26,35 +28,87 @@ const STEP_STATUS = {
 /**
  * 페이지 초기화
  */
-export function initDeletionWorkflow(rootEl) {
+export async function initDeletionWorkflow(rootEl) {
   currentDeviceId = null;
   workflowStatus = null;
   
   // 초기 상태: 빈 메시지 표시
   showEmptyMessage("workflow-message-container", "장비를 선택하세요");
   
-  loadDevices();
+  await loadDevices();
   setupEventHandlers();
+  
+  // 저장된 장비 선택이 있으면 자동으로 워크플로우 상태 로드
+  const savedState = loadSearchParams("deletion_workflow");
+  if (savedState && savedState.deviceId) {
+    const select = document.getElementById("device-select");
+    if (select && select.value) {
+      // 값이 이미 설정되어 있으면 워크플로우 상태 로드
+      await handleDeviceChange(parseInt(select.value, 10));
+    }
+  }
 }
 
 /**
- * 장비 목록 로드
+ * 장비 목록 로드 및 초기화
  */
 async function loadDevices() {
   try {
-    const devices = await api.listDevices();
+    allDevices = await api.listDevices();
     const select = document.getElementById("device-select");
+    if (!select) return;
+
     select.innerHTML = '<option value="">장비를 선택하세요</option>';
-    
-    devices.forEach(device => {
+    allDevices.forEach(device => {
       const option = document.createElement("option");
       option.value = device.id;
-      option.textContent = device.name;
+      option.textContent = `${device.name} (${device.vendor})`;
       select.appendChild(option);
+    });
+
+    // 저장된 장비 선택 복원
+    const savedState = loadSearchParams("deletion_workflow");
+    const savedDeviceId = savedState?.deviceId || null;
+    if (savedDeviceId) {
+      select.value = savedDeviceId;
+    }
+
+    // 장비 선택 변경 이벤트
+    select.addEventListener("change", (e) => {
+      const deviceId = parseInt(e.target.value, 10);
+      handleDeviceChange(deviceId);
     });
   } catch (error) {
     console.error("장비 목록 로드 실패:", error);
-    openAlert("오류", `장비 목록을 불러오지 못했습니다: ${error.message}`);
+    await openAlert({ 
+      title: "오류", 
+      message: `장비 목록을 불러오지 못했습니다: ${error.message}` 
+    });
+  }
+}
+
+/**
+ * 장비 선택 변경 핸들러
+ */
+async function handleDeviceChange(deviceId) {
+  const deviceIdNum = deviceId ? parseInt(deviceId, 10) : null;
+
+  // 검색 조건 저장
+  if (deviceIdNum) {
+    saveSearchParams("deletion_workflow", { deviceId: deviceIdNum });
+  } else {
+    saveSearchParams("deletion_workflow", { deviceId: null });
+  }
+
+  // 장비 선택 처리
+  if (deviceIdNum) {
+    currentDeviceId = deviceIdNum;
+    hideEmptyMessage("workflow-message-container");
+    await loadWorkflowStatus();
+  } else {
+    currentDeviceId = null;
+    hideWorkflowUI();
+    showEmptyMessage("workflow-message-container", "장비를 선택하세요");
   }
 }
 
@@ -62,19 +116,7 @@ async function loadDevices() {
  * 이벤트 핸들러 설정
  */
 function setupEventHandlers() {
-  // 장비 선택 변경
-  document.getElementById("device-select").addEventListener("change", async (e) => {
-    const deviceId = parseInt(e.target.value);
-    if (deviceId) {
-      currentDeviceId = deviceId;
-      hideEmptyMessage("workflow-message-container");
-      await loadWorkflowStatus();
-    } else {
-      currentDeviceId = null;
-      hideWorkflowUI();
-      showEmptyMessage("workflow-message-container", "장비를 선택하세요");
-    }
-  });
+  // 장비 선택은 Tom-select의 onChange에서 처리됨
 
   // 워크플로우 초기화
   document.getElementById("btn-reset-workflow").addEventListener("click", async () => {
@@ -337,11 +379,17 @@ async function startWorkflow() {
   try {
     setButtonLoading(btn, true);
     const result = await api.startWorkflow(currentDeviceId);
-    openAlert("성공", "워크플로우가 시작되었습니다.");
+    await openAlert({ 
+      title: "성공", 
+      message: "워크플로우가 시작되었습니다." 
+    });
     await loadWorkflowStatus();
   } catch (error) {
     console.error("워크플로우 시작 실패:", error);
-    openAlert("오류", `워크플로우 시작 실패: ${error.message}`);
+    await openAlert({ 
+      title: "오류", 
+      message: `워크플로우 시작 실패: ${error.message}` 
+    });
   } finally {
     setButtonLoading(btn, false);
   }
@@ -403,12 +451,18 @@ async function executeStep(stepNumber) {
     }
 
     const result = await api.executeStep(currentDeviceId, stepNumber, formData);
-    openAlert("성공", `Step ${stepNumber} 실행이 완료되었습니다.`);
+    await openAlert({ 
+      title: "성공", 
+      message: `Step ${stepNumber} 실행이 완료되었습니다.` 
+    });
     await loadWorkflowStatus();
   } catch (error) {
     console.error(`Step ${stepNumber} 실행 실패:`, error);
     updateStepStatus(stepNumber, "failed", false);
-    openAlert("오류", `Step ${stepNumber} 실행 실패: ${error.message}`);
+    await openAlert({ 
+      title: "오류", 
+      message: `Step ${stepNumber} 실행 실패: ${error.message}` 
+    });
   } finally {
     setButtonLoading(executeBtn, false);
   }
@@ -424,7 +478,10 @@ async function downloadStepResult(stepNumber) {
     await api.downloadStepResult(currentDeviceId, stepNumber);
   } catch (error) {
     console.error("다운로드 실패:", error);
-    openAlert("오류", `다운로드 실패: ${error.message}`);
+    await openAlert({ 
+      title: "오류", 
+      message: `다운로드 실패: ${error.message}` 
+    });
   }
 }
 
@@ -438,7 +495,10 @@ async function downloadMasterFile() {
     await api.downloadMasterFile(currentDeviceId);
   } catch (error) {
     console.error("마스터 파일 다운로드 실패:", error);
-    openAlert("오류", `마스터 파일 다운로드 실패: ${error.message}`);
+    await openAlert({ 
+      title: "오류", 
+      message: `마스터 파일 다운로드 실패: ${error.message}` 
+    });
   }
 }
 
@@ -452,12 +512,18 @@ async function exportFinalResults() {
   try {
     setButtonLoading(btn, true);
     const result = await api.exportFinalResults(currentDeviceId);
-    openAlert("성공", "최종 결과 파일이 생성되었습니다.");
+    await openAlert({ 
+      title: "성공", 
+      message: "최종 결과 파일이 생성되었습니다." 
+    });
     document.getElementById("btn-download-final").style.display = "inline-block";
     await loadWorkflowStatus();
   } catch (error) {
     console.error("최종 결과 생성 실패:", error);
-    openAlert("오류", `최종 결과 생성 실패: ${error.message}`);
+    await openAlert({ 
+      title: "오류", 
+      message: `최종 결과 생성 실패: ${error.message}` 
+    });
   } finally {
     setButtonLoading(btn, false);
   }
@@ -473,7 +539,10 @@ async function downloadFinalResults() {
     await api.downloadFinalResults(currentDeviceId);
   } catch (error) {
     console.error("최종 결과 다운로드 실패:", error);
-    openAlert("오류", `최종 결과 다운로드 실패: ${error.message}`);
+    await openAlert({ 
+      title: "오류", 
+      message: `최종 결과 다운로드 실패: ${error.message}` 
+    });
   }
 }
 
@@ -484,14 +553,22 @@ async function resetWorkflow() {
   if (!currentDeviceId) return;
 
   // 확인 다이얼로그
-  const confirmed = confirm("워크플로우를 초기화하시겠습니까?\n\n초기화하면:\n- 워크플로우 상태가 초기화됩니다\n- 임시 파일들이 삭제됩니다\n\n계속하시겠습니까?");
+  const confirmed = await openConfirm({
+    title: "워크플로우 초기화",
+    message: "워크플로우를 초기화하시겠습니까?\n\n초기화하면:\n- 워크플로우 상태가 초기화됩니다\n- 임시 파일들이 삭제됩니다",
+    okText: "초기화",
+    cancelText: "취소"
+  });
   if (!confirmed) return;
 
   const btn = document.getElementById("btn-reset-workflow");
   try {
     setButtonLoading(btn, true);
     await api.resetWorkflow(currentDeviceId, true);
-    openAlert("성공", "워크플로우가 초기화되었습니다.");
+    await openAlert({ 
+      title: "성공", 
+      message: "워크플로우가 초기화되었습니다." 
+    });
     
     // UI 초기화
     hideWorkflowUI();
@@ -501,7 +578,10 @@ async function resetWorkflow() {
     await loadWorkflowStatus();
   } catch (error) {
     console.error("워크플로우 초기화 실패:", error);
-    openAlert("오류", `워크플로우 초기화 실패: ${error.message}`);
+    await openAlert({ 
+      title: "오류", 
+      message: `워크플로우 초기화 실패: ${error.message}` 
+    });
   } finally {
     setButtonLoading(btn, false);
   }

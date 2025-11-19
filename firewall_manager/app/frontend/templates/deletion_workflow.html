@@ -4,12 +4,10 @@
   <!-- 장비 선택 -->
   <div class="box mb-4">
     <div class="field">
-      <label class="label">장비 선택</label>
+      <label class="label">장비</label>
       <div class="control">
         <div class="select is-fullwidth">
-          <select id="device-select">
-            <option value="">장비를 선택하세요</option>
-          </select>
+          <select id="device-select"></select>
         </div>
       </div>
     </div>
@@ -34,8 +32,10 @@
       </div>
       <div class="level-right">
         <div class="level-item">
-          <button class="button is-small is-danger" id="btn-reset-workflow">초기화</button>
-          <button class="button is-small is-primary ml-2" id="btn-start-workflow">워크플로우 시작</button>
+          <div class="buttons">
+            <button class="button is-small is-danger" id="btn-reset-workflow">초기화</button>
+            <button class="button is-small is-primary" id="btn-start-workflow">워크플로우 시작</button>
+          </div>
         </div>
       </div>
     </div>
@@ -45,7 +45,7 @@
   <div class="box" id="workflow-checklist-box" style="display: none;">
     <h2 class="subtitle is-6 mb-4">워크플로우 단계</h2>
     
-    <div id="workflow-steps">
+    <div id="workflow-steps" class="mb-0">
       <!-- Step 1 -->
       <div class="box mb-3 step-item" data-step="1">
         <div class="level is-mobile">
@@ -59,9 +59,11 @@
           </div>
           <div class="level-right">
             <div class="level-item">
-              <span class="tag" id="step-1-status">대기</span>
-              <button class="button is-small is-primary ml-2 step-execute-btn" data-step="1">실행</button>
-              <button class="button is-small is-info ml-2 step-download-btn" data-step="1" style="display: none;">다운로드</button>
+              <div class="buttons">
+                <span class="tag" id="step-1-status">대기</span>
+                <button class="button is-small is-primary step-execute-btn" data-step="1">실행</button>
+                <button class="button is-small is-info step-download-btn" data-step="1" style="display: none;">다운로드</button>
+              </div>
             </div>
           </div>
         </div>
@@ -81,9 +83,11 @@
           </div>
           <div class="level-right">
             <div class="level-item">
-              <span class="tag" id="step-2-status">대기</span>
-              <button class="button is-small is-primary ml-2 step-execute-btn" data-step="2">실행</button>
-              <button class="button is-small is-info ml-2 step-download-btn" data-step="2" style="display: none;">다운로드</button>
+              <div class="buttons">
+                <span class="tag" id="step-2-status">대기</span>
+                <button class="button is-small is-primary step-execute-btn" data-step="2">실행</button>
+                <button class="button is-small is-info step-download-btn" data-step="2" style="display: none;">다운로드</button>
+              </div>
             </div>
           </div>
         </div>
@@ -103,17 +107,19 @@
           </div>
           <div class="level-right">
             <div class="level-item">
-              <span class="tag" id="step-3-status">대기</span>
-              <div class="file is-small">
-                <label class="file-label">
-                  <input class="file-input" type="file" id="file-mis-id" accept=".csv" />
-                  <span class="file-cta">
-                    <span class="file-label" id="file-mis-id-label">CSV 선택</span>
-                  </span>
-                </label>
+              <div class="buttons">
+                <span class="tag" id="step-3-status">대기</span>
+                <div class="file is-small">
+                  <label class="file-label">
+                    <input class="file-input" type="file" id="file-mis-id" accept=".csv" />
+                    <span class="file-cta">
+                      <span class="file-label" id="file-mis-id-label">CSV 선택</span>
+                    </span>
+                  </label>
+                </div>
+                <button class="button is-small is-primary step-execute-btn" data-step="3">실행</button>
+                <button class="button is-small is-info step-download-btn" data-step="3" style="display: none;">다운로드</button>
               </div>
-              <button class="button is-small is-primary ml-2 step-execute-btn" data-step="3">실행</button>
-              <button class="button is-small is-info ml-2 step-download-btn" data-step="3" style="display: none;">다운로드</button>
             </div>
           </div>
         </div>
@@ -133,17 +139,19 @@
           </div>
           <div class="level-right">
             <div class="level-item">
-              <span class="tag" id="step-4-status">대기</span>
-              <div class="file is-small">
-                <label class="file-label">
-                  <input class="file-input" type="file" id="file-application-info" accept=".xlsx,.xls" />
-                  <span class="file-cta">
-                    <span class="file-label" id="file-application-info-label">엑셀 선택</span>
-                  </span>
-                </label>
+              <div class="buttons">
+                <span class="tag" id="step-4-status">대기</span>
+                <div class="file is-small">
+                  <label class="file-label">
+                    <input class="file-input" type="file" id="file-application-info" accept=".xlsx,.xls" />
+                    <span class="file-cta">
+                      <span class="file-label" id="file-application-info-label">엑셀 선택</span>
+                    </span>
+                  </label>
+                </div>
+                <button class="button is-small is-primary step-execute-btn" data-step="4">실행</button>
+                <button class="button is-small is-info step-download-btn" data-step="4" style="display: none;">다운로드</button>
               </div>
-              <button class="button is-small is-primary ml-2 step-execute-btn" data-step="4">실행</button>
-              <button class="button is-small is-info ml-2 step-download-btn" data-step="4" style="display: none;">다운로드</button>
             </div>
           </div>
         </div>
@@ -163,9 +171,11 @@
           </div>
           <div class="level-right">
             <div class="level-item">
-              <span class="tag" id="step-5-status">대기</span>
-              <button class="button is-small is-primary ml-2 step-execute-btn" data-step="5">실행</button>
-              <button class="button is-small is-info ml-2 step-download-btn" data-step="5" style="display: none;">다운로드</button>
+              <div class="buttons">
+                <span class="tag" id="step-5-status">대기</span>
+                <button class="button is-small is-primary step-execute-btn" data-step="5">실행</button>
+                <button class="button is-small is-info step-download-btn" data-step="5" style="display: none;">다운로드</button>
+              </div>
             </div>
           </div>
         </div>
@@ -185,15 +195,17 @@
           </div>
           <div class="level-right">
             <div class="level-item">
-              <span class="tag" id="step-6-status">대기</span>
-              <div class="select is-small">
-                <select id="vendor-select">
-                  <option value="paloalto">Palo Alto</option>
-                  <option value="secui">SECUI</option>
-                </select>
+              <div class="buttons">
+                <span class="tag" id="step-6-status">대기</span>
+                <div class="select is-small">
+                  <select id="vendor-select">
+                    <option value="paloalto">Palo Alto</option>
+                    <option value="secui">SECUI</option>
+                  </select>
+                </div>
+                <button class="button is-small is-primary step-execute-btn" data-step="6">실행</button>
+                <button class="button is-small is-info step-download-btn" data-step="6" style="display: none;">다운로드</button>
               </div>
-              <button class="button is-small is-primary ml-2 step-execute-btn" data-step="6">실행</button>
-              <button class="button is-small is-info ml-2 step-download-btn" data-step="6" style="display: none;">다운로드</button>
             </div>
           </div>
         </div>
@@ -213,17 +225,19 @@
           </div>
           <div class="level-right">
             <div class="level-item">
-              <span class="tag" id="step-7-status">대기</span>
-              <div class="file is-small">
-                <label class="file-label">
-                  <input class="file-input" type="file" id="file-redundancy" accept=".xlsx,.xls" />
-                  <span class="file-cta">
-                    <span class="file-label" id="file-redundancy-label">중복정책 분석 결과</span>
-                  </span>
-                </label>
+              <div class="buttons">
+                <span class="tag" id="step-7-status">대기</span>
+                <div class="file is-small">
+                  <label class="file-label">
+                    <input class="file-input" type="file" id="file-redundancy" accept=".xlsx,.xls" />
+                    <span class="file-cta">
+                      <span class="file-label" id="file-redundancy-label">중복정책 분석 결과</span>
+                    </span>
+                  </label>
+                </div>
+                <button class="button is-small is-primary step-execute-btn" data-step="7">실행</button>
+                <button class="button is-small is-info step-download-btn" data-step="7" style="display: none;">다운로드</button>
               </div>
-              <button class="button is-small is-primary ml-2 step-execute-btn" data-step="7">실행</button>
-              <button class="button is-small is-info ml-2 step-download-btn" data-step="7" style="display: none;">다운로드</button>
             </div>
           </div>
         </div>
@@ -236,7 +250,7 @@
   <div class="box" id="download-box" style="display: none;">
     <h2 class="subtitle is-6 mb-4">파일 다운로드</h2>
     <div class="buttons">
-      <button class="button is-small" id="btn-download-master">마스터 파일</button>
+      <button class="button is-small is-light" id="btn-download-master">마스터 파일</button>
       <button class="button is-small is-success" id="btn-export-final">최종 결과 생성</button>
       <button class="button is-small is-success" id="btn-download-final" style="display: none;">최종 결과 다운로드 (ZIP)</button>
     </div>

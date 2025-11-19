@@ -575,6 +575,18 @@ input.ts-hidden-accessible {
 
 .buttons .file {
   margin-left: 0.375rem;
+  display: inline-flex;
+  align-items: center;
+  height: auto;
+  margin-bottom: 0;
+  margin-top: 0;
+}
+
+.buttons .file .file-label {
+  margin-bottom: 0;
+  height: auto;
+  display: inline-flex;
+  align-items: center;
 }
 
 /* File Upload Button - Compact */
@@ -585,6 +597,36 @@ input.ts-hidden-accessible {
   font-family: 'Pretendard', sans-serif;
   height: auto;
   min-height: 2em;
+}
+
+/* File Upload Button in buttons group - Match button height exactly */
+.buttons .file.is-small {
+  height: auto !important;
+  align-self: center;
+  vertical-align: middle;
+}
+
+.buttons .file.is-small .file-label {
+  height: auto !important;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.buttons .file.is-small .file-cta {
+  font-size: 0.8125rem !important; /* 13px - matches button */
+  padding: 0.375em 0.75em !important; /* matches button */
+  height: auto !important;
+  min-height: 2em !important; /* matches button */
+  line-height: 1.5 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  border-radius: 6px !important;
+  font-family: 'Pretendard', sans-serif !important;
+  box-sizing: border-box !important;
 }
 
 /* Search Input - Compact */
