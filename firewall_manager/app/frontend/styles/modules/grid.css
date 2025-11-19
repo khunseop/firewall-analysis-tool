@@ -1,0 +1,175 @@
+/* ============================================================================
+   AG Grid Styles
+   ============================================================================ */
+
+/* Base Theme */
+.ag-theme-quartz {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Header */
+.ag-theme-quartz .ag-header {
+  background: #f9fafb;
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  min-height: 40px;
+}
+
+.ag-theme-quartz .ag-header-cell {
+  padding: 8px 12px;
+  border-right: 1px solid var(--color-border);
+}
+
+.ag-theme-quartz .ag-header-cell-text {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.ag-theme-quartz .ag-header-cell-resize {
+  width: 2px;
+  background: transparent;
+}
+
+.ag-theme-quartz .ag-header-cell-resize:hover {
+  background: var(--color-primary);
+}
+
+/* Rows */
+.ag-theme-quartz .ag-row {
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+}
+
+.ag-theme-quartz .ag-row:hover {
+  background: #f9fafb;
+}
+
+.ag-theme-quartz .ag-row-even {
+  background: var(--color-surface);
+}
+
+.ag-theme-quartz .ag-row-odd {
+  background: #fafbfc;
+}
+
+/* Cells */
+.ag-theme-quartz .ag-cell {
+  padding: 8px 12px;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+}
+
+/* Filters */
+.ag-theme-quartz .ag-header-cell-filtered .ag-header-cell-text::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  margin-left: 6px;
+}
+
+.ag-theme-quartz .ag-filter-wrapper {
+  padding: 8px;
+}
+
+.ag-theme-quartz .ag-filter-input,
+.ag-theme-quartz .ag-filter-select {
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.ag-theme-quartz .ag-filter-input:focus,
+.ag-theme-quartz .ag-filter-select:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+/* Pagination */
+.ag-theme-quartz .ag-paging-panel {
+  padding: 12px;
+  border-top: 1px solid var(--color-border);
+  background: #f9fafb;
+  font-size: 13px;
+}
+
+.ag-theme-quartz .ag-paging-button {
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+}
+
+.ag-theme-quartz .ag-paging-button:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: var(--color-primary);
+}
+
+.ag-theme-quartz .ag-paging-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ag-theme-quartz .ag-paging-row-summary-panel {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+/* Checkbox Column */
+.ag-theme-quartz .ag-selection-checkbox {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+}
+
+.ag-theme-quartz .ag-header-cell[col-id="ag-Grid-AutoColumn"] {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+}
+
+/* Grid Height & Scroll */
+#policies-grid.ag-theme-quartz,
+#analysis-result-grid.ag-theme-quartz,
+#devices-grid.ag-theme-quartz,
+#objects-grid.ag-theme-quartz,
+#logs-grid.ag-theme-quartz {
+  height: auto;
+  min-height: 200px;
+  max-height: none;
+}
+
+.ag-theme-quartz .ag-body-viewport {
+  overflow-y: hidden !important;
+  overflow-x: auto !important;
+}
+
+.ag-theme-quartz .ag-body-horizontal-scroll {
+  overflow-x: auto !important;
+}
+
+/* Overlay */
+.ag-theme-quartz .ag-overlay-no-rows-wrapper {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-family: 'Pretendard', sans-serif;
+}
+

@@ -1,0 +1,68 @@
+/* ============================================================================
+   Modal Components
+   ============================================================================ */
+
+.modal-background {
+  background-color: rgba(10, 10, 10, 0.45) !important;
+}
+
+.modal-card {
+  border-radius: var(--border-radius) !important;
+  overflow: hidden !important;
+  max-width: 540px !important;
+  width: 90% !important;
+  box-shadow: var(--shadow-md);
+  border: none;
+}
+
+.modal-card.is-narrow {
+  max-width: 420px;
+}
+
+.modal-card.is-wide {
+  max-width: 960px;
+}
+
+.modal-card-head {
+  background: var(--color-surface) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  padding: 1rem 1.5rem !important;
+}
+
+.modal-card-title {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  color: var(--color-text-primary) !important;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.modal-card-body {
+  background: var(--color-surface) !important;
+  padding: 1.5rem !important;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.modal-card-foot {
+  background: #f9fafb !important;
+  border-top: 1px solid var(--color-border) !important;
+  padding: 1rem 1.5rem !important;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+}
+
+.modal-card .label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin-bottom: 0.5rem;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.modal-card .help {
+  font-size: 0.8125rem;
+  margin-top: 0.25rem;
+  font-family: 'Pretendard', sans-serif;
+}
+

@@ -1,0 +1,63 @@
+/* ============================================================================
+   Tom Select Styles
+   ============================================================================ */
+
+.ts-hidden-accessible,
+.tomselected,
+input.tomselected,
+input.ts-hidden-accessible {
+  display: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+}
+
+.ts-wrapper {
+  display: block !important;
+  width: 100% !important;
+  position: relative !important;
+}
+
+.ts-wrapper .ts-control {
+  min-height: 38px !important;
+  padding: 6px 12px !important;
+  border: 1px solid var(--color-border) !important;
+  background: var(--color-surface) !important;
+  border-radius: 6px !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 4px !important;
+  align-items: center !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  transition: var(--transition-short);
+  font-family: 'Pretendard', sans-serif;
+}
+
+.ts-wrapper.focus .ts-control {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent) !important;
+}
+
+.ts-wrapper.multi .ts-control > div {
+  background: #f3f4f6 !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 4px !important;
+  padding: 2px 8px !important;
+  font-size: 0.875rem !important;
+}
+
+.ts-dropdown {
+  position: absolute !important;
+  z-index: 9999 !important;
+  border: 1px solid var(--color-border) !important;
+  background: var(--color-surface) !important;
+  box-shadow: var(--shadow-md) !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+  border-radius: var(--border-radius);
+}
+
+.ts-wrapper.dropdown-active {
+  z-index: 10000 !important;
+}
+

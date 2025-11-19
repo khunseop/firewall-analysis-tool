@@ -1,0 +1,49 @@
+/* ============================================================================
+   Responsive Design
+   ============================================================================ */
+
+@media screen and (max-width: 768px) {
+  .dashboard-container {
+    padding: 1rem 0;
+  }
+
+  .stat-card {
+    padding: 1.25rem;
+  }
+
+  .stat-card-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.25rem;
+  }
+
+  .stat-card-value {
+    font-size: 1.75rem;
+  }
+
+  .dashboard-box-header {
+    padding: 1rem 1.25rem;
+  }
+
+  .dashboard-box-body {
+    padding: 1.25rem;
+  }
+
+  #default-analysis-ui .columns,
+  #impact-analysis-ui .columns {
+    margin-left: 0;
+    margin-right: 0;
+  }
+  
+  #default-analysis-ui .column,
+  #impact-analysis-ui .column {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  #btn-start-analysis,
+  #btn-start-impact-analysis {
+    width: 100%;
+  }
+}
+

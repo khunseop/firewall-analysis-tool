@@ -1,0 +1,96 @@
+/* ============================================================================
+   Layout Components
+   ============================================================================ */
+
+/* Navbar */
+.minimal-navbar {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  min-height: 3.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.minimal-navbar .navbar-brand {
+  min-height: 3.5rem;
+}
+
+.minimal-navbar .navbar-menu {
+  box-shadow: none;
+  background: transparent;
+}
+
+.minimal-navbar .navbar-logo {
+  padding: 0.5rem 0.75rem;
+}
+
+.minimal-navbar .logo-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  transition: var(--transition-short);
+}
+
+.minimal-navbar .navbar-logo:hover .logo-text {
+  color: var(--color-primary);
+}
+
+.minimal-navbar .navbar-item {
+  padding: 1rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  transition: var(--transition-short);
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.minimal-navbar .navbar-item:nth-child(1) { animation-delay: 0.05s; }
+.minimal-navbar .navbar-item:nth-child(2) { animation-delay: 0.1s; }
+.minimal-navbar .navbar-item:nth-child(3) { animation-delay: 0.15s; }
+.minimal-navbar .navbar-item:nth-child(4) { animation-delay: 0.2s; }
+.minimal-navbar .navbar-item:nth-child(5) { animation-delay: 0.25s; }
+
+.minimal-navbar .navbar-item:hover {
+  color: var(--color-text-primary);
+  background: transparent;
+  transform: translateY(-1px);
+}
+
+.minimal-navbar .navbar-item.is-active {
+  color: var(--color-primary);
+  background: transparent;
+  font-weight: 600;
+}
+
+/* Section */
+.minimal-section {
+  padding: 2rem 1.5rem;
+  background-color: transparent;
+  flex: 1;
+  min-height: calc(100vh - 3.5rem - 3rem);
+}
+
+/* Footer */
+.minimal-footer {
+  background: transparent;
+  border-top: 1px solid rgba(229, 231, 235, 0.5);
+  padding: 0.75rem 1.5rem;
+  margin-top: auto;
+  box-shadow: none;
+}
+
+.minimal-footer .footer-text {
+  font-size: 0.75rem;
+  color: rgba(107, 114, 128, 0.6);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.minimal-footer .footer-divider {
+  color: rgba(229, 231, 235, 0.5);
+  margin: 0 0.125rem;
+}
+

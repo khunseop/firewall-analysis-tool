@@ -1,0 +1,17 @@
+/* ============================================================================
+   Base Styles
+   ============================================================================ */
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
