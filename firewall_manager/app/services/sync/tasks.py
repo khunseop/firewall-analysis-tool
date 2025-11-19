@@ -120,7 +120,35 @@ async def sync_data_task(
                             # It's already a string or None
                             old_hit_date_str = old_hit_date
 
+                        # 최신 값 선택: 기존 값과 새 값 중 더 최신인 것을 선택 
+                        if old_hit_date_str and new_hit_date:
+                            # 둘 다 있으면 datetime으로 변환하여 비교
+                            try:
+                                old_dt = datetime.strptime(old_hit_date_str, "%Y-%m-%d %H:%M:%S") if old_hit_date_str else None
+                                new_dt = datetime.strptime(new_hit_date, "%Y-%m-%d %H:%M:%S") if new_hit_date else None
+
+                                if old_dt and new_dt:
+                                    # 더 최신 값 선택
+                                    if new_dt > old_dt:
+                                        # 새 값이 더 최신이면 업데이트
+                                        is_hit_date_changed = True
+                                    else:
+                                        # 기존 값이 더 최신이면 새 값을 기존 값으로 덮어쓰기
+                                        update_data['last_hit_date'] = old_hit_date_str
+                                        is_hit_date_changed = False
+                                elif new_dt and not old_dt:
+                                    # 새 값만 있으면 업데이트
+                                    is_hit_date_changed = True
+                                elif old_dt and not new_dt:
+                                    # 기존 값만 있으면 유지 (업데이트 안 함)
+                                    update_data['last_hit_date'] = old_hit_date_str
+                                    is_hit_date_changed = False
+                            except (ValueError, TypeError):
+                                # 파싱 실패 시 기존 로직 사용
+                                if old_hit_date_str != new_hit_date:
+                                    is_hit_date_changed = True
                         if old_hit_date_str != new_hit_date:
+                            # None 처리: 기존 값이 없고 새 값이 있으면 업데이트
                             is_hit_date_changed = True
 
                     # 2. Check for other field changes (is_dirty)
@@ -392,11 +420,46 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                             if col in policies_df.columns: policies_df[col] = policies_df[col].astype(str)
                             if col in hit_date_df.columns: hit_date_df[col] = hit_date_df[col].astype(str)
 
-                        # Convert datetime back to string for merging
-                        hit_date_df['last_hit_date'] = hit_date_df['last_hit_date'].dt.strftime('%Y-%m-%d %H:%M:%S')
+                        # 기존 last_hit_date와 새로 수집한 값을 병합할 때 최신 값(max)를 선택
+                        if 'last_hit_date' in policies_df.columns:
+                            # 기존 last_hit_date를 datetime으로 변환 (비교용)
+                            policies_df['last_hit_date_old'] = pd.to_datetime(policies_df['last_hit_date'], errors='coerce')
+                            hit_date_df['last_hit_date_new'] = pd.to_datetime(hit_date_df['last_hit_date'], errors='coerce')
 
-                        policies_df = pd.merge(policies_df, hit_date_df, on=["vsys", "rule_name"], how="left")
+                            # 병합 (last_hit_date 컬럼명 충돌 방지를 위해 임시 컬럼명 사용)
+                            hit_date_df_renamed = hit_date_df.rename(columns={'last_hit_date': 'last_hit_date_from_collector'})
+                            merged_df = pd.merge(policies_df, hit_date_df_rename[['vsys', 'rule_name', 'last_hit_date_new']], on=["vsys", "rule_name"], how="left")
+    
+                            # 최신 값 선택: 기존 값과 새 값 중 더 최신인 것을 선택
+                            def choose_latest(row):
+                                old_val = row.get('last_hit_date_old')
+                                new_val = row.get('last_hit_date_new')
 
+                                if pd.isna(old_val) and pd.isna(new_val):
+                                    return None
+                                elif pd.isna(old_val):
+                                    return new_val
+                                elif pd.isna(new_val):
+                                    return old_val
+                                else:
+                                    # 둘 다 있으면 더 최신 값 선택
+                                    return new_val if new_val > old_val else old_val
+
+                            merged_df['last_hit_date'] = merged_df.apply(choose_latest, axis=1)
+
+                            # 임시 컬럼 제거
+                            merged_df = merged_df.drop(columns=['last_hit_date_old', 'last_hit_date_new'], errors='ignore')
+
+                            policies_df = merged_df
+
+                            # 문자열로 변환 (원래 형식 유지)
+                            policies_df['last_hit_date'] = pd.to_datetime(policies_df['last_hit_date'], errors='coerce').dt.strftime('%Y-%m-%d %H:%M:%S')
+                        else:
+                            # 기존 last_hit_date가 없으면 그냥 병합
+                            # Convert datetime back to string for merging
+                            hit_date_df['last_hit_date'] = hit_date_df['last_hit_date'].dt.strftime('%Y-%m-%d %H:%M:%S')
+                            policies_df = pd.merge(policies_df, hit_date_df, on=["vsys", "rule_name"], how="left")
+                        
                         collected_dfs["policies"] = policies_df
                         merged_hits = policies_df["last_hit_date"].notna().sum() if "last_hit_date" in policies_df.columns else 0
                         logging.info(f"[orchestrator] last_hit_date merge complete. Non-null hits: {merged_hits}")
