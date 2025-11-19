@@ -113,18 +113,19 @@ export function openAlert({
     $('#alert-title').textContent = title;
     $('#alert-message').textContent = message;
     $('#alert-ok').textContent = okText;
+
+    let cleanup = null;
     
     const close = () => {
       modal.classList.remove('is-active');
-      document.removeEventListener('keydown', handleEsc);
+      if (cleanup) {
+        cleanup();
+        cleanup = null;
+      }
       resolve();
     };
-    
-    const handleEsc = (e) => {
-      if (e.key === 'Escape') close();
-    };
-    
-    setupModalCloseHandlers(modal, close);
+
+    cleanup = setupModalCloseHandlers(modal, close);
     
     $('#alert-close').onclick = close;
     $('#alert-ok').onclick = close;
@@ -144,14 +145,13 @@ export function openFormModal(modal, onSubmit) {
   
   const close = () => {
     modal.classList.remove('is-active');
-    document.removeEventListener('keydown', handleEsc);
+    if (cleanup) {
+      cleanup();
+      cleanup = null;
+    }
   };
   
-  const handleEsc = (e) => {
-    if (e.key === 'Escape') close();
-  };
-  
-  setupModalCloseHandlers(modal, close);
+  cleanup = setupModalCloseHandlers(modal, close);
   
   const background = modal.querySelector('.modal-background');
   if (background) {
