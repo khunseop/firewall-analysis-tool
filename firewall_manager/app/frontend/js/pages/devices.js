@@ -141,15 +141,16 @@ async function waitForAgGrid(attempt = 0) {
  * 빠른 필터 적용
  */
 function applyQuickFilter(value) {
-  if (!value) return;
-  
   const api = gridApi || (gridOptions && gridOptions.api);
   if (!api) return;
   
+  // 빈 값일 때도 필터를 초기화하기 위해 빈 문자열로 설정
+  const filterValue = value || '';
+  
   if (typeof api.setGridOption === 'function') {
-    api.setGridOption('quickFilterText', value);
+    api.setGridOption('quickFilterText', filterValue);
   } else if (typeof api.setQuickFilter === 'function') {
-    api.setQuickFilter(value);
+    api.setQuickFilter(filterValue);
   }
 }
 
