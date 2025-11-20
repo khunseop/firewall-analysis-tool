@@ -666,7 +666,8 @@ async function resetWorkflow() {
     title: "워크플로우 초기화",
     message: "워크플로우를 초기화하시겠습니까?\n\n초기화하면:\n- 워크플로우 상태가 초기화됩니다\n- 임시 파일들이 삭제됩니다",
     okText: "초기화",
-    cancelText: "취소"
+    cancelText: "취소",
+    modalId: "modal-confirm" // 명시적으로 지정
   });
   console.log("확인 다이얼로그 결과:", confirmed);
   if (!confirmed) {
