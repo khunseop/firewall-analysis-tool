@@ -259,18 +259,35 @@ export function createGridEventHandlersWithFilter(gridDiv, filterKey, saveGridFi
       setTimeout(() => adjustGridHeight(gridDiv), delay);
     },
     onFirstDataRendered: (params) => {
-      adjust(params.api);
+      setTimeout(() => {
+        if (params.api && typeof params.api.isDestroyed === 'function' && !params.api.isDestroyed()) {
+          try {
+            if (params.api.getDisplayedRowCount() > 0) {
+              params.api.autoSizeAllColumns({ skipHeader: false });
+            }
+            adjustGridHeight(gridDiv);
+          } catch (e) {
+            console.warn('Grid API 호출 실패:', e);
+            adjustGridHeight(gridDiv);
+          }
+        } else {
+          adjustGridHeight(gridDiv);
+        }
+      }, delay);
     },
     onModelUpdated: (params) => {
       if (params.api && typeof params.api.isDestroyed === 'function' && !params.api.isDestroyed()) {
-        try {
-          if (params.api.getDisplayedRowCount() > 0) {
-            adjust(params.api);
-          } else {
-            setTimeout(() => adjustGridHeight(gridDiv), delay);
-          }
-        } catch (e) {
-          console.warn('Grid API 호출 실패:', e);
+        if (params.api.getDisplayedRowCount() > 0) {
+          setTimeout(() => {
+            try {
+              params.api.autoSizeAllColumns({ skipHeader: false });
+              adjustGridHeight(gridDiv);
+            } catch (e) {
+              console.warn('Grid API 호출 실패:', e);
+              adjustGridHeight(gridDiv);
+            }
+          }, delay);
+        } else {
           setTimeout(() => adjustGridHeight(gridDiv), delay);
         }
       } else {

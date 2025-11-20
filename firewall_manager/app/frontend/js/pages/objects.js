@@ -2,7 +2,7 @@ import { api } from '../api.js';
 import { adjustGridHeight, createCommonGridOptions, createGridEventHandlersWithFilter } from '../utils/grid.js';
 import { exportGridToExcelClient } from '../utils/excel.js';
 import { showEmptyMessage, hideEmptyMessage } from '../utils/message.js';
-import { saveSearchParams, loadSearchParams, saveGridFilters, loadGridFilters } from '../utils/storage.js';
+import { saveSearchParams, loadSearchParams, saveGridFilters, loadGridFilters, clearPageState } from '../utils/storage.js';
 
 // ==================== 상수 정의 ====================
 
@@ -194,9 +194,27 @@ async function loadDevices() {
         maxOptions: null,
         onChange: function() {
           const selectedDevices = this.getValue();
-          loadData(selectedDevices);
+          // 장비 선택 해제 시 검색 모드 해제하고 일반 로드 모드로 전환
+          const deviceArray = Array.isArray(selectedDevices) ? selectedDevices : (selectedDevices ? [selectedDevices] : []);
+          if (deviceArray.length === 0) {
+            // 장비가 모두 선택 해제된 경우 검색 상태 삭제
+            clearPageState(`objects_${currentTab}_search`);
+          }
+          loadData(selectedDevices, false);
         }
       });
+
+      // 저장된 상태가 있으면 장비 선택 복원
+      const savedState = loadSearchParams(`objects_${currentTab}`);
+      if (savedState && savedState.deviceIds && savedState.deviceIds.length > 0) {
+        // 저장된 장비 ID가 현재 장비 목록에 존재하는지 확인
+        const validDeviceIds = savedState.deviceIds.filter(id => 
+          allDevices.some(dev => dev.id === parseInt(id, 10))
+        );
+        if (validDeviceIds.length > 0) {
+          select.tomselect.setValue(validDeviceIds);
+        }
+      }
     }
   } catch (err) {
     console.error('Failed to load devices:', err);
@@ -248,10 +266,14 @@ function buildObjectSearchPayload(deviceIds, objectType) {
   if (payload.protocol) payload.protocols = splitCsv(payload.protocol);
   if (payload.port) payload.ports = splitCsv(payload.port);
 
-  // 필터가 모두 비어있는지 확인
-  const hasFilters = Object.values(payload).some(
-    (val, idx) => idx > 1 && val !== null && val !== undefined && val !== ''
-  );
+  // 필터가 모두 비어있는지 확인 (device_ids, object_type 제외)
+  const hasFilters = Object.entries(payload).some(([key, val]) => {
+    if (key === 'device_ids' || key === 'object_type') return false;
+    if (val === null || val === undefined || val === '') return false;
+    // 배열인 경우 빈 배열이 아닌지 확인
+    if (Array.isArray(val)) return val.length > 0;
+    return true;
+  });
 
   if (!hasFilters && deviceIds.length > 0) {
     payload.limit = 500;
@@ -314,6 +336,8 @@ async function loadData(deviceIds, useSearch = false) {
 
   if (deviceIdArray.length === 0) {
     clearAllGrids();
+    // 저장된 검색 상태 삭제
+    clearPageState(`objects_${currentTab}_search`);
     showEmptyMessage(messageContainer, '장비를 선택하세요', 'fa-mouse-pointer');
     if (gridEl) gridEl.style.display = 'none';
     return;
@@ -328,7 +352,9 @@ async function loadData(deviceIds, useSearch = false) {
     if (useSearch) {
       // 검색 API 사용
       const payload = buildObjectSearchPayload(deviceIdArray, currentTab);
+      console.log('상세 검색 페이로드:', payload); // 디버깅용
       const response = await api.searchObjects(payload);
+      console.log('상세 검색 응답:', response); // 디버깅용
       mergedData = response[config.responseKey] || [];
 
       // device_name 추가
@@ -379,7 +405,8 @@ async function loadData(deviceIds, useSearch = false) {
     }
   } catch (err) {
     console.error(`Failed to load ${currentTab}:`, err);
-    alert(`데이터 로드 실패: ${err.message}`);
+    const errorMessage = err.message || '알 수 없는 오류가 발생했습니다.';
+    alert(`데이터 로드 실패: ${errorMessage}\n\n상세 정보는 브라우저 콘솔을 확인하세요.`);
   }
 }
 
@@ -420,9 +447,24 @@ function switchTab(tabName) {
   const savedState = loadSearchParams(`objects_${tabName}`);
   const select = document.getElementById('object-device-select');
 
+  // 현재 선택된 장비 확인
+  const currentSelectedDevices = select?.tomselect?.getValue() || [];
+  const currentDeviceIds = Array.isArray(currentSelectedDevices) 
+    ? currentSelectedDevices.map(id => parseInt(id, 10)).filter(Boolean)
+    : [];
+
   if (savedState && savedState.deviceIds && savedState.deviceIds.length > 0 && select?.tomselect) {
-    // 저장된 장비 선택 복원
-    select.tomselect.setValue(savedState.deviceIds);
+    // 저장된 장비 ID와 현재 선택된 장비 ID가 일치하는지 확인
+    const savedDeviceIds = savedState.deviceIds.map(id => parseInt(id, 10)).sort();
+    const currentDeviceIdsSorted = [...currentDeviceIds].sort();
+    const deviceIdsMatch = savedDeviceIds.length === currentDeviceIdsSorted.length &&
+      savedDeviceIds.every((id, idx) => id === currentDeviceIdsSorted[idx]);
+
+    // 저장된 장비 선택 복원 (페이지 새로고침 시에도 복원)
+    if (!deviceIdsMatch || currentDeviceIds.length === 0) {
+      // 저장된 장비가 현재 선택된 장비와 다르거나 선택된 장비가 없으면 저장된 장비로 복원
+      select.tomselect.setValue(savedState.deviceIds);
+    }
 
     // 저장된 검색 필터 복원
     if (savedState.searchPayload) {
@@ -459,12 +501,22 @@ function switchTab(tabName) {
 
     // 저장된 검색 모드로 데이터 로드
     loadData(savedState.deviceIds, savedState.useSearch || false);
+  } else if (savedState && savedState.deviceIds && savedState.deviceIds.length > 0 && select && !select.tomselect) {
+    // Tom-select가 아직 초기화되지 않았으면 나중에 복원하도록 설정
+    // loadDevices 완료 후 switchTab이 다시 호출되면 복원됨
+    // 여기서는 아무것도 하지 않음
   } else {
     // 저장된 상태가 없으면 현재 선택된 장비로 데이터 로드
     if (select?.tomselect) {
       const selectedDevices = select.tomselect.getValue();
       if (selectedDevices && selectedDevices.length > 0) {
-        loadData(selectedDevices);
+        loadData(selectedDevices, false);
+      } else {
+        // 장비가 선택되지 않았으면 그리드 초기화
+        clearAllGrids();
+        const { messageContainer, gridEl } = getCurrentTabElements();
+        showEmptyMessage(messageContainer, '장비를 선택하세요', 'fa-mouse-pointer');
+        if (gridEl) gridEl.style.display = 'none';
       }
     }
   }
@@ -597,12 +649,15 @@ export async function initObjects() {
       if (select?.tomselect) {
         const selectedDevices = select.tomselect.getValue();
         if (selectedDevices && selectedDevices.length > 0) {
+          // 모달을 먼저 닫고 검색 실행
+          closeModal();
           loadData(selectedDevices, true);
         } else {
           alert('장비를 선택하세요');
         }
+      } else {
+        alert('장비 선택기가 초기화되지 않았습니다.');
       }
-      closeModal();
     };
   }
 
