@@ -521,11 +521,12 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                             
                             # 최신 값 선택: 새로 수집한 값이 있으면 그것을 사용, 없으면 기존 값 유지
                             # 중요: new_val이 NaN이면 hit_date_df에 해당 정책이 없다는 뜻이므로 기존 값 유지
+                            # 하지만 새로 수집한 데이터가 명시적으로 None이면 (히트가 없으면) None으로 설정
                             def choose_latest(row):
                                 old_val = row.get('last_hit_date_old')
                                 new_val = row.get('last_hit_date_new')
                                 
-                                # 새로 수집한 값이 있으면 (hit_date_df에 해당 정책이 있으면)
+                                # 새로 수집한 값이 있으면 (hit_date_df에 해당 정책이 있고 히트가 있으면)
                                 if pd.notna(new_val):
                                     # 기존 값과 비교하여 더 최신 값 선택
                                     if pd.notna(old_val):
@@ -538,7 +539,11 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                                     return result.to_pydatetime() if hasattr(result, 'to_pydatetime') else result
                                 
                                 # 새로 수집한 값이 없으면 (hit_date_df에 해당 정책이 없으면)
-                                # 기존 값 유지 (없으면 None)
+                                # 이는 두 가지 경우:
+                                # 1. hit_date_df에 해당 정책이 아예 없음 (새로 수집한 데이터에 없음) -> 기존 값 유지
+                                # 2. hit_date_df에 해당 정책이 있지만 히트가 없음 -> None
+                                # left join이므로 new_val이 NaN이면 hit_date_df에 해당 정책이 없다는 뜻
+                                # 따라서 기존 값 유지 (없으면 None)
                                 if pd.notna(old_val):
                                     return old_val.to_pydatetime() if hasattr(old_val, 'to_pydatetime') else old_val
                                 return None
@@ -559,7 +564,14 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                             
                             # 디버깅: 매핑 후 상태 확인
                             matched_count = merged_df['last_hit_date'].notna().sum()
-                            logging.info(f"[orchestrator] After merge: {matched_count} policies have last_hit_date")
+                            new_hit_count = merged_df['last_hit_date_new'].notna().sum()
+                            logging.info(f"[orchestrator] After merge: {matched_count} policies have last_hit_date (new hits: {new_hit_count})")
+                            
+                            # 매핑 실패한 정책 확인 (디버깅용)
+                            if len(hit_date_df) > 0 and new_hit_count < len(hit_date_df):
+                                unmatched_hits = hit_date_df[~hit_date_df['rule_name_normalized'].isin(merged_df['rule_name_normalized'])]
+                                if len(unmatched_hits) > 0:
+                                    logging.warning(f"[orchestrator] {len(unmatched_hits)} hit records could not be matched to policies. Sample unmatched: {unmatched_hits['rule_name_normalized'].head(3).tolist()}")
                         else:
                             # 기존 last_hit_date가 없으면 그냥 병합 (rule_name_normalized만 사용)
                             # pandas Timestamp를 Python datetime으로 변환
