@@ -108,70 +108,70 @@ async def sync_data_task(
 
                     # 1. Check for last_hit_date change separately (for policies)
                     # 중요: last_hit_date는 항상 업데이트되어야 하므로, exclude_unset=True로 인해 누락되지 않도록 명시적으로 포함
+                    # 주의: last_hit_date는 DateTime 타입이므로 datetime 객체로 저장해야 함
                     is_hit_date_changed = False
                     if data_type == "policies":
                         old_hit_date = getattr(existing_item, 'last_hit_date', None)
                         # exclude_unset=True로 인해 last_hit_date가 누락될 수 있으므로, new_item에서 직접 가져옴
                         new_hit_date = getattr(new_item, 'last_hit_date', None)
-                        # None이 아닌 경우에만 update_data에 포함
-                        if new_hit_date is not None:
-                            update_data['last_hit_date'] = new_hit_date
+                        
+                        # 문자열을 datetime으로 변환하는 헬퍼 함수
+                        def _to_datetime(val):
+                            if val is None:
+                                return None
+                            # 이미 datetime 객체인 경우
+                            if isinstance(val, datetime):
+                                # timezone-aware면 naive로 변환
+                                if val.tzinfo is not None:
+                                    return val.replace(tzinfo=None)
+                                return val
+                            # pandas Timestamp인 경우
+                            if hasattr(val, 'to_pydatetime'):
+                                try:
+                                    dt = val.to_pydatetime()
+                                    # timezone-aware면 naive로 변환
+                                    if dt.tzinfo is not None:
+                                        return dt.replace(tzinfo=None)
+                                    return dt
+                                except:
+                                    pass
+                            # 문자열인 경우
+                            if isinstance(val, str):
+                                try:
+                                    dt = datetime.strptime(val, "%Y-%m-%d %H:%M:%S")
+                                    return dt
+                                except (ValueError, TypeError):
+                                    try:
+                                        dt = pd.to_datetime(val).to_pydatetime()
+                                        # timezone-aware면 naive로 변환
+                                        if dt.tzinfo is not None:
+                                            return dt.replace(tzinfo=None)
+                                        return dt
+                                    except:
+                                        return None
+                            return None
 
-                        old_hit_date_str = None
-                        if isinstance(old_hit_date, datetime):
-                            # Format datetime to string to match the new string-based format
-                            old_hit_date_str = old_hit_date.strftime("%Y-%m-%d %H:%M:%S")
-                        else:
-                            # It's already a string or None
-                            old_hit_date_str = old_hit_date
-
-                        new_hit_date_str = None
-                        if new_hit_date is not None:
-                            if isinstance(new_hit_date, datetime):
-                                new_hit_date_str = new_hit_date.strftime("%Y-%m-%d %H:%M:%S")
-                            else:
-                                new_hit_date_str = str(new_hit_date) if new_hit_date else None
+                        old_dt = _to_datetime(old_hit_date)
+                        new_dt = _to_datetime(new_hit_date)
 
                         # 최신 값 선택: 기존 값과 새 값 중 더 최신인 것을 선택 
-                        if old_hit_date_str and new_hit_date_str:
-                            # 둘 다 있으면 datetime으로 변환하여 비교
-                            try:
-                                old_dt = datetime.strptime(old_hit_date_str, "%Y-%m-%d %H:%M:%S") if old_hit_date_str else None
-                                new_dt = datetime.strptime(new_hit_date_str, "%Y-%m-%d %H:%M:%S") if new_hit_date_str else None
-
-                                if old_dt and new_dt:
-                                    # 더 최신 값 선택
-                                    if new_dt > old_dt:
-                                        # 새 값이 더 최신이면 업데이트
-                                        update_data['last_hit_date'] = new_hit_date_str
-                                        is_hit_date_changed = True
-                                    else:
-                                        # 기존 값이 더 최신이면 기존 값 유지
-                                        update_data['last_hit_date'] = old_hit_date_str
-                                        is_hit_date_changed = False
-                                elif new_dt and not old_dt:
-                                    # 새 값만 있으면 업데이트
-                                    update_data['last_hit_date'] = new_hit_date_str
-                                    is_hit_date_changed = True
-                                elif old_dt and not new_dt:
-                                    # 기존 값만 있으면 유지
-                                    update_data['last_hit_date'] = old_hit_date_str
-                                    is_hit_date_changed = False
-                            except (ValueError, TypeError):
-                                # 파싱 실패 시 새 값이 있으면 업데이트
-                                if new_hit_date_str:
-                                    update_data['last_hit_date'] = new_hit_date_str
-                                    is_hit_date_changed = True
-                                elif old_hit_date_str:
-                                    update_data['last_hit_date'] = old_hit_date_str
-                                    is_hit_date_changed = False
-                        elif new_hit_date_str:
-                            # 새 값만 있으면 업데이트
-                            update_data['last_hit_date'] = new_hit_date_str
+                        if old_dt and new_dt:
+                            # 둘 다 있으면 더 최신 값 선택
+                            if new_dt > old_dt:
+                                # 새 값이 더 최신이면 업데이트 (datetime 객체로 저장)
+                                update_data['last_hit_date'] = new_dt
+                                is_hit_date_changed = True
+                            else:
+                                # 기존 값이 더 최신이면 기존 값 유지 (datetime 객체로 저장)
+                                update_data['last_hit_date'] = old_dt
+                                is_hit_date_changed = False
+                        elif new_dt and not old_dt:
+                            # 새 값만 있으면 업데이트 (datetime 객체로 저장)
+                            update_data['last_hit_date'] = new_dt
                             is_hit_date_changed = True
-                        elif old_hit_date_str:
-                            # 기존 값만 있으면 유지
-                            update_data['last_hit_date'] = old_hit_date_str
+                        elif old_dt and not new_dt:
+                            # 기존 값만 있으면 유지 (datetime 객체로 저장)
+                            update_data['last_hit_date'] = old_dt
                             is_hit_date_changed = False
                         # 둘 다 None이면 update_data에 None 포함하지 않음 (기존 값 유지)
 
@@ -477,9 +477,9 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                         if 'rule_name' in hit_date_df.columns:
                             hit_date_df['rule_name'] = hit_date_df['rule_name'].astype(str)
                         
-                        # datetime을 문자열로 변환 (merge 준비)
-                        hit_date_df['last_hit_date'] = hit_date_df['last_hit_date'].dt.strftime('%Y-%m-%d %H:%M:%S')
-
+                        # last_hit_date는 datetime 객체로 유지 (문자열로 변환하지 않음)
+                        # 데이터베이스는 DateTime 타입을 기대하므로 datetime 객체로 저장해야 함
+                        
                         # 기존 last_hit_date와 새로 수집한 값을 병합 (최신 값 선택)
                         # 정책명(rule_name)만으로 병합 (VSYS는 제외)
                         if 'last_hit_date' in policies_df.columns:
@@ -504,26 +504,41 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                                 # 둘 다 None이면 None 반환
                                 if pd.isna(old_val) and pd.isna(new_val):
                                     return None
-                                # 하나만 있으면 그 값 반환
+                                # 하나만 있으면 그 값 반환 (datetime 객체로 변환)
                                 elif pd.isna(old_val):
-                                    return new_val
+                                    # pandas Timestamp를 Python datetime으로 변환
+                                    if pd.notna(new_val):
+                                        return new_val.to_pydatetime() if hasattr(new_val, 'to_pydatetime') else new_val
+                                    return None
                                 elif pd.isna(new_val):
-                                    return old_val
-                                # 둘 다 있으면 더 최신 값 선택
+                                    # pandas Timestamp를 Python datetime으로 변환
+                                    if pd.notna(old_val):
+                                        return old_val.to_pydatetime() if hasattr(old_val, 'to_pydatetime') else old_val
+                                    return None
+                                # 둘 다 있으면 더 최신 값 선택 (datetime 객체로 변환)
                                 else:
-                                    return new_val if new_val > old_val else old_val
+                                    result = new_val if new_val > old_val else old_val
+                                    return result.to_pydatetime() if hasattr(result, 'to_pydatetime') else result
                             
                             merged_df['last_hit_date'] = merged_df.apply(choose_latest, axis=1)
                             
                             # 임시 컬럼 제거
                             merged_df = merged_df.drop(columns=['last_hit_date_old', 'last_hit_date_new'], errors='ignore')
                             
-                            # 문자열로 변환 (원래 형식 유지)
-                            merged_df['last_hit_date'] = pd.to_datetime(merged_df['last_hit_date'], errors='coerce').dt.strftime('%Y-%m-%d %H:%M:%S')
+                            # datetime 객체로 유지 (문자열로 변환하지 않음)
+                            # pandas Timestamp가 있으면 Python datetime으로 변환
+                            if 'last_hit_date' in merged_df.columns:
+                                merged_df['last_hit_date'] = merged_df['last_hit_date'].apply(
+                                    lambda x: x.to_pydatetime() if hasattr(x, 'to_pydatetime') and pd.notna(x) else x
+                                )
                             
                             policies_df = merged_df
                         else:
                             # 기존 last_hit_date가 없으면 그냥 병합 (rule_name만 사용)
+                            # pandas Timestamp를 Python datetime으로 변환
+                            hit_date_df['last_hit_date'] = hit_date_df['last_hit_date'].apply(
+                                lambda x: x.to_pydatetime() if hasattr(x, 'to_pydatetime') and pd.notna(x) else x
+                            )
                             policies_df = pd.merge(policies_df, hit_date_df[['rule_name', 'last_hit_date']], on="rule_name", how="left")
                         
                         collected_dfs["policies"] = policies_df

@@ -51,11 +51,17 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
                         return None
                     try:
                         # Try parsing as a numeric timestamp first
-                        return pd.to_datetime(v, unit='s', errors='raise')
+                        dt = pd.to_datetime(v, unit='s', errors='raise')
+                        # pandas Timestamp를 Python datetime으로 변환
+                        return dt.to_pydatetime() if hasattr(dt, 'to_pydatetime') else dt
                     except (ValueError, TypeError):
                         try:
                             # Fallback to parsing as a date string
-                            return pd.to_datetime(v, errors='coerce')
+                            dt = pd.to_datetime(v, errors='coerce')
+                            if pd.isna(dt):
+                                return None
+                            # pandas Timestamp를 Python datetime으로 변환
+                            return dt.to_pydatetime() if hasattr(dt, 'to_pydatetime') else dt
                         except Exception:
                             return None
                 df["last_hit_date"] = df["last_hit_date"].apply(_parse_hit_date)
