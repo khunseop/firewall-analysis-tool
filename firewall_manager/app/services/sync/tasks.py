@@ -299,7 +299,8 @@ async def _collect_last_hit_date_parallel(
         return_exceptions=False
     )
     
-    # 결과 병합: 각 (vsys, rule_name) 조합에 대해 최신 날짜 선택
+    # 결과 병합: 정책명(rule_name) 기준으로 최신 날짜 선택
+    # 주의: HA 장비 간에는 VSYS가 다를 수 있으므로 rule_name만으로 병합
     if main_result is None or main_result.empty:
         if ha_result is None or ha_result.empty:
             logging.info("[orchestrator] No last_hit_date records collected from either device.")
@@ -310,6 +311,8 @@ async def _collect_last_hit_date_parallel(
         hit_date_df = hit_date_df[hit_date_df['last_hit_date'].notna()].copy()
         if hit_date_df.empty:
             return None
+        # rule_name 기준으로 중복 제거 (같은 정책명이 여러 VSYS에 있을 수 있음)
+        hit_date_df = hit_date_df.groupby('rule_name', as_index=False)['last_hit_date'].max()
         logging.info(f"[orchestrator] Collected {len(hit_date_df)} last_hit records from HA peer only.")
         return hit_date_df
     
@@ -320,6 +323,8 @@ async def _collect_last_hit_date_parallel(
         hit_date_df = hit_date_df[hit_date_df['last_hit_date'].notna()].copy()
         if hit_date_df.empty:
             return None
+        # rule_name 기준으로 중복 제거
+        hit_date_df = hit_date_df.groupby('rule_name', as_index=False)['last_hit_date'].max()
         logging.info(f"[orchestrator] Collected {len(hit_date_df)} last_hit records from main device only.")
         return hit_date_df
     
@@ -332,13 +337,13 @@ async def _collect_last_hit_date_parallel(
     ha_df['last_hit_date'] = pd.to_datetime(ha_df['last_hit_date'], errors='coerce')
     ha_df = ha_df[ha_df['last_hit_date'].notna()].copy()  # None 값 제거
     
-    # 두 DataFrame을 합치고, 각 (vsys, rule_name) 조합에 대해 최신 날짜 선택
+    # 두 DataFrame을 합치고, 정책명(rule_name) 기준으로 최신 날짜 선택
     combined_df = pd.concat([main_df, ha_df], ignore_index=True)
     
-    # groupby로 최신 날짜 선택 (max 사용)
-    hit_date_df = combined_df.groupby(['vsys', 'rule_name'], as_index=False)['last_hit_date'].max()
+    # groupby로 최신 날짜 선택 (rule_name만 사용, VSYS는 제외)
+    hit_date_df = combined_df.groupby('rule_name', as_index=False)['last_hit_date'].max()
     
-    logging.info(f"[orchestrator] Collected {len(hit_date_df)} last_hit records (merged from main device and HA peer).")
+    logging.info(f"[orchestrator] Collected {len(hit_date_df)} last_hit records (merged from main device and HA peer by rule_name).")
     return hit_date_df
 
 
@@ -438,26 +443,27 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
 
                         # _collect_last_hit_date_parallel에서 이미 최신 값으로 병합되었으므로 추가 처리 불필요
                         # 데이터 타입 통일 (문자열로 변환하여 merge 준비)
-                        for col in ['vsys', 'rule_name']:
-                            if col in policies_df.columns:
-                                policies_df[col] = policies_df[col].astype(str)
-                            if col in hit_date_df.columns:
-                                hit_date_df[col] = hit_date_df[col].astype(str)
+                        # 주의: rule_name만으로 병합하므로 vsys는 제외
+                        if 'rule_name' in policies_df.columns:
+                            policies_df['rule_name'] = policies_df['rule_name'].astype(str)
+                        if 'rule_name' in hit_date_df.columns:
+                            hit_date_df['rule_name'] = hit_date_df['rule_name'].astype(str)
                         
                         # datetime을 문자열로 변환 (merge 준비)
                         hit_date_df['last_hit_date'] = hit_date_df['last_hit_date'].dt.strftime('%Y-%m-%d %H:%M:%S')
 
                         # 기존 last_hit_date와 새로 수집한 값을 병합 (최신 값 선택)
+                        # 정책명(rule_name)만으로 병합 (VSYS는 제외)
                         if 'last_hit_date' in policies_df.columns:
                             # 기존 값과 새 값을 datetime으로 변환하여 비교
                             policies_df['last_hit_date_old'] = pd.to_datetime(policies_df['last_hit_date'], errors='coerce')
                             hit_date_df['last_hit_date_new'] = pd.to_datetime(hit_date_df['last_hit_date'], errors='coerce')
                             
-                            # 병합
+                            # 병합: rule_name만 사용
                             merged_df = pd.merge(
                                 policies_df, 
-                                hit_date_df[['vsys', 'rule_name', 'last_hit_date_new']], 
-                                on=["vsys", "rule_name"], 
+                                hit_date_df[['rule_name', 'last_hit_date_new']], 
+                                on="rule_name", 
                                 how="left"
                             )
                             
@@ -489,8 +495,8 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                             
                             policies_df = merged_df
                         else:
-                            # 기존 last_hit_date가 없으면 그냥 병합
-                            policies_df = pd.merge(policies_df, hit_date_df, on=["vsys", "rule_name"], how="left")
+                            # 기존 last_hit_date가 없으면 그냥 병합 (rule_name만 사용)
+                            policies_df = pd.merge(policies_df, hit_date_df[['rule_name', 'last_hit_date']], on="rule_name", how="left")
                         
                         collected_dfs["policies"] = policies_df
                         merged_hits = policies_df["last_hit_date"].notna().sum() if "last_hit_date" in policies_df.columns else 0
