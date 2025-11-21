@@ -107,10 +107,15 @@ async def sync_data_task(
                     update_data = new_item.model_dump(exclude_unset=True)
 
                     # 1. Check for last_hit_date change separately (for policies)
+                    # 중요: last_hit_date는 항상 업데이트되어야 하므로, exclude_unset=True로 인해 누락되지 않도록 명시적으로 포함
                     is_hit_date_changed = False
                     if data_type == "policies":
                         old_hit_date = getattr(existing_item, 'last_hit_date', None)
-                        new_hit_date = update_data.get('last_hit_date')
+                        # exclude_unset=True로 인해 last_hit_date가 누락될 수 있으므로, new_item에서 직접 가져옴
+                        new_hit_date = getattr(new_item, 'last_hit_date', None)
+                        # None이 아닌 경우에만 update_data에 포함
+                        if new_hit_date is not None:
+                            update_data['last_hit_date'] = new_hit_date
 
                         old_hit_date_str = None
                         if isinstance(old_hit_date, datetime):
@@ -120,36 +125,55 @@ async def sync_data_task(
                             # It's already a string or None
                             old_hit_date_str = old_hit_date
 
+                        new_hit_date_str = None
+                        if new_hit_date is not None:
+                            if isinstance(new_hit_date, datetime):
+                                new_hit_date_str = new_hit_date.strftime("%Y-%m-%d %H:%M:%S")
+                            else:
+                                new_hit_date_str = str(new_hit_date) if new_hit_date else None
+
                         # 최신 값 선택: 기존 값과 새 값 중 더 최신인 것을 선택 
-                        if old_hit_date_str and new_hit_date:
+                        if old_hit_date_str and new_hit_date_str:
                             # 둘 다 있으면 datetime으로 변환하여 비교
                             try:
                                 old_dt = datetime.strptime(old_hit_date_str, "%Y-%m-%d %H:%M:%S") if old_hit_date_str else None
-                                new_dt = datetime.strptime(new_hit_date, "%Y-%m-%d %H:%M:%S") if new_hit_date else None
+                                new_dt = datetime.strptime(new_hit_date_str, "%Y-%m-%d %H:%M:%S") if new_hit_date_str else None
 
                                 if old_dt and new_dt:
                                     # 더 최신 값 선택
                                     if new_dt > old_dt:
                                         # 새 값이 더 최신이면 업데이트
+                                        update_data['last_hit_date'] = new_hit_date_str
                                         is_hit_date_changed = True
                                     else:
-                                        # 기존 값이 더 최신이면 새 값을 기존 값으로 덮어쓰기
+                                        # 기존 값이 더 최신이면 기존 값 유지
                                         update_data['last_hit_date'] = old_hit_date_str
                                         is_hit_date_changed = False
                                 elif new_dt and not old_dt:
                                     # 새 값만 있으면 업데이트
+                                    update_data['last_hit_date'] = new_hit_date_str
                                     is_hit_date_changed = True
                                 elif old_dt and not new_dt:
-                                    # 기존 값만 있으면 유지 (업데이트 안 함)
+                                    # 기존 값만 있으면 유지
                                     update_data['last_hit_date'] = old_hit_date_str
                                     is_hit_date_changed = False
                             except (ValueError, TypeError):
-                                # 파싱 실패 시 기존 로직 사용
-                                if old_hit_date_str != new_hit_date:
+                                # 파싱 실패 시 새 값이 있으면 업데이트
+                                if new_hit_date_str:
+                                    update_data['last_hit_date'] = new_hit_date_str
                                     is_hit_date_changed = True
-                        if old_hit_date_str != new_hit_date:
-                            # None 처리: 기존 값이 없고 새 값이 있으면 업데이트
+                                elif old_hit_date_str:
+                                    update_data['last_hit_date'] = old_hit_date_str
+                                    is_hit_date_changed = False
+                        elif new_hit_date_str:
+                            # 새 값만 있으면 업데이트
+                            update_data['last_hit_date'] = new_hit_date_str
                             is_hit_date_changed = True
+                        elif old_hit_date_str:
+                            # 기존 값만 있으면 유지
+                            update_data['last_hit_date'] = old_hit_date_str
+                            is_hit_date_changed = False
+                        # 둘 다 None이면 update_data에 None 포함하지 않음 (기존 값 유지)
 
                     # 2. Check for other field changes (is_dirty)
                     fields_to_compare = set(update_data.keys())
@@ -162,7 +186,8 @@ async def sync_data_task(
                     )
 
                     # 3. Determine if an update and/or logging is needed
-                    needs_update = is_dirty or is_hit_date_changed
+                    # 중요: last_hit_date가 변경되었거나, 다른 필드가 변경되었거나, last_hit_date가 명시적으로 설정된 경우 업데이트
+                    needs_update = is_dirty or is_hit_date_changed or (data_type == "policies" and 'last_hit_date' in update_data)
 
                     if needs_update:
                         update_data["id"] = existing_item.id
