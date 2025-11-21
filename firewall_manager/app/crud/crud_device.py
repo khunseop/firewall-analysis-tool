@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import func
+from sqlalchemy import func, delete
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import List
@@ -12,8 +12,12 @@ from app.models.network_object import NetworkObject
 from app.models.network_group import NetworkGroup
 from app.models.service import Service
 from app.models.service_group import ServiceGroup
+from app.models.policy_members import PolicyAddressMember, PolicyServiceMember
+from app.models.analysis import AnalysisTask, AnalysisResult
+from app.models.deletion_workflow import DeletionWorkflow
+from app.models.change_log import ChangeLog
+from app.models.notification_log import NotificationLog
 from app.schemas.device import DeviceCreate, DeviceUpdate, DeviceStats, DashboardStatsResponse
-from datetime import datetime
 
 async def get_device(db: AsyncSession, device_id: int):
     result = await db.execute(select(Device).filter(Device.id == device_id))
@@ -58,12 +62,34 @@ async def update_device(db: AsyncSession, db_obj: Device, obj_in: DeviceUpdate):
     return db_obj
 
 async def remove_device(db: AsyncSession, id: int):
+    """장비 삭제 - 외래키 제약조건을 피하기 위해 관련 데이터를 먼저 삭제"""
     result = await db.execute(select(Device).filter(Device.id == id))
     db_device = result.scalars().first()
-    if db_device:
-        await db.delete(db_device)
+    if not db_device:
+        return None
+    
+    try:
+        # 외래키 제약조건 때문에 관련 데이터를 먼저 삭제
+        await db.execute(delete(PolicyAddressMember).where(PolicyAddressMember.device_id == id))
+        await db.execute(delete(PolicyServiceMember).where(PolicyServiceMember.device_id == id))
+        await db.execute(delete(Policy).where(Policy.device_id == id))
+        await db.execute(delete(AnalysisTask).where(AnalysisTask.device_id == id))
+        await db.execute(delete(AnalysisResult).where(AnalysisResult.device_id == id))
+        await db.execute(delete(DeletionWorkflow).where(DeletionWorkflow.device_id == id))
+        await db.execute(delete(ChangeLog).where(ChangeLog.device_id == id))
+        await db.execute(delete(NetworkObject).where(NetworkObject.device_id == id))
+        await db.execute(delete(NetworkGroup).where(NetworkGroup.device_id == id))
+        await db.execute(delete(Service).where(Service.device_id == id))
+        await db.execute(delete(ServiceGroup).where(ServiceGroup.device_id == id))
+        await db.execute(delete(NotificationLog).where(NotificationLog.device_id == id))
+        
+        # 마지막으로 장비 삭제
+        await db.execute(delete(Device).where(Device.id == id))
         await db.commit()
-    return db_device
+        return db_device
+    except Exception as e:
+        await db.rollback()
+        raise e
 
 
 async def update_sync_status(
