@@ -108,37 +108,60 @@ class ImpactAnalyzer:
         new_seq_policy = policies[self.new_position] if self.new_position < len(policies) else None
         new_seq = new_seq_policy.seq if new_seq_policy else None
         
-        # 이동 방향 결정
-        is_moving_down = original_position < self.new_position
+        # 이동 방향 결정 (seq 번호 기준)
+        is_moving_down = original_seq < new_seq if new_seq is not None else original_position < self.new_position
         
-        # 영향받는 정책 범위 결정
-        # 아래로 이동: 원래 위치 다음부터 새 위치까지
-        # 위로 이동: 새 위치부터 원래 위치 이전까지
-        if is_moving_down:
-            # 아래로 이동: original_position + 1 ~ new_position
-            affected_start = original_position + 1
-            affected_end = self.new_position
+        # 영향받는 정책 범위 결정 (seq 번호 기준)
+        # 아래로 이동: 원래 seq 다음부터 새 seq까지
+        # 위로 이동: 새 seq부터 원래 seq 이전까지
+        affected_seq_start = None
+        affected_seq_end = None
+        affected_start = None
+        affected_end = None
+        
+        if new_seq is not None:
+            if is_moving_down:
+                # 아래로 이동: seq (original_seq + 1) ~ new_seq
+                affected_seq_start = original_seq + 1
+                affected_seq_end = new_seq
+            else:
+                # 위로 이동: seq new_seq ~ (original_seq - 1)
+                affected_seq_start = new_seq
+                affected_seq_end = original_seq - 1
         else:
-            # 위로 이동: new_position ~ original_position - 1
-            affected_start = self.new_position
-            affected_end = original_position - 1
+            # new_seq가 None인 경우 배열 인덱스 기준으로 폴백
+            if is_moving_down:
+                affected_start = original_position + 1
+                affected_end = self.new_position
+            else:
+                affected_start = self.new_position
+                affected_end = original_position - 1
         
         # 영향받는 정책들 확인
         blocking_policies = []  # 이동한 정책이 걸리는 차단 정책들
         shadowed_policies = []  # 이동한 정책에 의해 shadow되는 정책들
         
-        # 영향받는 범위의 정책들을 순회
-        for i in range(affected_start, affected_end + 1):
-            if i < 0 or i >= len(policies):
+        # 영향받는 범위의 정책들을 순회 (seq 번호 기준)
+        for i, policy in enumerate(policies):
+            # 이동하는 정책 자신은 제외
+            if policy.id == target_policy.id:
                 continue
             
-            policy = policies[i]
+            policy_seq = policy.seq or 0
+            
+            # seq 번호 기준으로 영향 범위 확인
+            if affected_seq_start is not None and affected_seq_end is not None:
+                # seq 번호 기준 범위 체크
+                if policy_seq < affected_seq_start or policy_seq > affected_seq_end:
+                    continue
+            else:
+                # 배열 인덱스 기준 범위 체크 (폴백)
+                if i < affected_start or i > affected_end:
+                    continue
             
             # 정책이 겹치는지 확인
             if not self._policies_overlap(target_policy, policy):
                 continue
-            
-            policy_seq = policy.seq or 0
             
             # 1. 이동한 정책이 차단 정책에 걸리는지 확인
             # 이동한 정책이 allow이고, 영향받는 정책이 deny인 경우
@@ -240,6 +263,14 @@ class ImpactAnalyzer:
         all_shadowed_policies = []
         policy_results = []
         
+        # 정책별 정보를 빠르게 조회하기 위한 맵 생성
+        policy_info_map = {}
+        for target_info in target_policies_info:
+            policy_info_map[target_info["policy"].id] = {
+                "policy": target_info["policy"],
+                "original_position": target_info["original_position"]
+            }
+        
         for target_info in target_policies_info:
             target_policy = target_info["policy"]
             original_position = target_info["original_position"]
@@ -255,12 +286,14 @@ class ImpactAnalyzer:
                 key = (bp["policy_id"], bp["current_position"], bp["target_policy_id"])
                 if key not in seen_blocking:
                     seen_blocking.add(key)
+                    # 각 정책별 정보가 이미 포함되어 있으므로 그대로 추가
                     all_blocking_policies.append(bp)
             
             for sp in single_result["shadowed_policies"]:
                 key = (sp["policy_id"], sp["current_position"], sp["target_policy_id"])
                 if key not in seen_shadowed:
                     seen_shadowed.add(key)
+                    # 각 정책별 정보가 이미 포함되어 있으므로 그대로 추가
                     all_shadowed_policies.append(sp)
         
         # 통합 결과 생성

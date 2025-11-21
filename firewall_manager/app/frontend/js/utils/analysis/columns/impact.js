@@ -16,7 +16,13 @@ export function getImpactColumns(objectCellRenderer = null) {
             sortable: false,
             minWidth: 150,
             pinned: 'left',
-            valueGetter: params => params.data.target_policy_name,
+            valueGetter: params => {
+                const data = params.data;
+                const originalSeq = data.target_original_seq || data.target_policy?.seq || '?';
+                const newSeq = data.target_new_seq || '?';
+                const direction = data.move_direction || '';
+                return `${data.target_policy_name || ''} (seq ${originalSeq} → ${newSeq}${direction ? `, ${direction}` : ''})`;
+            },
             cellStyle: {
                 fontWeight: '500',
                 color: '#1976d2'
@@ -27,29 +33,29 @@ export function getImpactColumns(objectCellRenderer = null) {
             }
         },
         { 
-            field: 'policy_id', 
-            headerName: '영향받는 정책 ID', 
-            filter: 'agNumberColumnFilter',
+            field: 'move_direction', 
+            headerName: '이동 방향', 
+            filter: 'agTextColumnFilter',
             sortable: false,
             minWidth: 80,
-            maxWidth: 120,
-            pinned: 'left',
-            valueGetter: params => params.data.policy?.id,
-            filterParams: {
-                buttons: ['apply', 'reset'],
-                debounceMs: 200
-            }
-        },
-        { 
-            field: 'current_position', 
-            headerName: '위치', 
-            filter: 'agNumberColumnFilter',
-            sortable: false,
-            minWidth: 60,
             maxWidth: 100,
             pinned: 'left',
-            valueGetter: params => params.data.current_position,
-            valueFormatter: params => formatNumber(params.value),
+            valueGetter: params => params.data.move_direction || '',
+            cellStyle: params => {
+                const direction = params.value;
+                if (direction === '아래로') {
+                    return {
+                        color: '#1976d2',
+                        fontWeight: '500'
+                    };
+                } else if (direction === '위로') {
+                    return {
+                        color: '#f57c00',
+                        fontWeight: '500'
+                    };
+                }
+                return null;
+            },
             filterParams: {
                 buttons: ['apply', 'reset'],
                 debounceMs: 200
@@ -78,6 +84,38 @@ export function getImpactColumns(objectCellRenderer = null) {
                 }
                 return null;
             },
+            filterParams: {
+                buttons: ['apply', 'reset'],
+                debounceMs: 200
+            }
+        },
+        { 
+            field: 'affected_policy_name', 
+            headerName: '영향받는 정책', 
+            filter: 'agTextColumnFilter',
+            sortable: false,
+            minWidth: 150,
+            pinned: 'left',
+            valueGetter: params => {
+                const policy = params.data.policy;
+                const seq = params.data.current_position;
+                return policy ? `[seq ${seq || '?'}] ${policy.rule_name || ''}` : '';
+            },
+            filterParams: {
+                buttons: ['apply', 'reset'],
+                debounceMs: 200
+            }
+        },
+        { 
+            field: 'current_position', 
+            headerName: '영향받는 정책 위치 (seq)', 
+            filter: 'agNumberColumnFilter',
+            sortable: true,
+            minWidth: 120,
+            maxWidth: 150,
+            pinned: 'left',
+            valueGetter: params => params.data.current_position,
+            valueFormatter: params => params.value != null ? formatNumber(params.value) : '-',
             filterParams: {
                 buttons: ['apply', 'reset'],
                 debounceMs: 200
