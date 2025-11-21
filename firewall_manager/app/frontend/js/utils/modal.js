@@ -185,6 +185,8 @@ export function openFormModal(modal, onSubmit) {
 
   modal.classList.add('is-active');
   
+  let cleanup = null;
+  
   const close = () => {
     modal.classList.remove('is-active');
     if (cleanup) {
@@ -193,12 +195,8 @@ export function openFormModal(modal, onSubmit) {
     }
   };
   
+  // setupModalCloseHandlers가 ESC 키 리스너와 background.onclick을 모두 설정하고 cleanup 함수를 반환
   cleanup = setupModalCloseHandlers(modal, close);
-  
-  const background = modal.querySelector('.modal-background');
-  if (background) {
-    background.onclick = close;
-  }
   
   const closeBtn = modal.querySelector('#close-device, [data-modal-close]');
   const cancelBtn = modal.querySelector('#cancel-device, [data-modal-cancel]');
