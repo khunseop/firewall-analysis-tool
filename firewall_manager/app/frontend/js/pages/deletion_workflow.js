@@ -579,16 +579,10 @@ async function downloadStepResult(stepNumber) {
   if (!currentDeviceId) return;
 
   try {
-    // 장비명 가져오기 (반드시 필요)
+    // 장비명 가져오기 (allDevices에서 찾지 못하면 API를 통해 가져옴)
     const device = allDevices.find(d => d.id === currentDeviceId);
-    if (!device || !device.name) {
-      await openAlert({ 
-        title: "오류", 
-        message: "장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요." 
-      });
-      return;
-    }
-    await api.downloadStepResult(currentDeviceId, stepNumber, device.name);
+    const deviceName = device?.name || null;
+    await api.downloadStepResult(currentDeviceId, stepNumber, deviceName);
   } catch (error) {
     console.error("다운로드 실패:", error);
     await openAlert({ 
@@ -605,16 +599,10 @@ async function downloadMasterFile() {
   if (!currentDeviceId) return;
 
   try {
-    // 장비명 가져오기 (반드시 필요)
+    // 장비명 가져오기 (allDevices에서 찾지 못하면 API를 통해 가져옴)
     const device = allDevices.find(d => d.id === currentDeviceId);
-    if (!device || !device.name) {
-      await openAlert({ 
-        title: "오류", 
-        message: "장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요." 
-      });
-      return;
-    }
-    await api.downloadMasterFile(currentDeviceId, device.name);
+    const deviceName = device?.name || null;
+    await api.downloadMasterFile(currentDeviceId, deviceName);
   } catch (error) {
     console.error("마스터 파일 다운로드 실패:", error);
     await openAlert({ 
@@ -658,16 +646,10 @@ async function downloadFinalResults() {
   if (!currentDeviceId) return;
 
   try {
-    // 장비명 가져오기 (반드시 필요)
+    // 장비명 가져오기 (allDevices에서 찾지 못하면 API를 통해 가져옴)
     const device = allDevices.find(d => d.id === currentDeviceId);
-    if (!device || !device.name) {
-      await openAlert({ 
-        title: "오류", 
-        message: "장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요." 
-      });
-      return;
-    }
-    await api.downloadFinalResults(currentDeviceId, device.name);
+    const deviceName = device?.name || null;
+    await api.downloadFinalResults(currentDeviceId, deviceName);
   } catch (error) {
     console.error("최종 결과 다운로드 실패:", error);
     await openAlert({ 

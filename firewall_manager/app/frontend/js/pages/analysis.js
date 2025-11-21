@@ -519,12 +519,14 @@ async function exportToExcel() {
     const analysisTypeName = analysisTypeMap[analysisType] || '분석결과';
     
     // 장비명 가져오기 (반드시 필요)
-    const device = allDevices.find(d => d.id === deviceId);
-    if (!device || !device.name) {
+    const { getDeviceName } = await import('../utils/excel.js');
+    let deviceName;
+    try {
+        deviceName = await getDeviceName(deviceId, allDevices);
+    } catch (error) {
         alert('장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요.');
         return;
     }
-    const deviceName = device.name;
     
     await exportGridToExcelClient(
         resultGridApi,
@@ -573,13 +575,18 @@ async function generateScript() {
         const scriptText = generateServiceCreationScript(rowData, vendor);
         
         // 파일명 생성: 날짜_구분_장비명 형식
-        // 장비명이 없으면 에러 발생
-        if (!device || !device.name) {
+        // 장비명 가져오기 (allDevices에서 찾지 못하면 API를 통해 가져옴)
+        const { getDeviceName } = await import('../utils/excel.js');
+        let deviceName;
+        try {
+            deviceName = await getDeviceName(deviceId, allDevices);
+        } catch (error) {
             alert('장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요.');
             return;
         }
+        
         const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        const sanitizedDeviceName = device.name.replace(/[\s\/\\:*?"<>|]/g, '_');
+        const sanitizedDeviceName = deviceName.replace(/[\s\/\\:*?"<>|]/g, '_');
         const defaultFilename = `${dateStr}_위험포트스크립트_${sanitizedDeviceName}.xlsx`;
         
         // 파일명 입력 받기

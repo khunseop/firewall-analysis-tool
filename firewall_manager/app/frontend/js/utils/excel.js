@@ -316,12 +316,55 @@ async function createExcelFile(data, headers, filename, options = {}) {
 }
 
 /**
+ * 장비명을 가져오는 공통 함수
+ * @param {number} deviceId - 장비 ID
+ * @param {Array} allDevices - 장비 목록 배열 (선택사항)
+ * @returns {Promise<string>} 장비명
+ */
+export async function getDeviceName(deviceId, allDevices = []) {
+    if (!deviceId) {
+        throw new Error('장비 ID가 없습니다.');
+    }
+    
+    // deviceId를 숫자로 변환 (타입 불일치 방지)
+    const deviceIdNum = Number(deviceId);
+    
+    // 먼저 allDevices에서 찾기 (타입을 고려한 비교)
+    const device = allDevices.find(d => Number(d.id) === deviceIdNum);
+    if (device && device.name) {
+        return device.name;
+    }
+    
+    // allDevices에서 찾지 못하면 API를 통해 직접 조회
+    try {
+        const { api } = await import('../api.js');
+        const devices = await api.listDevices();
+        const foundDevice = devices.find(d => Number(d.id) === deviceIdNum);
+        if (foundDevice && foundDevice.name) {
+            return foundDevice.name;
+        }
+        
+        // 장비명이 필수 필드이므로 이 경우는 발생하지 않아야 함
+        // 하지만 방어 코드로 에러를 발생시킴
+        throw new Error(`장비 ID ${deviceId}에 해당하는 장비를 찾을 수 없습니다.`);
+    } catch (error) {
+        // 이미 에러인 경우 그대로 전달
+        if (error.message && error.message.includes('장비 ID')) {
+            throw error;
+        }
+        // API 호출 실패 시
+        console.error('장비명을 가져오는 중 오류 발생:', error);
+        throw new Error(`장비명을 가져올 수 없습니다: ${error.message}`);
+    }
+}
+
+/**
  * 그리드 데이터를 엑셀로 내보내기 (공통 함수)
  * @param {Object} gridApi - AG Grid API 객체
  * @param {Array} columnDefs - 컬럼 정의 배열
  * @param {string} defaultFilename - 기본 파일명 (구분)
  * @param {string} emptyMessage - 데이터 없을 때 메시지
- * @param {Object} options - 옵션 (type: 'analysis' | 'policy' | 'object', flattenFn: 평탄화 함수, deviceName: 장비명)
+ * @param {Object} options - 옵션 (type: 'analysis' | 'policy' | 'object', flattenFn: 평탄화 함수, deviceName: 장비명 또는 deviceId: 장비 ID)
  */
 export async function exportGridToExcelClient(gridApi, columnDefs, defaultFilename, emptyMessage = '데이터가 없습니다.', options = {}) {
     if (!gridApi) {
@@ -342,13 +385,26 @@ export async function exportGridToExcelClient(gridApi, columnDefs, defaultFilena
         }
         
         // 파일명 생성: 날짜_구분_장비명 형식
-        // deviceName이 없으면 에러 발생 (장비 ID는 사용자에게 의미 없음)
-        if (!options.deviceName) {
+        let deviceName = options.deviceName;
+        
+        // deviceName이 없고 deviceId가 있으면 장비명 가져오기
+        if (!deviceName && options.deviceId) {
+            try {
+                deviceName = await getDeviceName(options.deviceId, options.allDevices || []);
+            } catch (error) {
+                console.error('장비명을 가져오는 중 오류 발생:', error);
+                alert('장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요.');
+                return;
+            }
+        }
+        
+        // deviceName이 여전히 없으면 에러 (장비 ID도 없고 장비명도 없는 경우)
+        if (!deviceName) {
             alert('장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요.');
             return;
         }
+        
         const dateStr = generateDateString();
-        const deviceName = options.deviceName;
         // 파일명에서 사용할 수 없는 문자 제거 (공백, 특수문자 등)
         const sanitizedDeviceName = deviceName.replace(/[\s\/\\:*?"<>|]/g, '_');
         const suggestedFilename = `${dateStr}_${defaultFilename}_${sanitizedDeviceName}.xlsx`;

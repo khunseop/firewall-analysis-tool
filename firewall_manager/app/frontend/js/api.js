@@ -181,12 +181,24 @@ export const api = {
     const extension = isZip ? '.zip' : '.xlsx';
     
     // 파일명 생성: 날짜_구분_장비명 형식
-    // deviceName이 없으면 에러 발생 (장비 ID는 사용자에게 의미 없음)
-    if (!deviceName) {
+    // deviceName이 없으면 API를 통해 가져오기
+    let finalDeviceName = deviceName;
+    if (!finalDeviceName && deviceId) {
+      try {
+        const { getDeviceName } = await import('./utils/excel.js');
+        finalDeviceName = await getDeviceName(deviceId);
+      } catch (error) {
+        console.error('장비명을 가져오는 중 오류 발생:', error);
+        throw new Error('장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요.');
+      }
+    }
+    
+    if (!finalDeviceName) {
       throw new Error('장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요.');
     }
+    
     const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const sanitizedDeviceName = deviceName.replace(/[\s\/\\:*?"<>|]/g, '_');
+    const sanitizedDeviceName = finalDeviceName.replace(/[\s\/\\:*?"<>|]/g, '_');
     const stepNameMap = {
       1: '신청정보파싱',
       2: 'RequestID추출',
@@ -224,12 +236,24 @@ export const api = {
     const blob = await res.blob();
     
     // 파일명 생성: 날짜_구분_장비명 형식
-    // deviceName이 없으면 에러 발생 (장비 ID는 사용자에게 의미 없음)
-    if (!deviceName) {
+    // deviceName이 없으면 API를 통해 가져오기
+    let finalDeviceName = deviceName;
+    if (!finalDeviceName && deviceId) {
+      try {
+        const { getDeviceName } = await import('./utils/excel.js');
+        finalDeviceName = await getDeviceName(deviceId);
+      } catch (error) {
+        console.error('장비명을 가져오는 중 오류 발생:', error);
+        throw new Error('장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요.');
+      }
+    }
+    
+    if (!finalDeviceName) {
       throw new Error('장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요.');
     }
+    
     const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const sanitizedDeviceName = deviceName.replace(/[\s\/\\:*?"<>|]/g, '_');
+    const sanitizedDeviceName = finalDeviceName.replace(/[\s\/\\:*?"<>|]/g, '_');
     const defaultFilename = `${dateStr}_마스터파일_${sanitizedDeviceName}.xlsx`;
     
     // 파일명 입력 받기
@@ -258,12 +282,24 @@ export const api = {
     const blob = await res.blob();
     
     // 파일명 생성: 날짜_구분_장비명 형식
-    // deviceName이 없으면 에러 발생 (장비 ID는 사용자에게 의미 없음)
-    if (!deviceName) {
+    // deviceName이 없으면 API를 통해 가져오기
+    let finalDeviceName = deviceName;
+    if (!finalDeviceName && deviceId) {
+      try {
+        const { getDeviceName } = await import('./utils/excel.js');
+        finalDeviceName = await getDeviceName(deviceId);
+      } catch (error) {
+        console.error('장비명을 가져오는 중 오류 발생:', error);
+        throw new Error('장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요.');
+      }
+    }
+    
+    if (!finalDeviceName) {
       throw new Error('장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요.');
     }
+    
     const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const sanitizedDeviceName = deviceName.replace(/[\s\/\\:*?"<>|]/g, '_');
+    const sanitizedDeviceName = finalDeviceName.replace(/[\s\/\\:*?"<>|]/g, '_');
     const defaultFilename = `${dateStr}_최종결과_${sanitizedDeviceName}.zip`;
     
     // 파일명 입력 받기
