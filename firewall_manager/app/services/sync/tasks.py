@@ -482,48 +482,71 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                         
                         # 기존 last_hit_date와 새로 수집한 값을 병합 (최신 값 선택)
                         # 정책명(rule_name)만으로 병합 (VSYS는 제외)
+                        # 중요: 새로 수집한 hit_date_df에 있는 정책만 업데이트하고, 없는 정책은 기존 값 유지
+                        
+                        # rule_name 정규화 및 매칭 준비
+                        def normalize_rule_name(name):
+                            if pd.isna(name):
+                                return None
+                            s = str(name).strip()
+                            return s if s and s.lower() not in {"nan", "none", "-", ""} else None
+                        
+                        policies_df['rule_name_normalized'] = policies_df['rule_name'].apply(normalize_rule_name)
+                        hit_date_df['rule_name_normalized'] = hit_date_df['rule_name'].apply(normalize_rule_name)
+                        
+                        # None인 rule_name 제거
+                        hit_date_df = hit_date_df[hit_date_df['rule_name_normalized'].notna()].copy()
+                        
+                        # 디버깅: 매핑 전 상태 확인
+                        logging.info(f"[orchestrator] Before merge: policies_df has {len(policies_df)} policies, hit_date_df has {len(hit_date_df)} hit records")
+                        if len(hit_date_df) > 0:
+                            sample_hit_names = hit_date_df['rule_name_normalized'].head(5).tolist()
+                            logging.info(f"[orchestrator] Sample hit record rule_names: {sample_hit_names}")
+                        if len(policies_df) > 0:
+                            sample_policy_names = policies_df['rule_name_normalized'].head(5).tolist()
+                            logging.info(f"[orchestrator] Sample policy rule_names: {sample_policy_names}")
+                        
                         if 'last_hit_date' in policies_df.columns:
                             # 기존 값과 새 값을 datetime으로 변환하여 비교
                             policies_df['last_hit_date_old'] = pd.to_datetime(policies_df['last_hit_date'], errors='coerce')
                             hit_date_df['last_hit_date_new'] = pd.to_datetime(hit_date_df['last_hit_date'], errors='coerce')
                             
-                            # 병합: rule_name만 사용
+                            # 병합: rule_name_normalized만 사용 (정확한 매칭을 위해)
                             merged_df = pd.merge(
                                 policies_df, 
-                                hit_date_df[['rule_name', 'last_hit_date_new']], 
-                                on="rule_name", 
+                                hit_date_df[['rule_name_normalized', 'last_hit_date_new']], 
+                                on="rule_name_normalized", 
                                 how="left"
                             )
                             
-                            # 최신 값 선택: 기존 값과 새 값 중 더 최신인 것을 선택
-                            # None/NaT는 무시하고 유효한 값만 비교
+                            # 최신 값 선택: 새로 수집한 값이 있으면 그것을 사용, 없으면 기존 값 유지
+                            # 중요: new_val이 NaN이면 hit_date_df에 해당 정책이 없다는 뜻이므로 기존 값 유지
                             def choose_latest(row):
                                 old_val = row.get('last_hit_date_old')
                                 new_val = row.get('last_hit_date_new')
                                 
-                                # 둘 다 None이면 None 반환
-                                if pd.isna(old_val) and pd.isna(new_val):
-                                    return None
-                                # 하나만 있으면 그 값 반환 (datetime 객체로 변환)
-                                elif pd.isna(old_val):
-                                    # pandas Timestamp를 Python datetime으로 변환
-                                    if pd.notna(new_val):
-                                        return new_val.to_pydatetime() if hasattr(new_val, 'to_pydatetime') else new_val
-                                    return None
-                                elif pd.isna(new_val):
-                                    # pandas Timestamp를 Python datetime으로 변환
+                                # 새로 수집한 값이 있으면 (hit_date_df에 해당 정책이 있으면)
+                                if pd.notna(new_val):
+                                    # 기존 값과 비교하여 더 최신 값 선택
                                     if pd.notna(old_val):
-                                        return old_val.to_pydatetime() if hasattr(old_val, 'to_pydatetime') else old_val
-                                    return None
-                                # 둘 다 있으면 더 최신 값 선택 (datetime 객체로 변환)
-                                else:
-                                    result = new_val if new_val > old_val else old_val
+                                        # 둘 다 있으면 더 최신 값 선택
+                                        result = new_val if new_val > old_val else old_val
+                                    else:
+                                        # 새 값만 있으면 새 값 사용
+                                        result = new_val
+                                    # pandas Timestamp를 Python datetime으로 변환
                                     return result.to_pydatetime() if hasattr(result, 'to_pydatetime') else result
+                                
+                                # 새로 수집한 값이 없으면 (hit_date_df에 해당 정책이 없으면)
+                                # 기존 값 유지 (없으면 None)
+                                if pd.notna(old_val):
+                                    return old_val.to_pydatetime() if hasattr(old_val, 'to_pydatetime') else old_val
+                                return None
                             
                             merged_df['last_hit_date'] = merged_df.apply(choose_latest, axis=1)
                             
                             # 임시 컬럼 제거
-                            merged_df = merged_df.drop(columns=['last_hit_date_old', 'last_hit_date_new'], errors='ignore')
+                            merged_df = merged_df.drop(columns=['last_hit_date_old', 'last_hit_date_new', 'rule_name_normalized'], errors='ignore')
                             
                             # datetime 객체로 유지 (문자열로 변환하지 않음)
                             # pandas Timestamp가 있으면 Python datetime으로 변환
@@ -533,13 +556,23 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                                 )
                             
                             policies_df = merged_df
+                            
+                            # 디버깅: 매핑 후 상태 확인
+                            matched_count = merged_df['last_hit_date'].notna().sum()
+                            logging.info(f"[orchestrator] After merge: {matched_count} policies have last_hit_date")
                         else:
-                            # 기존 last_hit_date가 없으면 그냥 병합 (rule_name만 사용)
+                            # 기존 last_hit_date가 없으면 그냥 병합 (rule_name_normalized만 사용)
                             # pandas Timestamp를 Python datetime으로 변환
                             hit_date_df['last_hit_date'] = hit_date_df['last_hit_date'].apply(
                                 lambda x: x.to_pydatetime() if hasattr(x, 'to_pydatetime') and pd.notna(x) else x
                             )
-                            policies_df = pd.merge(policies_df, hit_date_df[['rule_name', 'last_hit_date']], on="rule_name", how="left")
+                            policies_df = pd.merge(
+                                policies_df, 
+                                hit_date_df[['rule_name_normalized', 'last_hit_date']], 
+                                on="rule_name_normalized", 
+                                how="left"
+                            )
+                            policies_df = policies_df.drop(columns=['rule_name_normalized'], errors='ignore')
                         
                         collected_dfs["policies"] = policies_df
                         merged_hits = policies_df["last_hit_date"].notna().sum() if "last_hit_date" in policies_df.columns else 0
