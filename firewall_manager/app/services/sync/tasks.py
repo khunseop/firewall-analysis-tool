@@ -519,33 +519,20 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                                 how="left"
                             )
                             
-                            # 최신 값 선택: 새로 수집한 값이 있으면 그것을 사용, 없으면 기존 값 유지
-                            # 중요: new_val이 NaN이면 hit_date_df에 해당 정책이 없다는 뜻이므로 기존 값 유지
-                            # 하지만 새로 수집한 데이터가 명시적으로 None이면 (히트가 없으면) None으로 설정
+                            # 중요: 마지막 매칭일시는 기존 값을 모두 제거하고 새로 수집한 값으로만 설정
+                            # 새로 수집한 hit_date_df에 있는 정책만 업데이트하고, 없는 정책은 None으로 설정
                             def choose_latest(row):
                                 old_val = row.get('last_hit_date_old')
                                 new_val = row.get('last_hit_date_new')
                                 
                                 # 새로 수집한 값이 있으면 (hit_date_df에 해당 정책이 있고 히트가 있으면)
                                 if pd.notna(new_val):
-                                    # 기존 값과 비교하여 더 최신 값 선택
-                                    if pd.notna(old_val):
-                                        # 둘 다 있으면 더 최신 값 선택
-                                        result = new_val if new_val > old_val else old_val
-                                    else:
-                                        # 새 값만 있으면 새 값 사용
-                                        result = new_val
+                                    # 새로 수집한 값 사용 (기존 값과 비교하지 않고 항상 새 값 사용)
                                     # pandas Timestamp를 Python datetime으로 변환
-                                    return result.to_pydatetime() if hasattr(result, 'to_pydatetime') else result
+                                    return new_val.to_pydatetime() if hasattr(new_val, 'to_pydatetime') else new_val
                                 
                                 # 새로 수집한 값이 없으면 (hit_date_df에 해당 정책이 없으면)
-                                # 이는 두 가지 경우:
-                                # 1. hit_date_df에 해당 정책이 아예 없음 (새로 수집한 데이터에 없음) -> 기존 값 유지
-                                # 2. hit_date_df에 해당 정책이 있지만 히트가 없음 -> None
-                                # left join이므로 new_val이 NaN이면 hit_date_df에 해당 정책이 없다는 뜻
-                                # 따라서 기존 값 유지 (없으면 None)
-                                if pd.notna(old_val):
-                                    return old_val.to_pydatetime() if hasattr(old_val, 'to_pydatetime') else old_val
+                                # 기존 값을 제거하고 None으로 설정
                                 return None
                             
                             merged_df['last_hit_date'] = merged_df.apply(choose_latest, axis=1)
