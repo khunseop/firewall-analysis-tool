@@ -548,7 +548,11 @@ async function exportToExcel() {
   // 장비명 가져오기 (여러 장비 선택 시 첫 번째 장비명 사용)
   const deviceId = deviceIdArray[0];
   const device = allDevices.find(d => d.id === deviceId);
-  const deviceName = device ? device.name : `장비_${deviceId}`;
+  if (!device || !device.name) {
+    alert('장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요.');
+    return;
+  }
+  const deviceName = device.name;
   // 여러 장비 선택 시 표시
   const finalDeviceName = deviceIdArray.length > 1 ? `${deviceName}_외${deviceIdArray.length - 1}개` : deviceName;
   

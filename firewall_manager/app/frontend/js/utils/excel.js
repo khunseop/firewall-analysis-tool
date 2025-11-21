@@ -115,13 +115,13 @@ function getValuesFromFlatRow(columnDefs, flatRow) {
 }
 
 /**
- * 다른 이름으로 저장 다이얼로그 표시
- * @param {string} defaultFilename - 기본 파일명
- * @returns {Promise<string|null>} 사용자가 입력한 파일명 또는 null
+ * 다른 이름으로 저장 다이얼로그 표시 (공통 함수)
+ * @param {string} defaultFilename - 기본 파일명 (확장자 포함)
+ * @returns {Promise<string|null>} 사용자가 입력한 파일명 또는 null (취소 시)
  */
-function promptFilename(defaultFilename) {
+export function promptFilename(defaultFilename) {
     return new Promise((resolve) => {
-        const filename = prompt('파일명을 입력하세요:', defaultFilename);
+        const filename = prompt('파일명을 입력하세요 (경로 지정 후 저장):', defaultFilename);
         if (filename === null) {
             resolve(null); // 취소
         } else if (filename.trim() === '') {
@@ -306,7 +306,9 @@ async function createExcelFile(data, headers, filename, options = {}) {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${filename}.xlsx`;
+    // 확장자가 이미 포함되어 있으면 그대로 사용, 없으면 추가
+    const finalFilename = filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`;
+    a.download = finalFilename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -340,11 +342,16 @@ export async function exportGridToExcelClient(gridApi, columnDefs, defaultFilena
         }
         
         // 파일명 생성: 날짜_구분_장비명 형식
+        // deviceName이 없으면 에러 발생 (장비 ID는 사용자에게 의미 없음)
+        if (!options.deviceName) {
+            alert('장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요.');
+            return;
+        }
         const dateStr = generateDateString();
-        const deviceName = options.deviceName || '전체';
+        const deviceName = options.deviceName;
         // 파일명에서 사용할 수 없는 문자 제거 (공백, 특수문자 등)
         const sanitizedDeviceName = deviceName.replace(/[\s\/\\:*?"<>|]/g, '_');
-        const suggestedFilename = `${dateStr}_${defaultFilename}_${sanitizedDeviceName}`;
+        const suggestedFilename = `${dateStr}_${defaultFilename}_${sanitizedDeviceName}.xlsx`;
         const filename = await promptFilename(suggestedFilename);
         
         if (!filename) {

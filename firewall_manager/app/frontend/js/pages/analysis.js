@@ -518,9 +518,13 @@ async function exportToExcel() {
     };
     const analysisTypeName = analysisTypeMap[analysisType] || '분석결과';
     
-    // 장비명 가져오기
+    // 장비명 가져오기 (반드시 필요)
     const device = allDevices.find(d => d.id === deviceId);
-    const deviceName = device ? device.name : `장비_${deviceId}`;
+    if (!device || !device.name) {
+        alert('장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요.');
+        return;
+    }
+    const deviceName = device.name;
     
     await exportGridToExcelClient(
         resultGridApi,
@@ -569,12 +573,27 @@ async function generateScript() {
         const scriptText = generateServiceCreationScript(rowData, vendor);
         
         // 파일명 생성: 날짜_구분_장비명 형식
+        // 장비명이 없으면 에러 발생
+        if (!device || !device.name) {
+            alert('장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요.');
+            return;
+        }
         const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        const sanitizedDeviceName = device ? device.name.replace(/[\s\/\\:*?"<>|]/g, '_') : `장비_${deviceId}`;
-        const filename = `${dateStr}_위험포트스크립트_${sanitizedDeviceName}`;
+        const sanitizedDeviceName = device.name.replace(/[\s\/\\:*?"<>|]/g, '_');
+        const defaultFilename = `${dateStr}_위험포트스크립트_${sanitizedDeviceName}.xlsx`;
+        
+        // 파일명 입력 받기
+        const { promptFilename } = await import('../utils/excel.js');
+        const filename = await promptFilename(defaultFilename);
+        if (!filename) {
+            return; // 사용자가 취소
+        }
+        
+        // 확장자 제거 (exportScriptToExcel에서 추가함)
+        const filenameWithoutExt = filename.replace(/\.xlsx$/i, '');
         
         // 엑셀로 다운로드
-        await exportScriptToExcel(scriptText, filename);
+        await exportScriptToExcel(scriptText, filenameWithoutExt);
     } catch (error) {
         console.error('스크립트 생성 실패:', error);
         alert(`스크립트 생성 실패: ${error.message}`);
@@ -707,7 +726,9 @@ async function exportScriptToExcel(scriptText, filename) {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${filename}.xlsx`;
+    // 확장자가 이미 포함되어 있으면 그대로 사용, 없으면 추가
+    const finalFilename = filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`;
+    a.download = finalFilename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

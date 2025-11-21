@@ -1,3 +1,5 @@
+import { promptFilename } from './utils/excel.js';
+
 const BASE = "/api/v1";
 
 async function request(path, options = {}) {
@@ -172,9 +174,6 @@ export const api = {
       throw new Error(detail);
     }
     const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
     
     // Step 7은 ZIP 파일, 나머지는 Excel 파일
     const contentType = res.headers.get('content-type') || '';
@@ -182,8 +181,12 @@ export const api = {
     const extension = isZip ? '.zip' : '.xlsx';
     
     // 파일명 생성: 날짜_구분_장비명 형식
+    // deviceName이 없으면 에러 발생 (장비 ID는 사용자에게 의미 없음)
+    if (!deviceName) {
+      throw new Error('장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요.');
+    }
     const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const sanitizedDeviceName = deviceName ? deviceName.replace(/[\s\/\\:*?"<>|]/g, '_') : `장비_${deviceId}`;
+    const sanitizedDeviceName = deviceName.replace(/[\s\/\\:*?"<>|]/g, '_');
     const stepNameMap = {
       1: '신청정보파싱',
       2: 'RequestID추출',
@@ -194,28 +197,18 @@ export const api = {
       7: '중복정책분류'
     };
     const stepName = stepNameMap[stepNumber] || `Step${stepNumber}`;
-    const defaultFilename = isZip 
-      ? `${dateStr}_${stepName}_${sanitizedDeviceName}.zip`
-      : `${dateStr}_${stepName}_${sanitizedDeviceName}.xlsx`;
+    const defaultFilename = `${dateStr}_${stepName}_${sanitizedDeviceName}${extension}`;
     
-    // Content-Disposition 헤더에서 파일명 추출 시도
-    const contentDisposition = res.headers.get('content-disposition');
-    if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-      if (filenameMatch && filenameMatch[1]) {
-        // 백엔드에서 제공한 파일명이 있으면 날짜_구분_장비명 형식으로 변경
-        const backendFilename = filenameMatch[1].replace(/['"]/g, '');
-        // 확장자 추출
-        const ext = backendFilename.match(/\.(zip|xlsx)$/i)?.[0] || extension;
-        // 백엔드 파일명에서 날짜와 구분 추출 시도, 없으면 기본값 사용
-        a.download = defaultFilename;
-      } else {
-        a.download = defaultFilename;
-      }
-    } else {
-      a.download = defaultFilename;
+    // 파일명 입력 받기
+    const filename = await promptFilename(defaultFilename);
+    if (!filename) {
+      return; // 사용자가 취소
     }
     
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -229,15 +222,26 @@ export const api = {
       throw new Error(detail);
     }
     const blob = await res.blob();
+    
+    // 파일명 생성: 날짜_구분_장비명 형식
+    // deviceName이 없으면 에러 발생 (장비 ID는 사용자에게 의미 없음)
+    if (!deviceName) {
+      throw new Error('장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요.');
+    }
+    const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const sanitizedDeviceName = deviceName.replace(/[\s\/\\:*?"<>|]/g, '_');
+    const defaultFilename = `${dateStr}_마스터파일_${sanitizedDeviceName}.xlsx`;
+    
+    // 파일명 입력 받기
+    const filename = await promptFilename(defaultFilename);
+    if (!filename) {
+      return; // 사용자가 취소
+    }
+    
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    
-    // 파일명 생성: 날짜_구분_장비명 형식
-    const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const sanitizedDeviceName = deviceName ? deviceName.replace(/[\s\/\\:*?"<>|]/g, '_') : `장비_${deviceId}`;
-    a.download = `${dateStr}_마스터파일_${sanitizedDeviceName}.xlsx`;
-    
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -252,15 +256,26 @@ export const api = {
       throw new Error(detail);
     }
     const blob = await res.blob();
+    
+    // 파일명 생성: 날짜_구분_장비명 형식
+    // deviceName이 없으면 에러 발생 (장비 ID는 사용자에게 의미 없음)
+    if (!deviceName) {
+      throw new Error('장비명을 가져올 수 없습니다. 페이지를 새로고침해주세요.');
+    }
+    const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const sanitizedDeviceName = deviceName.replace(/[\s\/\\:*?"<>|]/g, '_');
+    const defaultFilename = `${dateStr}_최종결과_${sanitizedDeviceName}.zip`;
+    
+    // 파일명 입력 받기
+    const filename = await promptFilename(defaultFilename);
+    if (!filename) {
+      return; // 사용자가 취소
+    }
+    
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    
-    // 파일명 생성: 날짜_구분_장비명 형식
-    const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const sanitizedDeviceName = deviceName ? deviceName.replace(/[\s\/\\:*?"<>|]/g, '_') : `장비_${deviceId}`;
-    a.download = `${dateStr}_최종결과_${sanitizedDeviceName}.zip`;
-    
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

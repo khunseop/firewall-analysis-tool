@@ -137,10 +137,17 @@ async def download_step_result(
     if not workflow:
         raise HTTPException(status_code=404, detail="워크플로우를 찾을 수 없습니다.")
     
+    # 장비명 가져오기
+    device = await crud.device.get(db, device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail="장비를 찾을 수 없습니다.")
+    device_name = device.name.replace(' ', '_').replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
+    
     file_manager = FileManager()
     import os
     import zipfile
     import tempfile
+    from datetime import datetime
     from fastapi.responses import FileResponse
     
     # Step 7은 두 개의 파일(notice, delete)이 있으므로 ZIP으로 묶어서 다운로드
@@ -182,9 +189,14 @@ async def download_step_result(
                 if delete_path and os.path.exists(delete_path):
                     zipf.write(delete_path, '중복정책_삭제용.xlsx')
             
+            # 파일명 생성: 날짜_구분_장비명 형식
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            step_name = "중복정책분류"
+            filename = f"{date_str}_{step_name}_{device_name}.zip"
+            
             return FileResponse(
                 tmp_zip.name,
-                filename=f"step_7_results.zip",
+                filename=filename,
                 media_type="application/zip"
             )
     
@@ -224,7 +236,22 @@ async def download_step_result(
     if not file_path or not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail=f"Step {step_number} 결과 파일을 찾을 수 없습니다.")
     
-    return FileResponse(file_path, filename=os.path.basename(file_path))
+    # 파일명 생성: 날짜_구분_장비명 형식
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    step_name_map = {
+        1: '신청정보파싱',
+        2: 'RequestID추출',
+        3: 'MISID업데이트',
+        4: '신청정보가공',
+        5: '신청정보매핑',
+        6: '예외처리',
+        7: '중복정책분류'
+    }
+    step_name = step_name_map.get(step_number, f'Step{step_number}')
+    extension = '.xlsx'
+    filename = f"{date_str}_{step_name}_{device_name}{extension}"
+    
+    return FileResponse(file_path, filename=filename)
 
 
 @router.get("/{device_id}/master/download")
@@ -237,8 +264,15 @@ async def download_master_file(
     if not workflow:
         raise HTTPException(status_code=404, detail="워크플로우를 찾을 수 없습니다.")
     
+    # 장비명 가져오기
+    device = await crud.device.get(db, device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail="장비를 찾을 수 없습니다.")
+    device_name = device.name.replace(' ', '_').replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
+    
     file_manager = FileManager()
     import os
+    from datetime import datetime
     
     # DB에 저장된 경로 확인
     db_file_path = workflow.master_file_path
@@ -266,8 +300,12 @@ async def download_master_file(
     if not file_path or not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="마스터 파일을 찾을 수 없습니다.")
     
+    # 파일명 생성: 날짜_구분_장비명 형식
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    filename = f"{date_str}_마스터파일_{device_name}.xlsx"
+    
     from fastapi.responses import FileResponse
-    return FileResponse(file_path, filename=os.path.basename(file_path))
+    return FileResponse(file_path, filename=filename)
 
 
 @router.post("/{device_id}/final/export")
@@ -295,9 +333,16 @@ async def download_final_results(
     if not workflow or not workflow.final_files:
         raise HTTPException(status_code=404, detail="최종 결과 파일을 찾을 수 없습니다.")
     
+    # 장비명 가져오기
+    device = await crud.device.get(db, device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail="장비를 찾을 수 없습니다.")
+    device_name = device.name.replace(' ', '_').replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
+    
     import zipfile
     import tempfile
     import os
+    from datetime import datetime
     from fastapi.responses import FileResponse
     
     # 임시 ZIP 파일 생성
@@ -307,9 +352,13 @@ async def download_final_results(
                 if os.path.exists(file_path):
                     zipf.write(file_path, os.path.basename(file_path))
         
+        # 파일명 생성: 날짜_구분_장비명 형식
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        filename = f"{date_str}_최종결과_{device_name}.zip"
+        
         return FileResponse(
             tmp_zip.name,
-            filename=f"deletion_workflow_{device_id}_final_results.zip",
+            filename=filename,
             media_type="application/zip"
         )
 
