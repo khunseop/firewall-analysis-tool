@@ -161,9 +161,9 @@ class DuplicatePolicyClassifier:
             notice_df.drop(columns=[col for col in columns_to_drop if col in notice_df.columns], inplace=True, errors='ignore')
             delete_df.drop(columns=[col for col in columns_to_drop if col in delete_df.columns], inplace=True, errors='ignore')
             
-            # 파일 저장
-            notice_file_path = self.file_manager.create_final_file_path(self.device_id, "중복정책_공지용")
-            delete_file_path = self.file_manager.create_final_file_path(self.device_id, "중복정책_삭제용")
+            # 파일 저장 (Step 7은 step_7_notice_, step_7_delete_ 패턴 사용)
+            notice_file_path = self.file_manager.create_step_file_path(self.device_id, 7, "notice")
+            delete_file_path = self.file_manager.create_step_file_path(self.device_id, 7, "delete")
             
             self.excel_manager.save_dataframe_to_excel(
                 df=notice_df,

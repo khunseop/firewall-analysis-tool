@@ -62,20 +62,24 @@ class FileManager:
         file_path = workflow_dir / f"master_{timestamp}.xlsx"
         return str(file_path)
     
-    def create_step_file_path(self, device_id: int, step_number: int) -> str:
+    def create_step_file_path(self, device_id: int, step_number: int, suffix: Optional[str] = None) -> str:
         """
         단계별 결과 파일 경로 생성
         
         Args:
             device_id: 장비 ID
             step_number: 단계 번호 (1-7)
+            suffix: 파일명 접미사 (예: 'notice', 'delete') - Step 7에서 사용
             
         Returns:
             단계별 파일 경로 (문자열)
         """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         workflow_dir = self.get_workflow_dir(device_id)
-        file_path = workflow_dir / f"step_{step_number}_{timestamp}.xlsx"
+        if suffix:
+            file_path = workflow_dir / f"step_{step_number}_{suffix}_{timestamp}.xlsx"
+        else:
+            file_path = workflow_dir / f"step_{step_number}_{timestamp}.xlsx"
         return str(file_path)
     
     def create_final_file_path(self, device_id: int, category: str) -> str:

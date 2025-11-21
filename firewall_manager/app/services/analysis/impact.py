@@ -103,18 +103,34 @@ class ImpactAnalyzer:
         if self.new_position < 0 or self.new_position >= len(policies):
             raise ValueError(f"새 위치 {self.new_position}가 유효하지 않습니다. (0-{len(policies)-1})")
         
-        # 출발지와 목적지 위치 결정 (항상 작은 값이 출발지)
-        start_pos = min(original_position, self.new_position)
-        end_pos = max(original_position, self.new_position)
+        # 원래 seq와 새 위치의 seq 확인
+        original_seq = target_policy.seq or 0
+        new_seq_policy = policies[self.new_position] if self.new_position < len(policies) else None
+        new_seq = new_seq_policy.seq if new_seq_policy else None
         
-        # 출발지와 목적지 사이의 정책들 확인 (경계 포함)
+        # 이동 방향 결정
+        is_moving_down = original_position < self.new_position
+        
+        # 영향받는 정책 범위 결정
+        # 아래로 이동: 원래 위치 다음부터 새 위치까지
+        # 위로 이동: 새 위치부터 원래 위치 이전까지
+        if is_moving_down:
+            # 아래로 이동: original_position + 1 ~ new_position
+            affected_start = original_position + 1
+            affected_end = self.new_position
+        else:
+            # 위로 이동: new_position ~ original_position - 1
+            affected_start = self.new_position
+            affected_end = original_position - 1
+        
+        # 영향받는 정책들 확인
         blocking_policies = []  # 이동한 정책이 걸리는 차단 정책들
         shadowed_policies = []  # 이동한 정책에 의해 shadow되는 정책들
         
-        # 출발지와 목적지 사이의 정책들을 순회
-        for i in range(start_pos, end_pos + 1):
-            if i == original_position:
-                continue  # 이동하는 정책 자신은 제외
+        # 영향받는 범위의 정책들을 순회
+        for i in range(affected_start, affected_end + 1):
+            if i < 0 or i >= len(policies):
+                continue
             
             policy = policies[i]
             
@@ -122,50 +138,65 @@ class ImpactAnalyzer:
             if not self._policies_overlap(target_policy, policy):
                 continue
             
+            policy_seq = policy.seq or 0
+            
             # 1. 이동한 정책이 차단 정책에 걸리는지 확인
-            # 이동한 정책이 allow이고, 사이의 정책이 deny인 경우
+            # 이동한 정책이 allow이고, 영향받는 정책이 deny인 경우
             if target_policy.action == 'allow' and policy.action == 'deny':
                 blocking_policies.append({
                     "policy_id": policy.id,
                     "policy": policy,
-                    "current_position": i,
+                    "current_position": policy_seq,  # seq 번호 사용
                     "impact_type": "차단 정책에 걸림",
-                    "reason": f"이동한 정책 '{target_policy.rule_name}' (allow)이 정책 '{policy.rule_name}' (deny)에 의해 차단됨",
+                    "reason": f"이동한 정책 '{target_policy.rule_name}' (seq {original_seq}, allow)이 정책 '{policy.rule_name}' (seq {policy_seq}, deny)에 의해 차단됨",
                     "target_policy_id": target_policy.id,
-                    "target_policy_name": target_policy.rule_name
+                    "target_policy_name": target_policy.rule_name,
+                    "target_original_seq": original_seq,
+                    "target_new_seq": new_seq,
+                    "move_direction": "아래로" if is_moving_down else "위로"
                 })
             
             # 2. 이동한 정책이 다른 정책을 shadow하는지 확인
-            # 이동한 정책이 deny이고, 사이의 정책이 allow인 경우
-            # 또는 이동한 정책이 allow이고, 사이의 정책도 allow인 경우 (더 위에 있으면 shadow)
+            # 이동한 정책이 deny이고, 영향받는 정책이 allow인 경우
             if target_policy.action == 'deny' and policy.action == 'allow':
                 shadowed_policies.append({
                     "policy_id": policy.id,
                     "policy": policy,
-                    "current_position": i,
+                    "current_position": policy_seq,  # seq 번호 사용
                     "impact_type": "Shadow됨",
-                    "reason": f"이동한 정책 '{target_policy.rule_name}' (deny)이 정책 '{policy.rule_name}' (allow)을 가림",
+                    "reason": f"이동한 정책 '{target_policy.rule_name}' (seq {original_seq}→{new_seq}, deny)이 정책 '{policy.rule_name}' (seq {policy_seq}, allow)을 가림",
                     "target_policy_id": target_policy.id,
-                    "target_policy_name": target_policy.rule_name
+                    "target_policy_name": target_policy.rule_name,
+                    "target_original_seq": original_seq,
+                    "target_new_seq": new_seq,
+                    "move_direction": "아래로" if is_moving_down else "위로"
                 })
             elif target_policy.action == 'allow' and policy.action == 'allow':
                 # 같은 액션이지만 이동한 정책이 더 위에 있으면 shadow
-                if self.new_position < i:
+                # 아래로 이동하는 경우: 새 위치가 영향받는 정책보다 아래에 있으므로 shadow 안됨
+                # 위로 이동하는 경우: 새 위치가 영향받는 정책보다 위에 있으므로 shadow됨
+                if not is_moving_down:  # 위로 이동하는 경우만 shadow
                     shadowed_policies.append({
                         "policy_id": policy.id,
                         "policy": policy,
-                        "current_position": i,
+                        "current_position": policy_seq,  # seq 번호 사용
                         "impact_type": "Shadow됨",
-                        "reason": f"이동한 정책 '{target_policy.rule_name}' (allow)이 정책 '{policy.rule_name}' (allow)보다 먼저 평가되어 가림",
+                        "reason": f"이동한 정책 '{target_policy.rule_name}' (seq {original_seq}→{new_seq}, allow)이 정책 '{policy.rule_name}' (seq {policy_seq}, allow)보다 먼저 평가되어 가림",
                         "target_policy_id": target_policy.id,
-                        "target_policy_name": target_policy.rule_name
+                        "target_policy_name": target_policy.rule_name,
+                        "target_original_seq": original_seq,
+                        "target_new_seq": new_seq,
+                        "move_direction": "위로"
                     })
         
         return {
             "target_policy_id": target_policy.id,
             "target_policy": target_policy,
             "original_position": original_position,
+            "original_seq": original_seq,
             "new_position": self.new_position,
+            "new_seq": new_seq,
+            "move_direction": "아래로" if is_moving_down else "위로",
             "blocking_policies": blocking_policies,
             "shadowed_policies": shadowed_policies,
             "total_blocking": len(blocking_policies),
