@@ -154,26 +154,16 @@ async def sync_data_task(
                         old_dt = _to_datetime(old_hit_date)
                         new_dt = _to_datetime(new_hit_date)
 
-                        # 최신 값 선택: 기존 값과 새 값 중 더 최신인 것을 선택 
-                        if old_dt and new_dt:
-                            # 둘 다 있으면 더 최신 값 선택
-                            if new_dt > old_dt:
-                                # 새 값이 더 최신이면 업데이트 (datetime 객체로 저장)
-                                update_data['last_hit_date'] = new_dt
-                                is_hit_date_changed = True
-                            else:
-                                # 기존 값이 더 최신이면 기존 값 유지 (datetime 객체로 저장)
-                                update_data['last_hit_date'] = old_dt
-                                is_hit_date_changed = False
-                        elif new_dt and not old_dt:
-                            # 새 값만 있으면 업데이트 (datetime 객체로 저장)
+                        # 중요: 마지막 매칭일시는 새로 수집한 값으로 완전히 갱신
+                        # 기존 값을 제거하고 새로 수집한 값만 사용
+                        if new_dt is not None:
+                            # 새로 수집한 값이 있으면 업데이트
                             update_data['last_hit_date'] = new_dt
-                            is_hit_date_changed = True
-                        elif old_dt and not new_dt:
-                            # 기존 값만 있으면 유지 (datetime 객체로 저장)
-                            update_data['last_hit_date'] = old_dt
-                            is_hit_date_changed = False
-                        # 둘 다 None이면 update_data에 None 포함하지 않음 (기존 값 유지)
+                            is_hit_date_changed = (old_dt != new_dt)
+                        else:
+                            # 새로 수집한 값이 없으면 None으로 설정 (기존 값 제거)
+                            update_data['last_hit_date'] = None
+                            is_hit_date_changed = (old_dt is not None)
 
                     # 2. Check for other field changes (is_dirty)
                     fields_to_compare = set(update_data.keys())
@@ -186,8 +176,8 @@ async def sync_data_task(
                     )
 
                     # 3. Determine if an update and/or logging is needed
-                    # 중요: last_hit_date가 변경되었거나, 다른 필드가 변경되었거나, last_hit_date가 명시적으로 설정된 경우 업데이트
-                    needs_update = is_dirty or is_hit_date_changed or (data_type == "policies" and 'last_hit_date' in update_data)
+                    # 중요: last_hit_date는 항상 업데이트되어야 하므로, policies인 경우 항상 업데이트
+                    needs_update = is_dirty or (data_type == "policies" and 'last_hit_date' in update_data)
 
                     if needs_update:
                         update_data["id"] = existing_item.id
