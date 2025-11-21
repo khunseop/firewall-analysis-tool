@@ -52,3 +52,15 @@ export function generateTimestamp() {
   return new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
 }
 
+/**
+ * YYYY-MM-DD 형식의 날짜 문자열 생성 (파일명 등에 사용)
+ * @returns {string} 날짜 문자열 (예: "2025-01-15")
+ */
+export function generateDateString() {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+

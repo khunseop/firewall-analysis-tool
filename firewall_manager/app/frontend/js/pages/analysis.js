@@ -498,14 +498,36 @@ async function loadLatestResult() {
 }
 
 async function exportToExcel() {
+    const deviceId = deviceSelect.getValue();
+    if (!deviceId) {
+        alert('장비를 선택하세요.');
+        return;
+    }
+    
     const analysisType = analysisTypeSelect ? analysisTypeSelect.getValue() : 'redundancy';
     const columnDefs = getColumnDefsWithRenderer(analysisType);
+    
+    // 분석 타입별 구분명 매핑
+    const analysisTypeMap = {
+        'redundancy': '중복정책',
+        'unused': '미사용정책',
+        'impact': '영향도분석',
+        'risky_ports': '위험포트',
+        'over_permissive': '과허용정책',
+        'unreferenced_objects': '미참조객체'
+    };
+    const analysisTypeName = analysisTypeMap[analysisType] || '분석결과';
+    
+    // 장비명 가져오기
+    const device = allDevices.find(d => d.id === deviceId);
+    const deviceName = device ? device.name : `장비_${deviceId}`;
+    
     await exportGridToExcelClient(
         resultGridApi,
         columnDefs,
-        'analysis_result',
+        analysisTypeName,
         '데이터가 없습니다.',
-        { type: 'analysis' }
+        { type: 'analysis', deviceName }
     );
 }
 
@@ -546,9 +568,10 @@ async function generateScript() {
         // 스크립트 생성
         const scriptText = generateServiceCreationScript(rowData, vendor);
         
-        // 파일명 생성
-        const deviceName = device ? device.name.replace(/\s+/g, '_') : `device_${deviceId}`;
-        const filename = `service_creation_script_${deviceName}_${new Date().toISOString().split('T')[0]}`;
+        // 파일명 생성: 날짜_구분_장비명 형식
+        const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const sanitizedDeviceName = device ? device.name.replace(/[\s\/\\:*?"<>|]/g, '_') : `장비_${deviceId}`;
+        const filename = `${dateStr}_위험포트스크립트_${sanitizedDeviceName}`;
         
         // 엑셀로 다운로드
         await exportScriptToExcel(scriptText, filename);

@@ -638,13 +638,28 @@ export async function initPolicies(){
   bind();
 
   async function exportToExcel() {
+    const sel = document.getElementById('policy-device-select');
+    const deviceIds = Array.from(sel?.selectedOptions || []).map(o => parseInt(o.value, 10)).filter(Boolean);
+    
+    if (deviceIds.length === 0) {
+      alert('장비를 선택하세요.');
+      return;
+    }
+    
+    // 장비명 가져오기 (여러 장비 선택 시 첫 번째 장비명 사용)
+    const deviceId = deviceIds[0];
+    const device = allDevices.find(d => d.id === deviceId);
+    const deviceName = device ? device.name : `장비_${deviceId}`;
+    // 여러 장비 선택 시 표시
+    const finalDeviceName = deviceIds.length > 1 ? `${deviceName}_외${deviceIds.length - 1}개` : deviceName;
+    
     const columnDefs = getCols();
     await exportGridToExcelClient(
       policyGridApi,
       columnDefs,
-      'policies',
+      '정책',
       '데이터가 없습니다.',
-      { type: 'policy' }
+      { type: 'policy', deviceName: finalDeviceName }
     );
   }
 

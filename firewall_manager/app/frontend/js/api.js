@@ -164,7 +164,7 @@ export const api = {
     }
     return res.json();
   },
-  downloadStepResult: async (deviceId, stepNumber) => {
+  downloadStepResult: async (deviceId, stepNumber, deviceName = null) => {
     const res = await fetch(`${BASE}/deletion-workflow/${deviceId}/step/${stepNumber}/download`);
     if (!res.ok) {
       let detail = "Download failed";
@@ -180,19 +180,40 @@ export const api = {
     const contentType = res.headers.get('content-type') || '';
     const isZip = contentType.includes('application/zip') || stepNumber === 7;
     const extension = isZip ? '.zip' : '.xlsx';
-    const filename = isZip ? `step_${stepNumber}_results.zip` : `step_${stepNumber}_result.xlsx`;
+    
+    // 파일명 생성: 날짜_구분_장비명 형식
+    const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const sanitizedDeviceName = deviceName ? deviceName.replace(/[\s\/\\:*?"<>|]/g, '_') : `장비_${deviceId}`;
+    const stepNameMap = {
+      1: '신청정보파싱',
+      2: 'RequestID추출',
+      3: 'MISID업데이트',
+      4: '신청정보가공',
+      5: '신청정보매핑',
+      6: '예외처리',
+      7: '중복정책분류'
+    };
+    const stepName = stepNameMap[stepNumber] || `Step${stepNumber}`;
+    const defaultFilename = isZip 
+      ? `${dateStr}_${stepName}_${sanitizedDeviceName}.zip`
+      : `${dateStr}_${stepName}_${sanitizedDeviceName}.xlsx`;
     
     // Content-Disposition 헤더에서 파일명 추출 시도
     const contentDisposition = res.headers.get('content-disposition');
     if (contentDisposition) {
       const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
       if (filenameMatch && filenameMatch[1]) {
-        a.download = filenameMatch[1].replace(/['"]/g, '');
+        // 백엔드에서 제공한 파일명이 있으면 날짜_구분_장비명 형식으로 변경
+        const backendFilename = filenameMatch[1].replace(/['"]/g, '');
+        // 확장자 추출
+        const ext = backendFilename.match(/\.(zip|xlsx)$/i)?.[0] || extension;
+        // 백엔드 파일명에서 날짜와 구분 추출 시도, 없으면 기본값 사용
+        a.download = defaultFilename;
       } else {
-        a.download = filename;
+        a.download = defaultFilename;
       }
     } else {
-      a.download = filename;
+      a.download = defaultFilename;
     }
     
     document.body.appendChild(a);
@@ -200,7 +221,7 @@ export const api = {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   },
-  downloadMasterFile: async (deviceId) => {
+  downloadMasterFile: async (deviceId, deviceName = null) => {
     const res = await fetch(`${BASE}/deletion-workflow/${deviceId}/master/download`);
     if (!res.ok) {
       let detail = "Download failed";
@@ -211,14 +232,19 @@ export const api = {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `master_file.xlsx`;
+    
+    // 파일명 생성: 날짜_구분_장비명 형식
+    const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const sanitizedDeviceName = deviceName ? deviceName.replace(/[\s\/\\:*?"<>|]/g, '_') : `장비_${deviceId}`;
+    a.download = `${dateStr}_마스터파일_${sanitizedDeviceName}.xlsx`;
+    
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   },
   exportFinalResults: (deviceId) => request(`/deletion-workflow/${deviceId}/final/export`, { method: "POST" }),
-  downloadFinalResults: async (deviceId) => {
+  downloadFinalResults: async (deviceId, deviceName = null) => {
     const res = await fetch(`${BASE}/deletion-workflow/${deviceId}/final/download`);
     if (!res.ok) {
       let detail = "Download failed";
@@ -229,7 +255,12 @@ export const api = {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `deletion_workflow_${deviceId}_final_results.zip`;
+    
+    // 파일명 생성: 날짜_구분_장비명 형식
+    const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const sanitizedDeviceName = deviceName ? deviceName.replace(/[\s\/\\:*?"<>|]/g, '_') : `장비_${deviceId}`;
+    a.download = `${dateStr}_최종결과_${sanitizedDeviceName}.zip`;
+    
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

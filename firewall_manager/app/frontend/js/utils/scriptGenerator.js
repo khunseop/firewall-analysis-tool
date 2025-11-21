@@ -320,14 +320,21 @@ export function generateServiceCreationScript(resultData, vendor = 'palo_alto') 
 /**
  * 스크립트를 텍스트 파일로 다운로드
  * @param {string} scriptText - 스크립트 텍스트
- * @param {string} filename - 파일명 (확장자 제외)
+ * @param {string} filename - 파일명 (확장자 제외, 날짜_구분_장비명 형식 권장)
  */
-export function downloadScript(scriptText, filename = 'service_creation_script') {
+export function downloadScript(scriptText, filename = null) {
+    // 파일명이 제공되지 않으면 기본값 사용 (날짜_구분 형식)
+    let finalFilename = filename;
+    if (!finalFilename) {
+        const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        finalFilename = `${dateStr}_위험포트스크립트`;
+    }
+    
     const blob = new Blob([scriptText], { type: 'text/plain;charset=utf-8' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${filename}.txt`;
+    a.download = `${finalFilename}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

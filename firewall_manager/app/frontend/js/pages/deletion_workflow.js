@@ -579,7 +579,10 @@ async function downloadStepResult(stepNumber) {
   if (!currentDeviceId) return;
 
   try {
-    await api.downloadStepResult(currentDeviceId, stepNumber);
+    // 장비명 가져오기
+    const device = allDevices.find(d => d.id === currentDeviceId);
+    const deviceName = device ? device.name : null;
+    await api.downloadStepResult(currentDeviceId, stepNumber, deviceName);
   } catch (error) {
     console.error("다운로드 실패:", error);
     await openAlert({ 
@@ -596,7 +599,10 @@ async function downloadMasterFile() {
   if (!currentDeviceId) return;
 
   try {
-    await api.downloadMasterFile(currentDeviceId);
+    // 장비명 가져오기
+    const device = allDevices.find(d => d.id === currentDeviceId);
+    const deviceName = device ? device.name : null;
+    await api.downloadMasterFile(currentDeviceId, deviceName);
   } catch (error) {
     console.error("마스터 파일 다운로드 실패:", error);
     await openAlert({ 
@@ -640,7 +646,10 @@ async function downloadFinalResults() {
   if (!currentDeviceId) return;
 
   try {
-    await api.downloadFinalResults(currentDeviceId);
+    // 장비명 가져오기
+    const device = allDevices.find(d => d.id === currentDeviceId);
+    const deviceName = device ? device.name : null;
+    await api.downloadFinalResults(currentDeviceId, deviceName);
   } catch (error) {
     console.error("최종 결과 다운로드 실패:", error);
     await openAlert({ 

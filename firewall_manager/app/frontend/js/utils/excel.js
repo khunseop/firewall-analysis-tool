@@ -1,4 +1,4 @@
-import { generateTimestamp } from './date.js';
+import { generateTimestamp, generateDateString } from './date.js';
 import { formatDateTime } from './date.js';
 
 /**
@@ -317,9 +317,9 @@ async function createExcelFile(data, headers, filename, options = {}) {
  * 그리드 데이터를 엑셀로 내보내기 (공통 함수)
  * @param {Object} gridApi - AG Grid API 객체
  * @param {Array} columnDefs - 컬럼 정의 배열
- * @param {string} defaultFilename - 기본 파일명
+ * @param {string} defaultFilename - 기본 파일명 (구분)
  * @param {string} emptyMessage - 데이터 없을 때 메시지
- * @param {Object} options - 옵션 (type: 'analysis' | 'policy' | 'object', flattenFn: 평탄화 함수)
+ * @param {Object} options - 옵션 (type: 'analysis' | 'policy' | 'object', flattenFn: 평탄화 함수, deviceName: 장비명)
  */
 export async function exportGridToExcelClient(gridApi, columnDefs, defaultFilename, emptyMessage = '데이터가 없습니다.', options = {}) {
     if (!gridApi) {
@@ -339,9 +339,12 @@ export async function exportGridToExcelClient(gridApi, columnDefs, defaultFilena
             return;
         }
         
-        // 파일명 입력 받기
-        const timestamp = generateTimestamp();
-        const suggestedFilename = `${defaultFilename}_${timestamp}`;
+        // 파일명 생성: 날짜_구분_장비명 형식
+        const dateStr = generateDateString();
+        const deviceName = options.deviceName || '전체';
+        // 파일명에서 사용할 수 없는 문자 제거 (공백, 특수문자 등)
+        const sanitizedDeviceName = deviceName.replace(/[\s\/\\:*?"<>|]/g, '_');
+        const suggestedFilename = `${dateStr}_${defaultFilename}_${sanitizedDeviceName}`;
         const filename = await promptFilename(suggestedFilename);
         
         if (!filename) {

@@ -535,12 +535,38 @@ async function exportToExcel() {
     return;
   }
 
+  // 장비명 가져오기
+  const select = document.getElementById('object-device-select');
+  const deviceIds = select?.tomselect?.getValue() || [];
+  const deviceIdArray = Array.isArray(deviceIds) ? deviceIds.map(id => parseInt(id, 10)).filter(Boolean) : [];
+  
+  if (deviceIdArray.length === 0) {
+    alert('장비를 선택하세요.');
+    return;
+  }
+  
+  // 장비명 가져오기 (여러 장비 선택 시 첫 번째 장비명 사용)
+  const deviceId = deviceIdArray[0];
+  const device = allDevices.find(d => d.id === deviceId);
+  const deviceName = device ? device.name : `장비_${deviceId}`;
+  // 여러 장비 선택 시 표시
+  const finalDeviceName = deviceIdArray.length > 1 ? `${deviceName}_외${deviceIdArray.length - 1}개` : deviceName;
+  
+  // 탭별 구분명 매핑
+  const objectTypeMap = {
+    'network-objects': '네트워크객체',
+    'network-groups': '네트워크그룹',
+    'services': '서비스',
+    'service-groups': '서비스그룹'
+  };
+  const objectTypeName = objectTypeMap[currentTab] || config.exportName;
+
   await exportGridToExcelClient(
     grid,
     config.columns,
-    config.exportName,
+    objectTypeName,
     '데이터가 없습니다.',
-    { type: 'object' }
+    { type: 'object', deviceName: finalDeviceName }
   );
 }
 
