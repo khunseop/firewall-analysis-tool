@@ -703,27 +703,26 @@ class RiskyPortsAnalyzer:
                                             if safe_tokens:
                                                 filtered_members.append(safe_member_name)
                                                 
-                                                # 정책에서 직접 사용된 서비스인 경우에만 filtered_service_objects에 추가
-                                                # 그룹 멤버로만 사용되는 서비스는 그룹의 filtered_members에만 포함
+                                                # Safe 멤버 객체를 filtered_service_objects에 추가
+                                                # (프론트엔드에서 스크립트 생성 시 필요)
+                                                safe_member_objects.append({
+                                                    "type": "service",
+                                                    "name": safe_member_name,
+                                                    "original_name": member_name,
+                                                    "token": member_name,
+                                                    "filtered_tokens": safe_tokens
+                                                })
+                                                created_safe_objects.add(safe_member_name)
+                                                
                                                 if is_original_service:
-                                                    safe_member_objects.append({
-                                                        "type": "service",
-                                                        "name": safe_member_name,
-                                                        "original_name": member_name,
-                                                        "token": member_name,
-                                                        "filtered_tokens": safe_tokens
-                                                    })
-                                                    created_safe_objects.add(safe_member_name)
                                                     logger.info(
                                                         f"그룹 {safe_group_name}의 멤버 {member_name}: "
                                                         f"Safe 버전 생성 (정책에서 직접 사용됨, filtered_service_objects에 추가): {safe_member_name}"
                                                     )
                                                 else:
-                                                    # 그룹 멤버로만 사용되는 경우, 그룹의 filtered_members에만 포함
-                                                    # filtered_service_objects에는 추가하지 않음 (중복 방지)
                                                     logger.info(
                                                         f"그룹 {safe_group_name}의 멤버 {member_name}: "
-                                                        f"Safe 버전 생성 (그룹 멤버로만 사용됨, filtered_members에만 포함): {safe_member_name}"
+                                                        f"Safe 버전 생성 (그룹 멤버로만 사용됨, filtered_service_objects에 추가): {safe_member_name}"
                                                     )
                                             else:
                                                 logger.info(

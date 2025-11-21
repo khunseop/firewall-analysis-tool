@@ -245,27 +245,46 @@ export function generateServiceCreationScript(resultData, vendor = 'palo_alto') 
                 return;
             }
             
-            // filtered_members에 있는 멤버 이름을 그대로 사용
-            // 그룹 멤버는 방화벽에 이미 존재하는 객체이므로 변환 불필요
-            // 단, 새로 생성된 _Safe 버전의 서비스 객체가 있으면 그것을 우선 사용
+            // filtered_members에 있는 멤버 이름 처리
+            // 백엔드에서 이미 Safe 이름을 포함하여 전달함 (예: "Svc_8080_Safe" 또는 "Svc_9090")
             const validMembers = [];
             
             filteredMembers.forEach(member => {
-                // 먼저 _Safe 버전이 새로 생성되었는지 확인
-                const safeMemberName = `${member}_Safe`;
-                if (createdServiceNames.has(safeMemberName)) {
-                    // 새로 생성된 _Safe 버전 사용
-                    validMembers.push(safeMemberName);
-                    console.log(`[ScriptGenerator] 멤버 ${member} -> ${safeMemberName} (새로 생성된 Safe 버전 사용)`);
-                } else if (serviceObjectsToGroups.has(safeMemberName)) {
-                    // 여러 포트 범위로 분리된 _Safe 버전 사용
-                    const separatedMembers = serviceObjectsToGroups.get(safeMemberName);
-                    validMembers.push(...separatedMembers);
-                    console.log(`[ScriptGenerator] 멤버 ${member} -> ${separatedMembers.join(', ')} (분리된 Safe 버전 사용)`);
+                // member가 이미 _Safe로 끝나는 경우 (백엔드에서 이미 Safe 이름으로 전달됨)
+                if (member.endsWith('_Safe')) {
+                    // 이미 Safe 이름이므로 그대로 사용
+                    // createdServiceNames에 있으면 새로 생성될 객체, 없으면 이미 존재하는 객체
+                    if (createdServiceNames.has(member)) {
+                        validMembers.push(member);
+                        console.log(`[ScriptGenerator] 멤버 ${member} (새로 생성될 Safe 버전)`);
+                    } else if (serviceObjectsToGroups.has(member)) {
+                        // 여러 포트 범위로 분리된 Safe 버전 사용
+                        const separatedMembers = serviceObjectsToGroups.get(member);
+                        validMembers.push(...separatedMembers);
+                        console.log(`[ScriptGenerator] 멤버 ${member} -> ${separatedMembers.join(', ')} (분리된 Safe 버전 사용)`);
+                    } else {
+                        // 이미 존재하는 Safe 객체 (이론적으로는 발생하지 않아야 함)
+                        validMembers.push(member);
+                        console.log(`[ScriptGenerator] 멤버 ${member} (이미 존재하는 Safe 버전)`);
+                    }
                 } else {
-                    // 원본 멤버 그대로 사용 (방화벽에 이미 존재하는 객체)
-                    validMembers.push(member);
-                    console.log(`[ScriptGenerator] 멤버 ${member} (원본 그대로 사용)`);
+                    // 원본 멤버 이름인 경우
+                    // Safe 버전이 새로 생성되었는지 확인
+                    const safeMemberName = `${member}_Safe`;
+                    if (createdServiceNames.has(safeMemberName)) {
+                        // 새로 생성된 Safe 버전 사용
+                        validMembers.push(safeMemberName);
+                        console.log(`[ScriptGenerator] 멤버 ${member} -> ${safeMemberName} (새로 생성된 Safe 버전 사용)`);
+                    } else if (serviceObjectsToGroups.has(safeMemberName)) {
+                        // 여러 포트 범위로 분리된 Safe 버전 사용
+                        const separatedMembers = serviceObjectsToGroups.get(safeMemberName);
+                        validMembers.push(...separatedMembers);
+                        console.log(`[ScriptGenerator] 멤버 ${member} -> ${separatedMembers.join(', ')} (분리된 Safe 버전 사용)`);
+                    } else {
+                        // 원본 멤버 그대로 사용 (방화벽에 이미 존재하는 객체)
+                        validMembers.push(member);
+                        console.log(`[ScriptGenerator] 멤버 ${member} (원본 그대로 사용)`);
+                    }
                 }
             });
             
