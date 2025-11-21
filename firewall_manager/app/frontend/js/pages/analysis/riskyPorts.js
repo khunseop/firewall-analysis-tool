@@ -62,19 +62,28 @@ export async function loadPoliciesForRiskyPorts() {
                 plugins: ['remove_button'], // 정책조회의 장비 선택과 동일한 UI
             });
 
-            // 붙여넣기 이벤트 핸들러 추가
+            // 붙여넣기 이벤트 핸들러 추가 (정책 로드 완료 후 호출 보장)
+            // initialize 이벤트는 TomSelect 생성 직후 발생할 수 있으므로,
+            // 정책 로드가 완료된 후에만 setupPasteHandler 호출
             targetPolicySelect.on('initialize', () => {
-                setupPasteHandler(targetPolicySelect, targetSelectEl);
+                // allPolicies가 로드되었는지 확인 후 호출
+                if (allPolicies && allPolicies.length > 0) {
+                    setupPasteHandler(targetPolicySelect, targetSelectEl);
+                } else {
+                    // 정책이 아직 로드되지 않았으면 재시도
+                    setTimeout(() => {
+                        setupPasteHandler(targetPolicySelect, targetSelectEl);
+                    }, 100);
+                }
             });
             
-            // 이미 초기화된 경우를 대비한 폴백
-            if (targetPolicySelect.isReady) {
-                setupPasteHandler(targetPolicySelect, targetSelectEl);
-            } else {
-                setTimeout(() => {
+            // 이미 초기화된 경우를 대비한 폴백 (정책 로드 완료 후 호출)
+            // 정책 로드가 완료된 후에만 setupPasteHandler 호출
+            setTimeout(() => {
+                if (allPolicies && allPolicies.length > 0) {
                     setupPasteHandler(targetPolicySelect, targetSelectEl);
-                }, 200);
-            }
+                }
+            }, 200);
         }
     } catch (err) {
         console.error('Failed to load policies for risky ports:', err);
@@ -95,7 +104,11 @@ function setupPasteHandler(tomSelect, selectEl) {
 
     // allPolicies가 로드되었는지 확인
     if (!allPolicies || allPolicies.length === 0) {
-        console.warn('setupPasteHandler: allPolicies가 로드되지 않았습니다.');
+        console.warn('setupPasteHandler: allPolicies가 로드되지 않았습니다. 재시도합니다...');
+        // allPolicies가 로드될 때까지 재시도
+        setTimeout(() => {
+            setupPasteHandler(tomSelect, selectEl);
+        }, 300);
         return;
     }
 
