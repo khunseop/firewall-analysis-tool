@@ -72,6 +72,11 @@ function fillDeviceForm(initial = {}) {
   setFormField(form, 'username', initial.username);
   setFormField(form, 'description', initial.description);
   
+  const collectHitDateCheckbox = form.elements.namedItem('collect_last_hit_date');
+  if (collectHitDateCheckbox) {
+    collectHitDateCheckbox.checked = initial.collect_last_hit_date !== undefined ? initial.collect_last_hit_date : true;
+  }
+  
   const useSshCheckbox = form.elements.namedItem('use_ssh_for_last_hit_date');
   if (useSshCheckbox) {
     useSshCheckbox.checked = initial.use_ssh_for_last_hit_date || false;
@@ -105,9 +110,12 @@ function openDeviceModal(onSubmit) {
       delete payload.password_confirm;
     }
     
-    // SSH 체크박스 처리
+    // 체크박스 처리
     const form = modal.querySelector('#device-form');
     if (form) {
+      const collectHitDateCheckbox = form.elements.namedItem('collect_last_hit_date');
+      payload.collect_last_hit_date = collectHitDateCheckbox?.checked !== false; // 기본값은 true
+      
       const useSshCheckbox = form.elements.namedItem('use_ssh_for_last_hit_date');
       payload.use_ssh_for_last_hit_date = useSshCheckbox?.checked || false;
     }

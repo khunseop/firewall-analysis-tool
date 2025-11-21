@@ -188,7 +188,21 @@ const getCols = () => ([
     filter:'agDateColumnFilter',
     sortable: false,
     minWidth: 180,
-    valueFormatter: (params) => formatDateTime(params.value),
+    valueFormatter: (params) => {
+      const value = params.value;
+      if (!value) {
+        // 장비 정보 확인하여 collect_last_hit_date가 false이면 표기
+        const deviceId = params.data?.device_id;
+        if (deviceId && allDevices) {
+          const device = allDevices.find(d => d.id === deviceId);
+          if (device && device.collect_last_hit_date === false) {
+            return '<span class="has-text-grey">수집 안 함</span>';
+          }
+        }
+        return '';
+      }
+      return formatDateTime(value);
+    },
     filterParams: {
       buttons: ['apply', 'reset'],
       comparator: (filterLocalDateAtMidnight, cellValue) => {
@@ -299,6 +313,10 @@ async function loadDevicesIntoSelect() {
   if (!sel) return;
   try {
     allDevices = await api.listDevices(); // 전역 변수에 저장
+    // 전역 window 객체에도 저장 (분석 페이지에서 사용)
+    if (typeof window !== 'undefined') {
+      window.allDevices = allDevices;
+    }
     if (!allDevices || allDevices.length === 0) {
       sel.innerHTML = `<option value="">등록된 장비 없음</option>`;
       return;

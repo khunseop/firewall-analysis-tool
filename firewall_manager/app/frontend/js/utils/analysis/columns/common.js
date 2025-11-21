@@ -194,7 +194,21 @@ export function getPolicyColumns() {
             minWidth: 150,
             maxWidth: 200,
             valueGetter: params => params.data.policy?.last_hit_date,
-            valueFormatter: (params) => formatDateTime(params.value),
+            valueFormatter: (params) => {
+                const value = params.value;
+                if (!value) {
+                    // 장비 정보 확인하여 collect_last_hit_date가 false이면 표기
+                    const deviceId = params.data?.policy?.device_id;
+                    if (deviceId && typeof window !== 'undefined' && window.allDevices) {
+                        const device = window.allDevices.find(d => d.id === deviceId);
+                        if (device && device.collect_last_hit_date === false) {
+                            return '<span class="has-text-grey">수집 안 함</span>';
+                        }
+                    }
+                    return '';
+                }
+                return formatDateTime(value);
+            },
             filterParams: {
                 buttons: ['apply', 'reset'],
                 comparator: (filterLocalDateAtMidnight, cellValue) => {

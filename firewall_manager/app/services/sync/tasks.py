@@ -442,7 +442,10 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
             # --- Post-Collection Processing ---
             # Hit Date Collection
             from app.services.firewall.interface import FirewallInterface as _FWI
-            if device.vendor == 'paloalto':
+            # collect_last_hit_date 설정 확인 (기본값은 True)
+            collect_hit_date = getattr(device, 'collect_last_hit_date', True) if device else True
+            
+            if device.vendor == 'paloalto' and collect_hit_date:
                 logging.info(f"[orchestrator] Palo Alto device detected. Starting last_hit_date collection for device_id={device_id}")
                 async with SessionLocal() as db:
                     device = await crud.device.get_device(db=db, device_id=device_id)
@@ -537,8 +540,10 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                         logging.info("[orchestrator] No last_hit_date records returned; skipping merge.")
                 except Exception as e:
                     logging.warning(f"Failed to collect or merge last_hit_date for device {device_id}: {e}. Continuing sync without hit dates.", exc_info=True)
+            elif device.vendor == 'paloalto' and not collect_hit_date:
+                logging.info(f"[orchestrator] collect_last_hit_date is disabled for device {device_id}; skipping usage history collection.")
             else:
-                logging.info(f"[orchestrator] Vendor is not 'paloalto' ({device.vendor}); skipping usage history collection.")
+                logging.info(f"[orchestrator] Vendor is not 'paloalto' ({device.vendor if device else 'unknown'}); skipping usage history collection.")
 
 
             # --- DB Synchronization ---

@@ -13,6 +13,7 @@ class Device(Base):
     description = Column(String, nullable=True)
     ha_peer_ip = Column(String, nullable=True)
     use_ssh_for_last_hit_date = Column(Boolean, nullable=True, default=False)
+    collect_last_hit_date = Column(Boolean, nullable=True, default=True)
     model = Column(String, nullable=True)
     last_sync_at = Column(DateTime, nullable=True)
     last_sync_status = Column(String, nullable=True)  # e.g., in_progress, success, failure
