@@ -95,30 +95,75 @@ class ImpactAnalyzer:
         if not svc1 or not svc2:
             svc_overlap = True
         
-        return src_overlap and dst_overlap and svc_overlap
+        # 애플리케이션 겹침 확인
+        app_overlap = self._applications_overlap(policy1.application, policy2.application)
+        
+        return src_overlap and dst_overlap and svc_overlap and app_overlap
+    
+    def _applications_overlap(self, app1: str, app2: str) -> bool:
+        """두 애플리케이션이 겹치는지 확인합니다."""
+        # None이거나 빈 문자열이면 any로 간주
+        if not app1 or app1.lower() == 'any' or app1.strip() == '':
+            return True
+        if not app2 or app2.lower() == 'any' or app2.strip() == '':
+            return True
+        
+        # 애플리케이션은 쉼표로 구분된 목록일 수 있음
+        apps1 = set(a.strip().lower() for a in app1.split(',') if a.strip())
+        apps2 = set(a.strip().lower() for a in app2.split(',') if a.strip())
+        
+        # 하나라도 겹치면 True
+        return len(apps1 & apps2) > 0
 
     async def _analyze_single_policy(self, target_policy: Policy, original_position: int, policies: List[Policy]) -> Dict[str, Any]:
         """단일 정책에 대한 영향도 분석을 수행합니다."""
         # 새 위치가 유효한지 확인
-        if self.new_position < 0 or self.new_position >= len(policies):
-            raise ValueError(f"새 위치 {self.new_position}가 유효하지 않습니다. (0-{len(policies)-1})")
+        if self.new_position < 0:
+            raise ValueError(f"새 위치 {self.new_position}가 유효하지 않습니다. (0 이상이어야 함)")
+        if self.new_position > len(policies):
+            # 배열 끝으로 이동하는 경우
+            self.new_position = len(policies)
         
-        # 원래 seq와 새 위치의 seq 확인
+        # 원래 seq 확인
         original_seq = target_policy.seq or 0
-        new_seq_policy = policies[self.new_position] if self.new_position < len(policies) else None
-        new_seq = new_seq_policy.seq if new_seq_policy else None
         
-        # 이동 방향 결정 (seq 번호 기준)
-        is_moving_down = original_seq < new_seq if new_seq is not None else original_position < self.new_position
+        # 새 위치의 seq 확인
+        # new_position이 배열 길이와 같으면 맨 끝으로 이동
+        if self.new_position >= len(policies):
+            # 맨 끝으로 이동하는 경우, 마지막 정책의 seq를 참조
+            if len(policies) > 0:
+                last_policy = policies[-1]
+                new_seq = (last_policy.seq or 0) + 1  # 마지막 정책 다음
+            else:
+                new_seq = 1
+        else:
+            new_seq_policy = policies[self.new_position]
+            new_seq = new_seq_policy.seq if new_seq_policy else None
         
-        # 영향받는 정책 범위 결정 (seq 번호 기준)
-        # 아래로 이동: 원래 seq 다음부터 새 seq까지
-        # 위로 이동: 새 seq부터 원래 seq 이전까지
-        affected_seq_start = None
-        affected_seq_end = None
-        affected_start = None
-        affected_end = None
+        # 이동 방향 결정 (배열 인덱스 기준으로 먼저 판단)
+        # original_position과 new_position을 비교하여 방향 결정
+        is_moving_down = original_position < self.new_position
         
+        # seq 번호로도 확인 (일관성 체크)
+        if new_seq is not None:
+            seq_based_down = original_seq < new_seq
+            # 두 방식이 다르면 경고 (하지만 배열 인덱스 기준을 우선)
+            if is_moving_down != seq_based_down:
+                logger.warning(f"이동 방향 불일치: 배열 인덱스 기준={is_moving_down}, seq 기준={seq_based_down}. 배열 인덱스 기준 사용.")
+        
+        # 영향받는 정책 범위 결정 (배열 인덱스 기준)
+        # 아래로 이동: 원래 위치 다음부터 새 위치까지
+        # 위로 이동: 새 위치부터 원래 위치 이전까지
+        if is_moving_down:
+            # 아래로 이동: original_position + 1 ~ new_position
+            affected_start = original_position + 1
+            affected_end = self.new_position if self.new_position < len(policies) else len(policies) - 1
+        else:
+            # 위로 이동: new_position ~ original_position - 1
+            affected_start = self.new_position
+            affected_end = original_position - 1
+        
+        # seq 번호 기준 범위도 계산 (표시용)
         if new_seq is not None:
             if is_moving_down:
                 # 아래로 이동: seq (original_seq + 1) ~ new_seq
@@ -129,37 +174,26 @@ class ImpactAnalyzer:
                 affected_seq_start = new_seq
                 affected_seq_end = original_seq - 1
         else:
-            # new_seq가 None인 경우 배열 인덱스 기준으로 폴백
-            if is_moving_down:
-                affected_start = original_position + 1
-                affected_end = self.new_position
-            else:
-                affected_start = self.new_position
-                affected_end = original_position - 1
+            affected_seq_start = None
+            affected_seq_end = None
         
         # 영향받는 정책들 확인
         blocking_policies = []  # 이동한 정책이 걸리는 차단 정책들
         shadowed_policies = []  # 이동한 정책에 의해 shadow되는 정책들
         
-        # 영향받는 범위의 정책들을 순회 (seq 번호 기준)
+        # 영향받는 범위의 정책들을 순회 (배열 인덱스 기준 우선)
         for i, policy in enumerate(policies):
             # 이동하는 정책 자신은 제외
             if policy.id == target_policy.id:
                 continue
             
+            # 배열 인덱스 기준으로 영향 범위 확인 (우선 사용)
+            if i < affected_start or i > affected_end:
+                continue
+            
             policy_seq = policy.seq or 0
             
-            # seq 번호 기준으로 영향 범위 확인
-            if affected_seq_start is not None and affected_seq_end is not None:
-                # seq 번호 기준 범위 체크
-                if policy_seq < affected_seq_start or policy_seq > affected_seq_end:
-                    continue
-            else:
-                # 배열 인덱스 기준 범위 체크 (폴백)
-                if i < affected_start or i > affected_end:
-                    continue
-            
-            # 정책이 겹치는지 확인
+            # 정책이 겹치는지 확인 (애플리케이션 포함)
             if not self._policies_overlap(target_policy, policy):
                 continue
             

@@ -364,15 +364,31 @@ export function getImpactAnalysisParams() {
         return null;
     }
 
+    // 대상 정책들의 위치 확인 (첫 번째 정책 기준)
+    const firstTargetPolicy = targetPolicies[0];
+    const targetIndex = allPolicies.findIndex(p => p.id === firstTargetPolicy.id);
+    
+    if (targetIndex === -1) {
+        alert('대상 정책 위치를 계산할 수 없습니다.');
+        return null;
+    }
+
     // 새 위치 계산 (인덱스 기반)
-    // 백엔드는 정책 목록을 seq 순서로 정렬하여 인덱스를 사용함
+    // 이동 방향에 따라 올바른 위치 계산
     let newPosition;
     if (moveDirection === 'above') {
-        // 위로 이동: 목적지 정책의 인덱스 위치
+        // 위로 이동: 목적지 정책의 인덱스 위치 (목적지 정책 앞으로)
+        // 대상 정책이 목적지보다 아래에 있으면 목적지 위치로, 위에 있으면 목적지 위치 그대로
         newPosition = destIndex;
     } else {
-        // 아래로 이동: 목적지 정책의 인덱스 + 1 위치
+        // 아래로 이동: 목적지 정책의 인덱스 + 1 위치 (목적지 정책 뒤로)
+        // 대상 정책이 목적지보다 위에 있으면 목적지 다음 위치로, 아래에 있으면 목적지 다음 위치 그대로
         newPosition = destIndex + 1;
+        
+        // 대상 정책이 이미 목적지보다 아래에 있는 경우, 목적지 다음 위치가 배열 범위를 벗어날 수 있음
+        if (newPosition > allPolicies.length) {
+            newPosition = allPolicies.length;
+        }
     }
 
     return {
