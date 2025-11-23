@@ -48,7 +48,9 @@ export const api = {
       // 여러 정책 ID 지원 (targetPolicyIds 우선, 하위 호환을 위해 targetPolicyId도 지원)
       const policyIds = targetPolicyIds || (targetPolicyId ? [targetPolicyId] : []);
       const policyIdsParam = policyIds.map(id => `target_policy_id=${id}`).join('&');
-      const url = `/analysis/impact/${deviceId}?${policyIdsParam}&new_position=${newPosition}`;
+      const moveDirection = params.moveDirection || '';
+      const url = `/analysis/impact/${deviceId}?${policyIdsParam}&new_position=${newPosition}${moveDirection ? `&move_direction=${moveDirection}` : ''}`;
+      console.log('[API] 영향도 분석 요청:', { deviceId, policyIds, newPosition, moveDirection, url });
       return request(url, { method: "POST" });
     } else if (analysisType === 'unreferenced_objects') {
       return request(`/analysis/unreferenced-objects/${deviceId}`, { method: "POST" });

@@ -15,17 +15,34 @@ export function getImpactColumns(objectCellRenderer = null) {
             filter: 'agTextColumnFilter',
             sortable: false,
             minWidth: 150,
+            maxWidth: 250,
             pinned: 'left',
             valueGetter: params => {
                 const data = params.data;
-                const originalSeq = data.target_original_seq || data.target_policy?.seq || '?';
-                const newSeq = data.target_new_seq || '?';
-                const direction = data.move_direction || '';
-                return `${data.target_policy_name || ''} (seq ${originalSeq} → ${newSeq}${direction ? `, ${direction}` : ''})`;
+                if (data.is_target_policy) {
+                    // 대상 정책 행: 대상 정책 정보 표시
+                    const originalSeq = data.target_original_seq || data.target_policy?.seq || '?';
+                    const newSeq = data.target_new_seq || '?';
+                    const direction = data.move_direction || '';
+                    return `▶ ${data.target_policy_name || ''} (${originalSeq} → ${newSeq}${direction ? `, ${direction}` : ''})`;
+                } else {
+                    // 영향받는 정책 행: 빈 값
+                    return '';
+                }
             },
-            cellStyle: {
-                fontWeight: '500',
-                color: '#1976d2'
+            cellStyle: params => {
+                const data = params.data;
+                if (data.is_target_policy) {
+                    return {
+                        fontWeight: 'bold',
+                        color: '#1976d2',
+                        backgroundColor: '#e3f2fd'
+                    };
+                }
+                return {
+                    fontWeight: '500',
+                    color: '#1976d2'
+                };
             },
             filterParams: {
                 buttons: ['apply', 'reset'],
@@ -34,15 +51,26 @@ export function getImpactColumns(objectCellRenderer = null) {
         },
         { 
             field: 'move_direction', 
-            headerName: '이동 방향', 
+            headerName: '방향', 
             filter: 'agTextColumnFilter',
             sortable: false,
-            minWidth: 80,
-            maxWidth: 100,
+            width: 60,
             pinned: 'left',
-            valueGetter: params => params.data.move_direction || '',
+            valueGetter: params => {
+                const data = params.data;
+                if (data.is_target_policy) {
+                    return data.move_direction || '';
+                }
+                return params.data.move_direction || '';
+            },
             cellStyle: params => {
+                const data = params.data;
                 const direction = params.value;
+                if (data.is_target_policy) {
+                    return {
+                        backgroundColor: '#e3f2fd'
+                    };
+                }
                 if (direction === '아래로') {
                     return {
                         color: '#1976d2',
@@ -63,13 +91,26 @@ export function getImpactColumns(objectCellRenderer = null) {
         },
         { 
             field: 'impact_type', 
-            headerName: '영향 유형', 
+            headerName: '유형', 
             filter: 'agTextColumnFilter',
             sortable: false,
-            minWidth: 120,
-            maxWidth: 180,
+            width: 100,
             pinned: 'left',
+            valueGetter: params => {
+                const data = params.data;
+                if (data.is_target_policy) {
+                    return '대상 정책';
+                }
+                return params.data.impact_type || '';
+            },
             cellStyle: params => {
+                const data = params.data;
+                if (data.is_target_policy) {
+                    return {
+                        backgroundColor: '#e3f2fd',
+                        fontWeight: 'bold'
+                    };
+                }
                 const impactType = params.value;
                 if (impactType === '차단 정책에 걸림') {
                     return {
@@ -95,11 +136,25 @@ export function getImpactColumns(objectCellRenderer = null) {
             filter: 'agTextColumnFilter',
             sortable: false,
             minWidth: 150,
+            maxWidth: 250,
             pinned: 'left',
             valueGetter: params => {
+                const data = params.data;
+                if (data.is_target_policy) {
+                    return '';
+                }
                 const policy = params.data.policy;
                 const seq = params.data.current_position;
-                return policy ? `[seq ${seq || '?'}] ${policy.rule_name || ''}` : '';
+                return policy ? `${policy.rule_name || ''}` : '';
+            },
+            cellStyle: params => {
+                const data = params.data;
+                if (data.is_target_policy) {
+                    return {
+                        backgroundColor: '#e3f2fd'
+                    };
+                }
+                return null;
             },
             filterParams: {
                 buttons: ['apply', 'reset'],
@@ -108,14 +163,33 @@ export function getImpactColumns(objectCellRenderer = null) {
         },
         { 
             field: 'current_position', 
-            headerName: '영향받는 정책 위치 (seq)', 
+            headerName: 'Seq', 
             filter: 'agNumberColumnFilter',
             sortable: true,
-            minWidth: 120,
-            maxWidth: 150,
+            width: 70,
             pinned: 'left',
-            valueGetter: params => params.data.current_position,
-            valueFormatter: params => params.value != null ? formatNumber(params.value) : '-',
+            valueGetter: params => {
+                const data = params.data;
+                if (data.is_target_policy) {
+                    return null;
+                }
+                return params.data.current_position;
+            },
+            valueFormatter: params => {
+                if (params.data?.is_target_policy) {
+                    return '';
+                }
+                return params.value != null ? formatNumber(params.value) : '-';
+            },
+            cellStyle: params => {
+                const data = params.data;
+                if (data.is_target_policy) {
+                    return {
+                        backgroundColor: '#e3f2fd'
+                    };
+                }
+                return null;
+            },
             filterParams: {
                 buttons: ['apply', 'reset'],
                 debounceMs: 200
@@ -126,16 +200,74 @@ export function getImpactColumns(objectCellRenderer = null) {
             headerName: '사유', 
             filter: 'agTextColumnFilter',
             sortable: false,
-            minWidth: 300,
+            minWidth: 250,
             wrapText: true,
             autoHeight: true,
-            valueGetter: params => params.data.reason,
+            valueGetter: params => {
+                const data = params.data;
+                if (data.is_target_policy) {
+                    return '';
+                }
+                return params.data.reason;
+            },
+            cellStyle: params => {
+                const data = params.data;
+                if (data.is_target_policy) {
+                    return {
+                        backgroundColor: '#e3f2fd'
+                    };
+                }
+                return null;
+            },
             filterParams: {
                 buttons: ['apply', 'reset'],
                 debounceMs: 200
             }
         },
-        ...policyColumns
+        ...policyColumns.map(col => {
+            // 정책 관련 컬럼들도 대상 정책 행일 때는 스타일 적용
+            const originalCellStyle = col.cellStyle;
+            return {
+                ...col,
+                cellStyle: params => {
+                    const data = params.data;
+                    if (data.is_target_policy) {
+                        return {
+                            backgroundColor: '#e3f2fd'
+                        };
+                    }
+                    if (originalCellStyle) {
+                        if (typeof originalCellStyle === 'function') {
+                            return originalCellStyle(params);
+                        }
+                        return originalCellStyle;
+                    }
+                    return null;
+                },
+                valueGetter: params => {
+                    const data = params.data;
+                    if (data.is_target_policy) {
+                        // 대상 정책 행일 때는 대상 정책 정보 표시
+                        if (col.field === 'rule_name') {
+                            return data.target_policy_name || '';
+                        }
+                        if (col.field === 'seq') {
+                            return data.target_original_seq || data.target_policy?.seq || null;
+                        }
+                        // 다른 필드는 대상 정책 객체에서 가져오기
+                        if (data.target_policy && col.field) {
+                            return data.target_policy[col.field] || null;
+                        }
+                        return null;
+                    }
+                    // 영향받는 정책 행일 때는 기존 로직 사용
+                    if (col.valueGetter) {
+                        return col.valueGetter(params);
+                    }
+                    return params.data[col.field] || null;
+                }
+            };
+        })
     ];
 }
 

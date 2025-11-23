@@ -64,8 +64,13 @@ function createGrid(columnDefs, rowData) {
                     return `${params.data.object_name}_${params.data.object_type}`;
                 }
                 // 영향도 분석: target_policy_id + policy_id + _impact_index 조합 (여러 대상 정책 지원)
-                if (params.data._impact_index !== undefined || params.data.impact_type !== undefined || params.data.current_position !== undefined) {
+                if (params.data._impact_index !== undefined || params.data.impact_type !== undefined || params.data.current_position !== undefined || params.data.is_target_policy) {
                     const targetPolicyId = params.data.target_policy_id || 'unknown';
+                    // 대상 정책 행인 경우
+                    if (params.data.is_target_policy) {
+                        return `target_${targetPolicyId}`;
+                    }
+                    // 영향받는 정책 행인 경우
                     const policyId = params.data.policy?.id || params.data.policy_id || 'unknown';
                     const impactIndex = params.data._impact_index || `impact_${params.rowIndex}`;
                     // target_policy_id와 policy_id, _impact_index를 사용하여 완전히 고유한 ID 생성
@@ -75,6 +80,13 @@ function createGrid(columnDefs, rowData) {
                 return String(params.data.policy?.id || params.data.policy_id || params.rowIndex);
             },
             getRowStyle: params => {
+                // 대상 정책 행 스타일 (영향도 분석)
+                if (params.data?.is_target_policy) {
+                    return {
+                        backgroundColor: '#e3f2fd',
+                        fontWeight: 'bold'
+                    };
+                }
                 // Upper policy와 Lower policy를 행 단위로 구분
                 if (params.data?.type === 'UPPER') {
                     return {
@@ -411,7 +423,8 @@ async function startAnalysis() {
         // targetPolicyIds를 사용하도록 수정
         params = {
             targetPolicyIds: impactParams.targetPolicyIds,
-            newPosition: impactParams.newPosition
+            newPosition: impactParams.newPosition,
+            moveDirection: impactParams.moveDirection
         };
     } else if (analysisType === 'risky_ports') {
         // 위험포트 분석 파라미터 추출

@@ -1,6 +1,6 @@
 
 import logging
-from typing import List, Dict, Any, Set, Tuple
+from typing import List, Dict, Any, Set, Tuple, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -14,12 +14,13 @@ logger = logging.getLogger(__name__)
 class ImpactAnalyzer:
     """정책 위치 이동 시 영향도 분석을 위한 클래스"""
 
-    def __init__(self, db_session: AsyncSession, task: AnalysisTask, target_policy_ids: List[int], new_position: int):
+    def __init__(self, db_session: AsyncSession, task: AnalysisTask, target_policy_ids: List[int], new_position: int, move_direction: Optional[str] = None):
         self.db = db_session
         self.task = task
         self.device_id = task.device_id
         self.target_policy_ids = target_policy_ids if isinstance(target_policy_ids, list) else [target_policy_ids]
         self.new_position = new_position
+        self.move_direction = move_direction  # 'above' 또는 'below'
 
     async def _get_policies_with_members(self) -> List[Policy]:
         """분석에 필요한 정책과 멤버 데이터를 조회합니다."""
@@ -127,55 +128,82 @@ class ImpactAnalyzer:
         # 원래 seq 확인
         original_seq = target_policy.seq or 0
         
-        # 새 위치의 seq 확인
-        # new_position이 배열 길이와 같으면 맨 끝으로 이동
-        if self.new_position >= len(policies):
-            # 맨 끝으로 이동하는 경우, 마지막 정책의 seq를 참조
+        # 이동 방향 판단 (프론트엔드에서 전달받은 move_direction 사용)
+        if self.move_direction:
+            is_moving_down = self.move_direction == 'below'
+        else:
+            # 하위 호환: 배열 인덱스 기준으로 판단
+            is_moving_down = original_position < self.new_position
+        
+        # 목적지 정책 찾기 (new_position에 있는 정책)
+        destination_policy = None
+        if self.new_position < len(policies):
+            destination_policy = policies[self.new_position]
+        
+        # 새 위치의 seq 계산 (단순화)
+        # 목적지 정책이 seq 70일 때:
+        # - "위로" 이동: 목적지 정책 앞으로 → 목적지 정책 앞의 정책의 seq (목적지 정책이 첫 번째가 아닌 경우)
+        # - "아래로" 이동: 목적지 정책 뒤로 → 목적지 정책의 seq + 1
+        if destination_policy:
+            dest_seq = destination_policy.seq or 0
+            if is_moving_down:
+                # 아래로 이동: 목적지 정책 뒤로 → dest_seq + 1
+                new_seq = dest_seq + 1
+            else:
+                # 위로 이동: 목적지 정책 앞으로
+                # 목적지 정책 앞의 정책이 있으면 그 정책의 seq 사용
+                if self.new_position > 0:
+                    prev_policy = policies[self.new_position - 1]
+                    new_seq = prev_policy.seq if prev_policy else max(1, dest_seq - 1)
+                else:
+                    # 목적지 정책이 첫 번째인 경우
+                    new_seq = max(1, dest_seq - 1) if dest_seq > 1 else 1
+        else:
+            # 목적지 정책이 없는 경우 (맨 끝으로 이동)
             if len(policies) > 0:
                 last_policy = policies[-1]
-                new_seq = (last_policy.seq or 0) + 1  # 마지막 정책 다음
+                new_seq = (last_policy.seq or 0) + 1
             else:
                 new_seq = 1
-        else:
-            new_seq_policy = policies[self.new_position]
-            new_seq = new_seq_policy.seq if new_seq_policy else None
         
-        # 이동 방향 결정 (배열 인덱스 기준으로 먼저 판단)
-        # original_position과 new_position을 비교하여 방향 결정
-        is_moving_down = original_position < self.new_position
-        
-        # seq 번호로도 확인 (일관성 체크)
-        if new_seq is not None:
-            seq_based_down = original_seq < new_seq
-            # 두 방식이 다르면 경고 (하지만 배열 인덱스 기준을 우선)
-            if is_moving_down != seq_based_down:
-                logger.warning(f"이동 방향 불일치: 배열 인덱스 기준={is_moving_down}, seq 기준={seq_based_down}. 배열 인덱스 기준 사용.")
-        
-        # 영향받는 정책 범위 결정 (배열 인덱스 기준)
-        # 아래로 이동: 원래 위치 다음부터 새 위치까지
-        # 위로 이동: 새 위치부터 원래 위치 이전까지
-        if is_moving_down:
-            # 아래로 이동: original_position + 1 ~ new_position
-            affected_start = original_position + 1
-            affected_end = self.new_position if self.new_position < len(policies) else len(policies) - 1
-        else:
-            # 위로 이동: new_position ~ original_position - 1
-            affected_start = self.new_position
-            affected_end = original_position - 1
-        
-        # seq 번호 기준 범위도 계산 (표시용)
-        if new_seq is not None:
+        # 영향받는 정책 범위 결정 (단순화)
+        # 목적지 정책을 기준으로 영향 범위 결정
+        if destination_policy:
+            dest_seq = destination_policy.seq or 0
             if is_moving_down:
-                # 아래로 이동: seq (original_seq + 1) ~ new_seq
-                affected_seq_start = original_seq + 1
-                affected_seq_end = new_seq
+                # 아래로 이동: 원래 위치 다음부터 목적지 정책까지
+                # 예: seq 1에서 seq 70 뒤로 이동 → seq 2부터 70까지의 정책들이 영향받음
+                affected_start = original_position + 1
+                affected_end = self.new_position
             else:
-                # 위로 이동: seq new_seq ~ (original_seq - 1)
-                affected_seq_start = new_seq
-                affected_seq_end = original_seq - 1
+                # 위로 이동: 원래 위치부터 목적지 정책 이전까지
+                # 예: seq 1에서 seq 70 앞으로 이동 → seq 1부터 69까지의 정책들이 영향받음
+                affected_start = original_position
+                # 목적지 정책 이전까지이므로, 목적지 정책의 인덱스 - 1
+                affected_end = self.new_position - 1 if self.new_position > 0 else 0
         else:
-            affected_seq_start = None
-            affected_seq_end = None
+            # 목적지 정책이 없는 경우 (맨 끝으로 이동)
+            affected_start = original_position + 1
+            affected_end = len(policies) - 1
+        
+        # seq 번호 기준 범위 계산 (표시용)
+        if destination_policy:
+            dest_seq = destination_policy.seq or 0
+            if is_moving_down:
+                # 아래로 이동: seq (original_seq + 1) ~ dest_seq
+                affected_seq_start = original_seq + 1
+                affected_seq_end = dest_seq
+            else:
+                # 위로 이동: seq original_seq ~ (dest_seq - 1)
+                affected_seq_start = original_seq
+                affected_seq_end = max(1, dest_seq - 1) if dest_seq > 1 else 1
+        else:
+            affected_seq_start = original_seq + 1
+            if len(policies) > 0:
+                last_policy = policies[-1]
+                affected_seq_end = last_policy.seq or original_seq
+            else:
+                affected_seq_end = original_seq
         
         # 영향받는 정책들 확인
         blocking_policies = []  # 이동한 정책이 걸리는 차단 정책들
@@ -187,7 +215,7 @@ class ImpactAnalyzer:
             if policy.id == target_policy.id:
                 continue
             
-            # 배열 인덱스 기준으로 영향 범위 확인 (우선 사용)
+            # 배열 인덱스 기준으로 영향 범위 확인
             if i < affected_start or i > affected_end:
                 continue
             
@@ -230,9 +258,8 @@ class ImpactAnalyzer:
                 })
             elif target_policy.action == 'allow' and policy.action == 'allow':
                 # 같은 액션이지만 이동한 정책이 더 위에 있으면 shadow
-                # 아래로 이동하는 경우: 새 위치가 영향받는 정책보다 아래에 있으므로 shadow 안됨
-                # 위로 이동하는 경우: 새 위치가 영향받는 정책보다 위에 있으므로 shadow됨
-                if not is_moving_down:  # 위로 이동하는 경우만 shadow
+                # 새 위치(new_seq)가 영향받는 정책의 seq보다 작으면 shadow됨
+                if new_seq is not None and new_seq < policy_seq:
                     shadowed_policies.append({
                         "policy_id": policy.id,
                         "policy": policy,
@@ -243,8 +270,12 @@ class ImpactAnalyzer:
                         "target_policy_name": target_policy.rule_name,
                         "target_original_seq": original_seq,
                         "target_new_seq": new_seq,
-                        "move_direction": "위로"
+                        "move_direction": "아래로" if is_moving_down else "위로"
                     })
+        
+        # 최종 이동방향 결정 (프론트엔드에서 전달받은 move_direction이 있으면 그대로 사용)
+        final_move_direction = "아래로" if is_moving_down else "위로"
+        logger.info(f"최종 이동방향: {final_move_direction} (is_moving_down={is_moving_down}, move_direction={self.move_direction})")
         
         return {
             "target_policy_id": target_policy.id,
@@ -253,7 +284,7 @@ class ImpactAnalyzer:
             "original_seq": original_seq,
             "new_position": self.new_position,
             "new_seq": new_seq,
-            "move_direction": "아래로" if is_moving_down else "위로",
+            "move_direction": final_move_direction,
             "blocking_policies": blocking_policies,
             "shadowed_policies": shadowed_policies,
             "total_blocking": len(blocking_policies),

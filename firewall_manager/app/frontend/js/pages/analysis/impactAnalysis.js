@@ -393,7 +393,8 @@ export function getImpactAnalysisParams() {
 
     return {
         targetPolicyIds: targetIdsArray,
-        newPosition: newPosition
+        newPosition: newPosition,
+        moveDirection: moveDirection // 'above' 또는 'below'
     };
 }
 

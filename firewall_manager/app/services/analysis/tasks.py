@@ -145,7 +145,7 @@ async def run_unused_analysis_task(db: AsyncSession, device_id: int, days: int =
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
 
 
-async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_policy_ids: List[int], new_position: int):
+async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_policy_ids: List[int], new_position: int, move_direction: Optional[str] = None):
     """
     정책 위치 이동 시 영향도 분석을 실행하고 결과를 저장합니다.
     """
@@ -157,7 +157,8 @@ async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_poli
         # 하위 호환을 위해 단일 정책 ID도 리스트로 변환
         if isinstance(target_policy_ids, int):
             target_policy_ids = [target_policy_ids]
-        logger.info(f"영향도 분석 작업 시작. Device ID: {device_id}, 정책 ID: {target_policy_ids}, 새 위치: {new_position}")
+        logger.info(f"영향도 분석 작업 시작. Device ID: {device_id}, 정책 ID: {target_policy_ids}, 새 위치: {new_position}, 이동 방향: {move_direction}")
+        logger.info(f"ImpactAnalyzer 초기화: move_direction={move_direction}")
 
         task_create = AnalysisTaskCreate(
             device_id=device_id,
@@ -177,7 +178,8 @@ async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_poli
                 db_session=db,
                 task=task,
                 target_policy_ids=target_policy_ids,
-                new_position=new_position
+                new_position=new_position,
+                move_direction=move_direction
             )
             result = await analyzer.analyze()
 
