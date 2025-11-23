@@ -141,16 +141,17 @@ class ImpactAnalyzer:
             destination_policy = policies[self.new_position]
         
         # 새 위치의 seq 계산 (단순화)
-        # 목적지 정책이 seq 70일 때:
-        # - "위로" 이동: 목적지 정책 앞으로 → 목적지 정책 앞의 정책의 seq (목적지 정책이 첫 번째가 아닌 경우)
-        # - "아래로" 이동: 목적지 정책 뒤로 → 목적지 정책의 seq + 1
+        # 목적지 정책이 seq 59일 때:
+        # - "위로" 이동: 목적지 정책 앞의 위치로 → 목적지 정책 앞의 정책의 seq (목적지 정책이 첫 번째가 아닌 경우)
+        # - "아래로" 이동: 목적지 정책의 위치로 → 목적지 정책의 seq
+        # 예: seq 1을 59 아래로 옮기면 → seq 1은 59가 되고, 기존 59는 58이 됨
         if destination_policy:
             dest_seq = destination_policy.seq or 0
             if is_moving_down:
-                # 아래로 이동: 목적지 정책 뒤로 → dest_seq + 1
-                new_seq = dest_seq + 1
+                # 아래로 이동: 목적지 정책의 위치로 → dest_seq
+                new_seq = dest_seq
             else:
-                # 위로 이동: 목적지 정책 앞으로
+                # 위로 이동: 목적지 정책 앞의 위치로
                 # 목적지 정책 앞의 정책이 있으면 그 정책의 seq 사용
                 if self.new_position > 0:
                     prev_policy = policies[self.new_position - 1]
@@ -172,12 +173,12 @@ class ImpactAnalyzer:
             dest_seq = destination_policy.seq or 0
             if is_moving_down:
                 # 아래로 이동: 원래 위치 다음부터 목적지 정책까지
-                # 예: seq 1에서 seq 70 뒤로 이동 → seq 2부터 70까지의 정책들이 영향받음
+                # 예: seq 1을 59 아래로 이동 → seq 2부터 59까지의 정책들이 영향받음 (한 칸씩 위로 밀려남)
                 affected_start = original_position + 1
                 affected_end = self.new_position
             else:
                 # 위로 이동: 원래 위치부터 목적지 정책 이전까지
-                # 예: seq 1에서 seq 70 앞으로 이동 → seq 1부터 69까지의 정책들이 영향받음
+                # 예: seq 1을 59 위로 이동 → seq 1부터 58까지의 정책들이 영향받음
                 affected_start = original_position
                 # 목적지 정책 이전까지이므로, 목적지 정책의 인덱스 - 1
                 affected_end = self.new_position - 1 if self.new_position > 0 else 0

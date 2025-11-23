@@ -20,11 +20,10 @@ export function getImpactColumns(objectCellRenderer = null) {
             valueGetter: params => {
                 const data = params.data;
                 if (data.is_target_policy) {
-                    // 대상 정책 행: 대상 정책 정보 표시
+                    // 대상 정책 행: 대상 정책 정보 표시 (최종 seq만 표시)
                     const originalSeq = data.target_original_seq || data.target_policy?.seq || '?';
                     const newSeq = data.target_new_seq || '?';
-                    const direction = data.move_direction || '';
-                    return `▶ ${data.target_policy_name || ''} (${originalSeq} → ${newSeq}${direction ? `, ${direction}` : ''})`;
+                    return `▶ ${data.target_policy_name || ''} (${originalSeq} → ${newSeq})`;
                 } else {
                     // 영향받는 정책 행: 빈 값
                     return '';
@@ -43,46 +42,6 @@ export function getImpactColumns(objectCellRenderer = null) {
                     fontWeight: '500',
                     color: '#1976d2'
                 };
-            },
-            filterParams: {
-                buttons: ['apply', 'reset'],
-                debounceMs: 200
-            }
-        },
-        { 
-            field: 'move_direction', 
-            headerName: '방향', 
-            filter: 'agTextColumnFilter',
-            sortable: false,
-            width: 60,
-            pinned: 'left',
-            valueGetter: params => {
-                const data = params.data;
-                if (data.is_target_policy) {
-                    return data.move_direction || '';
-                }
-                return params.data.move_direction || '';
-            },
-            cellStyle: params => {
-                const data = params.data;
-                const direction = params.value;
-                if (data.is_target_policy) {
-                    return {
-                        backgroundColor: '#e3f2fd'
-                    };
-                }
-                if (direction === '아래로') {
-                    return {
-                        color: '#1976d2',
-                        fontWeight: '500'
-                    };
-                } else if (direction === '위로') {
-                    return {
-                        color: '#f57c00',
-                        fontWeight: '500'
-                    };
-                }
-                return null;
             },
             filterParams: {
                 buttons: ['apply', 'reset'],
