@@ -50,7 +50,7 @@ export const api = {
       const policyIdsParam = policyIds.map(id => `target_policy_id=${id}`).join('&');
       const moveDirection = params.moveDirection || '';
       const url = `/analysis/impact/${deviceId}?${policyIdsParam}&new_position=${newPosition}${moveDirection ? `&move_direction=${moveDirection}` : ''}`;
-      console.log('[API] 영향도 분석 요청:', { deviceId, policyIds, newPosition, moveDirection, url });
+      console.log('[API]정책이동 영향분석 요청:', { deviceId, policyIds, newPosition, moveDirection, url });
       return request(url, { method: "POST" });
     } else if (analysisType === 'unreferenced_objects') {
       return request(`/analysis/unreferenced-objects/${deviceId}`, { method: "POST" });

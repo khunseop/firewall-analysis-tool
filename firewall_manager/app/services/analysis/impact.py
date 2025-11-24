@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class ImpactAnalyzer:
-    """정책 위치 이동 시 영향도 분석을 위한 클래스"""
+    """정책 위치 이동 시 정책이동 영향분석을 위한 클래스"""
 
     def __init__(self, db_session: AsyncSession, task: AnalysisTask, target_policy_ids: List[int], new_position: int, move_direction: Optional[str] = None):
         self.db = db_session
@@ -24,7 +24,7 @@ class ImpactAnalyzer:
 
     async def _get_policies_with_members(self) -> List[Policy]:
         """분석에 필요한 정책과 멤버 데이터를 조회합니다."""
-        logger.info("영향도 분석 대상 정책 데이터 조회 시작...")
+        logger.info("정책이동 영향분석 대상 정책 데이터 조회 시작...")
         stmt = (
             select(Policy)
             .where(
@@ -117,7 +117,7 @@ class ImpactAnalyzer:
         return len(apps1 & apps2) > 0
 
     async def _analyze_single_policy(self, target_policy: Policy, original_position: int, policies: List[Policy]) -> Dict[str, Any]:
-        """단일 정책에 대한 영향도 분석을 수행합니다."""
+        """단일 정책에 대한정책이동 영향분석을 수행합니다."""
         # 새 위치가 유효한지 확인
         if self.new_position < 0:
             raise ValueError(f"새 위치 {self.new_position}가 유효하지 않습니다. (0 이상이어야 함)")
@@ -293,7 +293,7 @@ class ImpactAnalyzer:
         }
 
     async def analyze(self) -> Dict[str, Any]:
-        """영향도 분석을 실행하고 결과를 반환합니다.
+        """정책이동 영향분석을 실행하고 결과를 반환합니다.
         
         여러 정책에 대해 개별적으로 분석을 수행하고 결과를 통합합니다.
         
@@ -301,7 +301,7 @@ class ImpactAnalyzer:
         1. 출발지와 목적지 사이의 차단 정책에 걸리는지 확인
         2. 출발지와 목적지 사이의 정책 중 shadow되는 정책 확인
         """
-        logger.info(f"Task ID {self.task.id}에 대한 영향도 분석 시작. 정책 ID: {self.target_policy_ids}, 새 위치: {self.new_position}")
+        logger.info(f"Task ID {self.task.id}에 대한 정책이동 영향분석 시작. 정책 ID: {self.target_policy_ids}, 새 위치: {self.new_position}")
 
         policies = await self._get_policies_with_members()
         

@@ -1,5 +1,5 @@
 /**
- * 영향도 분석 결과 처리 헬퍼 함수
+ *정책이동 영향분석 결과 처리 헬퍼 함수
  * 대상 정책 정보를 먼저 표시하고, 그 아래에 영향받는 정책들을 표시하는 형식으로 구성
  */
 export function processImpactResults(resultData, allDevices) {

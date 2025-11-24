@@ -132,7 +132,7 @@ async def start_impact_analysis(
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     """
-    정책 위치 이동 시 영향도 분석을 시작합니다.
+    정책 위치 이동 시정책이동 영향분석을 시작합니다.
     여러 정책을 동시에 분석할 수 있습니다.
     """
     device = await crud.device.get_device(db, device_id=device_id)

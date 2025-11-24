@@ -147,7 +147,7 @@ async def run_unused_analysis_task(db: AsyncSession, device_id: int, days: int =
 
 async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_policy_ids: List[int], new_position: int, move_direction: Optional[str] = None):
     """
-    정책 위치 이동 시 영향도 분석을 실행하고 결과를 저장합니다.
+    정책 위치 이동 시 정책이동 영향분석을 실행하고 결과를 저장합니다.
     """
     if analysis_lock.locked():
         logger.warning(f"분석 작업이 이미 진행 중입니다. Device ID: {device_id}")
@@ -157,7 +157,7 @@ async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_poli
         # 하위 호환을 위해 단일 정책 ID도 리스트로 변환
         if isinstance(target_policy_ids, int):
             target_policy_ids = [target_policy_ids]
-        logger.info(f"영향도 분석 작업 시작. Device ID: {device_id}, 정책 ID: {target_policy_ids}, 새 위치: {new_position}, 이동 방향: {move_direction}")
+        logger.info(f"정책이동 영향분석 작업 시작. Device ID: {device_id}, 정책 ID: {target_policy_ids}, 새 위치: {new_position}, 이동 방향: {move_direction}")
         logger.info(f"ImpactAnalyzer 초기화: move_direction={move_direction}")
 
         task_create = AnalysisTaskCreate(
@@ -192,17 +192,17 @@ async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_poli
                     result_data=result_data_json
                 )
                 await crud.analysis.create_or_update_analysis_result(db, obj_in=result_to_store)
-                logger.info(f"Device ID {device_id}에 대한 영향도 분석 결과를 저장했습니다.")
+                logger.info(f"Device ID {device_id}에 대한 정책이동 영향분석 결과를 저장했습니다.")
 
             task_update = AnalysisTaskUpdate(
                 completed_at=get_kst_now(),
                 task_status='success'
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
-            logger.info(f"영향도 분석 작업 성공. Task ID: {task.id}")
+            logger.info(f"정책이동영향분석 작업 성공. Task ID: {task.id}")
 
         except Exception as e:
-            logger.error(f"영향도 분석 작업 실패. Task ID: {task.id}, Error: {e}", exc_info=True)
+            logger.error(f"정책이동영향분석 작업 실패. Task ID: {task.id}, Error: {e}", exc_info=True)
             task_update = AnalysisTaskUpdate(
                 completed_at=get_kst_now(),
                 task_status='failure'

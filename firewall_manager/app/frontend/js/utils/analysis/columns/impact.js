@@ -2,7 +2,7 @@ import { formatNumber } from '../../date.js';
 import { getPolicyColumns, applyObjectRenderer } from './common.js';
 
 /**
- * 영향도 분석 컬럼 정의
+ *정책이동 영향분석 컬럼 정의
  */
 export function getImpactColumns(objectCellRenderer = null) {
     const policyColumns = getPolicyColumns();

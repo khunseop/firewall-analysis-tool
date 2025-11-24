@@ -1,7 +1,7 @@
 import { api } from '../../api.js';
 
 /**
- * 영향도 분석 관련 UI 및 로직 관리
+ *정책이동 영향분석 관련 UI 및 로직 관리
  */
 
 let allPolicies = [];
@@ -10,7 +10,7 @@ let destinationPolicySelect = null;
 let deviceSelect = null;
 
 /**
- * 영향도 분석 컴포넌트 초기화
+ *정책이동 영향분석 컴포넌트 초기화
  * @param {Object} select - 장비 선택 TomSelect 인스턴스
  */
 export function initImpactAnalysis(select) {
@@ -313,7 +313,7 @@ function updateDestinationPolicySelect() {
 }
 
 /**
- * 영향도 분석 파라미터 추출
+ *정책이동 영향분석 파라미터 추출
  * @returns {Object|null} 분석 파라미터 또는 null (유효하지 않은 경우)
  */
 export function getImpactAnalysisParams() {

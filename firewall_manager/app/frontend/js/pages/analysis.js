@@ -63,7 +63,7 @@ function createGrid(columnDefs, rowData) {
                     // 미참조 객체 분석: object_name + object_type 조합
                     return `${params.data.object_name}_${params.data.object_type}`;
                 }
-                // 영향도 분석: target_policy_id + policy_id + _impact_index 조합 (여러 대상 정책 지원)
+                //정책이동 영향분석: target_policy_id + policy_id + _impact_index 조합 (여러 대상 정책 지원)
                 if (params.data._impact_index !== undefined || params.data.impact_type !== undefined || params.data.current_position !== undefined || params.data.is_target_policy) {
                     const targetPolicyId = params.data.target_policy_id || 'unknown';
                     // 대상 정책 행인 경우
@@ -80,7 +80,7 @@ function createGrid(columnDefs, rowData) {
                 return String(params.data.policy?.id || params.data.policy_id || params.rowIndex);
             },
             getRowStyle: params => {
-                // 대상 정책 행 스타일 (영향도 분석)
+                // 대상 정책 행 스타일 (정책이동영향분석)
                 if (params.data?.is_target_policy) {
                     return {
                         backgroundColor: '#e3f2fd',
@@ -143,7 +143,7 @@ async function loadDevices() {
                     saveSearchParams('analysis', { deviceId });
                     
                     await loadLatestResult();
-                    // 영향도 분석이 선택되어 있으면 정책 목록 로드
+                    //정책이동 영향분석이 선택되어 있으면 정책 목록 로드
                     if (analysisTypeSelect && analysisTypeSelect.getValue() === 'impact') {
                         await loadPoliciesForImpact(); // impactAnalysis.js에서 import
                     }
@@ -164,7 +164,7 @@ async function loadDevices() {
                 deviceSelect.setValue(savedState.deviceId);
             }
             
-            // 영향도 분석 컴포넌트에 deviceSelect 전달
+            //정책이동 영향분석 컴포넌트에 deviceSelect 전달
             initImpactAnalysis(deviceSelect);
             // 위험포트 분석 컴포넌트에 deviceSelect 전달
             initRiskyPortsAnalysis(deviceSelect);
@@ -322,7 +322,7 @@ async function displayTaskResults(deviceId, analysisType) {
         // 모든 분석 타입은 getLatestAnalysisResult를 사용
         const latestResult = await api.getLatestAnalysisResult(deviceId, analysisType);
         if (latestResult && latestResult.result_data) {
-            // 영향도 분석은 객체 형태, 나머지는 배열 형태
+            //정책이동 영향분석은 객체 형태, 나머지는 배열 형태
             if (analysisType === 'impact') {
                 if (latestResult.result_data.blocking_policies || latestResult.result_data.shadowed_policies) {
                     await displayResults(latestResult.result_data, latestResult.analysis_type, 'task');
@@ -415,7 +415,7 @@ async function startAnalysis() {
         const daysInput = document.getElementById('analysis-params-input');
         params.days = daysInput ? parseInt(daysInput.value) || 90 : 90;
     } else if (analysisType === 'impact') {
-        // 모듈화된 함수로 영향도 분석 파라미터 추출
+        // 모듈화된 함수로정책이동 영향분석 파라미터 추출
         const impactParams = getImpactAnalysisParams();
         if (!impactParams) {
             return; // 에러 메시지는 getImpactAnalysisParams에서 표시됨
@@ -487,7 +487,7 @@ async function loadLatestResult() {
     try {
         const latestResult = await api.getLatestAnalysisResult(deviceId, analysisType);
         if (latestResult && latestResult.result_data) {
-            // 영향도 분석은 객체 형태, 나머지는 배열 형태
+            //정책이동 영향분석은 객체 형태, 나머지는 배열 형태
             if (analysisType === 'impact') {
                 if (latestResult.result_data.blocking_policies || latestResult.result_data.shadowed_policies) {
                     await displayResults(latestResult.result_data, latestResult.analysis_type);
@@ -524,7 +524,7 @@ async function exportToExcel() {
     const analysisTypeMap = {
         'redundancy': '중복정책',
         'unused': '미사용정책',
-        'impact': '영향도분석',
+        'impact': '정책이동영향분석',
         'risky_ports': '위험포트',
         'over_permissive': '과허용정책',
         'unreferenced_objects': '미참조객체'
@@ -862,7 +862,7 @@ export async function initAnalysis() {
         startButton.addEventListener('click', startAnalysis);
     }
 
-    // 영향도 분석 전용 분석 버튼
+    //정책이동 영향분석 전용 분석 버튼
     const impactStartButton = document.getElementById('btn-start-impact-analysis');
     if (impactStartButton) {
         impactStartButton.addEventListener('click', startAnalysis);

@@ -82,7 +82,7 @@ export async function notifyAnalysisComplete(deviceName, analysisType, success, 
     redundancy: '중복 정책',
     unused: '미사용 정책',
     unreferenced_objects: '미참조 객체',
-    impact: '영향도 분석',
+    impact: '정책이동 영향분석',
     risky_ports: '위험 포트'
   };
   

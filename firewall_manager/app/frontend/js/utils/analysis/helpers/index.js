@@ -10,7 +10,7 @@ import { processImpactResults } from './impact.js';
 export async function processAnalysisResults(resultData, analysisType, allDevices) {
     let processedData = [];
     
-    // 영향도 분석 결과는 객체 형태
+    //정책이동 영향분석 결과는 객체 형태
     if (analysisType === 'impact' && resultData && !Array.isArray(resultData)) {
         return processImpactResults(resultData, allDevices);
     } else if (resultData && Array.isArray(resultData) && resultData.length > 0) {
