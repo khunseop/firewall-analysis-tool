@@ -46,6 +46,32 @@ class WorkflowManager:
             workflow = await crud.deletion_workflow.create_workflow(self.db, self.device_id)
         return workflow
     
+    def _resolve_file_path(self, db_path: Optional[str], patterns: list[str]) -> Optional[str]:
+        """
+        파일 경로 해결: DB 경로 확인 후 파일이 없으면 패턴으로 최신 파일 찾기
+        
+        Args:
+            db_path: DB에 저장된 파일 경로
+            patterns: 찾을 파일 패턴 리스트 (예: ['step_1_', 'master_'])
+            
+        Returns:
+            파일 경로 (문자열), 없으면 None
+        """
+        import os
+        
+        # DB 경로가 있고 파일이 존재하면 사용
+        if db_path and os.path.exists(db_path):
+            return db_path
+        
+        # DB 경로가 없거나 파일이 없으면 패턴으로 최신 파일 찾기
+        for pattern in patterns:
+            latest_file = self.file_manager.get_latest_file_by_pattern(self.device_id, pattern)
+            if latest_file and os.path.exists(latest_file):
+                logger.info(f"DB 경로 파일이 없어 패턴으로 최신 파일 찾음: {latest_file} (패턴: {pattern})")
+                return latest_file
+        
+        return None
+    
     async def execute_step(self, step_number: int, **kwargs) -> Dict[str, Any]:
         """
         특정 단계 실행
@@ -83,7 +109,8 @@ class WorkflowManager:
             
             elif step_number == 2:
                 # Step 2: RequestExtractor
-                step1_file = workflow.step_files.get('1') or workflow.master_file_path
+                db_step1_file = workflow.step_files.get('1') or workflow.master_file_path
+                step1_file = self._resolve_file_path(db_step1_file, ['step_1_', 'master_'])
                 if not step1_file:
                     raise ValueError("Step 1을 먼저 실행해야 합니다.")
                 
@@ -101,7 +128,8 @@ class WorkflowManager:
             
             elif step_number == 3:
                 # Step 3: MisIdAdder
-                master_file = workflow.master_file_path or workflow.step_files.get('1')
+                db_master_file = workflow.master_file_path or workflow.step_files.get('1')
+                master_file = self._resolve_file_path(db_master_file, ['master_', 'step_1_'])
                 csv_file = kwargs.get('csv_file_path')
                 if not master_file or not csv_file:
                     raise ValueError("마스터 파일과 CSV 파일이 필요합니다.")
@@ -138,8 +166,10 @@ class WorkflowManager:
             
             elif step_number == 5:
                 # Step 5: RequestInfoAdder
-                master_file = workflow.master_file_path or workflow.step_files.get('3') or workflow.step_files.get('1')
-                info_file = workflow.step_files.get('4') or kwargs.get('info_file_path')
+                db_master_file = workflow.master_file_path or workflow.step_files.get('3') or workflow.step_files.get('1')
+                master_file = self._resolve_file_path(db_master_file, ['master_', 'step_3_', 'step_1_'])
+                db_info_file = workflow.step_files.get('4') or kwargs.get('info_file_path')
+                info_file = self._resolve_file_path(db_info_file, ['step_4_']) if db_info_file else kwargs.get('info_file_path')
                 if not master_file or not info_file:
                     raise ValueError("마스터 파일과 신청정보 파일이 필요합니다.")
                 
@@ -157,7 +187,8 @@ class WorkflowManager:
             
             elif step_number == 6:
                 # Step 6: ExceptionHandler
-                master_file = workflow.master_file_path or workflow.step_files.get('5')
+                db_master_file = workflow.master_file_path or workflow.step_files.get('5')
+                master_file = self._resolve_file_path(db_master_file, ['master_', 'step_5_'])
                 vendor = kwargs.get('vendor', 'paloalto')
                 if not master_file:
                     raise ValueError("마스터 파일이 필요합니다.")
@@ -176,9 +207,11 @@ class WorkflowManager:
             
             elif step_number == 7:
                 # Step 7: DuplicatePolicyClassifier
-                master_file = workflow.master_file_path or workflow.step_files.get('6')
+                db_master_file = workflow.master_file_path or workflow.step_files.get('6')
+                master_file = self._resolve_file_path(db_master_file, ['master_', 'step_6_'])
                 redundancy_file = kwargs.get('redundancy_result_file_path')
-                info_file = workflow.step_files.get('4')
+                db_info_file = workflow.step_files.get('4')
+                info_file = self._resolve_file_path(db_info_file, ['step_4_'])
                 if not master_file or not redundancy_file or not info_file:
                     raise ValueError("마스터 파일, 중복정책 분석 결과 파일, 신청정보 파일이 필요합니다.")
                 
@@ -217,7 +250,8 @@ class WorkflowManager:
     async def export_final_results(self) -> Dict[str, str]:
         """최종 결과 파일들 생성"""
         workflow = await self.get_or_create_workflow()
-        master_file = workflow.master_file_path or workflow.step_files.get('6')
+        db_master_file = workflow.master_file_path or workflow.step_files.get('6')
+        master_file = self._resolve_file_path(db_master_file, ['master_', 'step_6_'])
         
         if not master_file:
             raise ValueError("Step 6을 먼저 실행해야 합니다.")

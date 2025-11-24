@@ -138,7 +138,7 @@ async def download_step_result(
         raise HTTPException(status_code=404, detail="워크플로우를 찾을 수 없습니다.")
     
     # 장비명 가져오기
-    device = await crud.device.get(db, device_id)
+    device = await crud.device.get_device(db, device_id=device_id)
     if not device:
         raise HTTPException(status_code=404, detail="장비를 찾을 수 없습니다.")
     device_name = device.name.replace(' ', '_').replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
@@ -265,7 +265,7 @@ async def download_master_file(
         raise HTTPException(status_code=404, detail="워크플로우를 찾을 수 없습니다.")
     
     # 장비명 가져오기
-    device = await crud.device.get(db, device_id)
+    device = await crud.device.get_device(db, device_id=device_id)
     if not device:
         raise HTTPException(status_code=404, detail="장비를 찾을 수 없습니다.")
     device_name = device.name.replace(' ', '_').replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
@@ -334,7 +334,7 @@ async def download_final_results(
         raise HTTPException(status_code=404, detail="최종 결과 파일을 찾을 수 없습니다.")
     
     # 장비명 가져오기
-    device = await crud.device.get(db, device_id)
+    device = await crud.device.get_device(db, device_id=device_id)
     if not device:
         raise HTTPException(status_code=404, detail="장비를 찾을 수 없습니다.")
     device_name = device.name.replace(' ', '_').replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
