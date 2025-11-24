@@ -208,5 +208,5 @@ __marimo__/
 firewall_manager/fat.db-wal
 firewall_manager/fat.db-shm
 .DS_Store
-.xlsx
+*.xlsx
 *_config.json
