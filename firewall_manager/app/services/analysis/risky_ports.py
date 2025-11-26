@@ -432,22 +432,31 @@ class RiskyPortsAnalyzer:
                     # 개별 서비스 객체인 경우
                     tokens = self.service_value_map[service_name]
                     original_service_tokens.update(tokens)
+                    # "any" 토큰이 있는지 확인
+                    has_any_token = any(t.lower() == 'any' for t in tokens)
                     original_service_objects.append({
                         "type": "service",
                         "name": service_name,
-                        "token": service_name
+                        "token": service_name,
+                        "is_any": has_any_token
                     })
                 else:
-                    # 직접 프로토콜/포트 형식인 경우 (예: "tcp/80")
+                    # 직접 프로토콜/포트 형식인 경우 (예: "tcp/80", "any")
                     # 파싱하여 토큰 추가
                     protocol, port_start, port_end = self._parse_service_token(service_name)
                     if protocol and port_start is not None and port_end is not None:
-                        token_str = f"{protocol}/{port_start}" if port_start == port_end else f"{protocol}/{port_start}-{port_end}"
-                        original_service_tokens.add(token_str)
+                        if protocol.lower() == 'any':
+                            # "any"는 TCP와 UDP로 분리하여 토큰 추가
+                            original_service_tokens.add(f"tcp/{port_start}-{port_end}")
+                            original_service_tokens.add(f"udp/{port_start}-{port_end}")
+                        else:
+                            token_str = f"{protocol}/{port_start}" if port_start == port_end else f"{protocol}/{port_start}-{port_end}"
+                            original_service_tokens.add(token_str)
                         original_service_objects.append({
                             "type": "service",
                             "name": service_name,
-                            "token": service_name
+                            "token": service_name,
+                            "is_any": protocol.lower() == 'any' if protocol else False
                         })
             
             # 정책의 서비스 멤버 처리 (확장된 토큰들)
@@ -460,7 +469,75 @@ class RiskyPortsAnalyzer:
                 
                 # service_members는 확장된 토큰들이므로 위험 포트 검사 및 필터링에만 사용
                 # original_service_objects는 이미 policy.service에서 파싱한 정보 사용
-                if protocol and port_start is not None and port_end is not None:
+                
+                # "any" 프로토콜 처리: TCP와 UDP로 분리하여 각각 처리
+                if (token_type == 'any' or (protocol and protocol.lower() == 'any')) and port_start is not None and port_end is not None:
+                    # 원본 서비스 이름 찾기 (token이 어떤 서비스 객체/그룹에서 왔는지)
+                    service_name = None
+                    for obj in original_service_objects:
+                        if obj["type"] == "group":
+                            if token in obj.get("expanded_tokens", []):
+                                service_name = obj["name"]
+                                break
+                        elif obj["type"] == "service":
+                            if token == obj.get("token") or token in self.service_value_map.get(obj["name"], set()):
+                                service_name = obj["name"]
+                                break
+                    
+                    # TCP와 UDP로 분리하여 각각 처리
+                    for proto in ['tcp', 'udp']:
+                        # 각 프로토콜에 대해 위험 포트 매칭 확인
+                        matching_risky = self._find_matching_risky_ports(proto, port_start, port_end)
+                        if matching_risky:
+                            # 위험 포트가 포함된 범위에서 제거
+                            risky_ports_in_range = []
+                            for risky_def in matching_risky:
+                                for port in range(max(port_start, risky_def.port_start), 
+                                                 min(port_end, risky_def.port_end) + 1):
+                                    risky_ports_in_range.append(port)
+                            
+                            # 매칭된 모든 위험 포트 정의를 포함하도록 수정
+                            # 각 위험 포트 정의마다 별도 항목 추가
+                            for risky_def in matching_risky:
+                                # 이 위험 포트 정의와 겹치는 포트 범위 계산
+                                overlap_start = max(port_start, risky_def.port_start)
+                                overlap_end = min(port_end, risky_def.port_end)
+                                
+                                if overlap_start <= overlap_end:
+                                    removed_risky_ports.append({
+                                        "protocol": proto,
+                                        "port": f"{overlap_start}" if overlap_start == overlap_end else f"{overlap_start}-{overlap_end}",
+                                        "port_range": f"{overlap_start}-{overlap_end}",
+                                        "risky_port_def": risky_def.definition,
+                                        "service_token": token,
+                                        "service_name": service_name
+                                    })
+                            
+                            # 안전한 범위로 분리
+                            safe_ranges = self._split_port_range(proto, port_start, port_end, risky_ports_in_range)
+                            filtered_from_this_token = []
+                            for safe_range in safe_ranges:
+                                if safe_range["port_start"] == safe_range["port_end"]:
+                                    filtered_token = f"{safe_range['protocol']}/{safe_range['port_start']}"
+                                else:
+                                    filtered_token = f"{safe_range['protocol']}/{safe_range['port_start']}-{safe_range['port_end']}"
+                                filtered_service_tokens.append(filtered_token)
+                                filtered_from_this_token.append(filtered_token)
+                            
+                            # 원본 토큰 -> 필터된 토큰 매핑 저장
+                            if token not in removed_token_to_filtered:
+                                removed_token_to_filtered[token] = []
+                            removed_token_to_filtered[token].extend(filtered_from_this_token)
+                        else:
+                            # 위험 포트가 없으면 전체 범위를 Safe 토큰으로 추가
+                            safe_token = f"{proto}/{port_start}-{port_end}"
+                            filtered_service_tokens.append(safe_token)
+                            if token not in removed_token_to_filtered:
+                                removed_token_to_filtered[token] = []
+                            removed_token_to_filtered[token].append(safe_token)
+                
+                elif protocol and port_start is not None and port_end is not None:
+                    # 일반 프로토콜 처리 (기존 로직)
                     # 위험 포트 매칭 확인
                     matching_risky = self._find_matching_risky_ports(protocol, port_start, port_end)
                     if matching_risky:
@@ -553,11 +630,61 @@ class RiskyPortsAnalyzer:
                     
                     if service_has_removed:
                         # 위험 포트가 제거된 서비스: Safe 버전 생성
-                        if service_name in self.service_value_map:
+                        # "any" 서비스인 경우 TCP와 UDP로 분리하여 각각 Safe 버전 생성
+                        is_any_service = obj.get("is_any", False) or service_name.lower() == 'any' or service_token.lower() == 'any'
+                        
+                        if is_any_service:
+                            # "any" 서비스: TCP-0-65535_Safe, UDP-0-65535_Safe 생성
+                            for proto in ['tcp', 'udp']:
+                                if service_token in removed_token_to_filtered:
+                                    # removed_token_to_filtered에서 해당 프로토콜의 토큰 찾기
+                                    proto_tokens = [t for t in removed_token_to_filtered[service_token] if t.startswith(f"{proto}/")]
+                                    if not proto_tokens:
+                                        # 해당 프로토콜의 토큰이 없으면 전체 범위 사용 (위험 포트가 없는 경우)
+                                        proto_tokens = [f"{proto}/0-65535"]
+                                else:
+                                    # removed_token_to_filtered에 없으면 위험 포트 재검사
+                                    matching_risky = self._find_matching_risky_ports(proto, 0, 65535)
+                                    if matching_risky:
+                                        risky_ports_in_range = []
+                                        for risky_def in matching_risky:
+                                            for port in range(max(0, risky_def.port_start), 
+                                                             min(65535, risky_def.port_end) + 1):
+                                                risky_ports_in_range.append(port)
+                                        safe_ranges = self._split_port_range(proto, 0, 65535, risky_ports_in_range)
+                                        proto_tokens = []
+                                        for safe_range in safe_ranges:
+                                            if safe_range["port_start"] == safe_range["port_end"]:
+                                                proto_tokens.append(f"{proto}/{safe_range['port_start']}")
+                                            else:
+                                                proto_tokens.append(f"{proto}/{safe_range['port_start']}-{safe_range['port_end']}")
+                                    else:
+                                        proto_tokens = [f"{proto}/0-65535"]
+                                
+                                if proto_tokens:
+                                    safe_service_name = f"{proto.upper()}-0-65535_Safe"
+                                    filtered_service_objects.append({
+                                        "type": "service",
+                                        "name": safe_service_name,
+                                        "original_name": service_name,
+                                        "token": service_token,
+                                        "filtered_tokens": proto_tokens
+                                    })
+                        elif service_name in self.service_value_map:
                             original_tokens = self.service_value_map[service_name]
                             service_filtered_tokens = self._create_safe_tokens_from_service_tokens(
                                 original_tokens, removed_token_to_filtered
                             )
+                            
+                            if service_filtered_tokens:
+                                safe_service_name = f"{service_name}_Safe"
+                                filtered_service_objects.append({
+                                    "type": "service",
+                                    "name": safe_service_name,
+                                    "original_name": service_name,
+                                    "token": service_token,
+                                    "filtered_tokens": service_filtered_tokens
+                                })
                         else:
                             # 직접 프로토콜/포트 형식인 경우
                             if service_token in removed_token_to_filtered:
@@ -566,30 +693,46 @@ class RiskyPortsAnalyzer:
                                 service_filtered_tokens = self._create_safe_tokens_from_service_tokens(
                                     {service_token}, removed_token_to_filtered
                                 )
+                            
+                            if service_filtered_tokens:
+                                safe_service_name = f"{service_name}_Safe"
+                                filtered_service_objects.append({
+                                    "type": "service",
+                                    "name": safe_service_name,
+                                    "original_name": service_name,
+                                    "token": service_token,
+                                    "filtered_tokens": service_filtered_tokens
+                                })
+                    else:
+                        # 위험 포트가 없는 서비스 처리
+                        # "any" 서비스인 경우에도 TCP-0-65535_Safe, UDP-0-65535_Safe 생성
+                        is_any_service = obj.get("is_any", False) or service_name.lower() == 'any' or service_token.lower() == 'any'
                         
-                        if service_filtered_tokens:
-                            safe_service_name = f"{service_name}_Safe"
+                        if is_any_service:
+                            # "any" 서비스: 위험 포트가 없어도 TCP-0-65535_Safe, UDP-0-65535_Safe 생성
+                            for proto in ['tcp', 'udp']:
+                                safe_service_name = f"{proto.upper()}-0-65535_Safe"
+                                filtered_service_objects.append({
+                                    "type": "service",
+                                    "name": safe_service_name,
+                                    "original_name": service_name,
+                                    "token": service_token,
+                                    "filtered_tokens": [f"{proto}/0-65535"]
+                                })
+                        else:
+                            # 일반 서비스: 원본 그대로 사용
+                            if service_name in self.service_value_map:
+                                original_tokens = list(self.service_value_map[service_name])
+                            else:
+                                original_tokens = [service_token]
+                            
                             filtered_service_objects.append({
                                 "type": "service",
-                                "name": safe_service_name,
+                                "name": service_name,
                                 "original_name": service_name,
                                 "token": service_token,
-                                "filtered_tokens": service_filtered_tokens
+                                "filtered_tokens": original_tokens
                             })
-                    else:
-                        # 위험 포트가 없는 서비스: 원본 그대로 사용
-                        if service_name in self.service_value_map:
-                            original_tokens = list(self.service_value_map[service_name])
-                        else:
-                            original_tokens = [service_token]
-                        
-                        filtered_service_objects.append({
-                            "type": "service",
-                            "name": service_name,
-                            "original_name": service_name,
-                            "token": service_token,
-                            "filtered_tokens": original_tokens
-                        })
             
             # 그룹 객체 처리 (개별 서비스 객체 생성 후)
             for obj in original_service_objects:
