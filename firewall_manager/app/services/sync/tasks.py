@@ -314,51 +314,88 @@ async def _collect_last_hit_date_parallel(
         return_exceptions=False
     )
     
-    # 결과 병합: 정책명(rule_name) 기준으로 최신 날짜 선택
-    # 주의: HA 장비 간에는 VSYS가 다를 수 있으므로 rule_name만으로 병합
+    # 결과 병합: (vsys, rule_name) 조합 기준으로 최신 날짜 선택
+    # VSYS를 포함하여 병합하여 같은 rule_name이 여러 VSYS에 있을 때 각각 올바르게 매칭되도록 함
     if main_result is None or main_result.empty:
         if ha_result is None or ha_result.empty:
             logging.info("[orchestrator] No last_hit_date records collected from either device.")
             return None
-        # 메인 장비 결과가 없으면 HA Peer 결과만 반환 (None 값 제거)
+        # 메인 장비 결과가 없으면 HA Peer 결과만 반환
         hit_date_df = ha_result.copy()
         hit_date_df['last_hit_date'] = pd.to_datetime(hit_date_df['last_hit_date'], errors='coerce')
+        
+        # (vsys, rule_name) 조합 기준으로 중복 제거 (같은 정책명이 여러 VSYS에 있을 수 있음)
+        # max()는 자동으로 None/NaT를 무시함
+        if 'vsys' in hit_date_df.columns:
+            hit_date_df = hit_date_df.groupby(['vsys', 'rule_name'], as_index=False)['last_hit_date'].max()
+        else:
+            # vsys 컬럼이 없는 경우 (이론적으로는 발생하지 않아야 함)
+            hit_date_df = hit_date_df.groupby('rule_name', as_index=False)['last_hit_date'].max()
+        
+        # 병합 후 None 값 제거
         hit_date_df = hit_date_df[hit_date_df['last_hit_date'].notna()].copy()
+        
         if hit_date_df.empty:
             return None
-        # rule_name 기준으로 중복 제거 (같은 정책명이 여러 VSYS에 있을 수 있음)
-        hit_date_df = hit_date_df.groupby('rule_name', as_index=False)['last_hit_date'].max()
+        
         logging.info(f"[orchestrator] Collected {len(hit_date_df)} last_hit records from HA peer only.")
         return hit_date_df
     
     if ha_result is None or ha_result.empty:
-        # HA Peer 결과가 없으면 메인 장비 결과만 반환 (None 값 제거)
+        # HA Peer 결과가 없으면 메인 장비 결과만 반환
         hit_date_df = main_result.copy()
         hit_date_df['last_hit_date'] = pd.to_datetime(hit_date_df['last_hit_date'], errors='coerce')
+        
+        # (vsys, rule_name) 조합 기준으로 중복 제거
+        # max()는 자동으로 None/NaT를 무시함
+        if 'vsys' in hit_date_df.columns:
+            hit_date_df = hit_date_df.groupby(['vsys', 'rule_name'], as_index=False)['last_hit_date'].max()
+        else:
+            hit_date_df = hit_date_df.groupby('rule_name', as_index=False)['last_hit_date'].max()
+        
+        # 병합 후 None 값 제거
         hit_date_df = hit_date_df[hit_date_df['last_hit_date'].notna()].copy()
+        
         if hit_date_df.empty:
             return None
-        # rule_name 기준으로 중복 제거
-        hit_date_df = hit_date_df.groupby('rule_name', as_index=False)['last_hit_date'].max()
+        
         logging.info(f"[orchestrator] Collected {len(hit_date_df)} last_hit records from main device only.")
         return hit_date_df
     
     # 둘 다 있는 경우: datetime 변환 후 병합
+    # 중요: None 값을 제거하기 전에 먼저 병합해야 함
+    # 한쪽에만 값이 있는 경우를 놓치지 않기 위함
     main_df = main_result.copy()
+    logging.info(f"[orchestrator] Main device: {len(main_df)} records before datetime conversion")
     main_df['last_hit_date'] = pd.to_datetime(main_df['last_hit_date'], errors='coerce')
-    main_df = main_df[main_df['last_hit_date'].notna()].copy()  # None 값 제거
+    main_non_null = main_df['last_hit_date'].notna().sum()
+    logging.info(f"[orchestrator] Main device: {main_non_null} non-null records out of {len(main_df)} total")
     
     ha_df = ha_result.copy()
+    logging.info(f"[orchestrator] HA peer: {len(ha_df)} records before datetime conversion")
     ha_df['last_hit_date'] = pd.to_datetime(ha_df['last_hit_date'], errors='coerce')
-    ha_df = ha_df[ha_df['last_hit_date'].notna()].copy()  # None 값 제거
+    ha_non_null = ha_df['last_hit_date'].notna().sum()
+    logging.info(f"[orchestrator] HA peer: {ha_non_null} non-null records out of {len(ha_df)} total")
     
-    # 두 DataFrame을 합치고, 정책명(rule_name) 기준으로 최신 날짜 선택
+    # 두 DataFrame을 합치고, (vsys, rule_name) 조합 기준으로 최신 날짜 선택
+    # groupby().max()는 자동으로 None/NaT를 무시하고 최신 값만 선택함
     combined_df = pd.concat([main_df, ha_df], ignore_index=True)
+    logging.info(f"[orchestrator] Combined: {len(combined_df)} records before groupby")
     
-    # groupby로 최신 날짜 선택 (rule_name만 사용, VSYS는 제외)
-    hit_date_df = combined_df.groupby('rule_name', as_index=False)['last_hit_date'].max()
+    # groupby로 최신 날짜 선택 (vsys와 rule_name 모두 사용)
+    # max()는 None/NaT를 자동으로 무시하므로, 한쪽에만 값이 있어도 올바르게 선택됨
+    if 'vsys' in combined_df.columns:
+        hit_date_df = combined_df.groupby(['vsys', 'rule_name'], as_index=False)['last_hit_date'].max()
+    else:
+        # vsys 컬럼이 없는 경우 (이론적으로는 발생하지 않아야 함)
+        hit_date_df = combined_df.groupby('rule_name', as_index=False)['last_hit_date'].max()
     
-    logging.info(f"[orchestrator] Collected {len(hit_date_df)} last_hit records (merged from main device and HA peer by rule_name).")
+    logging.info(f"[orchestrator] After groupby: {len(hit_date_df)} records (some may have None)")
+    
+    # 병합 후 None 값 제거 (모든 정책에 대해 값이 없는 경우만 제거)
+    hit_date_df = hit_date_df[hit_date_df['last_hit_date'].notna()].copy()
+    
+    logging.info(f"[orchestrator] Final: {len(hit_date_df)} last_hit records (merged from main device and HA peer by vsys and rule_name).")
     return hit_date_df
 
 
@@ -461,28 +498,45 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
 
                         # _collect_last_hit_date_parallel에서 이미 최신 값으로 병합되었으므로 추가 처리 불필요
                         # 데이터 타입 통일 (문자열로 변환하여 merge 준비)
-                        # 주의: rule_name만으로 병합하므로 vsys는 제외
+                        # VSYS와 rule_name 조합으로 병합하여 정확한 매칭 보장
                         if 'rule_name' in policies_df.columns:
                             policies_df['rule_name'] = policies_df['rule_name'].astype(str)
                         if 'rule_name' in hit_date_df.columns:
                             hit_date_df['rule_name'] = hit_date_df['rule_name'].astype(str)
                         
+                        # VSYS 정규화 및 매칭 준비
+                        if 'vsys' in policies_df.columns:
+                            policies_df['vsys'] = policies_df['vsys'].astype(str)
+                        if 'vsys' in hit_date_df.columns:
+                            hit_date_df['vsys'] = hit_date_df['vsys'].astype(str)
+                        
                         # last_hit_date는 datetime 객체로 유지 (문자열로 변환하지 않음)
                         # 데이터베이스는 DateTime 타입을 기대하므로 datetime 객체로 저장해야 함
                         
                         # 기존 last_hit_date와 새로 수집한 값을 병합 (최신 값 선택)
-                        # 정책명(rule_name)만으로 병합 (VSYS는 제외)
-                        # 중요: 새로 수집한 hit_date_df에 있는 정책만 업데이트하고, 없는 정책은 기존 값 유지
+                        # (vsys, rule_name) 조합으로 병합하여 같은 rule_name이 여러 VSYS에 있을 때 각각 올바르게 매칭
+                        # 중요: 새로 수집한 hit_date_df에 있는 정책만 업데이트하고, 없는 정책은 None으로 설정
                         
-                        # rule_name 정규화 및 매칭 준비
+                        # rule_name과 vsys 정규화 및 매칭 준비
                         def normalize_rule_name(name):
                             if pd.isna(name):
                                 return None
                             s = str(name).strip()
                             return s if s and s.lower() not in {"nan", "none", "-", ""} else None
                         
+                        def normalize_vsys(vsys_val):
+                            if pd.isna(vsys_val):
+                                return None
+                            s = str(vsys_val).strip().lower()
+                            return s if s and s.lower() not in {"nan", "none", "-", ""} else None
+                        
                         policies_df['rule_name_normalized'] = policies_df['rule_name'].apply(normalize_rule_name)
                         hit_date_df['rule_name_normalized'] = hit_date_df['rule_name'].apply(normalize_rule_name)
+                        
+                        if 'vsys' in policies_df.columns:
+                            policies_df['vsys_normalized'] = policies_df['vsys'].apply(normalize_vsys)
+                        if 'vsys' in hit_date_df.columns:
+                            hit_date_df['vsys_normalized'] = hit_date_df['vsys'].apply(normalize_vsys)
                         
                         # None인 rule_name 제거
                         hit_date_df = hit_date_df[hit_date_df['rule_name_normalized'].notna()].copy()
@@ -490,24 +544,40 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                         # 디버깅: 매핑 전 상태 확인
                         logging.info(f"[orchestrator] Before merge: policies_df has {len(policies_df)} policies, hit_date_df has {len(hit_date_df)} hit records")
                         if len(hit_date_df) > 0:
-                            sample_hit_names = hit_date_df['rule_name_normalized'].head(5).tolist()
-                            logging.info(f"[orchestrator] Sample hit record rule_names: {sample_hit_names}")
+                            sample_hits = hit_date_df[['vsys_normalized' if 'vsys_normalized' in hit_date_df.columns else 'vsys', 'rule_name_normalized']].head(5).to_dict('records')
+                            logging.info(f"[orchestrator] Sample hit records: {sample_hits}")
                         if len(policies_df) > 0:
-                            sample_policy_names = policies_df['rule_name_normalized'].head(5).tolist()
-                            logging.info(f"[orchestrator] Sample policy rule_names: {sample_policy_names}")
+                            sample_policies = policies_df[['vsys_normalized' if 'vsys_normalized' in policies_df.columns else 'vsys', 'rule_name_normalized']].head(5).to_dict('records')
+                            logging.info(f"[orchestrator] Sample policy records: {sample_policies}")
                         
                         if 'last_hit_date' in policies_df.columns:
                             # 기존 값과 새 값을 datetime으로 변환하여 비교
                             policies_df['last_hit_date_old'] = pd.to_datetime(policies_df['last_hit_date'], errors='coerce')
                             hit_date_df['last_hit_date_new'] = pd.to_datetime(hit_date_df['last_hit_date'], errors='coerce')
                             
-                            # 병합: rule_name_normalized만 사용 (정확한 매칭을 위해)
+                            # 병합: (vsys_normalized, rule_name_normalized) 조합으로 매칭
+                            merge_keys = []
+                            if 'vsys_normalized' in policies_df.columns and 'vsys_normalized' in hit_date_df.columns:
+                                merge_keys = ['vsys_normalized', 'rule_name_normalized']
+                            else:
+                                # vsys가 없는 경우 (이론적으로는 발생하지 않아야 함)
+                                merge_keys = ['rule_name_normalized']
+                            
+                            # 디버깅: 병합 전 데이터 확인
+                            logging.info(f"[orchestrator] Merging with keys: {merge_keys}")
+                            logging.info(f"[orchestrator] Policies unique keys: {policies_df[merge_keys].drop_duplicates().shape[0]}")
+                            logging.info(f"[orchestrator] Hit records unique keys: {hit_date_df[merge_keys].drop_duplicates().shape[0]}")
+                            
                             merged_df = pd.merge(
                                 policies_df, 
-                                hit_date_df[['rule_name_normalized', 'last_hit_date_new']], 
-                                on="rule_name_normalized", 
+                                hit_date_df[merge_keys + ['last_hit_date_new']], 
+                                on=merge_keys, 
                                 how="left"
                             )
+                            
+                            # 디버깅: 병합 결과 확인
+                            matched_count = merged_df['last_hit_date_new'].notna().sum()
+                            logging.info(f"[orchestrator] After merge: {matched_count} policies matched with hit records out of {len(merged_df)} total policies")
                             
                             # 중요: 마지막 매칭일시는 기존 값을 모두 제거하고 새로 수집한 값으로만 설정
                             # 새로 수집한 hit_date_df에 있는 정책만 업데이트하고, 없는 정책은 None으로 설정
@@ -528,7 +598,10 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                             merged_df['last_hit_date'] = merged_df.apply(choose_latest, axis=1)
                             
                             # 임시 컬럼 제거
-                            merged_df = merged_df.drop(columns=['last_hit_date_old', 'last_hit_date_new', 'rule_name_normalized'], errors='ignore')
+                            columns_to_drop = ['last_hit_date_old', 'last_hit_date_new', 'rule_name_normalized']
+                            if 'vsys_normalized' in merged_df.columns:
+                                columns_to_drop.append('vsys_normalized')
+                            merged_df = merged_df.drop(columns=columns_to_drop, errors='ignore')
                             
                             # datetime 객체로 유지 (문자열로 변환하지 않음)
                             # pandas Timestamp가 있으면 Python datetime으로 변환
@@ -546,22 +619,46 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                             
                             # 매핑 실패한 정책 확인 (디버깅용)
                             if len(hit_date_df) > 0 and new_hit_count < len(hit_date_df):
-                                unmatched_hits = hit_date_df[~hit_date_df['rule_name_normalized'].isin(merged_df['rule_name_normalized'])]
-                                if len(unmatched_hits) > 0:
-                                    logging.warning(f"[orchestrator] {len(unmatched_hits)} hit records could not be matched to policies. Sample unmatched: {unmatched_hits['rule_name_normalized'].head(3).tolist()}")
+                                # merge_keys를 사용하여 매칭 실패 확인
+                                if 'vsys_normalized' in hit_date_df.columns and 'vsys_normalized' in merged_df.columns:
+                                    # (vsys, rule_name) 조합으로 확인
+                                    merged_keys = merged_df[['vsys_normalized', 'rule_name_normalized']].drop_duplicates()
+                                    hit_keys = hit_date_df[['vsys_normalized', 'rule_name_normalized']].drop_duplicates()
+                                    unmatched_hits = hit_keys.merge(merged_keys, on=['vsys_normalized', 'rule_name_normalized'], how='left', indicator=True)
+                                    unmatched_hits = unmatched_hits[unmatched_hits['_merge'] == 'left_only']
+                                    if len(unmatched_hits) > 0:
+                                        sample_unmatched = unmatched_hits[['vsys_normalized', 'rule_name_normalized']].head(3).to_dict('records')
+                                        logging.warning(f"[orchestrator] {len(unmatched_hits)} hit records could not be matched to policies. Sample unmatched: {sample_unmatched}")
+                                else:
+                                    unmatched_hits = hit_date_df[~hit_date_df['rule_name_normalized'].isin(merged_df['rule_name_normalized'])]
+                                    if len(unmatched_hits) > 0:
+                                        logging.warning(f"[orchestrator] {len(unmatched_hits)} hit records could not be matched to policies. Sample unmatched: {unmatched_hits['rule_name_normalized'].head(3).tolist()}")
                         else:
-                            # 기존 last_hit_date가 없으면 그냥 병합 (rule_name_normalized만 사용)
+                            # 기존 last_hit_date가 없으면 그냥 병합 (vsys_normalized와 rule_name_normalized 조합 사용)
                             # pandas Timestamp를 Python datetime으로 변환
                             hit_date_df['last_hit_date'] = hit_date_df['last_hit_date'].apply(
                                 lambda x: x.to_pydatetime() if hasattr(x, 'to_pydatetime') and pd.notna(x) else x
                             )
+                            
+                            # 병합 키 결정
+                            merge_keys = []
+                            if 'vsys_normalized' in policies_df.columns and 'vsys_normalized' in hit_date_df.columns:
+                                merge_keys = ['vsys_normalized', 'rule_name_normalized']
+                            else:
+                                merge_keys = ['rule_name_normalized']
+                            
                             policies_df = pd.merge(
                                 policies_df, 
-                                hit_date_df[['rule_name_normalized', 'last_hit_date']], 
-                                on="rule_name_normalized", 
+                                hit_date_df[merge_keys + ['last_hit_date']], 
+                                on=merge_keys, 
                                 how="left"
                             )
-                            policies_df = policies_df.drop(columns=['rule_name_normalized'], errors='ignore')
+                            
+                            # 임시 컬럼 제거
+                            columns_to_drop = ['rule_name_normalized']
+                            if 'vsys_normalized' in policies_df.columns:
+                                columns_to_drop.append('vsys_normalized')
+                            policies_df = policies_df.drop(columns=columns_to_drop, errors='ignore')
                         
                         collected_dfs["policies"] = policies_df
                         merged_hits = policies_df["last_hit_date"].notna().sum() if "last_hit_date" in policies_df.columns else 0
