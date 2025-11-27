@@ -325,12 +325,13 @@ async def _collect_last_hit_date_parallel(
         hit_date_df['last_hit_date'] = pd.to_datetime(hit_date_df['last_hit_date'], errors='coerce')
         
         # (vsys, rule_name) 조합 기준으로 중복 제거 (같은 정책명이 여러 VSYS에 있을 수 있음)
-        # max()는 자동으로 None/NaT를 무시함
+        # sort_values 후 drop_duplicates를 사용하여 명시적으로 최신 날짜 선택
+        hit_date_df = hit_date_df.sort_values('last_hit_date', ascending=False, na_position='last')
         if 'vsys' in hit_date_df.columns:
-            hit_date_df = hit_date_df.groupby(['vsys', 'rule_name'], as_index=False)['last_hit_date'].max()
+            hit_date_df = hit_date_df.drop_duplicates(subset=['vsys', 'rule_name'], keep='first')
         else:
             # vsys 컬럼이 없는 경우 (이론적으로는 발생하지 않아야 함)
-            hit_date_df = hit_date_df.groupby('rule_name', as_index=False)['last_hit_date'].max()
+            hit_date_df = hit_date_df.drop_duplicates(subset=['rule_name'], keep='first')
         
         # 병합 후 None 값 제거
         hit_date_df = hit_date_df[hit_date_df['last_hit_date'].notna()].copy()
@@ -347,11 +348,12 @@ async def _collect_last_hit_date_parallel(
         hit_date_df['last_hit_date'] = pd.to_datetime(hit_date_df['last_hit_date'], errors='coerce')
         
         # (vsys, rule_name) 조합 기준으로 중복 제거
-        # max()는 자동으로 None/NaT를 무시함
+        # sort_values 후 drop_duplicates를 사용하여 명시적으로 최신 날짜 선택
+        hit_date_df = hit_date_df.sort_values('last_hit_date', ascending=False, na_position='last')
         if 'vsys' in hit_date_df.columns:
-            hit_date_df = hit_date_df.groupby(['vsys', 'rule_name'], as_index=False)['last_hit_date'].max()
+            hit_date_df = hit_date_df.drop_duplicates(subset=['vsys', 'rule_name'], keep='first')
         else:
-            hit_date_df = hit_date_df.groupby('rule_name', as_index=False)['last_hit_date'].max()
+            hit_date_df = hit_date_df.drop_duplicates(subset=['rule_name'], keep='first')
         
         # 병합 후 None 값 제거
         hit_date_df = hit_date_df[hit_date_df['last_hit_date'].notna()].copy()
@@ -378,17 +380,21 @@ async def _collect_last_hit_date_parallel(
     logging.info(f"[orchestrator] HA peer: {ha_non_null} non-null records out of {len(ha_df)} total")
     
     # 두 DataFrame을 합치고, (vsys, rule_name) 조합 기준으로 최신 날짜 선택
-    # groupby().max()는 자동으로 None/NaT를 무시하고 최신 값만 선택함
     combined_df = pd.concat([main_df, ha_df], ignore_index=True)
     logging.info(f"[orchestrator] Combined: {len(combined_df)} records before groupby")
     
     # groupby로 최신 날짜 선택 (vsys와 rule_name 모두 사용)
-    # max()는 None/NaT를 자동으로 무시하므로, 한쪽에만 값이 있어도 올바르게 선택됨
+    # 중요: groupby().max()가 datetime에서 제대로 작동하지 않을 수 있으므로
+    # sort_values 후 drop_duplicates를 사용하여 명시적으로 최신 날짜 선택
+    # ascending=False: 최신 날짜가 먼저 오도록 정렬
+    # na_position='last': None/NaT는 마지막으로 배치하여 최신 날짜가 있는 것을 우선 선택
     if 'vsys' in combined_df.columns:
-        hit_date_df = combined_df.groupby(['vsys', 'rule_name'], as_index=False)['last_hit_date'].max()
+        combined_df_sorted = combined_df.sort_values('last_hit_date', ascending=False, na_position='last')
+        hit_date_df = combined_df_sorted.drop_duplicates(subset=['vsys', 'rule_name'], keep='first')
     else:
         # vsys 컬럼이 없는 경우 (이론적으로는 발생하지 않아야 함)
-        hit_date_df = combined_df.groupby('rule_name', as_index=False)['last_hit_date'].max()
+        combined_df_sorted = combined_df.sort_values('last_hit_date', ascending=False, na_position='last')
+        hit_date_df = combined_df_sorted.drop_duplicates(subset=['rule_name'], keep='first')
     
     logging.info(f"[orchestrator] After groupby: {len(hit_date_df)} records (some may have None)")
     
