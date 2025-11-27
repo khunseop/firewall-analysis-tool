@@ -140,6 +140,8 @@ export const api = {
   getSettings: () => request(`/settings`),
   getSetting: (key) => request(`/settings/${key}`),
   updateSetting: (key, payload) => request(`/settings/${key}`, { method: "PUT", body: JSON.stringify(payload) }),
+  getDeletionWorkflowConfig: () => request(`/settings/deletion-workflow/config`),
+  updateDeletionWorkflowConfig: (config) => request(`/settings/deletion-workflow/config`, { method: "PUT", body: JSON.stringify({ config }) }),
   // Notification APIs
   createNotification: (payload) => request(`/notifications`, { method: "POST", body: JSON.stringify(payload) }),
   getNotifications: (params = {}) => {

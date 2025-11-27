@@ -35,9 +35,10 @@ class WorkflowManager:
         """
         self.db = db
         self.device_id = device_id
-        self.config = ConfigManager()
+        self.config = ConfigManager(db=db)
         self.file_manager = FileManager()
-        self.excel_manager = ExcelManager(self.config.all())
+        # ExcelManager는 동기 방식으로 초기화 (나중에 ensure_loaded 호출 후 사용)
+        self.excel_manager = None
     
     async def get_or_create_workflow(self) -> DeletionWorkflow:
         """워크플로우 조회 또는 생성"""
@@ -84,6 +85,11 @@ class WorkflowManager:
             실행 결과 딕셔너리
         """
         workflow = await self.get_or_create_workflow()
+        
+        # 설정 로드 및 ExcelManager 초기화
+        await self.config.ensure_loaded(self.db)
+        if self.excel_manager is None:
+            self.excel_manager = ExcelManager(self.config.all_sync())
         
         try:
             await crud.deletion_workflow.update_workflow(
@@ -250,6 +256,12 @@ class WorkflowManager:
     async def export_final_results(self) -> Dict[str, str]:
         """최종 결과 파일들 생성"""
         workflow = await self.get_or_create_workflow()
+        
+        # 설정 로드 및 ExcelManager 초기화
+        await self.config.ensure_loaded(self.db)
+        if self.excel_manager is None:
+            self.excel_manager = ExcelManager(self.config.all_sync())
+        
         db_master_file = workflow.master_file_path or workflow.step_files.get('6')
         master_file = self._resolve_file_path(db_master_file, ['master_', 'step_6_'])
         

@@ -1,9 +1,11 @@
-from typing import List
+from typing import List, Any, Dict
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel
 
 from app import crud, schemas
 from app.db.session import get_db
+from app.services.deletion_workflow.config_manager import ConfigManager, CONFIG_KEY
 
 router = APIRouter()
 
@@ -60,4 +62,35 @@ async def update_setting(
         await reset_sync_semaphore()
     
     return updated_setting
+
+
+class DeletionWorkflowConfigUpdate(BaseModel):
+    """정책 삭제 워크플로우 설정 업데이트 모델"""
+    config: Dict[str, Any]
+
+
+@router.get("/deletion-workflow/config", response_model=Dict[str, Any])
+async def get_deletion_workflow_config(
+    db: AsyncSession = Depends(get_db)
+):
+    """정책 삭제 워크플로우 설정 조회"""
+    config_manager = ConfigManager(db=db)
+    await config_manager.ensure_loaded(db)
+    return config_manager.all_sync()
+
+
+@router.put("/deletion-workflow/config", response_model=Dict[str, Any])
+async def update_deletion_workflow_config(
+    config_update: DeletionWorkflowConfigUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    """정책 삭제 워크플로우 설정 업데이트"""
+    config_manager = ConfigManager(db=db)
+    await config_manager.ensure_loaded(db)
+    
+    # 설정 업데이트
+    config_manager.config_data = config_update.config
+    await config_manager._save_config(db, config_update.config)
+    
+    return config_manager.all_sync()
 

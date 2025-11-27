@@ -13,6 +13,9 @@
       <li class="tab-item is-active" data-tab="logs">
         <a>알림 로그</a>
       </li>
+      <li class="tab-item" data-tab="deletion-workflow">
+        <a>정책삭제 워크플로우</a>
+      </li>
     </ul>
   </div>
   
@@ -168,6 +171,41 @@
       <div id="schedules-message-container"></div>
       <!-- 그리드 -->
       <div id="schedules-grid" class="ag-theme-quartz"></div>
+    </div>
+  </div>
+  
+  <!-- 정책삭제 워크플로우 설정 탭 -->
+  <div id="tab-deletion-workflow" class="tab-content" style="display: none;">
+    <div class="box">
+      <h2 class="subtitle is-6 mb-4">정책 삭제 워크플로우 설정</h2>
+      
+      <div class="field">
+        <label class="label">설정 JSON</label>
+        <div class="control">
+          <textarea 
+            class="textarea is-small font-monospace" 
+            id="deletion-workflow-config-input" 
+            rows="30"
+            style="font-family: 'Courier New', monospace; font-size: 12px;"
+            placeholder="설정 JSON을 입력하세요..."
+          ></textarea>
+        </div>
+        <p class="help">정책 삭제 워크플로우 설정을 JSON 형식으로 편집할 수 있습니다.</p>
+      </div>
+      
+      <div class="field is-grouped">
+        <div class="control">
+          <button class="button is-primary is-small" id="btn-save-deletion-workflow-config">저장</button>
+        </div>
+        <div class="control">
+          <button class="button is-light is-small" id="btn-reset-deletion-workflow-config">초기화</button>
+        </div>
+        <div class="control">
+          <button class="button is-light is-small" id="btn-format-deletion-workflow-config">포맷</button>
+        </div>
+      </div>
+      
+      <div id="deletion-workflow-config-message" class="mt-4"></div>
     </div>
   </div>
   

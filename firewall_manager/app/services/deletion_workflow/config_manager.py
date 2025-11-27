@@ -1,51 +1,94 @@
 """
-설정 파일 관리 모듈
+설정 파일 관리 모듈 (DB 기반)
 """
 import json
 import logging
-from pathlib import Path
 from typing import Any, Dict, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app import crud
 
 logger = logging.getLogger(__name__)
 
+CONFIG_KEY = "deletion_workflow_config"
+
 
 class ConfigManager:
-    """설정 파일 관리 클래스"""
+    """설정 관리 클래스 (DB 기반)"""
     
-    def __init__(self, config_filename: str = "deletion_workflow_config.json"):
+    def __init__(self, db: Optional[AsyncSession] = None):
         """
         ConfigManager 초기화
         
         Args:
-            config_filename: 설정 파일 이름
+            db: 데이터베이스 세션 (선택사항, 비동기 메서드 사용 시 필요)
         """
-        self.config_filename = config_filename
-        self.config_path = self._get_config_path()
-        self.config_data = self._load_config()
+        self.db = db
+        self.config_data: Optional[Dict[str, Any]] = None
+        self._cache_valid = False
     
-    def _get_base_dir(self) -> Path:
+    async def _load_config(self, db: AsyncSession) -> Dict[str, Any]:
         """
-        설정 파일이 위치할 기본 디렉토리 반환
+        DB에서 설정 로드 (없으면 기본값으로 생성)
         
+        Args:
+            db: 데이터베이스 세션
+            
         Returns:
-            기본 디렉토리 Path 객체
+            설정 딕셔너리
         """
-        # 프로젝트 루트 기준으로 config 디렉토리 설정
-        # __file__ = firewall_manager/app/services/deletion_workflow/config_manager.py
-        # parents[3] = firewall_manager/ (프로젝트 루트)
-        project_root = Path(__file__).resolve().parents[3]
-        config_dir = project_root / "config"
-        config_dir.mkdir(parents=True, exist_ok=True)
-        return config_dir
+        try:
+            setting = await crud.settings.get_setting(db, CONFIG_KEY)
+            if setting and setting.value:
+                config_data = json.loads(setting.value)
+                logger.debug(f"DB에서 설정 로드 완료: {CONFIG_KEY}")
+                return config_data
+        except Exception as e:
+            logger.error(f"DB에서 설정 로드 실패: {CONFIG_KEY}, 오류: {e}")
+        
+        # DB에 설정이 없으면 기본값으로 생성
+        logger.info(f"DB에 설정이 없습니다. 기본 설정으로 생성합니다: {CONFIG_KEY}")
+        default_config = self._get_default_config()
+        await self._save_config(db, default_config)
+        return default_config
     
-    def _get_config_path(self) -> Path:
+    async def _save_config(self, db: AsyncSession, config_data: Dict[str, Any]) -> None:
         """
-        설정 파일 경로 반환
+        DB에 설정 저장
         
-        Returns:
-            설정 파일 Path 객체
+        Args:
+            db: 데이터베이스 세션
+            config_data: 저장할 설정 딕셔너리
         """
-        return self._get_base_dir() / self.config_filename
+        try:
+            from app.schemas.settings import SettingsCreate, SettingsUpdate
+            
+            setting = await crud.settings.get_setting(db, CONFIG_KEY)
+            config_json = json.dumps(config_data, ensure_ascii=False, indent=2)
+            
+            if setting:
+                # 업데이트
+                setting_update = SettingsUpdate(
+                    value=config_json,
+                    description="정책 삭제 워크플로우 설정"
+                )
+                await crud.settings.update_setting(db, setting, setting_update)
+            else:
+                # 생성
+                setting_create = SettingsCreate(
+                    key=CONFIG_KEY,
+                    value=config_json,
+                    description="정책 삭제 워크플로우 설정"
+                )
+                await crud.settings.create_setting(db, setting_create)
+            
+            logger.info(f"DB에 설정 저장 완료: {CONFIG_KEY}")
+            # 저장 후 캐시 업데이트
+            self.config_data = config_data
+            self._cache_valid = True
+        except Exception as e:
+            logger.error(f"DB에 설정 저장 실패: {CONFIG_KEY}, 오류: {e}")
+            raise
     
     def _get_default_config(self) -> Dict[str, Any]:
         """
@@ -153,74 +196,30 @@ class ConfigManager:
             }
         }
     
-    def _load_config(self) -> Dict[str, Any]:
-        """
-        설정 파일 로드 (없으면 기본값으로 생성)
-        
-        Returns:
-            설정 딕셔너리
-        """
-        if not self.config_path.exists():
-            logger.info(f"설정 파일이 없습니다. 기본 설정으로 생성합니다: {self.config_path}")
-            default_config = self._get_default_config()
-            self._save_config(default_config)
-            return default_config
-        
-        try:
-            with open(self.config_path, 'r', encoding='utf-8') as f:
-                config_data = json.load(f)
-            logger.debug(f"설정 파일 로드 완료: {self.config_path}")
-            return config_data
-        except Exception as e:
-            logger.error(f"설정 파일 로드 실패: {self.config_path}, 오류: {e}")
-            logger.info("기본 설정을 사용합니다.")
-            return self._get_default_config()
     
-    def _save_config(self, config_data: Dict[str, Any]) -> None:
+    async def ensure_loaded(self, db: AsyncSession) -> None:
         """
-        설정 파일 저장
+        설정이 로드되었는지 확인하고, 없으면 로드
         
         Args:
-            config_data: 저장할 설정 딕셔너리
+            db: 데이터베이스 세션
         """
-        try:
-            with open(self.config_path, 'w', encoding='utf-8') as f:
-                json.dump(config_data, f, ensure_ascii=False, indent=2)
-            logger.info(f"설정 파일 저장 완료: {self.config_path}")
-        except Exception as e:
-            logger.error(f"설정 파일 저장 실패: {self.config_path}, 오류: {e}")
-            raise
+        if not self._cache_valid or self.config_data is None:
+            self.config_data = await self._load_config(db)
+            self._cache_valid = True
     
-    def get(self, key: str, default: Any = None) -> Any:
-        """
-        설정값 가져오기 (점으로 구분된 경로 지원)
-        
-        Args:
-            key: 설정 키 (예: 'excel_styles.header_fill_color')
-            default: 기본값
-            
-        Returns:
-            설정값 또는 기본값
-        """
-        keys = key.split('.')
-        value = self.config_data
-        
-        try:
-            for k in keys:
-                value = value[k]
-            return value
-        except (KeyError, TypeError):
-            logger.debug(f"설정 키 '{key}'를 찾을 수 없습니다. 기본값 '{default}'를 사용합니다.")
-            return default
     
-    def set(self, key: str, value: Any) -> None:
+    async def set(self, db: AsyncSession, key: str, value: Any) -> None:
         """
         설정값 설정 (점으로 구분된 경로 지원)
         
         Args:
+            db: 데이터베이스 세션
             key: 설정 키 (예: 'excel_styles.header_fill_color')
             value: 설정할 값
         """
+        await self.ensure_loaded(db)
+        
         keys = key.split('.')
         config = self.config_data
         
@@ -233,23 +232,105 @@ class ConfigManager:
         # 값 설정
         config[keys[-1]] = value
         
-        # 파일에 저장
-        self._save_config(self.config_data)
+        # DB에 저장
+        await self._save_config(db, self.config_data)
         logger.info(f"설정 업데이트: {key} = {value}")
     
-    def all(self) -> Dict[str, Any]:
+    async def all(self, db: AsyncSession) -> Dict[str, Any]:
         """
         모든 설정 반환
+        
+        Args:
+            db: 데이터베이스 세션
+            
+        Returns:
+            전체 설정 딕셔너리
+        """
+        await self.ensure_loaded(db)
+        return self.config_data.copy()
+    
+    async def reload(self, db: AsyncSession) -> None:
+        """
+        설정 다시 로드
+        
+        Args:
+            db: 데이터베이스 세션
+        """
+        self.config_data = await self._load_config(db)
+        self._cache_valid = True
+        logger.info("설정 다시 로드 완료")
+    
+    def get(self, key: str, default: Any = None, db: Optional[AsyncSession] = None) -> Any:
+        """
+        설정값 가져오기 (점으로 구분된 경로 지원)
+        동기/비동기 모두 지원 (db가 None이면 동기 방식, 있으면 비동기 방식)
+        
+        Args:
+            key: 설정 키 (예: 'excel_styles.header_fill_color')
+            default: 기본값
+            db: 데이터베이스 세션 (선택사항, 비동기 방식일 때만 필요)
+            
+        Returns:
+            설정값 또는 기본값
+        """
+        # 동기 방식 (캐시된 데이터 사용)
+        if db is None:
+            if self.config_data is None:
+                logger.warning("설정이 로드되지 않았습니다. 기본값을 사용합니다.")
+                return default
+            
+            keys = key.split('.')
+            value = self.config_data
+            
+            try:
+                for k in keys:
+                    value = value[k]
+                return value
+            except (KeyError, TypeError):
+                logger.debug(f"설정 키 '{key}'를 찾을 수 없습니다. 기본값 '{default}'를 사용합니다.")
+                return default
+        else:
+            # 비동기 방식 (나중에 async로 변경 필요)
+            # 현재는 동기 방식으로 처리
+            if self.config_data is None:
+                logger.warning("설정이 로드되지 않았습니다. 기본값을 사용합니다.")
+                return default
+            
+            keys = key.split('.')
+            value = self.config_data
+            
+            try:
+                for k in keys:
+                    value = value[k]
+                return value
+            except (KeyError, TypeError):
+                logger.debug(f"설정 키 '{key}'를 찾을 수 없습니다. 기본값 '{default}'를 사용합니다.")
+                return default
+    
+    def get_sync(self, key: str, default: Any = None) -> Any:
+        """
+        동기 방식으로 설정값 가져오기 (캐시된 데이터 사용)
+        주의: ensure_loaded가 먼저 호출되어야 함
+        
+        Args:
+            key: 설정 키 (예: 'excel_styles.header_fill_color')
+            default: 기본값
+            
+        Returns:
+            설정값 또는 기본값
+        """
+        return self.get(key, default, db=None)
+    
+    def all_sync(self) -> Dict[str, Any]:
+        """
+        동기 방식으로 모든 설정 반환 (캐시된 데이터 사용)
+        주의: ensure_loaded가 먼저 호출되어야 함
         
         Returns:
             전체 설정 딕셔너리
         """
+        if self.config_data is None:
+            logger.warning("설정이 로드되지 않았습니다. 기본 설정을 반환합니다.")
+            return self._get_default_config()
         return self.config_data.copy()
-    
-    def reload(self) -> None:
-        """
-        설정 파일 다시 로드
-        """
-        self.config_data = self._load_config()
-        logger.info("설정 파일 다시 로드 완료")
 
