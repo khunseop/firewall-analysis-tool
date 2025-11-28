@@ -176,32 +176,132 @@
   
   <!-- 정책삭제 워크플로우 설정 탭 -->
   <div id="tab-deletion-workflow" class="tab-content" style="display: none;">
-    <div class="box">
-      <h2 class="subtitle is-6 mb-4">정책 삭제 워크플로우 설정</h2>
+    <!-- 기본 설정 -->
+    <div class="box mb-4">
+      <h2 class="subtitle is-6 mb-4">기본 설정</h2>
+      
+      <div class="columns is-multiline">
+        <div class="column is-6">
+          <div class="field">
+            <label class="label">신규 정책 판단 기간 (일)</label>
+            <div class="control">
+              <input class="input is-small" id="config-recent-policy-days" type="number" min="1" max="365" placeholder="90" />
+            </div>
+            <p class="help">이 기간 이내에 생성된 정책은 신규 정책으로 간주</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 예외 목록 -->
+    <div class="box mb-4">
+      <h2 class="subtitle is-6 mb-4">예외 목록</h2>
       
       <div class="field">
-        <label class="label">설정 JSON</label>
+        <label class="label">예외 신청번호 목록</label>
         <div class="control">
           <textarea 
-            class="textarea is-small font-monospace" 
-            id="deletion-workflow-config-input" 
-            rows="30"
-            style="font-family: 'Courier New', monospace; font-size: 12px;"
-            placeholder="설정 JSON을 입력하세요..."
+            class="textarea is-small" 
+            id="config-except-list" 
+            rows="5"
+            placeholder="예외로 처리할 신청번호를 한 줄에 하나씩 입력하세요"
           ></textarea>
         </div>
-        <p class="help">정책 삭제 워크플로우 설정을 JSON 형식으로 편집할 수 있습니다.</p>
+        <p class="help">예외로 처리할 신청번호 목록 (한 줄에 하나씩)</p>
+      </div>
+    </div>
+    
+    <!-- 파싱 패턴 설정 (접을 수 있는 섹션) -->
+    <div class="box mb-4">
+      <div class="level mb-4">
+        <div class="level-left">
+          <h2 class="subtitle is-6 mb-0">파싱 패턴 설정</h2>
+        </div>
+        <div class="level-right">
+          <button class="button is-small is-text" id="toggle-parsing-patterns">
+            <span id="parsing-patterns-toggle-text">펼치기</span>
+          </button>
+        </div>
       </div>
       
+      <div id="parsing-patterns-content" style="display: none;">
+        <p class="help mb-4">정책 description에서 신청정보를 파싱하기 위한 정규표현식 패턴을 설정합니다.</p>
+        
+        <div id="parsing-patterns-list">
+          <!-- 동적으로 생성됨 -->
+        </div>
+        
+        <div class="field mt-4">
+          <button class="button is-small is-light" id="btn-add-parsing-pattern">패턴 추가</button>
+        </div>
+        
+        <!-- Request Type 매핑 -->
+        <div class="field mt-4">
+          <label class="label">Request Type 매핑</label>
+          <div class="columns is-multiline">
+            <div class="column is-3">
+              <div class="field">
+                <label class="label is-small">P →</label>
+                <input class="input is-small" id="config-request-type-p" type="text" placeholder="GROUP" />
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label is-small">F →</label>
+                <input class="input is-small" id="config-request-type-f" type="text" placeholder="GENERAL" />
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label is-small">S →</label>
+                <input class="input is-small" id="config-request-type-s" type="text" placeholder="SERVER" />
+              </div>
+            </div>
+            <div class="column is-3">
+              <div class="field">
+                <label class="label is-small">M →</label>
+                <input class="input is-small" id="config-request-type-m" type="text" placeholder="PAM" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 컬럼 매핑 설정 (접을 수 있는 섹션) -->
+    <div class="box mb-4">
+      <div class="level mb-4">
+        <div class="level-left">
+          <h2 class="subtitle is-6 mb-0">컬럼 매핑 설정</h2>
+        </div>
+        <div class="level-right">
+          <button class="button is-small is-text" id="toggle-column-mapping">
+            <span id="column-mapping-toggle-text">펼치기</span>
+          </button>
+        </div>
+      </div>
+      
+      <div id="column-mapping-content" style="display: none;">
+        <p class="help mb-4">엑셀 파일의 컬럼명을 표준 컬럼명으로 매핑합니다. 각 표준 컬럼명에 대해 매칭될 수 있는 원본 컬럼명을 입력하세요 (쉼표로 구분).</p>
+        
+        <div id="column-mapping-list">
+          <!-- 동적으로 생성됨 -->
+        </div>
+        
+        <div class="field mt-4">
+          <button class="button is-small is-light" id="btn-add-column-mapping">매핑 추가</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 저장 버튼 -->
+    <div class="box">
       <div class="field is-grouped">
         <div class="control">
           <button class="button is-primary is-small" id="btn-save-deletion-workflow-config">저장</button>
         </div>
         <div class="control">
-          <button class="button is-light is-small" id="btn-reset-deletion-workflow-config">초기화</button>
-        </div>
-        <div class="control">
-          <button class="button is-light is-small" id="btn-format-deletion-workflow-config">포맷</button>
+          <button class="button is-light is-small" id="btn-reset-deletion-workflow-config">기본값으로 초기화</button>
         </div>
       </div>
       

@@ -379,182 +379,466 @@ function initNotificationLogs() {
 async function loadDeletionWorkflowConfig() {
   try {
     const config = await api.getDeletionWorkflowConfig();
-    const textarea = document.getElementById('deletion-workflow-config-input');
-    if (textarea) {
-      textarea.value = JSON.stringify(config, null, 2);
-    }
+    
+    // 기본 설정
+    document.getElementById('config-recent-policy-days').value = config.timeframes?.recent_policy_days || 90;
+    
+    // 예외 목록
+    const exceptList = config.except_list || [];
+    document.getElementById('config-except-list').value = exceptList.join('\n');
+    
+    // 파싱 패턴 (동적 로드)
+    const patterns = config.parsing_patterns || {};
+    loadParsingPatterns(patterns);
+    
+    // Request Type 매핑
+    const requestTypeMapping = patterns.request_type_mapping || {};
+    document.getElementById('config-request-type-p').value = requestTypeMapping.P || 'GROUP';
+    document.getElementById('config-request-type-f').value = requestTypeMapping.F || 'GENERAL';
+    document.getElementById('config-request-type-s').value = requestTypeMapping.S || 'SERVER';
+    document.getElementById('config-request-type-m').value = requestTypeMapping.M || 'PAM';
+    
+    // 컬럼 매핑
+    loadColumnMapping(config.application_info_column_mapping || {});
+    
   } catch (error) {
     console.error('Failed to load deletion workflow config:', error);
-    await openAlert('오류', `설정을 불러오는데 실패했습니다: ${error.message}`);
+    await openAlert({ title: '오류', message: `설정을 불러오는데 실패했습니다: ${error.message}` });
   }
+}
+
+/**
+ * 표준 컬럼명 목록 (application_info_column_mapping의 키)
+ */
+const STANDARD_COLUMNS = [
+  'REQUEST_ID', 'REQUEST_START_DATE', 'REQUEST_END_DATE', 'TITLE',
+  'REQUESTER_ID', 'REQUESTER_EMAIL', 'REQUESTER_NAME', 'REQUESTER_DEPT',
+  'WRITE_PERSON_ID', 'WRITE_PERSON_EMAIL', 'WRITE_PERSON_NAME', 'WRITE_PERSON_DEPT',
+  'APPROVAL_PERSON_ID', 'APPROVAL_PERSON_EMAIL', 'APPROVAL_PERSON_NAME', 'APPROVAL_PERSON_DEPT_NAME',
+  'REQUEST_DATE', 'REQUEST_STATUS', 'PROGRESS', 'MIS_ID', 'GROUP_VERSION'
+];
+
+/**
+ * 파싱 패턴 로드
+ */
+function loadParsingPatterns(patterns) {
+  const container = document.getElementById('parsing-patterns-list');
+  container.innerHTML = '';
+  
+  // request_type_mapping은 제외
+  const filteredPatterns = { ...patterns };
+  delete filteredPatterns.request_type_mapping;
+  
+  for (const [patternName, patternData] of Object.entries(filteredPatterns)) {
+    if (patternName === 'description') continue;
+    const row = createParsingPatternRow(patternName, patternData);
+    container.appendChild(row);
+  }
+}
+
+/**
+ * 파싱 패턴 행 생성
+ */
+function createParsingPatternRow(patternName, patternData) {
+  const div = document.createElement('div');
+  div.className = 'box mb-4 parsing-pattern-row';
+  div.dataset.patternName = patternName;
+  
+  const pattern = patternData?.pattern || '';
+  const groupMapping = patternData?.group_mapping || {};
+  const removePrefix = patternData?.remove_prefix || '';
+  const description = patternData?.description || '';
+  
+  // group_mapping을 JSON 문자열로 변환
+  const groupMappingStr = JSON.stringify(groupMapping, null, 2);
+  
+  div.innerHTML = `
+    <div class="level mb-3">
+      <div class="level-left">
+        <h3 class="subtitle is-6 mb-0">${patternName}</h3>
+      </div>
+      <div class="level-right">
+        <button class="button is-small is-danger" onclick="removeParsingPattern(this)">삭제</button>
+      </div>
+    </div>
+    
+    <div class="field">
+      <label class="label is-small">패턴 이름</label>
+      <div class="control">
+        <input class="input is-small parsing-pattern-name" type="text" value="${patternName}" placeholder="패턴 이름 (예: gsams3)" />
+      </div>
+    </div>
+    
+    <div class="field">
+      <label class="label is-small">정규표현식 패턴</label>
+      <div class="control">
+        <textarea class="textarea is-small font-monospace parsing-pattern-pattern" rows="2" placeholder="정규표현식 패턴">${pattern}</textarea>
+      </div>
+    </div>
+    
+    <div class="field">
+      <label class="label is-small">그룹 매핑 (JSON)</label>
+      <div class="control">
+        <textarea class="textarea is-small font-monospace parsing-pattern-group-mapping" rows="3" placeholder='{"ruleset_id": 1, "start_date": 2}'>${groupMappingStr}</textarea>
+      </div>
+      <p class="help">정규표현식 그룹 번호와 필드명 매핑 (JSON 형식)</p>
+    </div>
+    
+    <div class="field">
+      <label class="label is-small">제거할 접두사 (선택사항)</label>
+      <div class="control">
+        <input class="input is-small parsing-pattern-remove-prefix" type="text" value="${removePrefix}" placeholder="예: *ACL*" />
+      </div>
+    </div>
+    
+    <div class="field">
+      <label class="label is-small">설명 (선택사항)</label>
+      <div class="control">
+        <input class="input is-small parsing-pattern-description" type="text" value="${description}" placeholder="패턴 설명" />
+      </div>
+    </div>
+  `;
+  
+  return div;
+}
+
+/**
+ * 파싱 패턴 추가
+ */
+function addParsingPattern() {
+  const container = document.getElementById('parsing-patterns-list');
+  const newPattern = {
+    pattern: '',
+    group_mapping: {},
+    description: ''
+  };
+  const row = createParsingPatternRow('', newPattern);
+  container.appendChild(row);
+  
+  // 패턴 이름 입력 필드를 편집 가능하게
+  const nameInput = row.querySelector('.parsing-pattern-name');
+  nameInput.removeAttribute('readonly');
+  nameInput.style.backgroundColor = '';
+}
+
+/**
+ * 파싱 패턴 삭제
+ */
+function removeParsingPattern(button) {
+  button.closest('.parsing-pattern-row').remove();
+}
+
+/**
+ * 컬럼 매핑 로드
+ */
+function loadColumnMapping(mapping) {
+  const container = document.getElementById('column-mapping-list');
+  container.innerHTML = '';
+  
+  // 표준 컬럼명 목록을 순서대로 표시
+  for (const standardCol of STANDARD_COLUMNS) {
+    const originalCols = mapping[standardCol] || [];
+    const row = createColumnMappingRow(standardCol, originalCols);
+    container.appendChild(row);
+  }
+  
+  // 표준 컬럼명 목록에 없는 매핑도 표시 (사용자 정의)
+  for (const [standardCol, originalCols] of Object.entries(mapping)) {
+    if (standardCol === 'description' || STANDARD_COLUMNS.includes(standardCol)) {
+      continue;
+    }
+    const row = createColumnMappingRow(standardCol, originalCols);
+    container.appendChild(row);
+  }
+}
+
+/**
+ * 컬럼 매핑 행 생성
+ */
+function createColumnMappingRow(standardCol, originalCols) {
+  const div = document.createElement('div');
+  div.className = 'field is-grouped mb-3';
+  div.innerHTML = `
+    <div class="control is-expanded">
+      <input class="input is-small" type="text" value="${standardCol}" placeholder="표준 컬럼명" readonly style="background-color: #f5f5f5;" />
+    </div>
+    <div class="control is-expanded">
+      <input class="input is-small column-mapping-original" type="text" value="${Array.isArray(originalCols) ? originalCols.join(', ') : ''}" placeholder="원본 컬럼명 (쉼표로 구분)" data-standard="${standardCol}" />
+    </div>
+    <div class="control">
+      <button class="button is-small is-danger" onclick="removeColumnMapping(this)">삭제</button>
+    </div>
+  `;
+  return div;
 }
 
 /**
  * 정책 삭제 워크플로우 설정 저장
  */
 async function saveDeletionWorkflowConfig() {
-  const textarea = document.getElementById('deletion-workflow-config-input');
-  const value = textarea.value.trim();
-  
-  if (!value) {
-    await openAlert('오류', '설정을 입력하세요');
-    return;
-  }
-  
-  let config;
   try {
-    config = JSON.parse(value);
-  } catch (e) {
-    await openAlert('오류', `잘못된 JSON 형식입니다:\n${e.message}`);
-    return;
-  }
-  
-  try {
+    // GUI에서 설정 수집
+    const config = collectDeletionWorkflowConfig();
+    
+    // 유효성 검사
+    if (!validateDeletionWorkflowConfig(config)) {
+      return;
+    }
+    
     await api.updateDeletionWorkflowConfig(config);
-    await openAlert('성공', '설정이 저장되었습니다');
-    // 저장 후 다시 로드하여 서버에서 반환된 형식으로 표시
+    await openAlert({ title: '성공', message: '설정이 저장되었습니다' });
+    // 저장 후 다시 로드
     await loadDeletionWorkflowConfig();
   } catch (error) {
     console.error('Failed to save deletion workflow config:', error);
-    await openAlert('오류', `설정 저장에 실패했습니다: ${error.message}`);
+    await openAlert({ title: '오류', message: `설정 저장에 실패했습니다: ${error.message}` });
   }
+}
+
+/**
+ * GUI에서 설정 수집
+ */
+function collectDeletionWorkflowConfig() {
+  // 예외 목록 처리
+  const exceptListText = document.getElementById('config-except-list').value.trim();
+  const exceptList = exceptListText 
+    ? exceptListText.split('\n').map(line => line.trim()).filter(line => line.length > 0)
+    : [];
+  
+  // 파싱 패턴 수집
+  const parsingPatterns = {};
+  document.querySelectorAll('.parsing-pattern-row').forEach(row => {
+    const patternName = row.querySelector('.parsing-pattern-name').value.trim();
+    const pattern = row.querySelector('.parsing-pattern-pattern').value.trim();
+    const groupMappingText = row.querySelector('.parsing-pattern-group-mapping').value.trim();
+    const removePrefix = row.querySelector('.parsing-pattern-remove-prefix').value.trim();
+    const description = row.querySelector('.parsing-pattern-description').value.trim();
+    
+    if (!patternName) return; // 패턴 이름이 없으면 스킵
+    
+    let groupMapping = {};
+    if (groupMappingText) {
+      try {
+        groupMapping = JSON.parse(groupMappingText);
+      } catch (e) {
+        console.warn(`파싱 패턴 ${patternName}의 그룹 매핑 JSON 파싱 실패:`, e);
+      }
+    }
+    
+    parsingPatterns[patternName] = {
+      pattern: pattern,
+      group_mapping: groupMapping,
+      description: description || ''
+    };
+    
+    if (removePrefix) {
+      parsingPatterns[patternName].remove_prefix = removePrefix;
+    }
+  });
+  
+  // Request Type 매핑 추가
+  parsingPatterns.request_type_mapping = {
+    P: document.getElementById('config-request-type-p').value.trim() || 'GROUP',
+    F: document.getElementById('config-request-type-f').value.trim() || 'GENERAL',
+    S: document.getElementById('config-request-type-s').value.trim() || 'SERVER',
+    M: document.getElementById('config-request-type-m').value.trim() || 'PAM',
+    description: "Request ID 첫 글자에 따른 타입 매핑"
+  };
+  
+  // 컬럼 매핑 수집
+  const columnMapping = {};
+  document.querySelectorAll('.column-mapping-original').forEach(input => {
+    const standardCol = input.dataset.standard;
+    const originalColsText = input.value.trim();
+    if (standardCol && originalColsText) {
+      const originalCols = originalColsText.split(',').map(col => col.trim()).filter(col => col.length > 0);
+      if (originalCols.length > 0) {
+        columnMapping[standardCol] = originalCols;
+      }
+    }
+  });
+  
+  return {
+    except_list: exceptList,
+    timeframes: {
+      recent_policy_days: parseInt(document.getElementById('config-recent-policy-days').value) || 90
+    },
+    parsing_patterns: parsingPatterns,
+    application_info_column_mapping: columnMapping,
+    // 기존 설정 유지 (columns, translated_columns는 코드에서 하드코딩되어 있으므로 유지)
+    columns: {
+      all: [
+        "예외", "만료여부", "신청이력", "Rule Name", "Enable", "Action",
+        "Source", "User", "Destination", "Service", "Application",
+        "Security Profile", "Category", "Description",
+        "Request Type", "Request ID", "Ruleset ID", "MIS ID", "Request User", "Start Date", "End Date"
+      ],
+      no_history: [
+        "예외", "Rule Name", "Enable", "Action",
+        "Source", "User", "Destination", "Service", "Application",
+        "Security Profile", "Category", "Description"
+      ],
+      date_columns: [
+        "REQUEST_START_DATE", "REQUEST_END_DATE", "Start Date", "End Date"
+      ]
+    },
+    translated_columns: {
+      "Rule Name": "규칙명",
+      "Enable": "활성화",
+      "Action": "동작",
+      "Source": "출발지",
+      "User": "사용자",
+      "Destination": "목적지",
+      "Service": "서비스",
+      "Application": "애플리케이션",
+      "Security Profile": "보안 프로필",
+      "Category": "카테고리",
+      "Description": "설명"
+    }
+  };
+}
+
+/**
+ * 설정 유효성 검사
+ */
+function validateDeletionWorkflowConfig(config) {
+  // 날짜 범위 검증
+  const days = config.timeframes.recent_policy_days;
+  if (isNaN(days) || days < 1 || days > 365) {
+    openAlert({ title: '오류', message: '신규 정책 판단 기간은 1-365일 사이여야 합니다.' });
+    return false;
+  }
+  
+  // 파싱 패턴 유효성 검사
+  for (const [patternName, patternData] of Object.entries(config.parsing_patterns)) {
+    if (patternName === 'request_type_mapping' || patternName === 'description') continue;
+    
+    if (!patternName) {
+      openAlert({ title: '오류', message: '파싱 패턴 이름이 비어있습니다.' });
+      return false;
+    }
+    
+    // group_mapping이 객체인지 확인
+    if (patternData.group_mapping && typeof patternData.group_mapping !== 'object') {
+      openAlert({ title: '오류', message: `파싱 패턴 '${patternName}'의 그룹 매핑이 올바르지 않습니다.` });
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+/**
+ * 컬럼 매핑 추가
+ */
+function addColumnMapping() {
+  const container = document.getElementById('column-mapping-list');
+  
+  // 표준 컬럼명 선택 드롭다운 생성
+  const div = document.createElement('div');
+  div.className = 'field is-grouped mb-3';
+  div.innerHTML = `
+    <div class="control is-expanded">
+      <div class="select is-small is-fullwidth">
+        <select class="column-mapping-standard-select">
+          <option value="">표준 컬럼명 선택...</option>
+          ${STANDARD_COLUMNS.map(col => `<option value="${col}">${col}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="control is-expanded">
+      <input class="input is-small column-mapping-original" type="text" placeholder="원본 컬럼명 (쉼표로 구분)" />
+    </div>
+    <div class="control">
+      <button class="button is-small is-success" onclick="confirmAddColumnMapping(this)">추가</button>
+    </div>
+    <div class="control">
+      <button class="button is-small is-light" onclick="cancelAddColumnMapping(this)">취소</button>
+    </div>
+  `;
+  container.appendChild(div);
+}
+
+/**
+ * 컬럼 매핑 추가 확인
+ */
+function confirmAddColumnMapping(button) {
+  const row = button.closest('.field');
+  const select = row.querySelector('.column-mapping-standard-select');
+  const input = row.querySelector('.column-mapping-original');
+  
+  const standardCol = select.value.trim();
+  const originalColsText = input.value.trim();
+  
+  if (!standardCol) {
+    openAlert({ title: '오류', message: '표준 컬럼명을 선택하세요.' });
+    return;
+  }
+  
+  if (!originalColsText) {
+    openAlert({ title: '오류', message: '원본 컬럼명을 입력하세요.' });
+    return;
+  }
+  
+  // 기존 매핑이 있는지 확인
+  const existingRow = document.querySelector(`input[data-standard="${standardCol}"]`)?.closest('.field');
+  if (existingRow) {
+    // 기존 매핑 업데이트
+    const existingInput = existingRow.querySelector('.column-mapping-original');
+    const existingCols = existingInput.value.split(',').map(c => c.trim()).filter(c => c);
+    const newCols = originalColsText.split(',').map(c => c.trim()).filter(c => c);
+    existingInput.value = [...new Set([...existingCols, ...newCols])].join(', ');
+    row.remove();
+  } else {
+    // 새 매핑 추가
+    const originalCols = originalColsText.split(',').map(c => c.trim()).filter(c => c);
+    const newRow = createColumnMappingRow(standardCol, originalCols);
+    row.replaceWith(newRow);
+  }
+}
+
+/**
+ * 컬럼 매핑 추가 취소
+ */
+function cancelAddColumnMapping(button) {
+  button.closest('.field').remove();
+}
+
+/**
+ * 컬럼 매핑 삭제
+ */
+function removeColumnMapping(button) {
+  button.closest('.field').remove();
 }
 
 /**
  * 정책 삭제 워크플로우 설정 초기화 (기본값으로 리셋)
  */
 async function resetDeletionWorkflowConfig() {
-  const confirmed = await openConfirm('확인', '기본 설정으로 초기화하시겠습니까? 현재 설정이 모두 사라집니다.');
+  const confirmed = await openConfirm({ title: '확인', message: '기본 설정으로 초기화하시겠습니까? 현재 설정이 모두 사라집니다.' });
   if (!confirmed) return;
   
   try {
-    // 기본 설정 구조 (예시 - 실제로는 서버에서 가져오거나 하드코딩)
-    const defaultConfig = {
-      "file_naming": {
-        "policy_version_format": "_v{version}",
-        "final_version_suffix": "_vf",
-        "request_id_prefix": "request_id_"
-      },
-      "file_extensions": {
-        "excel": ".xlsx",
-        "csv": ".csv"
-      },
-      "excel_styles": {
-        "header_fill_color": "E0E0E0",
-        "history_fill_color": "ccffff"
-      },
-      "columns": {
-        "all": [
-          "예외", "만료여부", "신청이력", "Rule Name", "Enable", "Action",
-          "Source", "User", "Destination", "Service", "Application",
-          "Security Profile", "Category", "Description",
-          "Request Type", "Request ID", "Ruleset ID", "MIS ID", "Request User", "Start Date", "End Date"
-        ],
-        "no_history": [
-          "예외", "Rule Name", "Enable", "Action",
-          "Source", "User", "Destination", "Service", "Application",
-          "Security Profile", "Category", "Description"
-        ],
-        "date_columns": [
-          "REQUEST_START_DATE", "REQUEST_END_DATE", "Start Date", "End Date"
-        ]
-      },
-      "translated_columns": {
-        "Rule Name": "규칙명",
-        "Enable": "활성화",
-        "Action": "동작",
-        "Source": "출발지",
-        "User": "사용자",
-        "Destination": "목적지",
-        "Service": "서비스",
-        "Application": "애플리케이션",
-        "Security Profile": "보안 프로필",
-        "Category": "카테고리",
-        "Description": "설명"
-      },
-      "except_list": [],
-      "timeframes": {
-        "recent_policy_days": 90
-      },
-      "parsing_patterns": {
-        "gsams3": {
-          "pattern": "",
-          "group_mapping": {
-            "ruleset_id": 1,
-            "start_date": 2,
-            "end_date": 3,
-            "request_user": 4,
-            "request_id": 5,
-            "mis_id": 6
-          },
-          "description": "GSAMS3 형식 패턴"
-        },
-        "gsams1_rulename": {
-          "pattern": "",
-          "group_mapping": {
-            "request_id": 1
-          },
-          "description": "GSAMS1 규칙명 패턴"
-        },
-        "gsams1_user": {
-          "pattern": "",
-          "group_mapping": {
-            "request_user": 1
-          },
-          "remove_prefix": "*ACL*",
-          "description": "GSAMS1 사용자 패턴"
-        },
-        "gsams1_description": {
-          "pattern": "",
-          "group_mapping": {
-            "request_id": 1
-          },
-          "description": "GSAMS1 description 패턴"
-        },
-        "gsams1_date": {
-          "pattern": "",
-          "group_mapping": {
-            "date_range": 0
-          },
-          "description": "GSAMS1 날짜 패턴"
-        },
-        "request_type_mapping": {
-          "P": "GROUP",
-          "F": "GENERAL",
-          "S": "SERVER",
-          "M": "PAM",
-          "description": "Request ID 첫 글자에 따른 타입 매핑"
-        }
-      }
-    };
+    // 기본 설정으로 초기화
+    document.getElementById('config-recent-policy-days').value = 90;
+    document.getElementById('config-except-list').value = '';
     
-    const textarea = document.getElementById('deletion-workflow-config-input');
-    if (textarea) {
-      textarea.value = JSON.stringify(defaultConfig, null, 2);
-    }
+    // 파싱 패턴 초기화
+    document.getElementById('parsing-patterns-list').innerHTML = '';
+    
+    // Request Type 매핑 초기화
+    document.getElementById('config-request-type-p').value = 'GROUP';
+    document.getElementById('config-request-type-f').value = 'GENERAL';
+    document.getElementById('config-request-type-s').value = 'SERVER';
+    document.getElementById('config-request-type-m').value = 'PAM';
+    
+    // 컬럼 매핑 초기화
+    document.getElementById('column-mapping-list').innerHTML = '';
+    
+    await openAlert({ title: '성공', message: '기본 설정으로 초기화되었습니다.' });
   } catch (error) {
     console.error('Failed to reset deletion workflow config:', error);
-    await openAlert('오류', `설정 초기화에 실패했습니다: ${error.message}`);
-  }
-}
-
-/**
- * 정책 삭제 워크플로우 설정 포맷 (JSON 포맷팅)
- */
-function formatDeletionWorkflowConfig() {
-  const textarea = document.getElementById('deletion-workflow-config-input');
-  const value = textarea.value.trim();
-  
-  if (!value) {
-    return;
-  }
-  
-  try {
-    const config = JSON.parse(value);
-    textarea.value = JSON.stringify(config, null, 2);
-  } catch (e) {
-    // 포맷 실패 시 에러 표시하지 않음 (사용자가 수정 중일 수 있음)
-    console.warn('Failed to format JSON:', e);
+    await openAlert({ title: '오류', message: `설정 초기화에 실패했습니다: ${error.message}` });
   }
 }
 
@@ -574,11 +858,55 @@ function initDeletionWorkflowConfig() {
     resetBtn.addEventListener('click', resetDeletionWorkflowConfig);
   }
   
-  // 포맷 버튼
-  const formatBtn = document.getElementById('btn-format-deletion-workflow-config');
-  if (formatBtn) {
-    formatBtn.addEventListener('click', formatDeletionWorkflowConfig);
+  // 컬럼 매핑 추가 버튼
+  const addMappingBtn = document.getElementById('btn-add-column-mapping');
+  if (addMappingBtn) {
+    addMappingBtn.addEventListener('click', addColumnMapping);
   }
+  
+  // 파싱 패턴 추가 버튼
+  const addParsingPatternBtn = document.getElementById('btn-add-parsing-pattern');
+  if (addParsingPatternBtn) {
+    addParsingPatternBtn.addEventListener('click', addParsingPattern);
+  }
+  
+  // 파싱 패턴 토글
+  const toggleParsingPatterns = document.getElementById('toggle-parsing-patterns');
+  if (toggleParsingPatterns) {
+    toggleParsingPatterns.addEventListener('click', () => {
+      const content = document.getElementById('parsing-patterns-content');
+      const toggleText = document.getElementById('parsing-patterns-toggle-text');
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        toggleText.textContent = '접기';
+      } else {
+        content.style.display = 'none';
+        toggleText.textContent = '펼치기';
+      }
+    });
+  }
+  
+  // 컬럼 매핑 토글
+  const toggleColumnMapping = document.getElementById('toggle-column-mapping');
+  if (toggleColumnMapping) {
+    toggleColumnMapping.addEventListener('click', () => {
+      const content = document.getElementById('column-mapping-content');
+      const toggleText = document.getElementById('column-mapping-toggle-text');
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        toggleText.textContent = '접기';
+      } else {
+        content.style.display = 'none';
+        toggleText.textContent = '펼치기';
+      }
+    });
+  }
+  
+  // 전역 함수로 등록 (HTML에서 호출하기 위해)
+  window.removeColumnMapping = removeColumnMapping;
+  window.confirmAddColumnMapping = confirmAddColumnMapping;
+  window.cancelAddColumnMapping = cancelAddColumnMapping;
+  window.removeParsingPattern = removeParsingPattern;
   
   // 초기 로드
   loadDeletionWorkflowConfig();
@@ -594,4 +922,5 @@ export function cleanupSettings() {
     logsGrid = null;
   }
 }
+
 

@@ -60,6 +60,70 @@ class ApplicationAggregator:
             logger.error(f"날짜 포맷 변환 중 오류 발생: {e}")
             return ""
     
+    def _normalize_column_name(self, col_name: str) -> str:
+        """
+        컬럼명을 정규화합니다 (매칭을 위해).
+        - 앞뒤 공백 제거
+        - 대소문자 통일 (대문자로)
+        - 공백과 언더스코어 제거 (유연한 매칭을 위해)
+        
+        Args:
+            col_name: 원본 컬럼명
+            
+        Returns:
+            정규화된 컬럼명 (공백/언더스코어 제거, 대문자)
+        """
+        if not col_name:
+            return ""
+        # 앞뒤 공백 제거
+        normalized = str(col_name).strip()
+        # 대소문자 통일 (대문자로)
+        normalized = normalized.upper()
+        # 공백과 언더스코어 제거 (유연한 매칭을 위해)
+        normalized = normalized.replace(' ', '').replace('_', '')
+        return normalized
+    
+    def _find_matching_column(self, target_col: str, df_columns: list) -> str:
+        """
+        정규화된 컬럼명으로 매칭되는 실제 컬럼명을 찾습니다.
+        
+        매칭 우선순위:
+        1. 정확 일치
+        2. 정규화된 이름 일치 (공백/언더스코어 무시)
+        3. 부분 매칭 (포함 관계)
+        
+        Args:
+            target_col: 찾을 컬럼명 (정규화 전)
+            df_columns: 데이터프레임의 실제 컬럼명 리스트
+            
+        Returns:
+            매칭된 실제 컬럼명 (없으면 None)
+        """
+        # 정규화된 타겟 컬럼명
+        normalized_target = self._normalize_column_name(target_col)
+        
+        # 1. 정확 일치 먼저 확인
+        if target_col in df_columns:
+            return target_col
+        
+        # 2. 정규화된 이름으로 매칭 시도 (공백/언더스코어 무시)
+        for actual_col in df_columns:
+            normalized_actual = self._normalize_column_name(actual_col)
+            if normalized_target == normalized_actual:
+                return actual_col
+        
+        # 3. 부분 매칭 시도 (정규화된 이름이 포함되는지)
+        # 타겟이 실제 컬럼명에 포함되는 경우만 (단방향 매칭)
+        for actual_col in df_columns:
+            normalized_actual = self._normalize_column_name(actual_col)
+            # 타겟이 실제 컬럼명에 포함되는 경우
+            if normalized_target in normalized_actual:
+                # 너무 짧은 매칭은 제외 (예: "ID"가 "REQUEST_ID"에 매칭되는 것 방지)
+                if len(normalized_target) >= 5:  # 최소 5자 이상
+                    return actual_col
+        
+        return None
+    
     def normalize_column_names(self, df: pd.DataFrame, sheet_name: str = "") -> pd.DataFrame:
         """
         컬럼명을 표준화된 이름으로 매핑합니다.
@@ -69,7 +133,10 @@ class ApplicationAggregator:
         설정 구조: {"표준컬럼명": ["원본컬럼명1", "원본컬럼명2", ...]}
         예: {"REQUEST_ID": ["REQUEST_ID", "Request ID", "요청ID", ...]}
         
-        각 시트를 순회하면서 원본 컬럼명에 해당하는 컬럼이 있으면 그 열을 추출하고 표준 컬럼명으로 변경합니다.
+        개선사항:
+        - 정확 일치 우선
+        - 정규화된 이름으로 매칭 (공백, 대소문자 무시)
+        - 부분 매칭 지원
         
         Args:
             df: 원본 데이터프레임
@@ -78,35 +145,68 @@ class ApplicationAggregator:
         Returns:
             컬럼명이 표준화된 데이터프레임
         """
-        column_mapping_config = self.config.get('application_info_column_mapping', {})
+        # 동기 방식으로 설정 가져오기 (ensure_loaded가 이미 호출되어 있어야 함)
+        column_mapping_config = self.config.get_sync('application_info_column_mapping', {})
+        
+        # 설정이 제대로 로드되었는지 확인
+        if not column_mapping_config:
+            logger.error(f"시트 '{sheet_name}': application_info_column_mapping 설정이 비어있습니다!")
+            logger.error(f"ConfigManager의 config_data 상태: {self.config.config_data is not None}")
+            if self.config.config_data:
+                logger.error(f"config_data의 키 목록: {list(self.config.config_data.keys())}")
         
         logger.info(f"시트 '{sheet_name}' 원본 컬럼명: {list(df.columns)}")
+        logger.info(f"매핑 설정 키 개수: {len(column_mapping_config)}")
+        if column_mapping_config:
+            logger.debug(f"매핑 설정 키 목록 (처음 5개): {list(column_mapping_config.keys())[:5]}")
         
         # 처리된 컬럼들 기록
         processed_columns = []
+        unmatched_original_cols = []  # 매칭되지 않은 원본 컬럼명들
         
-        # 원본 코드 방식: 각 표준 컬럼명에 대해 원본 컬럼명 리스트를 순회하면서 매칭
+        # 각 표준 컬럼명에 대해 원본 컬럼명 리스트를 순회하면서 매칭
         # application_info_column_mapping의 구조: {표준컬럼명: [원본컬럼명들]}
         for standard_col, original_cols_list in column_mapping_config.items():
             # 이미 표준 컬럼명이 있으면 스킵 (중복 방지)
             if standard_col in df.columns:
+                logger.debug(f"시트 '{sheet_name}': 표준 컬럼 '{standard_col}' 이미 존재, 스킵")
                 continue
             
-            # 각 원본 컬럼명을 순회하면서 실제 엑셀 파일의 컬럼명과 일치하는지 확인
+            # 매칭된 컬럼명
+            matched_col = None
+            
+            # 각 원본 컬럼명을 순회하면서 실제 엑셀 파일의 컬럼명과 매칭 시도
             for original_col in original_cols_list:
-                # 실제 엑셀 파일의 컬럼명이 원본 컬럼명과 일치하면 표준 컬럼명으로 변경
-                if original_col in df.columns:
-                    df.rename(columns={original_col: standard_col}, inplace=True)
-                    processed_columns.append((original_col, standard_col))
-                    logger.info(f"시트 '{sheet_name}': {original_col} -> {standard_col} 변환")
-                    # 한 번 매칭되면 다음 표준 컬럼명으로 넘어감 (같은 표준 컬럼명에 대해 여러 원본 컬럼명이 있을 수 있음)
+                matched = self._find_matching_column(original_col, list(df.columns))
+                if matched:
+                    matched_col = matched
+                    logger.debug(f"시트 '{sheet_name}': 원본 컬럼명 '{original_col}'이 실제 컬럼명 '{matched}'와 매칭됨")
                     break
+            
+            # 매칭된 컬럼이 있으면 표준 컬럼명으로 변경
+            if matched_col:
+                df.rename(columns={matched_col: standard_col}, inplace=True)
+                processed_columns.append((matched_col, standard_col))
+                logger.info(f"시트 '{sheet_name}': '{matched_col}' -> '{standard_col}' 변환 성공")
+            else:
+                # 매칭되지 않은 원본 컬럼명들 기록
+                unmatched_original_cols.append((standard_col, original_cols_list))
+                logger.warning(f"시트 '{sheet_name}': 표준 컬럼 '{standard_col}'에 매칭되는 컬럼 없음")
+                logger.debug(f"  시도한 원본 컬럼명들: {original_cols_list[:5]}")
+                logger.debug(f"  실제 엑셀 컬럼명들: {list(df.columns)[:10]}")
         
+        # 결과 로깅
         if processed_columns:
-            logger.info(f"시트 '{sheet_name}' 변경된 컬럼: {processed_columns}")
+            logger.info(f"시트 '{sheet_name}' 변경된 컬럼 ({len(processed_columns)}개): {processed_columns}")
             logger.info(f"시트 '{sheet_name}' 변환 후 컬럼명: {list(df.columns)}")
         else:
-            logger.warning(f"시트 '{sheet_name}': 변경된 컬럼 없음 - 원본 컬럼명과 매핑 설정이 일치하지 않을 수 있습니다.")
+            logger.warning(f"시트 '{sheet_name}': 변경된 컬럼 없음")
+        
+        # 매칭되지 않은 표준 컬럼이 있으면 경고
+        if unmatched_original_cols:
+            logger.warning(f"시트 '{sheet_name}': 매칭되지 않은 표준 컬럼 ({len(unmatched_original_cols)}개)")
+            for standard_col, original_cols_list in unmatched_original_cols[:5]:  # 최대 5개만 표시
+                logger.warning(f"  - '{standard_col}': 시도한 원본 컬럼명들 = {original_cols_list[:5]}")
         
         return df
     
@@ -122,6 +222,16 @@ class ApplicationAggregator:
         """
         try:
             logger.info(f"Step 4: 신청정보 가공 시작 (device_id={self.device_id})")
+            
+            # 설정이 로드되었는지 확인
+            if self.config.config_data is None:
+                logger.error("ConfigManager의 설정이 로드되지 않았습니다! ensure_loaded가 먼저 호출되어야 합니다.")
+                raise ValueError("설정이 로드되지 않았습니다. WorkflowManager에서 ensure_loaded를 먼저 호출하세요.")
+            
+            # application_info_column_mapping 설정 확인
+            column_mapping = self.config.get_sync('application_info_column_mapping', {})
+            if not column_mapping:
+                logger.warning("application_info_column_mapping 설정이 비어있습니다. 기본 설정을 확인하세요.")
             
             # 엑셀 파일을 읽어 시트별로 순회
             xls = pd.ExcelFile(input_file_path)
@@ -191,7 +301,7 @@ class ApplicationAggregator:
                     final_df = final_df.sort_values(by='REQUEST_END_DATE', ascending=False)
                 
                 # 표준 컬럼 순서 정의 (application_info_column_mapping의 키값 순서)
-                column_mapping = self.config.get('application_info_column_mapping', {})
+                column_mapping = self.config.get_sync('application_info_column_mapping', {})
                 standard_columns = list(column_mapping.keys())
                 
                 # 존재하는 표준 컬럼만 순서대로 정렬하고, 없는 컬럼은 공백으로 채움

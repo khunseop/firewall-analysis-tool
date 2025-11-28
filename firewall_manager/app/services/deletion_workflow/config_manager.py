@@ -27,9 +27,46 @@ class ConfigManager:
         self.config_data: Optional[Dict[str, Any]] = None
         self._cache_valid = False
     
+    def _migrate_config(self, config_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        기존 설정을 새 형식으로 마이그레이션 (불필요한 항목 제거)
+        
+        Args:
+            config_data: 기존 설정 딕셔너리
+            
+        Returns:
+            마이그레이션된 설정 딕셔너리
+        """
+        # 기본 설정 가져오기
+        migrated = self._get_default_config()
+        
+        # 기존 설정에서 필요한 항목만 복사
+        if 'except_list' in config_data:
+            migrated['except_list'] = config_data['except_list']
+        
+        if 'timeframes' in config_data and 'recent_policy_days' in config_data.get('timeframes', {}):
+            migrated['timeframes']['recent_policy_days'] = config_data['timeframes']['recent_policy_days']
+        
+        if 'parsing_patterns' in config_data:
+            # 모든 파싱 패턴 복사 (동적 추가/삭제 지원)
+            patterns = config_data['parsing_patterns']
+            migrated['parsing_patterns'] = patterns.copy()
+        
+        if 'application_info_column_mapping' in config_data:
+            migrated['application_info_column_mapping'] = config_data['application_info_column_mapping']
+        
+        # columns와 translated_columns는 코드에서 하드코딩되어 있으므로 유지
+        if 'columns' in config_data:
+            migrated['columns'] = config_data['columns']
+        if 'translated_columns' in config_data:
+            migrated['translated_columns'] = config_data['translated_columns']
+        
+        return migrated
+    
     async def _load_config(self, db: AsyncSession) -> Dict[str, Any]:
         """
         DB에서 설정 로드 (없으면 기본값으로 생성)
+        기존 설정이 있으면 마이그레이션 수행
         
         Args:
             db: 데이터베이스 세션
@@ -42,6 +79,16 @@ class ConfigManager:
             if setting and setting.value:
                 config_data = json.loads(setting.value)
                 logger.debug(f"DB에서 설정 로드 완료: {CONFIG_KEY}")
+                
+                # 마이그레이션 수행 (불필요한 항목 제거)
+                migrated_config = self._migrate_config(config_data)
+                
+                # 마이그레이션된 설정이 기존과 다르면 저장
+                if migrated_config != config_data:
+                    logger.info(f"설정 마이그레이션 수행: 불필요한 항목 제거")
+                    await self._save_config(db, migrated_config)
+                    return migrated_config
+                
                 return config_data
         except Exception as e:
             logger.error(f"DB에서 설정 로드 실패: {CONFIG_KEY}, 오류: {e}")
@@ -92,25 +139,12 @@ class ConfigManager:
     
     def _get_default_config(self) -> Dict[str, Any]:
         """
-        기본 설정 반환
+        기본 설정 반환 (정리된 버전 - 불필요한 항목 제거)
         
         Returns:
             기본 설정 딕셔너리
         """
         return {
-            "file_naming": {
-                "policy_version_format": "_v{version}",
-                "final_version_suffix": "_vf",
-                "request_id_prefix": "request_id_"
-            },
-            "file_extensions": {
-                "excel": ".xlsx",
-                "csv": ".csv"
-            },
-            "excel_styles": {
-                "header_fill_color": "E0E0E0",
-                "history_fill_color": "ccffff"
-            },
             "columns": {
                 "all": [
                     "예외", "만료여부", "신청이력", "Rule Name", "Enable", "Action",
@@ -145,47 +179,6 @@ class ConfigManager:
                 "recent_policy_days": 90
             },
             "parsing_patterns": {
-                "gsams3": {
-                    "pattern": "",
-                    "group_mapping": {
-                        "ruleset_id": 1,
-                        "start_date": 2,
-                        "end_date": 3,
-                        "request_user": 4,
-                        "request_id": 5,
-                        "mis_id": 6
-                    },
-                    "description": "GSAMS3 형식 패턴. 형식: 'RS : (Ruleset ID) (Start Date)~(End Date) (User) (Request ID) (MIS ID)'. 그룹 매핑: 1=Ruleset ID(S+8자리숫자+4자리문자), 2=Start Date(8자리숫자), 3=End Date(8자리숫자), 4=Request User, 5=Request ID(PS/F/S/M+숫자), 6=MIS ID(16자리, optional)"
-                },
-                "gsams1_rulename": {
-                    "pattern": "",
-                    "group_mapping": {
-                        "request_id": 1
-                    },
-                    "description": "GSAMS1 규칙명 패턴. 그룹 매핑: 1=Request ID"
-                },
-                "gsams1_user": {
-                    "pattern": "",
-                    "group_mapping": {
-                        "request_user": 1
-                    },
-                    "remove_prefix": "*ACL*",
-                    "description": "GSAMS1 사용자 패턴. 그룹 매핑: 1=Request User (prefix '*ACL*' 제거)"
-                },
-                "gsams1_description": {
-                    "pattern": "",
-                    "group_mapping": {
-                        "request_id": 1
-                    },
-                    "description": "GSAMS1 description 패턴. 그룹 매핑: 1=Request ID (split('-')[1] 사용)"
-                },
-                "gsams1_date": {
-                    "pattern": "",
-                    "group_mapping": {
-                        "date_range": 0
-                    },
-                    "description": "GSAMS1 날짜 패턴. 전체 매칭에서 '~'로 분리하여 Start Date와 End Date 추출"
-                },
                 "request_type_mapping": {
                     "P": "GROUP",
                     "F": "GENERAL",
@@ -193,6 +186,29 @@ class ConfigManager:
                     "M": "PAM",
                     "description": "Request ID 첫 글자에 따른 타입 매핑"
                 }
+            },
+            "application_info_column_mapping": {
+                "REQUEST_ID": ["REQUEST_ID", "Request ID", "요청ID", "신청ID"],
+                "REQUEST_START_DATE": ["REQUEST_START_DATE", "Request Start Date", "시작일", "신청시작일"],
+                "REQUEST_END_DATE": ["REQUEST_END_DATE", "Request End Date", "종료일", "신청종료일"],
+                "TITLE": ["TITLE", "Title", "제목", "신청제목"],
+                "REQUESTER_ID": ["REQUESTER_ID", "Requester ID", "신청자ID", "요청자ID"],
+                "REQUESTER_EMAIL": ["REQUESTER_EMAIL", "Requester Email", "신청자이메일", "요청자이메일"],
+                "REQUESTER_NAME": ["REQUESTER_NAME", "Requester Name", "신청자명", "요청자명"],
+                "REQUESTER_DEPT": ["REQUESTER_DEPT", "Requester Dept", "신청자부서", "요청자부서"],
+                "WRITE_PERSON_ID": ["WRITE_PERSON_ID", "Write Person ID", "작성자ID"],
+                "WRITE_PERSON_EMAIL": ["WRITE_PERSON_EMAIL", "Write Person Email", "작성자이메일"],
+                "WRITE_PERSON_NAME": ["WRITE_PERSON_NAME", "Write Person Name", "작성자명"],
+                "WRITE_PERSON_DEPT": ["WRITE_PERSON_DEPT", "Write Person Dept", "작성자부서"],
+                "APPROVAL_PERSON_ID": ["APPROVAL_PERSON_ID", "Approval Person ID", "승인자ID"],
+                "APPROVAL_PERSON_EMAIL": ["APPROVAL_PERSON_EMAIL", "Approval Person Email", "승인자이메일"],
+                "APPROVAL_PERSON_NAME": ["APPROVAL_PERSON_NAME", "Approval Person Name", "승인자명"],
+                "APPROVAL_PERSON_DEPT_NAME": ["APPROVAL_PERSON_DEPT_NAME", "Approval Person Dept Name", "승인자부서명"],
+                "REQUEST_DATE": ["REQUEST_DATE", "Request Date", "신청일", "요청일"],
+                "REQUEST_STATUS": ["REQUEST_STATUS", "Request Status", "신청상태", "요청상태"],
+                "PROGRESS": ["PROGRESS", "Progress", "진행상태"],
+                "MIS_ID": ["MIS_ID", "MIS ID", "MISID"],
+                "GROUP_VERSION": ["GROUP_VERSION", "Group Version", "그룹버전", "버전"]
             }
         }
     

@@ -104,8 +104,9 @@ class ExcelManager:
             # 첫 번째 행에 통계 정보 추가 (있는 경우)
             if sheet.max_row > 0:
                 # 헤더 스타일 설정
-                header_color = self._get_config_value('excel_styles.header_fill_color', 'E0E0E0')
-                history_color = self._get_config_value('excel_styles.history_fill_color', 'ccffff')
+                # Excel 스타일은 하드코딩 (설정에서 제거됨)
+                header_color = 'E0E0E0'
+                history_color = 'ccffff'
                 
                 # 헤더 행 스타일 적용 (첫 번째 데이터 행)
                 header_row = 1

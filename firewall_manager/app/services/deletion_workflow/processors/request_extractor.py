@@ -91,7 +91,8 @@ class RequestExtractor:
                 return file_path
             
             # 각 Request Type별로 Request ID 값만 추출하여 중복 제거 후 Excel의 각 시트로 저장
-            request_id_prefix = self.config.get('file_naming.request_id_prefix', 'request_id_')
+            # request_id_prefix는 하드코딩 (설정에서 제거됨)
+            request_id_prefix = 'request_id_'
             file_path = self.file_manager.create_step_file_path(self.device_id, 2)
             
             sheets_dict = {}
