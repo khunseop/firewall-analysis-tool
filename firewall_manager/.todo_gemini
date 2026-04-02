@@ -1,0 +1,16 @@
+# Firewall Analysis Tool - Comment & Documentation Plan
+
+- [x] Phase 1: Core Engine (app/services/sync, app/services/policy_indexer.py)
+  - [x] Add comments to tasks.py
+  - [x] Add comments to policy_indexer.py
+  - [x] Create app/services/sync/README.md
+  - [x] Create app/services/README_POLICY_INDEXER.md
+- [ ] Phase 2: Data Collection (app/services/firewall/)
+  - [ ] Add comments to interface.py, factory.py, vendors/*
+  - [ ] Create app/services/firewall/README.md
+- [ ] Phase 3: Analysis Engines (app/services/analysis/)
+  - [ ] Add comments to redundancy.py, risky_ports.py, over_permissive.py, etc.
+  - [ ] Create app/services/analysis/README.md
+- [ ] Phase 4: DB Models & CRUD (app/models/, app/crud/)
+  - [ ] Add comments to complex ORM queries
+  - [ ] Create app/crud/README.md
