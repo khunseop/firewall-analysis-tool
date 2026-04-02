@@ -1,78 +1,76 @@
-# 보안 정책 및 객체 분석 서비스 (Analysis Services)
+# Analysis Services (분석 서비스)
 
-이 패키지는 방화벽 정책과 객체 데이터를 분석하여 중복, 미사용, 위험 요소를 탐지하고 최적화 가이드를 제공하는 비즈니스 로직을 포함합니다.
+이 모듈은 수집된 방화벽 정책과 객체 데이터를 분석하여 중복 탐지, 사용률 식별, 영향도 평가 등 보안 최적화를 위한 핵심 비즈니스 로직을 제공합니다.
 
-## 1. 분석 모듈 개요
+## 1. 개요 (Overview)
 
-### [중복 정책 분석 (Redundancy)](./redundancy.py)
-- **목적**: 동일한 효과를 가지거나 상위 정책에 의해 완전히 포함(Subsumed)되는 불필요한 정책 탐지.
-- **알고리즘**: 모든 정책의 출발지/목적지 IP 범위, 서비스(포트), 액션을 상호 비교하여 포함 관계를 분석합니다.
+분석 서비스는 대량의 데이터를 처리해야 하므로 비동기 작업(Task) 방식으로 실행됩니다. 각 분석 로직은 독립된 엔진으로 구현되어 있으며, 정책 간의 포함 관계(Subsumption) 분석과 IP/Port 범위 중첩 분석을 위해 특화된 알고리즘을 사용합니다.
 
-### [미사용 정책 분석 (Unused)](./unused.py)
-- **목적**: 장기간 트래픽 매칭 이력이 없는 정책을 식별하여 보안 홀 제거 및 성능 향상.
-- **알고리즘**: 정책의 `last_hit_date`와 현재 날짜를 비교하여 지정된 기간(예: 90일) 동안 사용되지 않은 정책을 추출합니다.
+## 2. 아키텍처 및 구성 (Architecture)
 
-### [영향 분석 (Impact)](./impact.py)
-- **목적**: 정책의 위치(Sequence) 변경 시 발생할 수 있는 트래픽 흐름의 변화를 사전에 분석.
-- **알고리즘**: 이동할 정책과 이동 경로상에 있는 정책들 간의 중첩(Overlap)을 분석하여, 이동 후 차단(Blocking)되거나 다른 정책을 가리는(Shadowing) 현상을 탐지합니다.
+### 주요 분석 모듈
+- **[Redundancy (중복)](./redundancy.py)**: 상위 정책에 의해 완전히 포함되어 불필요해진 하위 정책 탐지.
+- **[Unused (미사용)](./unused.py)**: 특정 기간(예: 90일) 동안 트래픽 매칭이 없는 정책 식별.
+- **[Impact (영향)](./impact.py)**: 정책 이동 시 발생할 트래픽 흐름의 변화(Shadowing, Blocking) 사전 시뮬레이션.
+- **[Unreferenced (미참조)](./unreferenced_objects.py)**: 어떤 정책에서도 참조되지 않는 네트워크/서비스 객체 탐지.
+- **[Risky Ports (위험)](./risky_ports.py)**: Any 서비스 허용이나 취약 포트(Telnet 등) 포함 정책 탐지.
 
-### [미참조 객체 분석 (Unreferenced Objects)](./unreferenced_objects.py)
-- **목적**: 어떤 보안 정책에서도 참조되지 않는 고립된 네트워크/서비스 객체 및 그룹 탐지.
-- **알고리즘**: 모든 정책의 설정값을 파싱하여 사용 중인 객체 리스트를 추출(역참조 분석)한 뒤, 전체 객체 목록과 대조하여 미사용 객체를 식별합니다.
+### 비동기 작업 관리 (`tasks.py`)
+- **비동기 락 (Lock)**: 장비별로 한 번에 하나의 분석 작업만 실행되도록 보장합니다.
+- **상태 추적**: `AnalysisTask` 모델을 통해 작업의 시작/종료 시간 및 현재 상태(`pending`, `in_progress`, `success`, `failure`)를 기록합니다.
 
-### [위험 포트 분석 (Risky Ports)](./risky_ports.py)
-- **목적**: Any 포트 허용이나 보안상 취약한 서비스(Telnet, FTP 등)가 포함된 위험 정책 탐지.
-- **알고리즘**: 사전에 정의된 위험 포트/서비스 목록과 정책의 서비스 항목을 대조합니다.
+## 3. 주요 로직 및 흐름 (Main Flow)
 
-### [과허용 정책 분석 (Over Permissive)](./over_permissive.py)
-- **목적**: 서비스 범위가 너무 넓거나 출발지/목적지가 과도하게 설정된 정책 탐지.
-- **알고리즘**: IP 범위의 크기(Subnet Mask)나 서비스 항목의 개수 등을 기준으로 임계치를 초과하는 정책을 식별합니다.
+1.  **작업 생성**: 분석 요청 시 `AnalysisTask` 레코드를 생성하고 초기 상태를 설정합니다.
+2.  **분석 실행**: 각 분석 엔진(Analyzer)이 DB로부터 인덱스 데이터를 로드하여 비교 분석을 수행합니다.
+3.  **데이터 저장**: 
+    - 중간 상세 결과(예: 중복 정책 쌍)는 전용 테이블(`redundancypolicysets`)에 저장됩니다.
+    - 최종 통합 결과는 `AnalysisResult` 테이블의 `result_data` 컬럼에 JSON 형식으로 저장됩니다.
+4.  **작업 종료**: 성공 여부에 따라 `AnalysisTask`의 상태를 업데이트하고 소요 시간을 기록합니다.
 
-## 2. 분석 결과 데이터 저장 방식
+## 4. 데이터 규격 (Data Specification)
 
-분석 결과는 `analysis_results` 테이블에 저장되며, 프론트엔드에서 유연하게 시각화할 수 있도록 **JSON 포맷**을 사용합니다.
+분석 결과는 `AnalysisResult` 모델을 통해 저장되며, `result_data` 컬럼은 분석 유형별로 다음과 같은 JSON 구조를 가집니다.
 
-### 데이터베이스 테이블 구조 (`analysis_results`)
-| 컬럼명 | 타입 | 설명 |
-| :--- | :--- | :--- |
-| `id` | Integer | 기본키 |
-| `device_id` | Integer | 해당 장비 ID (Foreign Key) |
-| `analysis_type` | String | 분석 유형 (예: redundancy, unused, impact 등) |
-| `result_data` | JSON | 분석 결과 상세 데이터 (JSON 형식) |
-| `created_at` | DateTime | 분석 완료 및 저장 시간 (KST) |
-
-### `result_data` JSON 포맷 예시 (미참조 객체)
+### 미사용 정책 분석 결과 예시 (`unused`)
 ```json
 [
   {
-    "object_name": "TEMP_OBJ_01",
-    "object_type": "network_object",
-    "referenced": false
-  },
-  {
-    "object_name": "OLD_SERVICE_GROUP",
-    "object_type": "service_group",
-    "referenced": false
+    "id": 1205,
+    "vsys": "vsys1",
+    "rule_name": "Old_Legacy_Rule",
+    "last_hit_date": "2023-01-15T10:00:00",
+    "days_unused": 150
   }
 ]
 ```
 
-## 3. 새로운 분석 로직 추가 방법
+### 중복 정책 분석 결과 예시 (`redundancy`)
+```json
+[
+  {
+    "set_number": 1,
+    "type": "UPPER",
+    "policy_id": 501,
+    "policy": { "rule_name": "Main_Web_Access", "action": "allow" }
+  },
+  {
+    "set_number": 1,
+    "type": "LOWER",
+    "policy_id": 602,
+    "policy": { "rule_name": "Redundant_HTTP_Rule", "action": "allow" }
+  }
+]
+```
 
-새로운 분석 기능을 추가하려면 다음 단계를 따르십시오.
-
-### Step 1: Analyzer 클래스 작성
-`firewall_manager/app/services/analysis/` 디렉토리에 새로운 Python 파일을 생성하고 분석 클래스를 구현합니다.
-- `__init__(self, db_session, task, ...)`를 통해 필요한 컨텍스트를 주입받습니다.
-- `async def analyze(self)` 메서드에서 실제 로직을 수행하고 결과를 반환합니다.
-
-### Step 2: 비동기 Task 함수 등록
-`firewall_manager/app/services/analysis/tasks.py` 파일에 해당 분석을 수행할 Task 함수를 추가합니다.
-- `AnalysisTask`를 생성하여 진행 상태를 관리합니다.
-- 분석 완료 후 결과를 `jsonable_encoder`를 사용하여 JSON화 한 뒤 `crud.analysis.create_or_update_analysis_result`를 호출하여 저장합니다.
-
-### Step 3: API 엔드포인트 연동
-필요한 경우 `app/api/api_v1/endpoints/analysis.py` 등에 해당 Task를 호출하는 API를 추가합니다.
-
-### Step 4: 프론트엔드 시각화
-`app/frontend/js/pages/analysis.js` 등에서 저장된 JSON 데이터를 파싱하여 UI(표 또는 그래프)로 출력합니다.
+### 미참조 객체 분석 결과 예시 (`unreferenced_objects`)
+```json
+{
+  "network_objects": [
+    { "name": "TEMP_HOST_01", "type": "ip-netmask", "value": "1.1.1.1" }
+  ],
+  "service_groups": [
+    { "name": "UNUSED_GROUP", "entry": "TCP_8080,UDP_9090" }
+  ]
+}
+```
