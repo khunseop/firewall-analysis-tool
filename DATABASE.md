@@ -1,22 +1,23 @@
-# 데이터베이스 스키마 정의서 (Database Schema)
+# 데이터베이스 스키마 정의서 (Database Schema Documentation)
 
-본 문서는 Firewall Analysis Tool에서 사용하는 데이터베이스 스키마와 각 테이블의 역할에 대해 상세히 설명합니다. 모든 테이블은 비동기 처리에 최적화되어 설계되었습니다.
+본 문서는 Firewall Analysis Tool에서 사용하는 모든 데이터베이스 테이블의 상세 명세와 관계를 정의합니다.
 
 ---
 
-## 1. 핵심 엔티티 (Core Entities)
+## 1. 장비 및 이력 관리
 
-### `devices` (방화벽 장비)
+### `devices` Table (방화벽 장비)
 관리 대상인 방화벽 장비 정보를 저장합니다.
 
-| 컬럼명 | 타입 | 제약조건 | 설명 |
+| Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
-| `id` | `INTEGER` | `PK`, `NOT NULL` | 고유 식별자 |
+| `id` | `INTEGER` | `PRIMARY KEY`, `NOT NULL` | 고유 식별자 |
 | `name` | `VARCHAR` | `NOT NULL`, `UNIQUE` | 장비 명칭 |
 | `ip_address` | `VARCHAR` | `NOT NULL`, `UNIQUE` | 장비 IP 주소 |
 | `vendor` | `VARCHAR` | `NOT NULL` | 제조사 (paloalto, secui, ngf 등) |
 | `username` | `VARCHAR` | `NOT NULL` | 접속 ID (NGF의 경우 클라이언트 ID) |
 | `password` | `VARCHAR` | `NOT NULL` | Fernet 암호화된 비밀번호 |
+| `description` | `VARCHAR` | `NULLABLE` | 장비 설명 |
 | `ha_peer_ip` | `VARCHAR` | `NULLABLE` | HA 구성을 위한 상대 장비 IP (Palo Alto) |
 | `use_ssh_for_last_hit_date` | `BOOLEAN` | `DEFAULT False` | 히트 수집 시 SSH 사용 여부 |
 | `model` | `VARCHAR` | `NULLABLE` | 장비 모델명 |
@@ -24,56 +25,147 @@
 | `last_sync_status` | `VARCHAR` | `NULLABLE` | 동기화 상태 (in_progress, success, failure) |
 | `last_sync_step` | `VARCHAR` | `NULLABLE` | 현재 진행 중인 동기화 단계 메시지 |
 
----
+### `change_logs` Table (변경 이력)
+동기화 과정에서 탐지된 객체 및 정책의 변경 이력을 저장합니다.
 
-## 2. 정책 및 객체 테이블 (Policies & Objects)
-
-### `policies` (보안 정책)
-장비로부터 수집된 보안 규칙(Security Rules) 정보를 저장합니다.
-- **`is_indexed`**: 정책 내용 변경 시 `False`로 설정되며, 인덱서가 처리를 완료하면 `True`가 됩니다.
-- **`last_hit_date`**: 정책의 최근 매칭 시간을 저장합니다.
-
-### `network_objects` / `network_groups`
-네트워크 주소 객체 및 그룹 정보를 저장합니다. 그룹 멤버는 쉼표로 구분된 문자열로 저장됩니다.
-
-### `services` / `service_groups`
-서비스(포트/프로토콜) 객체 및 그룹 정보를 저장합니다.
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY`, `NOT NULL` | 고유 식별자 |
+| `timestamp` | `DATETIME` | `NOT NULL` | 로그 생성 시간 |
+| `device_id` | `INTEGER` | `FOREIGN KEY (devices.id)` | 관련 장비 ID |
+| `data_type` | `VARCHAR` | `NOT NULL` | 데이터 타입 (policies, network_objects 등) |
+| `object_name` | `VARCHAR` | `NOT NULL` | 변경된 객체의 이름 |
+| `action` | `VARCHAR` | `NOT NULL` | 동작 (created, updated, deleted) |
+| `details` | `JSON` | `NULLABLE` | 변경 전/후 상세 데이터 |
 
 ---
 
-## 3. 정책 검색 인덱스 테이블 (Member Indexes)
+## 2. 정책 및 객체 테이블
 
-복잡한 그룹 구조를 가진 정책을 빠르게 검색하기 위해 사용되는 역정규화 테이블입니다.
+### `network_objects` Table (네트워크 객체)
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
+| `device_id` | `INTEGER` | `FOREIGN KEY` | 장비 참조 |
+| `name` | `VARCHAR` | `NOT NULL` | 객체명 |
+| `ip_address` | `VARCHAR` | `NOT NULL` | 원시 주소 문자열 |
+| `type` | `VARCHAR` | `NULLABLE` | 타입 (ip-netmask, ip-range, fqdn) |
+| `ip_version` | `INTEGER` | `NULLABLE` | 4 (IPv4) 또는 6 (IPv6) |
+| `ip_start` | `BIGINT` | `NULLABLE` | 숫자형 시작 IP |
+| `ip_end` | `BIGINT` | `NULLABLE` | 숫자형 종료 IP |
+| `is_active` | `BOOLEAN` | `NOT NULL` | 현재 활성 상태 여부 |
+| `last_seen_at` | `DATETIME` | `NOT NULL` | 마지막 확인 시간 |
 
-### `policy_address_members` (주소 인덱스)
-정책에 포함된 모든 IP 대역을 숫자 범위(`ip_start`, `ip_end`)로 전개하여 저장합니다.
+### `network_groups` Table (네트워크 그룹)
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
+| `device_id` | `INTEGER` | `FOREIGN KEY` | 장비 참조 |
+| `name` | `VARCHAR` | `NOT NULL` | 그룹명 |
+| `members` | `VARCHAR` | `NULLABLE` | 멤버 리스트 (쉼표 구분) |
+| `is_active` | `BOOLEAN` | `NOT NULL` | 활성 상태 |
+| `last_seen_at` | `DATETIME` | `NOT NULL` | 마지막 확인 시간 |
 
-### `policy_service_members` (서비스 인덱스)
-정책에 포함된 모든 프로토콜 및 포트 정보를 범위(`port_start`, `port_end`)로 저장합니다.
+### `services` Table (서비스 객체)
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
+| `device_id` | `INTEGER` | `FOREIGN KEY` | 장비 참조 |
+| `name` | `VARCHAR` | `NOT NULL` | 서비스명 |
+| `protocol` | `VARCHAR` | `NULLABLE` | 프로토콜 (tcp, udp, icmp) |
+| `port` | `VARCHAR` | `NULLABLE` | 원시 포트 정의 |
+| `port_start` | `INTEGER` | `NULLABLE` | 시작 포트 (any=0) |
+| `port_end` | `INTEGER` | `NULLABLE` | 종료 포트 (any=65535) |
+| `is_active` | `BOOLEAN` | `NOT NULL` | 활성 상태 |
+
+### `policies` Table (보안 정책)
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
+| `device_id` | `INTEGER` | `FOREIGN KEY` | 장비 참조 |
+| `vsys` | `VARCHAR` | `NULLABLE` | 가상 시스템명 |
+| `seq` | `INTEGER` | `NULLABLE` | 정책 순번 |
+| `rule_name` | `VARCHAR` | `NOT NULL` | 정책 이름 |
+| `enable` | `BOOLEAN` | `NULLABLE` | 활성 여부 |
+| `action` | `VARCHAR` | `NOT NULL` | 액션 (allow, deny) |
+| `source` | `VARCHAR` | `NOT NULL` | 출발지 (정규화 문자열) |
+| `destination` | `VARCHAR` | `NOT NULL` | 목적지 (정규화 문자열) |
+| `service` | `VARCHAR` | `NOT NULL` | 서비스 (정규화 문자열) |
+| `last_hit_date` | `DATETIME` | `NULLABLE` | 최근 히트 일시 |
+| `is_indexed` | `BOOLEAN` | `DEFAULT False` | 인덱싱 완료 여부 |
 
 ---
 
-## 4. 분석 결과 및 이력 (Analysis & Logs)
+## 3. 고속 검색 인덱스 테이블
 
-### `analysistasks` (분석 작업)
-분석 작업(중복 탐지 등)의 진행 상태(pending, in_progress, success, failure)를 관리합니다.
+### `policy_address_members` Table (주소 인덱스)
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
+| `policy_id` | `INTEGER` | `FOREIGN KEY` | 정책 참조 |
+| `direction` | `VARCHAR` | `NOT NULL` | 'source' 또는 'destination' |
+| `token` | `VARCHAR` | `NULLABLE` | 원본 토큰 (빈 그룹용) |
+| `token_type` | `VARCHAR` | `NULLABLE` | 'ipv4_range' 또는 'unknown' |
+| `ip_start` | `BIGINT` | `NULLABLE` | 숫자형 시작 IP |
+| `ip_end` | `BIGINT` | `NULLABLE` | 숫자형 종료 IP |
 
-### `analysis_results` (분석 결과)
-분석 완료 후 도출된 상세 데이터를 JSON 포맷(`result_data`)으로 저장합니다.
-- 예: 중복 정책 세트 정보, 미사용 객체 리스트 등.
-
-### `change_logs` (변경 이력)
-동기화 시 탐지된 객체/정책의 변경 사항을 기록합니다. 수정 시 `before/after` 상태를 JSON으로 저장합니다.
+### `policy_service_members` Table (서비스 인덱스)
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
+| `policy_id` | `INTEGER` | `FOREIGN KEY` | 정책 참조 |
+| `token` | `VARCHAR` | `NOT NULL` | 원본 토큰 |
+| `protocol` | `VARCHAR` | `NULLABLE` | 프로토콜 |
+| `port_start` | `INTEGER` | `NULLABLE` | 시작 포트 |
+| `port_end` | `INTEGER` | `NULLABLE` | 종료 포트 |
 
 ---
 
-## 5. 시스템 공통
+## 4. 분석 및 시스템 로그
 
-### `notification_logs` (알림 로그)
-시스템 이벤트(동기화 성공/실패 등)를 기록하며 프론트엔드 알림 티커와 연동됩니다.
+### `analysistasks` Table (분석 작업)
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
+| `device_id` | `INTEGER` | `FOREIGN KEY` | 장비 참조 |
+| `task_type` | `ENUM` | `NOT NULL` | 분석 유형 (redundancy, unused 등) |
+| `task_status` | `ENUM` | `NOT NULL` | 상태 (pending, success 등) |
+| `created_at` | `DATETIME` | `NOT NULL` | 생성 시간 |
 
-### `settings` (시스템 설정)
-애플리케이션 전역 설정(예: `sync_parallel_limit`)을 키-값 쌍으로 저장합니다.
+### `analysis_results` Table (분석 결과)
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
+| `device_id` | `INTEGER` | `FOREIGN KEY` | 장비 참조 |
+| `analysis_type` | `VARCHAR` | `NOT NULL` | 분석 유형 |
+| `result_data` | `JSON` | `NOT NULL` | 상세 결과 데이터 (JSON) |
 
-### `sync_schedules` (동기화 스케줄)
-정기적인 자동 동기화 수행을 위한 요일, 시간 정보를 저장합니다.
+### `notification_logs` Table (시스템 알림)
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
+| `timestamp` | `DATETIME` | `NOT NULL` | 발생 시간 |
+| `title` | `VARCHAR` | `NOT NULL` | 제목 |
+| `message` | `TEXT` | `NOT NULL` | 내용 |
+| `type` | `VARCHAR` | `NOT NULL` | 타입 (info, error 등) |
+| `category` | `VARCHAR` | `NULLABLE` | 카테고리 (sync, analysis) |
+
+---
+
+## 5. 설정 및 스케줄
+
+### `settings` Table (애플리케이션 설정)
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `key` | `VARCHAR` | `PRIMARY KEY` | 설정 키 (예: sync_parallel_limit) |
+| `value` | `VARCHAR` | `NOT NULL` | 설정 값 |
+
+### `sync_schedules` Table (동기화 스케줄)
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
+| `name` | `VARCHAR` | `NOT NULL` | 스케줄 이름 |
+| `enabled` | `BOOLEAN` | `DEFAULT True` | 활성 여부 |
+| `days_of_week` | `JSON` | `NOT NULL` | 실행 요일 [0-6] |
+| `time` | `VARCHAR` | `NOT NULL` | 실행 시간 (HH:MM) |
+| `device_ids` | `JSON` | `NOT NULL` | 대상 장비 ID 리스트 |
