@@ -11,7 +11,12 @@ logger = logging.getLogger(__name__)
 
 
 class OverPermissiveAnalyzer:
-    """과허용정책 분석을 위한 클래스"""
+    """
+    과허용(Over-Permissive) 정책을 식별하기 위한 분석 클래스입니다.
+    
+    출발지/목적지 IP 범위의 크기나 서비스 포트의 범위를 계산하여, 
+    'any' 또는 과도하게 넓은 서브넷(예: /8, /16 등)이 포함된 정책을 탐지합니다.
+    """
     
     def __init__(self, db_session: AsyncSession, task: AnalysisTask, target_policy_ids: Optional[List[int]] = None):
         self.db = db_session
@@ -21,8 +26,12 @@ class OverPermissiveAnalyzer:
     
     def _merge_ip_ranges(self, ranges: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
         """
-        IP 범위 리스트를 병합하여 중복 제거
-        policy_indexer.py의 merge_ip_ranges 로직 참고
+        겹치거나 연속된 IP 범위들을 하나로 병합하여 중복 계산을 방지합니다.
+        
+        알고리즘:
+        1. 범위를 시작 IP 기준으로 정렬합니다.
+        2. 현재 범위의 끝과 다음 범위의 시작을 비교하여 겹치거나 연속되면 확장합니다.
+        3. 겹치지 않는 경우 새로운 범위로 분리합니다.
         """
         if not ranges:
             return []
@@ -34,11 +43,11 @@ class OverPermissiveAnalyzer:
         
         for i in range(1, len(sorted_ranges)):
             next_start, next_end = sorted_ranges[i]
-            # 다음 범위가 현재 범위와 겹치거나 연속된 경우
+            # 다음 범위가 현재 범위와 겹치거나 연속된 경우 (IP는 연속된 숫자이므로 +1)
             if next_start <= current_end + 1:
                 current_end = max(current_end, next_end)
             else:
-                # 현재 범위 완료, 리스트에 추가
+                # 겹치지 않으면 현재까지 병합된 범위 저장
                 merged.append((current_start, current_end))
                 current_start, current_end = next_start, next_end
         
@@ -49,12 +58,13 @@ class OverPermissiveAnalyzer:
     
     def _calculate_ip_range_size(self, ranges: List[Tuple[int, int]]) -> int:
         """
-        IP 범위 리스트의 총 크기 계산
-        각 범위의 크기는 (end_ip - start_ip + 1)
+        IP 범위 리스트의 총 호스트 수를 계산합니다.
+        각 범위의 크기는 (종료_IP - 시작_IP + 1)로 계산됩니다.
         """
         if not ranges:
             return 0
         
+        # 범위 병합 후 크기 합산
         merged_ranges = self._merge_ip_ranges(ranges)
         total_size = 0
         for start_ip, end_ip in merged_ranges:
@@ -64,8 +74,8 @@ class OverPermissiveAnalyzer:
     
     def _merge_port_ranges(self, ranges: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
         """
-        포트 범위 리스트를 병합하여 중복 제거
-        risky_ports.py의 _calculate_port_range_size 로직 참고
+        겹치거나 연속된 포트 범위들을 병합합니다.
+        IP 범위 병합 로직과 동일하게 작동합니다.
         """
         if not ranges:
             return []
@@ -87,8 +97,12 @@ class OverPermissiveAnalyzer:
     
     def _calculate_service_range_size(self, service_members: List[Any]) -> int:
         """
-        서비스 멤버들의 포트 범위 크기 계산
-        프로토콜별로 범위를 병합하여 중복 제거 후 합산
+        서비스 멤버들의 전체 포트 수 합계를 계산합니다.
+        
+        알고리즘:
+        1. 프로토콜별(TCP/UDP 등)로 포트 범위를 수집합니다.
+        2. 'any' 프로토콜인 경우 0-65535 전체 범위를 할당합니다.
+        3. 각 프로토콜 내에서 포트 범위를 병합하여 중복을 제거한 뒤 크기를 합산합니다.
         """
         if not service_members:
             return 0
@@ -147,7 +161,14 @@ class OverPermissiveAnalyzer:
         return policies
     
     async def analyze(self) -> List[Dict[str, Any]]:
-        """과허용정책 분석을 실행하고 결과를 반환합니다."""
+        """
+        과허용 정책 분석을 실행하고 결과를 반환합니다.
+        
+        분석 과정:
+        1. 대상 정책들의 출발지/목적지/서비스 멤버 정보를 수집합니다.
+        2. 각 정책에 대해 실제 IP 범위 및 포트 범위의 합산 크기를 계산합니다.
+        3. 계산된 수치(source_range_size, destination_range_size, service_range_size)를 결과 리스트에 담습니다.
+        """
         logger.info(f"Task ID {self.task.id}에 대한 과허용정책 분석 시작.")
         
         # 정책 조회

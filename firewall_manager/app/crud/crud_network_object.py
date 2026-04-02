@@ -6,17 +6,25 @@ from app.models.network_object import NetworkObject
 from app.schemas.network_object import NetworkObjectCreate
 from datetime import datetime
 
+"""
+NetworkObject 모델에 대한 CRUD(Create, Read, Update, Delete) 연산을 정의합니다.
+모든 연산은 SQLAlchemy의 비동기 세션(AsyncSession)을 사용하여 성능을 최적화합니다.
+"""
+
 async def get_network_object_by_name_and_device(db: AsyncSession, device_id: int, name: str):
+    """장비 ID와 이름으로 특정 네트워크 객체를 조회합니다."""
     result = await db.execute(
         select(NetworkObject).filter(NetworkObject.device_id == device_id, NetworkObject.name == name)
     )
     return result.scalars().first()
 
 async def get_network_object(db: AsyncSession, network_object_id: int):
+    """고유 ID로 네트워크 객체를 조회합니다."""
     result = await db.execute(select(NetworkObject).filter(NetworkObject.id == network_object_id))
     return result.scalars().first()
 
 async def get_network_objects_by_device(db: AsyncSession, device_id: int, skip: int = 0, limit: int | None = None):
+    """특정 장비의 활성 네트워크 객체 목록을 페이징하여 조회합니다."""
     stmt = select(NetworkObject).filter(NetworkObject.device_id == device_id, NetworkObject.is_active == True).offset(skip)
     if limit:
         stmt = stmt.limit(limit)
@@ -24,15 +32,21 @@ async def get_network_objects_by_device(db: AsyncSession, device_id: int, skip: 
     return result.scalars().all()
 
 async def get_all_active_network_objects_by_device(db: AsyncSession, device_id: int):
+    """특정 장비의 모든 활성 네트워크 객체를 조회합니다 (대량 처리용)."""
     result = await db.execute(select(NetworkObject).filter(NetworkObject.device_id == device_id, NetworkObject.is_active == True))
     return result.scalars().all()
 
 async def create_network_objects(db: AsyncSession, network_objects: list[NetworkObjectCreate]):
+    """
+    여러 네트워크 객체를 한 번에 생성합니다 (Bulk Insert).
+    성능 최적화를 위해 add_all을 사용하여 단일 트랜잭션 내에서 처리합니다.
+    """
     db_network_objects = [NetworkObject(**obj.model_dump()) for obj in network_objects]
     db.add_all(db_network_objects)
     return db_network_objects
 
 async def update_network_object(db: AsyncSession, db_obj: NetworkObject, obj_in: NetworkObjectCreate):
+    """기존 네트워크 객체의 정보를 업데이트합니다."""
     obj_data = obj_in.model_dump(exclude_unset=True, exclude_none=True)
     for field in obj_data:
         setattr(db_obj, field, obj_data[field])
@@ -40,6 +54,7 @@ async def update_network_object(db: AsyncSession, db_obj: NetworkObject, obj_in:
     return db_obj
 
 async def delete_network_object(db: AsyncSession, network_object: NetworkObject):
+    """네트워크 객체를 삭제합니다 (Hard Delete)."""
     await db.delete(network_object)
     return network_object
 

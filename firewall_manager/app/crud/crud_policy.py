@@ -121,30 +121,31 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
     if to is not None:
         stmt = stmt.where(Policy.last_hit_date <= to)
 
-    # --- Member-index filters ---
-    # We collect policy IDs from each filter type (src, dst, svc).
-    # Within each filter, multiple values are treated as OR (union).
-    # Between filters, the results are treated as AND (intersection).
+    # --- Member-index 기반 복합 필터링 ---
+    # 각 필터 유형(출발지 IP, 목적지 IP, 서비스/포트)별로 일치하는 정책 ID들을 수집합니다.
+    # 동일 필터 내의 여러 값은 'OR(합집합)'으로 처리하며, 서로 다른 필터(IP vs 서비스) 간에는 'AND(교집합)'로 처리합니다.
 
     list_of_policy_id_sets = []
 
-    # Source IP filter
+    # 출발지 IP 필터 (Source IP Index 활용)
     if req.src_ips:
         src_policy_ids = set()
         for ip_str in req.src_ips:
+            # IP를 숫자 범위(start, end)로 변환하여 검색 (단일 IP 또는 대역폭 모두 지원)
             _, start, end = parse_ipv4_numeric(ip_str)
             if start is not None and end is not None:
+                # 정책 대역과 검색 대역이 겹치는지(Overlapping) 확인하는 쿼리
                 query = select(models.PolicyAddressMember.policy_id).where(
                     models.PolicyAddressMember.device_id.in_(req.device_ids),
                     models.PolicyAddressMember.direction == 'source',
-                    models.PolicyAddressMember.ip_start <= end,
-                    models.PolicyAddressMember.ip_end >= start
+                    models.PolicyAddressMember.ip_start <= end, # 정책 시작점이 검색 종료점보다 작거나 같고
+                    models.PolicyAddressMember.ip_end >= start   # 정책 종료점이 검색 시작점보다 크거나 같음
                 )
                 result = await db.execute(query)
                 src_policy_ids.update(result.scalars().all())
         list_of_policy_id_sets.append(src_policy_ids)
 
-    # Destination IP filter
+    # 목적지 IP 필터 (Destination IP Index 활용)
     if req.dst_ips:
         dst_policy_ids = set()
         for ip_str in req.dst_ips:
@@ -160,7 +161,7 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
                 dst_policy_ids.update(result.scalars().all())
         list_of_policy_id_sets.append(dst_policy_ids)
 
-    # Service filter
+    # 서비스 필터 (Service/Port Index 활용)
     if req.services:
         from sqlalchemy import and_, or_
 
@@ -172,6 +173,7 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
             if not token:
                 continue
 
+            # 'tcp/80'과 같은 프로토콜 명시 형식 지원
             proto = None
             ports_str = token
             if '/' in token:
@@ -179,23 +181,22 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
                 proto = parts[0].strip().lower()
                 ports_str = parts[1].strip()
 
+            # 포트를 숫자 범위(start, end)로 변환 (단일 포트 또는 범위 검색 지원)
             pstart, pend = parse_port_numeric(ports_str)
 
             if pstart is not None and pend is not None:
-                # Base condition for port range
+                # 포트 범위 중첩(Overlapping) 조건
                 port_condition = and_(
                     models.PolicyServiceMember.port_start <= pend,
                     models.PolicyServiceMember.port_end >= pstart
                 )
 
-                # Protocol-specific conditions
+                # 프로토콜 필터링 로직
                 if proto and proto != 'any':
-                    # User specified a protocol (e.g., 'tcp/80')
+                    # 특정 프로토콜(tcp, udp 등) 명시 시 해당 프로토콜만 검색
                     final_condition = and_(port_condition, func.lower(models.PolicyServiceMember.protocol) == proto)
                 else:
-                    # User did not specify a protocol (e.g., '80'), or specified 'any'.
-                    # Match against tcp/udp for specific ports, but also include 'any' protocol
-                    # policies which match all ports.
+                    # 프로토콜 미지정 시 'any'를 포함한 기본 전송 프로토콜 검색
                     final_condition = and_(
                         port_condition,
                         func.lower(models.PolicyServiceMember.protocol).in_(['tcp', 'udp', 'any'])
@@ -212,13 +213,15 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
 
         list_of_policy_id_sets.append(svc_policy_ids)
 
-    # If any index filters were applied, calculate the intersection
+    # 모든 개별 인덱스 필터(IP, Service) 결과의 교집합(Intersection)을 최종 정책 ID 목록으로 확정
     if list_of_policy_id_sets:
-        # 모든 필터 결과의 교집합을 계산
         final_policy_ids = set.intersection(*list_of_policy_id_sets)
 
-        if not final_policy_ids: # 결합된 인덱스 필터와 일치하는 정책이 없음
+        if not final_policy_ids:
+            # 인덱스 필터를 적용했을 때 일치하는 결과가 전혀 없는 경우 즉시 빈 리스트 반환
             return []
+        
+        # 주 쿼리에 정책 ID 필터 추가
         stmt = stmt.where(Policy.id.in_(final_policy_ids))
 
 

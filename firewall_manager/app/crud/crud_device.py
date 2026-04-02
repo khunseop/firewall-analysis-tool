@@ -95,36 +95,46 @@ async def remove_device(db: AsyncSession, id: int):
 async def update_sync_status(
     db: AsyncSession, device: Device, status: str, step: str | None = None
 ) -> Device:
-    """Update device sync status, step, and optionally timestamp."""
+    """
+    장비의 동기화 상태(status)와 현재 진행 단계(step)를 업데이트합니다.
+    실시간 상태 변경은 WebSocket을 통해 프론트엔드로 브로드캐스트됩니다.
+    
+    :param status: 동기화 상태 ('running', 'success', 'failure')
+    :param step: 세부 진행 단계 (예: 'Collecting Policies', 'Indexing', 'Completed')
+    """
     import logging
     logger = logging.getLogger(__name__)
     
     device.last_sync_status = status
     device.last_sync_step = step
 
+    # 동기화가 종료(성공 또는 실패)된 경우에만 마지막 동기화 시간(last_sync_at)을 기록
     if status in {"success", "failure"}:
-        # Set timestamp only when the sync finishes to mark the end time.
         device.last_sync_at = datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
 
+    # 성공 시 세부 단계를 'Completed'로 강제 설정하여 명확성 확보
     if status == "success":
-        device.last_sync_step = "Completed" # Mark final step on success
+        device.last_sync_step = "Completed"
 
     db.add(device)
     
-    # WebSocket으로 상태 변경 브로드캐스트
+    # WebSocket을 통한 상태 변경 알림 전송 (프론트엔드 실시간 UI 반영용)
     try:
         from app.services.websocket_manager import websocket_manager
         await websocket_manager.broadcast_device_status(device.id, status, step)
     except Exception as e:
-        # WebSocket 브로드캐스트 실패해도 DB 업데이트는 계속 진행
+        # WebSocket 오류가 DB 트랜잭션에 영향을 주지 않도록 예외 처리
         logger.warning(f"WebSocket 브로드캐스트 실패: {e}")
     
     return device
 
 
 async def get_dashboard_stats(db: AsyncSession) -> DashboardStatsResponse:
-    """대시보드 통계를 한 번에 조회 (모든 장비의 통계 포함)"""
-    # 모든 장비 조회
+    """
+    대시보드 메인 화면에 표시될 종합 통계 데이터를 조회합니다.
+    전체 장비 수, 활성 정책 수, 객체 수 및 각 장비별 상세 현황을 포함합니다.
+    """
+    # 모든 장비 정보 조회
     devices_result = await db.execute(select(Device))
     devices = devices_result.scalars().all()
     
