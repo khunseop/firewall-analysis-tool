@@ -1,352 +1,79 @@
-# Database Schema Documentation
+# 데이터베이스 스키마 정의서 (Database Schema)
 
-This document provides an overview of the database schema for the Firewall Analysis Tool.
-
-## `devices` Table
-
-Stores information about the firewall devices being managed.
-
-| Column                    | Type      | Constraints                | Description                                    |
-|---------------------------|-----------|----------------------------|------------------------------------------------|
-| `id`                      | `INTEGER` | `PRIMARY KEY`, `NOT NULL`  | Unique identifier for the device.              |
-| `name`                    | `VARCHAR` | `NOT NULL`, `UNIQUE`       | User-defined name for the device.            |
-| `ip_address`              | `VARCHAR` | `NOT NULL`, `UNIQUE`       | IP address of the device.                     |
-| `vendor`                  | `VARCHAR` | `NOT NULL`                 | Vendor of the device (e.g., paloalto, secui). |
-| `username`                | `VARCHAR` | `NOT NULL`                 | Username for device authentication.           |
-| `password`                | `VARCHAR` | `NOT NULL`                 | Fernet (symmetric) encrypted password.        |
-| `description`             | `VARCHAR` | `NULLABLE`                 | A brief description of the device.           |
-| `ha_peer_ip`              | `VARCHAR` | `NULLABLE`                 | HA peer IP address (Palo Alto only).         |
-| `use_ssh_for_last_hit_date`| `BOOLEAN` | `NULLABLE`, `DEFAULT False`| Use SSH instead of API for last_hit_date.    |
-| `model`                   | `VARCHAR` | `NULLABLE`                 | Device model information.                      |
-| `last_sync_at`            | `DATETIME`| `NULLABLE`                 | Timestamp of the last completed sync.         |
-| `last_sync_status`        | `VARCHAR` | `NULLABLE`                 | `in_progress`, `success`, or `failure`.      |
-| `last_sync_step`          | `VARCHAR` | `NULLABLE`                 | Current sync step message (e.g., "Collecting policies..."). |
-
-### Indexes
-
-- `ix_devices_id`: Index on the `id` column.
-- `ix_devices_name`: Index on the `name` column.
-
-## `change_logs` Table
-
-Stores the history of changes made to firewall objects.
-
-| Column        | Type      | Constraints                | Description                                           |
-|---------------|-----------|----------------------------|-------------------------------------------------------|
-| `id`          | `INTEGER` | `PRIMARY KEY`, `NOT NULL`  | Unique identifier for the log entry.                  |
-| `timestamp`   | `DATETIME`| `NOT NULL`                 | Timestamp of when the change occurred.                |
-| `device_id`   | `INTEGER` | `FOREIGN KEY (devices.id)` | Foreign key to the `devices` table.                   |
-| `data_type`   | `VARCHAR` | `NOT NULL`                 | The type of data that was changed (e.g., 'policies'). |
-| `object_name` | `VARCHAR` | `NOT NULL`                 | The name or identifier of the object that changed.    |
-| `action`      | `VARCHAR` | `NOT NULL`                 | The action performed ('created', 'updated', 'deleted').|
-| `details`     | `JSON`    | `NULLABLE`                 | A JSON object containing details about the change.    |
-
-### Indexes
-
-- `ix_change_logs_id`: Index on the `id` column.
-
-### Semantics
-
-- On create/update/delete during synchronization, a row is appended:
-  - `action`: `created` | `updated` | `deleted`
-  - `details`: for updates, `{ "before": {..}, "after": {..} }` serialized to JSON
-
-## `network_objects` Table
-
-Stores information about the network objects.
-
-| Column         | Type       | Constraints                | Description                                                                 |
-|----------------|------------|----------------------------|-----------------------------------------------------------------------------|
-| `id`           | `INTEGER`  | `PRIMARY KEY`, `NOT NULL`  | Unique identifier for the object.                                           |
-| `device_id`    | `INTEGER`  | `FOREIGN KEY (devices.id)` | Foreign key to the `devices` table.                                         |
-| `name`         | `VARCHAR`  | `NOT NULL`                 | Name of the network object.                                                 |
-| `ip_address`   | `VARCHAR`  | `NOT NULL`                 | Raw address string (single, CIDR, range, FQDN, any).                        |
-| `type`         | `VARCHAR`  | `NULLABLE`                 | Type of the network object (e.g., ip-netmask, ip-range, fqdn).              |
-| `description`  | `VARCHAR`  | `NULLABLE`                 | A brief description of the object.                                          |
-| `ip_version`   | `INTEGER`  | `NULLABLE`                 | 4 when IPv4 numeric is available; 6 for IPv6, otherwise NULL (e.g., FQDN).  |
-| `ip_start`     | `BIGINT`   | `NULLABLE`                 | Numeric start of IPv4 range (inclusive).                                    |
-| `ip_end`       | `BIGINT`   | `NULLABLE`                 | Numeric end of IPv4 range (inclusive).                                      |
-| `is_active`    | `BOOLEAN`  | `NOT NULL`                 | Whether the object is active (present in last sync).                        |
-| `last_seen_at` | `DATETIME` | `NOT NULL`                 | Last time the object was confirmed present from source.                     |
-
-### Indexes
-
-- `ix_network_objects_id`: Index on the `id` column.
-- `ix_network_objects_name`: Index on the `name` column.
-
-## `network_groups` Table
-
-Stores information about the network groups.
-
-| Column         | Type      | Constraints                | Description                                  |
-|----------------|-----------|----------------------------|----------------------------------------------|
-| `id`           | `INTEGER` | `PRIMARY KEY`, `NOT NULL`  | Unique identifier for the group.             |
-| `device_id`    | `INTEGER` | `FOREIGN KEY (devices.id)` | Foreign key to the `devices` table.          |
-| `name`         | `VARCHAR` | `NOT NULL`                 | Name of the network group.                   |
-| `members`      | `VARCHAR` | `NULLABLE`                 | Comma-separated list of member object names. |
-| `description`  | `VARCHAR` | `NULLABLE`                 | A brief description of the group.            |
-| `is_active`    | `BOOLEAN` | `NOT NULL`                 | Whether the group is active (present in last sync).      |
-| `last_seen_at` | `DATETIME`| `NOT NULL`                 | Last time the group was confirmed present.               |
-
-### Indexes
-
-- `ix_network_groups_id`: Index on the `id` column.
-- `ix_network_groups_name`: Index on the `name` column.
-
-## `services` Table
-
-Stores information about the service objects.
-
-| Column         | Type       | Constraints                | Description                                                |
-|----------------|------------|----------------------------|------------------------------------------------------------|
-| `id`           | `INTEGER`  | `PRIMARY KEY`, `NOT NULL`  | Unique identifier for the service.                         |
-| `device_id`    | `INTEGER`  | `FOREIGN KEY (devices.id)` | Foreign key to the `devices` table.                        |
-| `name`         | `VARCHAR`  | `NOT NULL`                 | Name of the service object.                                |
-| `protocol`     | `VARCHAR`  | `NULLABLE`                 | Protocol of the service (e.g., tcp, udp, icmp).            |
-| `port`         | `VARCHAR`  | `NULLABLE`                 | Raw port definition (single, range, comma, any/*).         |
-| `port_start`   | `INTEGER`  | `NULLABLE`                 | Numeric start port (inclusive). `any/*` → 0.               |
-| `port_end`     | `INTEGER`  | `NULLABLE`                 | Numeric end port (inclusive). `any/*` → 65535.             |
-| `description`  | `VARCHAR`  | `NULLABLE`                 | A brief description of the service.                        |
-| `is_active`    | `BOOLEAN`  | `NOT NULL`                 | Whether the service is active (present in last sync).      |
-| `last_seen_at` | `DATETIME` | `NOT NULL`                 | Last time the service was confirmed present.               |
-
-### Indexes
-
-- `ix_services_id`: Index on the `id` column.
-- `ix_services_name`: Index on the `name` column.
-
-## `service_groups` Table
-
-Stores information about the service groups.
-
-| Column         | Type      | Constraints                | Description                                   |
-|----------------|-----------|----------------------------|-----------------------------------------------|
-| `id`           | `INTEGER` | `PRIMARY KEY`, `NOT NULL`  | Unique identifier for the group.              |
-| `device_id`    | `INTEGER` | `FOREIGN KEY (devices.id)` | Foreign key to the `devices` table.           |
-| `name`         | `VARCHAR` | `NOT NULL`                 | Name of the service group.                    |
-| `members`      | `VARCHAR` | `NULLABLE`                 | Comma-separated list of member service names. |
-| `description`  | `VARCHAR` | `NULLABLE`                 | A brief description of the group.             |
-| `is_active`    | `BOOLEAN` | `NOT NULL`                 | Whether the group is active (present in last sync).      |
-| `last_seen_at` | `DATETIME`| `NOT NULL`                 | Last time the group was confirmed present.               |
-
-### Indexes
-
-- `ix_service_groups_id`: Index on the `id` column.
-- `ix_service_groups_name`: Index on the `name` column.
-
-## `policies` Table
-
-Stores information about the firewall policies.
-
-| Column             | Type       | Constraints                | Description                                        |
-|--------------------|------------|----------------------------|----------------------------------------------------|
-| `id`               | `INTEGER`  | `PRIMARY KEY`, `NOT NULL`  | Unique identifier for the policy.                  |
-| `device_id`        | `INTEGER`  | `FOREIGN KEY (devices.id)` | Foreign key to the `devices` table.                |
-| `vsys`             | `VARCHAR`  | `NULLABLE`                 | Virtual system name.                               |
-| `seq`              | `INTEGER`  | `NULLABLE`                 | Sequence number of the policy.                     |
-| `rule_name`        | `VARCHAR`  | `NOT NULL`                 | Name of the policy rule.                           |
-| `enable`           | `BOOLEAN`  | `NULLABLE`                 | Whether the policy is enabled.                     |
-| `action`           | `VARCHAR`  | `NOT NULL`                 | Action of the policy (e.g., allow, deny).          |
-| `source`           | `VARCHAR`  | `NOT NULL`                 | Source field raw tokens (comma separated).         |
-| `user`             | `VARCHAR`  | `NULLABLE`                 | User of the traffic.                               |
-| `destination`      | `VARCHAR`  | `NOT NULL`                 | Destination field raw tokens (comma separated).    |
-| `service`          | `VARCHAR`  | `NOT NULL`                 | Service field raw tokens (comma separated).        |
-| `application`      | `VARCHAR`  | `NULLABLE`                 | Application of the traffic.                        |
-| `security_profile` | `VARCHAR`  | `NULLABLE`                 | Security profile of the policy.                    |
-| `category`         | `VARCHAR`  | `NULLABLE`                 | Category of the policy.                            |
-| `description`      | `VARCHAR`  | `NULLABLE`                 | A brief description of the policy.                 |
-| `last_hit_date`    | `DATETIME` | `NULLABLE`                 | Last usage timestamp (vendor-dependent enrichment).|
-| `is_active`        | `BOOLEAN`  | `NOT NULL`                 | Whether the policy is active (present in last sync). |
-| `last_seen_at`     | `DATETIME` | `NOT NULL`                 | Last time the policy was confirmed present.        |
-| `is_indexed`        | `BOOLEAN`  | `NOT NULL`, `DEFAULT False`| Whether the policy has been indexed.                |
-
-### Indexes
-
-- `ix_policies_id`: Index on the `id` column.
-- `ix_policies_rule_name`: Index on the `rule_name` column.
-
-## Policy Member Index Tables
-
-These tables store policy members as numeric ranges for high-performance search and analysis, covering both object references and raw literals entered directly in policies.
-
-### `policy_address_members`
-
-| Column        | Type      | Constraints                | Description                                                 |
-|---------------|-----------|----------------------------|-------------------------------------------------------------|
-| `id`          | `INTEGER` | `PRIMARY KEY`, `NOT NULL`  | Row id.                                                     |
-| `device_id`   | `INTEGER` | `FOREIGN KEY (devices.id)` | Device id.                                                  |
-| `policy_id`   | `INTEGER` | `FOREIGN KEY (policies.id)`| Policy id.                                                  |
-| `direction`   | `VARCHAR` | `NOT NULL`                 | 'source' or 'destination'.                                  |
-| `token`       | `VARCHAR` | `NULLABLE`                 | Original token (for empty groups).                          |
-| `token_type`  | `VARCHAR` | `NULLABLE`                 | 'ipv4_range' | 'unknown'.                                                  |
-| `ip_start`    | `BIGINT`  | `NULLABLE`                 | IPv4 numeric start (inclusive).                              |
-| `ip_end`      | `BIGINT`  | `NULLABLE`                 | IPv4 numeric end (inclusive).                                |
-
-Indexes:
-- `ix_policy_addr_members_lookup(device_id, direction, ip_start, ip_end)`
-- `ix_policy_addr_members_policy(policy_id)`
-
-### `policy_service_members`
-
-| Column        | Type      | Constraints                | Description                                      |
-|---------------|-----------|----------------------------|--------------------------------------------------|
-| `id`          | `INTEGER` | `PRIMARY KEY`, `NOT NULL`  | Row id.                                          |
-| `device_id`   | `INTEGER` | `FOREIGN KEY (devices.id)` | Device id.                                       |
-| `policy_id`   | `INTEGER` | `FOREIGN KEY (policies.id)`| Policy id.                                       |
-| `token`       | `VARCHAR` | `NOT NULL`                 | Original token (object name or literal).         |
-| `token_type`  | `VARCHAR` | `NULLABLE`                 | proto_port | any | unknown.                      |
-| `protocol`    | `VARCHAR` | `NULLABLE`                 | Protocol (lowercase).                             |
-| `port_start`  | `INTEGER` | `NULLABLE`                 | Start port (inclusive).                           |
-| `port_end`    | `INTEGER` | `NULLABLE`                 | End port (inclusive).                             |
-
-Indexes:
-- `ix_policy_svc_members_lookup(device_id, protocol, port_start, port_end)`
-- `ix_policy_svc_members_policy(policy_id)`
-
-### Query Patterns (Examples)
-
-- Find policies covering an IPv4 address X as source:
-  - Compute `X_num = IPv4Address(X)`; then
-  - `SELECT DISTINCT policy_id FROM policy_address_members WHERE device_id = ? AND direction = 'source' AND ip_start <= X_num AND ip_end >= X_num;`
-
-- Find policies covering TCP port 443:
-  - `SELECT DISTINCT policy_id FROM policy_service_members WHERE device_id = ? AND (protocol = 'tcp' OR protocol IS NULL) AND port_start <= 443 AND port_end >= 443;`
-
-- Join to policies:
-  - `SELECT p.* FROM policies p WHERE p.id IN (<subquery above>);`
+본 문서는 Firewall Analysis Tool에서 사용하는 데이터베이스 스키마와 각 테이블의 역할에 대해 상세히 설명합니다. 모든 테이블은 비동기 처리에 최적화되어 설계되었습니다.
 
 ---
 
-## `analysistasks` Table
+## 1. 핵심 엔티티 (Core Entities)
 
-Stores analysis task information.
+### `devices` (방화벽 장비)
+관리 대상인 방화벽 장비 정보를 저장합니다.
 
-| Column         | Type      | Constraints                | Description                                    |
-|----------------|-----------|----------------------------|------------------------------------------------|
-| `id`           | `INTEGER` | `PRIMARY KEY`, `NOT NULL`  | Unique identifier for the task.              |
-| `device_id`    | `INTEGER` | `FOREIGN KEY (devices.id)` | Foreign key to the `devices` table.          |
-| `task_type`    | `ENUM`    | `NOT NULL`                 | Task type: redundancy, unused, impact, unreferenced_objects, risky_ports. |
-| `task_status`  | `ENUM`    | `NOT NULL`                 | Task status: pending, in_progress, success, failure. |
-| `created_at`   | `DATETIME`| `NOT NULL`                 | Task creation timestamp.                      |
-| `started_at`   | `DATETIME`| `NULLABLE`                 | Task start timestamp.                         |
-| `completed_at` | `DATETIME`| `NULLABLE`                 | Task completion timestamp.                    |
-
-## `redundancypolicysets` Table
-
-Stores redundancy analysis results linking policies.
-
-| Column        | Type      | Constraints                | Description                                    |
-|---------------|-----------|----------------------------|------------------------------------------------|
-| `id`          | `INTEGER` | `PRIMARY KEY`, `NOT NULL`  | Unique identifier.                             |
-| `task_id`     | `INTEGER` | `FOREIGN KEY (analysistasks.id)` | Foreign key to the analysis task.         |
-| `set_number`  | `INTEGER` | `NOT NULL`                 | Set number for grouping redundant policies.    |
-| `type`        | `ENUM`    | `NOT NULL`                 | 'UPPER' or 'LOWER' policy type.               |
-| `policy_id`   | `INTEGER` | `FOREIGN KEY (policies.id)`| Foreign key to the policy.                     |
-
-### Indexes
-
-- `ix_redundancypolicysets_set_number`: Index on the `set_number` column.
-
-## `analysis_results` Table
-
-Stores analysis results in JSON format.
-
-| Column         | Type      | Constraints                | Description                                    |
-|----------------|-----------|----------------------------|------------------------------------------------|
-| `id`           | `INTEGER` | `PRIMARY KEY`, `NOT NULL`  | Unique identifier.                             |
-| `device_id`    | `INTEGER` | `FOREIGN KEY (devices.id)` | Foreign key to the `devices` table.           |
-| `analysis_type`| `VARCHAR`| `NOT NULL`                 | Type of analysis (e.g., risky_ports).         |
-| `result_data`  | `JSON`    | `NOT NULL`                 | Analysis results in JSON format.               |
-| `created_at`   | `DATETIME`| `NOT NULL`                 | Result creation timestamp.                      |
-
-### Indexes
-
-- `ix_analysis_results_device_id`: Index on the `device_id` column.
-- `ix_analysis_results_analysis_type`: Index on the `analysis_type` column.
-
-## `notification_logs` Table
-
-Stores system notification logs for sync and analysis operations.
-
-| Column         | Type      | Constraints                | Description                                    |
-|----------------|-----------|----------------------------|------------------------------------------------|
-| `id`           | `INTEGER` | `PRIMARY KEY`, `NOT NULL`  | Unique identifier.                             |
-| `timestamp`    | `DATETIME`| `NOT NULL`                 | Notification timestamp.                         |
-| `title`        | `VARCHAR` | `NOT NULL`                 | Notification title.                            |
-| `message`      | `TEXT`    | `NOT NULL`                 | Notification message.                          |
-| `type`         | `VARCHAR` | `NOT NULL`                 | Notification type: info, success, warning, error. |
-| `category`     | `VARCHAR` | `NULLABLE`                 | Category: sync, analysis, system.            |
-| `device_id`    | `INTEGER` | `NULLABLE`                 | Related device ID (optional).                  |
-| `device_name`  | `VARCHAR` | `NULLABLE`                 | Device name (cached).                          |
-
-### Indexes
-
-- `ix_notification_logs_timestamp`: Index on the `timestamp` column.
-- `ix_notification_logs_type`: Index on the `type` column.
-- `ix_notification_logs_category`: Index on the `category` column.
-- `ix_notification_logs_device_id`: Index on the `device_id` column.
-
-## `settings` Table
-
-Stores application settings.
-
-| Column         | Type      | Constraints                | Description                                    |
-|----------------|-----------|----------------------------|------------------------------------------------|
-| `key`          | `VARCHAR` | `PRIMARY KEY`, `NOT NULL`  | Setting key (e.g., sync_parallel_limit).      |
-| `value`        | `VARCHAR` | `NOT NULL`                 | Setting value.                                 |
-| `description`  | `VARCHAR` | `NULLABLE`                 | Setting description.                            |
-
-### Indexes
-
-- `ix_settings_key`: Index on the `key` column.
-
-## `sync_schedules` Table
-
-Stores scheduled synchronization tasks.
-
-| Column           | Type      | Constraints                | Description                                    |
-|------------------|-----------|----------------------------|------------------------------------------------|
-| `id`             | `INTEGER` | `PRIMARY KEY`, `NOT NULL`  | Unique identifier.                             |
-| `name`           | `VARCHAR` | `NOT NULL`, `UNIQUE`       | Schedule name.                                 |
-| `enabled`        | `BOOLEAN` | `NOT NULL`, `DEFAULT True` | Whether the schedule is enabled.               |
-| `days_of_week`   | `JSON`    | `NOT NULL`                 | Days of week: [0,1,2,3,4,5,6] (Mon-Sun).     |
-| `time`           | `VARCHAR` | `NOT NULL`                 | Time in "HH:MM" format.                        |
-| `device_ids`     | `JSON`    | `NOT NULL`                 | List of device IDs to sync.                    |
-| `description`    | `VARCHAR` | `NULLABLE`                 | Schedule description.                           |
-| `created_at`     | `DATETIME`| `NOT NULL`                 | Creation timestamp.                             |
-| `updated_at`     | `DATETIME`| `NOT NULL`                 | Last update timestamp.                          |
-| `last_run_at`    | `DATETIME`| `NULLABLE`                 | Last execution timestamp.                      |
-| `last_run_status`| `VARCHAR` | `NULLABLE`                 | Last execution status: success, failure.       |
+| 컬럼명 | 타입 | 제약조건 | 설명 |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PK`, `NOT NULL` | 고유 식별자 |
+| `name` | `VARCHAR` | `NOT NULL`, `UNIQUE` | 장비 명칭 |
+| `ip_address` | `VARCHAR` | `NOT NULL`, `UNIQUE` | 장비 IP 주소 |
+| `vendor` | `VARCHAR` | `NOT NULL` | 제조사 (paloalto, secui, ngf 등) |
+| `username` | `VARCHAR` | `NOT NULL` | 접속 ID (NGF의 경우 클라이언트 ID) |
+| `password` | `VARCHAR` | `NOT NULL` | Fernet 암호화된 비밀번호 |
+| `ha_peer_ip` | `VARCHAR` | `NULLABLE` | HA 구성을 위한 상대 장비 IP (Palo Alto) |
+| `use_ssh_for_last_hit_date` | `BOOLEAN` | `DEFAULT False` | 히트 수집 시 SSH 사용 여부 |
+| `model` | `VARCHAR` | `NULLABLE` | 장비 모델명 |
+| `last_sync_at` | `DATETIME` | `NULLABLE` | 마지막 동기화 완료 시간 |
+| `last_sync_status` | `VARCHAR` | `NULLABLE` | 동기화 상태 (in_progress, success, failure) |
+| `last_sync_step` | `VARCHAR` | `NULLABLE` | 현재 진행 중인 동기화 단계 메시지 |
 
 ---
 
-## Synchronization Semantics
+## 2. 정책 및 객체 테이블 (Policies & Objects)
 
-- Device-level status:
-  - When a sync request is accepted, `devices.last_sync_status` is set to `in_progress`.
-  - On completion: set `success` or `failure`; `last_sync_at` is only updated at completion.
+### `policies` (보안 정책)
+장비로부터 수집된 보안 규칙(Security Rules) 정보를 저장합니다.
+- **`is_indexed`**: 정책 내용 변경 시 `False`로 설정되며, 인덱서가 처리를 완료하면 `True`가 됩니다.
+- **`last_hit_date`**: 정책의 최근 매칭 시간을 저장합니다.
 
-- Object lifecycle on sync:
-  - New: insert rows for objects present in source but missing in DB.
-  - Update: compare by key (`policies.rule_name`, otherwise `name`); persist diffs and write `change_logs` with before/after.
-  - Delete: remove DB rows missing from source; write `change_logs` with `deleted`.
-  - Touch: for objects seen in source, set `last_seen_at=now()` and keep `is_active=True`.
+### `network_objects` / `network_groups`
+네트워크 주소 객체 및 그룹 정보를 저장합니다. 그룹 멤버는 쉼표로 구분된 문자열로 저장됩니다.
 
-### Policy Flattening and Indexing
+### `services` / `service_groups`
+서비스(포트/프로토콜) 객체 및 그룹 정보를 저장합니다.
 
-- 정책 인덱싱은 동기화와 분리된 전용 단계로 수행됩니다. `sync-all` 완료 후 자동으로 실행되며, 필요 시 수동 호출할 수 있습니다.
-- 그룹 전개 및 값 치환 후 토큰을 파싱하여 `policy_address_members`와 `policy_service_members`에 기록합니다.
-- IP 범위 병합: 개별 IP/CIDR을 숫자 범위로 변환 후 연속 범위를 병합하여 저장 공간을 절약합니다.
-- Raw literals present directly in policies (e.g., single IPs, CIDRs, tcp/80) are included, ensuring no loss versus object tables.
-- IPv4 전용: IPv6 numeric ranges are not stored by default due to SQLite 64-bit integer limitations.
+---
 
-### Policy Usage Tracking
+## 3. 정책 검색 인덱스 테이블 (Member Indexes)
 
-- `policies.last_hit_date: DATETIME NULL`
-  - **NGF**: 정책 수집 시 원천 데이터에 포함된 Last Hit Date를 저장. 값이 `-` 또는 공란이면 저장하지 않음(NULL 처리).
-  - **Palo Alto**: 정책 수집 직후, API 또는 SSH를 통해 rule-hit-count를 호출해 VSYS, Rule Name 기준으로 병합하여 `last_hit_date`를 보강 저장.
-    - VSYS가 식별 가능한 경우 `(vsys, rule_name)`으로 매칭, 없으면 `rule_name`만으로 폴백.
-    - HA Peer IP가 설정된 경우, 메인 장비와 HA Peer에서 모두 수집 후 최신 타임스탬프를 선택.
-    - `use_ssh_for_last_hit_date` 옵션으로 API 대신 SSH를 통한 수집 가능.
-  - **MF2**: 미지원. 항상 NULL 유지.
+복잡한 그룹 구조를 가진 정책을 빠르게 검색하기 위해 사용되는 역정규화 테이블입니다.
 
+### `policy_address_members` (주소 인덱스)
+정책에 포함된 모든 IP 대역을 숫자 범위(`ip_start`, `ip_end`)로 전개하여 저장합니다.
+
+### `policy_service_members` (서비스 인덱스)
+정책에 포함된 모든 프로토콜 및 포트 정보를 범위(`port_start`, `port_end`)로 저장합니다.
+
+---
+
+## 4. 분석 결과 및 이력 (Analysis & Logs)
+
+### `analysistasks` (분석 작업)
+분석 작업(중복 탐지 등)의 진행 상태(pending, in_progress, success, failure)를 관리합니다.
+
+### `analysis_results` (분석 결과)
+분석 완료 후 도출된 상세 데이터를 JSON 포맷(`result_data`)으로 저장합니다.
+- 예: 중복 정책 세트 정보, 미사용 객체 리스트 등.
+
+### `change_logs` (변경 이력)
+동기화 시 탐지된 객체/정책의 변경 사항을 기록합니다. 수정 시 `before/after` 상태를 JSON으로 저장합니다.
+
+---
+
+## 5. 시스템 공통
+
+### `notification_logs` (알림 로그)
+시스템 이벤트(동기화 성공/실패 등)를 기록하며 프론트엔드 알림 티커와 연동됩니다.
+
+### `settings` (시스템 설정)
+애플리케이션 전역 설정(예: `sync_parallel_limit`)을 키-값 쌍으로 저장합니다.
+
+### `sync_schedules` (동기화 스케줄)
+정기적인 자동 동기화 수행을 위한 요일, 시간 정보를 저장합니다.
