@@ -1,0 +1,69 @@
+- generic [active] [ref=e1]:
+  - navigation "main navigation" [ref=e2]:
+    - generic [ref=e4]:
+      - link "FAT" [ref=e5] [cursor=pointer]:
+        - /url: "#/dashboard"
+        - generic [ref=e6]: FAT
+      - button "menu" [ref=e1505] [cursor=pointer]
+  - generic [ref=e1713]:
+    - heading "객체조회" [level=1] [ref=e1714]
+    - generic [ref=e1716]:
+      - generic [ref=e1717]: 장비
+      - listbox [ref=e1719]
+    - list [ref=e1721]:
+      - listitem [ref=e1722]:
+        - generic [ref=e1723] [cursor=pointer]: 네트워크 객체
+      - listitem [ref=e1724]:
+        - generic [ref=e1725] [cursor=pointer]: 네트워크 그룹
+      - listitem [ref=e1726]:
+        - generic [ref=e1727] [cursor=pointer]: 서비스 객체
+      - listitem [ref=e1728]:
+        - generic [ref=e1729] [cursor=pointer]: 서비스 그룹
+    - generic [ref=e1730]:
+      - generic [ref=e1731]:
+        - button "상세 검색" [ref=e1734] [cursor=pointer]:
+          - img [ref=e1736]
+          - generic [ref=e1739]: 상세 검색
+        - generic [ref=e1742]:
+          - button "필터 초기화" [ref=e1743] [cursor=pointer]
+          - button "엑셀 내보내기" [ref=e1744] [cursor=pointer]
+      - generic [ref=e1747]:
+        - grid [ref=e1749]:
+          - rowgroup [ref=e1750]:
+            - row "장비" [ref=e1751]:
+              - columnheader "장비" [ref=e1752]:
+                - generic [ref=e1755]: 장비
+          - rowgroup:
+            - row "이름 IP 주소 타입 설명" [ref=e1756]:
+              - columnheader "이름" [ref=e1757]:
+                - generic [ref=e1760]: 이름
+              - columnheader "IP 주소" [ref=e1761]:
+                - generic [ref=e1764]: IP 주소
+              - columnheader "타입" [ref=e1765]:
+                - generic [ref=e1768]: 타입
+              - columnheader "설명" [ref=e1769]:
+                - generic [ref=e1772]: 설명
+          - rowgroup [ref=e1773]
+          - rowgroup
+          - rowgroup
+          - rowgroup
+          - rowgroup
+          - rowgroup
+          - generic [ref=e1774]: Loading...
+        - generic [ref=e1775]:
+          - generic [ref=e1776]:
+            - generic [ref=e1777]: "Page Size:"
+            - combobox "Page Size" [ref=e1778]:
+              - generic [ref=e1779]: "50"
+          - generic [ref=e1781]: 0 to 0 of 0
+          - button "First Page" [disabled] [ref=e1782]
+          - button "Previous Page" [disabled] [ref=e1783]
+          - generic [ref=e1784]: Page 0 of 0
+          - button "Next Page" [disabled] [ref=e1785]
+          - button "Last Page" [disabled] [ref=e1786]
+  - contentinfo [ref=e132]:
+    - paragraph [ref=e135]:
+      - generic [ref=e136]: © 2025 Firewall Analysis Tool
+      - generic [ref=e137]: "|"
+      - generic [ref=e138]: Developed by hunseop.kim
+  - img
