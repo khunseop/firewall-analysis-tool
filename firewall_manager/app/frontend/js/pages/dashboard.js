@@ -8,6 +8,10 @@ import { createCommonGridOptions, createGridEventHandlers, adjustGridHeight } fr
 let deviceStatsGrid = null;
 let currentDeviceStatsData = []; // 현재 장비 통계 데이터 (동기화 상태 요약 업데이트용)
 
+// 통계 캐시: 페이지 이동 후 재진입 시 즉시 렌더링에 사용
+let statsCache = null; // { stats, timestamp }
+const STATS_CACHE_TTL = 60_000; // 60초
+
 // ==================== 유틸리티 함수 ====================
 
 
@@ -48,77 +52,93 @@ function transformDeviceStats(deviceStats) {
 // ==================== 통계 로드 함수 ====================
 
 /**
- * 통계 데이터 가져오기 (새로운 집계 API 사용)
+ * 통계 데이터를 DOM에 렌더링
  */
-async function loadStatistics() {
-  // 로딩 상태 표시
-  const loadingElements = ['stat-total-devices', 'stat-total-policies', 'stat-network-objects', 'stat-service-objects'];
-  loadingElements.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = '...';
+function renderStats(stats) {
+  updateElements({
+    'stat-total-devices': formatNumber(stats.total_devices),
+    'stat-total-policies': formatNumber(stats.total_policies),
+    'stat-network-objects': formatNumber(stats.total_network_objects),
+    'stat-service-objects': formatNumber(stats.total_services)
   });
 
+  const activeDevicesTextEl = document.getElementById('stat-active-devices-text');
+  if (activeDevicesTextEl) {
+    activeDevicesTextEl.textContent = `활성: ${formatNumber(stats.active_devices)}`;
+  }
+
+  const activePoliciesTextEl = document.getElementById('stat-active-policies-text');
+  const disabledPoliciesTextEl = document.getElementById('stat-disabled-policies-text');
+  if (activePoliciesTextEl) {
+    activePoliciesTextEl.textContent = `활성: ${formatNumber(stats.total_active_policies)}`;
+  }
+  if (disabledPoliciesTextEl) {
+    disabledPoliciesTextEl.textContent = `비활성: ${formatNumber(stats.total_disabled_policies)}`;
+  }
+
+  const deviceStatsData = stats.device_stats.map(transformDeviceStats);
+  const messageContainer = document.getElementById('device-stats-message-container');
+  const gridDiv = document.getElementById('device-stats-grid');
+
+  if (deviceStatsData.length === 0) {
+    showEmptyMessage(messageContainer, '장비를 추가하세요', 'fa-plus-circle');
+    if (gridDiv) gridDiv.style.display = 'none';
+  } else {
+    hideEmptyMessage(messageContainer);
+    if (gridDiv) gridDiv.style.display = 'block';
+    if (deviceStatsGrid) {
+      deviceStatsGrid.setGridOption('rowData', deviceStatsData);
+    }
+  }
+
+  currentDeviceStatsData = deviceStatsData;
+  updateSyncStatusSummary(deviceStatsData);
+  updateVendorStats(deviceStatsData);
+}
+
+/**
+ * API에서 통계를 가져와 캐시에 저장하고 렌더링.
+ * 실패 시 캐시가 있으면 에러를 무시하고, 없으면 에러 상태 표시.
+ */
+async function fetchStats() {
   try {
-    // 새로운 집계 API 사용 (한 번의 호출로 모든 통계 조회)
     const stats = await api.getDashboardStats();
-
-    // 통계 카드 업데이트 (숫자 포맷 적용)
-    updateElements({
-      'stat-total-devices': formatNumber(stats.total_devices),
-      'stat-total-policies': formatNumber(stats.total_policies),
-      'stat-network-objects': formatNumber(stats.total_network_objects),
-      'stat-service-objects': formatNumber(stats.total_services)
-    });
-
-    // 활성 장비 수 표시
-    const activeDevicesTextEl = document.getElementById('stat-active-devices-text');
-    if (activeDevicesTextEl) {
-      activeDevicesTextEl.textContent = `활성: ${formatNumber(stats.active_devices)}`;
-    }
-
-    // 정책 통계 서브타이틀 업데이트
-    const activePoliciesTextEl = document.getElementById('stat-active-policies-text');
-    const disabledPoliciesTextEl = document.getElementById('stat-disabled-policies-text');
-    if (activePoliciesTextEl) {
-      activePoliciesTextEl.textContent = `활성: ${formatNumber(stats.total_active_policies)}`;
-    }
-    if (disabledPoliciesTextEl) {
-      disabledPoliciesTextEl.textContent = `비활성: ${formatNumber(stats.total_disabled_policies)}`;
-    }
-
-    // 장비별 통계 데이터 변환
-    const deviceStatsData = stats.device_stats.map(transformDeviceStats);
-
-    // 장비별 통계 그리드 업데이트
-    const messageContainer = document.getElementById('device-stats-message-container');
-    const gridDiv = document.getElementById('device-stats-grid');
-    
-    if (deviceStatsData.length === 0) {
-      // 장비가 없으면 메시지 표시
-      showEmptyMessage(messageContainer, '장비를 추가하세요', 'fa-plus-circle');
-      if (gridDiv) gridDiv.style.display = 'none';
-    } else {
-      // 장비가 있으면 메시지 숨기고 그리드 표시
-      hideEmptyMessage(messageContainer);
-      if (gridDiv) gridDiv.style.display = 'block';
-      
-      if (deviceStatsGrid) {
-        deviceStatsGrid.setGridOption('rowData', deviceStatsData);
-      }
-    }
-
-    // 전역 변수에 저장 (WebSocket 업데이트용)
-    currentDeviceStatsData = deviceStatsData;
-
-    // 동기화 상태 요약 업데이트
-    updateSyncStatusSummary(deviceStatsData);
-
-    // 벤더별 통계 업데이트
-    updateVendorStats(deviceStatsData);
+    statsCache = { stats, timestamp: Date.now() };
+    renderStats(stats);
   } catch (err) {
     console.error('Failed to load statistics:', err);
-    setStatisticsError();
+    if (!statsCache) {
+      setStatisticsError();
+    }
   }
+}
+
+/**
+ * 통계 로드.
+ * - 캐시가 있으면 즉시 렌더링 후 백그라운드에서 갱신.
+ * - 캐시가 없으면 로딩 표시 후 fetch.
+ * - forceRefresh=true 이면 캐시를 무시하고 즉시 fetch.
+ */
+async function loadStatistics(forceRefresh = false) {
+  if (!forceRefresh && statsCache) {
+    // 캐시가 있으면 즉시 렌더링 (로딩 상태 없음)
+    renderStats(statsCache.stats);
+    // TTL이 지났으면 백그라운드에서 조용히 갱신
+    if (Date.now() - statsCache.timestamp > STATS_CACHE_TTL) {
+      fetchStats();
+    }
+    return;
+  }
+
+  // 캐시 없음 또는 강제 갱신: 로딩 표시 후 fetch
+  if (!statsCache) {
+    const loadingElements = ['stat-total-devices', 'stat-total-policies', 'stat-network-objects', 'stat-service-objects'];
+    loadingElements.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '...';
+    });
+  }
+  await fetchStats();
 }
 
 // ==================== 동기화 상태 관련 함수 ====================
@@ -473,7 +493,10 @@ function initDeviceStatsGrid() {
 function setupEventListeners() {
   const refreshSyncStatusBtn = document.getElementById('refresh-sync-status');
   if (refreshSyncStatusBtn) {
-    refreshSyncStatusBtn.addEventListener('click', loadStatistics);
+    refreshSyncStatusBtn.addEventListener('click', () => {
+      statsCache = null;
+      loadStatistics(true);
+    });
   }
 }
 
@@ -558,17 +581,10 @@ function connectDashboardWebSocket() {
             }
           }
           
-          // 완료 상태일 때만 전체 통계 다시 로드 (통계 수치 업데이트)
-          // 진행 중일 때는 그리드 업데이트만으로 충분
+          // 완료 상태일 때만 캐시 무효화 후 전체 통계 강제 갱신
           if (message.status === 'success' || message.status === 'failure') {
-            // 전체 통계 다시 로드 (벤더별 통계도 함께 업데이트됨)
-            loadStatistics();
-          } else {
-            // 진행 중일 때는 벤더별 통계만 업데이트
-            const deviceIndex = currentDeviceStatsData.findIndex(d => d.id === message.device_id);
-            if (deviceIndex !== -1) {
-              updateVendorStats(currentDeviceStatsData);
-            }
+            statsCache = null;
+            loadStatistics(true);
           }
         }
       } catch (e) {
