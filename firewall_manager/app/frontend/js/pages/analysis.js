@@ -47,10 +47,11 @@ function createGrid(columnDefs, rowData) {
     const gridEl = document.getElementById('analysis-result-grid');
     if (gridEl) {
         const commonOptions = createCommonGridOptions();
-        const handlers = createGridEventHandlers(gridEl, null);
-        
+        const handlers = createGridEventHandlers(gridEl);
+
         const gridOptions = {
             ...commonOptions,
+            ...handlers,
             columnDefs: columnDefs,
             rowData: rowData || [],
             getRowId: params => {
@@ -102,14 +103,9 @@ function createGrid(columnDefs, rowData) {
             suppressHorizontalScroll: false,
             overlayNoRowsTemplate: '<div style="padding: 20px; text-align: center; color: #666;">분석 결과가 없습니다.</div>',
             onGridReady: (params) => {
+                if (handlers.onGridReady) handlers.onGridReady(params);
                 resultGridApi = params.api;
-                const gridDiv = document.getElementById('analysis-result-grid');
-                if (gridDiv) {
-                    const updatedHandlers = createGridEventHandlers(gridDiv, params.api);
-                    Object.assign(gridOptions, updatedHandlers);
-                }
             },
-            ...handlers
         };
         resultGridApi = agGrid.createGrid(gridEl, gridOptions);
     }
@@ -297,9 +293,6 @@ async function displayResults(resultData, analysisType, source = 'latest') {
                 } catch (e) {
                     console.warn('Grid API 호출 실패 (이미 destroy됨):', e);
                 }
-            }
-            if (gridDiv) {
-                adjustGridHeight(gridDiv);
             }
         }, 600);
     } else {

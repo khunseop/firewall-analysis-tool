@@ -1,139 +1,42 @@
 /**
- * 그리드 높이를 자동으로 조절하는 함수 (세로 스크롤 없이 모든 행 표시)
- * @param {HTMLElement} gridDiv - 그리드 컨테이너 요소
- * @param {number} minHeight - 최소 높이 (기본값: 200)
+ * 하위 호환성을 위해 유지되는 함수.
+ * domLayout: 'autoHeight' 사용으로 AG Grid가 높이를 자동 관리하므로 실제 동작 없음.
  */
 export function adjustGridHeight(gridDiv, minHeight = 200) {
-  if (!gridDiv) return;
-  
-  // 실제 렌더링된 요소들의 높이를 측정
-  const headerElement = gridDiv.querySelector('.ag-header');
-  const headerHeight = headerElement ? headerElement.offsetHeight : 0;
-  
-  const paginationElement = gridDiv.querySelector('.ag-paging-panel');
-  const paginationHeight = paginationElement ? paginationElement.offsetHeight : 0;
-  
-  // 그리드 본문 영역의 실제 높이 측정
-  const bodyViewport = gridDiv.querySelector('.ag-body-viewport');
-  let bodyHeight = 0;
-  
-  if (bodyViewport) {
-    // 필터가 열려있을 수 있으므로 잠시 스크롤을 허용하여 정확한 높이 측정
-    const originalOverflow = bodyViewport.style.overflowY;
-    bodyViewport.style.overflowY = 'auto';
-    
-    // 강제 리플로우
-    void bodyViewport.offsetHeight;
-    
-    bodyHeight = bodyViewport.scrollHeight;
-    
-    // bodyViewport의 padding/margin도 고려
-    const bodyViewportStyle = window.getComputedStyle(bodyViewport);
-    const paddingTop = parseInt(bodyViewportStyle.paddingTop) || 0;
-    const paddingBottom = parseInt(bodyViewportStyle.paddingBottom) || 0;
-    bodyHeight += paddingTop + paddingBottom;
-    
-    // 원래 상태로 복원
-    bodyViewport.style.overflowY = originalOverflow || 'hidden';
-  } else {
-    // fallback: 행 요소들의 높이 합계
-    const rowElements = gridDiv.querySelectorAll('.ag-row:not(.ag-header-row)');
-    rowElements.forEach(row => {
-      bodyHeight += row.offsetHeight || 0;
-    });
-  }
-  
-  // ag-center-cols-container의 높이도 확인 (더 정확한 측정)
-  const centerColsContainer = gridDiv.querySelector('.ag-center-cols-container');
-  if (centerColsContainer) {
-    const containerHeight = centerColsContainer.offsetHeight;
-    if (containerHeight > bodyHeight) {
-      bodyHeight = containerHeight;
-    }
-  }
-  
-  // 높이 계산: 헤더 + 본문 높이 + 페이지네이션
-  const calculatedHeight = headerHeight + bodyHeight + paginationHeight;
-  const finalHeight = Math.max(calculatedHeight, minHeight);
-  
-  gridDiv.style.height = `${finalHeight}px`;
-  
-  // 세로 스크롤 강제 제거
-  if (bodyViewport) {
-    bodyViewport.style.overflowY = 'hidden';
-    bodyViewport.style.overflowX = 'auto';
-  }
+  // no-op: domLayout: 'autoHeight' handles height automatically
 }
 
 /**
- * 그리드 이벤트 핸들러 생성 (높이 조절 및 컬럼 자동 크기 조절)
- * @param {HTMLElement} gridDiv - 그리드 컨테이너 요소
- * @param {Object} gridApi - AG Grid API 객체
- * @param {number} delay - 지연 시간 (ms, 기본값: 200)
+ * 그리드 이벤트 핸들러 생성 (컬럼 자동 크기 조절)
+ * @param {HTMLElement} gridDiv - 사용하지 않음 (하위 호환 유지)
+ * @param {Object} _ignoredApi - 사용하지 않음 (params.api 사용으로 대체)
+ * @param {number} delay - autoSizeAllColumns 지연 시간 (ms, 기본값: 200)
  */
-export function createGridEventHandlers(gridDiv, gridApi, delay = 200) {
-  let adjustTimeout = null;
-  
-  const adjust = (api = gridApi) => {
-    // 이전 타이머 취소
-    if (adjustTimeout) {
-      clearTimeout(adjustTimeout);
-    }
-    
-    adjustTimeout = setTimeout(() => {
-      if (api && typeof api.isDestroyed === 'function' && !api.isDestroyed() && typeof api.autoSizeAllColumns === 'function') {
-        try {
-          api.autoSizeAllColumns({ skipHeader: false });
-        } catch (e) {
-          console.warn('Grid API 호출 실패:', e);
-        }
+export function createGridEventHandlers(gridDiv, _ignoredApi, delay = 200) {
+  const autoSize = (api) => {
+    if (api && typeof api.isDestroyed === 'function' && !api.isDestroyed() && api.getDisplayedRowCount() > 0) {
+      try {
+        api.autoSizeAllColumns({ skipHeader: false });
+      } catch (e) {
+        console.warn('autoSizeAllColumns 실패:', e);
       }
-      adjustGridHeight(gridDiv);
-      adjustTimeout = null;
-    }, delay);
+    }
   };
 
   return {
     onGridReady: (params) => {
-      const api = params.api || gridApi;
-      // 필터 변경 이벤트 리스너 추가
+      const api = params.api;
       if (api && typeof api.addEventListener === 'function') {
         api.addEventListener('filterChanged', () => {
-          adjust(api);
-        });
-        api.addEventListener('filterModified', () => {
-          adjust(api);
+          setTimeout(() => autoSize(api), delay);
         });
       }
-      setTimeout(() => adjustGridHeight(gridDiv), delay);
     },
     onFirstDataRendered: (params) => {
-      setTimeout(() => {
-        if (params.api && typeof params.api.isDestroyed === 'function' && !params.api.isDestroyed()) {
-          try {
-            if (params.api.getDisplayedRowCount() > 0) {
-              params.api.autoSizeAllColumns({ skipHeader: false });
-            }
-          } catch (e) {
-            console.warn('Grid API 호출 실패:', e);
-          }
-        }
-        adjustGridHeight(gridDiv);
-      }, delay);
+      setTimeout(() => autoSize(params.api), delay);
     },
-    onModelUpdated: (params) => {
-      const api = params.api || gridApi;
-      if (api && typeof api.isDestroyed === 'function' && !api.isDestroyed() && api.getDisplayedRowCount() > 0) {
-        adjust(api);
-      } else {
-        setTimeout(() => adjustGridHeight(gridDiv), delay);
-      }
-    },
-    onPaginationChanged: () => {
-      setTimeout(() => adjustGridHeight(gridDiv), delay);
-    },
-    onRowDataUpdated: () => {
-      setTimeout(() => adjustGridHeight(gridDiv), delay);
+    onRowDataUpdated: (params) => {
+      setTimeout(() => autoSize(params.api), delay);
     }
   };
 }
@@ -161,7 +64,7 @@ export function createCommonGridOptions(options = {}) {
     pagination: true,
     paginationPageSize: 50,
     paginationPageSizeSelector: [50, 100, 200],
-    domLayout: 'normal', // autoHeight 대신 normal 사용하여 높이 조절 제어
+    domLayout: 'autoHeight',
     ...options
   };
 }
@@ -215,90 +118,39 @@ export function createObjectCellRenderer(validObjectNames, onObjectClick) {
 
 /**
  * 공통 그리드 이벤트 핸들러 생성 (필터 저장 포함)
- * @param {HTMLElement} gridDiv - 그리드 컨테이너 요소
+ * @param {HTMLElement} gridDiv - 사용하지 않음 (하위 호환 유지)
  * @param {string} filterKey - 필터 저장 키
  * @param {Function} saveGridFilters - 필터 저장 함수
- * @param {number} delay - 지연 시간 (ms, 기본값: 200)
+ * @param {number} delay - autoSizeAllColumns 지연 시간 (ms, 기본값: 200)
  * @returns {Object} 그리드 이벤트 핸들러 객체
  */
 export function createGridEventHandlersWithFilter(gridDiv, filterKey, saveGridFilters, delay = 200) {
-  let adjustTimeout = null;
-  
-  const adjust = (api) => {
-    // 이전 타이머 취소
-    if (adjustTimeout) {
-      clearTimeout(adjustTimeout);
-    }
-    
-    adjustTimeout = setTimeout(() => {
-      if (api && typeof api.isDestroyed === 'function' && !api.isDestroyed() && typeof api.autoSizeAllColumns === 'function') {
-        try {
-          api.autoSizeAllColumns({ skipHeader: false });
-        } catch (e) {
-          console.warn('Grid API 호출 실패:', e);
-        }
+  const autoSize = (api) => {
+    if (api && typeof api.isDestroyed === 'function' && !api.isDestroyed() && api.getDisplayedRowCount() > 0) {
+      try {
+        api.autoSizeAllColumns({ skipHeader: false });
+      } catch (e) {
+        console.warn('autoSizeAllColumns 실패:', e);
       }
-      adjustGridHeight(gridDiv);
-      adjustTimeout = null;
-    }, delay);
+    }
   };
 
   return {
     onGridReady: (params) => {
-      // 필터 변경 시 저장 및 높이 조절
-      if (params.api && typeof params.api.addEventListener === 'function') {
-        params.api.addEventListener('filterChanged', () => {
-          const filterModel = params.api.getFilterModel();
+      const api = params.api;
+      if (api && typeof api.addEventListener === 'function') {
+        api.addEventListener('filterChanged', () => {
+          const filterModel = api.getFilterModel();
           saveGridFilters(filterKey, filterModel);
-          adjust(params.api);
-        });
-        params.api.addEventListener('filterModified', () => {
-          adjust(params.api);
+          setTimeout(() => autoSize(api), delay);
         });
       }
-      setTimeout(() => adjustGridHeight(gridDiv), delay);
     },
     onFirstDataRendered: (params) => {
-      setTimeout(() => {
-        if (params.api && typeof params.api.isDestroyed === 'function' && !params.api.isDestroyed()) {
-          try {
-            if (params.api.getDisplayedRowCount() > 0) {
-              params.api.autoSizeAllColumns({ skipHeader: false });
-            }
-            adjustGridHeight(gridDiv);
-          } catch (e) {
-            console.warn('Grid API 호출 실패:', e);
-            adjustGridHeight(gridDiv);
-          }
-        } else {
-          adjustGridHeight(gridDiv);
-        }
-      }, delay);
+      setTimeout(() => autoSize(params.api), delay);
     },
-    onModelUpdated: (params) => {
-      if (params.api && typeof params.api.isDestroyed === 'function' && !params.api.isDestroyed()) {
-        if (params.api.getDisplayedRowCount() > 0) {
-          setTimeout(() => {
-            try {
-              params.api.autoSizeAllColumns({ skipHeader: false });
-              adjustGridHeight(gridDiv);
-            } catch (e) {
-              console.warn('Grid API 호출 실패:', e);
-              adjustGridHeight(gridDiv);
-            }
-          }, delay);
-        } else {
-          setTimeout(() => adjustGridHeight(gridDiv), delay);
-        }
-      } else {
-        setTimeout(() => adjustGridHeight(gridDiv), delay);
-      }
-    },
-    onPaginationChanged: () => {
-      setTimeout(() => adjustGridHeight(gridDiv), delay);
-    },
-    onRowDataUpdated: () => {
-      setTimeout(() => adjustGridHeight(gridDiv), delay);
+    onRowDataUpdated: (params) => {
+      setTimeout(() => autoSize(params.api), delay);
     }
   };
 }

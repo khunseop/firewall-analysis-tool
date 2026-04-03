@@ -206,45 +206,37 @@ function createGrid(gridDiv, data) {
     paginationPageSize: 50,
     paginationPageSizeSelector: [50, 100, 200],
     animateRows: true,
-    autoSizeStrategy: { 
-      type: 'fitGridWidth', 
-      defaultMinWidth: 10, 
-      defaultMaxWidth: 400 
-    }
   });
-  
-  const handlers = createGridEventHandlers(gridDiv, null);
-  
+
+  const handlers = createGridEventHandlers(gridDiv);
+
   gridOptions = {
     ...commonOptions,
+    ...handlers,
     columnDefs: getColumns(),
     rowData: data,
-    defaultColDef: { 
+    defaultColDef: {
       ...commonOptions.defaultColDef,
-      sortable: true, 
+      sortable: true,
       filter: false // 빠른 필터 사용
     },
-    rowSelection: { 
-      mode: 'multiRow', 
-      checkboxes: true, 
-      headerCheckbox: true, 
+    rowSelection: {
+      mode: 'multiRow',
+      checkboxes: true,
+      headerCheckbox: true,
       enableClickSelection: true
     },
     onGridReady: (params) => {
+      if (handlers.onGridReady) handlers.onGridReady(params);
       gridApi = params.api;
       gridHostEl = gridDiv;
-      
+
       // 빠른 필터 적용
       const input = document.getElementById('devices-search');
       if (input && input.value) {
         applyQuickFilter(input.value);
       }
-      
-      // 이벤트 핸들러 적용
-      const updatedHandlers = createGridEventHandlers(gridDiv, params.api);
-      Object.assign(gridOptions, updatedHandlers);
     },
-    ...handlers
   };
   
   if (agGrid.createGrid) {
@@ -253,11 +245,6 @@ function createGrid(gridDiv, data) {
     new agGrid.Grid(gridDiv, gridOptions);
     gridApi = gridOptions.api;
   }
-  
-  // 초기 높이 조절
-  setTimeout(() => {
-    adjustGridHeight(gridDiv);
-  }, 200);
 }
 
 /**

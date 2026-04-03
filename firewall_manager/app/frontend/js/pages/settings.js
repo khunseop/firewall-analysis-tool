@@ -300,7 +300,7 @@ function initLogsGrid() {
 
   const commonOptions = createCommonGridOptions({
     paginationPageSizeSelector: [25, 50, 100, 200],
-    domLayout: 'autoHeight', // 로그 그리드는 autoHeight 유지
+    domLayout: 'autoHeight',
     suppressNoRowsOverlay: false
   });
 

@@ -264,28 +264,25 @@ async function initGrid() {
   if (!gridDiv) return;
   
   const commonOptions = createCommonGridOptions();
-  const handlers = createGridEventHandlers(gridDiv, null);
-  
+  const handlers = createGridEventHandlers(gridDiv);
+
   const options = {
     ...commonOptions,
+    ...handlers,
     columnDefs: getCols(),
     rowData: [],
     suppressHorizontalScroll: false, // 가로 스크롤 허용
     onGridReady: params => {
+      if (handlers.onGridReady) handlers.onGridReady(params);
       policyGridApi = params.api;
-      const gridDiv = document.getElementById('policies-grid');
-      if (gridDiv) {
-        const updatedHandlers = createGridEventHandlers(gridDiv, params.api);
-        Object.assign(options, updatedHandlers);
-      }
-      
+
       // 필터 변경 시 저장
       if (params.api && typeof params.api.addEventListener === 'function') {
         params.api.addEventListener('filterChanged', () => {
           const filterModel = params.api.getFilterModel();
           saveGridFilters('policies', filterModel);
         });
-        
+
         // 정렬 변경 시 저장
         params.api.addEventListener('sortChanged', () => {
           const sortModel = params.api.getSortModel();
@@ -295,7 +292,6 @@ async function initGrid() {
         });
       }
     },
-    ...handlers
   };
 
   if (typeof agGrid !== 'undefined') {
@@ -398,10 +394,6 @@ async function searchAndLoadPolicies() {
         setTimeout(() => {
           if (typeof policyGridApi.autoSizeAllColumns === 'function') {
             policyGridApi.autoSizeAllColumns({ skipHeader: false });
-          }
-          const gridDiv = document.getElementById('policies-grid');
-          if (gridDiv) {
-            adjustGridHeight(gridDiv);
           }
         }, 600);
       }

@@ -104,12 +104,6 @@ async function loadStatistics() {
       
       if (deviceStatsGrid) {
         deviceStatsGrid.setGridOption('rowData', deviceStatsData);
-        // 높이 조절
-        setTimeout(() => {
-          if (gridDiv) {
-            adjustGridHeight(gridDiv);
-          }
-        }, 200);
       }
     }
 
@@ -439,15 +433,15 @@ function initDeviceStatsGrid() {
 
   const commonOptions = createCommonGridOptions({
     paginationPageSizeSelector: [25, 50, 100, 200],
-    autoSizeStrategy: { type: 'fitGridWidth', defaultMinWidth: 80, defaultMaxWidth: 500 },
     animateRows: true,
     suppressRowHoverHighlight: false
   });
-  
-  const handlers = createGridEventHandlers(gridDiv, null);
-  
+
+  const handlers = createGridEventHandlers(gridDiv);
+
   const gridOptions = {
     ...commonOptions,
+    ...handlers,
     columnDefs: columnDefs,
     rowData: [],
     defaultColDef: {
@@ -456,11 +450,9 @@ function initDeviceStatsGrid() {
     },
     getRowId: (params) => String(params.data.id),
     onGridReady: (params) => {
+      if (handlers.onGridReady) handlers.onGridReady(params);
       deviceStatsGrid = params.api;
-      const updatedHandlers = createGridEventHandlers(gridDiv, params.api);
-      Object.assign(gridOptions, updatedHandlers);
     },
-    ...handlers
   };
 
   if (typeof agGrid !== 'undefined') {
@@ -471,11 +463,6 @@ function initDeviceStatsGrid() {
       deviceStatsGrid = gridOptions.api;
     }
   }
-  
-  // 초기 높이 조절
-  setTimeout(() => {
-    adjustGridHeight(gridDiv);
-  }, 200);
 }
 
 // ==================== 이벤트 리스너 설정 ====================
