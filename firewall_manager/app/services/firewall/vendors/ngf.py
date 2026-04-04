@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO,
 
 class NGFClient:
     """
-    AhnLab TrusGuard NGF(Next Generation Firewall) REST API 연동 클라이언트입니다.
+    SECUI NGF REST API 연동 클라이언트입니다.
     
     주요 기능:
     - ID/Secret 기반의 토큰 인증 및 관리 (Login/Logout)

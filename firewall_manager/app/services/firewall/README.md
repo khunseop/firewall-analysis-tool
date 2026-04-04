@@ -3,7 +3,7 @@
 이 모듈은 다양한 벤더의 방화벽 장비로부터 정책, 객체, 시스템 정보를 일관된 방식으로 수집하기 위한 추상화 계층을 제공합니다.
 
 ## 1. 개요 (Overview)
-- **다중 벤더 추상화**: Palo Alto, SECUI MF2, AhnLab TrusGuard 등 서로 다른 인터페이스를 가진 장비들을 동일한 메서드로 제어합니다.
+- **다중 벤더 추상화**: Palo Alto, SECUI MF2, SECUI NGF 등 서로 다른 인터페이스를 가진 장비들을 동일한 메서드로 제어합니다.
 - **데이터 표준화**: 각 장비의 고유한 응답 형식을 분석하여 Pandas DataFrame 형태의 표준화된 스키마로 변환합니다.
 
 ## 2. 아키텍처 및 구성 (Architecture)
@@ -14,7 +14,7 @@
 3.  **Vendors (`vendors/`)**: 각 제조사별 실제 구현체들이 포함되어 있습니다.
     - `paloalto.py`: **PaloAltoAPI** 구현체. 정책 및 객체 수집에는 **XML API**를 사용하며, 히트 정보(`last_hit_date`) 수집 시 선택적으로 **SSH**를 병행합니다.
     - `mf2.py`: **MF2Collector** 구현체. **SSH** 접속 후 CLI 명령어를 수행하고 **Regex(정규표현식)**를 통해 결과를 파싱합니다.
-    - `ngf.py`: **NGFCollector** 구현체. AhnLab TrusGuard의 전용 **REST API**를 사용하여 데이터를 수집합니다.
+    - `ngf.py`: **NGFCollector** 구현체. SECUI NGF의  **REST API**를 사용하여 데이터를 수집합니다.
 
 ## 3. 주요 로직 및 흐름 (Main Flow)
 
