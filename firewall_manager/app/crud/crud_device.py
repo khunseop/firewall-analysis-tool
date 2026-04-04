@@ -14,7 +14,6 @@ from app.models.service import Service
 from app.models.service_group import ServiceGroup
 from app.models.policy_members import PolicyAddressMember, PolicyServiceMember
 from app.models.analysis import AnalysisTask, AnalysisResult
-from app.models.deletion_workflow import DeletionWorkflow
 from app.models.change_log import ChangeLog
 from app.models.notification_log import NotificationLog
 from app.schemas.device import DeviceCreate, DeviceUpdate, DeviceStats, DashboardStatsResponse
@@ -75,7 +74,6 @@ async def remove_device(db: AsyncSession, id: int):
         await db.execute(delete(Policy).where(Policy.device_id == id))
         await db.execute(delete(AnalysisTask).where(AnalysisTask.device_id == id))
         await db.execute(delete(AnalysisResult).where(AnalysisResult.device_id == id))
-        await db.execute(delete(DeletionWorkflow).where(DeletionWorkflow.device_id == id))
         await db.execute(delete(ChangeLog).where(ChangeLog.device_id == id))
         await db.execute(delete(NetworkObject).where(NetworkObject.device_id == id))
         await db.execute(delete(NetworkGroup).where(NetworkGroup.device_id == id))

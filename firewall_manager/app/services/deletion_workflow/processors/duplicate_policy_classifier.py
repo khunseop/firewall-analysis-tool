@@ -1,208 +1,143 @@
+# app/services/deletion_workflow/processors/duplicate_policy_classifier.py
 """
-Step 7: DuplicatePolicyClassifier - 중복정책 분류 (공지용/삭제용)
+중복정책 분류 프로세서 (Tasks 8-9).
+fpat/fpat/policy_deletion_processor/processors/duplicate_policy_classifier.py 이식.
 """
+
 import logging
 import pandas as pd
 
-from app.services.deletion_workflow.config_manager import ConfigManager
-from app.services.deletion_workflow.file_manager import FileManager
-from app.services.deletion_workflow.excel_manager import ExcelManager
+from .base_processor import BaseProcessor
 
 logger = logging.getLogger(__name__)
 
 
-class DuplicatePolicyClassifier:
-    """중복정책 분류 프로세서"""
-    
-    def __init__(
-        self,
-        device_id: int,
-        config_manager: ConfigManager,
-        file_manager: FileManager,
-        excel_manager: ExcelManager
-    ):
-        """
-        DuplicatePolicyClassifier 초기화
-        
-        Args:
-            device_id: 장비 ID
-            config_manager: 설정 관리자
-            file_manager: 파일 관리자
-            excel_manager: Excel 관리자
-        """
-        self.device_id = device_id
-        self.config = config_manager
-        self.file_manager = file_manager
-        self.excel_manager = excel_manager
-    
-    def classify_duplicates(
-        self,
-        master_file_path: str,
-        redundancy_result_file_path: str,
-        info_file_path: str
-    ) -> tuple[str, str]:
-        """
-        중복정책 분석 결과와 신청정보를 결합하여 분류합니다.
-        
-        Args:
-            master_file_path: 마스터 파일 경로 (Step 6 결과)
-            redundancy_result_file_path: 중복정책 분석 결과 파일 경로
-            info_file_path: 신청정보 파일 경로 (Step 4 결과)
-            
-        Returns:
-            (공지용 파일 경로, 삭제용 파일 경로) 튜플
-        """
+class DuplicatePolicyClassifier(BaseProcessor):
+    """중복정책 분류 및 상태 업데이트 기능을 제공하는 클래스"""
+
+    def run(self, file_manager, **kwargs) -> bool:
+        mode = kwargs.get('mode', 'classify')
+        if mode == 'classify':
+            return self.organize_redundant_file(file_manager)
+        return self.add_duplicate_status(file_manager)
+
+    def organize_redundant_file(self, file_manager) -> bool:
+        """중복정책 파일을 분류하여 공지용/삭제용으로 분리합니다."""
         try:
-            logger.info(f"Step 7: 중복정책 분류 시작 (device_id={self.device_id})")
-            
-            # 파일 읽기
-            df = pd.read_excel(master_file_path)
-            duplicate_df = pd.read_excel(redundancy_result_file_path)
-            info_df = pd.read_excel(info_file_path)
-            
-            # 자동 연장 ID 찾기
-            auto_extension_id = self._find_auto_extension_id(info_df)
-            
-            # 자동연장 여부 표시
-            duplicate_df['자동연장'] = duplicate_df.get('Request ID', pd.Series()).isin(auto_extension_id)
-            
-            # 늦은종료일 표시 (각 No 그룹에서 가장 늦은 종료일을 가진 행)
-            if 'No' in duplicate_df.columns and 'End Date' in duplicate_df.columns:
-                duplicate_df['늦은종료일'] = duplicate_df.groupby('No')['End Date'].transform(
-                    lambda x: (x == x.max()) & (~x.duplicated(keep='first'))
-                )
-            else:
-                duplicate_df['늦은종료일'] = False
-            
-            # 신청자 검증 (각 No 그룹의 신청자가 모두 동일한지)
-            if 'No' in duplicate_df.columns and 'Request User' in duplicate_df.columns:
-                duplicate_df['신청자검증'] = duplicate_df.groupby('No')['Request User'].transform(
-                    lambda x: x.nunique() == 1
-                )
-            else:
-                duplicate_df['신청자검증'] = True
-            
-            # 날짜 검증 대상 규칙 찾기
-            target_rule_true = duplicate_df[
-                (duplicate_df.get('Type', pd.Series()) == 'Upper') & 
-                (duplicate_df['늦은종료일'] == True)
-            ]['No'].unique()
-            
-            # 날짜 검증 표시
-            duplicate_df['날짜검증'] = False
-            duplicate_df.loc[duplicate_df['No'].isin(target_rule_true), '날짜검증'] = True
-            
-            # 작업구분 설정 (유지 또는 삭제)
-            duplicate_df['작업구분'] = '유지'
-            duplicate_df.loc[duplicate_df['늦은종료일'] == False, '작업구분'] = '삭제'
-            
-            # 공지여부 설정
-            duplicate_df['공지여부'] = False
-            duplicate_df.loc[duplicate_df['신청자검증'] == False, '공지여부'] = True
-            
-            # 미사용 예외 설정
-            duplicate_df['미사용예외'] = False
-            duplicate_df.loc[
-                (duplicate_df['날짜검증'] == False) & 
-                (duplicate_df['늦은종료일'] == True),
-                '미사용예외'
-            ] = True
-            
-            # 자동연장 그룹 정책 예외 처리
-            extensioned_df = duplicate_df.groupby('No').filter(lambda x: x['자동연장'].any())
-            extensioned_group = extensioned_df[extensioned_df.get('Request Type', pd.Series()) == 'GROUP']
+            selected_file = file_manager.select_files()
+            if not selected_file:
+                return False
+
+            info_file = file_manager.select_files()
+            if not info_file:
+                return False
+
+            info_df = pd.read_excel(info_file)
+            auto_extension_id = info_df[info_df['REQUEST_STATUS'] == 99]['REQUEST_ID'].drop_duplicates()
+
+            df = pd.read_excel(selected_file)
+
+            df['자동연장'] = df['Request ID'].isin(auto_extension_id)
+            df['늦은종료일'] = df.groupby('No')['End Date'].transform(
+                lambda x: (x == x.max()) & (~x.duplicated(keep='first'))
+            )
+            df['신청자검증'] = df.groupby('No')['Request User'].transform(lambda x: x.nunique() == 1)
+            target_rule_true = df[(df['Type'] == 'Upper') & (df['늦은종료일'])]['No'].unique()
+            df['날짜검증'] = df['No'].isin(target_rule_true)
+            df['작업구분'] = df['늦은종료일'].apply(lambda x: '유지' if x else '삭제')
+            df['공지여부'] = ~df['신청자검증']
+            df['미사용예외'] = (~df['날짜검증']) & df['늦은종료일']
+
+            # 자동연장 그룹 예외 처리
+            extensioned_df = df.groupby('No').filter(lambda x: x['자동연장'].any())
+            extensioned_group = extensioned_df[extensioned_df['Request Type'] == 'GROUP']
             exception_target = extensioned_group.groupby('No').filter(
-                lambda x: len(x.get('Request ID', pd.Series()).unique()) >= 2
+                lambda x: len(x['Request ID'].unique()) >= 2
             )
             exception_id = exception_target[
-                (exception_target['자동연장'] == True) & 
-                (exception_target['작업구분'] == '삭제')
+                (exception_target['자동연장']) & (exception_target['작업구분'] == '삭제')
             ]['No']
-            
-            # 예외 ID 제외
-            duplicate_df = duplicate_df[~duplicate_df['No'].isin(exception_id)]
-            
-            # 자동연장 정책 중 삭제 대상 필터링
-            filtered_no = duplicate_df.groupby('No').filter(
-                lambda x: (x.get('Request Type', pd.Series()) != 'GROUP').any() and
-                        (x['작업구분'] == '삭제').any() and
-                        (x['자동연장'] == True).any()
+            df = df[~df['No'].isin(exception_id)]
+
+            filtered_no = df.groupby('No').filter(
+                lambda x: (x['Request Type'] != 'GROUP').any()
+                          and (x['작업구분'] == '삭제').any()
+                          and (x['자동연장']).any()
             )['No'].unique()
-            
-            duplicate_df = duplicate_df[~duplicate_df['No'].isin(filtered_no)]
-            
-            # 모두 삭제 대상인 그룹 필터링
-            filtered_no_2 = duplicate_df.groupby('No').filter(
+            df = df[~df['No'].isin(filtered_no)]
+
+            filtered_no_2 = df.groupby('No').filter(
                 lambda x: (x['작업구분'] != '유지').all()
             )['No'].unique()
-            
-            duplicate_df = duplicate_df[~duplicate_df['No'].isin(filtered_no_2)]
-            
-            # 특정 타입 제외
-            target_types = ["PAM", "SERVER", "Unknown"]
-            target_nos = duplicate_df[duplicate_df.get('Request Type', pd.Series()).isin(target_types)]['No'].drop_duplicates()
-            duplicate_df = duplicate_df[~duplicate_df['No'].isin(target_nos)]
-            
-            # 공지용과 삭제용으로 분리
-            notice_df = duplicate_df[duplicate_df['공지여부'] == True].copy()
-            delete_df = duplicate_df[duplicate_df['공지여부'] == False].copy()
-            
-            # 작업구분 컬럼을 맨 앞으로 이동
-            for target_df in [notice_df, delete_df]:
-                if '작업구분' in target_df.columns:
-                    column_to_move = target_df.pop('작업구분')
-                    target_df.insert(0, '작업구분', column_to_move)
-            
-            # 불필요한 컬럼 제거
-            columns_to_drop = [
-                'Request Type', 'Ruleset ID', 'MIS ID', 'Start Date', 'End Date',
-                '늦은종료일', '신청자검증', '날짜검증', '공지여부', '미사용예외', '자동연장'
-            ]
-            notice_df.drop(columns=[col for col in columns_to_drop if col in notice_df.columns], inplace=True, errors='ignore')
-            delete_df.drop(columns=[col for col in columns_to_drop if col in delete_df.columns], inplace=True, errors='ignore')
-            
-            # 파일 저장 (Step 7은 step_7_notice_, step_7_delete_ 패턴 사용)
-            notice_file_path = self.file_manager.create_step_file_path(self.device_id, 7, "notice")
-            delete_file_path = self.file_manager.create_step_file_path(self.device_id, 7, "delete")
-            
-            self.excel_manager.save_dataframe_to_excel(
-                df=notice_df,
-                file_path=notice_file_path,
-                sheet_name="중복정책_공지용",
-                index=False,
-                style=True
-            )
-            
-            self.excel_manager.save_dataframe_to_excel(
-                df=delete_df,
-                file_path=delete_file_path,
-                sheet_name="중복정책_삭제용",
-                index=False,
-                style=True
-            )
-            
-            logger.info(f"Step 7 완료: 공지용 파일 - {notice_file_path}, 삭제용 파일 - {delete_file_path}")
-            return notice_file_path, delete_file_path
-            
-        except Exception as e:
-            logger.error(f"Step 7 실패: {e}", exc_info=True)
-            raise
-    
-    def _find_auto_extension_id(self, info_df: pd.DataFrame) -> pd.Series:
-        """자동 연장 ID를 찾습니다."""
-        if 'REQUEST_STATUS' not in info_df.columns:
-            return pd.Series(dtype=str)
-        
-        if not pd.api.types.is_numeric_dtype(info_df['REQUEST_STATUS']):
-            try:
-                info_df['REQUEST_STATUS'] = pd.to_numeric(info_df['REQUEST_STATUS'], errors='coerce')
-            except Exception:
-                return pd.Series(dtype=str)
-        
-        filtered_df = info_df[
-            ((info_df['REQUEST_STATUS'] == 98) & info_df['REQUEST_ID'].str.startswith('PS', na=False)) |
-            (info_df['REQUEST_STATUS'] == 99)
-        ]['REQUEST_ID'].drop_duplicates()
-        
-        return filtered_df
+            df = df[~df['No'].isin(filtered_no_2)]
 
+            target_types = ["PAM", "SERVER", "Unknown"]
+            target_nos = df[df['Request Type'].isin(target_types)]['No'].drop_duplicates()
+            df = df[~df['No'].isin(target_nos)]
+
+            notice_df = df[df['공지여부']].copy()
+            delete_df = df[~df['공지여부']].copy()
+
+            for target_df in [notice_df, delete_df]:
+                col = target_df.pop('작업구분')
+                target_df.insert(0, '작업구분', col)
+
+            cols_to_drop = ['Request Type', 'Ruleset ID', 'MIS ID', 'Start Date', 'End Date',
+                            '늦은종료일', '신청자검증', '날짜검증', '공지여부', '미사용예외', '자동연장']
+            notice_df.drop(columns=cols_to_drop, inplace=True, errors='ignore')
+            delete_df.drop(columns=cols_to_drop, inplace=True, errors='ignore')
+
+            filename = file_manager.remove_extension(selected_file)
+            output_path = f'{filename}_정리.xlsx'
+            notice_path = f'{filename}_공지.xlsx'
+            delete_path = f'{filename}_삭제.xlsx'
+
+            df.to_excel(output_path, index=False, engine='openpyxl')
+            notice_df.to_excel(notice_path, index=False, engine='openpyxl')
+            delete_df.to_excel(delete_path, index=False, engine='openpyxl')
+
+            logger.info(f"중복정책 분류 완료: {output_path}, {notice_path}, {delete_path}")
+            return True
+        except Exception as e:
+            logger.exception(f"중복정책 분류 오류: {e}")
+            return False
+
+    def add_duplicate_status(self, file_manager) -> bool:
+        """중복정책 분류 결과(작업구분)를 정책 파일에 추가합니다."""
+        try:
+            policy_file = file_manager.select_files()
+            if not policy_file:
+                return False
+
+            duplicate_file = file_manager.select_files()
+            if not duplicate_file:
+                return False
+
+            policy_df = pd.read_excel(policy_file)
+            duplicate_df = pd.read_excel(duplicate_file)
+
+            if '중복여부' not in policy_df.columns:
+                policy_df['중복여부'] = ''
+
+            if 'Rule Name' not in duplicate_df.columns or '작업구분' not in duplicate_df.columns:
+                logger.error("중복정책 파일에 'Rule Name' 또는 '작업구분' 컬럼이 없습니다.")
+                return False
+
+            duplicate_map = duplicate_df[['Rule Name', '작업구분']].set_index('Rule Name').to_dict()['작업구분']
+            updated_count = 0
+            for idx, row in policy_df.iterrows():
+                if row['Rule Name'] in duplicate_map:
+                    policy_df.at[idx, '중복여부'] = duplicate_map[row['Rule Name']]
+                    updated_count += 1
+
+            cols = policy_df.columns.tolist()
+            cols.insert(1, cols.pop(cols.index('중복여부')))
+            policy_df = policy_df[cols]
+
+            output_file = file_manager.update_version(policy_file)
+            policy_df.to_excel(output_file, index=False, engine='openpyxl')
+            logger.info(f"중복여부 {updated_count}개 추가 완료: '{output_file}'")
+            return True
+        except Exception as e:
+            logger.exception(f"중복여부 추가 오류: {e}")
+            return False
