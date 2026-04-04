@@ -9,7 +9,7 @@
 ## 2. 아키텍처 및 구성 (Architecture)
 
 ### 주요 분석 모듈
-- **[Redundancy (중복)](./redundancy.py)**: 상위 정책에 의해 완전히 포함되어 불필요해진 하위 정책 탐지.
+- **[Redundancy (중복)](./redundancy.py)**: 상위 정책에 의해 완전히 포함되어 불필요해진 하위 정책 탐지. `analyze_logical()`을 사용하여 정수형 IP/포트 범위 기반 포함 관계(A ⊆ B)를 탐지하며, 텍스트 완전 일치뿐 아니라 서브넷 포함 관계(예: 10.1.0.0/16 ⊆ 10.0.0.0/8)도 탐지합니다. fpat `RedundancyAnalyzer.analyze_logical()` 이식.
 - **[Unused (미사용)](./unused.py)**: 특정 기간(예: 90일) 동안 트래픽 매칭이 없는 정책 식별.
 - **[Impact (영향)](./impact.py)**: 정책 이동 시 발생할 트래픽 흐름의 변화(Shadowing, Blocking) 사전 시뮬레이션.
 - **[Unreferenced (미참조)](./unreferenced_objects.py)**: 어떤 정책에서도 참조되지 않는 네트워크/서비스 객체 탐지.

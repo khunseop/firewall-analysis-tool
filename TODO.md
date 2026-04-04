@@ -25,7 +25,7 @@ See `CLAUDE.md` for documentation update rules.
 | 5 | `[x]` | fpat deletion_processor 3단계 이관: 예외/중복 처리 (Tasks 6-10) | `ExceptionHandler`(벤더별), `DuplicatePolicyClassifier`(분류+마킹), `MergeHitcount` |
 | 6 | `[x]` | fpat deletion_processor 4단계 이관: 사용현황/알림 (Tasks 11-14) | `PolicyUsageProcessor`(추가+갱신), `NotificationClassifier`, `AutoRenewalChecker` |
 | 7 | `[x]` | 신규 deletion_workflow API 엔드포인트 재연결 및 E2E 테스트 | 프론트엔드 연동 포함 |
-| 8 | `[ ]` | fpat firewall_analyzer vs FAT 분석 엔진 비교 및 선별 | `PolicyResolver`, `RedundancyAnalyzer` 대 FAT `analysis/` 엔진 비교. 출력 포맷은 fpat 기준. `ShadowAnalyzer`는 제거 대상. |
+| 8 | `[x]` | fpat firewall_analyzer vs FAT 분석 엔진 비교 및 선별 | `PolicyResolver` 불필요(policy_indexer가 대체). `ShadowAnalyzer` FAT에 없음(analyze_logical이 커버). `RedundancyAnalyzer.analyze_logical()` FAT에 이식 완료. |
 
 ---
 

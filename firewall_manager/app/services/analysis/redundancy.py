@@ -1,7 +1,7 @@
 
 import logging
 from collections import defaultdict
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -172,3 +172,134 @@ class RedundancyAnalyzer:
 
         logger.info(f"{len(final_results)}개의 중복 분석 결과를 찾았습니다.")
         return final_results
+
+    # ------------------------------------------------------------------
+    # 논리적 포함 관계 분석 (fpat RedundancyAnalyzer.analyze_logical() 이식)
+    # DB에 저장된 정수형 IP/포트 범위를 사용하여 A ⊆ B 포함 여부를 판단합니다.
+    # 기존 analyze()가 텍스트 완전 일치만 탐지하는 것과 달리, 더 넓은 정책이
+    # 좁은 정책을 포함하는 경우도 탐지합니다 (예: 10.0.0.0/8 ⊇ 10.1.0.0/16).
+    # ------------------------------------------------------------------
+
+    def _get_addr_ranges(
+        self, members: list, direction: str
+    ) -> List[Tuple[int, int]]:
+        """지정 방향(source/destination)의 정수형 IP 범위 목록을 반환합니다."""
+        return [
+            (m.ip_start, m.ip_end)
+            for m in members
+            if m.direction == direction and m.ip_start is not None and m.ip_end is not None
+        ]
+
+    def _get_svc_ranges(
+        self, members: list
+    ) -> List[Tuple[Optional[str], int, int]]:
+        """(protocol, port_start, port_end) 튜플 목록을 반환합니다."""
+        return [
+            (m.protocol, m.port_start, m.port_end)
+            for m in members
+            if m.port_start is not None and m.port_end is not None
+        ]
+
+    def _is_addr_subset(
+        self,
+        small: List[Tuple[int, int]],
+        large: List[Tuple[int, int]],
+    ) -> bool:
+        """small의 모든 IP 범위가 large의 어느 하나에 포함되는지 확인합니다."""
+        if not large:
+            return True   # large는 'any' — 모든 주소 포함
+        if not small:
+            return False  # small은 'any'이지만 large는 구체적 — small이 더 넓음
+        for s_start, s_end in small:
+            if not any(l_start <= s_start and s_end <= l_end for l_start, l_end in large):
+                return False
+        return True
+
+    def _is_svc_subset(
+        self,
+        small: List[Tuple[Optional[str], int, int]],
+        large: List[Tuple[Optional[str], int, int]],
+    ) -> bool:
+        """small의 모든 서비스 범위가 large의 어느 하나에 포함되는지 확인합니다."""
+        if not large:
+            return True   # large는 'any' 서비스
+        if not small:
+            return False  # small은 'any'이지만 large는 구체적
+        for s_proto, s_start, s_end in small:
+            covered = False
+            for l_proto, l_start, l_end in large:
+                proto_ok = l_proto in (None, 'any') or s_proto in (None, 'any') or l_proto == s_proto
+                if proto_ok and l_start <= s_start and s_end <= l_end:
+                    covered = True
+                    break
+            if not covered:
+                return False
+        return True
+
+    def _is_logically_contained(self, small: Policy, large: Policy) -> bool:
+        """small 정책이 large 정책에 논리적으로 포함되는지 확인합니다 (small ⊆ large)."""
+        small_src = self._get_addr_ranges(small.address_members, 'source')
+        large_src = self._get_addr_ranges(large.address_members, 'source')
+        if not self._is_addr_subset(small_src, large_src):
+            return False
+
+        small_dst = self._get_addr_ranges(small.address_members, 'destination')
+        large_dst = self._get_addr_ranges(large.address_members, 'destination')
+        if not self._is_addr_subset(small_dst, large_dst):
+            return False
+
+        small_svc = self._get_svc_ranges(small.service_members)
+        large_svc = self._get_svc_ranges(large.service_members)
+        return self._is_svc_subset(small_svc, large_svc)
+
+    async def analyze_logical(self) -> List[RedundancyPolicySetCreate]:
+        """
+        논리적 포함 관계 기반 중복 정책 분석.
+
+        fpat RedundancyAnalyzer.analyze_logical()을 FAT DB 구조로 이식.
+        seq 순서 기준으로 앞선 정책(base)이 뒤에 오는 정책(target)을 포함하면
+        base=UPPER, target=LOWER로 분류합니다.
+
+        기존 analyze()의 텍스트 완전 일치 탐지를 포함하며,
+        추가로 IP 서브넷 포함 관계(예: /8 ⊇ /16)까지 탐지합니다.
+        """
+        device = await crud.device.get_device(self.db, device_id=self.device_id)
+        if not device:
+            raise ValueError(f"Device ID {self.device_id}를 찾을 수 없습니다.")
+        self.vendor = device.vendor
+
+        policies = await self._get_policies_with_members()
+        total = len(policies)
+        logger.info(f"논리적 포함 관계 분석 시작: {total}개 정책")
+
+        results: List[RedundancyPolicySetCreate] = []
+        policy_map: Dict[int, int] = {}   # 정책 index → set_number
+        current_set_number = 1
+
+        for i in range(total):
+            target = policies[i]
+            for j in range(i):
+                base = policies[j]
+                if self._is_logically_contained(target, base):
+                    group_no = policy_map.get(j)
+                    if group_no is None:
+                        group_no = current_set_number
+                        policy_map[j] = group_no
+                        results.append(RedundancyPolicySetCreate(
+                            task_id=self.task.id,
+                            set_number=group_no,
+                            type=RedundancyPolicySetType.UPPER,
+                            policy_id=base.id,
+                        ))
+                        current_set_number += 1
+                    results.append(RedundancyPolicySetCreate(
+                        task_id=self.task.id,
+                        set_number=group_no,
+                        type=RedundancyPolicySetType.LOWER,
+                        policy_id=target.id,
+                    ))
+                    policy_map[i] = group_no
+                    break  # 첫 번째 포함 관계가 확인되면 중단 (fpat 동일 방식)
+
+        logger.info(f"논리적 중복 분석 완료: {len(results)}개 결과")
+        return results
