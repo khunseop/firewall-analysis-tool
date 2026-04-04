@@ -1,57 +1,34 @@
-# TODO 리스트 (작업 현황)
+# TODO
 
-## 1. 완료된 작업 (Completed)
+Task tracking for FAT (Firewall Analysis Tool).
+See `CLAUDE.md` for documentation update rules.
 
-### 1.1. 장비 관리 및 UI 개선
-- [x] **그리드 컬럼 개선**: 체크박스 너비 조정 및 `model` 컬럼 추가.
-- [x] **작업 유지 기능**: localStorage를 활용하여 필터, 검색 조건, 장비 선택 상태 유지.
-- [x] **로딩 인디케이터**: 전체 페이지 오버레이 및 진행률 표시 바 적용.
-- [x] **알림 시스템**: WebSocket 및 브라우저 알림 API 통합, 네비바 티커 구현.
+## Status Legend
 
-### 1.2. 시스템 안정성 및 문서화 (2025-02)
-- [x] **전체 모듈 주석 보강**: `sync`, `firewall`, `analysis`, `crud` 등 핵심 로직에 한국어 주석 추가.
-- [x] **모듈별 README 문서화**: 하위 디렉토리별 아키텍처 및 데이터 규격 문서화 완료.
-- [x] **동기화 로직 고도화**: Palo Alto HA 병렬 수집 및 히트 일자 통합 구현.
-- [x] **인덱싱 엔진 검증**: 재귀적 그룹 확장 및 IP 범위 병합 알고리즘 주석화.
+| Symbol | Meaning |
+|--------|---------|
+| `[ ]` | Pending |
+| `[~]` | In Progress |
+| `[x]` | Done |
+| `[!]` | Blocked |
 
 ---
 
-## 2. 진행 예정 작업 (Pending)
+## Active Tasks
 
-### 2.1. 대시보드 및 시각화
-- [ ] **분석 결과 섹션 구현**: 최근 분석 요약 표시 및 분석 타입별 통계 차트 추가.
-- [ ] **정책 데이터 시각화**: 장비별 정책 수 추이, 액션 분포(allow/deny) 그래프 구현.
-
-### 2.2. 정책 및 객체 관리 고도화
-- [ ] **정책 상세 정보 모달**: 정책 히스토리 조회 및 비교 기능 추가.
-- [ ] **객체 참조 관계 시각화**: 특정 객체가 사용되는 모든 정책 목록 표시.
-- [ ] **라우터 기반 메뉴 분리**: 분석/객체 타입별로 독립적인 URL 및 페이지 관리.
-
-### 2.3. 보안 및 인증 (중기 과제)
-- [ ] **사용자 인증 시스템**: JWT 기반 로그인 및 RBAC 구현.
-- [ ] **비밀번호 정책**: 해싱(bcrypt) 강화 및 로그인 시도 제한.
-- [ ] **세션 관리**: 자동 로그아웃 및 동시 로그인 제한 기능.
-
-### 2.4. 성능 및 모니터링
-- [ ] **DB/API 최적화**: 쿼리 성능 프로파일링 및 페이지네이션 개선.
-- [ ] **구조화된 로깅**: 로그 레벨 관리 및 파일 로테이션 적용.
-- [ ] **테스트 자동화**: 주요 로직에 대한 유닛/통합 테스트 코드 작성.
+| # | Status | Task | Notes |
+|---|--------|------|-------|
+| 1 | `[ ]` | Reimplement `smoke_test.py` | Currently non-functional. Needs server dependency cleanup and proper mock device setup documented. |
 
 ---
 
-## 3. 우선순위 요약
+## Completed Tasks
 
-### 높음 (High Priority)
-1. 정책 분석 결과의 시각화 (대시보드 반영)
-2. 각 분석 타입 및 객체 타입별 하위 메뉴(라우터) 분리
-3. 대용량 정책 검색 성능 최적화 및 프로파일링
+| # | Completed | Task |
+|---|-----------|------|
+| — | — | — |
 
-### 중간 (Medium Priority)
-1. 객체 참조 관계 시각화 및 정책 상세 모달 강화
-2. 신규 벤더(국내외 주요 제조사) 추가 지원
-3. 사용자 가이드 및 API 문서 보완
+---
 
-### 낮음 (Low Priority)
-1. 보안 인증 기능 (로그인, 세션)
-2. 도커(Docker) 배포 환경 구성
-3. 통합 테스트 및 E2E 테스트 자동화
+> **Claude Code instruction**: When starting a task, set status to `[~]`.
+> When done, set to `[x]`, move the row to Completed, fill in the date, and update any related docs per `CLAUDE.md` rules.
