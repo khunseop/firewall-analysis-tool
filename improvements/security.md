@@ -4,31 +4,33 @@
 
 ## 심각도: 높음
 
-### 1. 인증/접근제어 미구현 (최우선)
+### 1. 인증/접근제어 미구현 ✅ 완료 (2026-04-04)
 - **문제**: 현재 웹 UI 및 모든 API 엔드포인트가 인증 없이 누구나 접근 가능. 내부망이라도 비인가 접근 위험 존재
-- **추천 구현: `fastapi-users[sqlalchemy]`**
-  - 폐쇄망 pip install 후 오프라인 사용 가능
-  - 이미 사용 중인 SQLAlchemy + SQLite와 완전 호환
-  - JWT 토큰 기반 인증, bcrypt 비밀번호 해시 내장
-  - 의존 패키지: python-jose, passlib, bcrypt 포함
-  - `requirements.txt`에 `fastapi-users[sqlalchemy]` 추가
+- **구현 내용:**
+  - `requirements.txt`: `python-jose[cryptography]`, `passlib[bcrypt]` 추가
+  - `app/models/user.py`: `users` 테이블 ORM 모델 (id, username, hashed_password, is_active, is_admin, created_at, last_login_at)
+  - `alembic/versions/n8o9p0q1r2s3_add_users_table.py`: DB 마이그레이션
+  - `app/core/auth.py`: JWT 발급/검증, bcrypt 비밀번호 해시, `get_current_user` 의존성
+  - `app/core/config.py`: `JWT_SECRET_KEY` (자동 생성), `JWT_ALGORITHM`, `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` (480분) 추가
+  - `app/api/api_v1/endpoints/auth.py`: `POST /api/v1/auth/login`, `GET /api/v1/auth/me`
+  - `app/api/api_v1/api.py`: 모든 `/api/v1/*` 라우터에 `get_current_user` 의존성 적용 (auth 엔드포인트 제외)
+  - `app/main.py`: `AuthMiddleware` — 쿠키 기반 토큰 검증, 미인증 시 `/login` 리다이렉트
+  - `app/frontend/login.html`: 로그인 페이지 (Bulma 스타일)
+  - `app/frontend/js/api.js`: 모든 요청에 `Authorization: Bearer` 헤더 자동 추가, 401 시 로그아웃/리다이렉트
+  - `app/frontend/js/main.js`: 페이지 진입 시 토큰 존재 여부 확인, 로그아웃 버튼 연결
+  - `app/frontend/index.html`: 네비게이션 바에 로그아웃 버튼 추가
+  - `app/api/api_v1/endpoints/websocket.py`: WebSocket은 헤더 인증 불가 → query param `?token=` 방식으로 별도 처리
+  - `create_admin.py`: 초기 관리자 계정 생성 스크립트
 
-- **구현 범위 (최소):**
-  1. `users` 테이블 추가 (Alembic 마이그레이션)
-  2. 로그인 페이지 `/login` 구현 (프론트엔드 HTML + JS)
-  3. JWT 발급 엔드포인트 (`/api/v1/auth/jwt/login`)
-  4. 모든 `/api/v1/*` 라우터에 `current_active_user` 의존성 추가
-  5. 정적 파일(`/app`) 접근 시 토큰 검증 미들웨어 추가
-  6. 초기 관리자 계정 생성 스크립트 (`create_admin.py`)
-  7. 프론트엔드: 토큰 localStorage 저장, 401 응답 시 `/login` 리다이렉트
-  8. 로그아웃 처리 (토큰 삭제)
+- **초기 설정:**
+  ```bash
+  python3 firewall_manager/migrate.py          # users 테이블 생성
+  python3 firewall_manager/create_admin.py     # 관리자 계정 생성
+  ```
 
-- **설정 방식**: 초기 관리자 비밀번호를 `.env`에 해시 형태로 저장하거나 최초 실행 시 설정 스크립트 실행
-
-### 2. `.env` 파일 권한 미검증
-- **위치**: `app/core/config.py:42`
-- **문제**: Fernet 암호화 키가 포함된 `.env` 파일 생성 시 파일 권한 설정 없음. 기본 644(world-readable) 권한으로 생성될 수 있음
-- **개선**: 파일 생성 후 `os.chmod('.env', 0o600)` 적용, 권한 확인 시작 시 경고 로그 출력
+### 2. `.env` 파일 권한 미검증 ✅ 완료 (2026-04-04)
+- **위치**: `app/core/config.py`
+- **구현 내용**: `.env` 파일 생성/갱신 시 `os.chmod(ENV_PATH, 0o600)` 적용. 서버 시작 시 world-readable 권한이면 경고 로그 출력
 
 ---
 
