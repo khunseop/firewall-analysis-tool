@@ -8,6 +8,7 @@ import { initSchedules, cleanupSchedules } from "./pages/schedules.js";
 import { initSettings, cleanupSettings } from "./pages/settings.js";
 import { initDeletionWorkflow } from "./pages/deletion_workflow.js";
 import { initNotificationTicker } from "./utils/notificationTicker.js";
+import { logout } from "./api.js";
 
 addRoute("#/dashboard", { template: "dashboard.html", init: initDashboard, cleanup: cleanupDashboard });
 addRoute("#/devices", { template: "devices.html", init: initDevices, cleanup: cleanupDevices });
@@ -19,10 +20,15 @@ addRoute("#/settings", { template: "settings.html", init: initSettings, cleanup:
 addRoute("#/settings/schedules", { template: "settings.html", init: initSettings, cleanup: cleanupSettings });
 addRoute("#/deletion-workflow", { template: "deletion_workflow.html", init: initDeletionWorkflow });
 
-// Bulma navbar burger toggle (per docs)
+// Auth guard: if no token in localStorage, redirect to /login
+if (!localStorage.getItem('fat_token')) {
+  window.location.href = '/login';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  // Bulma navbar burger toggle (per docs)
   const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
-  $navbarBurgers.forEach( el => {
+  $navbarBurgers.forEach(el => {
     el.addEventListener('click', () => {
       const target = el.dataset.target;
       const $target = document.getElementById(target);
@@ -30,7 +36,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if ($target) $target.classList.toggle('is-active');
     });
   });
-  
+
+  // Logout button
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) logoutBtn.addEventListener('click', logout);
+
   // 알림 티커 초기화
   initNotificationTicker();
 });

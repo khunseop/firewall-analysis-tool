@@ -1,3 +1,4 @@
+from .user import User
 from .device import Device
 from .policy import Policy
 from .network_object import NetworkObject

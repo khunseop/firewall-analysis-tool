@@ -2,11 +2,33 @@ import { promptFilename } from './utils/excel.js';
 
 const BASE = "/api/v1";
 
+function getToken() {
+  return localStorage.getItem('fat_token');
+}
+
+function authHeaders(extra = {}) {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}`, ...extra } : extra;
+}
+
+function logout() {
+  localStorage.removeItem('fat_token');
+  document.cookie = 'access_token=; path=/; max-age=0';
+  window.location.href = '/login';
+}
+
 async function request(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
+  const token = getToken();
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE}${path}`, { ...options, headers });
+
+  if (res.status === 401) {
+    logout();
+    return;
+  }
+
   if (!res.ok) {
     let detail = "Request failed";
     try { const data = await res.json(); detail = data.detail || data.msg || detail; } catch {}
@@ -17,6 +39,8 @@ async function request(path, options = {}) {
   const ct = res.headers.get("content-type") || "";
   return ct.includes("application/json") ? res.json() : res.text();
 }
+
+export { logout };
 
 export const api = {
   listDevices: () => request(`/devices`),
@@ -79,7 +103,7 @@ export const api = {
   exportToExcel: async (data, filename) => {
     const res = await fetch(`${BASE}/firewall/export/excel`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ data, filename }),
     });
     if (!res.ok) {
@@ -98,7 +122,7 @@ export const api = {
     window.URL.revokeObjectURL(url);
   },
   downloadDeviceTemplate: async () => {
-    const res = await fetch(`${BASE}/devices/excel-template`);
+    const res = await fetch(`${BASE}/devices/excel-template`, { headers: authHeaders() });
     if (!res.ok) {
       let detail = "Template download failed";
       try { const data = await res.json(); detail = data.detail || data.msg || detail; } catch {}
@@ -119,6 +143,7 @@ export const api = {
     formData.append('file', file);
     const res = await fetch(`${BASE}/devices/bulk-import`, {
       method: "POST",
+      headers: authHeaders(),
       body: formData,
     });
     if (!res.ok) {
@@ -159,6 +184,7 @@ export const api = {
   executeStep: async (deviceId, stepNumber, formData) => {
     const res = await fetch(`${BASE}/deletion-workflow/${deviceId}/step/${stepNumber}/execute`, {
       method: "POST",
+      headers: authHeaders(),
       body: formData,
     });
     if (!res.ok) {
@@ -171,7 +197,7 @@ export const api = {
     return res.json();
   },
   downloadStepResult: async (deviceId, stepNumber, deviceName = null) => {
-    const res = await fetch(`${BASE}/deletion-workflow/${deviceId}/step/${stepNumber}/download`);
+    const res = await fetch(`${BASE}/deletion-workflow/${deviceId}/step/${stepNumber}/download`, { headers: authHeaders() });
     if (!res.ok) {
       let detail = "Download failed";
       try { const data = await res.json(); detail = data.detail || data.msg || detail; } catch {}
@@ -231,7 +257,7 @@ export const api = {
     window.URL.revokeObjectURL(url);
   },
   downloadMasterFile: async (deviceId, deviceName = null) => {
-    const res = await fetch(`${BASE}/deletion-workflow/${deviceId}/master/download`);
+    const res = await fetch(`${BASE}/deletion-workflow/${deviceId}/master/download`, { headers: authHeaders() });
     if (!res.ok) {
       let detail = "Download failed";
       try { const data = await res.json(); detail = data.detail || data.msg || detail; } catch {}
@@ -277,7 +303,7 @@ export const api = {
   },
   exportFinalResults: (deviceId) => request(`/deletion-workflow/${deviceId}/final/export`, { method: "POST" }),
   downloadFinalResults: async (deviceId, deviceName = null) => {
-    const res = await fetch(`${BASE}/deletion-workflow/${deviceId}/final/download`);
+    const res = await fetch(`${BASE}/deletion-workflow/${deviceId}/final/download`, { headers: authHeaders() });
     if (!res.ok) {
       let detail = "Download failed";
       try { const data = await res.json(); detail = data.detail || data.msg || detail; } catch {}
@@ -324,7 +350,7 @@ export const api = {
   resetWorkflow: async (deviceId, deleteFiles = true) => {
     const res = await fetch(`${BASE}/deletion-workflow/${deviceId}/reset`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ delete_files: deleteFiles }),
     });
     if (!res.ok) {

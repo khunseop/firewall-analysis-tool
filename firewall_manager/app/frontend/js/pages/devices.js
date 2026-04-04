@@ -639,7 +639,8 @@ function connectWebSocket() {
 
   // WebSocket URL 구성 (ws:// 또는 wss://)
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${protocol}//${window.location.host}/api/v1/ws/sync-status`;
+  const token = localStorage.getItem('fat_token') || '';
+  const wsUrl = `${protocol}//${window.location.host}/api/v1/ws/sync-status?token=${encodeURIComponent(token)}`;
 
   return new Promise((resolve, reject) => {
     try {

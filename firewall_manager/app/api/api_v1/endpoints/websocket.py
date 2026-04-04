@@ -3,8 +3,9 @@ WebSocket 엔드포인트
 동기화 상태 실시간 업데이트를 위한 WebSocket 연결
 """
 import logging
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
+from app.core.auth import decode_token
 from app.services.websocket_manager import websocket_manager
 
 router = APIRouter()
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.websocket("/ws/sync-status")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
     """
     동기화 상태 실시간 업데이트를 위한 WebSocket 연결
     
@@ -25,6 +26,10 @@ async def websocket_endpoint(websocket: WebSocket):
         "step": "Collecting network objects..." | null
     }
     """
+    if not decode_token(token):
+        await websocket.close(code=1008)
+        return
+
     await websocket_manager.connect(websocket)
     try:
         # 연결 유지 (클라이언트가 연결을 끊을 때까지 대기)
