@@ -84,25 +84,25 @@ export function PoliciesPage() {
   }
 
   // Object name cell renderer using validObjectNames
-  const makeCellRenderer = (field: string) => (params: { value: string; data: Policy }) => {
+  const makeCellRenderer = (_field: string) => (params: { value: string; data: Policy }) => {
     const names: string[] = (params.value ?? '').split(',').map((s: string) => s.trim()).filter(Boolean)
-    const div = document.createElement('div')
-    div.className = 'flex flex-wrap gap-0.5 items-center h-full'
-    names.forEach((name) => {
-      const span = document.createElement('span')
-      span.textContent = name
-      if (validObjectNames.has(name)) {
-        span.style.cssText = 'color:#1d4ed8;text-decoration:underline;cursor:pointer;'
-        span.onclick = () => setObjectModal({ deviceId: params.data.device_id, name })
-      }
-      div.appendChild(span)
-      if (name !== names[names.length - 1]) {
-        const comma = document.createElement('span')
-        comma.textContent = ', '
-        div.appendChild(comma)
-      }
-    })
-    return div
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', height: '100%' }}>
+        {names.map((name, i) => (
+          <span key={i}>
+            {validObjectNames.has(name) ? (
+              <span
+                style={{ color: '#1d4ed8', textDecoration: 'underline', cursor: 'pointer' }}
+                onClick={() => setObjectModal({ deviceId: params.data.device_id, name })}
+              >
+                {name}
+              </span>
+            ) : name}
+            {i < names.length - 1 && ', '}
+          </span>
+        ))}
+      </div>
+    )
   }
 
   const columnDefs: ColDef<Policy>[] = [

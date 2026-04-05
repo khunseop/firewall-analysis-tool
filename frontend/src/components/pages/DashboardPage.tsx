@@ -79,21 +79,15 @@ const COLUMN_DEFS: ColDef<DeviceRow>[] = [
       const status = params.value
       const step = params.data?.sync_step
       const title = step ? `${status}: ${step}` : (status ?? '-')
-      const container = document.createElement('div')
-      container.className = 'flex items-center h-full'
-      container.title = title
-      const dot = document.createElement('span')
       const colors: Record<string, string> = {
-        success: '#22c55e',
-        in_progress: '#3b82f6',
-        pending: '#f59e0b',
-        failure: '#ef4444',
-        error: '#ef4444',
+        success: '#22c55e', in_progress: '#3b82f6', pending: '#f59e0b', failure: '#ef4444', error: '#ef4444',
       }
-      dot.style.cssText = `width:10px;height:10px;border-radius:50%;background:${colors[status ?? ''] ?? '#94a3b8'};display:inline-block;`
-      if (status === 'in_progress') dot.style.animation = 'pulse 1.5s ease-in-out infinite'
-      container.appendChild(dot)
-      return container
+      const bg = colors[status ?? ''] ?? '#94a3b8'
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', height: '100%' }} title={title}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: bg, display: 'inline-block', animation: status === 'in_progress' ? 'pulse 1.5s ease-in-out infinite' : undefined }} />
+        </div>
+      )
     },
   },
 ]

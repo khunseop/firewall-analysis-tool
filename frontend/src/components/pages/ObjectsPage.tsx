@@ -29,13 +29,14 @@ const NETWORK_GROUP_COLS: ColDef<NetworkGroup>[] = [
     headerName: '멤버',
     filter: 'agTextColumnFilter',
     flex: 1,
+    autoHeight: true,
     cellRenderer: (p: { value: string }) => {
-      const div = document.createElement('div')
-      div.style.whiteSpace = 'normal'
-      div.style.lineHeight = '1.4'
-      div.style.padding = '4px 0'
-      div.innerHTML = (p.value ?? '').split(',').map((m: string) => m.trim()).filter(Boolean).join('<br>')
-      return div
+      const members = (p.value ?? '').split(',').map((m: string) => m.trim()).filter(Boolean)
+      return (
+        <div style={{ whiteSpace: 'normal', lineHeight: 1.4, padding: '4px 0' }}>
+          {members.map((m, i) => <div key={i}>{m}</div>)}
+        </div>
+      )
     },
   },
   { field: 'description', headerName: '설명', filter: 'agTextColumnFilter', width: 180 },
@@ -55,13 +56,14 @@ const SERVICE_GROUP_COLS: ColDef<ServiceGroup>[] = [
     headerName: '멤버',
     filter: 'agTextColumnFilter',
     flex: 1,
+    autoHeight: true,
     cellRenderer: (p: { value: string }) => {
-      const div = document.createElement('div')
-      div.style.whiteSpace = 'normal'
-      div.style.lineHeight = '1.4'
-      div.style.padding = '4px 0'
-      div.innerHTML = (p.value ?? '').split(',').map((m: string) => m.trim()).filter(Boolean).join('<br>')
-      return div
+      const members = (p.value ?? '').split(',').map((m: string) => m.trim()).filter(Boolean)
+      return (
+        <div style={{ whiteSpace: 'normal', lineHeight: 1.4, padding: '4px 0' }}>
+          {members.map((m, i) => <div key={i}>{m}</div>)}
+        </div>
+      )
     },
   },
   { field: 'description', headerName: '설명', filter: 'agTextColumnFilter', width: 180 },

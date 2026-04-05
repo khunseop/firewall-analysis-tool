@@ -161,13 +161,13 @@ const COLUMN_DEFS: ColDef<Device>[] = [
     headerName: '동기화 상태',
     width: 120,
     cellRenderer: (params: { value: string | null }) => {
-      const div = document.createElement('div')
-      div.className = 'flex items-center h-full'
       const colors: Record<string, string> = { success: '#22c55e', in_progress: '#3b82f6', pending: '#f59e0b', failure: '#ef4444', error: '#ef4444' }
-      const dot = document.createElement('span')
-      dot.style.cssText = `width:10px;height:10px;border-radius:50%;background:${colors[params.value ?? ''] ?? '#94a3b8'};display:inline-block;`
-      div.appendChild(dot)
-      return div
+      const bg = colors[params.value ?? ''] ?? '#94a3b8'
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: bg, display: 'inline-block' }} />
+        </div>
+      )
     },
   },
 ]
@@ -251,28 +251,29 @@ export function DevicesPage() {
     syncMutation.mutate(device.id)
   }
 
-  // Action column injected at runtime
   const actionColDef: ColDef<Device> = {
     headerName: '작업',
-    width: 200,
+    width: 230,
     sortable: false,
     filter: false,
-    cellRenderer: (params: { data: Device }) => {
-      const div = document.createElement('div')
-      div.className = 'flex items-center gap-1 h-full'
-      const makeBtn = (label: string, color: string, onClick: () => void) => {
-        const btn = document.createElement('button')
-        btn.textContent = label
-        btn.className = `px-2 py-0.5 text-xs rounded border ${color} cursor-pointer`
-        btn.onclick = onClick
-        return btn
-      }
-      div.appendChild(makeBtn('수정', 'border-blue-300 text-blue-700 hover:bg-blue-50', () => { setEditTarget(params.data); setFormOpen(true) }))
-      div.appendChild(makeBtn('삭제', 'border-red-300 text-red-700 hover:bg-red-50', () => handleDelete(params.data)))
-      div.appendChild(makeBtn('연결테스트', 'border-gray-300 text-gray-700 hover:bg-gray-50', () => handleTestConnection(params.data)))
-      div.appendChild(makeBtn('동기화', 'border-green-300 text-green-700 hover:bg-green-50', () => handleSync(params.data)))
-      return div
-    },
+    cellRenderer: (params: { data: Device }) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, height: '100%' }}>
+        {[
+          { label: '수정', color: '#1d4ed8', border: '#93c5fd', onClick: () => { setEditTarget(params.data); setFormOpen(true) } },
+          { label: '삭제', color: '#b91c1c', border: '#fca5a5', onClick: () => handleDelete(params.data) },
+          { label: '연결테스트', color: '#374151', border: '#d1d5db', onClick: () => handleTestConnection(params.data) },
+          { label: '동기화', color: '#15803d', border: '#86efac', onClick: () => handleSync(params.data) },
+        ].map(({ label, color, border, onClick }) => (
+          <button
+            key={label}
+            onClick={onClick}
+            style={{ padding: '1px 6px', fontSize: 11, borderRadius: 4, border: `1px solid ${border}`, color, cursor: 'pointer', background: 'white' }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    ),
   }
 
   return (

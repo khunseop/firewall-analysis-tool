@@ -2,7 +2,7 @@ from pathlib import Path
 import logging
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.docs import (
     get_swagger_ui_html,
@@ -10,6 +10,7 @@ from fastapi.openapi.docs import (
     get_swagger_ui_oauth2_redirect_html,
 )
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.api_v1.api import api_router as api_v1_router
 from app.core.auth import decode_token
@@ -126,18 +127,20 @@ def serve_analysis_page():
     return FileResponse(FRONTEND_DIR / "templates/analysis.html")
 
 
-@app.get("/{react_path:path}", include_in_schema=False)
-def serve_react_app(react_path: str):
-    """Catch-all for React Router BrowserRouter paths.
-    Excludes /app/* (old frontend with Deletion Workflow) and /api/*, /static/*, /assets/*, /fonts/*.
+@app.exception_handler(StarletteHTTPException)
+async def spa_fallback_handler(request: Request, exc: StarletteHTTPException):
+    """Serve React SPA index.html for 404s on non-API/non-static paths.
+    This allows React Router BrowserRouter to handle client-side routes
+    while keeping proper 404 JSON responses for API endpoints.
     """
-    excluded = ("app/", "api/", "static/", "assets/", "fonts/", "docs", "redoc")
-    if any(react_path.startswith(prefix) for prefix in excluded):
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404)
-    if REACT_DIST_DIR.exists() and (REACT_DIST_DIR / "index.html").exists():
-        return FileResponse(REACT_DIST_DIR / "index.html")
-    return FileResponse(FRONTEND_DIR / "index.html")
+    if exc.status_code == 404:
+        path = request.url.path
+        excluded = ("/api/", "/static/", "/assets/", "/fonts/", "/docs", "/redoc", "/app/")
+        if not any(path.startswith(p) for p in excluded):
+            if REACT_DIST_DIR.exists() and (REACT_DIST_DIR / "index.html").exists():
+                return FileResponse(REACT_DIST_DIR / "index.html")
+            return FileResponse(FRONTEND_DIR / "index.html")
+    return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
 
 
 @app.on_event("startup")
