@@ -210,3 +210,5 @@ firewall_manager/fat.db-shm
 .DS_Store
 *.xlsx
 *_config.json
+.playwright-mcp/
+.claude/
