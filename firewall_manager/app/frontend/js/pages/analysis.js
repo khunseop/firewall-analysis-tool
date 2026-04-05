@@ -266,6 +266,12 @@ async function displayResults(resultData, analysisType, source = 'latest') {
     const columnDefs = getColumnDefsWithRenderer(analysisType);
     createGrid(columnDefs, processedData);
     
+    // 중복정책 분석 색상 범례 표시
+    const legendEl = document.getElementById('redundancy-legend');
+    if (legendEl) {
+        legendEl.style.display = analysisType === 'redundancy' && processedData && processedData.length > 0 ? 'block' : 'none';
+    }
+
     if(processedData && processedData.length > 0) {
         // 버튼 표시
         const resetFiltersBtn = document.getElementById('btn-reset-filters');

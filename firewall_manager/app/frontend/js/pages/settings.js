@@ -212,9 +212,9 @@ export function initSettings(rootEl) {
     switchTab('logs');
   } else if (hash === '#/settings/deletion-workflow') {
     switchTab('deletion-workflow');
-  } else if (hash === '#/settings') {
-    // 기본 탭은 알림 로그
-    switchTab('logs');
+  } else {
+    // 기본 탭은 일반 설정
+    switchTab('general');
   }
 }
 

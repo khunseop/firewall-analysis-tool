@@ -4,13 +4,13 @@
   <!-- 탭 메뉴 -->
   <div class="tabs is-boxed mb-4">
     <ul>
-      <li class="tab-item" data-tab="general">
+      <li class="tab-item is-active" data-tab="general">
         <a>일반 설정</a>
       </li>
       <li class="tab-item" data-tab="schedules">
         <a>동기화 스케줄</a>
       </li>
-      <li class="tab-item is-active" data-tab="logs">
+      <li class="tab-item" data-tab="logs">
         <a>알림 로그</a>
       </li>
       <li class="tab-item" data-tab="deletion-workflow">
@@ -20,7 +20,7 @@
   </div>
   
   <!-- 일반 설정 탭 -->
-  <div id="tab-general" class="tab-content" style="display: none;">
+  <div id="tab-general" class="tab-content">
     <div class="box mb-4">
       <h2 class="subtitle is-6 mb-4">동기화 설정</h2>
       
@@ -71,7 +71,7 @@
   </div>
   
   <!-- 동기화 스케줄 탭 -->
-  <div id="tab-schedules" class="tab-content">
+  <div id="tab-schedules" class="tab-content" style="display: none;">
     <!-- 스케줄 설정 영역 -->
     <div class="box mb-4">
       <h2 class="subtitle is-6 mb-4">스케줄 설정</h2>
@@ -288,7 +288,7 @@
   </div>
   
   <!-- 알림 로그 탭 -->
-  <div id="tab-logs" class="tab-content">
+  <div id="tab-logs" class="tab-content" style="display: none;">
     <div class="box">
       <div class="level mb-4">
         <div class="level-left">

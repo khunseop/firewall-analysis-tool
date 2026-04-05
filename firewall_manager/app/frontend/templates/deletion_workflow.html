@@ -1,6 +1,21 @@
 <div class="container is-fluid">
   <h1 class="title is-5 mb-4">정책 삭제 워크플로우</h1>
-  
+
+  <!-- 기능 설명 -->
+  <article class="message is-info mb-4">
+    <div class="message-body" style="font-size: 0.85rem;">
+      <p class="mb-2"><strong>이 기능은 방화벽 정책 삭제를 위한 단계별 워크플로우입니다.</strong></p>
+      <p>신청정보 파싱 → Request ID 추출 → 예외처리 → 중복정책 분류 순서로 진행하며, 각 단계의 결과를 엑셀 파일로 다운로드할 수 있습니다. 최종 단계 완료 후 공지용/삭제용 분류 결과가 생성됩니다.</p>
+    </div>
+  </article>
+
+  <!-- 위험 경고 -->
+  <article class="message is-danger mb-4">
+    <div class="message-body" style="font-size: 0.85rem;">
+      <p><strong>주의:</strong> 이 워크플로우는 방화벽 정책 삭제를 위한 분석을 수행합니다. 결과 파일을 기반으로 실제 정책이 삭제될 수 있습니다. 각 단계의 결과를 신중히 검토한 후 다음 단계로 진행하세요.</p>
+    </div>
+  </article>
+
   <!-- 장비 선택 -->
   <div class="box mb-4">
     <div class="field">

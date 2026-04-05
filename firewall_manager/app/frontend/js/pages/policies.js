@@ -45,12 +45,13 @@ const getCols = () => ([
       debounceMs: 200
     }
   },
-  { 
-    field:'rule_name', 
-    headerName:'정책명', 
+  {
+    field:'rule_name',
+    headerName:'정책명',
     filter:'agTextColumnFilter',
     sortable: false,
     minWidth: 150,
+    tooltipValueGetter: p => p.value,
     filterParams: {
       buttons: ['apply', 'reset'],
       debounceMs: 200
@@ -80,11 +81,12 @@ const getCols = () => ([
     }
   },
   {
-    field:'source', 
-    headerName:'출발지', 
-    wrapText:true, 
+    field:'source',
+    headerName:'출발지',
+    wrapText:true,
     autoHeight:true,
     cellRenderer: objectCellRenderer,
+    tooltipValueGetter: p => p.value,
     filter:'agTextColumnFilter',
     sortable: false,
     minWidth: 150,
@@ -94,11 +96,12 @@ const getCols = () => ([
     }
   },
   {
-    field:'user', 
-    headerName:'사용자', 
-    wrapText:true, 
+    field:'user',
+    headerName:'사용자',
+    wrapText:true,
     autoHeight:true,
     cellRenderer: objectCellRenderer,
+    tooltipValueGetter: p => p.value,
     filter:'agTextColumnFilter',
     sortable: false,
     minWidth: 150,
@@ -108,11 +111,12 @@ const getCols = () => ([
     }
   },
   {
-    field:'destination', 
-    headerName:'목적지', 
-    wrapText:true, 
+    field:'destination',
+    headerName:'목적지',
+    wrapText:true,
     autoHeight:true,
     cellRenderer: objectCellRenderer,
+    tooltipValueGetter: p => p.value,
     filter:'agTextColumnFilter',
     sortable: false,
     minWidth: 150,
@@ -122,11 +126,12 @@ const getCols = () => ([
     }
   },
   {
-    field:'service', 
-    headerName:'서비스', 
-    wrapText:true, 
+    field:'service',
+    headerName:'서비스',
+    wrapText:true,
     autoHeight:true,
     cellRenderer: objectCellRenderer,
+    tooltipValueGetter: p => p.value,
     filter:'agTextColumnFilter',
     sortable: false,
     minWidth: 150,
@@ -136,11 +141,12 @@ const getCols = () => ([
     }
   },
   {
-    field:'application', 
-    headerName:'애플리케이션', 
-    wrapText:true, 
+    field:'application',
+    headerName:'애플리케이션',
+    wrapText:true,
     autoHeight:true,
     cellRenderer: objectCellRenderer,
+    tooltipValueGetter: p => p.value,
     filter:'agTextColumnFilter',
     sortable: false,
     minWidth: 150,
@@ -171,12 +177,13 @@ const getCols = () => ([
       debounceMs: 200
     }
   },
-  { 
-    field:'description', 
-    headerName:'설명', 
+  {
+    field:'description',
+    headerName:'설명',
     filter:'agTextColumnFilter',
     sortable: false,
     minWidth: 200,
+    tooltipValueGetter: p => p.value,
     filterParams: {
       buttons: ['apply', 'reset'],
       debounceMs: 200
@@ -272,6 +279,7 @@ async function initGrid() {
     columnDefs: getCols(),
     rowData: [],
     suppressHorizontalScroll: false, // 가로 스크롤 허용
+    tooltipShowDelay: 300,
     onGridReady: params => {
       if (handlers.onGridReady) handlers.onGridReady(params);
       policyGridApi = params.api;
@@ -355,6 +363,11 @@ async function searchAndLoadPolicies() {
   if (gridDiv) gridDiv.style.display = 'block';
 
   try {
+    // 로딩 오버레이 표시
+    if (policyGridApi && typeof policyGridApi.showLoadingOverlay === 'function') {
+      policyGridApi.showLoadingOverlay();
+    }
+
     const payload = buildSearchPayload(deviceIds);
     const response = await api.searchPolicies(payload);
 
@@ -375,7 +388,10 @@ async function searchAndLoadPolicies() {
         } else if (typeof policyGridApi.setRowData === 'function') {
           policyGridApi.setRowData(rows);
         }
-        
+        if (typeof policyGridApi.hideOverlay === 'function') {
+          policyGridApi.hideOverlay();
+        }
+
         // 저장된 필터 복원
         const savedFilters = loadGridFilters('policies');
         if (savedFilters && typeof policyGridApi.setFilterModel === 'function') {
@@ -420,6 +436,9 @@ async function searchAndLoadPolicies() {
     }
   } catch (error) {
     console.error('Failed to load policies:', error);
+    if (policyGridApi && typeof policyGridApi.hideOverlay === 'function') {
+      policyGridApi.hideOverlay();
+    }
     showEmptyMessage(messageContainer, '장비를 선택하세요', 'fa-mouse-pointer');
     if (gridDiv) gridDiv.style.display = 'none';
     if (policyGridApi) {
