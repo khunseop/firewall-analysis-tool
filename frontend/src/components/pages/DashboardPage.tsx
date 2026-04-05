@@ -2,10 +2,7 @@ import { useRef, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react'
 import type { ColDef, GridApi } from '@ag-grid-community/core'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
-import { StatusBadge } from '@/components/shared/StatusBadge'
 import { getDashboardStats, type DeviceStats } from '@/api/devices'
 import { useSyncStatusWebSocket } from '@/hooks/useWebSocket'
 import { formatNumber, formatDate } from '@/lib/utils'
@@ -15,14 +12,6 @@ const VENDOR_LABELS: Record<string, string> = {
   ngf: 'SECUI NGF',
   mf2: 'SECUI MF2',
   mock: 'Mock',
-}
-
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  success: { label: '성공', color: 'text-green-700', bg: 'bg-green-50 border-green-200' },
-  in_progress: { label: '진행중', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200' },
-  pending: { label: '대기중', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
-  failure: { label: '실패', color: 'text-red-700', bg: 'bg-red-50 border-red-200' },
-  error: { label: '오류', color: 'text-red-700', bg: 'bg-red-50 border-red-200' },
 }
 
 interface DeviceRow {
@@ -56,21 +45,23 @@ function transformDeviceStats(d: DeviceStats): DeviceRow {
   }
 }
 
+const STATUS_PILL: Record<string, { label: string; classes: string }> = {
+  success:     { label: '완료',   classes: 'bg-green-100 text-green-700' },
+  in_progress: { label: '진행중', classes: 'bg-amber-100 text-amber-700' },
+  pending:     { label: '대기중', classes: 'bg-blue-100 text-blue-700' },
+  failure:     { label: '실패',   classes: 'bg-red-100 text-red-700' },
+  error:       { label: '오류',   classes: 'bg-red-100 text-red-700' },
+}
+
 const COLUMN_DEFS: ColDef<DeviceRow>[] = [
-  { field: 'name', headerName: '장비명', filter: 'agTextColumnFilter', width: 150 },
+  { field: 'name', headerName: '장비명', filter: 'agTextColumnFilter', width: 160 },
   { field: 'vendor', headerName: '벤더', filter: 'agTextColumnFilter', width: 100 },
   { field: 'policies', headerName: '정책 수', filter: 'agNumberColumnFilter', width: 100, valueFormatter: (p) => formatNumber(p.value) },
   { field: 'active_policies', headerName: '활성 정책', filter: 'agNumberColumnFilter', width: 100, valueFormatter: (p) => formatNumber(p.value) },
   { field: 'disabled_policies', headerName: '비활성', filter: 'agNumberColumnFilter', width: 90, valueFormatter: (p) => formatNumber(p.value) },
   { field: 'network_objects', headerName: '네트워크 객체', filter: 'agNumberColumnFilter', width: 130, valueFormatter: (p) => formatNumber(p.value) },
   { field: 'services', headerName: '서비스 객체', filter: 'agNumberColumnFilter', width: 120, valueFormatter: (p) => formatNumber(p.value) },
-  {
-    field: 'sync_time',
-    headerName: '마지막 동기화',
-    filter: 'agTextColumnFilter',
-    width: 160,
-    valueFormatter: (p) => formatDate(p.value),
-  },
+  { field: 'sync_time', headerName: '마지막 동기화', filter: 'agTextColumnFilter', width: 160, valueFormatter: (p) => formatDate(p.value) },
   {
     field: 'sync_status',
     headerName: '동기화 상태',
@@ -78,14 +69,13 @@ const COLUMN_DEFS: ColDef<DeviceRow>[] = [
     cellRenderer: (params: { value: string | null; data: DeviceRow }) => {
       const status = params.value
       const step = params.data?.sync_step
-      const title = step ? `${status}: ${step}` : (status ?? '-')
-      const colors: Record<string, string> = {
-        success: '#22c55e', in_progress: '#3b82f6', pending: '#f59e0b', failure: '#ef4444', error: '#ef4444',
-      }
-      const bg = colors[status ?? ''] ?? '#94a3b8'
+      const conf = STATUS_PILL[status ?? '']
+      if (!conf) return <span className="text-ds-on-surface-variant text-xs">-</span>
       return (
-        <div style={{ display: 'flex', alignItems: 'center', height: '100%' }} title={title}>
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: bg, display: 'inline-block', animation: status === 'in_progress' ? 'pulse 1.5s ease-in-out infinite' : undefined }} />
+        <div className="flex items-center h-full" title={step ? `${status}: ${step}` : (status ?? '')}>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tight ${conf.classes}`}>
+            {conf.label}
+          </span>
         </div>
       )
     },
@@ -110,13 +100,12 @@ export function DashboardPage() {
       if (api) {
         const node = api.getRowNode(String(msg.device_id))
         if (node?.data) {
-          const updated: DeviceRow = {
+          node.setData({
             ...node.data,
             sync_status: msg.status,
             sync_step: msg.step,
             sync_time: msg.status === 'success' || msg.status === 'failure' ? new Date().toISOString() : node.data.sync_time,
-          }
-          node.setData(updated)
+          })
         }
       }
       if (msg.status === 'success' || msg.status === 'failure') {
@@ -127,10 +116,6 @@ export function DashboardPage() {
   )
 
   useSyncStatusWebSocket(handleSyncMessage)
-
-  const handleRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-  }
 
   // 동기화 상태별 집계
   const statusCounts = rowData.reduce<Record<string, number>>((acc, d) => {
@@ -151,109 +136,134 @@ export function DashboardPage() {
     return acc
   }, {})
 
+  const STAT_CARDS = [
+    {
+      label: '전체 장비',
+      value: stats?.total_devices,
+      sub: `활성: ${formatNumber(stats?.active_devices)}`,
+      iconBg: 'bg-ds-primary-container',
+      iconColor: 'text-ds-on-primary-container',
+    },
+    {
+      label: '전체 정책',
+      value: stats?.total_policies,
+      sub: `활성 ${formatNumber(stats?.total_active_policies)} / 비활성 ${formatNumber(stats?.total_disabled_policies)}`,
+      iconBg: 'bg-blue-100',
+      iconColor: 'text-blue-700',
+    },
+    {
+      label: '네트워크 객체',
+      value: stats?.total_network_objects,
+      sub: '',
+      iconBg: 'bg-ds-secondary-container',
+      iconColor: 'text-ds-on-secondary-container',
+    },
+    {
+      label: '서비스 객체',
+      value: stats?.total_services,
+      sub: '',
+      iconBg: 'bg-ds-primary-container',
+      iconColor: 'text-ds-on-primary-container',
+    },
+  ]
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
+      {/* Page header */}
+      <div>
+        <h1 className="text-3xl font-extrabold tracking-tight text-ds-on-surface font-headline">대시보드</h1>
+        <p className="text-ds-on-surface-variant text-sm mt-1">방화벽 장비 현황 및 동기화 상태를 확인합니다.</p>
+      </div>
+
       {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: '전체 장비', value: stats?.total_devices, sub: `활성: ${formatNumber(stats?.active_devices)}` },
-          { label: '전체 정책', value: stats?.total_policies, sub: `활성: ${formatNumber(stats?.total_active_policies)} / 비활성: ${formatNumber(stats?.total_disabled_policies)}` },
-          { label: '네트워크 객체', value: stats?.total_network_objects, sub: '' },
-          { label: '서비스 객체', value: stats?.total_services, sub: '' },
-        ].map((card) => (
-          <Card key={card.label}>
-            <CardContent className="pt-4">
-              <p className="text-sm text-muted-foreground">{card.label}</p>
-              <p className="text-3xl font-bold mt-1 text-primary">
-                {isLoading ? '...' : formatNumber(card.value)}
-              </p>
-              {card.sub && <p className="text-xs text-muted-foreground mt-1">{card.sub}</p>}
-            </CardContent>
-          </Card>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        {STAT_CARDS.map((card) => (
+          <div key={card.label} className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border p-6">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-ds-primary">{card.label}</p>
+            <p className="text-4xl font-extrabold text-ds-on-surface mt-2 font-headline">
+              {isLoading ? '…' : formatNumber(card.value)}
+            </p>
+            {card.sub && <p className="text-xs text-ds-on-surface-variant mt-1">{card.sub}</p>}
+          </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* Middle row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 동기화 상태 요약 */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">동기화 상태 요약</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {rowData.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">등록된 장비가 없습니다.</p>
-            ) : (
-              Object.entries(statusCounts).map(([status, count]) => {
-                const conf = STATUS_CONFIG[status] ?? STATUS_CONFIG['pending']
+        <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border p-6">
+          <h2 className="text-sm font-bold text-ds-on-surface font-headline mb-4">동기화 상태 요약</h2>
+          {rowData.length === 0 ? (
+            <p className="text-sm text-ds-on-surface-variant text-center py-6">등록된 장비가 없습니다.</p>
+          ) : (
+            <div className="space-y-2">
+              {Object.entries(statusCounts).map(([status, count]) => {
+                const conf = STATUS_PILL[status]
+                if (!conf) return null
                 return (
-                  <div key={status} className={`flex items-center justify-between rounded-md border px-3 py-2 ${conf.bg}`}>
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status={status} showLabel={false} />
-                      <span className={`text-sm font-medium ${conf.color}`}>{conf.label}</span>
-                    </div>
-                    <span className={`text-lg font-bold ${conf.color}`}>{count}</span>
+                  <div key={status} className="flex items-center justify-between py-2 px-3 rounded-lg bg-ds-surface-container-low">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tight ${conf.classes}`}>
+                      {conf.label}
+                    </span>
+                    <span className="text-lg font-extrabold text-ds-on-surface font-headline">{count}</span>
                   </div>
                 )
-              })
-            )}
-            {rowData.length > 0 && (
-              <p className="text-xs text-muted-foreground text-right">총 {formatNumber(rowData.length)}개 장비</p>
-            )}
-          </CardContent>
-        </Card>
+              })}
+              <p className="text-xs text-ds-on-surface-variant text-right pt-1">총 {formatNumber(rowData.length)}개 장비</p>
+            </div>
+          )}
+        </div>
 
         {/* 벤더별 통계 */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">벤더별 통계</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {Object.entries(vendorMap).length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">장비 데이터가 없습니다.</p>
-            ) : (
-              Object.entries(vendorMap)
+        <div className="lg:col-span-2 bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border p-6">
+          <h2 className="text-sm font-bold text-ds-on-surface font-headline mb-4">벤더별 통계</h2>
+          {Object.entries(vendorMap).length === 0 ? (
+            <p className="text-sm text-ds-on-surface-variant text-center py-6">장비 데이터가 없습니다.</p>
+          ) : (
+            <div className="space-y-3">
+              {Object.entries(vendorMap)
                 .sort((a, b) => b[1].count - a[1].count)
                 .map(([vendor, v]) => (
-                  <div key={vendor} className="rounded-md border p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold">{VENDOR_LABELS[vendor.toLowerCase()] ?? vendor}</span>
-                      <span className="text-xs text-muted-foreground">{v.count}개 장비</span>
+                  <div key={vendor} className="bg-ds-surface-container-low rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-bold text-ds-on-surface font-headline">
+                        {VENDOR_LABELS[vendor.toLowerCase()] ?? vendor}
+                      </span>
+                      <span className="text-xs text-ds-on-surface-variant">{v.count}개 장비</span>
                     </div>
-                    <div className="grid grid-cols-4 gap-2 text-xs">
-                      <div>
-                        <p className="text-muted-foreground">정책</p>
-                        <p className="font-medium">{formatNumber(v.policies)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">활성 정책</p>
-                        <p className="font-medium">{formatNumber(v.activePolicies)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">네트워크 객체</p>
-                        <p className="font-medium">{formatNumber(v.networkObjects)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">서비스 객체</p>
-                        <p className="font-medium">{formatNumber(v.services)}</p>
-                      </div>
+                    <div className="grid grid-cols-4 gap-3 text-xs">
+                      {[
+                        { label: '정책', value: v.policies },
+                        { label: '활성 정책', value: v.activePolicies },
+                        { label: '네트워크 객체', value: v.networkObjects },
+                        { label: '서비스 객체', value: v.services },
+                      ].map((item) => (
+                        <div key={item.label}>
+                          <p className="text-ds-on-surface-variant text-[10px] uppercase tracking-wide">{item.label}</p>
+                          <p className="font-bold text-ds-on-surface mt-0.5">{formatNumber(item.value)}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))
-            )}
-          </CardContent>
-        </Card>
+                ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 장비별 통계 그리드 */}
-      <Card>
-        <CardHeader className="pb-2 flex flex-row items-center justify-between">
-          <CardTitle className="text-sm font-medium">장비별 통계</CardTitle>
-          <Button variant="outline" size="sm" onClick={handleRefresh} className="h-7 gap-1.5">
-            <RefreshCw className="h-3 w-3" />
+      <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-ds-outline-variant/10">
+          <h2 className="text-sm font-bold text-ds-on-surface font-headline">장비별 통계</h2>
+          <button
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-ds-on-surface-variant hover:text-ds-on-surface hover:bg-ds-surface-container-low rounded-md transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
             새로고침
-          </Button>
-        </CardHeader>
-        <CardContent className="p-0 px-4 pb-4">
+          </button>
+        </div>
+        <div className="px-4 pb-4 pt-2">
           <AgGridWrapper<DeviceRow>
             ref={gridRef}
             columnDefs={COLUMN_DEFS}
@@ -262,8 +272,8 @@ export function DashboardPage() {
             height={300}
             noRowsText="장비를 추가하세요."
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

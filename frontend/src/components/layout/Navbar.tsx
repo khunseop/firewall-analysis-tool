@@ -1,26 +1,16 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-  faGaugeHigh,
-  faServer,
-  faShieldHalved,
-  faCubes,
-  faMagnifyingGlassChart,
-  faCalendarCheck,
-  faGear,
-  faRightFromBracket,
-} from '@fortawesome/free-solid-svg-icons'
+import { LogOut } from 'lucide-react'
 
 const NAV_ITEMS = [
-  { to: '/', label: '대시보드', icon: faGaugeHigh, end: true },
-  { to: '/devices', label: '장비 관리', icon: faServer },
-  { to: '/policies', label: '방화벽 정책', icon: faShieldHalved },
-  { to: '/objects', label: '오브젝트', icon: faCubes },
-  { to: '/analysis', label: '정책 분석', icon: faMagnifyingGlassChart },
-  { to: '/schedules', label: '동기화 스케줄', icon: faCalendarCheck },
-  { to: '/settings', label: '설정', icon: faGear },
+  { to: '/', label: '대시보드', end: true },
+  { to: '/devices', label: '장비 관리' },
+  { to: '/policies', label: '방화벽 정책' },
+  { to: '/objects', label: '오브젝트' },
+  { to: '/analysis', label: '정책 분석' },
+  { to: '/schedules', label: '동기화 스케줄' },
+  { to: '/settings', label: '설정' },
 ]
 
 export function Navbar() {
@@ -33,10 +23,13 @@ export function Navbar() {
   }
 
   return (
-    <nav className="bg-white border-b border-border sticky top-0 z-50">
-      <div className="flex items-center h-14 px-4 gap-1">
-        <span className="font-bold text-primary text-lg mr-4 whitespace-nowrap">FAT</span>
-        <div className="flex items-center gap-0.5 flex-1 overflow-x-auto">
+    <nav className="sticky top-0 z-50 flex items-center justify-between px-8 h-14 bg-ds-surface-container-lowest border-b border-ds-outline-variant/10 shadow-ambient-sm">
+      {/* Left: Logo + Nav Links */}
+      <div className="flex items-center gap-10">
+        <span className="text-lg font-extrabold tracking-tighter text-ds-on-surface font-headline">
+          FAT
+        </span>
+        <div className="flex items-center gap-1">
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.to}
@@ -44,26 +37,27 @@ export function Navbar() {
               end={item.end}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
+                  'px-3 py-1.5 text-sm font-semibold font-headline tracking-tight transition-colors duration-200 rounded-md whitespace-nowrap',
                   isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    ? 'text-ds-tertiary border-b-2 border-ds-tertiary pb-[5px] rounded-none'
+                    : 'text-ds-on-surface-variant hover:text-ds-on-surface hover:bg-ds-surface-container-low'
                 )
               }
             >
-              <FontAwesomeIcon icon={item.icon} className="text-xs" />
               {item.label}
             </NavLink>
           ))}
         </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors ml-2 whitespace-nowrap"
-        >
-          <FontAwesomeIcon icon={faRightFromBracket} className="text-xs" />
-          로그아웃
-        </button>
       </div>
+
+      {/* Right: Logout */}
+      <button
+        onClick={handleLogout}
+        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-ds-on-surface-variant hover:text-ds-on-surface hover:bg-ds-surface-container-low rounded-md transition-colors duration-200"
+      >
+        <LogOut className="w-4 h-4" />
+        로그아웃
+      </button>
     </nav>
   )
 }

@@ -1,4 +1,7 @@
-/* Pretendard font */
+/* Google Fonts: Manrope (headlines) + Inter (body/data) */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+
+/* Pretendard font (fallback / Korean) */
 @font-face {
   font-family: 'Pretendard';
   font-weight: 400;
@@ -30,26 +33,27 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* shadcn/ui CSS variables — mapped to Precision Sentinel palette */
+    --background: 210 33% 98%;        /* ds-surface #f7f9fb */
+    --foreground: 200 13% 24%;        /* ds-on-surface #2a3439 */
+    --card: 0 0% 100%;                /* ds-surface-container-lowest #ffffff */
+    --card-foreground: 200 13% 24%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --popover-foreground: 200 13% 24%;
+    --primary: 221 100% 38%;          /* ds-tertiary #005bc4 */
+    --primary-foreground: 240 100% 99%;/* ds-on-tertiary #f9f8ff */
+    --secondary: 210 20% 95%;         /* ds-surface-container-low #f0f4f7 */
+    --secondary-foreground: 200 13% 24%;
+    --muted: 204 22% 91%;             /* ds-surface-container-high #e1e9ee */
+    --muted-foreground: 196 10% 37%;  /* ds-on-surface-variant #566166 */
+    --accent: 210 20% 95%;
+    --accent-foreground: 200 13% 24%;
+    --destructive: 2 45% 43%;         /* ds-error #9f403d */
+    --destructive-foreground: 20 100% 99%;
+    --border: 196 15% 70%;            /* ds-outline-variant #a9b4b9 @ 30% */
+    --input: 196 15% 70%;
+    --ring: 221 100% 38%;
+    --radius: 0.375rem;
   }
 
   * {
@@ -57,12 +61,61 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Pretendard', system-ui, sans-serif;
+    background-color: #f7f9fb;
+    color: #2a3439;
+    font-family: 'Inter', 'Pretendard', system-ui, sans-serif;
     margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Manrope', 'Inter', sans-serif;
   }
 
   #root {
     min-height: 100vh;
   }
+}
+
+@layer utilities {
+  /* Precision Sentinel utility classes */
+  .ambient-shadow {
+    box-shadow: 0 12px 32px rgba(42, 52, 57, 0.06);
+  }
+  .ambient-shadow-md {
+    box-shadow: 0 8px 24px rgba(42, 52, 57, 0.08);
+  }
+  .ambient-shadow-sm {
+    box-shadow: 0 4px 12px rgba(42, 52, 57, 0.05);
+  }
+  .ghost-border {
+    border: 1px solid rgba(169, 180, 185, 0.2);
+  }
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  .btn-primary-gradient {
+    background: linear-gradient(135deg, #005bc4, #004fad);
+  }
+  .btn-primary-gradient:hover {
+    background: linear-gradient(135deg, #004fad, #003d8a);
+  }
+}
+
+/* AG Grid custom theme overrides — Precision Sentinel */
+.ag-theme-quartz {
+  --ag-background-color: #ffffff;
+  --ag-header-background-color: rgba(240, 244, 247, 0.5);
+  --ag-header-foreground-color: #565e74;
+  --ag-row-hover-color: rgba(240, 244, 247, 0.4);
+  --ag-border-color: rgba(169, 180, 185, 0.15);
+  --ag-cell-horizontal-border: none;
+  --ag-font-family: 'Inter', sans-serif;
+  --ag-font-size: 12px;
+  --ag-row-height: 44px;
+  --ag-header-height: 44px;
+  --ag-cell-horizontal-padding: 16px;
 }

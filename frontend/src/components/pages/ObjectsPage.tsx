@@ -3,10 +3,6 @@ import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Download } from 'lucide-react'
 import type { ColDef } from '@ag-grid-community/core'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { DeviceSelect } from '@/components/shared/DeviceSelect'
 import { listDevices } from '@/api/devices'
@@ -25,15 +21,11 @@ const NETWORK_OBJECT_COLS: ColDef<NetworkObject>[] = [
 const NETWORK_GROUP_COLS: ColDef<NetworkGroup>[] = [
   { field: 'name', headerName: '이름', filter: 'agTextColumnFilter', width: 180 },
   {
-    field: 'members',
-    headerName: '멤버',
-    filter: 'agTextColumnFilter',
-    flex: 1,
-    autoHeight: true,
+    field: 'members', headerName: '멤버', filter: 'agTextColumnFilter', flex: 1, autoHeight: true,
     cellRenderer: (p: { value: string }) => {
       const members = (p.value ?? '').split(',').map((m: string) => m.trim()).filter(Boolean)
       return (
-        <div style={{ whiteSpace: 'normal', lineHeight: 1.4, padding: '4px 0' }}>
+        <div style={{ whiteSpace: 'normal', lineHeight: 1.4, padding: '4px 0', fontSize: 12 }}>
           {members.map((m, i) => <div key={i}>{m}</div>)}
         </div>
       )
@@ -52,15 +44,11 @@ const SERVICE_COLS: ColDef<Service>[] = [
 const SERVICE_GROUP_COLS: ColDef<ServiceGroup>[] = [
   { field: 'name', headerName: '이름', filter: 'agTextColumnFilter', width: 180 },
   {
-    field: 'members',
-    headerName: '멤버',
-    filter: 'agTextColumnFilter',
-    flex: 1,
-    autoHeight: true,
+    field: 'members', headerName: '멤버', filter: 'agTextColumnFilter', flex: 1, autoHeight: true,
     cellRenderer: (p: { value: string }) => {
       const members = (p.value ?? '').split(',').map((m: string) => m.trim()).filter(Boolean)
       return (
-        <div style={{ whiteSpace: 'normal', lineHeight: 1.4, padding: '4px 0' }}>
+        <div style={{ whiteSpace: 'normal', lineHeight: 1.4, padding: '4px 0', fontSize: 12 }}>
           {members.map((m, i) => <div key={i}>{m}</div>)}
         </div>
       )
@@ -71,84 +59,67 @@ const SERVICE_GROUP_COLS: ColDef<ServiceGroup>[] = [
 
 type TabKey = 'network_objects' | 'network_groups' | 'services' | 'service_groups'
 
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'network_objects', label: '네트워크 객체' },
+  { key: 'network_groups', label: '네트워크 그룹' },
+  { key: 'services', label: '서비스' },
+  { key: 'service_groups', label: '서비스 그룹' },
+]
+
 function useObjectsData(deviceIds: number[], tab: TabKey) {
   const enabled = deviceIds.length > 0
-
   const networkObjects = useQuery({
     queryKey: ['network-objects', ...deviceIds],
-    queryFn: async () => {
-      const all = await Promise.all(deviceIds.map((id) => getNetworkObjects(id)))
-      return all.flat()
-    },
-    enabled: enabled && tab === 'network_objects',
-    staleTime: 30_000,
+    queryFn: async () => (await Promise.all(deviceIds.map((id) => getNetworkObjects(id)))).flat(),
+    enabled: enabled && tab === 'network_objects', staleTime: 30_000,
   })
-
   const networkGroups = useQuery({
     queryKey: ['network-groups', ...deviceIds],
-    queryFn: async () => {
-      const all = await Promise.all(deviceIds.map((id) => getNetworkGroups(id)))
-      return all.flat()
-    },
-    enabled: enabled && tab === 'network_groups',
-    staleTime: 30_000,
+    queryFn: async () => (await Promise.all(deviceIds.map((id) => getNetworkGroups(id)))).flat(),
+    enabled: enabled && tab === 'network_groups', staleTime: 30_000,
   })
-
   const services = useQuery({
     queryKey: ['services', ...deviceIds],
-    queryFn: async () => {
-      const all = await Promise.all(deviceIds.map((id) => getServices(id)))
-      return all.flat()
-    },
-    enabled: enabled && tab === 'services',
-    staleTime: 30_000,
+    queryFn: async () => (await Promise.all(deviceIds.map((id) => getServices(id)))).flat(),
+    enabled: enabled && tab === 'services', staleTime: 30_000,
   })
-
   const serviceGroups = useQuery({
     queryKey: ['service-groups', ...deviceIds],
-    queryFn: async () => {
-      const all = await Promise.all(deviceIds.map((id) => getServiceGroups(id)))
-      return all.flat()
-    },
-    enabled: enabled && tab === 'service_groups',
-    staleTime: 30_000,
+    queryFn: async () => (await Promise.all(deviceIds.map((id) => getServiceGroups(id)))).flat(),
+    enabled: enabled && tab === 'service_groups', staleTime: 30_000,
   })
-
   return { networkObjects, networkGroups, services, serviceGroups }
 }
 
-function TabGrid<T>({
-  columnDefs,
-  rowData,
-  isLoading,
-  gridId,
-  onExport,
-}: {
-  columnDefs: ColDef<T>[]
-  rowData: T[]
-  isLoading: boolean
-  gridId: string
-  onExport: () => void
+function TabGrid<T>({ columnDefs, rowData, isLoading, onExport }: {
+  columnDefs: ColDef<T>[]; rowData: T[]; isLoading: boolean; onExport: () => void
 }) {
   const gridRef = useRef<AgGridWrapperHandle>(null)
   const [quickFilter, setQuickFilter] = useState('')
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <Input
-          placeholder="빠른 검색..."
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <input
+          placeholder="빠른 검색…"
           value={quickFilter}
           onChange={(e) => setQuickFilter(e.target.value)}
-          className="h-8 w-48 text-sm"
+          className="h-8 w-48 text-sm px-3 bg-ds-surface-container-low rounded-md border border-ds-outline-variant/30 focus:outline-none focus:border-ds-tertiary focus:ring-1 focus:ring-ds-tertiary"
         />
-        <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={onExport} disabled={rowData.length === 0}>
-          <Download className="h-3 w-3" /> Excel
-        </Button>
-        <span className="text-xs text-muted-foreground ml-auto">{rowData.length.toLocaleString()}건</span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-ds-on-surface-variant">{rowData.length.toLocaleString()}건</span>
+          <button
+            onClick={onExport}
+            disabled={rowData.length === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-ds-on-surface ghost-border bg-ds-surface-container-lowest rounded-md hover:bg-ds-surface-container-low disabled:opacity-40 transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Excel
+          </button>
+        </div>
       </div>
       {isLoading ? (
-        <div className="text-sm text-muted-foreground py-8 text-center">로딩 중...</div>
+        <div className="py-10 text-center text-sm text-ds-on-surface-variant">로딩 중…</div>
       ) : (
         <AgGridWrapper<T>
           ref={gridRef}
@@ -176,61 +147,57 @@ export function ObjectsPage() {
     catch (e: unknown) { toast.error((e as Error).message) }
   }
 
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">오브젝트 조회</CardTitle>
-        <div className="mt-2">
-          <DeviceSelect devices={devices} value={deviceIds} onChange={setDeviceIds} isMulti placeholder="장비를 선택하세요..." />
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)}>
-          <TabsList className="mb-3">
-            <TabsTrigger value="network_objects">네트워크 객체</TabsTrigger>
-            <TabsTrigger value="network_groups">네트워크 그룹</TabsTrigger>
-            <TabsTrigger value="services">서비스</TabsTrigger>
-            <TabsTrigger value="service_groups">서비스 그룹</TabsTrigger>
-          </TabsList>
+  const tabContent: Record<TabKey, { data: unknown[]; isFetching: boolean; cols: ColDef<unknown>[]; filename: string }> = {
+    network_objects: { data: networkObjects.data ?? [], isFetching: networkObjects.isFetching, cols: NETWORK_OBJECT_COLS as ColDef<unknown>[], filename: '네트워크객체' },
+    network_groups:  { data: networkGroups.data ?? [],  isFetching: networkGroups.isFetching,  cols: NETWORK_GROUP_COLS as ColDef<unknown>[],  filename: '네트워크그룹' },
+    services:        { data: services.data ?? [],        isFetching: services.isFetching,        cols: SERVICE_COLS as ColDef<unknown>[],        filename: '서비스' },
+    service_groups:  { data: serviceGroups.data ?? [],   isFetching: serviceGroups.isFetching,   cols: SERVICE_GROUP_COLS as ColDef<unknown>[],  filename: '서비스그룹' },
+  }
 
-          <TabsContent value="network_objects">
-            <TabGrid
-              columnDefs={NETWORK_OBJECT_COLS}
-              rowData={networkObjects.data ?? []}
-              isLoading={networkObjects.isFetching}
-              gridId="network-objects"
-              onExport={() => handleExport(networkObjects.data ?? [], '네트워크객체')}
-            />
-          </TabsContent>
-          <TabsContent value="network_groups">
-            <TabGrid
-              columnDefs={NETWORK_GROUP_COLS}
-              rowData={networkGroups.data ?? []}
-              isLoading={networkGroups.isFetching}
-              gridId="network-groups"
-              onExport={() => handleExport(networkGroups.data ?? [], '네트워크그룹')}
-            />
-          </TabsContent>
-          <TabsContent value="services">
-            <TabGrid
-              columnDefs={SERVICE_COLS}
-              rowData={services.data ?? []}
-              isLoading={services.isFetching}
-              gridId="services"
-              onExport={() => handleExport(services.data ?? [], '서비스')}
-            />
-          </TabsContent>
-          <TabsContent value="service_groups">
-            <TabGrid
-              columnDefs={SERVICE_GROUP_COLS}
-              rowData={serviceGroups.data ?? []}
-              isLoading={serviceGroups.isFetching}
-              gridId="service-groups"
-              onExport={() => handleExport(serviceGroups.data ?? [], '서비스그룹')}
-            />
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+  const current = tabContent[activeTab]
+
+  return (
+    <div className="space-y-6">
+      {/* Page header */}
+      <div>
+        <h1 className="text-3xl font-extrabold tracking-tight text-ds-on-surface font-headline">오브젝트 조회</h1>
+        <p className="text-ds-on-surface-variant text-sm mt-1">네트워크 객체, 그룹, 서비스를 확인합니다.</p>
+      </div>
+
+      {/* Device selector */}
+      <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border p-5">
+        <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary block mb-2">장비 선택</label>
+        <DeviceSelect devices={devices} value={deviceIds} onChange={setDeviceIds} isMulti placeholder="장비를 선택하세요…" />
+      </div>
+
+      {/* Tabs + Grid */}
+      <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border overflow-hidden">
+        {/* Tab bar */}
+        <div className="flex items-center border-b border-ds-outline-variant/10 px-4 pt-2">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-4 py-2 text-sm font-semibold font-headline tracking-tight transition-colors duration-200 border-b-2 -mb-px ${
+                activeTab === tab.key
+                  ? 'text-ds-tertiary border-ds-tertiary'
+                  : 'text-ds-on-surface-variant border-transparent hover:text-ds-on-surface hover:border-ds-outline-variant/30'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="p-5">
+          <TabGrid
+            columnDefs={current.cols}
+            rowData={current.data as unknown[]}
+            isLoading={current.isFetching}
+            onExport={() => handleExport(current.data, current.filename)}
+          />
+        </div>
+      </div>
+    </div>
   )
 }
