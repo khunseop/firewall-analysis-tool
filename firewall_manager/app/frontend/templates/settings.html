@@ -176,46 +176,72 @@
   
   <!-- 정책삭제 워크플로우 설정 탭 -->
   <div id="tab-deletion-workflow" class="tab-content" style="display: none;">
-    <!-- 기본 설정 -->
+
+    <!-- analysis_criteria -->
     <div class="box mb-4">
-      <h2 class="subtitle is-6 mb-4">기본 설정</h2>
-      
-      <div class="columns is-multiline">
-        <div class="column is-6">
+      <h2 class="subtitle is-6 mb-4">분석 기준 <span class="tag is-light is-small">analysis_criteria</span></h2>
+      <div class="columns">
+        <div class="column is-4">
           <div class="field">
-            <label class="label">신규 정책 판단 기간 (일)</label>
+            <label class="label is-small">신규 정책 판단 기간 (일)</label>
             <div class="control">
               <input class="input is-small" id="config-recent-policy-days" type="number" min="1" max="365" placeholder="90" />
             </div>
-            <p class="help">이 기간 이내에 생성된 정책은 신규 정책으로 간주</p>
+            <p class="help">recent_policy_days — 이 기간 이내 정책은 신규로 간주</p>
+          </div>
+        </div>
+        <div class="column is-4">
+          <div class="field">
+            <label class="label is-small">미사용 정책 기준 (일)</label>
+            <div class="control">
+              <input class="input is-small" id="config-unused-threshold-days" type="number" min="1" max="730" placeholder="90" />
+            </div>
+            <p class="help">unused_threshold_days — 히트 없는 기간 기준</p>
           </div>
         </div>
       </div>
     </div>
-    
-    <!-- 예외 목록 -->
+
+    <!-- exceptions -->
     <div class="box mb-4">
-      <h2 class="subtitle is-6 mb-4">예외 목록</h2>
-      
-      <div class="field">
-        <label class="label">예외 신청번호 목록</label>
+      <h2 class="subtitle is-6 mb-4">예외 처리 <span class="tag is-light is-small">exceptions</span></h2>
+
+      <!-- static_list -->
+      <div class="field mb-5">
+        <label class="label is-small">고정 예외 규칙명 (static_list)</label>
         <div class="control">
-          <textarea 
-            class="textarea is-small" 
-            id="config-except-list" 
-            rows="5"
-            placeholder="예외로 처리할 신청번호를 한 줄에 하나씩 입력하세요"
-          ></textarea>
+          <textarea class="textarea is-small font-monospace" id="config-static-list" rows="3"
+            placeholder="예외 처리할 규칙명을 한 줄에 하나씩 입력 (예: VPN_ACCESS)"></textarea>
         </div>
-        <p class="help">예외로 처리할 신청번호 목록 (한 줄에 하나씩)</p>
+        <p class="help">이 규칙명들은 삭제 워크플로에서 항상 예외 처리됩니다.</p>
+      </div>
+
+      <!-- request_ids -->
+      <div class="field mb-5">
+        <label class="label is-small">예외 신청 ID (request_ids)</label>
+        <div id="config-request-ids-list" class="mb-2">
+          <!-- 동적 생성 -->
+        </div>
+        <button class="button is-small is-light" id="btn-add-request-id">+ 추가</button>
+        <p class="help mt-2">특정 기간까지 유효한 예외 신청 ID 목록</p>
+      </div>
+
+      <!-- policy_rules -->
+      <div class="field">
+        <label class="label is-small">패턴 기반 예외 규칙 (policy_rules)</label>
+        <div id="config-policy-rules-list" class="mb-2">
+          <!-- 동적 생성 -->
+        </div>
+        <button class="button is-small is-light" id="btn-add-policy-rule">+ 추가</button>
+        <p class="help mt-2">정규표현식 패턴으로 일치하는 규칙을 예외 처리합니다.</p>
       </div>
     </div>
-    
-    <!-- 파싱 패턴 설정 (접을 수 있는 섹션) -->
+
+    <!-- policy_processing.request_parsing -->
     <div class="box mb-4">
-      <div class="level mb-4">
+      <div class="level mb-3">
         <div class="level-left">
-          <h2 class="subtitle is-6 mb-0">파싱 패턴 설정</h2>
+          <h2 class="subtitle is-6 mb-0">파싱 패턴 <span class="tag is-light is-small">request_parsing</span></h2>
         </div>
         <div class="level-right">
           <button class="button is-small is-text" id="toggle-parsing-patterns">
@@ -223,56 +249,20 @@
           </button>
         </div>
       </div>
-      
       <div id="parsing-patterns-content" style="display: none;">
-        <p class="help mb-4">정책 description에서 신청정보를 파싱하기 위한 정규표현식 패턴을 설정합니다.</p>
-        
-        <div id="parsing-patterns-list">
-          <!-- 동적으로 생성됨 -->
+        <p class="help mb-3">rule_name / description 에서 신청정보를 파싱하기 위한 정규표현식 패턴 (패턴명: regex)</p>
+        <div id="parsing-patterns-list" class="mb-2">
+          <!-- 동적 생성 -->
         </div>
-        
-        <div class="field mt-4">
-          <button class="button is-small is-light" id="btn-add-parsing-pattern">패턴 추가</button>
-        </div>
-        
-        <!-- Request Type 매핑 -->
-        <div class="field mt-4">
-          <label class="label">Request Type 매핑</label>
-          <div class="columns is-multiline">
-            <div class="column is-3">
-              <div class="field">
-                <label class="label is-small">P →</label>
-                <input class="input is-small" id="config-request-type-p" type="text" placeholder="GROUP" />
-              </div>
-            </div>
-            <div class="column is-3">
-              <div class="field">
-                <label class="label is-small">F →</label>
-                <input class="input is-small" id="config-request-type-f" type="text" placeholder="GENERAL" />
-              </div>
-            </div>
-            <div class="column is-3">
-              <div class="field">
-                <label class="label is-small">S →</label>
-                <input class="input is-small" id="config-request-type-s" type="text" placeholder="SERVER" />
-              </div>
-            </div>
-            <div class="column is-3">
-              <div class="field">
-                <label class="label is-small">M →</label>
-                <input class="input is-small" id="config-request-type-m" type="text" placeholder="PAM" />
-              </div>
-            </div>
-          </div>
-        </div>
+        <button class="button is-small is-light" id="btn-add-parsing-pattern">+ 패턴 추가</button>
       </div>
     </div>
-    
-    <!-- 컬럼 매핑 설정 (접을 수 있는 섹션) -->
+
+    <!-- policy_processing.aggregation.column_mapping -->
     <div class="box mb-4">
-      <div class="level mb-4">
+      <div class="level mb-3">
         <div class="level-left">
-          <h2 class="subtitle is-6 mb-0">컬럼 매핑 설정</h2>
+          <h2 class="subtitle is-6 mb-0">컬럼 매핑 <span class="tag is-light is-small">aggregation.column_mapping</span></h2>
         </div>
         <div class="level-right">
           <button class="button is-small is-text" id="toggle-column-mapping">
@@ -280,31 +270,25 @@
           </button>
         </div>
       </div>
-      
       <div id="column-mapping-content" style="display: none;">
-        <p class="help mb-4">엑셀 파일의 컬럼명을 표준 컬럼명으로 매핑합니다. 각 표준 컬럼명에 대해 매칭될 수 있는 원본 컬럼명을 입력하세요 (쉼표로 구분).</p>
-        
-        <div id="column-mapping-list">
-          <!-- 동적으로 생성됨 -->
+        <p class="help mb-3">엑셀 원본 컬럼명 → 표준 컬럼명 매핑 (원본이 key, 표준이 value)</p>
+        <div id="column-mapping-list" class="mb-2">
+          <!-- 동적 생성 -->
         </div>
-        
-        <div class="field mt-4">
-          <button class="button is-small is-light" id="btn-add-column-mapping">매핑 추가</button>
-        </div>
+        <button class="button is-small is-light" id="btn-add-column-mapping">+ 매핑 추가</button>
       </div>
     </div>
-    
+
     <!-- 저장 버튼 -->
     <div class="box">
       <div class="field is-grouped">
         <div class="control">
-          <button class="button is-primary is-small" id="btn-save-deletion-workflow-config">저장</button>
+          <button class="button is-primary is-small" id="btn-save-deletion-workflow-config">저장 (DB + fpat.yaml)</button>
         </div>
         <div class="control">
           <button class="button is-light is-small" id="btn-reset-deletion-workflow-config">기본값으로 초기화</button>
         </div>
       </div>
-      
       <div id="deletion-workflow-config-message" class="mt-4"></div>
     </div>
   </div>
