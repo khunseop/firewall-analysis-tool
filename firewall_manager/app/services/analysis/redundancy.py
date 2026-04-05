@@ -220,11 +220,18 @@ class RedundancyAnalyzer:
         small: List[Tuple[Optional[str], int, int]],
         large: List[Tuple[Optional[str], int, int]],
     ) -> bool:
-        """small의 모든 서비스 범위가 large의 어느 하나에 포함되는지 확인합니다."""
+        """small의 모든 서비스 범위가 large의 어느 하나에 포함되는지 확인합니다.
+
+        주의: 빈 리스트는 'any'가 아닌 "포트 정보 없음(예: ICMP)" 을 의미합니다.
+        'any' 서비스는 (protocol='any', port_start=0, port_end=65535)로 저장됩니다.
+        """
         if not large:
-            return True   # large는 'any' 서비스
+            # large가 비어있으면 ICMP 등 포트 없는 서비스만 허용하는 정책.
+            # small도 비어있을 때만 True (같은 non-port 서비스끼리).
+            return not small
         if not small:
-            return False  # small은 'any'이지만 large는 구체적
+            # small이 비어있는데 large가 포트 기반 서비스 → 포함 불가.
+            return False
         for s_proto, s_start, s_end in small:
             covered = False
             for l_proto, l_start, l_end in large:
@@ -236,21 +243,61 @@ class RedundancyAnalyzer:
                 return False
         return True
 
+    @staticmethod
+    def _is_text_subset(small_val: Optional[str], large_val: Optional[str]) -> bool:
+        """텍스트 필드의 포함 관계를 확인합니다.
+
+        large_val이 any / all / None / 빈 문자열이면 모든 값을 포함 → True.
+        small_val이 any인데 large_val이 구체적이면 → False.
+        그 외에는 정확히 일치해야 → True.
+        """
+        def _is_any(v: Optional[str]) -> bool:
+            return not v or v.strip().lower() in ('any', 'all')
+
+        if _is_any(large_val):
+            return True
+        if _is_any(small_val):
+            return False
+        return (small_val or '').strip() == (large_val or '').strip()
+
     def _is_logically_contained(self, small: Policy, large: Policy) -> bool:
         """small 정책이 large 정책에 논리적으로 포함되는지 확인합니다 (small ⊆ large)."""
+        # 1. 소스 주소
         small_src = self._get_addr_ranges(small.address_members, 'source')
         large_src = self._get_addr_ranges(large.address_members, 'source')
         if not self._is_addr_subset(small_src, large_src):
             return False
 
+        # 2. 목적지 주소
         small_dst = self._get_addr_ranges(small.address_members, 'destination')
         large_dst = self._get_addr_ranges(large.address_members, 'destination')
         if not self._is_addr_subset(small_dst, large_dst):
             return False
 
+        # 3. 서비스
         small_svc = self._get_svc_ranges(small.service_members)
         large_svc = self._get_svc_ranges(large.service_members)
-        return self._is_svc_subset(small_svc, large_svc)
+        if not self._is_svc_subset(small_svc, large_svc):
+            return False
+
+        # 4. 사용자: large가 any가 아니면 일치해야 함
+        if not self._is_text_subset(small.user, large.user):
+            return False
+
+        # 5. 애플리케이션
+        if not self._is_text_subset(small.application, large.application):
+            return False
+
+        # 6. 벤더 특화 필드 (Palo Alto)
+        if self.vendor == 'paloalto':
+            if not self._is_text_subset(small.vsys, large.vsys):
+                return False
+            if not self._is_text_subset(small.security_profile, large.security_profile):
+                return False
+            if not self._is_text_subset(small.category, large.category):
+                return False
+
+        return True
 
     async def analyze_logical(self) -> List[RedundancyPolicySetCreate]:
         """
