@@ -54,51 +54,73 @@ class RedundancyAnalyzer:
         logger.info(f"총 {len(policies)}개의 정책이 조회되었습니다.")
         return policies
 
+    @staticmethod
+    def _normalize_text_field(value: Optional[str]) -> Tuple[str, ...]:
+        """콤마 구분 텍스트 필드를 정렬된 튜플로 정규화합니다.
+
+        'A,B' 와 'B,A' 를 동일하게 취급합니다.
+        """
+        if not value:
+            return ()
+        return tuple(sorted(v.strip() for v in value.split(',') if v.strip()))
+
     def _normalize_policy_key(self, policy: Policy) -> Tuple:
         """
         정책의 중복 여부를 판단하기 위한 정규화된 고유 키를 생성합니다.
-        
-        알고리즘:
-        1. 출발지/목적지 주소: IP 범위를 문자열(start-end)로 변환하고 정렬하여 튜플 생성.
-        2. 서비스: 프로토콜과 포트 범위를 결합하여 정렬된 튜플 생성.
-        3. 기타 필드: Action, User, Application 등을 포함.
-        4. 벤더별 특성: Palo Alto 등의 경우 Security Profile, Category 등을 키에 추가.
+
+        비교 기준:
+        - 출발지/목적지 주소: 인덱서가 해소한 숫자형 IP 범위 (ip_start-ip_end) 집합의 정확한 일치.
+          예) Host_A(192.168.1.0/24)와 Host_C(192.168.1.0/24)는 같은 범위로 매칭,
+              Host_B(192.168.1.2)는 다른 범위이므로 미매칭.
+        - 서비스: 프로토콜 + 포트 범위 집합의 정확한 일치.
+        - 나머지 텍스트 필드(user, application 등): 콤마 기준 분리 후 정렬 비교.
         """
-        # 출발지 주소: IP 범위 및 빈 그룹 토큰 포함
+        # 출발지 주소: 해소된 IP 범위 집합 (빈 그룹 토큰 포함)
         src_addrs = []
         for m in policy.address_members:
             if m.direction == 'source':
                 if m.ip_start is not None and m.ip_end is not None:
                     src_addrs.append(f"{m.ip_start}-{m.ip_end}")
-                elif m.token and m.token_type == 'unknown':  # 빈 그룹 처리
+                elif m.token and m.token_type == 'unknown':
                     src_addrs.append(f"__GROUP__:{m.token}")
         src_addrs = tuple(sorted(src_addrs))
-        
-        # 목적지 주소: IP 범위 및 빈 그룹 토큰 포함
+
+        # 목적지 주소
         dst_addrs = []
         for m in policy.address_members:
             if m.direction == 'destination':
                 if m.ip_start is not None and m.ip_end is not None:
                     dst_addrs.append(f"{m.ip_start}-{m.ip_end}")
-                elif m.token and m.token_type == 'unknown':  # 빈 그룹 처리
+                elif m.token and m.token_type == 'unknown':
                     dst_addrs.append(f"__GROUP__:{m.token}")
         dst_addrs = tuple(sorted(dst_addrs))
-        
-        # 서비스: 포트 범위 및 빈 그룹 토큰 포함
+
+        # 서비스: 해소된 포트 범위 집합 (빈 그룹 토큰 포함)
         services = []
         for m in policy.service_members:
             if m.port_start is not None and m.port_end is not None:
                 services.append(f"{m.protocol}/{m.port_start}-{m.port_end}")
-            elif m.token and m.token_type == 'unknown':  # 빈 그룹 처리
+            elif m.token and m.token_type == 'unknown':
                 services.append(f"__GROUP__:{m.token}")
         services = tuple(sorted(services))
 
-        # 기본 비교 필드 구성
-        key_fields = [policy.action, src_addrs, policy.user, dst_addrs, services, policy.application]
-        
-        # 벤더 특화 필드 추가
+        # 텍스트 필드: 콤마 분리 후 정렬 비교
+        key_fields = [
+            policy.action,
+            src_addrs,
+            self._normalize_text_field(policy.user),
+            dst_addrs,
+            services,
+            self._normalize_text_field(policy.application),
+        ]
+
+        # 벤더 특화 필드 (Palo Alto)
         if self.vendor == 'paloalto':
-            key_fields.extend([policy.security_profile, policy.category, policy.vsys])
+            key_fields.extend([
+                self._normalize_text_field(policy.security_profile),
+                self._normalize_text_field(policy.category),
+                policy.vsys,  # vsys는 단일 값
+            ])
 
         return tuple(key_fields)
 

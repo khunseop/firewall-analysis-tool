@@ -66,9 +66,9 @@ async def run_redundancy_analysis_task(db: AsyncSession, device_id: int):
         task = await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
 
         try:
-            # [단계 3] 실제 분석 로직 실행 (논리적 포함 관계 기반)
+            # [단계 3] 실제 분석 로직 실행 (해소된 값 기준 정확한 일치)
             analyzer = RedundancyAnalyzer(db_session=db, task=task)
-            analysis_sets = await analyzer.analyze_logical()
+            analysis_sets = await analyzer.analyze()
 
             # [단계 4] 결과 저장
             if analysis_sets:
