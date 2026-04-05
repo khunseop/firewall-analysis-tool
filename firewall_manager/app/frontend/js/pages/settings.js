@@ -385,9 +385,10 @@ async function loadDeletionWorkflowConfig() {
     document.getElementById('config-recent-policy-days').value = ac.recent_policy_days ?? 90;
     document.getElementById('config-unused-threshold-days').value = ac.unused_threshold_days ?? 90;
 
-    // exceptions.static_list
     const ex = config.exceptions || {};
-    document.getElementById('config-static-list').value = (ex.static_list || []).join('\n');
+
+    // exceptions.static_list — 문자열 배열 또는 객체 배열 모두 지원
+    loadStaticListRows(ex.static_list || []);
 
     // exceptions.request_ids
     loadRequestIdRows(ex.request_ids || []);
@@ -395,16 +396,67 @@ async function loadDeletionWorkflowConfig() {
     // exceptions.policy_rules
     loadPolicyRuleRows(ex.policy_rules || []);
 
-    // policy_processing.request_parsing
-    const pp = config.policy_processing || {};
-    loadParsingPatterns(pp.request_parsing || {});
-
     // policy_processing.aggregation.column_mapping
+    const pp = config.policy_processing || {};
     loadColumnMapping((pp.aggregation || {}).column_mapping || {});
 
   } catch (error) {
     console.error('Failed to load deletion workflow config:', error);
   }
+}
+
+// ── 공통 행 생성 헬퍼 (규칙명/ID/패턴, 사유, 시작일, 만료일, 삭제) ──
+
+function _makeExceptionRow(cssClass, fields) {
+  // fields: [{placeholder, value, dataField, width?, monospace?}, ...]
+  const div = document.createElement('div');
+  div.className = `columns is-mobile is-gapless mb-1 ${cssClass}`;
+  div.innerHTML = fields.map(f => `
+    <div class="column ${f.width || 'is-3'}" style="padding:2px">
+      <input class="input is-small${f.monospace ? ' font-monospace' : ''}" type="${f.type || 'text'}"
+        placeholder="${f.placeholder}" value="${(f.value || '').replace(/"/g, '&quot;')}"
+        data-field="${f.dataField}" />
+    </div>
+  `).join('') + `
+    <div class="column is-1" style="padding:2px">
+      <button class="button is-small is-danger is-light is-fullwidth"
+        onclick="this.closest('.${cssClass}').remove()">×</button>
+    </div>
+  `;
+  return div;
+}
+
+// ── static_list ──
+
+function loadStaticListRows(staticList) {
+  const container = document.getElementById('config-static-list');
+  container.innerHTML = '';
+  for (const item of staticList) {
+    // 구 형식(문자열) 호환
+    const name   = typeof item === 'string' ? item : (item.name   || '');
+    const reason = typeof item === 'string' ? ''   : (item.reason || '');
+    const start  = typeof item === 'string' ? ''   : (item.start  || '');
+    const until  = typeof item === 'string' ? ''   : (item.until  || '');
+    container.appendChild(createStaticListRow(name, reason, start, until));
+  }
+}
+
+function createStaticListRow(name, reason, start, until) {
+  return _makeExceptionRow('static-list-row', [
+    { placeholder: '규칙명 (예: VPN_ACCESS)', value: name,   dataField: 'name',   monospace: true },
+    { placeholder: '사유',                    value: reason, dataField: 'reason' },
+    { placeholder: '시작일',                  value: start,  dataField: 'start',  type: 'date', width: 'is-2' },
+    { placeholder: '만료일',                  value: until,  dataField: 'until',  type: 'date', width: 'is-2' },
+  ]);
+}
+
+function collectStaticList() {
+  return Array.from(document.querySelectorAll('.static-list-row')).map(row => ({
+    name:   row.querySelector('[data-field="name"]').value.trim(),
+    reason: row.querySelector('[data-field="reason"]').value.trim(),
+    start:  row.querySelector('[data-field="start"]').value.trim(),
+    until:  row.querySelector('[data-field="until"]').value.trim(),
+  })).filter(item => item.name);
 }
 
 // ── request_ids ──
@@ -413,38 +465,27 @@ function loadRequestIdRows(requestIds) {
   const container = document.getElementById('config-request-ids-list');
   container.innerHTML = '';
   for (const item of requestIds) {
-    container.appendChild(createRequestIdRow(item.id || '', item.reason || '', item.until || ''));
+    container.appendChild(createRequestIdRow(
+      item.id || '', item.reason || '', item.start || '', item.until || ''
+    ));
   }
 }
 
-function createRequestIdRow(id, reason, until) {
-  const div = document.createElement('div');
-  div.className = 'field is-grouped mb-2 request-id-row';
-  div.innerHTML = `
-    <div class="control" style="min-width:160px">
-      <input class="input is-small" type="text" placeholder="신청 ID (예: PS-2024-0001)"
-        value="${id}" data-field="id" />
-    </div>
-    <div class="control is-expanded">
-      <input class="input is-small" type="text" placeholder="사유"
-        value="${reason}" data-field="reason" />
-    </div>
-    <div class="control" style="min-width:130px">
-      <input class="input is-small" type="date" placeholder="만료일 (until)"
-        value="${until}" data-field="until" />
-    </div>
-    <div class="control">
-      <button class="button is-small is-danger is-light" onclick="this.closest('.request-id-row').remove()">삭제</button>
-    </div>
-  `;
-  return div;
+function createRequestIdRow(id, reason, start, until) {
+  return _makeExceptionRow('request-id-row', [
+    { placeholder: '신청 ID (예: PS-2024-0001)', value: id,     dataField: 'id',     monospace: true },
+    { placeholder: '사유',                        value: reason, dataField: 'reason' },
+    { placeholder: '시작일',                      value: start,  dataField: 'start',  type: 'date', width: 'is-2' },
+    { placeholder: '만료일',                      value: until,  dataField: 'until',  type: 'date', width: 'is-2' },
+  ]);
 }
 
 function collectRequestIds() {
   return Array.from(document.querySelectorAll('.request-id-row')).map(row => ({
-    id: row.querySelector('[data-field="id"]').value.trim(),
+    id:     row.querySelector('[data-field="id"]').value.trim(),
     reason: row.querySelector('[data-field="reason"]').value.trim(),
-    until: row.querySelector('[data-field="until"]').value.trim(),
+    start:  row.querySelector('[data-field="start"]').value.trim(),
+    until:  row.querySelector('[data-field="until"]').value.trim(),
   })).filter(item => item.id);
 }
 
@@ -454,85 +495,28 @@ function loadPolicyRuleRows(policyRules) {
   const container = document.getElementById('config-policy-rules-list');
   container.innerHTML = '';
   for (const item of policyRules) {
-    container.appendChild(createPolicyRuleRow(item.pattern || '', item.reason || ''));
+    container.appendChild(createPolicyRuleRow(
+      item.pattern || '', item.reason || '', item.start || '', item.until || ''
+    ));
   }
 }
 
-function createPolicyRuleRow(pattern, reason) {
-  const div = document.createElement('div');
-  div.className = 'field is-grouped mb-2 policy-rule-row';
-  div.innerHTML = `
-    <div class="control is-expanded">
-      <input class="input is-small font-monospace" type="text" placeholder="정규표현식 (예: ^MGMT_.*)"
-        value="${pattern.replace(/"/g, '&quot;')}" data-field="pattern" />
-    </div>
-    <div class="control is-expanded">
-      <input class="input is-small" type="text" placeholder="사유"
-        value="${reason}" data-field="reason" />
-    </div>
-    <div class="control">
-      <button class="button is-small is-danger is-light" onclick="this.closest('.policy-rule-row').remove()">삭제</button>
-    </div>
-  `;
-  return div;
+function createPolicyRuleRow(pattern, reason, start, until) {
+  return _makeExceptionRow('policy-rule-row', [
+    { placeholder: '정규표현식 (예: ^MGMT_.*)', value: pattern, dataField: 'pattern', monospace: true },
+    { placeholder: '사유',                      value: reason,  dataField: 'reason' },
+    { placeholder: '시작일',                    value: start,   dataField: 'start',  type: 'date', width: 'is-2' },
+    { placeholder: '만료일',                    value: until,   dataField: 'until',  type: 'date', width: 'is-2' },
+  ]);
 }
 
 function collectPolicyRules() {
   return Array.from(document.querySelectorAll('.policy-rule-row')).map(row => ({
     pattern: row.querySelector('[data-field="pattern"]').value.trim(),
-    reason: row.querySelector('[data-field="reason"]').value.trim(),
+    reason:  row.querySelector('[data-field="reason"]').value.trim(),
+    start:   row.querySelector('[data-field="start"]').value.trim(),
+    until:   row.querySelector('[data-field="until"]').value.trim(),
   })).filter(item => item.pattern);
-}
-
-// ── parsing_patterns (simple name → regex string) ──
-
-/**
- * 파싱 패턴 로드 (fpat.yaml 형식: { name: 'regex_string', ... })
- */
-function loadParsingPatterns(patterns) {
-  const container = document.getElementById('parsing-patterns-list');
-  container.innerHTML = '';
-  for (const [name, regex] of Object.entries(patterns)) {
-    container.appendChild(createParsingPatternRow(name, typeof regex === 'string' ? regex : ''));
-  }
-}
-
-/**
- * 파싱 패턴 행 생성
- */
-function createParsingPatternRow(patternName, patternValue) {
-  const div = document.createElement('div');
-  div.className = 'field is-grouped mb-2 parsing-pattern-row';
-  div.dataset.patternName = patternName;
-  div.innerHTML = `
-    <div class="control" style="min-width:220px">
-      <input class="input is-small font-monospace" type="text" placeholder="패턴 이름 (예: gsams_3_pattern)"
-        value="${patternName}" data-field="name" />
-    </div>
-    <div class="control is-expanded">
-      <input class="input is-small font-monospace" type="text" placeholder="정규표현식 (예: (\\d{8})-(\\d{1,7}))"
-        value="${patternValue.replace(/"/g, '&quot;')}" data-field="regex" />
-    </div>
-    <div class="control">
-      <button class="button is-small is-danger is-light" onclick="this.closest('.parsing-pattern-row').remove()">삭제</button>
-    </div>
-  `;
-  return div;
-}
-
-function addParsingPattern() {
-  const container = document.getElementById('parsing-patterns-list');
-  container.appendChild(createParsingPatternRow('', ''));
-}
-
-function collectParsingPatterns() {
-  const result = {};
-  document.querySelectorAll('.parsing-pattern-row').forEach(row => {
-    const name = row.querySelector('[data-field="name"]').value.trim();
-    const regex = row.querySelector('[data-field="regex"]').value.trim();
-    if (name) result[name] = regex;
-  });
-  return result;
 }
 
 // ── column_mapping (원본 → 표준 / fpat.yaml 형식) ──
@@ -588,26 +572,17 @@ function collectColumnMapping() {
  * GUI에서 fpat.yaml 구조로 설정 수집
  */
 function collectDeletionWorkflowConfig() {
-  const recentDays = parseInt(document.getElementById('config-recent-policy-days').value) || 90;
-  const unusedDays = parseInt(document.getElementById('config-unused-threshold-days').value) || 90;
-
-  const staticListText = document.getElementById('config-static-list').value.trim();
-  const staticList = staticListText
-    ? staticListText.split('\n').map(l => l.trim()).filter(l => l)
-    : [];
-
   return {
     analysis_criteria: {
-      recent_policy_days: recentDays,
-      unused_threshold_days: unusedDays,
+      recent_policy_days:    parseInt(document.getElementById('config-recent-policy-days').value)    || 90,
+      unused_threshold_days: parseInt(document.getElementById('config-unused-threshold-days').value) || 90,
     },
     exceptions: {
-      request_ids: collectRequestIds(),
+      static_list:  collectStaticList(),
+      request_ids:  collectRequestIds(),
       policy_rules: collectPolicyRules(),
-      static_list: staticList,
     },
     policy_processing: {
-      request_parsing: collectParsingPatterns(),
       aggregation: {
         column_mapping: collectColumnMapping(),
       },
@@ -629,7 +604,7 @@ async function saveDeletionWorkflowConfig() {
     const config = collectDeletionWorkflowConfig();
     if (!validateDeletionWorkflowConfig(config)) return;
     await api.updateDeletionWorkflowConfig(config);
-    await openAlert({ title: '성공', message: '설정이 저장되었습니다 (DB + fpat.yaml)' });
+    await openAlert({ title: '성공', message: '설정이 저장되었습니다.' });
     await loadDeletionWorkflowConfig();
   } catch (error) {
     console.error('Failed to save deletion workflow config:', error);
@@ -642,10 +617,9 @@ async function resetDeletionWorkflowConfig() {
   if (!confirmed) return;
   document.getElementById('config-recent-policy-days').value = 90;
   document.getElementById('config-unused-threshold-days').value = 90;
-  document.getElementById('config-static-list').value = '';
+  document.getElementById('config-static-list').innerHTML = '';
   document.getElementById('config-request-ids-list').innerHTML = '';
   document.getElementById('config-policy-rules-list').innerHTML = '';
-  document.getElementById('parsing-patterns-list').innerHTML = '';
   document.getElementById('column-mapping-list').innerHTML = '';
   await openAlert({ title: '성공', message: '기본값으로 초기화되었습니다.' });
 }
@@ -672,23 +646,24 @@ function initDeletionWorkflowConfig() {
   const resetBtn = document.getElementById('btn-reset-deletion-workflow-config');
   if (resetBtn) resetBtn.addEventListener('click', resetDeletionWorkflowConfig);
 
+  const addStaticRuleBtn = document.getElementById('btn-add-static-rule');
+  if (addStaticRuleBtn) addStaticRuleBtn.addEventListener('click', () => {
+    document.getElementById('config-static-list').appendChild(createStaticListRow('', '', '', ''));
+  });
+
   const addRequestIdBtn = document.getElementById('btn-add-request-id');
   if (addRequestIdBtn) addRequestIdBtn.addEventListener('click', () => {
-    document.getElementById('config-request-ids-list').appendChild(createRequestIdRow('', '', ''));
+    document.getElementById('config-request-ids-list').appendChild(createRequestIdRow('', '', '', ''));
   });
 
   const addPolicyRuleBtn = document.getElementById('btn-add-policy-rule');
   if (addPolicyRuleBtn) addPolicyRuleBtn.addEventListener('click', () => {
-    document.getElementById('config-policy-rules-list').appendChild(createPolicyRuleRow('', ''));
+    document.getElementById('config-policy-rules-list').appendChild(createPolicyRuleRow('', '', '', ''));
   });
-
-  const addParsingPatternBtn = document.getElementById('btn-add-parsing-pattern');
-  if (addParsingPatternBtn) addParsingPatternBtn.addEventListener('click', addParsingPattern);
 
   const addMappingBtn = document.getElementById('btn-add-column-mapping');
   if (addMappingBtn) addMappingBtn.addEventListener('click', addColumnMapping);
 
-  _setupToggle('toggle-parsing-patterns', 'parsing-patterns-content', 'parsing-patterns-toggle-text');
   _setupToggle('toggle-column-mapping', 'column-mapping-content', 'column-mapping-toggle-text');
 
   // 초기 로드

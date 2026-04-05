@@ -206,55 +206,49 @@
     <div class="box mb-4">
       <h2 class="subtitle is-6 mb-4">예외 처리 <span class="tag is-light is-small">exceptions</span></h2>
 
-      <!-- static_list -->
+      <!-- static_list: 규칙명 + 사유 + 시작일 + 만료일 -->
       <div class="field mb-5">
         <label class="label is-small">고정 예외 규칙명 (static_list)</label>
-        <div class="control">
-          <textarea class="textarea is-small font-monospace" id="config-static-list" rows="3"
-            placeholder="예외 처리할 규칙명을 한 줄에 하나씩 입력 (예: VPN_ACCESS)"></textarea>
+        <div class="columns is-mobile is-size-7 has-text-grey mb-1 px-2">
+          <div class="column is-3">규칙명</div>
+          <div class="column is-3">사유</div>
+          <div class="column is-2">시작일</div>
+          <div class="column is-2">만료일</div>
+          <div class="column is-2"></div>
         </div>
-        <p class="help">이 규칙명들은 삭제 워크플로에서 항상 예외 처리됩니다.</p>
+        <div id="config-static-list" class="mb-2"><!-- 동적 생성 --></div>
+        <button class="button is-small is-light" id="btn-add-static-rule">+ 추가</button>
+        <p class="help mt-2">규칙명이 일치하는 정책을 예외 처리합니다. 만료일 미입력 시 영구 예외.</p>
       </div>
 
-      <!-- request_ids -->
+      <!-- request_ids: ID + 사유 + 시작일 + 만료일 -->
       <div class="field mb-5">
         <label class="label is-small">예외 신청 ID (request_ids)</label>
-        <div id="config-request-ids-list" class="mb-2">
-          <!-- 동적 생성 -->
+        <div class="columns is-mobile is-size-7 has-text-grey mb-1 px-2">
+          <div class="column is-3">신청 ID</div>
+          <div class="column is-3">사유</div>
+          <div class="column is-2">시작일</div>
+          <div class="column is-2">만료일</div>
+          <div class="column is-2"></div>
         </div>
+        <div id="config-request-ids-list" class="mb-2"><!-- 동적 생성 --></div>
         <button class="button is-small is-light" id="btn-add-request-id">+ 추가</button>
-        <p class="help mt-2">특정 기간까지 유효한 예외 신청 ID 목록</p>
+        <p class="help mt-2">신청 ID가 일치하는 정책을 예외 처리합니다. 만료일 미입력 시 영구 예외.</p>
       </div>
 
-      <!-- policy_rules -->
+      <!-- policy_rules: 패턴 + 사유 + 시작일 + 만료일 -->
       <div class="field">
         <label class="label is-small">패턴 기반 예외 규칙 (policy_rules)</label>
-        <div id="config-policy-rules-list" class="mb-2">
-          <!-- 동적 생성 -->
+        <div class="columns is-mobile is-size-7 has-text-grey mb-1 px-2">
+          <div class="column is-3">정규표현식</div>
+          <div class="column is-3">사유</div>
+          <div class="column is-2">시작일</div>
+          <div class="column is-2">만료일</div>
+          <div class="column is-2"></div>
         </div>
+        <div id="config-policy-rules-list" class="mb-2"><!-- 동적 생성 --></div>
         <button class="button is-small is-light" id="btn-add-policy-rule">+ 추가</button>
-        <p class="help mt-2">정규표현식 패턴으로 일치하는 규칙을 예외 처리합니다.</p>
-      </div>
-    </div>
-
-    <!-- policy_processing.request_parsing -->
-    <div class="box mb-4">
-      <div class="level mb-3">
-        <div class="level-left">
-          <h2 class="subtitle is-6 mb-0">파싱 패턴 <span class="tag is-light is-small">request_parsing</span></h2>
-        </div>
-        <div class="level-right">
-          <button class="button is-small is-text" id="toggle-parsing-patterns">
-            <span id="parsing-patterns-toggle-text">펼치기</span>
-          </button>
-        </div>
-      </div>
-      <div id="parsing-patterns-content" style="display: none;">
-        <p class="help mb-3">rule_name / description 에서 신청정보를 파싱하기 위한 정규표현식 패턴 (패턴명: regex)</p>
-        <div id="parsing-patterns-list" class="mb-2">
-          <!-- 동적 생성 -->
-        </div>
-        <button class="button is-small is-light" id="btn-add-parsing-pattern">+ 패턴 추가</button>
+        <p class="help mt-2">정규표현식 패턴에 일치하는 규칙을 예외 처리합니다. 만료일 미입력 시 영구 예외.</p>
       </div>
     </div>
 
@@ -283,7 +277,7 @@
     <div class="box">
       <div class="field is-grouped">
         <div class="control">
-          <button class="button is-primary is-small" id="btn-save-deletion-workflow-config">저장 (DB + fpat.yaml)</button>
+          <button class="button is-primary is-small" id="btn-save-deletion-workflow-config">저장</button>
         </div>
         <div class="control">
           <button class="button is-light is-small" id="btn-reset-deletion-workflow-config">기본값으로 초기화</button>

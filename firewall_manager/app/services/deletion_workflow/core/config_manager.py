@@ -101,46 +101,81 @@ class ConfigManager:
         except (KeyError, TypeError):
             return default
 
+    def _parse_date(self, date_str: Optional[str]):
+        """날짜 문자열을 date 객체로 변환합니다. 실패 시 None 반환."""
+        if not date_str:
+            return None
+        try:
+            return datetime.strptime(date_str.strip(), '%Y-%m-%d').date()
+        except ValueError:
+            logger.warning(f"잘못된 날짜 형식: {date_str}")
+            return None
+
+    def _is_in_period(self, item: dict) -> bool:
+        """
+        현재 날짜가 start~until 범위에 있는지 확인합니다.
+        - start, until 모두 없으면 → 영구 예외 (True)
+        - start만 있으면 → start 이후부터 영구 예외
+        - until만 있으면 → until 이전까지 예외
+        - 둘 다 있으면 → start~until 범위 내 예외
+        """
+        today = datetime.now().date()
+        start = self._parse_date(item.get('start'))
+        until = self._parse_date(item.get('until'))
+
+        if start and today < start:
+            logger.debug(f"예외 기간 미시작: start={item.get('start')}")
+            return False
+        if until and today > until:
+            logger.debug(f"예외 기간 만료: until={item.get('until')}")
+            return False
+        return True
+
     def is_excepted(self, category: str, value: str) -> bool:
         """
-        특정 항목이 예외 대상인지 확인합니다 (기간 만료 체크 포함).
+        특정 항목이 예외 대상인지 확인합니다 (기간 체크 포함).
 
         Args:
-            category: 'request_ids' 또는 'policy_rules'
-            value: 체크할 ID 또는 규칙명
+            category: 'request_ids', 'policy_rules', 또는 'static_list'
+            value: 체크할 ID / 규칙명 / 패턴 매칭 대상
 
         Returns:
             bool: 예외 대상 여부
         """
         exceptions = self.get(f'exceptions.{category}', [])
-        current_date = datetime.now().date()
 
         for item in exceptions:
+            # static_list 구 형식 (문자열) 호환
+            if isinstance(item, str):
+                if value == item:
+                    return True
+                continue
+
             match = False
             if category == 'request_ids':
-                if value == item.get('id', ''):
-                    match = True
+                match = (value == item.get('id', ''))
             elif category == 'policy_rules':
                 pattern = item.get('pattern', '')
-                if re.match(pattern, value):
-                    match = True
-
-            if match:
-                until_str = item.get('until')
-                if not until_str:
-                    return True  # 영구 예외
                 try:
-                    until_date = datetime.strptime(until_str, '%Y-%m-%d').date()
-                    if until_date >= current_date:
-                        return True
-                    logger.debug(f"예외 기간 만료: {value} (until: {until_str})")
-                except ValueError:
-                    logger.warning(f"잘못된 날짜 형식 (until): {until_str}")
-                    return True  # 형식 오류 시 안전하게 예외 유지
+                    match = bool(re.match(pattern, value)) if pattern else False
+                except re.error:
+                    logger.warning(f"잘못된 정규표현식 패턴: {pattern}")
+            elif category == 'static_list':
+                match = (value == item.get('name', ''))
 
-        static_list = self.get('exceptions.static_list', [])
-        if value in static_list:
-            return True
+            if match and self._is_in_period(item):
+                return True
+
+        # static_list를 별도 카테고리로 호출하지 않은 경우 (하위 호환)
+        if category != 'static_list':
+            static_list = self.get('exceptions.static_list', [])
+            for item in static_list:
+                if isinstance(item, str):
+                    if value == item:
+                        return True
+                elif isinstance(item, dict):
+                    if value == item.get('name', '') and self._is_in_period(item):
+                        return True
 
         return False
 
