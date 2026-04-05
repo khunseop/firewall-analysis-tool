@@ -318,6 +318,94 @@ export function generateServiceCreationScript(resultData, vendor = 'palo_alto') 
 }
 
 /**
+ * 스크립트를 엑셀 파일로 내보내기
+ * @param {string} scriptText - 스크립트 텍스트
+ * @param {string} filename - 파일명 (확장자 제외)
+ */
+export async function exportScriptToExcel(scriptText, filename) {
+    if (!window.ExcelJS) {
+        alert('엑셀 라이브러리를 불러올 수 없습니다. 페이지를 새로고침해주세요.');
+        return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Script');
+
+    const headerRow = worksheet.addRow(['주석', '명령어', '생성되는 서비스 객체명']);
+    headerRow.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8E8E8' } };
+        cell.font = { bold: true, size: 11, color: { argb: 'FF333333' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        cell.border = {
+            top: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+            left: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+            bottom: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+            right: { style: 'thin', color: { argb: 'FFCCCCCC' } }
+        };
+    });
+
+    const scriptLines = scriptText.split('\n');
+    const serviceNamePattern = /set service\s+([^\s]+)/;
+    const serviceGroupNamePattern = /set service-group\s+([^\s]+)/;
+
+    scriptLines.forEach((line) => {
+        const trimmedLine = line.trim();
+        if (!trimmedLine) {
+            worksheet.addRow(['', '', '']);
+            return;
+        }
+
+        let comment = '';
+        let command = '';
+        let createdObjectName = '';
+
+        if (trimmedLine.startsWith('#')) {
+            comment = trimmedLine;
+        } else {
+            command = trimmedLine;
+            const serviceMatch = trimmedLine.match(serviceNamePattern);
+            const groupMatch = trimmedLine.match(serviceGroupNamePattern);
+            if (serviceMatch) {
+                createdObjectName = serviceMatch[1];
+            } else if (groupMatch) {
+                createdObjectName = groupMatch[1];
+            }
+        }
+
+        const row = worksheet.addRow([comment, command, createdObjectName]);
+        if (comment) row.getCell(1).font = { color: { argb: 'FF666666' }, italic: true };
+        if (command) row.getCell(2).font = { color: { argb: 'FF000000' }, name: 'Courier New' };
+        if (createdObjectName) row.getCell(3).font = { color: { argb: 'FF1976D2' }, bold: true };
+        row.eachCell((cell) => {
+            cell.border = {
+                top: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+                left: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+                bottom: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+                right: { style: 'thin', color: { argb: 'FFE0E0E0' } }
+            };
+            cell.alignment = { vertical: 'top', wrapText: true };
+        });
+    });
+
+    worksheet.getColumn(1).width = 40;
+    worksheet.getColumn(2).width = 80;
+    worksheet.getColumn(3).width = 30;
+    headerRow.height = 28;
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const finalFilename = filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`;
+    a.download = finalFilename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+/**
  * 스크립트를 텍스트 파일로 다운로드
  * @param {string} scriptText - 스크립트 텍스트
  * @param {string} filename - 파일명 (확장자 제외, 날짜_구분_장비명 형식 권장)
