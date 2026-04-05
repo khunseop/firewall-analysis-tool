@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SentinelShield | Firewall Policy Query</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-fixed-variant": "#535b71",
+                    "error-container": "#fe8983",
+                    "surface": "#f7f9fb",
+                    "on-primary-container": "#4a5167",
+                    "secondary": "#526075",
+                    "on-background": "#2a3439",
+                    "surface-variant": "#d9e4ea",
+                    "on-primary-fixed": "#373f54",
+                    "surface-container-low": "#f0f4f7",
+                    "surface-container-lowest": "#ffffff",
+                    "on-surface": "#2a3439",
+                    "primary-container": "#dae2fd",
+                    "on-secondary-fixed": "#324054",
+                    "primary-fixed-dim": "#ccd4ee",
+                    "tertiary-fixed": "#4388fd",
+                    "surface-tint": "#565e74",
+                    "on-secondary-container": "#455367",
+                    "primary-dim": "#4a5268",
+                    "on-tertiary-fixed-variant": "#001435",
+                    "background": "#f7f9fb",
+                    "secondary-container": "#d5e3fd",
+                    "surface-dim": "#cfdce3",
+                    "surface-container-highest": "#d9e4ea",
+                    "on-tertiary": "#f9f8ff",
+                    "tertiary-dim": "#004fad",
+                    "inverse-surface": "#0b0f10",
+                    "on-surface-variant": "#566166",
+                    "on-tertiary-container": "#000311",
+                    "on-secondary": "#f8f8ff",
+                    "surface-container": "#e8eff3",
+                    "surface-bright": "#f7f9fb",
+                    "secondary-fixed-dim": "#c7d5ee",
+                    "primary": "#565e74",
+                    "on-secondary-fixed-variant": "#4e5c71",
+                    "on-error": "#fff7f6",
+                    "inverse-primary": "#dae2fd",
+                    "primary-fixed": "#dae2fd",
+                    "secondary-fixed": "#d5e3fd",
+                    "tertiary-fixed-dim": "#317bef",
+                    "error": "#9f403d",
+                    "outline-variant": "#a9b4b9",
+                    "surface-container-high": "#e1e9ee",
+                    "on-primary": "#f7f7ff",
+                    "on-error-container": "#752121",
+                    "tertiary-container": "#4388fd",
+                    "secondary-dim": "#465469",
+                    "outline": "#717c82",
+                    "tertiary": "#005bc4",
+                    "error-dim": "#4e0309",
+                    "on-tertiary-fixed": "#000000",
+                    "inverse-on-surface": "#9a9d9f"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .ambient-shadow {
+            box-shadow: 0 12px 32px rgba(42, 52, 57, 0.06);
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body antialiased">
+<!-- TopNavBar (Slim & Top-Mounted) -->
+<nav class="sticky top-0 z-50 flex justify-between items-center px-8 py-3 w-full bg-white dark:bg-slate-900 border-b border-outline-variant/10 shadow-sm">
+<div class="flex items-center gap-10">
+<span class="text-xl font-bold tracking-tighter text-slate-900 dark:text-slate-100 font-headline">SentinelShield</span>
+<div class="flex items-center gap-8 font-headline font-semibold tracking-tight">
+<a class="text-slate-500 dark:text-slate-400 hover:text-tertiary transition-colors duration-200" href="#">Dashboard</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-tertiary transition-colors duration-200" href="#">Analytics</a>
+<a class="text-tertiary border-b-2 border-tertiary pb-1 transition-colors duration-200" href="#">AuditLogs</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-tertiary transition-colors duration-200" href="#">Firewall Groups</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-tertiary transition-colors duration-200" href="#">Objects</a>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4 border-r border-outline-variant/30 pr-6">
+<div class="relative group">
+<span class="material-symbols-outlined text-slate-500 hover:text-tertiary cursor-pointer">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-error rounded-full"></span>
+</div>
+<span class="material-symbols-outlined text-slate-500 hover:text-tertiary cursor-pointer">settings</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="text-right hidden sm:block">
+<p class="text-xs font-bold text-on-surface">Admin User</p>
+<p class="text-[10px] text-on-surface-variant font-medium">Precision Sentinel v4.2</p>
+</div>
+<img alt="Administrator Avatar" class="w-9 h-9 rounded-full object-cover border border-outline-variant/20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhbXINFvwCs0hJGCnuVbIJHS3Vf8pwYUj05KTHdyxF9tukm-qS4Xu9lg6ktJDI7Bs6fFkfF1PnnAs4TRi7qXdfXuE0mXxJUZjBlL97CD3S2yAL6KEMLZjd3FFoAx1c-EX4wBxxwlAn2oefJXMDl5sPEZCLgXpMM7U_uaBBOKZC19bwpRPCUIQheDtWulnDWyObBrUwqpqBzHgevUr1LumJiNiJDdVFFcx248esbLdU2T24Jetc5U2Bzsx7Is6QRLc0Fa98zBIq9bA"/>
+</div>
+</div>
+</nav>
+<div class="flex flex-col min-h-screen">
+<!-- Main Content Area (Full Width) -->
+<main class="flex-1 w-full max-w-screen-2xl mx-auto p-8 overflow-x-hidden">
+<!-- Hero Header Section -->
+<header class="mb-10">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+<div>
+<h1 class="text-3xl font-extrabold tracking-tight font-headline text-on-background mb-2">Policy Query</h1>
+<p class="text-on-surface-variant max-w-lg">Inspect and filter firewall rules across the enterprise landscape. Analyzing 52,381 active rules.</p>
+</div>
+<!-- Firewall Multi-select -->
+<div class="w-full md:w-80">
+<label class="block text-[10px] font-bold uppercase text-primary mb-2 tracking-widest">Active Firewalls</label>
+<div class="flex items-center gap-1 p-2 bg-white rounded-md border border-outline-variant/30 cursor-pointer ambient-shadow">
+<div class="flex flex-wrap gap-1 flex-1">
+<span class="inline-flex items-center gap-1 bg-secondary-container text-on-secondary-container text-[11px] px-2 py-0.5 rounded border border-outline-variant/20">
+                                HK-EDGE-01 <span class="material-symbols-outlined text-[12px]">close</span>
+</span>
+<span class="inline-flex items-center gap-1 bg-secondary-container text-on-secondary-container text-[11px] px-2 py-0.5 rounded border border-outline-variant/20">
+                                US-DC-EAST-4 <span class="material-symbols-outlined text-[12px]">close</span>
+</span>
+</div>
+<span class="material-symbols-outlined text-outline">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Dual-Layer Search System -->
+<div class="bg-surface-container-lowest rounded-xl ambient-shadow overflow-hidden border border-outline-variant/10">
+<!-- Global Search -->
+<div class="relative flex items-center px-6 py-5 border-b border-outline-variant/15">
+<span class="material-symbols-outlined text-outline mr-4">search</span>
+<input class="flex-1 bg-transparent border-none focus:ring-0 text-on-surface placeholder:text-outline/60 font-medium text-lg" placeholder="Quick search by IP, Rule ID, or Description..." type="text"/>
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-2 text-sm font-bold text-tertiary bg-tertiary/5 px-4 py-2 rounded-lg hover:bg-tertiary/10 transition-colors">
+<span>Advanced Filters</span>
+<span class="material-symbols-outlined">tune</span>
+</button>
+</div>
+</div>
+<!-- Advanced Panel -->
+<div class="bg-surface-container-low/40 p-8 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-8">
+<div class="space-y-1.5">
+<label class="text-[10px] font-bold uppercase text-primary/70 tracking-wider">Source IP / Subnet</label>
+<input class="w-full bg-white border-outline-variant/30 rounded-md text-sm px-4 py-2.5 shadow-sm focus:border-tertiary focus:ring-1 focus:ring-tertiary" placeholder="10.0.0.0/8" type="text"/>
+</div>
+<div class="space-y-1.5">
+<label class="text-[10px] font-bold uppercase text-primary/70 tracking-wider">Destination IP</label>
+<input class="w-full bg-white border-outline-variant/30 rounded-md text-sm px-4 py-2.5 shadow-sm focus:border-tertiary focus:ring-1 focus:ring-tertiary" placeholder="0.0.0.0/0" type="text"/>
+</div>
+<div class="space-y-1.5">
+<label class="text-[10px] font-bold uppercase text-primary/70 tracking-wider">Port / Service</label>
+<input class="w-full bg-white border-outline-variant/30 rounded-md text-sm px-4 py-2.5 shadow-sm focus:border-tertiary focus:ring-1 focus:ring-tertiary" placeholder="443, 80, SSH" type="text"/>
+</div>
+<div class="space-y-1.5">
+<label class="text-[10px] font-bold uppercase text-primary/70 tracking-wider">Protocol</label>
+<select class="w-full bg-white border-outline-variant/30 rounded-md text-sm px-4 py-2.5 shadow-sm focus:border-tertiary focus:ring-1 focus:ring-tertiary">
+<option>Any</option>
+<option>TCP</option>
+<option>UDP</option>
+<option>ICMP</option>
+</select>
+</div>
+<div class="space-y-1.5">
+<label class="text-[10px] font-bold uppercase text-primary/70 tracking-wider">Action</label>
+<select class="w-full bg-white border-outline-variant/30 rounded-md text-sm px-4 py-2.5 shadow-sm focus:border-tertiary focus:ring-1 focus:ring-tertiary">
+<option>All Actions</option>
+<option>Allow</option>
+<option>Deny</option>
+<option>Reject</option>
+</select>
+</div>
+</div>
+<div class="px-6 py-4 flex justify-end gap-3 bg-surface-container-low/20 border-t border-outline-variant/10">
+<button class="text-sm font-semibold text-on-surface-variant hover:text-on-surface px-6 py-2">Reset</button>
+<button class="bg-primary text-on-primary text-sm font-bold px-8 py-2.5 rounded-md hover:shadow-lg hover:brightness-110 transition-all">Apply Query</button>
+</div>
+</div>
+</header>
+<!-- Data Table Section -->
+<section class="bg-white rounded-xl ambient-shadow overflow-hidden border border-outline-variant/10">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low/50">
+<th class="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-primary border-b border-outline-variant/10">Rule ID</th>
+<th class="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-primary border-b border-outline-variant/10">Source</th>
+<th class="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-primary border-b border-outline-variant/10">Destination</th>
+<th class="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-primary border-b border-outline-variant/10">Port/Service</th>
+<th class="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-primary border-b border-outline-variant/10">Protocol</th>
+<th class="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-primary border-b border-outline-variant/10">Action</th>
+<th class="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-primary border-b border-outline-variant/10 text-right">Hits</th>
+<th class="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-primary border-b border-outline-variant/10">Last Hit</th>
+<th class="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-primary border-b border-outline-variant/10">Log</th>
+<th class="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-primary border-b border-outline-variant/10">Description</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low/30 transition-colors cursor-pointer group">
+<td class="px-6 py-4 text-xs font-mono font-semibold text-tertiary">R-42991</td>
+<td class="px-6 py-4 text-xs">172.16.4.0/24</td>
+<td class="px-6 py-4 text-xs">DMZ-WEBSERVER-POOL</td>
+<td class="px-6 py-4 text-xs font-mono">443, 80</td>
+<td class="px-6 py-4 text-xs">TCP</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">ALLOW</span>
+</td>
+<td class="px-6 py-4 text-xs text-right font-mono">1.2M</td>
+<td class="px-6 py-4 text-[10px] text-on-surface-variant">2 mins ago</td>
+<td class="px-6 py-4 text-xs"><span class="material-symbols-outlined text-sm text-tertiary">check_circle</span></td>
+<td class="px-6 py-4 text-xs truncate max-w-[200px] text-on-surface-variant">Public web access to DMZ</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low/30 transition-colors cursor-pointer group">
+<td class="px-6 py-4 text-xs font-mono font-semibold text-tertiary">R-43012</td>
+<td class="px-6 py-4 text-xs">Any</td>
+<td class="px-6 py-4 text-xs">SQL-CLUSTER-PRIMARY</td>
+<td class="px-6 py-4 text-xs font-mono">1433</td>
+<td class="px-6 py-4 text-xs">TCP</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-error-container/20 text-error">DENY</span>
+</td>
+<td class="px-6 py-4 text-xs text-right font-mono">4.1k</td>
+<td class="px-6 py-4 text-[10px] text-on-surface-variant">15 mins ago</td>
+<td class="px-6 py-4 text-xs"><span class="material-symbols-outlined text-sm text-error">warning</span></td>
+<td class="px-6 py-4 text-xs truncate max-w-[200px] text-on-surface-variant">Block unauthorized SQL probes</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low/30 transition-colors cursor-pointer group">
+<td class="px-6 py-4 text-xs font-mono font-semibold text-tertiary">R-43015</td>
+<td class="px-6 py-4 text-xs">10.10.120.0/22</td>
+<td class="px-6 py-4 text-xs">Internal-NTP</td>
+<td class="px-6 py-4 text-xs font-mono">123</td>
+<td class="px-6 py-4 text-xs">UDP</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">ALLOW</span>
+</td>
+<td class="px-6 py-4 text-xs text-right font-mono">85k</td>
+<td class="px-6 py-4 text-[10px] text-on-surface-variant">1 hr ago</td>
+<td class="px-6 py-4 text-xs"><span class="material-symbols-outlined text-sm text-outline">radio_button_unchecked</span></td>
+<td class="px-6 py-4 text-xs truncate max-w-[200px] text-on-surface-variant">Network time sync</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-low/30 transition-colors cursor-pointer group">
+<td class="px-6 py-4 text-xs font-mono font-semibold text-tertiary">R-43018</td>
+<td class="px-6 py-4 text-xs">VPN-GATEWAY-1</td>
+<td class="px-6 py-4 text-xs">Management-VLAN</td>
+<td class="px-6 py-4 text-xs font-mono">22, 443</td>
+<td class="px-6 py-4 text-xs">TCP</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">ALLOW</span>
+</td>
+<td class="px-6 py-4 text-xs text-right font-mono">220</td>
+<td class="px-6 py-4 text-[10px] text-on-surface-variant">Just now</td>
+<td class="px-6 py-4 text-xs"><span class="material-symbols-outlined text-sm text-tertiary">check_circle</span></td>
+<td class="px-6 py-4 text-xs truncate max-w-[200px] text-on-surface-variant">Admin SSH access via VPN</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-surface-container-low/30 transition-colors cursor-pointer group">
+<td class="px-6 py-4 text-xs font-mono font-semibold text-tertiary">R-43020</td>
+<td class="px-6 py-4 text-xs">Any</td>
+<td class="px-6 py-4 text-xs">Any</td>
+<td class="px-6 py-4 text-xs font-mono">Any</td>
+<td class="px-6 py-4 text-xs">ICMP</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-error-container/20 text-error">DENY</span>
+</td>
+<td class="px-6 py-4 text-xs text-right font-mono">0</td>
+<td class="px-6 py-4 text-[10px] text-on-surface-variant">Never</td>
+<td class="px-6 py-4 text-xs"><span class="material-symbols-outlined text-sm text-error">warning</span></td>
+<td class="px-6 py-4 text-xs truncate max-w-[200px] text-on-surface-variant">Block ICMP echo requests</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination Footer -->
+<footer class="px-6 py-6 flex flex-col md:flex-row items-center justify-between bg-surface-container-low/40 border-t border-outline-variant/10 gap-4">
+<div class="flex items-center gap-8">
+<span class="text-xs text-on-surface-variant font-medium">
+                        Showing <span class="text-on-surface font-bold">1-25</span> of <span class="text-on-surface font-bold">52,381</span> results
+                    </span>
+<div class="flex items-center gap-2">
+<span class="text-xs text-on-surface-variant">Rows per page:</span>
+<select class="bg-transparent border-none text-xs font-bold focus:ring-0 p-0 cursor-pointer">
+<option>25</option>
+<option>50</option>
+<option>100</option>
+</select>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-1.5 hover:bg-surface-container-high rounded-full transition-colors text-outline">
+<span class="material-symbols-outlined text-lg">first_page</span>
+</button>
+<button class="p-1.5 hover:bg-surface-container-high rounded-full transition-colors text-outline">
+<span class="material-symbols-outlined text-lg">chevron_left</span>
+</button>
+<div class="flex items-center px-4">
+<span class="text-xs font-bold text-on-surface">Page 1 of 2,096</span>
+</div>
+<button class="p-1.5 hover:bg-surface-container-high rounded-full transition-colors text-on-surface">
+<span class="material-symbols-outlined text-lg">chevron_right</span>
+</button>
+<button class="p-1.5 hover:bg-surface-container-high rounded-full transition-colors text-on-surface">
+<span class="material-symbols-outlined text-lg">last_page</span>
+</button>
+</div>
+</footer>
+</section>
+<!-- Contextual Support Info -->
+<div class="mt-12 flex justify-center gap-10 py-8 border-t border-outline-variant/10">
+<a class="flex items-center gap-2 text-on-surface-variant hover:text-tertiary transition-colors" href="#">
+<span class="material-symbols-outlined text-lg">help</span>
+<span class="text-xs font-semibold">Support Center</span>
+</a>
+<a class="flex items-center gap-2 text-on-surface-variant hover:text-tertiary transition-colors" href="#">
+<span class="material-symbols-outlined text-lg">description</span>
+<span class="text-xs font-semibold">Policy Documentation</span>
+</a>
+<a class="flex items-center gap-2 text-on-surface-variant hover:text-tertiary transition-colors" href="#">
+<span class="material-symbols-outlined text-lg">security</span>
+<span class="text-xs font-semibold">Security Standards</span>
+</a>
+</div>
+</main>
+</div>
+</body></html>

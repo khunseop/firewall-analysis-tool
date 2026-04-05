@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Firewall Devices | Ether Sentinel</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-dim": "#4a5268",
+                      "on-tertiary-fixed-variant": "#001435",
+                      "surface-container": "#e8eff3",
+                      "surface": "#f7f9fb",
+                      "secondary": "#526075",
+                      "surface-container-highest": "#d9e4ea",
+                      "tertiary-fixed-dim": "#317bef",
+                      "tertiary-container": "#4388fd",
+                      "surface-container-high": "#e1e9ee",
+                      "outline": "#717c82",
+                      "tertiary-dim": "#004fad",
+                      "on-tertiary-fixed": "#000000",
+                      "background": "#f7f9fb",
+                      "on-primary": "#f7f7ff",
+                      "primary-fixed": "#dae2fd",
+                      "on-secondary-fixed": "#324054",
+                      "tertiary": "#005bc4",
+                      "surface-container-low": "#f0f4f7",
+                      "outline-variant": "#a9b4b9",
+                      "surface-variant": "#d9e4ea",
+                      "on-surface": "#2a3439",
+                      "primary-container": "#dae2fd",
+                      "primary": "#565e74",
+                      "error-container": "#fe8983",
+                      "surface-container-lowest": "#ffffff",
+                      "secondary-dim": "#465469",
+                      "on-secondary": "#f8f8ff",
+                      "on-surface-variant": "#566166",
+                      "on-tertiary": "#f9f8ff",
+                      "inverse-surface": "#0b0f10",
+                      "error": "#9f403d",
+                      "surface-tint": "#565e74",
+                      "primary-fixed-dim": "#ccd4ee",
+                      "secondary-fixed-dim": "#c7d5ee",
+                      "secondary-container": "#d5e3fd",
+                      "on-primary-fixed-variant": "#535b71",
+                      "error-dim": "#4e0309",
+                      "on-error-container": "#752121",
+                      "on-tertiary-container": "#000311",
+                      "on-secondary-fixed-variant": "#4e5c71",
+                      "inverse-on-surface": "#9a9d9f",
+                      "surface-dim": "#cfdce3",
+                      "on-background": "#2a3439",
+                      "on-error": "#fff7f6",
+                      "tertiary-fixed": "#4388fd",
+                      "on-primary-fixed": "#373f54",
+                      "secondary-fixed": "#d5e3fd",
+                      "on-secondary-container": "#455367",
+                      "inverse-primary": "#dae2fd",
+                      "on-primary-container": "#4a5167",
+                      "surface-bright": "#f7f9fb"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "fontFamily": {
+                      "headline": ["Manrope"],
+                      "body": ["Inter"],
+                      "label": ["Inter"]
+              }
+            },
+          },
+        }
+      </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .ambient-shadow {
+            box-shadow: 0 12px 32px rgba(42, 52, 57, 0.06);
+        }
+        .ghost-border {
+            border: 1px solid rgba(169, 180, 185, 0.15);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        h1, h2, h3 {
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen">
+<!-- TopNavBar Implementation -->
+<nav class="bg-[#f7f9fb] dark:bg-slate-900 font-['Manrope'] antialiased tracking-tight docked full-width top-0 sticky z-50">
+<div class="flex justify-between items-center w-full px-8 py-4 max-w-full">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold text-slate-900 dark:text-white tracking-tighter">Ether Sentinel</span>
+<div class="hidden md:flex gap-6">
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" href="#">Dashboard</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" href="#">Analytics</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" href="#">Audit Logs</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" href="#">Firewall Groups</a>
+<a class="text-[#005bc4] dark:text-blue-400 border-b-2 border-[#005bc4] pb-1 font-semibold" href="#">Objects</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-low rounded-xl border-none focus:ring-2 focus:ring-tertiary w-64 transition-all duration-200" placeholder="Search devices..." type="text"/>
+</div>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-md transition-all duration-200 ease-in-out">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+</button>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800/80 rounded-md transition-all duration-200 ease-in-out">
+<span class="material-symbols-outlined text-on-surface-variant">settings</span>
+</button>
+<img alt="User profile" class="w-10 h-10 rounded-full border-2 border-surface-container-highest" data-alt="Professional headshot of a network security administrator in a minimalist studio setting with soft lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKjpIyDOOXPXpdHIZHH-WP6TfWIq5FXulbeEDwxOYkT_5la4jcHuLvAm3-O7cbR0rhdH9fPmv5m7Fg0WDYeSn4XXdwAGHKyKFkOwg7BnKZcHLl8gV5N042CJl58KXo9GBcd0fPQazil5l8bmICmLVevjoWx9Ykywf4NaZgMKSva7lXm74zyEIFBq6ppBqp7E7604kjpYpdsknuil7NR-If71nKUIfWqK8TexZfNH9fauyq-PlAWofGv-RpIKV42R3P_k2vjKhoekc"/>
+</div>
+</div>
+</nav>
+<main class="max-w-[1440px] mx-auto px-8 py-10 space-y-10">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<h1 class="text-5xl font-extrabold tracking-tighter text-on-surface mb-2">Firewall Devices</h1>
+<p class="text-on-surface-variant max-w-xl body-md">Manage fleet synchronization, device health, and configuration consistency across your edge infrastructure.</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 px-5 py-2.5 bg-surface-container-lowest text-on-surface font-semibold rounded-xl ambient-shadow ghost-border hover:bg-surface-container-low transition-all">
+<span class="material-symbols-outlined text-[20px]">refresh</span>
+<span>Refresh</span>
+</button>
+<button class="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-br from-tertiary to-tertiary-dim text-on-tertiary font-semibold rounded-xl ambient-shadow hover:opacity-90 transition-all">
+<span class="material-symbols-outlined text-[20px]">sync</span>
+<span>Sync All</span>
+</button>
+</div>
+</div>
+<!-- Summary Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Total Devices -->
+<div class="bg-surface-container-lowest p-6 rounded-xl ambient-shadow ghost-border relative overflow-hidden group">
+<div class="flex justify-between items-start relative z-10">
+<div>
+<p class="text-on-surface-variant font-medium text-sm tracking-wide uppercase">Total Devices</p>
+<h3 class="text-4xl font-extrabold mt-2">42</h3>
+</div>
+<div class="p-3 bg-primary-container rounded-lg text-on-primary-container">
+<span class="material-symbols-outlined">router</span>
+</div>
+</div>
+<div class="mt-4 flex items-center text-xs font-semibold text-primary">
+<span class="material-symbols-outlined text-sm mr-1">trending_up</span>
+<span>+3 from last month</span>
+</div>
+</div>
+<!-- Synced -->
+<div class="bg-surface-container-lowest p-6 rounded-xl ambient-shadow ghost-border relative overflow-hidden group">
+<div class="flex justify-between items-start relative z-10">
+<div>
+<p class="text-on-surface-variant font-medium text-sm tracking-wide uppercase">Synced</p>
+<h3 class="text-4xl font-extrabold mt-2 text-slate-900">38</h3>
+</div>
+<div class="p-3 bg-[#e6f4ea] rounded-lg text-[#1e7e34]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+<div class="mt-4 flex items-center text-xs font-semibold text-[#1e7e34]">
+<span>90.4% Fleet Health</span>
+</div>
+</div>
+<!-- Syncing -->
+<div class="bg-surface-container-lowest p-6 rounded-xl ambient-shadow ghost-border relative overflow-hidden group">
+<div class="flex justify-between items-start relative z-10">
+<div>
+<p class="text-on-surface-variant font-medium text-sm tracking-wide uppercase">Syncing</p>
+<h3 class="text-4xl font-extrabold mt-2 text-slate-900">2</h3>
+</div>
+<div class="p-3 bg-[#fff4e5] rounded-lg text-[#b26b00]">
+<span class="material-symbols-outlined animate-spin">sync</span>
+</div>
+</div>
+<div class="mt-4 flex items-center text-xs font-semibold text-[#b26b00]">
+<span>Active Deployment</span>
+</div>
+</div>
+<!-- Sync Error -->
+<div class="bg-surface-container-lowest p-6 rounded-xl ambient-shadow ghost-border relative overflow-hidden group">
+<div class="flex justify-between items-start relative z-10">
+<div>
+<p class="text-on-surface-variant font-medium text-sm tracking-wide uppercase">Sync Error</p>
+<h3 class="text-4xl font-extrabold mt-2 text-error">2</h3>
+</div>
+<div class="p-3 bg-error-container/20 rounded-lg text-error">
+<span class="material-symbols-outlined">warning</span>
+</div>
+</div>
+<div class="mt-4 flex items-center text-xs font-semibold text-error">
+<span>Critical: Action Required</span>
+</div>
+</div>
+</div>
+<!-- Device Table Container -->
+<div class="bg-surface-container-lowest rounded-xl ambient-shadow ghost-border overflow-hidden">
+<div class="px-8 py-6 border-b border-outline-variant/10 flex justify-between items-center">
+<h2 class="text-xl font-bold tracking-tight">Managed Infrastructure</h2>
+<div class="flex items-center gap-4">
+<div class="flex items-center text-sm text-on-surface-variant bg-surface-container-low px-3 py-1.5 rounded-lg">
+<span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                        Service Operational
+                    </div>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low/50">
+<tr>
+<th class="px-8 py-4 text-[11px] font-bold uppercase tracking-wider text-primary">Device Name</th>
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-primary">IP Address</th>
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-primary">Model</th>
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-primary">Firmware</th>
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-primary">Sync Status</th>
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-primary">Last Synced</th>
+<th class="px-8 py-4 text-[11px] font-bold uppercase tracking-wider text-primary text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<!-- Row 1: Completed -->
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="px-8 py-5">
+<div class="flex flex-col">
+<span class="font-bold text-on-surface">Sentinel-FW-01</span>
+<span class="text-xs text-on-surface-variant">Core Datacenter</span>
+</div>
+</td>
+<td class="px-6 py-5 font-mono text-sm">10.0.4.152</td>
+<td class="px-6 py-5 text-sm">Eth-G400-Pro</td>
+<td class="px-6 py-5 text-sm">v4.8.2-stable</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold uppercase tracking-tight">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                    Completed
+                                </span>
+</td>
+<td class="px-6 py-5 text-sm text-on-surface-variant">2 mins ago</td>
+<td class="px-8 py-5 text-right">
+<div class="flex justify-end gap-2">
+<button class="p-2 hover:bg-surface-container-high rounded-lg text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">sync</span></button>
+<button class="p-2 hover:bg-surface-container-high rounded-lg text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">settings</span></button>
+</div>
+</td>
+</tr>
+<!-- Row 2: Syncing -->
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="px-8 py-5">
+<div class="flex flex-col">
+<span class="font-bold text-on-surface">Edge-FW-Berlin</span>
+<span class="text-xs text-on-surface-variant">Regional Branch</span>
+</div>
+</td>
+<td class="px-6 py-5 font-mono text-sm">172.16.88.22</td>
+<td class="px-6 py-5 text-sm">Eth-E100-Lite</td>
+<td class="px-6 py-5 text-sm">v4.8.1-stable</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold uppercase tracking-tight">
+<span class="material-symbols-outlined text-[14px] animate-spin">sync</span>
+                                    Syncing
+                                </span>
+</td>
+<td class="px-6 py-5 text-sm text-on-surface-variant">In Progress</td>
+<td class="px-8 py-5 text-right">
+<div class="flex justify-end gap-2">
+<button class="p-2 hover:bg-surface-container-high rounded-lg text-primary transition-colors opacity-50 cursor-not-allowed"><span class="material-symbols-outlined text-[20px]">sync</span></button>
+<button class="p-2 hover:bg-surface-container-high rounded-lg text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">settings</span></button>
+</div>
+</td>
+</tr>
+<!-- Row 3: Error -->
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="px-8 py-5">
+<div class="flex flex-col">
+<span class="font-bold text-on-surface">Cloud-Gateway-US</span>
+<span class="text-xs text-on-surface-variant">AWS VPC Connector</span>
+</div>
+</td>
+<td class="px-6 py-5 font-mono text-sm">54.212.10.99</td>
+<td class="px-6 py-5 text-sm">Eth-V200-Cloud</td>
+<td class="px-6 py-5 text-sm">v4.7.9-stable</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold uppercase tracking-tight">
+<span class="material-symbols-outlined text-[14px]">error</span>
+                                    Error
+                                </span>
+</td>
+<td class="px-6 py-5 text-sm text-on-surface-variant">4 hours ago</td>
+<td class="px-8 py-5 text-right">
+<div class="flex justify-end gap-2">
+<button class="p-2 bg-error/10 hover:bg-error/20 rounded-lg text-error transition-colors"><span class="material-symbols-outlined text-[20px]">sync_problem</span></button>
+<button class="p-2 hover:bg-surface-container-high rounded-lg text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">settings</span></button>
+</div>
+</td>
+</tr>
+<!-- Row 4: Completed -->
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="px-8 py-5">
+<div class="flex flex-col">
+<span class="font-bold text-on-surface">Sentinel-FW-02</span>
+<span class="text-xs text-on-surface-variant">Core Datacenter (Backup)</span>
+</div>
+</td>
+<td class="px-6 py-5 font-mono text-sm">10.0.4.153</td>
+<td class="px-6 py-5 text-sm">Eth-G400-Pro</td>
+<td class="px-6 py-5 text-sm">v4.8.2-stable</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold uppercase tracking-tight">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                    Completed
+                                </span>
+</td>
+<td class="px-6 py-5 text-sm text-on-surface-variant">12 mins ago</td>
+<td class="px-8 py-5 text-right">
+<div class="flex justify-end gap-2">
+<button class="p-2 hover:bg-surface-container-high rounded-lg text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">sync</span></button>
+<button class="p-2 hover:bg-surface-container-high rounded-lg text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">settings</span></button>
+</div>
+</td>
+</tr>
+<!-- Row 5: Error -->
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="px-8 py-5">
+<div class="flex flex-col">
+<span class="font-bold text-on-surface">London-Edge-A</span>
+<span class="text-xs text-on-surface-variant">Retail Hub</span>
+</div>
+</td>
+<td class="px-6 py-5 font-mono text-sm">192.168.10.1</td>
+<td class="px-6 py-5 text-sm">Eth-E100-Lite</td>
+<td class="px-6 py-5 text-sm">v4.8.0-stable</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold uppercase tracking-tight">
+<span class="material-symbols-outlined text-[14px]">error</span>
+                                    Error
+                                </span>
+</td>
+<td class="px-6 py-5 text-sm text-on-surface-variant">1 day ago</td>
+<td class="px-8 py-5 text-right">
+<div class="flex justify-end gap-2">
+<button class="p-2 bg-error/10 hover:bg-error/20 rounded-lg text-error transition-colors"><span class="material-symbols-outlined text-[20px]">sync_problem</span></button>
+<button class="p-2 hover:bg-surface-container-high rounded-lg text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">settings</span></button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-8 py-4 bg-surface-container-low/30 border-t border-outline-variant/10 flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Showing 5 of 42 devices</span>
+<div class="flex gap-2">
+<button class="px-3 py-1 rounded border border-outline-variant/30 text-on-surface-variant hover:bg-surface-container-low transition-all">Previous</button>
+<button class="px-3 py-1 rounded bg-tertiary text-on-tertiary font-medium">1</button>
+<button class="px-3 py-1 rounded border border-outline-variant/30 text-on-surface-variant hover:bg-surface-container-low transition-all">2</button>
+<button class="px-3 py-1 rounded border border-outline-variant/30 text-on-surface-variant hover:bg-surface-container-low transition-all">Next</button>
+</div>
+</div>
+</div>
+<!-- System Details Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<div class="lg:col-span-2 bg-surface-container-low rounded-xl p-8 border border-outline-variant/10">
+<h4 class="text-lg font-bold mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary">history</span>
+                    Recent Synchronization Activity
+                </h4>
+<div class="space-y-6">
+<div class="flex gap-4">
+<div class="flex-shrink-0 w-1 bg-green-500 rounded-full"></div>
+<div class="flex-grow">
+<div class="flex justify-between">
+<p class="font-bold">Sentinel-FW-01</p>
+<span class="text-xs text-on-surface-variant">14:32:01</span>
+</div>
+<p class="text-sm text-on-surface-variant mt-1">Successfully pushed global security policies v48.2. Firewall rules updated for 2,400 endpoints.</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="flex-shrink-0 w-1 bg-amber-500 rounded-full"></div>
+<div class="flex-grow">
+<div class="flex justify-between">
+<p class="font-bold">Edge-FW-Berlin</p>
+<span class="text-xs text-on-surface-variant">14:30:45</span>
+</div>
+<p class="text-sm text-on-surface-variant mt-1">Transferring configuration payload (8.4MB). Latency spikes detected on carrier uplink.</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="flex-shrink-0 w-1 bg-red-500 rounded-full"></div>
+<div class="flex-grow">
+<div class="flex justify-between">
+<p class="font-bold">London-Edge-A</p>
+<span class="text-xs text-on-surface-variant">12:15:22</span>
+</div>
+<p class="text-sm text-on-surface-variant mt-1">Authentication failure during SSH handshake. Invalid certificate chain or clock skew suspected.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-gradient-to-br from-primary to-primary-dim rounded-xl p-8 text-on-primary ambient-shadow flex flex-col justify-between">
+<div>
+<h4 class="text-lg font-bold mb-2">Fleet Integrity Report</h4>
+<p class="text-sm text-on-primary/80 mb-6">Aggregate health metrics across all active firewall clusters.</p>
+<div class="space-y-4">
+<div>
+<div class="flex justify-between text-xs font-bold uppercase tracking-wider mb-2">
+<span>Policy Consistency</span>
+<span>98%</span>
+</div>
+<div class="h-1.5 bg-on-primary/20 rounded-full overflow-hidden">
+<div class="h-full bg-on-primary w-[98%]"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-xs font-bold uppercase tracking-wider mb-2">
+<span>Firmware Uniformity</span>
+<span>82%</span>
+</div>
+<div class="h-1.5 bg-on-primary/20 rounded-full overflow-hidden">
+<div class="h-full bg-on-primary w-[82%]"></div>
+</div>
+</div>
+</div>
+</div>
+<button class="w-full py-3 bg-surface-container-lowest text-primary font-bold rounded-xl mt-8 hover:bg-surface transition-all">
+                    Generate Full Report
+                </button>
+</div>
+</div>
+</main>
+<!-- SideNavBar Logic (Desktop Only) -->
+<aside class="hidden lg:flex flex-col h-screen w-64 fixed left-0 top-0 bg-[#e8eff3] dark:bg-slate-950 border-r border-slate-200/50 dark:border-slate-800/50 py-6 z-40 transform -translate-x-full lg:translate-x-0 transition-transform font-['Inter'] text-sm">
+<div class="px-6 mb-8">
+<div class="flex items-center gap-3 p-3 rounded-xl bg-surface-container-lowest ambient-shadow">
+<img alt="Tactical Sentinel" class="w-10 h-10 rounded-lg object-cover" data-alt="Digital representation of a network shield in neon blue and dark steel textures" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQYxoqetzdxipI8TBnMxu_cxNG_cOLlL44aLaN-ZR00H3CsgdZqLaeVkjCfD7J0HH6JiCX_mSM9QhNnndjyRRk7suZRUItOpvrIdpapy7LlEwfjO1TeOSqnd85GOteW_qTlT1mBSYpsLv9eMzjxvIr-XYizxNdtKJWho42RZz6PW0br_Xo6A33qChEw6_Uj0oWTI-PP0h-iw0vPTVBWaPRqtSg6dMVWn8VbyZlMoQve4WD_jujvcqwOF8yPlNEsx0fXe0HzJqF_GY"/>
+<div>
+<p class="font-bold text-on-surface">Command Center</p>
+<p class="text-[10px] text-on-surface-variant font-medium tracking-widest uppercase">Security Ops</p>
+</div>
+</div>
+</div>
+<nav class="flex-grow space-y-1 px-4">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-[#f0f4f7] dark:hover:bg-slate-900/50 transition-all rounded-r-lg" href="#">
+<span class="material-symbols-outlined text-[20px]">map</span>
+<span>Network Map</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-[#f0f4f7] dark:bg-slate-900 text-[#005bc4] font-medium rounded-r-lg" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">security</span>
+<span>Threat Intel</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-[#f0f4f7] dark:hover:bg-slate-900/50 transition-all rounded-r-lg" href="#">
+<span class="material-symbols-outlined text-[20px]">vpn_key</span>
+<span>VPN Status</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-[#f0f4f7] dark:hover:bg-slate-900/50 transition-all rounded-r-lg" href="#">
+<span class="material-symbols-outlined text-[20px]">help_outline</span>
+<span>Support</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-[#f0f4f7] dark:hover:bg-slate-900/50 transition-all rounded-r-lg" href="#">
+<span class="material-symbols-outlined text-[20px]">description</span>
+<span>Documentation</span>
+</a>
+</nav>
+<div class="px-4 mt-auto">
+<button class="flex items-center gap-3 px-4 py-3 w-full text-slate-600 dark:text-slate-400 hover:bg-[#f0f4f7] dark:hover:bg-slate-900/50 transition-all rounded-lg">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+<span>Log Out</span>
+</button>
+</div>
+</aside>
+</body></html>
