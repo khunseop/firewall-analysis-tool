@@ -108,23 +108,23 @@
 /* AG Grid custom theme overrides — Precision Sentinel */
 .ag-theme-quartz {
   --ag-background-color: #ffffff;
-  --ag-header-background-color: rgba(240, 244, 247, 0.5);
+  --ag-header-background-color: rgba(247, 249, 251, 0.6);
   --ag-header-foreground-color: #565e74;
-  --ag-row-hover-color: rgba(240, 244, 247, 0.3);
+  --ag-row-hover-color: rgba(240, 244, 247, 0.4);
   --ag-border-color: transparent;
   --ag-borders: none;
-  --ag-row-border-color: rgba(169, 180, 185, 0.1);
+  --ag-row-border-color: rgba(169, 180, 185, 0.07);
   --ag-row-border-width: 1px;
   --ag-cell-horizontal-border: none;
   --ag-font-family: 'Inter', sans-serif;
   --ag-font-size: 12px;
-  --ag-row-height: 52px;
-  --ag-header-height: 48px;
-  --ag-cell-horizontal-padding: 24px;
+  --ag-row-height: 48px;
+  --ag-header-height: 44px;
+  --ag-cell-horizontal-padding: 20px;
   --ag-wrapper-border-radius: 0;
   --ag-grid-size: 4px;
-  --ag-list-item-height: 36px;
-  --ag-selected-row-background-color: rgba(212, 226, 253, 0.3);
+  --ag-list-item-height: 32px;
+  --ag-selected-row-background-color: rgba(212, 226, 253, 0.25);
 }
 
 /* Remove AG Grid outer chrome */
@@ -134,16 +134,17 @@
   box-shadow: none !important;
 }
 .ag-theme-quartz .ag-header {
-  border-bottom: 1px solid rgba(169, 180, 185, 0.15) !important;
+  border-bottom: 1px solid rgba(169, 180, 185, 0.12) !important;
 }
 
 /* Table-like header: uppercase tracking-widest text-primary */
 .ag-theme-quartz .ag-header-cell-text {
   font-size: 10px !important;
-  font-weight: 700 !important;
+  font-weight: 800 !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.1em !important;
+  letter-spacing: 0.15em !important;
   color: #565e74 !important;
+  opacity: 0.8;
 }
 .ag-theme-quartz .ag-header-cell {
   border-right: none !important;
