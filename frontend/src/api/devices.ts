@@ -46,14 +46,15 @@ export interface DeviceStats {
   id: number
   name: string
   vendor: string
-  last_sync_at: string | null
-  last_sync_status: string | null
-  last_sync_step: string | null
-  total_policies: number
+  ip_address?: string
+  sync_time: string | null
+  sync_status: string | null
+  sync_step: string | null
+  policies: number
   active_policies: number
   disabled_policies: number
-  total_network_objects: number
-  total_services: number
+  network_objects: number
+  services: number
 }
 
 export interface DashboardStats {

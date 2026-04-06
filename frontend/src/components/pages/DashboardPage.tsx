@@ -54,11 +54,18 @@ interface DeviceRow {
 
 function transformDeviceStats(d: DeviceStats): DeviceRow {
   return {
-    id: d.id, name: d.name, vendor: d.vendor,
-    policies: d.total_policies ?? 0, active_policies: d.active_policies ?? 0,
+    id: d.id,
+    name: d.name,
+    vendor: d.vendor,
+    ip_address: d.ip_address,
+    policies: d.policies ?? 0,
+    active_policies: d.active_policies ?? 0,
     disabled_policies: d.disabled_policies ?? 0,
-    network_objects: d.total_network_objects ?? 0, services: d.total_services ?? 0,
-    sync_status: d.last_sync_status, sync_step: d.last_sync_step, sync_time: d.last_sync_at,
+    network_objects: d.network_objects ?? 0,
+    services: d.services ?? 0,
+    sync_status: d.sync_status,
+    sync_step: d.sync_step,
+    sync_time: d.sync_time,
   }
 }
 
@@ -165,8 +172,11 @@ export function DashboardPage() {
   const vendorMap = rowData.reduce<Record<string, { count: number; policies: number; activePolicies: number; networkObjects: number; services: number }>>((acc, d) => {
     const v = d.vendor ?? 'Unknown'
     if (!acc[v]) acc[v] = { count: 0, policies: 0, activePolicies: 0, networkObjects: 0, services: 0 }
-    acc[v].count += 1; acc[v].policies += d.policies; acc[v].activePolicies += d.active_policies
-    acc[v].networkObjects += d.network_objects; acc[v].services += d.services
+    acc[v].count += 1
+    acc[v].policies += d.policies
+    acc[v].activePolicies += d.active_policies
+    acc[v].networkObjects += d.network_objects
+    acc[v].services += d.services
     return acc
   }, {})
 
@@ -174,33 +184,41 @@ export function DashboardPage() {
 
   const totalPolicies = stats?.total_policies ?? 0
   const activePolicies = stats?.total_active_policies ?? 0
-  const activeDevices = stats?.active_devices ?? 0
   const totalDevices = stats?.total_devices ?? 0
-  const successDevices = statusCounts['success'] ?? 0
+  const successDevices = stats?.active_devices ?? 0
 
   const STAT_CARDS = [
     {
       label: '전체 장비', value: totalDevices, icon: Router,
       iconBg: 'bg-ds-primary-container', iconColor: 'text-ds-on-primary-container',
       sub: null,
-      bar: { value: successDevices, total: totalDevices, label: `동기화 성공 ${totalDevices > 0 ? Math.round(successDevices/totalDevices*100) : 0}%`, color: 'bg-green-500' },
+      bar: { 
+        value: successDevices, 
+        total: totalDevices, 
+        label: `동기화 성공률: ${totalDevices > 0 ? Math.round(successDevices/totalDevices*100) : 0}%`, 
+        color: 'bg-green-500' 
+      },
     },
     {
       label: '전체 정책', value: totalPolicies, icon: ShieldCheck,
       iconBg: 'bg-blue-100', iconColor: 'text-blue-700',
       sub: null,
-      bar: { value: activePolicies, total: totalPolicies, label: `활성 ${totalPolicies > 0 ? Math.round(activePolicies/totalPolicies*100) : 0}%`, color: 'bg-ds-tertiary' },
+      bar: { 
+        value: activePolicies, 
+        total: totalPolicies, 
+        label: `정책 활성률: ${totalPolicies > 0 ? Math.round(activePolicies/totalPolicies*100) : 0}%`, 
+        color: 'bg-ds-tertiary' 
+      },
     },
     {
-      label: '네트워크 객체', value: stats?.total_network_objects,
+      label: '네트워크 객체', value: stats?.total_network_objects ?? 0,
       icon: Network, iconBg: 'bg-ds-secondary-container', iconColor: 'text-ds-on-secondary-container',
-      sub: null, bar: null,
+      sub: `총 ${formatNumber(stats?.total_network_objects ?? 0)}개 식별`, bar: null,
     },
     {
-      label: '서비스 객체', value: stats?.total_services,
+      label: '서비스 객체', value: stats?.total_services ?? 0,
       icon: Database, iconBg: 'bg-ds-primary-container', iconColor: 'text-ds-on-primary-container',
-      sub: `활성 장비: ${formatNumber(activeDevices)}`,
-      bar: null,
+      sub: `총 ${formatNumber(stats?.total_services ?? 0)}개 식별`, bar: null,
     },
   ]
 
