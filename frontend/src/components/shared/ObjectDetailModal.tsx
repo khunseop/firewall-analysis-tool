@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { getObjectDetails, searchPolicies } from '@/api/firewall'
-import { ArrowRight } from 'lucide-react'
+import { getObjectDetails, getNetworkObjects, getNetworkGroups } from '@/api/firewall'
+import { ArrowRight, ChevronRight, ChevronDown } from 'lucide-react'
 import { Skeleton } from './Skeleton'
+import { useState } from 'react'
 
 interface Props {
   deviceId: number
@@ -16,13 +17,60 @@ const FIELD_LABELS: Record<string, string> = {
   protocol: '프로토콜', port: '포트', members: '멤버',
   ip_version: 'IP 버전', port_start: '포트 시작', port_end: '포트 끝',
 }
+const SKIP_FIELDS = ['id', 'device_id', 'is_active', 'last_seen_at', 'ip_start', 'ip_end', 'members']
 
-const SKIP_FIELDS = ['id', 'device_id', 'is_active', 'last_seen_at', 'ip_start', 'ip_end']
+type ObjData = Record<string, unknown>
 
-const ACTION_BADGE: Record<string, string> = {
-  allow: 'bg-green-100 text-green-700',
-  deny:  'bg-red-100 text-red-700',
-  drop:  'bg-red-100 text-red-700',
+/** 멤버 트리 노드 — 재귀 */
+function MemberTree({ deviceId, name, depth = 0 }: { deviceId: number; name: string; depth?: number }) {
+  const [expanded, setExpanded] = useState(false)
+
+  const { data: allObjects } = useQuery({
+    queryKey: ['network-objects', deviceId],
+    queryFn: () => getNetworkObjects(deviceId),
+    staleTime: 60_000,
+    enabled: expanded,
+  })
+  const { data: allGroups } = useQuery({
+    queryKey: ['network-groups', deviceId],
+    queryFn: () => getNetworkGroups(deviceId),
+    staleTime: 60_000,
+    enabled: expanded,
+  })
+
+  const group = allGroups?.find(g => g.name === name)
+  const obj   = allObjects?.find(o => o.name === name)
+
+  const isGroup = !!group
+  const members = group ? group.members.split(',').map(m => m.trim()).filter(Boolean) : []
+
+  return (
+    <div style={{ marginLeft: depth * 14 }}>
+      <div className="flex items-center gap-1 py-0.5">
+        {isGroup ? (
+          <button
+            onClick={() => setExpanded(v => !v)}
+            className="flex items-center gap-1 text-[11px] font-mono font-semibold text-ds-tertiary hover:underline"
+          >
+            {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            {name}
+            <span className="ml-1 text-[9px] font-bold uppercase bg-ds-secondary-container text-ds-tertiary px-1 rounded">그룹</span>
+          </button>
+        ) : (
+          <span className="flex items-center gap-1.5 text-[11px] font-mono text-ds-on-surface">
+            <span className="w-1.5 h-1.5 rounded-full bg-ds-outline shrink-0" />
+            {name}
+            {obj && obj.ip_address && (
+              <span className="text-ds-on-surface-variant font-normal">({obj.ip_address as string})</span>
+            )}
+          </span>
+        )}
+      </div>
+      {expanded && isGroup && members.map(m => (
+        <MemberTree key={m} deviceId={deviceId} name={m} depth={depth + 1} />
+      ))}
+    </div>
+  )
 }
 
 export function ObjectDetailModal({ deviceId, name, onClose }: Props) {
@@ -34,26 +82,9 @@ export function ObjectDetailModal({ deviceId, name, onClose }: Props) {
     staleTime: 60_000,
   })
 
-  // 이 객체를 참조하는 정책 검색 (src_ip 또는 dst_ip로 객체명 검색)
-  const { data: refPolicies, isLoading: refLoading } = useQuery({
-    queryKey: ['object-ref-policies', deviceId, name],
-    queryFn: async () => {
-      // 출발지에서 참조하는 정책 검색
-      const [src, dst] = await Promise.all([
-        searchPolicies({ device_ids: [deviceId], src_ip: name, limit: 10 }),
-        searchPolicies({ device_ids: [deviceId], dst_ip: name, limit: 10 }),
-      ])
-      // 중복 제거 (같은 정책이 src+dst 모두 있을 수 있음)
-      const seen = new Set<number>()
-      const merged = [...src.policies, ...dst.policies].filter((p) => {
-        if (seen.has(p.id)) return false
-        seen.add(p.id)
-        return true
-      })
-      return merged.slice(0, 10)
-    },
-    staleTime: 60_000,
-  })
+  const obj = data as ObjData | null
+  const isGroup = obj && 'members' in obj
+  const members = isGroup ? String(obj['members'] ?? '').split(',').map(m => m.trim()).filter(Boolean) : []
 
   const handleGoToPolicies = () => {
     onClose()
@@ -67,79 +98,52 @@ export function ObjectDetailModal({ deviceId, name, onClose }: Props) {
           <DialogTitle className="font-headline text-ds-on-surface font-mono">{name}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5 py-2 max-h-[70vh] overflow-y-auto pr-1">
+        <div className="space-y-4 py-2 max-h-[70vh] overflow-y-auto pr-1">
           {/* 객체 상세 정보 */}
           {isLoading ? (
             <div className="space-y-2">
-              {[1,2,3].map(i => <Skeleton key={i} className="h-5 w-full" />)}
+              {[1, 2, 3].map(i => <Skeleton key={i} className="h-5 w-full" />)}
             </div>
-          ) : !data ? (
+          ) : !obj ? (
             <p className="text-sm text-ds-on-surface-variant">데이터를 찾을 수 없습니다.</p>
           ) : (
             <div className="bg-ds-surface-container-low rounded-lg p-4 space-y-2">
-              {Object.entries(data as unknown as Record<string, unknown>)
+              {Object.entries(obj)
                 .filter(([k]) => !SKIP_FIELDS.includes(k))
                 .map(([k, v]) => (
                   <div key={k} className="flex gap-3 text-sm">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-ds-primary min-w-[80px] shrink-0 mt-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-ds-primary min-w-[90px] shrink-0 mt-0.5">
                       {FIELD_LABELS[k] ?? k}
                     </span>
-                    <span className="text-sm text-ds-on-surface font-mono break-all">{String(v ?? '-')}</span>
+                    <span className="text-xs text-ds-on-surface font-mono break-all">{String(v ?? '-')}</span>
                   </div>
                 ))}
             </div>
           )}
 
-          {/* 참조 정책 목록 */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-ds-primary">참조 정책</h3>
-              {refPolicies && refPolicies.length > 0 && (
-                <button
-                  onClick={handleGoToPolicies}
-                  className="flex items-center gap-1 text-xs font-semibold text-ds-tertiary hover:underline"
-                >
-                  정책 검색에서 보기 <ArrowRight className="w-3 h-3" />
-                </button>
-              )}
+          {/* 그룹 멤버 트리 */}
+          {isGroup && members.length > 0 && (
+            <div>
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-ds-primary mb-2">
+                멤버 ({members.length}개)
+              </h3>
+              <div className="bg-ds-surface-container-low rounded-lg p-3 space-y-0.5">
+                {members.map(m => (
+                  <MemberTree key={m} deviceId={deviceId} name={m} />
+                ))}
+              </div>
             </div>
+          )}
 
-            {refLoading ? (
-              <div className="space-y-2">
-                {[1,2,3].map(i => <Skeleton key={i} className="h-8 w-full" />)}
-              </div>
-            ) : !refPolicies || refPolicies.length === 0 ? (
-              <p className="text-xs text-ds-on-surface-variant py-3 text-center bg-ds-surface-container-low rounded-lg">
-                이 객체를 참조하는 정책이 없습니다.
-              </p>
-            ) : (
-              <div className="space-y-1.5">
-                {refPolicies.map((p) => {
-                  const badgeCls = ACTION_BADGE[p.action?.toLowerCase()] ?? 'bg-ds-surface-container text-ds-on-surface-variant'
-                  return (
-                    <div key={p.id} className="flex items-center justify-between px-3 py-2 bg-ds-surface-container-low rounded-lg">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-mono text-xs font-semibold text-ds-on-surface truncate">{p.rule_name}</span>
-                        {p.seq != null && (
-                          <span className="text-[10px] font-mono text-ds-on-surface-variant shrink-0">#{p.seq}</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0 ml-2">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${badgeCls}`}>
-                          {p.action}
-                        </span>
-                        {!p.enable && (
-                          <span className="text-[10px] text-ds-on-surface-variant font-medium">비활성</span>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-                {refPolicies.length === 10 && (
-                  <p className="text-[10px] text-ds-on-surface-variant text-right pt-1">최대 10건 표시</p>
-                )}
-              </div>
-            )}
+          {/* 정책 검색 연결 */}
+          <div className="pt-1">
+            <button
+              onClick={handleGoToPolicies}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-ds-tertiary/8 text-ds-tertiary text-sm font-semibold hover:bg-ds-tertiary/15 transition-colors border border-ds-tertiary/20"
+            >
+              이 객체를 참조하는 정책 검색
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </DialogContent>

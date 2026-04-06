@@ -18,6 +18,10 @@ See `CLAUDE.md` for documentation update rules.
 
 | # | Status | Task | Notes |
 |---|--------|------|-------|
+| 17 | `[x]` | **방화벽 정책 페이지 버그/기능 개선 (11건)** | 검색 partial match, IP범위 검색, 미사용기간 필터, 프로토콜 텍스트입력, 액션 정확화, 누락컬럼 추가, 초기화 버그, 그리드 높이, 객체모달 단순화, Excel 인코딩 오류, 검색 UX |
+
+| # | Status | Task | Notes |
+|---|--------|------|-------|
 | 10 | `[x]` | **UI Quality Improvement — T1: 가독성 기반 정비** | font-mono, Skeleton, EmptyState, AG Grid line-height |
 | 11 | `[x]` | **UI Quality Improvement — T2: 정책 페이지 개선** | 태그 렌더러, 미사용 강조, 요약 배너, 컬럼 재조정 |
 | 12 | `[x]` | **UI Quality Improvement — T3: 대시보드 개편** | 활성률 bar, 오류 배너, 건강도 테이블, 활동 피드 |

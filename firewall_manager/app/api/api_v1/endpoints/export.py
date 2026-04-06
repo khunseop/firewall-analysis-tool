@@ -3,6 +3,7 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from io import BytesIO
+from urllib.parse import quote
 
 router = APIRouter()
 
@@ -20,7 +21,8 @@ async def export_to_excel(data: dict):
         with pd.ExcelWriter(output, engine="openpyxl") as writer:
             df.to_excel(writer, index=False, sheet_name="Sheet1")
         output.seek(0)
-        headers = {"Content-Disposition": f'attachment; filename="{filename}.xlsx"'}
+        encoded_name = quote(f"{filename}.xlsx", safe='')
+        headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_name}"}
         return StreamingResponse(
             output,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
