@@ -205,12 +205,12 @@ export function PoliciesPage() {
             ))}
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase text-ds-primary/70 tracking-wider">프로토콜</label>
-              <ShadSelect value={draft.protocol} onValueChange={(v) => set('protocol', v)}>
+              <ShadSelect value={draft.protocol || '_all_'} onValueChange={(v) => set('protocol', v === '_all_' ? '' : v)}>
                 <SelectTrigger className="bg-white border-ds-outline-variant/30 text-sm h-[42px] shadow-sm">
                   <SelectValue placeholder="Any" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any</SelectItem>
+                  <SelectItem value="_all_">Any</SelectItem>
                   <SelectItem value="tcp">TCP</SelectItem>
                   <SelectItem value="udp">UDP</SelectItem>
                   <SelectItem value="icmp">ICMP</SelectItem>
@@ -219,12 +219,12 @@ export function PoliciesPage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase text-ds-primary/70 tracking-wider">액션</label>
-              <ShadSelect value={draft.action} onValueChange={(v) => set('action', v)}>
+              <ShadSelect value={draft.action || '_all_'} onValueChange={(v) => set('action', v === '_all_' ? '' : v)}>
                 <SelectTrigger className="bg-white border-ds-outline-variant/30 text-sm h-[42px] shadow-sm">
                   <SelectValue placeholder="All Actions" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Actions</SelectItem>
+                  <SelectItem value="_all_">All Actions</SelectItem>
                   <SelectItem value="allow">Allow</SelectItem>
                   <SelectItem value="deny">Deny</SelectItem>
                   <SelectItem value="drop">Drop</SelectItem>
@@ -233,12 +233,12 @@ export function PoliciesPage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase text-ds-primary/70 tracking-wider">활성 여부</label>
-              <ShadSelect value={draft.enable} onValueChange={(v) => set('enable', v)}>
+              <ShadSelect value={draft.enable || '_all_'} onValueChange={(v) => set('enable', v === '_all_' ? '' : v)}>
                 <SelectTrigger className="bg-white border-ds-outline-variant/30 text-sm h-[42px] shadow-sm">
                   <SelectValue placeholder="전체" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">전체</SelectItem>
+                  <SelectItem value="_all_">전체</SelectItem>
                   <SelectItem value="true">활성</SelectItem>
                   <SelectItem value="false">비활성</SelectItem>
                 </SelectContent>

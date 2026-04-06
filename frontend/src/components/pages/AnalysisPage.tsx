@@ -270,12 +270,12 @@ export function AnalysisPage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">이동 방향</label>
-              <ShadSelect value={moveDirection} onValueChange={setMoveDirection}>
+              <ShadSelect value={moveDirection || '_none_'} onValueChange={(v) => setMoveDirection(v === '_none_' ? '' : v)}>
                 <SelectTrigger className="bg-ds-surface-container-low border-ds-outline-variant/30 text-sm">
                   <SelectValue placeholder="선택 (선택사항)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">선택 안 함</SelectItem>
+                  <SelectItem value="_none_">선택 안 함</SelectItem>
                   <SelectItem value="before">before</SelectItem>
                   <SelectItem value="after">after</SelectItem>
                 </SelectContent>
