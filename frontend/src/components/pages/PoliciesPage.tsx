@@ -1,14 +1,14 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Search, Download, SlidersHorizontal } from 'lucide-react'
+import { Search, Download, SlidersHorizontal, AlertTriangle } from 'lucide-react'
 import type { ColDef } from '@ag-grid-community/core'
 import { Select as ShadSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { DeviceSelect } from '@/components/shared/DeviceSelect'
 import { listDevices } from '@/api/devices'
 import { searchPolicies, exportToExcel, type Policy, type PolicySearchRequest } from '@/api/firewall'
-import { formatDate } from '@/lib/utils'
+import { daysSinceHit } from '@/lib/utils'
 import { ObjectDetailModal } from '@/components/shared/ObjectDetailModal'
 
 interface SearchParams {
@@ -28,12 +28,80 @@ const ACTION_BADGE: Record<string, string> = {
   drop:  'bg-red-100 text-red-700',
 }
 
+/** 쉼표/공백 구분 문자열 → chip 태그 렌더러 */
+function TagCell({
+  value, isClickable, onClickName, maxVisible = 3,
+}: {
+  value: string
+  isClickable?: (name: string) => boolean
+  onClickName?: (name: string) => void
+  maxVisible?: number
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const names = (value ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+  if (names.length === 0) return <span className="text-[11px] text-ds-on-surface-variant">-</span>
+
+  const visible = expanded ? names : names.slice(0, maxVisible)
+  const overflow = names.length - maxVisible
+
+  return (
+    <div className="flex flex-wrap gap-1 items-center py-1">
+      {visible.map((name, i) => {
+        const clickable = isClickable?.(name) && onClickName
+        return (
+          <span
+            key={i}
+            onClick={clickable ? () => onClickName!(name) : undefined}
+            className={`inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono leading-tight
+              ${clickable
+                ? 'bg-ds-secondary-container text-ds-tertiary cursor-pointer hover:bg-ds-primary-container transition-colors'
+                : 'bg-ds-surface-container text-ds-on-surface'
+              }`}
+          >
+            {name}
+          </span>
+        )
+      })}
+      {!expanded && overflow > 0 && (
+        <button
+          onClick={() => setExpanded(true)}
+          className="text-[10px] font-semibold text-ds-tertiary bg-ds-tertiary/5 rounded px-1.5 py-0.5 hover:bg-ds-tertiary/10"
+        >
+          +{overflow}
+        </button>
+      )}
+    </div>
+  )
+}
+
+/** 마지막 사용일 스마트 렌더 */
+function LastHitCell({ value }: { value: string | null }) {
+  if (!value) {
+    return <span className="text-[11px] font-medium text-amber-600">사용 기록 없음</span>
+  }
+  const days = daysSinceHit(value)
+  if (days === null) return <span className="text-[11px] text-ds-on-surface-variant">-</span>
+
+  if (days >= 90) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ds-error">
+        <AlertTriangle className="w-3 h-3" />
+        {days}일 미사용
+      </span>
+    )
+  }
+  if (days >= 30) {
+    return <span className="text-[11px] font-medium text-amber-600">{days}일 전</span>
+  }
+  return <span className="text-[11px] text-ds-on-surface-variant">{days}일 전</span>
+}
+
 export function PoliciesPage() {
   const gridRef = useRef<AgGridWrapperHandle>(null)
   const [draft, setDraft] = useState<SearchParams>(DEFAULT_PARAMS)
-  const [appliedDeviceIds, setAppliedDeviceIds] = useState<number[]>([])
   const [filtersOpen, setFiltersOpen] = useState(true)
   const [policies, setPolicies] = useState<Policy[]>([])
+  const [searched, setSearched] = useState(false)
   const [validObjectNames, setValidObjectNames] = useState<Set<string>>(new Set())
   const [objectModal, setObjectModal] = useState<{ deviceId: number; name: string } | null>(null)
 
@@ -44,7 +112,7 @@ export function PoliciesPage() {
     onSuccess: (data) => {
       setPolicies(data.policies)
       setValidObjectNames(new Set(data.valid_object_names))
-      setAppliedDeviceIds(draft.device_ids)
+      setSearched(true)
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -69,7 +137,7 @@ export function PoliciesPage() {
   const handleReset = () => {
     setDraft(DEFAULT_PARAMS)
     setPolicies([])
-    setAppliedDeviceIds([])
+    setSearched(false)
     setValidObjectNames(new Set())
   }
 
@@ -82,72 +150,80 @@ export function PoliciesPage() {
   const set = (key: keyof SearchParams, val: string | number[]) =>
     setDraft((prev) => ({ ...prev, [key]: val }))
 
-  const makeCellRenderer = (_field: string) => (p: { value: string; data: Policy }) => {
-    const names = (p.value ?? '').split(',').map((s: string) => s.trim()).filter(Boolean)
-    return (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', height: '100%' }}>
-        {names.map((name, i) => (
-          <span key={i}>
-            {validObjectNames.has(name) ? (
-              <span
-                style={{ color: '#005bc4', textDecoration: 'underline', cursor: 'pointer', fontSize: 12 }}
-                onClick={() => setObjectModal({ deviceId: p.data.device_id, name })}
-              >
-                {name}
-              </span>
-            ) : <span style={{ fontSize: 12 }}>{name}</span>}
-            {i < names.length - 1 && ', '}
-          </span>
-        ))}
-      </div>
-    )
-  }
+  // 검색 결과 요약 통계
+  const summary = useMemo(() => {
+    if (!searched || policies.length === 0) return null
+    const allow = policies.filter(p => p.action?.toLowerCase() === 'allow').length
+    const deny = policies.filter(p => ['deny', 'drop'].includes(p.action?.toLowerCase() ?? '')).length
+    const disabled = policies.filter(p => !p.enable).length
+    const stale = policies.filter(p => daysSinceHit(p.last_hit_date) !== null && daysSinceHit(p.last_hit_date)! >= 90).length
+    const noHit = policies.filter(p => !p.last_hit_date).length
+    return { total: policies.length, allow, deny, disabled, stale, noHit }
+  }, [policies, searched])
+
+  const makeCellRenderer = () => (p: { value: string; data: Policy }) => (
+    <TagCell
+      value={p.value}
+      isClickable={(name) => validObjectNames.has(name)}
+      onClickName={(name) => setObjectModal({ deviceId: p.data.device_id, name })}
+    />
+  )
 
   const columnDefs: ColDef<Policy>[] = [
-    { field: 'rule_name', headerName: '정책명', filter: 'agTextColumnFilter', width: 160 },
-    { field: 'seq', headerName: '순번', filter: 'agNumberColumnFilter', width: 70 },
     {
-      field: 'action', headerName: '액션', filter: 'agTextColumnFilter', width: 90,
+      field: 'rule_name', headerName: '정책명', filter: 'agTextColumnFilter', width: 200,
+      cellRenderer: (p: { value: string }) => (
+        <span className="font-mono text-xs font-semibold text-ds-on-surface">{p.value ?? '-'}</span>
+      ),
+    },
+    {
+      field: 'seq', headerName: '#', filter: 'agNumberColumnFilter', width: 60,
+      cellRenderer: (p: { value: number }) => (
+        <span className="font-mono text-xs text-ds-on-surface-variant">{p.value}</span>
+      ),
+    },
+    {
+      field: 'action', headerName: '액션', filter: 'agTextColumnFilter', width: 80,
       cellRenderer: (p: { value: string }) => {
         const classes = ACTION_BADGE[p.value?.toLowerCase()] ?? 'bg-ds-surface-container text-ds-on-surface-variant'
         return (
-          <div className="flex items-center h-full">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tight ${classes}`}>
-              {p.value}
-            </span>
-          </div>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tight ${classes}`}>
+            {p.value}
+          </span>
         )
       },
     },
-    { field: 'enable', headerName: '활성', width: 70, cellRenderer: (p: { value: boolean }) => (
-      <div className="flex items-center h-full">
+    {
+      field: 'enable', headerName: '활성', width: 70,
+      cellRenderer: (p: { value: boolean }) => (
         <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${p.value ? 'bg-green-100 text-green-700' : 'bg-ds-surface-container text-ds-on-surface-variant'}`}>
           {p.value ? '활성' : '비활성'}
         </span>
-      </div>
-    )},
-    { field: 'source', headerName: '출발지', filter: 'agTextColumnFilter', width: 180, cellRenderer: makeCellRenderer('source') },
-    { field: 'destination', headerName: '목적지', filter: 'agTextColumnFilter', width: 180, cellRenderer: makeCellRenderer('destination') },
-    { field: 'service', headerName: '서비스', filter: 'agTextColumnFilter', width: 150, cellRenderer: makeCellRenderer('service') },
+      ),
+    },
+    { field: 'source', headerName: '출발지', filter: 'agTextColumnFilter', flex: 1, minWidth: 160, autoHeight: true, cellRenderer: makeCellRenderer() },
+    { field: 'destination', headerName: '목적지', filter: 'agTextColumnFilter', flex: 1, minWidth: 160, autoHeight: true, cellRenderer: makeCellRenderer() },
+    { field: 'service', headerName: '서비스', filter: 'agTextColumnFilter', width: 160, autoHeight: true, cellRenderer: makeCellRenderer() },
     { field: 'user', headerName: '사용자', filter: 'agTextColumnFilter', width: 120 },
     { field: 'application', headerName: '애플리케이션', filter: 'agTextColumnFilter', width: 140 },
     { field: 'description', headerName: '설명', filter: 'agTextColumnFilter', width: 150 },
-    { field: 'last_hit_date', headerName: '마지막 사용일', filter: 'agTextColumnFilter', width: 150, valueFormatter: (p) => formatDate(p.value) },
+    {
+      field: 'last_hit_date', headerName: '마지막 사용일', filter: 'agTextColumnFilter', width: 140,
+      cellRenderer: (p: { value: string | null }) => <LastHitCell value={p.value} />,
+    },
     { field: 'vsys', headerName: 'VSYS', filter: 'agTextColumnFilter', width: 80 },
   ]
 
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tighter text-ds-on-surface font-headline mb-2">방화벽 정책</h1>
-          <p className="text-ds-on-surface-variant max-w-lg text-sm">
+          <p className="text-ds-on-surface-variant text-sm max-w-lg">
             정책을 검색하고 필터링합니다.
-            {policies.length > 0 && ` 총 ${policies.length.toLocaleString()}건 조회됨.`}
           </p>
         </div>
-        {/* Active Firewalls chip selector */}
         <div className="w-full md:w-80">
           <label className="block text-[10px] font-bold uppercase text-ds-primary mb-2 tracking-widest">장비 선택</label>
           <div className="bg-white rounded-md border border-ds-outline-variant/30 ambient-shadow-sm">
@@ -162,16 +238,16 @@ export function PoliciesPage() {
         </div>
       </header>
 
-      {/* Dual-layer search system */}
+      {/* Search / filter panel */}
       <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow overflow-hidden border border-ds-outline-variant/10">
-        {/* Global search row */}
         <div className="relative flex items-center px-6 py-5 border-b border-ds-outline-variant/15">
           <Search className="w-5 h-5 text-ds-outline mr-4 shrink-0" />
           <input
             value={draft.rule_name}
             onChange={(e) => set('rule_name', e.target.value)}
-            placeholder="정책명, IP, 설명으로 빠른 검색…"
-            className="flex-1 bg-transparent border-none focus:ring-0 text-ds-on-surface placeholder:text-ds-outline/60 font-medium text-base focus:outline-none"
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            placeholder="정책명 빠른 검색 (Enter)…"
+            className="flex-1 bg-transparent border-none focus:ring-0 text-ds-on-surface placeholder:text-ds-outline/60 font-medium text-base focus:outline-none font-mono"
           />
           <button
             onClick={() => setFiltersOpen((v) => !v)}
@@ -182,24 +258,23 @@ export function PoliciesPage() {
           </button>
         </div>
 
-        {/* Advanced filter panel */}
         {filtersOpen && (
           <div className="bg-ds-surface-container-low/40 p-8 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 border-b border-ds-outline-variant/10">
             {[
-              { label: '출발지 IP', key: 'src_ip' as const, placeholder: '10.0.0.0/8' },
-              { label: '목적지 IP', key: 'dst_ip' as const, placeholder: '0.0.0.0/0' },
-              { label: '포트 / 서비스', key: 'port' as const, placeholder: '443, 80, SSH' },
+              { label: '출발지 IP / Subnet', key: 'src_ip' as const, placeholder: '10.0.0.0/8', mono: true },
+              { label: '목적지 IP', key: 'dst_ip' as const, placeholder: '0.0.0.0/0', mono: true },
+              { label: '포트 / 서비스', key: 'port' as const, placeholder: '443, 80, SSH', mono: true },
               { label: '사용자', key: 'user' as const, placeholder: '' },
               { label: '애플리케이션', key: 'application' as const, placeholder: '' },
               { label: '설명', key: 'description' as const, placeholder: '' },
-            ].map(({ label, key, placeholder }) => (
+            ].map(({ label, key, placeholder, mono }) => (
               <div key={key} className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase text-ds-primary/70 tracking-wider">{label}</label>
                 <input
                   value={draft[key] as string}
                   onChange={(e) => set(key, e.target.value)}
                   placeholder={placeholder}
-                  className="w-full bg-white border border-ds-outline-variant/30 rounded-md text-sm px-4 py-2.5 shadow-sm focus:outline-none focus:border-ds-tertiary focus:ring-1 focus:ring-ds-tertiary"
+                  className={`w-full bg-white border border-ds-outline-variant/30 rounded-md text-sm px-4 py-2.5 shadow-sm focus:outline-none focus:border-ds-tertiary focus:ring-1 focus:ring-ds-tertiary ${mono ? 'font-mono' : ''}`}
                 />
               </div>
             ))}
@@ -247,8 +322,7 @@ export function PoliciesPage() {
           </div>
         )}
 
-        {/* Action row */}
-        <div className="px-6 py-4 flex justify-between items-center bg-ds-surface-container-low/20 border-t border-ds-outline-variant/10">
+        <div className="px-6 py-4 flex justify-between items-center bg-ds-surface-container-low/20">
           <div className="flex items-center gap-2">
             {policies.length > 0 && (
               <button
@@ -261,10 +335,7 @@ export function PoliciesPage() {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleReset}
-              className="text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface px-6 py-2 transition-colors"
-            >
+            <button onClick={handleReset} className="text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface px-4 py-2 transition-colors">
               초기화
             </button>
             <button
@@ -278,11 +349,40 @@ export function PoliciesPage() {
         </div>
       </div>
 
+      {/* 검색 결과 요약 배너 */}
+      {summary && (
+        <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border px-6 py-4 flex flex-wrap items-center gap-x-6 gap-y-2">
+          <span className="text-sm font-bold text-ds-on-surface">총 {summary.total.toLocaleString()}건</span>
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-green-700">
+            <span className="w-2 h-2 rounded-full bg-green-500" />
+            허용 {summary.allow.toLocaleString()}
+          </span>
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-red-700">
+            <span className="w-2 h-2 rounded-full bg-red-500" />
+            차단 {summary.deny.toLocaleString()}
+          </span>
+          {summary.disabled > 0 && (
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-ds-on-surface-variant">
+              <span className="w-2 h-2 rounded-full bg-gray-400" />
+              비활성 {summary.disabled.toLocaleString()}
+            </span>
+          )}
+          {summary.stale > 0 && (
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-700">
+              <AlertTriangle className="w-3 h-3" />
+              90일+ 미사용 {summary.stale.toLocaleString()}
+            </span>
+          )}
+          {summary.noHit > 0 && (
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-ds-on-surface-variant">
+              사용 기록 없음 {summary.noHit.toLocaleString()}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Results grid */}
       <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border overflow-hidden">
-        {appliedDeviceIds.length > 0 && policies.length === 0 && !searchMutation.isPending && (
-          <div className="py-16 text-center text-sm text-ds-on-surface-variant">검색 결과가 없습니다.</div>
-        )}
         <AgGridWrapper<Policy>
           ref={gridRef}
           columnDefs={columnDefs}

@@ -44,6 +44,7 @@ _SPA_ROUTES = (
     "/objects",
     "/analysis",
     "/schedules",
+    "/notifications",
     "/settings",
     "/deletion-workflow",
 )

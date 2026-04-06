@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { formatRelativeTime } from '@/lib/utils'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Plus, Upload, Download, RefreshCw, Pencil, Trash2, Wifi, Server, CheckCircle, Loader2, AlertTriangle } from 'lucide-react'
@@ -21,6 +22,13 @@ const VENDOR_OPTIONS = [
   { code: 'mf2', label: 'SECUI MF2' },
   { code: 'mock', label: 'Mock' },
 ]
+
+const VENDOR_BADGE: Record<string, string> = {
+  paloalto: 'bg-orange-100 text-orange-700',
+  ngf:      'bg-blue-100 text-blue-700',
+  mf2:      'bg-indigo-100 text-indigo-700',
+  mock:     'bg-gray-100 text-gray-600',
+}
 
 interface DeviceFormData {
   name: string; ip_address: string; vendor: string; username: string
@@ -322,7 +330,14 @@ export function DevicesPage() {
                 {filteredDevices.map((device) => {
                   const statusConf = SYNC_STATUS_CONFIG[device.last_sync_status ?? '']
                   return (
-                    <tr key={device.id} className="hover:bg-ds-surface-container-low/30 transition-colors">
+                    <tr
+                      key={device.id}
+                      className={`hover:bg-ds-surface-container-low/30 transition-colors border-l-2 ${
+                        device.last_sync_status === 'failure' || device.last_sync_status === 'error'
+                          ? 'border-l-ds-error bg-red-50/20'
+                          : 'border-l-transparent'
+                      }`}
+                    >
                       <td className="px-8 py-5">
                         <div className="flex flex-col">
                           <span className="font-bold text-ds-on-surface text-sm">{device.name}</span>
@@ -332,8 +347,10 @@ export function DevicesPage() {
                         </div>
                       </td>
                       <td className="px-6 py-5 font-mono text-sm text-ds-on-surface">{device.ip_address}</td>
-                      <td className="px-6 py-5 text-sm text-ds-on-surface">
-                        {VENDOR_OPTIONS.find(v => v.code === device.vendor)?.label ?? device.vendor}
+                      <td className="px-6 py-5">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${VENDOR_BADGE[device.vendor?.toLowerCase()] ?? 'bg-gray-100 text-gray-600'}`}>
+                          {VENDOR_OPTIONS.find(v => v.code === device.vendor)?.label ?? device.vendor}
+                        </span>
                       </td>
                       <td className="px-6 py-5 text-sm text-ds-on-surface-variant">{device.model ?? '-'}</td>
                       <td className="px-6 py-5">
@@ -345,7 +362,7 @@ export function DevicesPage() {
                           <span className="text-xs text-ds-on-surface-variant">-</span>
                         )}
                       </td>
-                      <td className="px-6 py-5 text-sm text-ds-on-surface-variant">{formatDate(device.last_sync_at)}</td>
+                      <td className="px-6 py-5 text-sm text-ds-on-surface-variant">{formatRelativeTime(device.last_sync_at)}</td>
                       <td className="px-8 py-5 text-right">
                         <div className="flex justify-end gap-1">
                           <button

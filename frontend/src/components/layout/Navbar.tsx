@@ -9,7 +9,8 @@ const NAV_ITEMS = [
   { to: '/policies', label: '방화벽 정책' },
   { to: '/objects', label: '오브젝트' },
   { to: '/analysis', label: '정책 분석' },
-  { to: '/schedules', label: '동기화 스케줄' },
+  { to: '/schedules', label: '스케줄' },
+  { to: '/notifications', label: '활동 로그' },
   { to: '/settings', label: '설정' },
 ]
 

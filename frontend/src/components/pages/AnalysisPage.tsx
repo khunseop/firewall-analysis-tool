@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Play } from 'lucide-react'
+import { Play, Download } from 'lucide-react'
 import type { ColDef, RowStyle, RowClassParams } from '@ag-grid-community/core'
 import Select from 'react-select'
 import { Select as ShadSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AgGridWrapper } from '@/components/shared/AgGridWrapper'
 import { DeviceSelect } from '@/components/shared/DeviceSelect'
 import { listDevices } from '@/api/devices'
-import { getPolicies } from '@/api/firewall'
+import { getPolicies, exportToExcel } from '@/api/firewall'
 import { startAnalysis, getAnalysisStatus, getLatestAnalysisResult, type StartAnalysisParams } from '@/api/analysis'
-import { formatNumber } from '@/lib/utils'
+import { formatNumber, formatRelativeTime } from '@/lib/utils'
 
 const ANALYSIS_TYPES = [
   { value: 'redundancy', label: '중복 정책 분석' },
@@ -138,6 +138,55 @@ function PolicyMultiSelect({ deviceId, value, onChange, placeholder }: {
   )
 }
 
+function ResultSummary({
+  analysisType, results, days, completedAt, onExport,
+}: {
+  analysisType: string; results: unknown[]; days: string
+  completedAt: string | null; onExport: () => void
+}) {
+  const summary = useMemo(() => {
+    const r = results as Record<string, unknown>[]
+    if (analysisType === 'redundancy') {
+      const sets = new Set(r.map((x) => x['set_number']))
+      const upper = r.filter((x) => x['type'] === 'UPPER').length
+      const lower = r.filter((x) => x['type'] === 'LOWER').length
+      return `${sets.size}개 중복 세트 발견 (상위 ${upper}건 / 하위 ${lower}건)`
+    }
+    if (analysisType === 'unused') return `${days}일 이상 미사용 정책 ${r.length}건`
+    if (analysisType === 'unreferenced_objects') {
+      const net = r.filter((x) => ['ip-mask','ip-range','fqdn'].includes(String(x['object_type'] ?? ''))).length
+      return `미참조 객체 ${r.length}건 (네트워크 ${net}건, 서비스 ${r.length - net}건)`
+    }
+    if (analysisType === 'risky_ports') return `위험 포트 허용 정책 ${r.length}건`
+    if (analysisType === 'over_permissive') return `과허용 정책 ${r.length}건`
+    if (analysisType === 'impact') return `영향받는 정책 ${r.length}건`
+    return `${r.length}건`
+  }, [analysisType, results, days])
+
+  return (
+    <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border px-6 py-4 flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <div className="p-2 bg-amber-100 rounded-lg">
+          <span className="text-amber-700 text-sm font-bold">!</span>
+        </div>
+        <div>
+          <p className="text-sm font-bold text-ds-on-surface">{summary}</p>
+          {completedAt && (
+            <p className="text-xs text-ds-on-surface-variant mt-0.5">분석 완료: {formatRelativeTime(completedAt)}</p>
+          )}
+        </div>
+      </div>
+      <button
+        onClick={onExport}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-ds-on-surface ghost-border bg-ds-surface-container-lowest rounded-md hover:bg-ds-surface-container-low transition-colors"
+      >
+        <Download className="w-4 h-4" />
+        Excel 내보내기
+      </button>
+    </div>
+  )
+}
+
 const STATUS_LABELS: Record<string, { label: string; classes: string }> = {
   pending:     { label: '대기중', classes: 'bg-blue-100 text-blue-700' },
   in_progress: { label: '분석중', classes: 'bg-amber-100 text-amber-700' },
@@ -154,6 +203,7 @@ export function AnalysisPage() {
   const [moveDirection, setMoveDirection] = useState('')
   const [isPolling, setIsPolling] = useState(false)
   const [results, setResults] = useState<unknown[]>([])
+  const [resultCompletedAt, setResultCompletedAt] = useState<string | null>(null)
 
   const { data: devices = [] } = useQuery({ queryKey: ['devices'], queryFn: listDevices })
 
@@ -184,6 +234,7 @@ export function AnalysisPage() {
     try {
       const result = await getLatestAnalysisResult(deviceId, analysisType)
       setResults(Array.isArray(result.result_data) ? result.result_data : [])
+      setResultCompletedAt(result.created_at ?? null)
     } catch (e: unknown) { toast.error((e as Error).message) }
   }
 
@@ -305,20 +356,29 @@ export function AnalysisPage() {
 
       {/* Results */}
       {results.length > 0 && (
-        <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-ds-outline-variant/10">
-            <h2 className="text-sm font-bold text-ds-on-surface font-headline">분석 결과</h2>
-            <span className="text-xs text-ds-on-surface-variant">{results.length.toLocaleString()}건</span>
-          </div>
-          <AgGridWrapper
-            columnDefs={columnDefs}
-            rowData={results as Record<string, unknown>[]}
-            getRowId={(p) => String(p.data.id ?? JSON.stringify(p.data))}
-            getRowStyle={rowStyleFn as (p: RowClassParams<Record<string, unknown>>) => RowStyle | undefined}
-            height="calc(100vh - 340px)"
-            noRowsText="분석 결과가 없습니다."
+        <>
+          <ResultSummary
+            analysisType={analysisType}
+            results={results}
+            days={days}
+            completedAt={resultCompletedAt}
+            onExport={() => exportToExcel(results as Record<string, unknown>[], `분석결과_${analysisType}`).catch((e: Error) => toast.error(e.message))}
           />
-        </div>
+          <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-ds-outline-variant/10">
+              <h2 className="text-sm font-bold text-ds-on-surface font-headline">분석 결과 상세</h2>
+              <span className="text-xs text-ds-on-surface-variant">{results.length.toLocaleString()}건</span>
+            </div>
+            <AgGridWrapper
+              columnDefs={columnDefs}
+              rowData={results as Record<string, unknown>[]}
+              getRowId={(p) => String(p.data.id ?? JSON.stringify(p.data))}
+              getRowStyle={rowStyleFn as (p: RowClassParams<Record<string, unknown>>) => RowStyle | undefined}
+              height="calc(100vh - 340px)"
+              noRowsText="분석 결과가 없습니다."
+            />
+          </div>
+        </>
       )}
     </div>
   )

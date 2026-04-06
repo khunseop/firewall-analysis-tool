@@ -18,6 +18,18 @@ See `CLAUDE.md` for documentation update rules.
 
 | # | Status | Task | Notes |
 |---|--------|------|-------|
+| 10 | `[x]` | **UI Quality Improvement — T1: 가독성 기반 정비** | font-mono, Skeleton, EmptyState, AG Grid line-height |
+| 11 | `[x]` | **UI Quality Improvement — T2: 정책 페이지 개선** | 태그 렌더러, 미사용 강조, 요약 배너, 컬럼 재조정 |
+| 12 | `[x]` | **UI Quality Improvement — T3: 대시보드 개편** | 활성률 bar, 오류 배너, 건강도 테이블, 활동 피드 |
+| 13 | `[x]` | **UI Quality Improvement — T4: 오브젝트 Cross-Reference** | 객체 모달에 참조 정책 목록, 멤버 chip 태그 |
+| 14 | `[x]` | **UI Quality Improvement — T5: 분석 결과 인사이트** | 요약 카드, 실행 이력, Excel 내보내기 |
+| 15 | `[x]` | **UI Quality Improvement — T6: 알림/활동 로그 페이지** | /notifications 신규 페이지, Navbar 링크 |
+| 16 | `[x]` | **UI Quality Improvement — T7: 장비 페이지 밀도 개선** | 벤더 뱃지, 상대 시간, 오류 행 강조 |
+
+---
+
+## Backlog
+|---|--------|------|-------|
 | 1 | `[ ]` | Reimplement `smoke_test.py` | Currently non-functional. Needs server dependency cleanup and proper mock device setup documented. |
 | 2 | `[x]` | FAT 정책 삭제 워크플로 기존 코드 전면 제거 | `services/deletion_workflow/`, `models/deletion_workflow.py`, `crud/crud_deletion_workflow.py`, `api/endpoints/deletion_workflow.py`, 라우터 해제, Alembic migration, `DATABASE.md` 업데이트 |
 | 3 | `[x]` | fpat deletion_processor 1단계 이관: 파이프라인 기반 구조 | `BaseProcessor` ABC, `Pipeline`, `TaskRegistry`, `ConfigManager` (fpat.yaml 연동), `FileManager`, `ExcelManager` |
