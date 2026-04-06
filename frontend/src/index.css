@@ -110,12 +110,69 @@
   --ag-background-color: #ffffff;
   --ag-header-background-color: rgba(240, 244, 247, 0.5);
   --ag-header-foreground-color: #565e74;
-  --ag-row-hover-color: rgba(240, 244, 247, 0.4);
-  --ag-border-color: rgba(169, 180, 185, 0.15);
+  --ag-row-hover-color: rgba(240, 244, 247, 0.3);
+  --ag-border-color: transparent;
+  --ag-borders: none;
+  --ag-row-border-color: rgba(169, 180, 185, 0.1);
+  --ag-row-border-width: 1px;
   --ag-cell-horizontal-border: none;
   --ag-font-family: 'Inter', sans-serif;
   --ag-font-size: 12px;
-  --ag-row-height: 44px;
-  --ag-header-height: 44px;
-  --ag-cell-horizontal-padding: 16px;
+  --ag-row-height: 52px;
+  --ag-header-height: 48px;
+  --ag-cell-horizontal-padding: 24px;
+  --ag-wrapper-border-radius: 0;
+  --ag-grid-size: 4px;
+  --ag-list-item-height: 36px;
+  --ag-selected-row-background-color: rgba(212, 226, 253, 0.3);
+}
+
+/* Remove AG Grid outer chrome */
+.ag-theme-quartz .ag-root-wrapper {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.ag-theme-quartz .ag-header {
+  border-bottom: 1px solid rgba(169, 180, 185, 0.15) !important;
+}
+
+/* Table-like header: uppercase tracking-widest text-primary */
+.ag-theme-quartz .ag-header-cell-text {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  color: #565e74 !important;
+}
+.ag-theme-quartz .ag-header-cell {
+  border-right: none !important;
+}
+
+/* Row: divide-y divider */
+.ag-theme-quartz .ag-row {
+  border-bottom: 1px solid rgba(169, 180, 185, 0.1) !important;
+  border-top: none !important;
+}
+
+/* Floating filter */
+.ag-theme-quartz .ag-floating-filter-input {
+  font-size: 11px !important;
+}
+
+/* Cell padding */
+.ag-theme-quartz .ag-cell {
+  font-size: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Sort icon */
+.ag-theme-quartz .ag-sort-indicator-icon {
+  color: #005bc4 !important;
+}
+
+/* Filter active icon */
+.ag-theme-quartz .ag-icon-filter {
+  color: #005bc4 !important;
 }

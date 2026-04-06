@@ -1,14 +1,12 @@
-import { useState, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Plus, Upload, Download, RefreshCw } from 'lucide-react'
-import type { ColDef } from '@ag-grid-community/core'
+import { Plus, Upload, Download, RefreshCw, Pencil, Trash2, Wifi, Server, CheckCircle, Loader2, AlertTriangle } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select as ShadSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
 import {
   listDevices, createDevice, updateDevice, deleteDevice,
@@ -20,6 +18,7 @@ import { formatDate } from '@/lib/utils'
 const VENDOR_OPTIONS = [
   { code: 'paloalto', label: 'Palo Alto' },
   { code: 'ngf', label: 'SECUI NGF' },
+  { code: 'mf2', label: 'SECUI MF2' },
   { code: 'mock', label: 'Mock' },
 ]
 
@@ -62,13 +61,13 @@ function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }: {
             ].map(({ label, key, required }) => (
               <div key={key} className="space-y-1">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
-                <Input value={form[key] as string} onChange={(e) => set(key, e.target.value)} required={required} className="bg-ds-surface-container-low border-ds-outline-variant/30 text-sm" />
+                <Input value={form[key] as string} onChange={(e) => set(key, e.target.value)} required={required} className="bg-white border-ds-outline-variant/30 text-sm" />
               </div>
             ))}
             <div className="space-y-1">
               <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">벤더 *</Label>
               <ShadSelect value={form.vendor} onValueChange={(v) => set('vendor', v)}>
-                <SelectTrigger className="bg-ds-surface-container-low border-ds-outline-variant/30 text-sm">
+                <SelectTrigger className="bg-white border-ds-outline-variant/30 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -80,18 +79,18 @@ function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }: {
               <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">
                 비밀번호 {!initial?.name && '*'}
               </Label>
-              <Input type="password" value={form.password} onChange={(e) => set('password', e.target.value)} required={!initial?.name} className="bg-ds-surface-container-low border-ds-outline-variant/30 text-sm" />
+              <Input type="password" value={form.password} onChange={(e) => set('password', e.target.value)} required={!initial?.name} className="bg-white border-ds-outline-variant/30 text-sm" />
             </div>
             <div className="space-y-1">
               <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">
                 비밀번호 확인 {!initial?.name && '*'}
               </Label>
-              <Input type="password" value={form.password_confirm} onChange={(e) => set('password_confirm', e.target.value)} required={!initial?.name} className="bg-ds-surface-container-low border-ds-outline-variant/30 text-sm" />
+              <Input type="password" value={form.password_confirm} onChange={(e) => set('password_confirm', e.target.value)} required={!initial?.name} className="bg-white border-ds-outline-variant/30 text-sm" />
             </div>
           </div>
           <div className="space-y-1">
             <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">설명</Label>
-            <Input value={form.description} onChange={(e) => set('description', e.target.value)} className="bg-ds-surface-container-low border-ds-outline-variant/30 text-sm" />
+            <Input value={form.description} onChange={(e) => set('description', e.target.value)} className="bg-white border-ds-outline-variant/30 text-sm" />
           </div>
           <div className="flex gap-4 pt-1">
             <label className="flex items-center gap-2 text-sm cursor-pointer text-ds-on-surface-variant">
@@ -115,7 +114,7 @@ function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }: {
   )
 }
 
-const SYNC_STATUS_PILL: Record<string, { label: string; classes: string }> = {
+const SYNC_STATUS_CONFIG: Record<string, { label: string; classes: string }> = {
   success:     { label: '완료',   classes: 'bg-green-100 text-green-700' },
   in_progress: { label: '진행중', classes: 'bg-amber-100 text-amber-700' },
   pending:     { label: '대기중', classes: 'bg-blue-100 text-blue-700' },
@@ -125,7 +124,6 @@ const SYNC_STATUS_PILL: Record<string, { label: string; classes: string }> = {
 
 export function DevicesPage() {
   const queryClient = useQueryClient()
-  const gridRef = useRef<AgGridWrapperHandle>(null)
   const [quickFilter, setQuickFilter] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Device | null>(null)
@@ -134,6 +132,25 @@ export function DevicesPage() {
   const { confirm, ConfirmDialogElement } = useConfirm()
 
   const { data: devices = [], isLoading } = useQuery({ queryKey: ['devices'], queryFn: listDevices })
+
+  const filteredDevices = useMemo(() => {
+    if (!quickFilter.trim()) return devices
+    const q = quickFilter.toLowerCase()
+    return devices.filter(d =>
+      d.name?.toLowerCase().includes(q) ||
+      d.ip_address?.toLowerCase().includes(q) ||
+      d.vendor?.toLowerCase().includes(q) ||
+      d.model?.toLowerCase().includes(q) ||
+      d.description?.toLowerCase().includes(q)
+    )
+  }, [devices, quickFilter])
+
+  const syncCounts = useMemo(() => ({
+    total: devices.length,
+    synced: devices.filter(d => d.last_sync_status === 'success').length,
+    syncing: devices.filter(d => d.last_sync_status === 'in_progress' || d.last_sync_status === 'pending').length,
+    error: devices.filter(d => d.last_sync_status === 'failure' || d.last_sync_status === 'error').length,
+  }), [devices])
 
   const createMutation = useMutation({
     mutationFn: (data: DeviceCreate) => createDevice(data),
@@ -176,124 +193,206 @@ export function DevicesPage() {
     catch (e: unknown) { toast.error((e as Error).message) }
   }
 
-  const actionColDef: ColDef<Device> = {
-    headerName: '작업',
-    width: 240,
-    sortable: false,
-    filter: false,
-    cellRenderer: (params: { data: Device }) => (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: '100%' }}>
-        {[
-          { label: '수정',     classes: 'text-ds-tertiary border border-ds-tertiary/30 hover:bg-ds-secondary-container',   onClick: () => { setEditTarget(params.data); setFormOpen(true) } },
-          { label: '삭제',     classes: 'text-ds-error border border-ds-error/30 hover:bg-red-50',                         onClick: () => handleDelete(params.data) },
-          { label: '연결테스트', classes: 'text-ds-on-surface-variant border border-ds-outline-variant/30 hover:bg-ds-surface-container-low', onClick: () => handleTestConnection(params.data) },
-          { label: '동기화',   classes: 'text-green-700 border border-green-200 hover:bg-green-50',                        onClick: () => syncMutation.mutate(params.data.id) },
-        ].map(({ label, classes, onClick }) => (
-          <button
-            key={label}
-            onClick={onClick}
-            className={`px-2 py-0.5 text-[11px] font-semibold rounded-md transition-colors bg-white ${classes}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-    ),
-  }
-
-  const columnDefs: ColDef<Device>[] = [
-    { field: 'name', headerName: '장비명', filter: 'agTextColumnFilter', width: 150 },
-    { field: 'vendor', headerName: '벤더', filter: 'agTextColumnFilter', width: 100 },
-    { field: 'ip_address', headerName: 'IP 주소', filter: 'agTextColumnFilter', width: 130 },
-    { field: 'model', headerName: '모델', filter: 'agTextColumnFilter', width: 120 },
-    { field: 'username', headerName: '사용자명', filter: 'agTextColumnFilter', width: 110 },
-    { field: 'ha_peer_ip', headerName: 'HA Peer IP', filter: 'agTextColumnFilter', width: 120 },
-    { field: 'description', headerName: '설명', filter: 'agTextColumnFilter', width: 150 },
-    { field: 'last_sync_at', headerName: '마지막 동기화', filter: 'agTextColumnFilter', width: 160, valueFormatter: (p) => formatDate(p.value) },
+  const STAT_CARDS = [
     {
-      field: 'last_sync_status',
-      headerName: '동기화 상태',
-      width: 110,
-      cellRenderer: (params: { value: string | null }) => {
-        const conf = SYNC_STATUS_PILL[params.value ?? '']
-        if (!conf) return <span className="text-ds-on-surface-variant text-xs">-</span>
-        return (
-          <div className="flex items-center h-full">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tight ${conf.classes}`}>
-              {conf.label}
-            </span>
-          </div>
-        )
-      },
+      label: '전체 장비', value: syncCounts.total, sub: `활성: ${syncCounts.synced}`,
+      icon: Server, iconBg: 'bg-ds-primary-container', iconColor: 'text-ds-on-primary-container',
+      valueColor: 'text-ds-on-surface',
     },
-    actionColDef,
+    {
+      label: '동기화 완료', value: syncCounts.synced,
+      sub: syncCounts.total > 0 ? `${Math.round(syncCounts.synced / syncCounts.total * 100)}% Fleet Health` : '',
+      icon: CheckCircle, iconBg: 'bg-green-100', iconColor: 'text-green-700',
+      valueColor: 'text-ds-on-surface',
+    },
+    {
+      label: '동기화 중', value: syncCounts.syncing, sub: syncCounts.syncing > 0 ? '진행 중' : '',
+      icon: Loader2, iconBg: 'bg-amber-100', iconColor: 'text-amber-700',
+      valueColor: 'text-ds-on-surface',
+    },
+    {
+      label: '오류', value: syncCounts.error, sub: syncCounts.error > 0 ? 'Critical: 조치 필요' : '',
+      icon: AlertTriangle, iconBg: 'bg-red-100', iconColor: 'text-red-700',
+      valueColor: syncCounts.error > 0 ? 'text-ds-error' : 'text-ds-on-surface',
+    },
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {ConfirmDialogElement}
 
       {/* Page header */}
-      <div className="flex items-end justify-between">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-ds-on-surface font-headline">장비 관리</h1>
-          <p className="text-ds-on-surface-variant text-sm mt-1">방화벽 장비 등록, 연결 테스트 및 동기화를 관리합니다.</p>
+          <h1 className="text-3xl font-extrabold tracking-tighter text-ds-on-surface font-headline">장비 관리</h1>
+          <p className="text-ds-on-surface-variant text-sm mt-1 max-w-lg">방화벽 장비 등록, 연결 테스트 및 동기화를 관리합니다.</p>
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['devices'] })}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-ds-on-surface bg-ds-surface-container-lowest ghost-border rounded-xl ambient-shadow hover:bg-ds-surface-container-low transition-all"
+          >
+            <RefreshCw className="w-4 h-4" />
+            새로고침
+          </button>
+          <button
             onClick={() => { setEditTarget(null); setFormOpen(true) }}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-lg ambient-shadow-sm hover:opacity-90 transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold btn-primary-gradient text-ds-on-tertiary rounded-xl ambient-shadow hover:opacity-90 transition-all"
           >
             <Plus className="w-4 h-4" />
             장비 추가
           </button>
-          <button
-            onClick={() => setBulkOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-ds-on-surface bg-ds-surface-container-lowest ghost-border rounded-lg ambient-shadow-sm hover:bg-ds-surface-container-low transition-colors"
-          >
-            <Upload className="w-4 h-4" />
-            대량 등록
-          </button>
-          <button
-            onClick={downloadDeviceTemplate}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-ds-on-surface bg-ds-surface-container-lowest ghost-border rounded-lg ambient-shadow-sm hover:bg-ds-surface-container-low transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            템플릿
-          </button>
-          <button
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['devices'] })}
-            className="p-2 text-ds-on-surface-variant bg-ds-surface-container-lowest ghost-border rounded-lg ambient-shadow-sm hover:bg-ds-surface-container-low transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
         </div>
       </div>
 
-      {/* Table card */}
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        {STAT_CARDS.map((card) => {
+          const Icon = card.icon
+          return (
+            <div key={card.label} className="bg-ds-surface-container-lowest p-6 rounded-xl ambient-shadow ghost-border">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-ds-on-surface-variant font-medium text-sm tracking-wide uppercase">{card.label}</p>
+                  <h3 className={`text-4xl font-extrabold mt-2 font-headline ${card.valueColor}`}>
+                    {isLoading ? '…' : card.value}
+                  </h3>
+                </div>
+                <div className={`p-3 ${card.iconBg} rounded-lg ${card.iconColor}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+              </div>
+              {card.sub && (
+                <div className={`mt-4 text-xs font-semibold ${card.iconColor}`}>{card.sub}</div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Device table */}
       <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-ds-outline-variant/10">
-          <span className="text-xs text-ds-on-surface-variant">{devices.length.toLocaleString()}개 장비</span>
-          <input
-            placeholder="빠른 검색…"
-            value={quickFilter}
-            onChange={(e) => setQuickFilter(e.target.value)}
-            className="h-8 w-48 text-sm px-3 bg-ds-surface-container-low rounded-md border border-ds-outline-variant/30 focus:outline-none focus:border-ds-tertiary focus:ring-1 focus:ring-ds-tertiary"
-          />
+        <div className="px-8 py-5 border-b border-ds-outline-variant/10 flex justify-between items-center">
+          <h2 className="text-base font-bold tracking-tight text-ds-on-surface font-headline">등록된 장비</h2>
+          <div className="flex items-center gap-3">
+            <input
+              placeholder="장비 검색…"
+              value={quickFilter}
+              onChange={(e) => setQuickFilter(e.target.value)}
+              className="h-8 w-48 text-sm px-3 bg-ds-surface-container-low rounded-md border border-ds-outline-variant/30 focus:outline-none focus:border-ds-tertiary focus:ring-1 focus:ring-ds-tertiary"
+            />
+            <button
+              onClick={() => setBulkOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-ds-on-surface ghost-border bg-ds-surface-container-lowest rounded-md hover:bg-ds-surface-container-low transition-colors"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              대량 등록
+            </button>
+            <button
+              onClick={downloadDeviceTemplate}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-ds-on-surface ghost-border bg-ds-surface-container-lowest rounded-md hover:bg-ds-surface-container-low transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              템플릿
+            </button>
+          </div>
         </div>
-        {isLoading ? (
-          <div className="py-16 text-center text-sm text-ds-on-surface-variant">로딩 중…</div>
-        ) : (
-          <AgGridWrapper<Device>
-            ref={gridRef}
-            columnDefs={columnDefs}
-            rowData={devices}
-            getRowId={(p) => String(p.data.id)}
-            quickFilterText={quickFilter}
-            height={500}
-            noRowsText="등록된 장비가 없습니다."
-          />
-        )}
+
+        <div className="overflow-x-auto">
+          {isLoading ? (
+            <div className="py-16 text-center text-sm text-ds-on-surface-variant">로딩 중…</div>
+          ) : filteredDevices.length === 0 ? (
+            <div className="py-16 text-center text-sm text-ds-on-surface-variant">
+              {quickFilter ? '검색 결과가 없습니다.' : '등록된 장비가 없습니다.'}
+            </div>
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-ds-surface-container-low/50">
+                <tr>
+                  <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-widest text-ds-primary">장비명</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-ds-primary">IP 주소</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-ds-primary">벤더</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-ds-primary">모델</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-ds-primary">동기화 상태</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-ds-primary">마지막 동기화</th>
+                  <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-widest text-ds-primary text-right">작업</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ds-outline-variant/10">
+                {filteredDevices.map((device) => {
+                  const statusConf = SYNC_STATUS_CONFIG[device.last_sync_status ?? '']
+                  return (
+                    <tr key={device.id} className="hover:bg-ds-surface-container-low/30 transition-colors">
+                      <td className="px-8 py-5">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-ds-on-surface text-sm">{device.name}</span>
+                          {device.description && (
+                            <span className="text-xs text-ds-on-surface-variant mt-0.5">{device.description}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 font-mono text-sm text-ds-on-surface">{device.ip_address}</td>
+                      <td className="px-6 py-5 text-sm text-ds-on-surface">
+                        {VENDOR_OPTIONS.find(v => v.code === device.vendor)?.label ?? device.vendor}
+                      </td>
+                      <td className="px-6 py-5 text-sm text-ds-on-surface-variant">{device.model ?? '-'}</td>
+                      <td className="px-6 py-5">
+                        {statusConf ? (
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-tight ${statusConf.classes}`}>
+                            {statusConf.label}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-ds-on-surface-variant">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-5 text-sm text-ds-on-surface-variant">{formatDate(device.last_sync_at)}</td>
+                      <td className="px-8 py-5 text-right">
+                        <div className="flex justify-end gap-1">
+                          <button
+                            onClick={() => { setEditTarget(device); setFormOpen(true) }}
+                            className="p-2 hover:bg-ds-surface-container-high rounded-lg text-ds-primary transition-colors"
+                            title="수정"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => syncMutation.mutate(device.id)}
+                            className="p-2 hover:bg-ds-surface-container-high rounded-lg text-ds-primary transition-colors"
+                            title="동기화"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleTestConnection(device)}
+                            className="p-2 hover:bg-ds-surface-container-high rounded-lg text-ds-primary transition-colors"
+                            title="연결 테스트"
+                          >
+                            <Wifi className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(device)}
+                            className="p-2 hover:bg-red-50 rounded-lg text-ds-error transition-colors"
+                            title="삭제"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <div className="px-8 py-4 bg-ds-surface-container-low/30 border-t border-ds-outline-variant/10">
+          <span className="text-xs text-ds-on-surface-variant">
+            {quickFilter
+              ? `${filteredDevices.length}개 표시 (전체 ${devices.length}개 중)`
+              : `총 ${devices.length}개 장비`}
+          </span>
+        </div>
       </div>
 
       {/* Device form dialog */}
@@ -328,7 +427,7 @@ export function DevicesPage() {
           </DialogHeader>
           <div className="space-y-3 py-2">
             <p className="text-sm text-ds-on-surface-variant">Excel 파일을 업로드하여 여러 장비를 한번에 등록합니다.</p>
-            <Input type="file" accept=".xlsx,.xls" onChange={(e) => setBulkFile(e.target.files?.[0] ?? null)} className="bg-ds-surface-container-low border-ds-outline-variant/30" />
+            <Input type="file" accept=".xlsx,.xls" onChange={(e) => setBulkFile(e.target.files?.[0] ?? null)} className="bg-white border-ds-outline-variant/30" />
           </div>
           <DialogFooter>
             <button onClick={() => setBulkOpen(false)} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">취소</button>

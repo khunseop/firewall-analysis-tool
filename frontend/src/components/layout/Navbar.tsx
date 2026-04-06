@@ -23,13 +23,13 @@ export function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 flex items-center justify-between px-8 h-14 bg-ds-surface-container-lowest border-b border-ds-outline-variant/10 shadow-ambient-sm">
+    <nav className="sticky top-0 z-50 flex items-center justify-between px-8 py-3 w-full bg-white border-b border-ds-outline-variant/10 shadow-sm">
       {/* Left: Logo + Nav Links */}
       <div className="flex items-center gap-10">
-        <span className="text-lg font-extrabold tracking-tighter text-ds-on-surface font-headline">
+        <span className="text-xl font-bold tracking-tighter text-slate-900 font-headline">
           FAT
         </span>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-8 font-headline font-semibold tracking-tight">
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.to}
@@ -37,10 +37,10 @@ export function Navbar() {
               end={item.end}
               className={({ isActive }) =>
                 cn(
-                  'px-3 py-1.5 text-sm font-semibold font-headline tracking-tight transition-colors duration-200 rounded-md whitespace-nowrap',
+                  'text-sm transition-colors duration-200 whitespace-nowrap pb-1',
                   isActive
-                    ? 'text-ds-tertiary border-b-2 border-ds-tertiary pb-[5px] rounded-none'
-                    : 'text-ds-on-surface-variant hover:text-ds-on-surface hover:bg-ds-surface-container-low'
+                    ? 'text-ds-tertiary border-b-2 border-ds-tertiary'
+                    : 'text-slate-500 hover:text-ds-tertiary'
                 )
               }
             >

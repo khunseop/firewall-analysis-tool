@@ -1,18 +1,15 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Search, Download, X, SlidersHorizontal } from 'lucide-react'
+import { Search, Download, SlidersHorizontal } from 'lucide-react'
 import type { ColDef } from '@ag-grid-community/core'
 import { Select as ShadSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { DeviceSelect } from '@/components/shared/DeviceSelect'
 import { listDevices } from '@/api/devices'
-import { searchPolicies, getObjectDetails, exportToExcel, type Policy, type PolicySearchRequest } from '@/api/firewall'
+import { searchPolicies, exportToExcel, type Policy, type PolicySearchRequest } from '@/api/firewall'
 import { formatDate } from '@/lib/utils'
 import { ObjectDetailModal } from '@/components/shared/ObjectDetailModal'
-
-// suppress unused import warning
-void getObjectDetails
 
 interface SearchParams {
   device_ids: number[]; rule_name: string; action: string; enable: string
@@ -33,9 +30,9 @@ const ACTION_BADGE: Record<string, string> = {
 
 export function PoliciesPage() {
   const gridRef = useRef<AgGridWrapperHandle>(null)
-  const [params, setParams] = useState<SearchParams>(DEFAULT_PARAMS)
   const [draft, setDraft] = useState<SearchParams>(DEFAULT_PARAMS)
-  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [appliedDeviceIds, setAppliedDeviceIds] = useState<number[]>([])
+  const [filtersOpen, setFiltersOpen] = useState(true)
   const [policies, setPolicies] = useState<Policy[]>([])
   const [validObjectNames, setValidObjectNames] = useState<Set<string>>(new Set())
   const [objectModal, setObjectModal] = useState<{ deviceId: number; name: string } | null>(null)
@@ -47,12 +44,13 @@ export function PoliciesPage() {
     onSuccess: (data) => {
       setPolicies(data.policies)
       setValidObjectNames(new Set(data.valid_object_names))
+      setAppliedDeviceIds(draft.device_ids)
     },
     onError: (e: Error) => toast.error(e.message),
   })
 
   const handleSearch = () => {
-    setParams(draft)
+    if (draft.device_ids.length === 0) { toast.warning('장비를 선택하세요.'); return }
     searchMutation.mutate({
       device_ids: draft.device_ids,
       rule_name: draft.rule_name || undefined,
@@ -66,6 +64,13 @@ export function PoliciesPage() {
       application: draft.application || undefined,
       description: draft.description || undefined,
     })
+  }
+
+  const handleReset = () => {
+    setDraft(DEFAULT_PARAMS)
+    setPolicies([])
+    setAppliedDeviceIds([])
+    setValidObjectNames(new Set())
   }
 
   const handleExport = async () => {
@@ -131,22 +136,21 @@ export function PoliciesPage() {
     { field: 'vsys', headerName: 'VSYS', filter: 'agTextColumnFilter', width: 80 },
   ]
 
-  const hasActiveFilters = params.device_ids.length > 0
-
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-ds-on-surface font-headline">방화벽 정책</h1>
-        <p className="text-ds-on-surface-variant text-sm mt-1">정책을 검색하고 필터링합니다. 총 {policies.length.toLocaleString()}건</p>
-      </div>
-
-      {/* Search panel */}
-      <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border overflow-hidden">
-        {/* Search bar row */}
-        <div className="relative flex items-center px-5 py-4 border-b border-ds-outline-variant/10">
-          <Search className="w-5 h-5 text-ds-outline mr-3 shrink-0" />
-          <div className="flex-1">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tighter text-ds-on-surface font-headline mb-2">방화벽 정책</h1>
+          <p className="text-ds-on-surface-variant max-w-lg text-sm">
+            정책을 검색하고 필터링합니다.
+            {policies.length > 0 && ` 총 ${policies.length.toLocaleString()}건 조회됨.`}
+          </p>
+        </div>
+        {/* Active Firewalls chip selector */}
+        <div className="w-full md:w-80">
+          <label className="block text-[10px] font-bold uppercase text-ds-primary mb-2 tracking-widest">장비 선택</label>
+          <div className="bg-white rounded-md border border-ds-outline-variant/30 ambient-shadow-sm">
             <DeviceSelect
               devices={devices}
               value={draft.device_ids}
@@ -155,26 +159,36 @@ export function PoliciesPage() {
               placeholder="장비를 선택하세요…"
             />
           </div>
-          <div className="flex items-center gap-2 ml-4">
-            <button
-              onClick={() => setFiltersOpen((v) => !v)}
-              className={`flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-lg transition-colors ${filtersOpen ? 'text-ds-tertiary bg-ds-secondary-container' : 'text-ds-tertiary bg-ds-tertiary/5 hover:bg-ds-tertiary/10'}`}
-            >
-              <SlidersHorizontal className="w-4 h-4" />
-              고급 필터
-            </button>
-          </div>
+        </div>
+      </header>
+
+      {/* Dual-layer search system */}
+      <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow overflow-hidden border border-ds-outline-variant/10">
+        {/* Global search row */}
+        <div className="relative flex items-center px-6 py-5 border-b border-ds-outline-variant/15">
+          <Search className="w-5 h-5 text-ds-outline mr-4 shrink-0" />
+          <input
+            value={draft.rule_name}
+            onChange={(e) => set('rule_name', e.target.value)}
+            placeholder="정책명, IP, 설명으로 빠른 검색…"
+            className="flex-1 bg-transparent border-none focus:ring-0 text-ds-on-surface placeholder:text-ds-outline/60 font-medium text-base focus:outline-none"
+          />
+          <button
+            onClick={() => setFiltersOpen((v) => !v)}
+            className={`flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-lg transition-colors ml-4 ${filtersOpen ? 'text-ds-tertiary bg-ds-secondary-container' : 'text-ds-tertiary bg-ds-tertiary/5 hover:bg-ds-tertiary/10'}`}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            고급 필터
+          </button>
         </div>
 
         {/* Advanced filter panel */}
         {filtersOpen && (
-          <div className="bg-ds-surface-container-low/40 p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5 border-b border-ds-outline-variant/10">
+          <div className="bg-ds-surface-container-low/40 p-8 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 border-b border-ds-outline-variant/10">
             {[
-              { label: '정책명', key: 'rule_name' as const, placeholder: '부분 일치' },
-              { label: '출발지 IP', key: 'src_ip' as const, placeholder: '예: 192.168.1.0/24' },
-              { label: '목적지 IP', key: 'dst_ip' as const, placeholder: '예: 10.0.0.0/8' },
-              { label: '프로토콜', key: 'protocol' as const, placeholder: 'tcp, udp' },
-              { label: '포트', key: 'port' as const, placeholder: '예: 80, 443' },
+              { label: '출발지 IP', key: 'src_ip' as const, placeholder: '10.0.0.0/8' },
+              { label: '목적지 IP', key: 'dst_ip' as const, placeholder: '0.0.0.0/0' },
+              { label: '포트 / 서비스', key: 'port' as const, placeholder: '443, 80, SSH' },
               { label: '사용자', key: 'user' as const, placeholder: '' },
               { label: '애플리케이션', key: 'application' as const, placeholder: '' },
               { label: '설명', key: 'description' as const, placeholder: '' },
@@ -185,28 +199,42 @@ export function PoliciesPage() {
                   value={draft[key] as string}
                   onChange={(e) => set(key, e.target.value)}
                   placeholder={placeholder}
-                  className="w-full bg-ds-surface-container-lowest border border-ds-outline-variant/30 rounded-md text-sm px-3 py-2 focus:outline-none focus:border-ds-tertiary focus:ring-1 focus:ring-ds-tertiary"
+                  className="w-full bg-white border border-ds-outline-variant/30 rounded-md text-sm px-4 py-2.5 shadow-sm focus:outline-none focus:border-ds-tertiary focus:ring-1 focus:ring-ds-tertiary"
                 />
               </div>
             ))}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase text-ds-primary/70 tracking-wider">액션</label>
-              <ShadSelect value={draft.action} onValueChange={(v) => set('action', v)}>
-                <SelectTrigger className="bg-ds-surface-container-lowest border-ds-outline-variant/30 text-sm h-9">
-                  <SelectValue placeholder="전체" />
+              <label className="text-[10px] font-bold uppercase text-ds-primary/70 tracking-wider">프로토콜</label>
+              <ShadSelect value={draft.protocol} onValueChange={(v) => set('protocol', v)}>
+                <SelectTrigger className="bg-white border-ds-outline-variant/30 text-sm h-[42px] shadow-sm">
+                  <SelectValue placeholder="Any" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">전체</SelectItem>
-                  <SelectItem value="allow">allow</SelectItem>
-                  <SelectItem value="deny">deny</SelectItem>
-                  <SelectItem value="drop">drop</SelectItem>
+                  <SelectItem value="">Any</SelectItem>
+                  <SelectItem value="tcp">TCP</SelectItem>
+                  <SelectItem value="udp">UDP</SelectItem>
+                  <SelectItem value="icmp">ICMP</SelectItem>
+                </SelectContent>
+              </ShadSelect>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase text-ds-primary/70 tracking-wider">액션</label>
+              <ShadSelect value={draft.action} onValueChange={(v) => set('action', v)}>
+                <SelectTrigger className="bg-white border-ds-outline-variant/30 text-sm h-[42px] shadow-sm">
+                  <SelectValue placeholder="All Actions" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Actions</SelectItem>
+                  <SelectItem value="allow">Allow</SelectItem>
+                  <SelectItem value="deny">Deny</SelectItem>
+                  <SelectItem value="drop">Drop</SelectItem>
                 </SelectContent>
               </ShadSelect>
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase text-ds-primary/70 tracking-wider">활성 여부</label>
               <ShadSelect value={draft.enable} onValueChange={(v) => set('enable', v)}>
-                <SelectTrigger className="bg-ds-surface-container-lowest border-ds-outline-variant/30 text-sm h-9">
+                <SelectTrigger className="bg-white border-ds-outline-variant/30 text-sm h-[42px] shadow-sm">
                   <SelectValue placeholder="전체" />
                 </SelectTrigger>
                 <SelectContent>
@@ -220,26 +248,7 @@ export function PoliciesPage() {
         )}
 
         {/* Action row */}
-        <div className="flex items-center justify-between px-5 py-3 bg-ds-surface-container-low/20 border-t border-ds-outline-variant/10">
-          <div className="flex items-center gap-2 flex-wrap">
-            {hasActiveFilters && (
-              <>
-                <span className="text-xs text-ds-on-surface-variant">적용 필터:</span>
-                {params.device_ids.length > 0 && (
-                  <span className="text-[11px] bg-ds-secondary-container text-ds-on-secondary-container rounded px-2 py-0.5 font-medium">
-                    장비 {params.device_ids.length}개
-                  </span>
-                )}
-                {params.rule_name && <span className="text-[11px] bg-ds-secondary-container text-ds-on-secondary-container rounded px-2 py-0.5 font-medium">정책명: {params.rule_name}</span>}
-                {params.action && <span className="text-[11px] bg-ds-secondary-container text-ds-on-secondary-container rounded px-2 py-0.5 font-medium">액션: {params.action}</span>}
-                {params.src_ip && <span className="text-[11px] bg-ds-secondary-container text-ds-on-secondary-container rounded px-2 py-0.5 font-medium">출발지: {params.src_ip}</span>}
-                {params.dst_ip && <span className="text-[11px] bg-ds-secondary-container text-ds-on-secondary-container rounded px-2 py-0.5 font-medium">목적지: {params.dst_ip}</span>}
-                <button onClick={() => { setParams(DEFAULT_PARAMS); setDraft(DEFAULT_PARAMS); setPolicies([]) }} className="p-1 text-ds-on-surface-variant hover:text-ds-error transition-colors">
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </>
-            )}
-          </div>
+        <div className="px-6 py-4 flex justify-between items-center bg-ds-surface-container-low/20 border-t border-ds-outline-variant/10">
           <div className="flex items-center gap-2">
             {policies.length > 0 && (
               <button
@@ -250,13 +259,20 @@ export function PoliciesPage() {
                 Excel
               </button>
             )}
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleReset}
+              className="text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface px-6 py-2 transition-colors"
+            >
+              초기화
+            </button>
             <button
               onClick={handleSearch}
               disabled={draft.device_ids.length === 0 || searchMutation.isPending}
-              className="flex items-center gap-2 px-5 py-1.5 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50 transition-all"
+              className="bg-ds-primary text-ds-on-primary text-sm font-bold px-8 py-2.5 rounded-md hover:brightness-110 transition-all disabled:opacity-50"
             >
-              <Search className="w-4 h-4" />
-              {searchMutation.isPending ? '검색 중…' : '검색'}
+              {searchMutation.isPending ? '검색 중…' : '쿼리 실행'}
             </button>
           </div>
         </div>
@@ -264,13 +280,16 @@ export function PoliciesPage() {
 
       {/* Results grid */}
       <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border overflow-hidden">
+        {appliedDeviceIds.length > 0 && policies.length === 0 && !searchMutation.isPending && (
+          <div className="py-16 text-center text-sm text-ds-on-surface-variant">검색 결과가 없습니다.</div>
+        )}
         <AgGridWrapper<Policy>
           ref={gridRef}
           columnDefs={columnDefs}
           rowData={policies}
           getRowId={(p) => String(p.data.id)}
           height="calc(100vh - 380px)"
-          noRowsText="장비를 선택하고 검색 버튼을 클릭하세요."
+          noRowsText="장비를 선택하고 쿼리 실행 버튼을 클릭하세요."
         />
       </div>
 

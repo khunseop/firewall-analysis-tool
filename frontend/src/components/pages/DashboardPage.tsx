@@ -1,6 +1,6 @@
 import { useRef, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Router, ShieldCheck, Database, Network } from 'lucide-react'
 import type { ColDef, GridApi } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { getDashboardStats, type DeviceStats } from '@/api/devices'
@@ -55,7 +55,8 @@ const STATUS_PILL: Record<string, { label: string; classes: string }> = {
 
 const COLUMN_DEFS: ColDef<DeviceRow>[] = [
   { field: 'name', headerName: '장비명', filter: 'agTextColumnFilter', width: 160 },
-  { field: 'vendor', headerName: '벤더', filter: 'agTextColumnFilter', width: 100 },
+  { field: 'vendor', headerName: '벤더', filter: 'agTextColumnFilter', width: 100,
+    valueFormatter: (p) => VENDOR_LABELS[p.value?.toLowerCase()] ?? p.value },
   { field: 'policies', headerName: '정책 수', filter: 'agNumberColumnFilter', width: 100, valueFormatter: (p) => formatNumber(p.value) },
   { field: 'active_policies', headerName: '활성 정책', filter: 'agNumberColumnFilter', width: 100, valueFormatter: (p) => formatNumber(p.value) },
   { field: 'disabled_policies', headerName: '비활성', filter: 'agNumberColumnFilter', width: 90, valueFormatter: (p) => formatNumber(p.value) },
@@ -117,14 +118,12 @@ export function DashboardPage() {
 
   useSyncStatusWebSocket(handleSyncMessage)
 
-  // 동기화 상태별 집계
   const statusCounts = rowData.reduce<Record<string, number>>((acc, d) => {
     const s = d.sync_status ?? 'unknown'
     acc[s] = (acc[s] ?? 0) + 1
     return acc
   }, {})
 
-  // 벤더별 집계
   const vendorMap = rowData.reduce<Record<string, { count: number; policies: number; activePolicies: number; networkObjects: number; services: number }>>((acc, d) => {
     const v = d.vendor ?? 'Unknown'
     if (!acc[v]) acc[v] = { count: 0, policies: 0, activePolicies: 0, networkObjects: 0, services: 0 }
@@ -138,61 +137,72 @@ export function DashboardPage() {
 
   const STAT_CARDS = [
     {
-      label: '전체 장비',
-      value: stats?.total_devices,
+      label: '전체 장비', value: stats?.total_devices,
       sub: `활성: ${formatNumber(stats?.active_devices)}`,
-      iconBg: 'bg-ds-primary-container',
-      iconColor: 'text-ds-on-primary-container',
+      icon: Router, iconBg: 'bg-ds-primary-container', iconColor: 'text-ds-on-primary-container',
     },
     {
-      label: '전체 정책',
-      value: stats?.total_policies,
+      label: '전체 정책', value: stats?.total_policies,
       sub: `활성 ${formatNumber(stats?.total_active_policies)} / 비활성 ${formatNumber(stats?.total_disabled_policies)}`,
-      iconBg: 'bg-blue-100',
-      iconColor: 'text-blue-700',
+      icon: ShieldCheck, iconBg: 'bg-blue-100', iconColor: 'text-blue-700',
     },
     {
-      label: '네트워크 객체',
-      value: stats?.total_network_objects,
+      label: '네트워크 객체', value: stats?.total_network_objects,
       sub: '',
-      iconBg: 'bg-ds-secondary-container',
-      iconColor: 'text-ds-on-secondary-container',
+      icon: Network, iconBg: 'bg-ds-secondary-container', iconColor: 'text-ds-on-secondary-container',
     },
     {
-      label: '서비스 객체',
-      value: stats?.total_services,
+      label: '서비스 객체', value: stats?.total_services,
       sub: '',
-      iconBg: 'bg-ds-primary-container',
-      iconColor: 'text-ds-on-primary-container',
+      icon: Database, iconBg: 'bg-ds-primary-container', iconColor: 'text-ds-on-primary-container',
     },
   ]
 
   return (
     <div className="space-y-8">
       {/* Page header */}
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-ds-on-surface font-headline">대시보드</h1>
-        <p className="text-ds-on-surface-variant text-sm mt-1">방화벽 장비 현황 및 동기화 상태를 확인합니다.</p>
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tighter text-ds-on-surface font-headline">대시보드</h1>
+          <p className="text-ds-on-surface-variant text-sm mt-1">방화벽 장비 현황 및 동기화 상태를 확인합니다.</p>
+        </div>
+        <button
+          onClick={() => queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })}
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-ds-on-surface bg-ds-surface-container-lowest ghost-border rounded-xl ambient-shadow hover:bg-ds-surface-container-low transition-all"
+        >
+          <RefreshCw className="w-4 h-4" />
+          새로고침
+        </button>
       </div>
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-        {STAT_CARDS.map((card) => (
-          <div key={card.label} className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border p-6">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-ds-primary">{card.label}</p>
-            <p className="text-4xl font-extrabold text-ds-on-surface mt-2 font-headline">
-              {isLoading ? '…' : formatNumber(card.value)}
-            </p>
-            {card.sub && <p className="text-xs text-ds-on-surface-variant mt-1">{card.sub}</p>}
-          </div>
-        ))}
+        {STAT_CARDS.map((card) => {
+          const Icon = card.icon
+          return (
+            <div key={card.label} className="bg-ds-surface-container-lowest p-6 rounded-xl ambient-shadow ghost-border">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-ds-on-surface-variant font-medium text-sm tracking-wide uppercase">{card.label}</p>
+                  <h3 className="text-4xl font-extrabold text-ds-on-surface mt-2 font-headline">
+                    {isLoading ? '…' : formatNumber(card.value)}
+                  </h3>
+                </div>
+                <div className={`p-3 ${card.iconBg} rounded-lg ${card.iconColor}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+              </div>
+              {card.sub && <p className="text-xs text-ds-on-surface-variant mt-4 font-medium">{card.sub}</p>}
+            </div>
+          )
+        })}
       </div>
 
-      {/* Middle row */}
+      {/* Middle row: status summary + vendor stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 동기화 상태 요약 */}
         <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border p-6">
-          <h2 className="text-sm font-bold text-ds-on-surface font-headline mb-4">동기화 상태 요약</h2>
+          <h2 className="text-base font-bold text-ds-on-surface font-headline mb-4">동기화 상태 요약</h2>
           {rowData.length === 0 ? (
             <p className="text-sm text-ds-on-surface-variant text-center py-6">등록된 장비가 없습니다.</p>
           ) : (
@@ -201,11 +211,11 @@ export function DashboardPage() {
                 const conf = STATUS_PILL[status]
                 if (!conf) return null
                 return (
-                  <div key={status} className="flex items-center justify-between py-2 px-3 rounded-lg bg-ds-surface-container-low">
+                  <div key={status} className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-ds-surface-container-low">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tight ${conf.classes}`}>
                       {conf.label}
                     </span>
-                    <span className="text-lg font-extrabold text-ds-on-surface font-headline">{count}</span>
+                    <span className="text-2xl font-extrabold text-ds-on-surface font-headline">{count}</span>
                   </div>
                 )
               })}
@@ -216,7 +226,7 @@ export function DashboardPage() {
 
         {/* 벤더별 통계 */}
         <div className="lg:col-span-2 bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border p-6">
-          <h2 className="text-sm font-bold text-ds-on-surface font-headline mb-4">벤더별 통계</h2>
+          <h2 className="text-base font-bold text-ds-on-surface font-headline mb-4">벤더별 통계</h2>
           {Object.entries(vendorMap).length === 0 ? (
             <p className="text-sm text-ds-on-surface-variant text-center py-6">장비 데이터가 없습니다.</p>
           ) : (
@@ -231,7 +241,7 @@ export function DashboardPage() {
                       </span>
                       <span className="text-xs text-ds-on-surface-variant">{v.count}개 장비</span>
                     </div>
-                    <div className="grid grid-cols-4 gap-3 text-xs">
+                    <div className="grid grid-cols-4 gap-3">
                       {[
                         { label: '정책', value: v.policies },
                         { label: '활성 정책', value: v.activePolicies },
@@ -239,8 +249,8 @@ export function DashboardPage() {
                         { label: '서비스 객체', value: v.services },
                       ].map((item) => (
                         <div key={item.label}>
-                          <p className="text-ds-on-surface-variant text-[10px] uppercase tracking-wide">{item.label}</p>
-                          <p className="font-bold text-ds-on-surface mt-0.5">{formatNumber(item.value)}</p>
+                          <p className="text-ds-on-surface-variant text-[10px] uppercase tracking-wide font-medium">{item.label}</p>
+                          <p className="font-bold text-ds-on-surface mt-0.5 text-sm">{formatNumber(item.value)}</p>
                         </div>
                       ))}
                     </div>
@@ -253,26 +263,21 @@ export function DashboardPage() {
 
       {/* 장비별 통계 그리드 */}
       <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-ds-outline-variant/10">
-          <h2 className="text-sm font-bold text-ds-on-surface font-headline">장비별 통계</h2>
-          <button
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-ds-on-surface-variant hover:text-ds-on-surface hover:bg-ds-surface-container-low rounded-md transition-colors"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            새로고침
-          </button>
+        <div className="flex items-center justify-between px-8 py-5 border-b border-ds-outline-variant/10">
+          <h2 className="text-base font-bold text-ds-on-surface font-headline">장비별 통계</h2>
+          <div className="flex items-center text-sm text-ds-on-surface-variant bg-ds-surface-container-low px-3 py-1.5 rounded-lg">
+            <span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+            서비스 운영 중
+          </div>
         </div>
-        <div className="px-4 pb-4 pt-2">
-          <AgGridWrapper<DeviceRow>
-            ref={gridRef}
-            columnDefs={COLUMN_DEFS}
-            rowData={rowData}
-            getRowId={(p) => String(p.data.id)}
-            height={300}
-            noRowsText="장비를 추가하세요."
-          />
-        </div>
+        <AgGridWrapper<DeviceRow>
+          ref={gridRef}
+          columnDefs={COLUMN_DEFS}
+          rowData={rowData}
+          getRowId={(p) => String(p.data.id)}
+          height={300}
+          noRowsText="장비를 추가하세요."
+        />
       </div>
     </div>
   )
