@@ -23,11 +23,30 @@ REDOC_HTML_PATH = "/redoc"
 SWAGGER_OAUTH2_REDIRECT_PATH = "/docs/oauth2-redirect"
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
-FRONTEND_DIR = Path(__file__).resolve().parent / "frontend"
 REACT_DIST_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 
-# Paths that do NOT require authentication
-_PUBLIC_PREFIXES = ("/api/v1/auth/", "/static/", "/assets/", "/fonts/", "/login", "/docs", "/redoc")
+# Paths that skip authentication
+_PUBLIC_PREFIXES = (
+    "/api/v1/auth/",
+    "/static/",
+    "/assets/",
+    "/fonts/",
+    "/login",
+    "/docs",
+    "/redoc",
+)
+
+# All SPA client-side routes (served by React Router)
+_SPA_ROUTES = (
+    "/",
+    "/devices",
+    "/policies",
+    "/objects",
+    "/analysis",
+    "/schedules",
+    "/settings",
+    "/deletion-workflow",
+)
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -36,15 +55,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
 
-        # Skip auth check for public paths
         if any(path.startswith(p) for p in _PUBLIC_PREFIXES):
             return await call_next(request)
 
-        # API routes handled by FastAPI dependency — skip here to return proper 401 JSON
         if path.startswith("/api/"):
             return await call_next(request)
 
-        # For page routes (/, /app/*), check access_token cookie
         token = request.cookies.get("access_token")
         if not token or not decode_token(token):
             return RedirectResponse(url="/login")
@@ -63,16 +79,15 @@ app = FastAPI(
 app.add_middleware(AuthMiddleware)
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-app.mount("/app", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="app")
 
-# React frontend build (served when dist/ exists)
+# React build assets
 if REACT_DIST_DIR.exists():
-    _react_assets = REACT_DIST_DIR / "assets"
-    _react_fonts = REACT_DIST_DIR / "fonts"
-    if _react_assets.exists():
-        app.mount("/assets", StaticFiles(directory=str(_react_assets)), name="react-assets")
-    if _react_fonts.exists():
-        app.mount("/fonts", StaticFiles(directory=str(_react_fonts)), name="react-fonts")
+    _assets = REACT_DIST_DIR / "assets"
+    _fonts = REACT_DIST_DIR / "fonts"
+    if _assets.exists():
+        app.mount("/assets", StaticFiles(directory=str(_assets)), name="react-assets")
+    if _fonts.exists():
+        app.mount("/fonts", StaticFiles(directory=str(_fonts)), name="react-fonts")
 
 
 @app.get(SWAGGER_UI_HTML_PATH, include_in_schema=False)
@@ -103,43 +118,39 @@ async def redoc_html():
 app.include_router(api_v1_router, prefix="/api/v1")
 
 
+def _serve_react(fallback_status: int = 200) -> FileResponse:
+    """Return React SPA index.html."""
+    index = REACT_DIST_DIR / "index.html"
+    if index.exists():
+        return FileResponse(index)
+    return JSONResponse({"detail": "Frontend not built"}, status_code=503)
+
+
 @app.get("/login", include_in_schema=False)
 def serve_login():
-    """Login page — React build if available, fallback to old frontend."""
-    if REACT_DIST_DIR.exists() and (REACT_DIST_DIR / "index.html").exists():
-        return FileResponse(REACT_DIST_DIR / "index.html")
-    return FileResponse(FRONTEND_DIR / "login.html")
+    return _serve_react()
 
 
-@app.get("/", include_in_schema=False)
-def serve_index():
-    """Root — React build if available, fallback to old frontend."""
-    if REACT_DIST_DIR.exists() and (REACT_DIST_DIR / "index.html").exists():
-        return FileResponse(REACT_DIST_DIR / "index.html")
-    return FileResponse(FRONTEND_DIR / "index.html")
-
-
-@app.get("/analysis", include_in_schema=False)
-def serve_analysis_page():
-    """Analysis page — React build if available."""
-    if REACT_DIST_DIR.exists() and (REACT_DIST_DIR / "index.html").exists():
-        return FileResponse(REACT_DIST_DIR / "index.html")
-    return FileResponse(FRONTEND_DIR / "templates/analysis.html")
+# Explicit SPA route handlers so React Router BrowserRouter works
+for _route in _SPA_ROUTES:
+    app.add_api_route(
+        _route,
+        _serve_react,
+        methods=["GET"],
+        include_in_schema=False,
+    )
 
 
 @app.exception_handler(StarletteHTTPException)
 async def spa_fallback_handler(request: Request, exc: StarletteHTTPException):
-    """Serve React SPA index.html for 404s on non-API/non-static paths.
-    This allows React Router BrowserRouter to handle client-side routes
-    while keeping proper 404 JSON responses for API endpoints.
-    """
+    """Catch-all 404 handler for any React Router path not explicitly listed."""
     if exc.status_code == 404:
         path = request.url.path
-        excluded = ("/api/", "/static/", "/assets/", "/fonts/", "/docs", "/redoc", "/app/")
+        excluded = ("/api/", "/static/", "/assets/", "/fonts/", "/docs", "/redoc")
         if not any(path.startswith(p) for p in excluded):
-            if REACT_DIST_DIR.exists() and (REACT_DIST_DIR / "index.html").exists():
-                return FileResponse(REACT_DIST_DIR / "index.html")
-            return FileResponse(FRONTEND_DIR / "index.html")
+            index = REACT_DIST_DIR / "index.html"
+            if index.exists():
+                return FileResponse(index)
     return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
 
 
