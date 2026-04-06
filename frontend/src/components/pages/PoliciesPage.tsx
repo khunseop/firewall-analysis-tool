@@ -1,5 +1,6 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Search, Download, SlidersHorizontal, AlertTriangle, X } from 'lucide-react'
 import type { ColDef } from '@ag-grid-community/core'
@@ -107,6 +108,7 @@ function LastHitCell({ value }: { value: string | null }) {
 /** 활성 필터 태그 표시 */
 function buildActiveFilterTags(draft: SearchParams): { label: string; key: keyof SearchParams }[] {
   const tags: { label: string; key: keyof SearchParams }[] = []
+  if (draft.rule_name)       tags.push({ label: `정책명: ${draft.rule_name}`, key: 'rule_name' })
   if (draft.src_ip)          tags.push({ label: `출발지: ${draft.src_ip}`, key: 'src_ip' })
   if (draft.dst_ip)          tags.push({ label: `목적지: ${draft.dst_ip}`, key: 'dst_ip' })
   if (draft.port)            tags.push({ label: `포트: ${draft.port}`, key: 'port' })
@@ -124,7 +126,9 @@ function buildActiveFilterTags(draft: SearchParams): { label: string; key: keyof
 
 export function PoliciesPage() {
   const gridRef = useRef<AgGridWrapperHandle>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
   const [draft, setDraft] = useState<SearchParams>(DEFAULT_PARAMS)
+  const [quickFilter, setQuickFilter] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [policies, setPolicies] = useState<Policy[]>([])
   const [searched, setSearched] = useState(false)
@@ -132,6 +136,22 @@ export function PoliciesPage() {
   const [objectModal, setObjectModal] = useState<{ deviceId: number; name: string } | null>(null)
 
   const { data: devices = [] } = useQuery({ queryKey: ['devices'], queryFn: listDevices })
+
+  // URL 파라미터로 필터 자동 세팅 (ObjectDetailModal → 정책 검색 연동)
+  useEffect(() => {
+    const srcIp = searchParams.get('src_ip')
+    const dstIp = searchParams.get('dst_ip')
+    if (srcIp || dstIp) {
+      setDraft(prev => ({
+        ...prev,
+        ...(srcIp ? { src_ip: srcIp } : {}),
+        ...(dstIp ? { dst_ip: dstIp } : {}),
+      }))
+      setFiltersOpen(true)
+      // URL 파라미터 제거 (뒤로가기 시 재실행 방지)
+      setSearchParams({}, { replace: true })
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const searchMutation = useMutation({
     mutationFn: (req: PolicySearchRequest) => searchPolicies(req),
@@ -192,6 +212,7 @@ export function PoliciesPage() {
   // 장비 유지, 필터만 초기화, AG Grid 컬럼 필터도 초기화
   const handleReset = () => {
     setDraft(prev => ({ ...DEFAULT_PARAMS, device_ids: prev.device_ids }))
+    setQuickFilter('')
     setPolicies([])
     setSearched(false)
     setValidObjectNames(new Set())
@@ -262,7 +283,7 @@ export function PoliciesPage() {
     { field: 'source',      headerName: '출발지', filter: 'agTextColumnFilter', flex: 1, minWidth: 150, autoHeight: true, cellRenderer: makeCellRenderer() },
     { field: 'destination', headerName: '목적지', filter: 'agTextColumnFilter', flex: 1, minWidth: 150, autoHeight: true, cellRenderer: makeCellRenderer() },
     { field: 'service',     headerName: '서비스', filter: 'agTextColumnFilter', width: 150, autoHeight: true, cellRenderer: makeCellRenderer() },
-    { field: 'user',        headerName: '사용자',      filter: 'agTextColumnFilter', width: 110, hide: true },
+    { field: 'user',        headerName: '사용자',      filter: 'agTextColumnFilter', width: 110 },
     { field: 'application', headerName: '애플리케이션', filter: 'agTextColumnFilter', width: 130, hide: true },
     {
       field: 'security_profile', headerName: '보안 프로파일', filter: 'agTextColumnFilter', width: 140,
@@ -305,15 +326,14 @@ export function PoliciesPage() {
 
       {/* Search + filter panel */}
       <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow overflow-hidden border border-ds-outline-variant/10 shrink-0">
-        {/* Search bar */}
+        {/* Search bar — quickFilter across all columns */}
         <div className="flex items-center gap-2 px-4 py-2.5">
           <Search className="w-4 h-4 text-ds-outline shrink-0" />
           <input
-            value={draft.rule_name}
-            onChange={(e) => set('rule_name', e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="정책명 검색 (쉼표로 복수 입력, Enter)…"
-            className="flex-1 bg-transparent border-none focus:ring-0 text-ds-on-surface placeholder:text-ds-outline/50 text-sm focus:outline-none font-mono"
+            value={quickFilter}
+            onChange={(e) => setQuickFilter(e.target.value)}
+            placeholder="모든 컬럼 포함 검색 (로드된 데이터 실시간 필터)…"
+            className="flex-1 bg-transparent border-none focus:ring-0 text-ds-on-surface placeholder:text-ds-outline/50 text-sm focus:outline-none"
           />
           <div className="flex items-center gap-1.5 shrink-0">
             <button
@@ -362,6 +382,7 @@ export function PoliciesPage() {
           <div className="border-t border-ds-outline-variant/10 bg-ds-surface-container-low/30 px-4 py-3">
             <div className="grid grid-cols-3 lg:grid-cols-6 gap-2.5">
               {([
+                { label: '정책명', key: 'rule_name', placeholder: 'test-policy, web-*', mono: true },
                 { label: '출발지 IP', key: 'src_ip', placeholder: '10.0.0.0/8, 192.168.1.1', mono: true },
                 { label: '목적지 IP', key: 'dst_ip', placeholder: '0.0.0.0/0, 172.16.0.0/12', mono: true },
                 { label: '포트', key: 'port', placeholder: '80, 443, 8080-8090', mono: true },
@@ -433,6 +454,7 @@ export function PoliciesPage() {
           columnDefs={columnDefs}
           rowData={policies}
           getRowId={(p) => String(p.data.id)}
+          quickFilterText={quickFilter}
           height="100%"
           noRowsText="장비를 선택하고 검색 버튼을 클릭하세요."
         />

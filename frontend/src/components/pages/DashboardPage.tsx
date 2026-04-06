@@ -18,24 +18,24 @@ const VENDOR_LABELS: Record<string, string> = {
 }
 
 const VENDOR_BADGE: Record<string, string> = {
-  paloalto: 'bg-orange-100 text-orange-700',
-  ngf:      'bg-blue-100 text-blue-700',
-  mf2:      'bg-indigo-100 text-indigo-700',
-  mock:     'bg-gray-100 text-gray-600',
+  paloalto: 'bg-ds-surface-container-high text-ds-on-surface-variant',
+  ngf:      'bg-ds-surface-container-high text-ds-on-surface-variant',
+  mf2:      'bg-ds-surface-container-high text-ds-on-surface-variant',
+  mock:     'bg-ds-surface-container-high text-ds-on-surface-variant',
 }
 
 const STATUS_CONFIG: Record<string, { label: string; classes: string; dotColor: string }> = {
-  success:     { label: '완료',   classes: 'bg-green-100 text-green-700', dotColor: 'bg-green-500' },
-  in_progress: { label: '진행중', classes: 'bg-amber-100 text-amber-700', dotColor: 'bg-amber-500 animate-pulse' },
-  pending:     { label: '대기중', classes: 'bg-blue-100 text-blue-700',   dotColor: 'bg-blue-400' },
-  failure:     { label: '실패',   classes: 'bg-red-100 text-red-700',     dotColor: 'bg-red-500' },
-  error:       { label: '오류',   classes: 'bg-red-100 text-red-700',     dotColor: 'bg-red-500' },
+  success:     { label: '완료',   classes: 'bg-ds-secondary-container text-ds-on-secondary-container', dotColor: 'bg-green-500' },
+  in_progress: { label: '진행중', classes: 'bg-ds-tertiary/10 text-ds-tertiary', dotColor: 'bg-ds-tertiary animate-pulse' },
+  pending:     { label: '대기중', classes: 'bg-ds-surface-container text-ds-on-surface-variant',   dotColor: 'bg-ds-outline' },
+  failure:     { label: '실패',   classes: 'bg-ds-error-container/20 text-ds-error',     dotColor: 'bg-ds-error' },
+  error:       { label: '오류',   classes: 'bg-ds-error-container/20 text-ds-error',     dotColor: 'bg-ds-error' },
 }
 
-const NOTIF_CATEGORY_BORDER: Record<string, string> = {
-  sync:     'border-l-ds-tertiary',
-  analysis: 'border-l-purple-500',
-  system:   'border-l-ds-on-surface-variant',
+const NOTIF_CATEGORY_BG: Record<string, string> = {
+  sync:     'bg-ds-tertiary/5',
+  analysis: 'bg-purple-500/5',
+  system:   'bg-ds-on-surface-variant/5',
 }
 
 const NOTIF_TYPE_ICON: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string }> = {
@@ -209,66 +209,68 @@ export function DashboardPage() {
       {/* Header */}
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tighter text-ds-on-surface font-headline">대시보드</h1>
-          <p className="text-ds-on-surface-variant text-sm mt-1">방화벽 장비 현황 및 동기화 상태를 실시간으로 확인합니다.</p>
+          <h1 className="text-4xl font-extrabold tracking-tighter text-ds-on-surface font-headline">대시보드</h1>
+          <p className="text-ds-on-surface-variant text-sm mt-1.5 font-medium">실시간 방화벽 장비 및 동기화 인프라 현황</p>
         </div>
         <button
           onClick={() => queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })}
-          className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-ds-on-surface bg-ds-surface-container-lowest ghost-border rounded-xl ambient-shadow hover:bg-ds-surface-container-low transition-all"
+          className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-ds-on-surface bg-white rounded-xl shadow-sm border border-ds-outline-variant/10 hover:bg-ds-surface-container-low transition-all"
         >
           <RefreshCw className="w-4 h-4" />
-          새로고침
+          현황 갱신
         </button>
       </div>
 
       {/* 오류 장비 경고 배너 */}
       {errorDevices.length > 0 && (
-        <div className="flex items-center justify-between bg-red-50 border border-red-200 rounded-xl px-6 py-4">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-ds-error shrink-0" />
+        <div className="flex items-center justify-between bg-ds-error-container/10 border border-ds-error/20 rounded-2xl px-6 py-4 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-ds-error-container/20 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-ds-error" />
+            </div>
             <div>
               <p className="text-sm font-bold text-ds-error">
-                {errorDevices.length}개 장비에 동기화 오류가 발생했습니다
+                {errorDevices.length}개 장비의 동기화가 중단되었습니다
               </p>
-              <p className="text-xs text-red-600 mt-0.5">
+              <p className="text-xs text-ds-error/70 mt-0.5 font-medium">
                 {errorDevices.map(d => d.name).join(', ')}
               </p>
             </div>
           </div>
           <button
             onClick={() => navigate('/devices')}
-            className="flex items-center gap-1.5 text-sm font-bold text-ds-error hover:underline shrink-0"
+            className="px-4 py-2 bg-ds-error text-white text-xs font-bold rounded-lg hover:brightness-110 transition-all shrink-0"
           >
-            장비 관리로 이동 <ArrowRight className="w-4 h-4" />
+            장비 진단하러 가기
           </button>
         </div>
       )}
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {STAT_CARDS.map((card) => {
           const Icon = card.icon
           return (
-            <div key={card.label} className="bg-ds-surface-container-lowest p-6 rounded-xl ambient-shadow ghost-border">
+            <div key={card.label} className="bg-white p-6 rounded-2xl shadow-sm border border-ds-outline-variant/5">
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
-                  <p className="text-ds-on-surface-variant font-medium text-xs tracking-wide uppercase">{card.label}</p>
-                  <h3 className="text-4xl font-extrabold text-ds-on-surface mt-2 font-headline">
+                  <p className="text-ds-on-surface-variant font-bold text-[10px] uppercase tracking-widest">{card.label}</p>
+                  <h3 className="text-4xl font-extrabold text-ds-on-surface mt-2 font-headline tracking-tighter">
                     {isLoading ? '…' : formatNumber(card.value)}
                   </h3>
                 </div>
-                <div className={`p-3 ${card.iconBg} rounded-lg ${card.iconColor} shrink-0 ml-3`}>
+                <div className={`p-3 ${card.iconBg} rounded-xl ${card.iconColor} shrink-0 ml-3 shadow-inner`}>
                   <Icon className="w-5 h-5" />
                 </div>
               </div>
               {card.bar && (
-                <div className="mt-4">
+                <div className="mt-5">
                   <MiniBar value={card.bar.value} total={card.bar.total} color={card.bar.color} />
-                  <p className="text-[10px] text-ds-on-surface-variant mt-1 font-medium">{card.bar.label}</p>
+                  <p className="text-[10px] text-ds-on-surface-variant mt-2 font-bold tracking-tight">{card.bar.label}</p>
                 </div>
               )}
               {card.sub && !card.bar && (
-                <p className="text-xs text-ds-on-surface-variant mt-4 font-medium">{card.sub}</p>
+                <p className="text-xs text-ds-on-surface-variant mt-5 font-semibold">{card.sub}</p>
               )}
             </div>
           )
@@ -277,18 +279,18 @@ export function DashboardPage() {
 
       {/* Middle: 동기화 상태 + 벤더별 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border p-6">
-          <h2 className="text-base font-bold text-ds-on-surface font-headline mb-4">동기화 상태</h2>
+        <div className="bg-white rounded-2xl shadow-sm border border-ds-outline-variant/5 p-7">
+          <h2 className="text-lg font-bold text-ds-on-surface font-headline mb-5">동기화 상태</h2>
           {rowData.length === 0 ? (
-            <p className="text-sm text-ds-on-surface-variant text-center py-6">등록된 장비가 없습니다.</p>
+            <p className="text-sm text-ds-on-surface-variant text-center py-10 font-medium">등록된 장비가 없습니다.</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {Object.entries(statusCounts).map(([status, count]) => {
                 const conf = STATUS_CONFIG[status]
                 if (!conf) return null
                 return (
-                  <div key={status} className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-ds-surface-container-low">
-                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tight ${conf.classes}`}>
+                  <div key={status} className="flex items-center justify-between py-3 px-4 rounded-xl bg-ds-surface-container-low/50">
+                    <span className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-tight ${conf.classes}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${conf.dotColor}`} />
                       {conf.label}
                     </span>
@@ -296,40 +298,39 @@ export function DashboardPage() {
                   </div>
                 )
               })}
-              <p className="text-xs text-ds-on-surface-variant text-right pt-1">총 {formatNumber(rowData.length)}개 장비</p>
+              <div className="pt-2 flex justify-end">
+                <span className="text-[11px] font-bold text-ds-on-surface-variant uppercase tracking-widest">Total: {formatNumber(rowData.length)}</span>
+              </div>
             </div>
           )}
         </div>
 
-        <div className="lg:col-span-2 bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border p-6">
-          <h2 className="text-base font-bold text-ds-on-surface font-headline mb-4">벤더별 통계</h2>
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-ds-outline-variant/5 p-7">
+          <h2 className="text-lg font-bold text-ds-on-surface font-headline mb-5">벤더별 통계</h2>
           {Object.entries(vendorMap).length === 0 ? (
-            <p className="text-sm text-ds-on-surface-variant text-center py-6">장비 데이터가 없습니다.</p>
+            <p className="text-sm text-ds-on-surface-variant text-center py-10 font-medium">장비 데이터가 없습니다.</p>
           ) : (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {Object.entries(vendorMap).sort((a, b) => b[1].count - a[1].count).map(([vendor, v]) => (
-                <div key={vendor} className="bg-ds-surface-container-low rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${VENDOR_BADGE[vendor.toLowerCase()] ?? 'bg-gray-100 text-gray-600'}`}>
+                <div key={vendor} className="bg-ds-surface-container-low/30 rounded-xl p-5 border border-ds-outline-variant/5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2.5">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${VENDOR_BADGE[vendor.toLowerCase()] ?? 'bg-ds-surface-container text-ds-on-surface-variant'}`}>
                         {VENDOR_LABELS[vendor.toLowerCase()] ?? vendor}
                       </span>
-                      <span className="text-xs text-ds-on-surface-variant">{v.count}개 장비</span>
-                    </div>
-                    <div className="flex-1 max-w-[120px] ml-4">
-                      <MiniBar value={v.activePolicies} total={v.policies} />
+                      <span className="text-xs font-bold text-ds-on-surface-variant">{v.count} Devices</span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 gap-y-4 gap-x-6">
                     {[
-                      { label: '정책', value: v.policies },
-                      { label: '활성', value: v.activePolicies },
+                      { label: '전체 정책', value: v.policies },
+                      { label: '활성 정책', value: v.activePolicies },
                       { label: '네트워크 객체', value: v.networkObjects },
                       { label: '서비스 객체', value: v.services },
                     ].map((item) => (
                       <div key={item.label}>
-                        <p className="text-ds-on-surface-variant text-[10px] uppercase tracking-wide font-medium">{item.label}</p>
-                        <p className="font-bold text-ds-on-surface mt-0.5 text-sm">{formatNumber(item.value)}</p>
+                        <p className="text-ds-on-surface-variant text-[10px] uppercase tracking-widest font-bold opacity-60">{item.label}</p>
+                        <p className="font-extrabold text-ds-on-surface mt-1 text-base font-headline">{formatNumber(item.value)}</p>
                       </div>
                     ))}
                   </div>
@@ -341,15 +342,15 @@ export function DashboardPage() {
       </div>
 
       {/* 장비별 통계 그리드 */}
-      <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border overflow-hidden">
-        <div className="flex items-center justify-between px-8 py-5 border-b border-ds-outline-variant/10">
+      <div className="bg-white rounded-2xl shadow-sm border border-ds-outline-variant/5 overflow-hidden">
+        <div className="flex items-center justify-between px-8 py-6 border-b border-ds-outline-variant/5 bg-ds-surface-container-low/20">
           <div>
-            <h2 className="text-base font-bold text-ds-on-surface font-headline">장비별 현황</h2>
-            <p className="text-xs text-ds-on-surface-variant mt-0.5">실시간 동기화 상태 반영</p>
+            <h2 className="text-lg font-bold text-ds-on-surface font-headline">장비별 실시간 현황</h2>
+            <p className="text-xs text-ds-on-surface-variant mt-1 font-medium">방화벽 엔진과 실시간 데이터 동기화 중</p>
           </div>
-          <div className="flex items-center text-sm text-ds-on-surface-variant bg-ds-surface-container-low px-3 py-1.5 rounded-lg">
-            <span className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse" />
-            WebSocket 연결됨
+          <div className="flex items-center text-[11px] font-bold text-green-600 bg-green-50 px-3.5 py-1.5 rounded-full border border-green-100 uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2 animate-pulse" />
+            Live Connection
           </div>
         </div>
         <AgGridWrapper<DeviceRow>
@@ -357,44 +358,47 @@ export function DashboardPage() {
           columnDefs={COLUMN_DEFS}
           rowData={rowData}
           getRowId={(p) => String(p.data.id)}
-          height={rowData.length > 0 ? Math.min(rowData.length * 52 + 50, 400) : 200}
-          noRowsText="장비를 추가하세요."
+          height={rowData.length > 0 ? Math.min(rowData.length * 52 + 50, 400) : 240}
+          noRowsText="등록된 장비가 없습니다."
         />
       </div>
 
       {/* 최근 활동 피드 */}
-      <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow ghost-border overflow-hidden">
-        <div className="flex items-center justify-between px-8 py-5 border-b border-ds-outline-variant/10">
-          <h2 className="text-base font-bold text-ds-on-surface font-headline">최근 활동</h2>
+      <div className="bg-white rounded-2xl shadow-sm border border-ds-outline-variant/5 overflow-hidden">
+        <div className="flex items-center justify-between px-8 py-6 border-b border-ds-outline-variant/5 bg-ds-surface-container-low/20">
+          <h2 className="text-lg font-bold text-ds-on-surface font-headline">최근 보안 활동</h2>
           <button
             onClick={() => navigate('/notifications')}
-            className="flex items-center gap-1 text-xs font-semibold text-ds-tertiary hover:underline"
+            className="flex items-center gap-1.5 text-xs font-bold text-ds-tertiary hover:underline uppercase tracking-widest"
           >
-            전체 보기 <ArrowRight className="w-3.5 h-3.5" />
+            전체 로그 조회 <ArrowRight className="w-4 h-4" />
           </button>
         </div>
         {notifications.length === 0 ? (
-          <div className="px-8 py-10 text-center text-sm text-ds-on-surface-variant">활동 기록이 없습니다.</div>
+          <div className="px-8 py-16 text-center text-sm text-ds-on-surface-variant font-medium">기록된 활동이 없습니다.</div>
         ) : (
-          <div className="divide-y divide-ds-outline-variant/10">
+          <div className="divide-y divide-ds-outline-variant/5">
             {notifications.map((n) => {
               const typeConf = NOTIF_TYPE_ICON[n.type] ?? NOTIF_TYPE_ICON.info
               const Icon = typeConf.icon
-              const borderCls = NOTIF_CATEGORY_BORDER[n.category ?? 'system'] ?? 'border-l-ds-on-surface-variant'
               return (
-                <div key={n.id} className={`flex items-start gap-4 px-8 py-4 hover:bg-ds-surface-container-low/30 transition-colors border-l-2 ${borderCls}`}>
-                  <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${typeConf.color}`} />
+                <div key={n.id} className="group flex items-start gap-5 px-8 py-5 hover:bg-ds-surface-container-low/30 transition-all duration-200">
+                  <div className={`p-2.5 rounded-xl ${NOTIF_CATEGORY_BG[n.category ?? 'system']} shrink-0`}>
+                    <Icon className={`w-4.5 h-4.5 ${typeConf.color}`} />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-4">
-                      <p className="text-sm font-semibold text-ds-on-surface truncate">{n.title}</p>
-                      <span className="text-[10px] text-ds-on-surface-variant shrink-0">{formatRelativeTime(n.timestamp)}</span>
+                      <p className="text-sm font-bold text-ds-on-surface group-hover:text-ds-tertiary transition-colors">{n.title}</p>
+                      <span className="text-[10px] font-bold text-ds-on-surface-variant uppercase tracking-tight bg-ds-surface-container-low px-2 py-0.5 rounded">{formatRelativeTime(n.timestamp)}</span>
                     </div>
-                    {n.device_name && (
-                      <span className="text-[10px] font-mono text-ds-tertiary mt-0.5 block">{n.device_name}</span>
-                    )}
-                    {n.message && (
-                      <p className="text-xs text-ds-on-surface-variant mt-0.5 truncate">{n.message}</p>
-                    )}
+                    <div className="flex items-center gap-3 mt-1.5">
+                      {n.device_name && (
+                        <span className="text-[10px] font-bold text-ds-tertiary uppercase tracking-widest">{n.device_name}</span>
+                      )}
+                      {n.message && (
+                        <p className="text-xs text-ds-on-surface-variant font-medium truncate">{n.message}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               )
