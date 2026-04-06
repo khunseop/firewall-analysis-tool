@@ -3,9 +3,10 @@ import { Navbar } from './Navbar'
 
 export function AppLayout() {
   return (
-    <div className="min-h-screen bg-ds-surface text-ds-on-surface">
+    <div className="min-h-screen flex bg-ds-surface text-ds-on-surface">
       <Navbar />
-      <main className="max-w-screen-2xl mx-auto px-8 py-10 space-y-0">
+      {/* offset for fixed sidebar */}
+      <main className="ml-56 flex-1 min-w-0 px-8 py-8">
         <Outlet />
       </main>
     </div>

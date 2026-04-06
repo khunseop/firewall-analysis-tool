@@ -99,7 +99,7 @@ function LastHitCell({ value }: { value: string | null }) {
 export function PoliciesPage() {
   const gridRef = useRef<AgGridWrapperHandle>(null)
   const [draft, setDraft] = useState<SearchParams>(DEFAULT_PARAMS)
-  const [filtersOpen, setFiltersOpen] = useState(true)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [policies, setPolicies] = useState<Policy[]>([])
   const [searched, setSearched] = useState(false)
   const [validObjectNames, setValidObjectNames] = useState<Set<string>>(new Set())
@@ -217,22 +217,19 @@ export function PoliciesPage() {
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+      <header className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tighter text-ds-on-surface font-headline mb-2">방화벽 정책</h1>
-          <p className="text-ds-on-surface-variant text-sm max-w-lg">
-            정책을 검색하고 필터링합니다.
-          </p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ds-on-surface font-headline">방화벽 정책</h1>
+          <p className="text-ds-on-surface-variant text-xs mt-0.5">정책을 검색하고 필터링합니다.</p>
         </div>
-        <div className="w-full md:w-80">
-          <label className="block text-[10px] font-bold uppercase text-ds-primary mb-2 tracking-widest">장비 선택</label>
-          <div className="bg-white rounded-md border border-ds-outline-variant/30 ambient-shadow-sm">
+        <div className="w-72 shrink-0">
+          <div className="bg-white rounded-md border border-ds-outline-variant/30">
             <DeviceSelect
               devices={devices}
               value={draft.device_ids}
               onChange={(ids) => set('device_ids', ids)}
               isMulti
-              placeholder="장비를 선택하세요…"
+              placeholder="장비 선택…"
             />
           </div>
         </div>
@@ -240,48 +237,71 @@ export function PoliciesPage() {
 
       {/* Search / filter panel */}
       <div className="bg-ds-surface-container-lowest rounded-xl ambient-shadow overflow-hidden border border-ds-outline-variant/10">
-        <div className="relative flex items-center px-6 py-5 border-b border-ds-outline-variant/15">
-          <Search className="w-5 h-5 text-ds-outline mr-4 shrink-0" />
+        {/* Search bar row */}
+        <div className="flex items-center gap-3 px-4 py-3">
+          <Search className="w-4 h-4 text-ds-outline shrink-0" />
           <input
             value={draft.rule_name}
             onChange={(e) => set('rule_name', e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="정책명 빠른 검색 (Enter)…"
-            className="flex-1 bg-transparent border-none focus:ring-0 text-ds-on-surface placeholder:text-ds-outline/60 font-medium text-base focus:outline-none font-mono"
+            placeholder="정책명 검색 (Enter)…"
+            className="flex-1 bg-transparent border-none focus:ring-0 text-ds-on-surface placeholder:text-ds-outline/50 text-sm focus:outline-none font-mono"
           />
-          <button
-            onClick={() => setFiltersOpen((v) => !v)}
-            className={`flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-lg transition-colors ml-4 ${filtersOpen ? 'text-ds-tertiary bg-ds-secondary-container' : 'text-ds-tertiary bg-ds-tertiary/5 hover:bg-ds-tertiary/10'}`}
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-            고급 필터
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setFiltersOpen((v) => !v)}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md transition-colors ${filtersOpen ? 'text-ds-tertiary bg-ds-tertiary/10' : 'text-ds-on-surface-variant bg-ds-surface-container-low hover:text-ds-tertiary'}`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              필터
+            </button>
+            {policies.length > 0 && (
+              <button
+                onClick={handleExport}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-ds-on-surface-variant bg-ds-surface-container-low rounded-md hover:text-ds-on-surface transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Excel
+              </button>
+            )}
+            <button onClick={handleReset} className="text-xs font-semibold text-ds-on-surface-variant hover:text-ds-on-surface px-3 py-1.5 rounded-md hover:bg-ds-surface-container-low transition-colors">
+              초기화
+            </button>
+            <button
+              onClick={handleSearch}
+              disabled={draft.device_ids.length === 0 || searchMutation.isPending}
+              className="bg-ds-primary text-ds-on-primary text-xs font-bold px-5 py-1.5 rounded-md hover:brightness-110 transition-all disabled:opacity-50"
+            >
+              {searchMutation.isPending ? '검색 중…' : '쿼리 실행'}
+            </button>
+          </div>
         </div>
 
+        {/* Collapsible advanced filters */}
         {filtersOpen && (
-          <div className="bg-ds-surface-container-low/40 p-8 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 border-b border-ds-outline-variant/10">
+          <div className="border-t border-ds-outline-variant/10 bg-ds-surface-container-low/30 px-4 py-3 grid grid-cols-3 lg:grid-cols-6 gap-3">
             {[
-              { label: '출발지 IP / Subnet', key: 'src_ip' as const, placeholder: '10.0.0.0/8', mono: true },
+              { label: '출발지 IP', key: 'src_ip' as const, placeholder: '10.0.0.0/8', mono: true },
               { label: '목적지 IP', key: 'dst_ip' as const, placeholder: '0.0.0.0/0', mono: true },
-              { label: '포트 / 서비스', key: 'port' as const, placeholder: '443, 80, SSH', mono: true },
+              { label: '포트', key: 'port' as const, placeholder: '443', mono: true },
               { label: '사용자', key: 'user' as const, placeholder: '' },
               { label: '애플리케이션', key: 'application' as const, placeholder: '' },
               { label: '설명', key: 'description' as const, placeholder: '' },
             ].map(({ label, key, placeholder, mono }) => (
-              <div key={key} className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase text-ds-primary/70 tracking-wider">{label}</label>
+              <div key={key}>
+                <label className="text-[9px] font-bold uppercase text-ds-primary/60 tracking-wider block mb-1">{label}</label>
                 <input
                   value={draft[key] as string}
                   onChange={(e) => set(key, e.target.value)}
                   placeholder={placeholder}
-                  className={`w-full bg-white border border-ds-outline-variant/30 rounded-md text-sm px-4 py-2.5 shadow-sm focus:outline-none focus:border-ds-tertiary focus:ring-1 focus:ring-ds-tertiary ${mono ? 'font-mono' : ''}`}
+                  className={`w-full bg-white border border-ds-outline-variant/25 rounded text-xs px-2.5 py-1.5 focus:outline-none focus:border-ds-tertiary focus:ring-1 focus:ring-ds-tertiary ${mono ? 'font-mono' : ''}`}
                 />
               </div>
             ))}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase text-ds-primary/70 tracking-wider">프로토콜</label>
+            <div>
+              <label className="text-[9px] font-bold uppercase text-ds-primary/60 tracking-wider block mb-1">프로토콜</label>
               <ShadSelect value={draft.protocol || '_all_'} onValueChange={(v) => set('protocol', v === '_all_' ? '' : v)}>
-                <SelectTrigger className="bg-white border-ds-outline-variant/30 text-sm h-[42px] shadow-sm">
+                <SelectTrigger className="bg-white border-ds-outline-variant/25 text-xs h-[30px]">
                   <SelectValue placeholder="Any" />
                 </SelectTrigger>
                 <SelectContent>
@@ -292,24 +312,24 @@ export function PoliciesPage() {
                 </SelectContent>
               </ShadSelect>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase text-ds-primary/70 tracking-wider">액션</label>
+            <div>
+              <label className="text-[9px] font-bold uppercase text-ds-primary/60 tracking-wider block mb-1">액션</label>
               <ShadSelect value={draft.action || '_all_'} onValueChange={(v) => set('action', v === '_all_' ? '' : v)}>
-                <SelectTrigger className="bg-white border-ds-outline-variant/30 text-sm h-[42px] shadow-sm">
-                  <SelectValue placeholder="All Actions" />
+                <SelectTrigger className="bg-white border-ds-outline-variant/25 text-xs h-[30px]">
+                  <SelectValue placeholder="전체" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_all_">All Actions</SelectItem>
+                  <SelectItem value="_all_">전체</SelectItem>
                   <SelectItem value="allow">Allow</SelectItem>
                   <SelectItem value="deny">Deny</SelectItem>
                   <SelectItem value="drop">Drop</SelectItem>
                 </SelectContent>
               </ShadSelect>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase text-ds-primary/70 tracking-wider">활성 여부</label>
+            <div>
+              <label className="text-[9px] font-bold uppercase text-ds-primary/60 tracking-wider block mb-1">활성</label>
               <ShadSelect value={draft.enable || '_all_'} onValueChange={(v) => set('enable', v === '_all_' ? '' : v)}>
-                <SelectTrigger className="bg-white border-ds-outline-variant/30 text-sm h-[42px] shadow-sm">
+                <SelectTrigger className="bg-white border-ds-outline-variant/25 text-xs h-[30px]">
                   <SelectValue placeholder="전체" />
                 </SelectTrigger>
                 <SelectContent>
@@ -321,32 +341,6 @@ export function PoliciesPage() {
             </div>
           </div>
         )}
-
-        <div className="px-6 py-4 flex justify-between items-center bg-ds-surface-container-low/20">
-          <div className="flex items-center gap-2">
-            {policies.length > 0 && (
-              <button
-                onClick={handleExport}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-ds-on-surface ghost-border bg-ds-surface-container-lowest rounded-md hover:bg-ds-surface-container-low transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                Excel
-              </button>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={handleReset} className="text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface px-4 py-2 transition-colors">
-              초기화
-            </button>
-            <button
-              onClick={handleSearch}
-              disabled={draft.device_ids.length === 0 || searchMutation.isPending}
-              className="bg-ds-primary text-ds-on-primary text-sm font-bold px-8 py-2.5 rounded-md hover:brightness-110 transition-all disabled:opacity-50"
-            >
-              {searchMutation.isPending ? '검색 중…' : '쿼리 실행'}
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* 검색 결과 요약 배너 */}
