@@ -21,22 +21,22 @@ const ANALYSIS_TYPES = [
   { value: 'over_permissive', label: '과허용 정책 분석' },
 ]
 
+// Policy fields accessed from nested policy sub-object (all analyzers wrap policy data under "policy" key)
 const POLICY_COLS: ColDef[] = [
-  { field: 'rule_name', headerName: '정책명', filter: 'agTextColumnFilter', width: 160 },
-  { field: 'seq', headerName: '순번', filter: 'agNumberColumnFilter', width: 70 },
-  { field: 'action', headerName: '액션', filter: 'agTextColumnFilter', width: 80 },
-  { field: 'enable', headerName: '활성', width: 70, valueFormatter: (p) => (p.value ? '활성' : '비활성') },
-  { field: 'source', headerName: '출발지', filter: 'agTextColumnFilter', width: 200 },
-  { field: 'destination', headerName: '목적지', filter: 'agTextColumnFilter', width: 200 },
-  { field: 'service', headerName: '서비스', filter: 'agTextColumnFilter', width: 160 },
-  { field: 'description', headerName: '설명', filter: 'agTextColumnFilter', width: 150 },
-  { field: 'vsys', headerName: 'VSYS', filter: 'agTextColumnFilter', width: 80 },
+  { headerName: '정책명', filter: 'agTextColumnFilter', width: 160, valueGetter: (p) => p.data?.policy?.rule_name ?? p.data?.rule_name },
+  { headerName: '순번', filter: 'agNumberColumnFilter', width: 70, valueGetter: (p) => p.data?.policy?.seq ?? p.data?.seq },
+  { headerName: '액션', filter: 'agTextColumnFilter', width: 80, valueGetter: (p) => p.data?.policy?.action ?? p.data?.action },
+  { headerName: '활성', width: 70, valueGetter: (p) => p.data?.policy?.enable ?? p.data?.enable, valueFormatter: (p) => (p.value ? '활성' : '비활성') },
+  { headerName: '출발지', filter: 'agTextColumnFilter', width: 200, valueGetter: (p) => p.data?.policy?.source ?? p.data?.source },
+  { headerName: '목적지', filter: 'agTextColumnFilter', width: 200, valueGetter: (p) => p.data?.policy?.destination ?? p.data?.destination },
+  { headerName: '서비스', filter: 'agTextColumnFilter', width: 160, valueGetter: (p) => p.data?.policy?.service ?? p.data?.service },
+  { headerName: '설명', filter: 'agTextColumnFilter', width: 150, valueGetter: (p) => p.data?.policy?.description ?? p.data?.description },
+  { headerName: 'VSYS', filter: 'agTextColumnFilter', width: 80, valueGetter: (p) => p.data?.policy?.vsys ?? p.data?.vsys },
 ]
 
 function getColumnDefs(analysisType: string): ColDef[] {
   if (analysisType === 'redundancy') {
     return [
-      { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', pinned: 'left', width: 120 },
       { field: 'set_number', headerName: '중복번호', filter: 'agNumberColumnFilter', pinned: 'left', width: 100, valueFormatter: (p) => formatNumber(p.value) },
       {
         field: 'type', headerName: '구분', filter: 'agTextColumnFilter', pinned: 'left', width: 100,
@@ -71,15 +71,21 @@ function getColumnDefs(analysisType: string): ColDef[] {
   }
   if (analysisType === 'risky_ports') {
     return [
-      { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', pinned: 'left', width: 120 },
-      { field: 'risky_port_def', headerName: '위험 포트', filter: 'agTextColumnFilter', width: 150, cellStyle: { color: '#9f403d', fontWeight: '500' } },
-      { field: 'protocol', headerName: '프로토콜', filter: 'agTextColumnFilter', width: 100, valueGetter: (p) => p.data?.policy?.service ?? p.data?.protocol ?? '' },
+      {
+        headerName: '위험 포트', filter: 'agTextColumnFilter', width: 200,
+        cellStyle: { color: '#9f403d', fontWeight: '500' },
+        valueGetter: (p) => {
+          const ports = p.data?.removed_risky_ports
+          if (Array.isArray(ports)) return ports.map((r: Record<string, unknown>) => r.definition ?? String(r)).join(', ')
+          return p.data?.risky_port_def ?? ''
+        },
+      },
+      { headerName: '서비스', filter: 'agTextColumnFilter', width: 160, valueGetter: (p) => p.data?.policy?.service ?? '' },
       ...POLICY_COLS,
     ]
   }
   if (analysisType === 'over_permissive') {
     return [
-      { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', pinned: 'left', width: 120 },
       { field: 'source_range_size', headerName: '출발지 범위', filter: 'agNumberColumnFilter', width: 130, valueFormatter: (p) => formatNumber(p.value) },
       { field: 'destination_range_size', headerName: '목적지 범위', filter: 'agNumberColumnFilter', width: 130, valueFormatter: (p) => formatNumber(p.value) },
       { field: 'service_range_size', headerName: '서비스 범위', filter: 'agNumberColumnFilter', width: 130, valueFormatter: (p) => formatNumber(p.value) },
@@ -88,15 +94,16 @@ function getColumnDefs(analysisType: string): ColDef[] {
   }
   if (analysisType === 'impact') {
     return [
-      { field: 'device_name', headerName: '장비', filter: 'agTextColumnFilter', pinned: 'left', width: 120 },
       {
-        field: 'impact_type', headerName: '영향 유형', filter: 'agTextColumnFilter', pinned: 'left', width: 120,
+        field: 'impact_type', headerName: '영향 유형', filter: 'agTextColumnFilter', pinned: 'left', width: 150,
         cellStyle: (p) => {
-          if (p.value === 'AFFECTED') return { color: '#9f403d', fontWeight: '500' }
-          if (p.value === 'TARGET') return { color: '#005bc4', fontWeight: '500' }
+          const v = String(p.value ?? '')
+          if (v.includes('차단')) return { color: '#9f403d', fontWeight: '500' }
+          if (v.includes('Shadow')) return { color: '#b26b00', fontWeight: '500' }
           return null
         },
       },
+      { field: 'reason', headerName: '사유', filter: 'agTextColumnFilter', width: 300 },
       ...POLICY_COLS,
     ]
   }
@@ -106,7 +113,6 @@ function getColumnDefs(analysisType: string): ColDef[] {
 function getRowStyle(analysisType: string) {
   return (p: RowClassParams<Record<string, unknown>>): RowStyle | undefined => {
     if (!p.data) return undefined
-    if (analysisType === 'impact' && p.data.is_target_policy) return { backgroundColor: '#e8f4fd' }
     if (analysisType === 'redundancy') {
       if (p.data.type === 'UPPER') return { backgroundColor: '#e8f4fd' }
       if (p.data.type === 'LOWER') return { backgroundColor: '#fff8e1' }
@@ -154,8 +160,9 @@ function ResultSummary({
     }
     if (analysisType === 'unused') return `${days}일 이상 미사용 정책 ${r.length}건`
     if (analysisType === 'unreferenced_objects') {
-      const net = r.filter((x) => ['ip-mask','ip-range','fqdn'].includes(String(x['object_type'] ?? ''))).length
-      return `미참조 객체 ${r.length}건 (네트워크 ${net}건, 서비스 ${r.length - net}건)`
+      const net = r.filter((x) => ['network_object','network_group'].includes(String(x['object_type'] ?? ''))).length
+      const svc = r.filter((x) => ['service','service_group'].includes(String(x['object_type'] ?? ''))).length
+      return `미참조 객체 ${r.length}건 (네트워크 ${net}건, 서비스 ${svc}건)`
     }
     if (analysisType === 'risky_ports') return `위험 포트 허용 정책 ${r.length}건`
     if (analysisType === 'over_permissive') return `과허용 정책 ${r.length}건`
@@ -190,8 +197,8 @@ function ResultSummary({
 const STATUS_LABELS: Record<string, { label: string; classes: string }> = {
   pending:     { label: '대기중', classes: 'bg-blue-100 text-blue-700' },
   in_progress: { label: '분석중', classes: 'bg-amber-100 text-amber-700' },
-  completed:   { label: '완료',   classes: 'bg-green-100 text-green-700' },
-  failed:      { label: '실패',   classes: 'bg-red-100 text-red-700' },
+  success:     { label: '완료',   classes: 'bg-green-100 text-green-700' },
+  failure:     { label: '실패',   classes: 'bg-red-100 text-red-700' },
 }
 
 export function AnalysisPage() {
@@ -216,27 +223,38 @@ export function AnalysisPage() {
 
   const taskStatus = statusQuery.data
 
+  const loadResults = async (devId = deviceId, type = analysisType) => {
+    if (!devId) return
+    try {
+      const result = await getLatestAnalysisResult(devId, type)
+      setResults(Array.isArray(result.result_data) ? result.result_data : [])
+      setResultCompletedAt(result.created_at ?? null)
+    } catch {
+      // No prior result — clear grid silently
+      setResults([])
+      setResultCompletedAt(null)
+    }
+  }
+
   useEffect(() => {
     if (!taskStatus) return
-    if (taskStatus.task_status === 'completed' || taskStatus.task_status === 'failed') {
+    if (taskStatus.task_status === 'success' || taskStatus.task_status === 'failure') {
       setIsPolling(false)
-      if (taskStatus.task_status === 'completed') {
+      if (taskStatus.task_status === 'success') {
         toast.success('분석이 완료되었습니다.')
-        loadResults()
+        loadResults(deviceId ?? undefined, analysisType)
       } else {
         toast.error('분석에 실패했습니다.')
       }
     }
   }, [taskStatus?.task_status])
 
-  const loadResults = async () => {
-    if (!deviceId) return
-    try {
-      const result = await getLatestAnalysisResult(deviceId, analysisType)
-      setResults(Array.isArray(result.result_data) ? result.result_data : [])
-      setResultCompletedAt(result.created_at ?? null)
-    } catch (e: unknown) { toast.error((e as Error).message) }
-  }
+  // Auto-load last result when device or analysis type changes
+  useEffect(() => {
+    setResults([])
+    setResultCompletedAt(null)
+    if (deviceId) loadResults(deviceId, analysisType)
+  }, [deviceId, analysisType])
 
   const startMutation = useMutation({
     mutationFn: () => {
@@ -277,7 +295,7 @@ export function AnalysisPage() {
           </div>
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">분석 유형 *</label>
-            <ShadSelect value={analysisType} onValueChange={(v) => { setAnalysisType(v); setTargetPolicyIds([]); setResults([]) }}>
+            <ShadSelect value={analysisType} onValueChange={(v) => { setAnalysisType(v); setTargetPolicyIds([]) }}>
               <SelectTrigger className="bg-ds-surface-container-low border-ds-outline-variant/30 text-sm">
                 <SelectValue />
               </SelectTrigger>
@@ -372,7 +390,7 @@ export function AnalysisPage() {
             <AgGridWrapper
               columnDefs={columnDefs}
               rowData={results as Record<string, unknown>[]}
-              getRowId={(p) => String(p.data.id ?? JSON.stringify(p.data))}
+              getRowId={(p) => String(p.data.id ?? p.data.policy_id ?? JSON.stringify(p.data))}
               getRowStyle={rowStyleFn as (p: RowClassParams<Record<string, unknown>>) => RowStyle | undefined}
               height="calc(100vh - 340px)"
               noRowsText="분석 결과가 없습니다."
