@@ -7,6 +7,7 @@ import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgG
 import { DeviceSelect } from '@/components/shared/DeviceSelect'
 import { ObjectDetailModal } from '@/components/shared/ObjectDetailModal'
 import { listDevices } from '@/api/devices'
+import { useDeviceStore } from '@/store/deviceStore'
 import {
   getNetworkObjects, getNetworkGroups, getServices, getServiceGroups, exportToExcel,
   type NetworkObject, type NetworkGroup, type Service, type ServiceGroup,
@@ -145,7 +146,7 @@ function TabGrid<T>({ columnDefs, rowData, isLoading, onExport }: {
 }
 
 export function ObjectsPage() {
-  const [deviceIds, setDeviceIds] = useState<number[]>([])
+  const { selectedIds: deviceIds, setSelectedIds: setDeviceIds } = useDeviceStore()
   const [activeTab, setActiveTab] = useState<TabKey>('network_objects')
   const [objectModal, setObjectModal] = useState<{ deviceId: number; name: string } | null>(null)
   const { data: devices = [] } = useQuery({ queryKey: ['devices'], queryFn: listDevices })

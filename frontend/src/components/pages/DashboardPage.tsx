@@ -10,20 +10,6 @@ import { getNotifications, type NotificationLog } from '@/api/notifications'
 import { useSyncStatusWebSocket } from '@/hooks/useWebSocket'
 import { formatNumber, formatRelativeTime } from '@/lib/utils'
 
-const VENDOR_LABELS: Record<string, string> = {
-  paloalto: 'Palo Alto',
-  ngf: 'SECUI NGF',
-  mf2: 'SECUI MF2',
-  mock: 'Mock',
-}
-
-const VENDOR_BADGE: Record<string, string> = {
-  paloalto: 'bg-ds-surface-container-high text-ds-on-surface-variant',
-  ngf:      'bg-ds-surface-container-high text-ds-on-surface-variant',
-  mf2:      'bg-ds-surface-container-high text-ds-on-surface-variant',
-  mock:     'bg-ds-surface-container-high text-ds-on-surface-variant',
-}
-
 const STATUS_CONFIG: Record<string, { label: string; classes: string; dotColor: string }> = {
   success:     { label: '완료',   classes: 'bg-ds-secondary-container text-ds-on-secondary-container', dotColor: 'bg-green-500' },
   in_progress: { label: '진행중', classes: 'bg-ds-tertiary/10 text-ds-tertiary', dotColor: 'bg-ds-tertiary animate-pulse' },
@@ -163,22 +149,6 @@ export function DashboardPage() {
   )
   useSyncStatusWebSocket(handleSyncMessage)
 
-  const statusCounts = rowData.reduce<Record<string, number>>((acc, d) => {
-    const s = d.sync_status ?? 'unknown'
-    acc[s] = (acc[s] ?? 0) + 1
-    return acc
-  }, {})
-
-  const vendorMap = rowData.reduce<Record<string, { count: number; policies: number; activePolicies: number; networkObjects: number; services: number }>>((acc, d) => {
-    const v = d.vendor ?? 'Unknown'
-    if (!acc[v]) acc[v] = { count: 0, policies: 0, activePolicies: 0, networkObjects: 0, services: 0 }
-    acc[v].count += 1
-    acc[v].policies += d.policies
-    acc[v].activePolicies += d.active_policies
-    acc[v].networkObjects += d.network_objects
-    acc[v].services += d.services
-    return acc
-  }, {})
 
   const errorDevices = rowData.filter(d => d.sync_status === 'failure' || d.sync_status === 'error')
 
@@ -293,70 +263,6 @@ export function DashboardPage() {
             </div>
           )
         })}
-      </div>
-
-      {/* Middle: 동기화 상태 + 벤더별 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-2xl shadow-sm border border-ds-outline-variant/5 p-7">
-          <h2 className="text-lg font-bold text-ds-on-surface font-headline mb-5">동기화 상태</h2>
-          {rowData.length === 0 ? (
-            <p className="text-sm text-ds-on-surface-variant text-center py-10 font-medium">등록된 장비가 없습니다.</p>
-          ) : (
-            <div className="space-y-2.5">
-              {Object.entries(statusCounts).map(([status, count]) => {
-                const conf = STATUS_CONFIG[status]
-                if (!conf) return null
-                return (
-                  <div key={status} className="flex items-center justify-between py-3 px-4 rounded-xl bg-ds-surface-container-low/50">
-                    <span className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-tight ${conf.classes}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${conf.dotColor}`} />
-                      {conf.label}
-                    </span>
-                    <span className="text-2xl font-extrabold text-ds-on-surface font-headline">{count}</span>
-                  </div>
-                )
-              })}
-              <div className="pt-2 flex justify-end">
-                <span className="text-[11px] font-bold text-ds-on-surface-variant uppercase tracking-widest">Total: {formatNumber(rowData.length)}</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-ds-outline-variant/5 p-7">
-          <h2 className="text-lg font-bold text-ds-on-surface font-headline mb-5">벤더별 통계</h2>
-          {Object.entries(vendorMap).length === 0 ? (
-            <p className="text-sm text-ds-on-surface-variant text-center py-10 font-medium">장비 데이터가 없습니다.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(vendorMap).sort((a, b) => b[1].count - a[1].count).map(([vendor, v]) => (
-                <div key={vendor} className="bg-ds-surface-container-low/30 rounded-xl p-5 border border-ds-outline-variant/5">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2.5">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${VENDOR_BADGE[vendor.toLowerCase()] ?? 'bg-ds-surface-container text-ds-on-surface-variant'}`}>
-                        {VENDOR_LABELS[vendor.toLowerCase()] ?? vendor}
-                      </span>
-                      <span className="text-xs font-bold text-ds-on-surface-variant">{v.count} Devices</span>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-                    {[
-                      { label: '전체 정책', value: v.policies },
-                      { label: '활성 정책', value: v.activePolicies },
-                      { label: '네트워크 객체', value: v.networkObjects },
-                      { label: '서비스 객체', value: v.services },
-                    ].map((item) => (
-                      <div key={item.label}>
-                        <p className="text-ds-on-surface-variant text-[10px] uppercase tracking-widest font-bold opacity-60">{item.label}</p>
-                        <p className="font-extrabold text-ds-on-surface mt-1 text-base font-headline">{formatNumber(item.value)}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* 장비별 통계 그리드 */}

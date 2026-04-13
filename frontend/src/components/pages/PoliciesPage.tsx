@@ -11,9 +11,9 @@ import { listDevices } from '@/api/devices'
 import { searchPolicies, exportToExcel, type Policy, type PolicySearchRequest } from '@/api/firewall'
 import { daysSinceHit } from '@/lib/utils'
 import { ObjectDetailModal } from '@/components/shared/ObjectDetailModal'
+import { useDeviceStore } from '@/store/deviceStore'
 
 interface SearchParams {
-  device_ids: number[]
   rule_name: string
   action: string
   enable: string
@@ -30,7 +30,7 @@ interface SearchParams {
 }
 
 const DEFAULT_PARAMS: SearchParams = {
-  device_ids: [], rule_name: '', action: '', enable: '',
+  rule_name: '', action: '', enable: '',
   src_ip: '', dst_ip: '', protocol: '', port: '',
   user: '', application: '', security_profile: '', category: '', description: '',
   unused_days: '',
@@ -128,6 +128,7 @@ export function PoliciesPage() {
   const gridRef = useRef<AgGridWrapperHandle>(null)
   const [searchParams, setSearchParams] = useSearchParams()
   const [draft, setDraft] = useState<SearchParams>(DEFAULT_PARAMS)
+  const { selectedIds: deviceIds, setSelectedIds: setDeviceIds } = useDeviceStore()
   const [quickFilter, setQuickFilter] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [policies, setPolicies] = useState<Policy[]>([])
@@ -188,7 +189,7 @@ export function PoliciesPage() {
     }
 
     return {
-      device_ids: d.device_ids,
+      device_ids: deviceIds,
       rule_name: d.rule_name || undefined,
       action: d.action || undefined,
       enable: d.enable === '' ? undefined : d.enable === 'true',
@@ -205,13 +206,13 @@ export function PoliciesPage() {
   }
 
   const handleSearch = () => {
-    if (draft.device_ids.length === 0) { toast.warning('장비를 선택하세요.'); return }
+    if (deviceIds.length === 0) { toast.warning('Navbar에서 장비를 선택하세요.'); return }
     searchMutation.mutate(buildRequest(draft))
   }
 
-  // 장비 유지, 필터만 초기화, AG Grid 컬럼 필터도 초기화
+  // 필터만 초기화 (장비 선택은 store에서 관리)
   const handleReset = () => {
-    setDraft(prev => ({ ...DEFAULT_PARAMS, device_ids: prev.device_ids }))
+    setDraft(DEFAULT_PARAMS)
     setQuickFilter('')
     setPolicies([])
     setSearched(false)
@@ -220,7 +221,7 @@ export function PoliciesPage() {
   }
 
   const clearFilter = (key: keyof SearchParams) => {
-    setDraft(prev => ({ ...prev, [key]: key === 'device_ids' ? [] : '' }))
+    setDraft(prev => ({ ...prev, [key]: '' }))
   }
 
   const handleExport = async () => {
@@ -315,8 +316,8 @@ export function PoliciesPage() {
           <div className="bg-white rounded-md border border-ds-outline-variant/30">
             <DeviceSelect
               devices={devices}
-              value={draft.device_ids}
-              onChange={(ids) => set('device_ids', ids)}
+              value={deviceIds}
+              onChange={setDeviceIds}
               isMulti
               placeholder="장비 선택…"
             />
@@ -357,7 +358,7 @@ export function PoliciesPage() {
             </button>
             <button
               onClick={handleSearch}
-              disabled={draft.device_ids.length === 0 || searchMutation.isPending}
+              disabled={deviceIds.length === 0 || searchMutation.isPending}
               className="bg-ds-primary text-ds-on-primary text-xs font-bold px-4 py-1.5 rounded-md hover:brightness-110 transition-all disabled:opacity-50"
             >
               {searchMutation.isPending ? '검색 중…' : '검색'}
