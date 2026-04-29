@@ -143,10 +143,11 @@ function ObjectPanel({
     ? String(obj['members'] ?? '').split(',').map(m => m.trim()).filter(Boolean)
     : []
 
-  const SKIP = ['id', 'device_id', 'is_active', 'last_seen_at', 'ip_start', 'ip_end', 'members']
+  const SKIP = ['id', 'device_id', 'is_active', 'last_seen_at', 'ip_start', 'ip_end', 'members', 'name']
   const LABELS: Record<string, string> = {
     name: '이름', ip_address: 'IP 주소', type: '타입', description: '설명',
     protocol: '프로토콜', port: '포트', ip_version: 'IP 버전',
+    port_start: '포트 시작', port_end: '포트 끝',
   }
 
   const goToPolicies = (direction: 'src' | 'dst') => {
@@ -409,7 +410,11 @@ export function PolicyDetailModal({
               {/* 서비스 / 애플리케이션 */}
               <div className="pt-4 border-t border-ds-outline-variant/10 grid grid-cols-2 gap-x-6 gap-y-4">
                 <Section label="서비스" count={svcCount}>
-                  <ChipList value={policy.service} />
+                  <ChipList
+                    value={policy.service}
+                    isClickable={isClickable}
+                    onClickName={(name) => setSelectedObj(name === selectedObj ? null : name)}
+                  />
                 </Section>
                 {policy.application != null && (
                   <Section label="애플리케이션" count={appCount}>
