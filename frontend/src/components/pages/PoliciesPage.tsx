@@ -21,6 +21,7 @@ import {
 } from '@/components/shared/QueryBuilder'
 import { DeviceSelector } from '@/components/shared/DeviceSelector'
 import { useDeviceStore } from '@/store/deviceStore'
+import { usePolicySearchStore } from '@/store/policySearchStore'
 
 const ACTION_BADGE: Record<string, string> = {
   allow:  'bg-green-100 text-green-700',
@@ -77,17 +78,32 @@ export function PoliciesPage() {
   const gridRef = useRef<AgGridWrapperHandle>(null)
   const [searchParams, setSearchParams] = useSearchParams()
   const { selectedIds: deviceIds, setSelectedIds: setDeviceIds } = useDeviceStore()
-  const [filtersOpen, setFiltersOpen] = useState(false)
-  const [filterTree, setFilterTree] = useState<FilterTree>([])
-  const [policies, setPolicies] = useState<Policy[]>([])
-  const [searched, setSearched] = useState(false)
-  const [validObjectNames, setValidObjectNames] = useState<Set<string>>(new Set())
-  const [changeLogMap, setChangeLogMap] = useState<Map<string, ChangeLogEntry>>(new Map())
+
+  const {
+    filterTree, setFilterTree,
+    policies, setPolicies,
+    searched, setSearched,
+    validObjectNames: validObjectNamesArr, setValidObjectNames,
+    changeLogEntries, setChangeLogEntries,
+    quickFilterText, setQuickFilterText,
+    filtersOpen, setFiltersOpen,
+    reset: resetStore,
+  } = usePolicySearchStore()
+
+  const validObjectNames = useMemo(() => new Set(validObjectNamesArr), [validObjectNamesArr])
+  const changeLogMap = useMemo(() => {
+    const map = new Map<string, ChangeLogEntry>()
+    for (const log of changeLogEntries) {
+      const key = `${log.device_id}_${log.object_name}`
+      if (!map.has(key)) map.set(key, log)
+    }
+    return map
+  }, [changeLogEntries])
+
   const [objectModal, setObjectModal] = useState<{ deviceId: number; name: string } | null>(null)
   const [historyModal, setHistoryModal] = useState<{ deviceId: number; ruleName: string } | null>(null)
   const [detailModal, setDetailModal] = useState<Policy | null>(null)
-  const [quickFilterInput, setQuickFilterInput] = useState('')
-  const [quickFilterText, setQuickFilterText] = useState('')
+  const [quickFilterInput, setQuickFilterInput] = useState(quickFilterText)
 
   const { data: devices = [] } = useQuery({ queryKey: ['devices'], queryFn: listDevices })
 
@@ -121,16 +137,17 @@ export function PoliciesPage() {
     },
     onSuccess: ({ policyRes, logs }) => {
       setPolicies(policyRes.policies)
-      setValidObjectNames(new Set(policyRes.valid_object_names))
+      setValidObjectNames(policyRes.valid_object_names)
       setSearched(true)
 
-      // 변경 이력 맵 갱신 (최신 로그만)
-      const map = new Map<string, ChangeLogEntry>()
+      // 변경 이력 — 최신 로그만 (key 기준 첫 번째)
+      const seen = new Set<string>()
+      const deduped: ChangeLogEntry[] = []
       for (const log of logs as ChangeLogEntry[]) {
         const key = `${log.device_id}_${log.object_name}`
-        if (!map.has(key)) map.set(key, log)
+        if (!seen.has(key)) { seen.add(key); deduped.push(log) }
       }
-      setChangeLogMap(map)
+      setChangeLogEntries(deduped)
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -146,13 +163,8 @@ export function PoliciesPage() {
   }
 
   const handleReset = () => {
-    setFilterTree([])
-    setPolicies([])
-    setSearched(false)
-    setValidObjectNames(new Set())
-    setChangeLogMap(new Map())
+    resetStore()
     setQuickFilterInput('')
-    setQuickFilterText('')
     gridRef.current?.gridApi?.setFilterModel(null)
   }
 
@@ -294,7 +306,7 @@ export function PoliciesPage() {
         {/* 툴바 */}
         <div className="flex items-center gap-2 px-4 py-2.5">
           <button
-            onClick={() => setFiltersOpen((v) => !v)}
+            onClick={() => setFiltersOpen(!filtersOpen)}
             className={`flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${
               filtersOpen || hasConditions
                 ? 'text-ds-tertiary bg-ds-tertiary/10'
