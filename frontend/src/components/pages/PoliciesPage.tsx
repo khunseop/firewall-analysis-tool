@@ -14,7 +14,11 @@ import { daysSinceHit } from '@/lib/utils'
 import { ObjectDetailModal } from '@/components/shared/ObjectDetailModal'
 import { PolicyHistoryModal } from '@/components/shared/PolicyHistoryModal'
 import { PolicyDetailModal } from '@/components/shared/PolicyDetailModal'
-import { QueryBuilder, buildRequestFromConditions, QB_FIELDS, OP_LABELS, type Condition } from '@/components/shared/QueryBuilder'
+import {
+  QueryBuilder, buildRequestFromFilterTree, conditionsToFilterTree,
+  QB_FIELDS, OP_LABELS,
+  type FilterTree,
+} from '@/components/shared/QueryBuilder'
 import { DeviceSelector } from '@/components/shared/DeviceSelector'
 import { useDeviceStore } from '@/store/deviceStore'
 
@@ -74,7 +78,7 @@ export function PoliciesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { selectedIds: deviceIds, setSelectedIds: setDeviceIds } = useDeviceStore()
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const [conditions, setConditions] = useState<Condition[]>([])
+  const [filterTree, setFilterTree] = useState<FilterTree>([])
   const [policies, setPolicies] = useState<Policy[]>([])
   const [searched, setSearched] = useState(false)
   const [validObjectNames, setValidObjectNames] = useState<Set<string>>(new Set())
@@ -95,13 +99,13 @@ export function PoliciesPage() {
     const srcIp   = searchParams.get('src_ip')
     const dstIp   = searchParams.get('dst_ip')
     if (srcName || dstName || svcName || srcIp || dstIp) {
-      const newConds: Condition[] = []
-      if (srcName) newConds.push({ field: 'src_name', operator: 'contains', value: srcName })
-      if (dstName) newConds.push({ field: 'dst_name', operator: 'contains', value: dstName })
-      if (svcName) newConds.push({ field: 'service_name', operator: 'contains', value: svcName })
-      if (srcIp)   newConds.push({ field: 'src_ip', operator: 'contains', value: srcIp })
-      if (dstIp)   newConds.push({ field: 'dst_ip', operator: 'contains', value: dstIp })
-      setConditions(newConds)
+      const newConds = []
+      if (srcName) newConds.push({ field: 'src_name', operator: 'contains' as const, value: srcName })
+      if (dstName) newConds.push({ field: 'dst_name', operator: 'contains' as const, value: dstName })
+      if (svcName) newConds.push({ field: 'service_name', operator: 'contains' as const, value: svcName })
+      if (srcIp)   newConds.push({ field: 'src_ip', operator: 'contains' as const, value: srcIp })
+      if (dstIp)   newConds.push({ field: 'dst_ip', operator: 'contains' as const, value: dstIp })
+      setFilterTree(conditionsToFilterTree(newConds))
       setFiltersOpen(true)
       setSearchParams({}, { replace: true })
     }
@@ -132,7 +136,7 @@ export function PoliciesPage() {
   })
 
   const buildRequest = (): PolicySearchRequest => {
-    const payload = buildRequestFromConditions(conditions, deviceIds)
+    const payload = buildRequestFromFilterTree(filterTree, deviceIds)
     return payload as unknown as PolicySearchRequest
   }
 
@@ -142,7 +146,7 @@ export function PoliciesPage() {
   }
 
   const handleReset = () => {
-    setConditions([])
+    setFilterTree([])
     setPolicies([])
     setSearched(false)
     setValidObjectNames(new Set())
@@ -274,7 +278,8 @@ export function PoliciesPage() {
     { field: 'vsys', headerName: 'VSYS', width: 72, hide: true },
   ]
 
-  const hasConditions = conditions.length > 0 && conditions.some(c => c.value.trim())
+  const allConditions = filterTree.flatMap(g => g.conditions)
+  const hasConditions = allConditions.some(c => c.value.trim())
 
   return (
     <div className="flex flex-col gap-3 h-[calc(100vh-64px)]">
@@ -300,7 +305,7 @@ export function PoliciesPage() {
             상세 검색
             {hasConditions && (
               <span className="ml-1 bg-ds-tertiary text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">
-                {conditions.filter(c => c.value.trim()).length}
+                {allConditions.filter(c => c.value.trim()).length}
               </span>
             )}
           </button>
@@ -308,17 +313,21 @@ export function PoliciesPage() {
           {/* 활성 조건 태그 (패널 닫혔을 때) */}
           {!filtersOpen && hasConditions && (
             <div className="flex flex-wrap gap-1.5 flex-1">
-              {conditions.filter(c => c.value.trim()).map((c, i) => {
-                const fieldLabel = QB_FIELDS.find(f => f.key === c.field)?.label ?? c.field
-                const opLabel = OP_LABELS[c.operator as keyof typeof OP_LABELS] ?? c.operator
-                const isNot = c.operator === 'not_equals' || c.operator === 'not_contains'
-                return (
-                  <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold ${isNot ? 'bg-ds-error/10 text-ds-error' : 'bg-ds-tertiary/10 text-ds-tertiary'}`}>
-                    {fieldLabel} <span className="opacity-60">{opLabel}</span> {c.value}
-                    <button onClick={() => setConditions(prev => prev.filter((_, j) => j !== i))} className="hover:opacity-70 ml-0.5"><X className="w-3 h-3" /></button>
-                  </span>
-                )
-              })}
+              {filterTree.map((group, gi) => (
+                group.conditions.filter(c => c.value.trim()).map((c, ci) => {
+                  const fieldLabel = QB_FIELDS.find(f => f.key === c.field)?.label ?? c.field
+                  const opLabel = OP_LABELS[c.operator as keyof typeof OP_LABELS] ?? c.operator
+                  const isNot = c.operator === 'not_equals' || c.operator === 'not_contains'
+                  return (
+                    <span key={`${gi}-${ci}`} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold ${isNot ? 'bg-ds-error/10 text-ds-error' : 'bg-ds-tertiary/10 text-ds-tertiary'}`}>
+                      {gi > 0 && ci === 0 && (
+                        <span className="opacity-50 mr-0.5 text-[10px]">{filterTree[gi - 1].joinOperator}</span>
+                      )}
+                      {fieldLabel} <span className="opacity-60">{opLabel}</span> {c.value}
+                    </span>
+                  )
+                })
+              ))}
             </div>
           )}
 
@@ -344,8 +353,8 @@ export function PoliciesPage() {
         {/* 쿼리 빌더 패널 */}
         {filtersOpen && (
           <div className="border-t border-ds-outline-variant/10 bg-ds-surface-container-low/30 px-4 py-3">
-            <p className="text-[10px] text-ds-on-surface-variant mb-2">조건을 추가하고 검색하세요. 여러 조건은 AND로 결합됩니다.</p>
-            <QueryBuilder conditions={conditions} onChange={setConditions} />
+            <p className="text-[10px] text-ds-on-surface-variant mb-2">조건을 추가하고 검색하세요. AND/OR 토글로 조건을 결합하고, 그룹 추가로 괄호 묶음을 만들 수 있습니다.</p>
+            <QueryBuilder tree={filterTree} onTreeChange={setFilterTree} />
           </div>
         )}
       </div>

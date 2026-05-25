@@ -1,6 +1,22 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Union, Literal
 from datetime import datetime
+
+
+# ─── 필터 표현식 트리 ─────────────────────────────────────────────────────────
+
+class FilterLeafNode(BaseModel):
+    type: Literal['LEAF']
+    field: str
+    operator: Literal['contains', 'equals', 'not_equals', 'not_contains', 'gte', 'lte']
+    value: str
+
+class FilterGroupNode(BaseModel):
+    type: Literal['AND', 'OR']
+    children: List['FilterExprNode']
+
+FilterExprNode = Union[FilterLeafNode, FilterGroupNode]
+FilterGroupNode.model_rebuild()
 
 # Base schema for policy attributes
 class PolicyBase(BaseModel):
@@ -90,6 +106,9 @@ class PolicySearchRequest(BaseModel):
     # Paging (optional; AG-Grid usually client-side). If provided, backend slices.
     skip: Optional[int] = None
     limit: Optional[int] = None
+
+    # 필터 표현식 트리 (존재하면 flat 필드 대신 이걸 우선 사용)
+    filter_expression: Optional[FilterExprNode] = None
 
 # Response schema for policy search
 class PolicySearchResponse(BaseModel):

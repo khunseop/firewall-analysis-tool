@@ -1,13 +1,14 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import delete, update, func
+from sqlalchemy import delete, update, func, or_, and_
 from sqlalchemy.sql import exists
+from sqlalchemy.sql.elements import ClauseElement
 
 from app.models.policy import Policy
-from app.schemas.policy import PolicyCreate
+from app.schemas.policy import PolicyCreate, FilterLeafNode, FilterGroupNode, FilterExprNode
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from typing import List
+from typing import List, Union, Optional
 
 from app import models, schemas
 from app.services.normalize import parse_ipv4_numeric, parse_port_numeric
@@ -67,6 +68,155 @@ async def count_policies_by_device(db: AsyncSession, device_id: int) -> dict:
     return {"total": total, "disabled": disabled}
 
 
+async def _evaluate_leaf(
+    db: AsyncSession,
+    device_ids: List[int],
+    node: FilterLeafNode,
+) -> Optional[ClauseElement]:
+    """LEAF 노드를 SQLAlchemy ColumnElement로 변환. 인덱스 테이블 조회 결과는 Policy.id.in_() 형태로 반환."""
+    field, op, value = node.field, node.operator, node.value.strip()
+    if not value:
+        return None
+
+    is_not = op in ('not_equals', 'not_contains')
+    is_exact = op in ('equals', 'not_equals')
+
+    # ─── 직접 컬럼 필드 ───────────────────────────────────────────────────────
+    ILIKE_COLS = {
+        'rule_name': Policy.rule_name,
+        'vsys': Policy.vsys,
+        'user': Policy.user,
+        'application': Policy.application,
+        'description': Policy.description,
+    }
+    ILIKE_NAME_COLS = {
+        'src_name': Policy.source,
+        'dst_name': Policy.destination,
+        'service_name': Policy.service,
+    }
+
+    if field in ILIKE_COLS:
+        col = ILIKE_COLS[field]
+        if is_exact:
+            clause = func.lower(col) == value.lower()
+            return ~clause if is_not else clause
+        else:
+            clause = col.ilike(f'%{value}%')
+            return ~clause if is_not else clause
+
+    if field in ILIKE_NAME_COLS:
+        col = ILIKE_NAME_COLS[field]
+        if is_exact:
+            clause = func.lower(col) == value.lower()
+            return ~clause if is_not else clause
+        else:
+            clause = col.ilike(f'%{value}%')
+            return ~clause if is_not else clause
+
+    if field == 'action':
+        clause = func.lower(Policy.action) == value.lower()
+        return ~clause if is_not else clause
+
+    if field == 'enable':
+        return Policy.enable == (value.lower() == 'true')
+
+    if field in ('last_hit_from', 'last_hit_to'):
+        try:
+            dt = datetime.strptime(value, '%Y-%m-%d')
+        except ValueError:
+            return None
+        return Policy.last_hit_date >= dt if field == 'last_hit_from' else Policy.last_hit_date <= dt
+
+    # ─── 인덱스 기반 필드 (PolicyAddressMember) ──────────────────────────────
+    if field in ('src_ip', 'dst_ip'):
+        direction = 'source' if field == 'src_ip' else 'destination'
+        _, start, end = parse_ipv4_numeric(value)
+        if start is None or end is None:
+            return None
+        if is_exact:
+            q = select(models.PolicyAddressMember.policy_id).where(
+                models.PolicyAddressMember.device_id.in_(device_ids),
+                models.PolicyAddressMember.direction == direction,
+                models.PolicyAddressMember.ip_start == start,
+                models.PolicyAddressMember.ip_end == end,
+            )
+        else:
+            q = select(models.PolicyAddressMember.policy_id).where(
+                models.PolicyAddressMember.device_id.in_(device_ids),
+                models.PolicyAddressMember.direction == direction,
+                models.PolicyAddressMember.ip_start <= end,
+                models.PolicyAddressMember.ip_end >= start,
+            )
+        result = await db.execute(q)
+        ids = set(result.scalars().all())
+        if is_not:
+            return Policy.id.notin_(ids) if ids else None
+        return Policy.id.in_(ids)
+
+    # ─── 인덱스 기반 필드 (PolicyServiceMember) ──────────────────────────────
+    if field == 'service':
+        token = value.strip()
+        proto = None
+        ports_str = token
+        if '/' in token:
+            parts = token.split('/', 1)
+            proto = parts[0].strip().lower()
+            ports_str = parts[1].strip()
+        pstart, pend = parse_port_numeric(ports_str)
+        svc_ids: set = set()
+        if pstart is not None and pend is not None:
+            port_cond = and_(
+                models.PolicyServiceMember.port_start <= pend,
+                models.PolicyServiceMember.port_end >= pstart,
+            )
+            if proto and proto != 'any':
+                final_cond = and_(port_cond, func.lower(models.PolicyServiceMember.protocol) == proto)
+            else:
+                final_cond = and_(port_cond, func.lower(models.PolicyServiceMember.protocol).in_(['tcp', 'udp', 'any']))
+            q = select(models.PolicyServiceMember.policy_id).where(
+                models.PolicyServiceMember.device_id.in_(device_ids),
+                final_cond,
+            )
+            r = await db.execute(q)
+            svc_ids.update(r.scalars().all())
+        else:
+            q = select(models.PolicyServiceMember.policy_id).where(
+                models.PolicyServiceMember.device_id.in_(device_ids),
+                models.PolicyServiceMember.token.ilike(f'%{token}%'),
+            )
+            r = await db.execute(q)
+            svc_ids.update(r.scalars().all())
+        if is_not:
+            return Policy.id.notin_(svc_ids) if svc_ids else None
+        return Policy.id.in_(svc_ids)
+
+    return None
+
+
+async def _evaluate_expr_tree(
+    db: AsyncSession,
+    device_ids: List[int],
+    node: FilterExprNode,
+) -> Optional[ClauseElement]:
+    """필터 표현식 트리를 재귀적으로 SQLAlchemy WHERE 절로 변환."""
+    if node.type == 'LEAF':
+        return await _evaluate_leaf(db, device_ids, node)
+
+    # AND / OR 노드
+    child_clauses = []
+    for child in node.children:
+        result = await _evaluate_expr_tree(db, device_ids, child)
+        if result is not None:
+            child_clauses.append(result)
+
+    if not child_clauses:
+        return None
+    if len(child_clauses) == 1:
+        return child_clauses[0]
+
+    return and_(*child_clauses) if node.type == 'AND' else or_(*child_clauses)
+
+
 async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) -> List[Policy]:
     if not req.device_ids:
         return []
@@ -76,9 +226,20 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
         Policy.device_id.in_(req.device_ids),
     )
 
-    # Text filters (ILIKE contains, with optional negation)
-    from sqlalchemy import or_, and_
+    # filter_expression 트리가 있으면 새 경로로 처리
+    if req.filter_expression is not None:
+        expr_clause = await _evaluate_expr_tree(db, req.device_ids, req.filter_expression)
+        if expr_clause is not None:
+            stmt = stmt.where(expr_clause)
+        stmt = stmt.order_by(Policy.device_id.asc(), Policy.vsys.asc(), Policy.seq.asc(), Policy.rule_name.asc())
+        if req.skip:
+            stmt = stmt.offset(req.skip)
+        if req.limit:
+            stmt = stmt.limit(req.limit)
+        result = await db.execute(stmt)
+        return result.scalars().all()
 
+    # Text filters (ILIKE contains, with optional negation)
     def _text_filter(col, val: str, negate: bool = False):
         cond = col.ilike(f"%{val.strip()}%")
         return ~cond if negate else cond

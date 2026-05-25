@@ -69,6 +69,18 @@ export interface ServiceGroup {
   last_seen_at: string | null
 }
 
+export interface FilterLeafNode {
+  type: 'LEAF'
+  field: string
+  operator: 'contains' | 'equals' | 'not_equals' | 'not_contains' | 'gte' | 'lte'
+  value: string
+}
+export interface FilterGroupNode {
+  type: 'AND' | 'OR'
+  children: FilterExprNode[]
+}
+export type FilterExprNode = FilterLeafNode | FilterGroupNode
+
 export interface PolicySearchRequest {
   device_ids: number[]
   vsys?: string
@@ -110,6 +122,7 @@ export interface PolicySearchRequest {
   service_names_exclude?: string[]
   skip?: number
   limit?: number
+  filter_expression?: FilterExprNode
 }
 
 export interface ChangeLogEntry {
