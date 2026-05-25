@@ -18,14 +18,14 @@ interface FieldDef {
 }
 
 export const QB_FIELDS: FieldDef[] = [
-  { key: 'rule_name',     label: '정책명',          type: 'text',   operators: ['contains', 'not_contains', 'equals', 'not_equals'], placeholder: 'web-policy' },
+  { key: 'rule_name',     label: '정책명',          type: 'text',   operators: ['contains', 'not_contains', 'equals', 'not_equals'], placeholder: 'web-policy, http-rule' },
   { key: 'vsys',          label: '가상시스템',       type: 'text',   operators: ['contains', 'equals'], placeholder: 'vsys1' },
-  { key: 'src_ip',        label: '출발지 IP',        type: 'text',   operators: ['equals', 'not_equals', 'contains', 'not_contains'], placeholder: '10.0.0.0/8' },
-  { key: 'dst_ip',        label: '목적지 IP',        type: 'text',   operators: ['equals', 'not_equals', 'contains', 'not_contains'], placeholder: '0.0.0.0/0' },
-  { key: 'src_name',      label: '출발지 객체명',    type: 'text',   operators: ['contains', 'not_contains', 'equals', 'not_equals'], placeholder: 'host-10.0.0.1' },
-  { key: 'dst_name',      label: '목적지 객체명',    type: 'text',   operators: ['contains', 'not_contains', 'equals', 'not_equals'], placeholder: 'server-group' },
-  { key: 'service',       label: '서비스/포트',      type: 'text',   operators: ['equals', 'not_equals'], placeholder: 'tcp/443 또는 http' },
-  { key: 'service_name',  label: '서비스 객체명',    type: 'text',   operators: ['contains', 'not_contains', 'equals', 'not_equals'], placeholder: 'svc-https' },
+  { key: 'src_ip',        label: '출발지 IP',        type: 'text',   operators: ['equals', 'not_equals', 'contains', 'not_contains'], placeholder: '10.0.0.0/8, 192.168.0.0/16' },
+  { key: 'dst_ip',        label: '목적지 IP',        type: 'text',   operators: ['equals', 'not_equals', 'contains', 'not_contains'], placeholder: '0.0.0.0/0, 10.0.0.0/8' },
+  { key: 'src_name',      label: '출발지 객체명',    type: 'text',   operators: ['contains', 'not_contains', 'equals', 'not_equals'], placeholder: 'host-A, host-B' },
+  { key: 'dst_name',      label: '목적지 객체명',    type: 'text',   operators: ['contains', 'not_contains', 'equals', 'not_equals'], placeholder: 'server-group, web-server' },
+  { key: 'service',       label: '서비스/포트',      type: 'text',   operators: ['equals', 'not_equals'], placeholder: 'tcp/443, tcp/80' },
+  { key: 'service_name',  label: '서비스 객체명',    type: 'text',   operators: ['contains', 'not_contains', 'equals', 'not_equals'], placeholder: 'svc-https, svc-http' },
   { key: 'action',        label: '액션',             type: 'text',   operators: ['equals', 'not_equals'], placeholder: 'allow' },
   { key: 'enable',        label: '활성화',           type: 'select', operators: ['equals'],
     options: [{ value: 'true', label: '활성' }, { value: 'false', label: '비활성' }] },
@@ -170,28 +170,40 @@ export function buildRequestFromConditions(
         payload.enable = v === 'true'
         break
       case 'src_ip':
-        if (isExact) (isNot ? (payload.src_ips_exact_exclude as string[]) : (payload.src_ips_exact as string[])).push(v)
-        else         (isNot ? (payload.src_ips_exclude as string[])        : (payload.src_ips as string[])).push(v)
+        for (const ip of v.split(',').map(s => s.trim()).filter(Boolean)) {
+          if (isExact) (isNot ? (payload.src_ips_exact_exclude as string[]) : (payload.src_ips_exact as string[])).push(ip)
+          else         (isNot ? (payload.src_ips_exclude as string[])        : (payload.src_ips as string[])).push(ip)
+        }
         break
       case 'dst_ip':
-        if (isExact) (isNot ? (payload.dst_ips_exact_exclude as string[]) : (payload.dst_ips_exact as string[])).push(v)
-        else         (isNot ? (payload.dst_ips_exclude as string[])        : (payload.dst_ips as string[])).push(v)
+        for (const ip of v.split(',').map(s => s.trim()).filter(Boolean)) {
+          if (isExact) (isNot ? (payload.dst_ips_exact_exclude as string[]) : (payload.dst_ips_exact as string[])).push(ip)
+          else         (isNot ? (payload.dst_ips_exclude as string[])        : (payload.dst_ips as string[])).push(ip)
+        }
         break
       case 'src_name':
-        if (isNot) (payload.src_names_exclude as string[]).push(v)
-        else (payload.src_names as string[]).push(v)
+        for (const n of v.split(',').map(s => s.trim()).filter(Boolean)) {
+          if (isNot) (payload.src_names_exclude as string[]).push(n)
+          else (payload.src_names as string[]).push(n)
+        }
         break
       case 'dst_name':
-        if (isNot) (payload.dst_names_exclude as string[]).push(v)
-        else (payload.dst_names as string[]).push(v)
+        for (const n of v.split(',').map(s => s.trim()).filter(Boolean)) {
+          if (isNot) (payload.dst_names_exclude as string[]).push(n)
+          else (payload.dst_names as string[]).push(n)
+        }
         break
       case 'service':
-        if (isNot) (payload.services_exclude as string[]).push(v)
-        else (payload.services as string[]).push(v)
+        for (const s of v.split(',').map(s => s.trim()).filter(Boolean)) {
+          if (isNot) (payload.services_exclude as string[]).push(s)
+          else (payload.services as string[]).push(s)
+        }
         break
       case 'service_name':
-        if (isNot) (payload.service_names_exclude as string[]).push(v)
-        else (payload.service_names as string[]).push(v)
+        for (const n of v.split(',').map(s => s.trim()).filter(Boolean)) {
+          if (isNot) (payload.service_names_exclude as string[]).push(n)
+          else (payload.service_names as string[]).push(n)
+        }
         break
       case 'last_hit_from':
         payload.last_hit_date_from = v

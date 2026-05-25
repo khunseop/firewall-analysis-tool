@@ -97,21 +97,31 @@ async def _evaluate_leaf(
 
     if field in ILIKE_COLS:
         col = ILIKE_COLS[field]
+        vals = [v.strip() for v in value.split(',') if v.strip()]
+        if not vals:
+            return None
         if is_exact:
-            clause = func.lower(col) == value.lower()
-            return ~clause if is_not else clause
+            clauses = [func.lower(col) == v.lower() for v in vals]
+            combined = or_(*clauses) if len(clauses) > 1 else clauses[0]
+            return ~combined if is_not else combined
         else:
-            clause = col.ilike(f'%{value}%')
-            return ~clause if is_not else clause
+            clauses = [col.ilike(f'%{v}%') for v in vals]
+            combined = or_(*clauses) if len(clauses) > 1 else clauses[0]
+            return ~combined if is_not else combined
 
     if field in ILIKE_NAME_COLS:
         col = ILIKE_NAME_COLS[field]
+        vals = [v.strip() for v in value.split(',') if v.strip()]
+        if not vals:
+            return None
         if is_exact:
-            clause = func.lower(col) == value.lower()
-            return ~clause if is_not else clause
+            clauses = [func.lower(col) == v.lower() for v in vals]
+            combined = or_(*clauses) if len(clauses) > 1 else clauses[0]
+            return ~combined if is_not else combined
         else:
-            clause = col.ilike(f'%{value}%')
-            return ~clause if is_not else clause
+            clauses = [col.ilike(f'%{v}%') for v in vals]
+            combined = or_(*clauses) if len(clauses) > 1 else clauses[0]
+            return ~combined if is_not else combined
 
     if field == 'action':
         clause = func.lower(Policy.action) == value.lower()
@@ -130,62 +140,70 @@ async def _evaluate_leaf(
     # ─── 인덱스 기반 필드 (PolicyAddressMember) ──────────────────────────────
     if field in ('src_ip', 'dst_ip'):
         direction = 'source' if field == 'src_ip' else 'destination'
-        _, start, end = parse_ipv4_numeric(value)
-        if start is None or end is None:
+        ip_tokens = [v.strip() for v in value.split(',') if v.strip()]
+        ids: set = set()
+        for ip_str in ip_tokens:
+            _, start, end = parse_ipv4_numeric(ip_str)
+            if start is None or end is None:
+                continue
+            if is_exact:
+                q = select(models.PolicyAddressMember.policy_id).where(
+                    models.PolicyAddressMember.device_id.in_(device_ids),
+                    models.PolicyAddressMember.direction == direction,
+                    models.PolicyAddressMember.ip_start == start,
+                    models.PolicyAddressMember.ip_end == end,
+                )
+            else:
+                q = select(models.PolicyAddressMember.policy_id).where(
+                    models.PolicyAddressMember.device_id.in_(device_ids),
+                    models.PolicyAddressMember.direction == direction,
+                    models.PolicyAddressMember.ip_start <= end,
+                    models.PolicyAddressMember.ip_end >= start,
+                )
+            result = await db.execute(q)
+            ids.update(result.scalars().all())
+        if not ip_tokens:
             return None
-        if is_exact:
-            q = select(models.PolicyAddressMember.policy_id).where(
-                models.PolicyAddressMember.device_id.in_(device_ids),
-                models.PolicyAddressMember.direction == direction,
-                models.PolicyAddressMember.ip_start == start,
-                models.PolicyAddressMember.ip_end == end,
-            )
-        else:
-            q = select(models.PolicyAddressMember.policy_id).where(
-                models.PolicyAddressMember.device_id.in_(device_ids),
-                models.PolicyAddressMember.direction == direction,
-                models.PolicyAddressMember.ip_start <= end,
-                models.PolicyAddressMember.ip_end >= start,
-            )
-        result = await db.execute(q)
-        ids = set(result.scalars().all())
         if is_not:
             return Policy.id.notin_(ids) if ids else None
         return Policy.id.in_(ids)
 
     # ─── 인덱스 기반 필드 (PolicyServiceMember) ──────────────────────────────
     if field == 'service':
-        token = value.strip()
-        proto = None
-        ports_str = token
-        if '/' in token:
-            parts = token.split('/', 1)
-            proto = parts[0].strip().lower()
-            ports_str = parts[1].strip()
-        pstart, pend = parse_port_numeric(ports_str)
+        svc_tokens = [v.strip() for v in value.split(',') if v.strip()]
         svc_ids: set = set()
-        if pstart is not None and pend is not None:
-            port_cond = and_(
-                models.PolicyServiceMember.port_start <= pend,
-                models.PolicyServiceMember.port_end >= pstart,
-            )
-            if proto and proto != 'any':
-                final_cond = and_(port_cond, func.lower(models.PolicyServiceMember.protocol) == proto)
+        for token in svc_tokens:
+            proto = None
+            ports_str = token
+            if '/' in token:
+                parts = token.split('/', 1)
+                proto = parts[0].strip().lower()
+                ports_str = parts[1].strip()
+            pstart, pend = parse_port_numeric(ports_str)
+            if pstart is not None and pend is not None:
+                port_cond = and_(
+                    models.PolicyServiceMember.port_start <= pend,
+                    models.PolicyServiceMember.port_end >= pstart,
+                )
+                if proto and proto != 'any':
+                    final_cond = and_(port_cond, func.lower(models.PolicyServiceMember.protocol) == proto)
+                else:
+                    final_cond = and_(port_cond, func.lower(models.PolicyServiceMember.protocol).in_(['tcp', 'udp', 'any']))
+                q = select(models.PolicyServiceMember.policy_id).where(
+                    models.PolicyServiceMember.device_id.in_(device_ids),
+                    final_cond,
+                )
+                r = await db.execute(q)
+                svc_ids.update(r.scalars().all())
             else:
-                final_cond = and_(port_cond, func.lower(models.PolicyServiceMember.protocol).in_(['tcp', 'udp', 'any']))
-            q = select(models.PolicyServiceMember.policy_id).where(
-                models.PolicyServiceMember.device_id.in_(device_ids),
-                final_cond,
-            )
-            r = await db.execute(q)
-            svc_ids.update(r.scalars().all())
-        else:
-            q = select(models.PolicyServiceMember.policy_id).where(
-                models.PolicyServiceMember.device_id.in_(device_ids),
-                models.PolicyServiceMember.token.ilike(f'%{token}%'),
-            )
-            r = await db.execute(q)
-            svc_ids.update(r.scalars().all())
+                q = select(models.PolicyServiceMember.policy_id).where(
+                    models.PolicyServiceMember.device_id.in_(device_ids),
+                    models.PolicyServiceMember.token.ilike(f'%{token}%'),
+                )
+                r = await db.execute(q)
+                svc_ids.update(r.scalars().all())
+        if not svc_tokens:
+            return None
         if is_not:
             return Policy.id.notin_(svc_ids) if svc_ids else None
         return Policy.id.in_(svc_ids)
