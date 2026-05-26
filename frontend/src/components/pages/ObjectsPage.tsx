@@ -129,7 +129,41 @@ export function ObjectsPage() {
 
   const handleExport = async (data: unknown[], filename: string) => {
     if (data.length === 0) { toast.warning('내보낼 데이터가 없습니다.'); return }
-    try { await exportToExcel(data as Record<string, unknown>[], filename) }
+    try {
+      let exportData: Record<string, unknown>[]
+      if (activeTab === 'network_objects') {
+        exportData = (data as NetworkObject[]).map(o => ({
+          '장비명': deviceNameMap.get(o.device_id) ?? String(o.device_id),
+          '이름': o.name,
+          'IP 주소': o.ip_address,
+          '타입': o.type,
+          '설명': o.description,
+        }))
+      } else if (activeTab === 'network_groups') {
+        exportData = (data as NetworkGroup[]).map(o => ({
+          '장비명': deviceNameMap.get(o.device_id) ?? String(o.device_id),
+          '이름': o.name,
+          '멤버': o.members,
+          '설명': o.description,
+        }))
+      } else if (activeTab === 'services') {
+        exportData = (data as Service[]).map(o => ({
+          '장비명': deviceNameMap.get(o.device_id) ?? String(o.device_id),
+          '이름': o.name,
+          '프로토콜': o.protocol,
+          '포트': o.port,
+          '설명': o.description,
+        }))
+      } else {
+        exportData = (data as ServiceGroup[]).map(o => ({
+          '장비명': deviceNameMap.get(o.device_id) ?? String(o.device_id),
+          '이름': o.name,
+          '멤버': o.members,
+          '설명': o.description,
+        }))
+      }
+      await exportToExcel(exportData, filename)
+    }
     catch (e: unknown) { toast.error((e as Error).message) }
   }
 

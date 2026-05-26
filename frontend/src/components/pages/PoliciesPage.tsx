@@ -180,7 +180,24 @@ export function PoliciesPage() {
 
   const handleExport = async () => {
     if (policies.length === 0) { toast.warning('내보낼 데이터가 없습니다.'); return }
-    try { await exportToExcel(policies as unknown as Record<string, unknown>[], '방화벽정책') }
+    try {
+      const exportData = policies.map(p => ({
+        '장비명': deviceNameMap.get(p.device_id) ?? String(p.device_id),
+        '#': p.seq,
+        '정책명': p.rule_name,
+        '액션': p.action,
+        '활성': p.enable ? '활성' : '비활성',
+        '출발지': p.source,
+        '목적지': p.destination,
+        '서비스': p.service,
+        '사용자': p.user,
+        '보안 프로파일': p.security_profile,
+        '카테고리': p.category,
+        '설명': p.description,
+        '마지막 사용일': p.last_hit_date,
+      }))
+      await exportToExcel(exportData, '방화벽정책')
+    }
     catch (e: unknown) { toast.error((e as Error).message) }
   }
 
