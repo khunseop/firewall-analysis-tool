@@ -156,11 +156,13 @@ async def _evaluate_leaf(
                 ).distinct()
                 r_has = await db.execute(q_has)
                 has_ids = set(r_has.scalars().all())
-                # 범위 밖 멤버가 하나라도 있는 정책
+                # 범위 밖 멤버가 하나라도 있거나 IP가 미해석(NULL)인 정책
                 q_out = select(models.PolicyAddressMember.policy_id).where(
                     models.PolicyAddressMember.device_id.in_(device_ids),
                     models.PolicyAddressMember.direction == direction,
                     or_(
+                        models.PolicyAddressMember.ip_start.is_(None),
+                        models.PolicyAddressMember.ip_end.is_(None),
                         models.PolicyAddressMember.ip_start < start,
                         models.PolicyAddressMember.ip_end > end,
                     )
@@ -567,6 +569,8 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
                 models.PolicyAddressMember.device_id.in_(req.device_ids),
                 models.PolicyAddressMember.direction == 'source',
                 or_(
+                    models.PolicyAddressMember.ip_start.is_(None),
+                    models.PolicyAddressMember.ip_end.is_(None),
                     models.PolicyAddressMember.ip_start < range_start,
                     models.PolicyAddressMember.ip_end > range_end,
                 )
@@ -594,6 +598,8 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
                 models.PolicyAddressMember.device_id.in_(req.device_ids),
                 models.PolicyAddressMember.direction == 'destination',
                 or_(
+                    models.PolicyAddressMember.ip_start.is_(None),
+                    models.PolicyAddressMember.ip_end.is_(None),
                     models.PolicyAddressMember.ip_start < range_start,
                     models.PolicyAddressMember.ip_end > range_end,
                 )

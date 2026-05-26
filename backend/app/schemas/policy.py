@@ -8,7 +8,7 @@ from datetime import datetime
 class FilterLeafNode(BaseModel):
     type: Literal['LEAF']
     field: str
-    operator: Literal['contains', 'equals', 'not_equals', 'not_contains', 'gte', 'lte']
+    operator: Literal['contains', 'equals', 'not_equals', 'not_contains', 'gte', 'lte', 'only_within']
     value: str
 
 class FilterGroupNode(BaseModel):
