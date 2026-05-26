@@ -1,6 +1,11 @@
 import { Plus, X } from 'lucide-react'
 import type { FilterExprNode, FilterLeafNode } from '@/api/firewall'
 
+function generateId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return generateId()
+  return Math.random().toString(36).slice(2) + Date.now().toString(36)
+}
+
 // ─── 필드 정의 ────────────────────────────────────────────────────────────────
 
 type FieldType = 'text' | 'date' | 'select'
@@ -75,7 +80,7 @@ function getFieldDef(key: string): FieldDef {
 export function conditionsToFilterTree(conditions: Condition[]): FilterTree {
   if (conditions.length === 0) return []
   return [{
-    id: crypto.randomUUID(),
+    id: generateId(),
     joinOperator: 'AND',
     conditions: conditions.map(c => ({ ...c, joinOperator: 'AND' as const })),
   }]
@@ -337,7 +342,7 @@ export function QueryBuilder({ tree, onTreeChange }: QueryBuilderProps) {
   const addGroup = () => {
     const def = QB_FIELDS[0]
     onTreeChange([...tree, {
-      id: crypto.randomUUID(),
+      id: generateId(),
       joinOperator: 'AND',
       conditions: [{ field: def.key, operator: def.operators[0], value: '', joinOperator: 'AND' }],
     }])
