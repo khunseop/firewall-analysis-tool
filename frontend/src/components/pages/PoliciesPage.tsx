@@ -74,6 +74,8 @@ function LastHitCell({ value }: { value: string | null }) {
   return <span className="text-[11px] text-ds-on-surface-variant">{days}일 전</span>
 }
 
+const GRID_DEFAULT_COL_DEF_OVERRIDE = { filter: false }
+
 export function PoliciesPage() {
   const gridRef = useRef<AgGridWrapperHandle>(null)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -450,7 +452,7 @@ export function PoliciesPage() {
           getRowId={(p) => String(p.data.id)}
           height="100%"
           noRowsText="장비를 선택하고 검색 버튼을 클릭하세요."
-          defaultColDefOverride={{ filter: false }}
+          defaultColDefOverride={GRID_DEFAULT_COL_DEF_OVERRIDE}
           quickFilterText={quickFilterText}
           onRowClicked={handleRowClick}
         />

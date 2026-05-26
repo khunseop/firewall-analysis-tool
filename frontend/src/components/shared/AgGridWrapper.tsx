@@ -1,4 +1,4 @@
-import { useRef, useCallback, forwardRef, useImperativeHandle } from 'react'
+import { useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { AgGridReact } from '@ag-grid-community/react'
 import {
   ModuleRegistry,
@@ -94,8 +94,22 @@ function AgGridWrapperInner<T>(
     }
   }, [fitColumns])
 
+  const defaultColDef = useMemo(() => ({
+    resizable: true,
+    filter: true,
+    sortable: true,
+    filterParams: { buttons: ['reset', 'apply'] },
+    ...defaultColDefOverride,
+  }), [defaultColDefOverride])
+
+  const containerClass = `ag-theme-quartz w-full relative${onRowClicked ? ' ag-clickable-rows' : ''}`
+  const isFill = height === '100%'
+
   return (
-    <div className={`ag-theme-quartz w-full relative${onRowClicked ? ' ag-clickable-rows' : ''}`} style={{ height }}>
+    <div
+      className={isFill ? `${containerClass} flex-1 min-h-0` : containerClass}
+      style={isFill ? undefined : { height }}
+    >
       <AgGridReact<T>
         columnDefs={columnDefs}
         rowData={rowData}
@@ -110,13 +124,7 @@ function AgGridWrapperInner<T>(
         rowSelection={rowSelection}
         onSelectionChanged={onSelectionChanged ? (e) => onSelectionChanged(e.api.getSelectedRows()) : undefined}
         context={context}
-        defaultColDef={{
-          resizable: true,
-          filter: true,
-          sortable: true,
-          filterParams: { buttons: ['reset', 'apply'] },
-          ...defaultColDefOverride,
-        }}
+        defaultColDef={defaultColDef}
         enableCellTextSelection
         overlayNoRowsTemplate={`
           <div class="flex flex-col items-center gap-3">
