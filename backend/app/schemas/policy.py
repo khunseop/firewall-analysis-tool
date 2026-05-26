@@ -102,6 +102,9 @@ class PolicySearchRequest(BaseModel):
     service_names_exclude: Optional[List[str]] = None
     src_ips_exact_exclude: Optional[List[str]] = None
     dst_ips_exact_exclude: Optional[List[str]] = None
+    # 전용 범위 검색: 모든 멤버가 지정 범위 안에 있는 정책만
+    src_ips_only_within: Optional[List[str]] = None
+    dst_ips_only_within: Optional[List[str]] = None
 
     # Paging (optional; AG-Grid usually client-side). If provided, backend slices.
     skip: Optional[int] = None

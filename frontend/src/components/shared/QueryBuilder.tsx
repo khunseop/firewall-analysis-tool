@@ -4,7 +4,7 @@ import type { FilterExprNode, FilterLeafNode } from '@/api/firewall'
 // ─── 필드 정의 ────────────────────────────────────────────────────────────────
 
 type FieldType = 'text' | 'date' | 'select'
-type OperatorKey = 'contains' | 'equals' | 'not_equals' | 'not_contains' | 'gte' | 'lte'
+type OperatorKey = 'contains' | 'equals' | 'not_equals' | 'not_contains' | 'gte' | 'lte' | 'only_within'
 
 interface FieldOption { value: string; label: string }
 
@@ -20,8 +20,8 @@ interface FieldDef {
 export const QB_FIELDS: FieldDef[] = [
   { key: 'rule_name',     label: '정책명',          type: 'text',   operators: ['contains', 'not_contains', 'equals', 'not_equals'], placeholder: 'web-policy, http-rule' },
   { key: 'vsys',          label: '가상시스템',       type: 'text',   operators: ['contains', 'equals'], placeholder: 'vsys1' },
-  { key: 'src_ip',        label: '출발지 IP',        type: 'text',   operators: ['equals', 'not_equals', 'contains', 'not_contains'], placeholder: '10.0.0.0/8, 192.168.0.0/16' },
-  { key: 'dst_ip',        label: '목적지 IP',        type: 'text',   operators: ['equals', 'not_equals', 'contains', 'not_contains'], placeholder: '0.0.0.0/0, 10.0.0.0/8' },
+  { key: 'src_ip',        label: '출발지 IP',        type: 'text',   operators: ['equals', 'not_equals', 'contains', 'not_contains', 'only_within'], placeholder: '10.0.0.0/8, 192.168.0.0/16' },
+  { key: 'dst_ip',        label: '목적지 IP',        type: 'text',   operators: ['equals', 'not_equals', 'contains', 'not_contains', 'only_within'], placeholder: '0.0.0.0/0, 10.0.0.0/8' },
   { key: 'src_name',      label: '출발지 객체명',    type: 'text',   operators: ['contains', 'not_contains', 'equals', 'not_equals'], placeholder: 'host-A, host-B' },
   { key: 'dst_name',      label: '목적지 객체명',    type: 'text',   operators: ['contains', 'not_contains', 'equals', 'not_equals'], placeholder: 'server-group, web-server' },
   { key: 'service',       label: '서비스/포트',      type: 'text',   operators: ['equals', 'not_equals'], placeholder: 'tcp/443, tcp/80' },
@@ -43,6 +43,7 @@ export const OP_LABELS: Record<OperatorKey, string> = {
   not_equals:   '≠',
   gte:          '이후 (≥)',
   lte:          '이전 (≤)',
+  only_within:  '전용 (범위 내만)',
 }
 
 // ─── 타입 ─────────────────────────────────────────────────────────────────────
@@ -134,6 +135,7 @@ export function buildRequestFromConditions(
     src_names: [], dst_names: [], service_names: [],
     src_ips_exclude: [], dst_ips_exclude: [], src_ips_exact_exclude: [], dst_ips_exact_exclude: [], services_exclude: [],
     src_names_exclude: [], dst_names_exclude: [], service_names_exclude: [],
+    src_ips_only_within: [], dst_ips_only_within: [],
   }
 
   for (const { field, operator, value } of conditions) {
@@ -171,14 +173,16 @@ export function buildRequestFromConditions(
         break
       case 'src_ip':
         for (const ip of v.split(',').map(s => s.trim()).filter(Boolean)) {
-          if (isExact) (isNot ? (payload.src_ips_exact_exclude as string[]) : (payload.src_ips_exact as string[])).push(ip)
-          else         (isNot ? (payload.src_ips_exclude as string[])        : (payload.src_ips as string[])).push(ip)
+          if (operator === 'only_within') (payload.src_ips_only_within as string[]).push(ip)
+          else if (isExact) (isNot ? (payload.src_ips_exact_exclude as string[]) : (payload.src_ips_exact as string[])).push(ip)
+          else              (isNot ? (payload.src_ips_exclude as string[])        : (payload.src_ips as string[])).push(ip)
         }
         break
       case 'dst_ip':
         for (const ip of v.split(',').map(s => s.trim()).filter(Boolean)) {
-          if (isExact) (isNot ? (payload.dst_ips_exact_exclude as string[]) : (payload.dst_ips_exact as string[])).push(ip)
-          else         (isNot ? (payload.dst_ips_exclude as string[])        : (payload.dst_ips as string[])).push(ip)
+          if (operator === 'only_within') (payload.dst_ips_only_within as string[]).push(ip)
+          else if (isExact) (isNot ? (payload.dst_ips_exact_exclude as string[]) : (payload.dst_ips_exact as string[])).push(ip)
+          else              (isNot ? (payload.dst_ips_exclude as string[])        : (payload.dst_ips as string[])).push(ip)
         }
         break
       case 'src_name':

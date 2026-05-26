@@ -146,13 +146,37 @@ async def _evaluate_leaf(
             _, start, end = parse_ipv4_numeric(ip_str)
             if start is None or end is None:
                 continue
-            if is_exact:
+            if op == 'only_within':
+                # 범위 내 멤버가 하나라도 있는 정책
+                q_has = select(models.PolicyAddressMember.policy_id).where(
+                    models.PolicyAddressMember.device_id.in_(device_ids),
+                    models.PolicyAddressMember.direction == direction,
+                    models.PolicyAddressMember.ip_start >= start,
+                    models.PolicyAddressMember.ip_end <= end,
+                ).distinct()
+                r_has = await db.execute(q_has)
+                has_ids = set(r_has.scalars().all())
+                # 범위 밖 멤버가 하나라도 있는 정책
+                q_out = select(models.PolicyAddressMember.policy_id).where(
+                    models.PolicyAddressMember.device_id.in_(device_ids),
+                    models.PolicyAddressMember.direction == direction,
+                    or_(
+                        models.PolicyAddressMember.ip_start < start,
+                        models.PolicyAddressMember.ip_end > end,
+                    )
+                ).distinct()
+                r_out = await db.execute(q_out)
+                outside_ids = set(r_out.scalars().all())
+                ids.update(has_ids - outside_ids)
+            elif is_exact:
                 q = select(models.PolicyAddressMember.policy_id).where(
                     models.PolicyAddressMember.device_id.in_(device_ids),
                     models.PolicyAddressMember.direction == direction,
                     models.PolicyAddressMember.ip_start == start,
                     models.PolicyAddressMember.ip_end == end,
                 )
+                result = await db.execute(q)
+                ids.update(result.scalars().all())
             else:
                 q = select(models.PolicyAddressMember.policy_id).where(
                     models.PolicyAddressMember.device_id.in_(device_ids),
@@ -160,8 +184,8 @@ async def _evaluate_leaf(
                     models.PolicyAddressMember.ip_start <= end,
                     models.PolicyAddressMember.ip_end >= start,
                 )
-            result = await db.execute(q)
-            ids.update(result.scalars().all())
+                result = await db.execute(q)
+                ids.update(result.scalars().all())
         if not ip_tokens:
             return None
         if is_not:
@@ -523,6 +547,60 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
             r = await db.execute(q)
             ids.update(r.scalars().all())
         return ids
+
+    # 출발지 IP 필터 — only_within (모든 멤버가 범위 안에 있는 정책)
+    if req.src_ips_only_within:
+        only_ids: set = set()
+        for ip_str in req.src_ips_only_within:
+            _, range_start, range_end = parse_ipv4_numeric(ip_str)
+            if range_start is None or range_end is None:
+                continue
+            q_has = select(models.PolicyAddressMember.policy_id).where(
+                models.PolicyAddressMember.device_id.in_(req.device_ids),
+                models.PolicyAddressMember.direction == 'source',
+                models.PolicyAddressMember.ip_start >= range_start,
+                models.PolicyAddressMember.ip_end <= range_end,
+            ).distinct()
+            r_has = await db.execute(q_has)
+            has_ids = set(r_has.scalars().all())
+            q_out = select(models.PolicyAddressMember.policy_id).where(
+                models.PolicyAddressMember.device_id.in_(req.device_ids),
+                models.PolicyAddressMember.direction == 'source',
+                or_(
+                    models.PolicyAddressMember.ip_start < range_start,
+                    models.PolicyAddressMember.ip_end > range_end,
+                )
+            ).distinct()
+            r_out = await db.execute(q_out)
+            only_ids.update(has_ids - set(r_out.scalars().all()))
+        list_of_policy_id_sets.append(only_ids)
+
+    # 목적지 IP 필터 — only_within (모든 멤버가 범위 안에 있는 정책)
+    if req.dst_ips_only_within:
+        only_ids = set()
+        for ip_str in req.dst_ips_only_within:
+            _, range_start, range_end = parse_ipv4_numeric(ip_str)
+            if range_start is None or range_end is None:
+                continue
+            q_has = select(models.PolicyAddressMember.policy_id).where(
+                models.PolicyAddressMember.device_id.in_(req.device_ids),
+                models.PolicyAddressMember.direction == 'destination',
+                models.PolicyAddressMember.ip_start >= range_start,
+                models.PolicyAddressMember.ip_end <= range_end,
+            ).distinct()
+            r_has = await db.execute(q_has)
+            has_ids = set(r_has.scalars().all())
+            q_out = select(models.PolicyAddressMember.policy_id).where(
+                models.PolicyAddressMember.device_id.in_(req.device_ids),
+                models.PolicyAddressMember.direction == 'destination',
+                or_(
+                    models.PolicyAddressMember.ip_start < range_start,
+                    models.PolicyAddressMember.ip_end > range_end,
+                )
+            ).distinct()
+            r_out = await db.execute(q_out)
+            only_ids.update(has_ids - set(r_out.scalars().all()))
+        list_of_policy_id_sets.append(only_ids)
 
     if req.src_ips_exclude:
         excluded = await _collect_addr_ids('source', req.src_ips_exclude)
