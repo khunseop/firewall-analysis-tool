@@ -32,16 +32,22 @@ const ANALYSIS_TYPES: AnalysisTypeOption[] = [
 ]
 
 // Policy fields accessed from nested policy sub-object (all analyzers wrap policy data under "policy" key)
+const pv = (key: string) => (p: { data?: Record<string, unknown> }) => (p.data?.policy as Record<string, unknown> | undefined)?.[key] ?? p.data?.[key]
+
 const POLICY_COLS: ColDef[] = [
-  { headerName: '정책명', filter: 'agTextColumnFilter', width: 160, valueGetter: (p) => p.data?.policy?.rule_name ?? p.data?.rule_name },
-  { headerName: '순번', filter: 'agNumberColumnFilter', width: 70, valueGetter: (p) => p.data?.policy?.seq ?? p.data?.seq },
-  { headerName: '액션', filter: 'agTextColumnFilter', width: 80, valueGetter: (p) => p.data?.policy?.action ?? p.data?.action },
-  { headerName: '활성', width: 70, valueGetter: (p) => p.data?.policy?.enable ?? p.data?.enable, valueFormatter: (p) => (p.value ? '활성' : '비활성') },
-  { headerName: '출발지', filter: 'agTextColumnFilter', width: 200, valueGetter: (p) => p.data?.policy?.source ?? p.data?.source },
-  { headerName: '목적지', filter: 'agTextColumnFilter', width: 200, valueGetter: (p) => p.data?.policy?.destination ?? p.data?.destination },
-  { headerName: '서비스', filter: 'agTextColumnFilter', width: 160, valueGetter: (p) => p.data?.policy?.service ?? p.data?.service },
-  { headerName: '설명', filter: 'agTextColumnFilter', width: 150, valueGetter: (p) => p.data?.policy?.description ?? p.data?.description },
-  { headerName: 'VSYS', filter: 'agTextColumnFilter', width: 80, valueGetter: (p) => p.data?.policy?.vsys ?? p.data?.vsys },
+  { headerName: '순번',        filter: 'agNumberColumnFilter', width: 70,  valueGetter: pv('seq') },
+  { headerName: '정책명',      filter: 'agTextColumnFilter',   width: 160, valueGetter: pv('rule_name') },
+  { headerName: '액션',        filter: 'agTextColumnFilter',   width: 80,  valueGetter: pv('action') },
+  { headerName: '활성',        width: 70,  valueGetter: pv('enable'), valueFormatter: (p) => (p.value ? '활성' : '비활성') },
+  { headerName: '출발지',      filter: 'agTextColumnFilter',   width: 200, valueGetter: pv('source') },
+  { headerName: '목적지',      filter: 'agTextColumnFilter',   width: 200, valueGetter: pv('destination') },
+  { headerName: '서비스',      filter: 'agTextColumnFilter',   width: 160, valueGetter: pv('service') },
+  { headerName: '사용자',      filter: 'agTextColumnFilter',   width: 100, valueGetter: pv('user') },
+  { headerName: '보안 프로파일', filter: 'agTextColumnFilter', width: 130, valueGetter: pv('security_profile') },
+  { headerName: '카테고리',    filter: 'agTextColumnFilter',   width: 100, valueGetter: pv('category') },
+  { headerName: '설명',        filter: 'agTextColumnFilter',   width: 150, valueGetter: pv('description') },
+  { headerName: '마지막 사용일', filter: 'agTextColumnFilter', width: 130, valueGetter: pv('last_hit_date') },
+  { headerName: 'VSYS',        filter: 'agTextColumnFilter',   width: 80,  valueGetter: pv('vsys') },
 ]
 
 function getColumnDefs(analysisType: string): ColDef[] {
