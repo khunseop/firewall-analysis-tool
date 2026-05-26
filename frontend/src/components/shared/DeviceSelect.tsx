@@ -43,9 +43,12 @@ export function DeviceSelect(props: DeviceSelectProps) {
         isDisabled={isDisabled}
         classNamePrefix="react-select"
         noOptionsMessage={() => '장비가 없습니다'}
+        menuPortalTarget={document.body}
+        menuPosition="fixed"
         styles={{
           control: (base) => ({ ...base, minHeight: '36px', fontSize: '14px' }),
           menu: (base) => ({ ...base, fontSize: '14px' }),
+          menuPortal: (base) => ({ ...base, zIndex: 9999 }),
         }}
       />
     )
@@ -62,9 +65,12 @@ export function DeviceSelect(props: DeviceSelectProps) {
       classNamePrefix="react-select"
       isClearable
       noOptionsMessage={() => '장비가 없습니다'}
+      menuPortalTarget={document.body}
+      menuPosition="fixed"
       styles={{
         control: (base) => ({ ...base, minHeight: '36px', fontSize: '14px' }),
         menu: (base) => ({ ...base, fontSize: '14px' }),
+        menuPortal: (base) => ({ ...base, zIndex: 9999 }),
       }}
     />
   )
