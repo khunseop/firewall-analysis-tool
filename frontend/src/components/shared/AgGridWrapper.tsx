@@ -1,4 +1,4 @@
-import { useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'
+import { useRef, useCallback, useMemo, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { AgGridReact } from '@ag-grid-community/react'
 import {
   ModuleRegistry,
@@ -31,6 +31,7 @@ interface AgGridWrapperProps<T> {
   onRowClicked?: (event: RowClickedEvent<T>) => void
   /** 컬럼을 컨테이너 너비에 맞게 분배 (기본값: false = 내용 기반 자동 너비) */
   fitColumns?: boolean
+  rowHeight?: number
   rowSelection?: 'single' | 'multiple'
   onSelectionChanged?: (rows: T[]) => void
   context?: Record<string, unknown>
@@ -49,6 +50,7 @@ function AgGridWrapperInner<T>(
     defaultColDefOverride,
     onRowClicked,
     fitColumns = false,
+    rowHeight,
     rowSelection,
     onSelectionChanged,
     context,
@@ -79,14 +81,18 @@ function AgGridWrapperInner<T>(
     }
   }, [fitColumns])
 
-  const handleModelUpdated = useCallback(() => {
+  // rowData가 실제로 교체될 때(새 검색 결과)만 autoSize — 타이핑·필터링 시 불필요한 리사이즈 방지
+  useEffect(() => {
     if (rowData.length === 0) return
-    if (fitColumns) {
-      gridApiRef.current?.sizeColumnsToFit()
-    } else {
-      gridApiRef.current?.autoSizeAllColumns(false)
-    }
-  }, [fitColumns, rowData.length])
+    const id = requestAnimationFrame(() => {
+      if (fitColumns) {
+        gridApiRef.current?.sizeColumnsToFit()
+      } else {
+        gridApiRef.current?.autoSizeAllColumns(false)
+      }
+    })
+    return () => cancelAnimationFrame(id)
+  }, [rowData]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGridSizeChanged = useCallback((_e: GridSizeChangedEvent) => {
     if (fitColumns) {
@@ -114,9 +120,9 @@ function AgGridWrapperInner<T>(
         columnDefs={columnDefs}
         rowData={rowData}
         getRowId={getRowId}
+        rowHeight={rowHeight}
         onGridReady={handleGridReady}
         onFirstDataRendered={handleFirstDataRendered}
-        onModelUpdated={handleModelUpdated}
         onGridSizeChanged={handleGridSizeChanged}
         getRowStyle={getRowStyle}
         quickFilterText={quickFilterText}

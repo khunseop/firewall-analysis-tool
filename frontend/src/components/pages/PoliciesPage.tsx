@@ -455,6 +455,7 @@ export function PoliciesPage() {
           defaultColDefOverride={GRID_DEFAULT_COL_DEF_OVERRIDE}
           quickFilterText={quickFilterText}
           onRowClicked={handleRowClick}
+          rowHeight={34}
         />
       </div>
 
