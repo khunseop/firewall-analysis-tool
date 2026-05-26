@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from 'react'
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -199,11 +199,11 @@ export function PoliciesPage() {
     [devices]
   )
 
-  const handleRowClick = (event: RowClickedEvent<Policy>) => {
+  const handleRowClick = useCallback((event: RowClickedEvent<Policy>) => {
     if (event.data) setDetailModal(event.data)
-  }
+  }, [])
 
-  const columnDefs: ColDef<Policy>[] = [
+  const columnDefs = useMemo<ColDef<Policy>[]>(() => [
     {
       headerName: '장비명',
       width: 120,
@@ -296,7 +296,8 @@ export function PoliciesPage() {
       cellRenderer: (p: { value: string | null }) => <LastHitCell value={p.value} />,
     },
     { field: 'vsys', headerName: 'VSYS', width: 72, hide: true },
-  ]
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [deviceNameMap, changeLogMap])
 
   const allConditions = filterTree.flatMap(g => g.conditions)
   const hasConditions = allConditions.some(c => c.value.trim())
