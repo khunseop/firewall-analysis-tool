@@ -157,7 +157,7 @@ export function ObjectDetailModal({ deviceId, name, onClose }: Props) {
 
   const handleGoToPolicies = (direction: 'src' | 'dst' = 'src') => {
     onClose()
-    const param = direction === 'src' ? 'src_ip' : 'dst_ip'
+    const param = direction === 'src' ? 'src_name' : 'dst_name'
     navigate(`/policies?${param}=${encodeURIComponent(name)}`)
   }
 

@@ -148,7 +148,7 @@ export function ObjectsPage() {
           >
             {p.value}
           </button>
-          <SearchPolicyButton onClick={() => navigate(`/policies?src_name=${encodeURIComponent(p.value)}`)} />
+          <SearchPolicyButton onClick={() => navigate(`/policies?obj_name=${encodeURIComponent(p.value)}`)} />
         </div>
       ),
     },
@@ -169,7 +169,7 @@ export function ObjectsPage() {
           >
             {p.value}
           </button>
-          <SearchPolicyButton onClick={() => navigate(`/policies?src_name=${encodeURIComponent(p.value)}`)} />
+          <SearchPolicyButton onClick={() => navigate(`/policies?obj_name=${encodeURIComponent(p.value)}`)} />
         </div>
       ),
     },

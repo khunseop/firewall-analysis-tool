@@ -124,16 +124,36 @@ export function PoliciesPage() {
     const svcName = searchParams.get('svc_name')
     const srcIp   = searchParams.get('src_ip')
     const dstIp   = searchParams.get('dst_ip')
-    if (srcName || dstName || svcName || srcIp || dstIp) {
-      const newConds = []
-      if (srcName) newConds.push({ field: 'src_name', operator: 'contains' as const, value: srcName })
-      if (dstName) newConds.push({ field: 'dst_name', operator: 'contains' as const, value: dstName })
-      if (svcName) newConds.push({ field: 'service_name', operator: 'contains' as const, value: svcName })
-      if (srcIp)   newConds.push({ field: 'src_ip', operator: 'contains' as const, value: srcIp })
-      if (dstIp)   newConds.push({ field: 'dst_ip', operator: 'contains' as const, value: dstIp })
-      setFilterTree(conditionsToFilterTree(newConds))
+    const objName = searchParams.get('obj_name') // 출발지+목적지 OR 검색
+    if (srcName || dstName || svcName || srcIp || dstIp || objName) {
+      let newTree: FilterTree
+      if (objName) {
+        // src_name OR dst_name 동시 검색
+        newTree = [{
+          id: crypto.randomUUID(),
+          joinOperator: 'AND',
+          conditions: [
+            { field: 'src_name', operator: 'contains' as const, value: objName, joinOperator: 'OR' as const },
+            { field: 'dst_name', operator: 'contains' as const, value: objName, joinOperator: 'AND' as const },
+          ],
+        }]
+      } else {
+        const newConds = []
+        if (srcName) newConds.push({ field: 'src_name', operator: 'contains' as const, value: srcName })
+        if (dstName) newConds.push({ field: 'dst_name', operator: 'contains' as const, value: dstName })
+        if (svcName) newConds.push({ field: 'service_name', operator: 'contains' as const, value: svcName })
+        if (srcIp)   newConds.push({ field: 'src_ip', operator: 'contains' as const, value: srcIp })
+        if (dstIp)   newConds.push({ field: 'dst_ip', operator: 'contains' as const, value: dstIp })
+        newTree = conditionsToFilterTree(newConds)
+      }
+      setFilterTree(newTree)
       setFiltersOpen(true)
       setSearchParams({}, { replace: true })
+      // 장비가 이미 선택된 상태면 자동 검색
+      if (deviceIds.length > 0) {
+        const payload = buildRequestFromFilterTree(newTree, deviceIds)
+        searchMutation.mutate(payload as unknown as PolicySearchRequest)
+      }
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
