@@ -11,6 +11,7 @@ import { listDevices } from '@/api/devices'
 import { getPolicies, exportToExcel } from '@/api/firewall'
 import { startAnalysis, getAnalysisStatus, getLatestAnalysisResult, type StartAnalysisParams } from '@/api/analysis'
 import { formatNumber, formatRelativeTime } from '@/lib/utils'
+import { notify } from '@/store/notificationStore'
 
 const ANALYSIS_TYPES = [
   { value: 'redundancy', label: '중복 정책 분석' },
@@ -238,11 +239,12 @@ export function AnalysisPage() {
     if (!taskStatus) return
     if (taskStatus.task_status === 'success' || taskStatus.task_status === 'failure') {
       setIsPolling(false)
+      const deviceName = devices.find(d => d.id === deviceId)?.name
       if (taskStatus.task_status === 'success') {
-        toast.success('분석이 완료되었습니다.')
+        notify('분석 완료', deviceName ?? `장비 ID ${deviceId}`, 'success', { category: 'analysis', device_id: deviceId ?? undefined, device_name: deviceName })
         loadResults(deviceId ?? undefined, analysisType)
       } else {
-        toast.error('분석에 실패했습니다.')
+        notify('분석 실패', deviceName ?? `장비 ID ${deviceId}`, 'error', { category: 'analysis', device_id: deviceId ?? undefined, device_name: deviceName })
       }
     }
   }, [taskStatus?.task_status])

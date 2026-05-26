@@ -7,6 +7,7 @@ import type { GridApi } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { getDashboardStats, type DeviceStats } from '@/api/devices'
 import { useSyncStatusWebSocket } from '@/hooks/useWebSocket'
+import { notify } from '@/store/notificationStore'
 import { formatNumber, formatRelativeTime } from '@/lib/utils'
 
 const VENDOR_BADGE: Record<string, string> = {
@@ -123,9 +124,11 @@ export function DashboardPage() {
   const handleSyncMessage = useCallback(
     (msg: { device_id: number; status: string; step: string | null }) => {
       const api: GridApi<DeviceRow> | null = gridRef.current?.gridApi ?? null
+      let deviceName: string | undefined
       if (api) {
         const node = api.getRowNode(String(msg.device_id))
         if (node?.data) {
+          deviceName = node.data.name
           node.setData({
             ...node.data,
             sync_status: msg.status,
@@ -136,7 +139,11 @@ export function DashboardPage() {
           })
         }
       }
-      if (msg.status === 'success' || msg.status === 'failure') {
+      if (msg.status === 'success') {
+        notify('동기화 완료', deviceName ?? `장비 ID ${msg.device_id}`, 'success', { category: 'sync', device_id: msg.device_id, device_name: deviceName })
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      } else if (msg.status === 'failure') {
+        notify('동기화 실패', deviceName ?? `장비 ID ${msg.device_id}`, 'error', { category: 'sync', device_id: msg.device_id, device_name: deviceName })
         queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       }
     },
