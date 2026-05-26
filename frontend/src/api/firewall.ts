@@ -230,6 +230,33 @@ export const getPolicyHistory = async (deviceId: number, ruleName: string): Prom
   return res.data
 }
 
+interface ExcelColumn { header: string; width: number }
+interface ExcelRow { values: (string | number | null)[]; rowBg: string | null; cellFontColors: (string | null)[] }
+export interface StyledExcelPayload { filename: string; columns: ExcelColumn[]; rows: ExcelRow[] }
+
+export const exportStyledToExcel = async (payload: StyledExcelPayload): Promise<void> => {
+  const token = useAuthStore.getState().token
+  const res = await fetch('/api/v1/firewall/export/excel', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    let detail = 'Export failed'
+    try { const d = await res.json(); detail = d.detail || d.msg || detail } catch {}
+    throw new Error(detail)
+  }
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = `${payload.filename}.xlsx`
+  document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
 export const exportToExcel = async (data: Record<string, unknown>[], filename: string): Promise<void> => {
   const token = useAuthStore.getState().token
   const res = await fetch('/api/v1/firewall/export/excel', {

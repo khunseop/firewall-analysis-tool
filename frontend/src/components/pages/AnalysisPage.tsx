@@ -8,7 +8,8 @@ import { Select as ShadSelect, SelectContent, SelectItem, SelectTrigger, SelectV
 import { AgGridWrapper } from '@/components/shared/AgGridWrapper'
 import { DeviceSelect } from '@/components/shared/DeviceSelect'
 import { listDevices } from '@/api/devices'
-import { getPolicies, exportToExcel } from '@/api/firewall'
+import { getPolicies, exportStyledToExcel } from '@/api/firewall'
+import type { StyledExcelPayload } from '@/api/firewall'
 import { startAnalysis, getAnalysisStatus, getLatestAnalysisResult, type StartAnalysisParams } from '@/api/analysis'
 import { formatNumber, formatRelativeTime } from '@/lib/utils'
 import { notify } from '@/store/notificationStore'
@@ -117,6 +118,47 @@ function getColumnDefs(analysisType: string): ColDef[] {
     ]
   }
   return POLICY_COLS
+}
+
+function buildExcelPayload(
+  rows: Record<string, unknown>[],
+  columnDefs: ColDef[],
+  rowStyleFn: (p: RowClassParams<Record<string, unknown>>) => RowStyle | undefined,
+  filename: string,
+): StyledExcelPayload {
+  const columns = columnDefs.map((col) => ({
+    header: col.headerName ?? String(col.field ?? ''),
+    width: Math.max(8, Math.round(((col.width as number) ?? 120) / 7)),
+  }))
+
+  const excelRows = rows.map((data) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const values = columnDefs.map((col): string | number | null => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let raw: unknown = typeof col.valueGetter === 'function' ? (col.valueGetter as any)({ data }) : col.field ? data[col.field] : null
+      if (typeof col.valueFormatter === 'function') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const formatted = (col.valueFormatter as any)({ value: raw, data })
+        if (formatted != null && formatted !== '') raw = formatted
+      }
+      if (raw == null) return null
+      if (typeof raw === 'number') return raw
+      return String(raw)
+    })
+
+    const rowStyle = rowStyleFn({ data } as RowClassParams<Record<string, unknown>>)
+    const rowBg = (rowStyle as Record<string, string> | undefined)?.backgroundColor ?? null
+
+    const cellFontColors = columnDefs.map((col, i): string | null => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const cs: Record<string, string> | null = typeof col.cellStyle === 'function' ? (col.cellStyle as any)({ value: values[i], data }) : (col.cellStyle as any) ?? null
+      return cs?.color ?? null
+    })
+
+    return { values, rowBg, cellFontColors }
+  })
+
+  return { filename, columns, rows: excelRows }
 }
 
 function getRowStyle(analysisType: string) {
@@ -413,7 +455,15 @@ export function AnalysisPage() {
             results={results}
             days={days}
             completedAt={resultCompletedAt}
-            onExport={() => exportToExcel(results as Record<string, unknown>[], `분석결과_${analysisType}`).catch((e: Error) => toast.error(e.message))}
+            onExport={() => {
+              const payload = buildExcelPayload(
+                results as Record<string, unknown>[],
+                columnDefs,
+                rowStyleFn,
+                `분석결과_${analysisType}`,
+              )
+              exportStyledToExcel(payload).catch((e: Error) => toast.error(e.message))
+            }}
           />
           <div className="card rounded-xl">
             <div className="flex items-center justify-between px-5 py-3">
