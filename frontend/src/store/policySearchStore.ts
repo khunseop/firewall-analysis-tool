@@ -4,35 +4,39 @@ import type { Policy, ChangeLogEntry } from '@/api/firewall'
 import type { FilterTree } from '@/components/shared/QueryBuilder'
 
 interface PolicySearchStore {
+  // ── localStorage에 persist (소량) ──────────────────────────────────────────
   filterTree: FilterTree
+  filtersOpen: boolean
+  searched: boolean           // 검색 실행 여부 (새로고침 시 자동 재검색 트리거용)
+  quickFilterText: string
+
+  // ── 메모리에만 유지 (대용량 — partialize로 persist 제외) ───────────────────
   policies: Policy[]
-  searched: boolean
   validObjectNames: string[]
   changeLogEntries: ChangeLogEntry[]
-  quickFilterText: string
-  filtersOpen: boolean
 
   setFilterTree: (tree: FilterTree) => void
-  setPolicies: (policies: Policy[]) => void
+  setFiltersOpen: (v: boolean) => void
   setSearched: (v: boolean) => void
+  setQuickFilterText: (text: string) => void
+  setPolicies: (policies: Policy[]) => void
   setValidObjectNames: (names: string[]) => void
   setChangeLogEntries: (entries: ChangeLogEntry[]) => void
-  setQuickFilterText: (text: string) => void
-  setFiltersOpen: (v: boolean) => void
   reset: () => void
 }
 
-const INITIAL: Pick<
+const INITIAL: Omit<PolicySearchStore, keyof Pick<
   PolicySearchStore,
-  'filterTree' | 'policies' | 'searched' | 'validObjectNames' | 'changeLogEntries' | 'quickFilterText' | 'filtersOpen'
-> = {
+  'setFilterTree' | 'setFiltersOpen' | 'setSearched' | 'setQuickFilterText' |
+  'setPolicies' | 'setValidObjectNames' | 'setChangeLogEntries' | 'reset'
+>> = {
   filterTree: [],
-  policies: [],
+  filtersOpen: false,
   searched: false,
+  quickFilterText: '',
+  policies: [],
   validObjectNames: [],
   changeLogEntries: [],
-  quickFilterText: '',
-  filtersOpen: false,
 }
 
 export const usePolicySearchStore = create<PolicySearchStore>()(
@@ -40,14 +44,23 @@ export const usePolicySearchStore = create<PolicySearchStore>()(
     (set) => ({
       ...INITIAL,
       setFilterTree: (filterTree) => set({ filterTree }),
-      setPolicies: (policies) => set({ policies }),
+      setFiltersOpen: (filtersOpen) => set({ filtersOpen }),
       setSearched: (searched) => set({ searched }),
+      setQuickFilterText: (quickFilterText) => set({ quickFilterText }),
+      setPolicies: (policies) => set({ policies }),
       setValidObjectNames: (validObjectNames) => set({ validObjectNames }),
       setChangeLogEntries: (changeLogEntries) => set({ changeLogEntries }),
-      setQuickFilterText: (quickFilterText) => set({ quickFilterText }),
-      setFiltersOpen: (filtersOpen) => set({ filtersOpen }),
       reset: () => set(INITIAL),
     }),
-    { name: 'fat-policy-search' }
+    {
+      name: 'fat-policy-search',
+      // policies 등 대용량 데이터는 메모리에만 유지 (localStorage 용량 초과 방지)
+      partialize: (state) => ({
+        filterTree: state.filterTree,
+        filtersOpen: state.filtersOpen,
+        searched: state.searched,
+        quickFilterText: state.quickFilterText,
+      }),
+    }
   )
 )

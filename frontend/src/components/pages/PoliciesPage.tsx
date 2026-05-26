@@ -107,6 +107,14 @@ export function PoliciesPage() {
 
   const { data: devices = [] } = useQuery({ queryKey: ['devices'], queryFn: listDevices })
 
+  // 새로고침 후 자동 재검색: searched=true지만 policies가 비어있으면 (partialize로 미저장)
+  useEffect(() => {
+    if (searched && deviceIds.length > 0 && policies.length === 0) {
+      const payload = buildRequestFromFilterTree(filterTree, deviceIds)
+      searchMutation.mutate(payload as unknown as PolicySearchRequest)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // URL 파라미터로 필터 자동 세팅 (ObjectDetailModal → 정책 검색 연동)
   useEffect(() => {
     const srcName = searchParams.get('src_name')
