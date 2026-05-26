@@ -322,7 +322,7 @@ export function PoliciesPage() {
   const hasConditions = allConditions.some(c => c.value.trim())
 
   return (
-    <div className="flex flex-col gap-3 h-[calc(100vh-64px)]">
+    <div className="flex flex-col gap-3">
       {/* Page header */}
       <div className="flex items-center justify-between shrink-0">
         <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">Policies</h1>
@@ -412,7 +412,7 @@ export function PoliciesPage() {
       )}
 
       {/* Results grid */}
-      <div className="card rounded-xl overflow-hidden flex-1 min-h-0 flex flex-col">
+      <div className="card rounded-xl overflow-hidden">
         {searched && (
           <div className="flex items-center gap-2 px-3 py-2 border-b border-ds-outline-variant/10 shrink-0">
             <div className="relative flex-1">
@@ -450,7 +450,7 @@ export function PoliciesPage() {
           columnDefs={columnDefs}
           rowData={policies}
           getRowId={(p) => String(p.data.id)}
-          height="100%"
+          height="800px"
           noRowsText="장비를 선택하고 검색 버튼을 클릭하세요."
           defaultColDefOverride={GRID_DEFAULT_COL_DEF_OVERRIDE}
           quickFilterText={quickFilterText}
@@ -494,3 +494,5 @@ export function PoliciesPage() {
     </div>
   )
 }
+// refresh
+ 

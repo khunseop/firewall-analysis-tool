@@ -26,6 +26,7 @@ interface AgGridWrapperProps<T> {
   getRowStyle?: (params: RowClassParams<T>) => RowStyle | undefined
   quickFilterText?: string
   height?: string | number
+  domLayout?: 'normal' | 'autoHeight' | 'print'
   noRowsText?: string
   defaultColDefOverride?: Record<string, unknown>
   onRowClicked?: (event: RowClickedEvent<T>) => void
@@ -46,6 +47,7 @@ function AgGridWrapperInner<T>(
     getRowStyle,
     quickFilterText,
     height = 'calc(100vh - 200px)',
+    domLayout,
     noRowsText = '데이터가 없습니다.',
     defaultColDefOverride,
     onRowClicked,
@@ -110,13 +112,15 @@ function AgGridWrapperInner<T>(
 
   const containerClass = `ag-theme-quartz w-full relative${onRowClicked ? ' ag-clickable-rows' : ''}`
   const isFill = height === '100%'
+  const isAutoHeight = domLayout === 'autoHeight'
 
   return (
     <div
       className={isFill ? `${containerClass} flex-1 min-h-0` : containerClass}
-      style={isFill ? undefined : { height }}
+      style={isFill || isAutoHeight ? undefined : { height }}
     >
       <AgGridReact<T>
+        domLayout={domLayout}
         columnDefs={columnDefs}
         rowData={rowData}
         getRowId={getRowId}

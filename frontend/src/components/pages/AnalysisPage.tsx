@@ -415,7 +415,7 @@ export function AnalysisPage() {
             completedAt={resultCompletedAt}
             onExport={() => exportToExcel(results as Record<string, unknown>[], `분석결과_${analysisType}`).catch((e: Error) => toast.error(e.message))}
           />
-          <div className="card rounded-xl overflow-hidden">
+          <div className="card rounded-xl">
             <div className="flex items-center justify-between px-5 py-3">
               <span className="text-[13px] font-semibold text-ds-on-surface">분석 결과 상세</span>
               <span className="text-[11px] text-ds-on-surface-variant/60 tabular-nums">{results.length.toLocaleString()}건</span>
@@ -425,7 +425,7 @@ export function AnalysisPage() {
               rowData={results as Record<string, unknown>[]}
               getRowId={(p) => String(p.data.id ?? p.data.policy_id ?? JSON.stringify(p.data))}
               getRowStyle={rowStyleFn as (p: RowClassParams<Record<string, unknown>>) => RowStyle | undefined}
-              height="calc(100vh - 340px)"
+              domLayout="autoHeight"
               noRowsText="분석 결과가 없습니다."
             />
           </div>

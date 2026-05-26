@@ -7,7 +7,7 @@ export function AppLayout() {
       <div className="fixed top-0 inset-x-0 z-50 h-13">
         <Navbar />
       </div>
-      <main className="flex-1 mt-13">
+      <main className="mt-13">
         <div className="px-4 py-4 md:px-8 md:py-8">
           <Outlet />
         </div>
@@ -15,3 +15,5 @@ export function AppLayout() {
     </div>
   )
 }
+// refresh
+ 
