@@ -72,7 +72,7 @@ export interface ServiceGroup {
 export interface FilterLeafNode {
   type: 'LEAF'
   field: string
-  operator: 'contains' | 'equals' | 'not_equals' | 'not_contains' | 'gte' | 'lte'
+  operator: 'contains' | 'equals' | 'not_equals' | 'not_contains' | 'gte' | 'lte' | 'only_within'
   value: string
 }
 export interface FilterGroupNode {
