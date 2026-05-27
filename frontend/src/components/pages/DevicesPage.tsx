@@ -189,6 +189,10 @@ const COLUMN_DEFS: ColDef<Device>[] = [
     cellRenderer: (p: { value: string }) => <span className="font-mono text-[11px] text-ds-on-surface-variant">{p.value ?? '—'}</span>,
   },
   {
+    field: 'description', headerName: '설명', minWidth: 120, flex: 1,
+    cellRenderer: (p: { value: string }) => <span className="text-[12px] text-ds-on-surface-variant">{p.value ?? '—'}</span>,
+  },
+  {
     headerName: '수집 옵션', minWidth: 100, sortable: false,
     cellRenderer: (p: { data: Device }) => (
       <div className="flex gap-1 flex-wrap items-center">
