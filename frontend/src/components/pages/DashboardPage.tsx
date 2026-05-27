@@ -104,7 +104,7 @@ const COLUMN_DEFS: ColDef<DeviceRow>[] = [
     valueFormatter: (p) => formatNumber(p.value),
   },
   {
-    field: 'sync_time', headerName: '마지막 동기화',
+    field: 'sync_time', headerName: '마지막 동기화', filter: false,
     valueFormatter: (p) => formatRelativeTime(p.value),
   },
 ]
@@ -286,7 +286,7 @@ export function DashboardPage() {
           getRowId={(p) => String(p.data.id)}
           height={gridHeight}
           noRowsText="등록된 장비가 없습니다."
-          defaultColDefOverride={{ filter: false, resizable: true, sortable: true }}
+          defaultColDefOverride={{ resizable: true, sortable: true }}
           fitColumns
         />
       </div>

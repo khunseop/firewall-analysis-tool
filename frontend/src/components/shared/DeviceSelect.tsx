@@ -29,7 +29,10 @@ type DeviceSelectProps = DeviceSelectMultiProps | DeviceSelectSingleProps
 export function DeviceSelect(props: DeviceSelectProps) {
   const { devices, placeholder = '장비 선택...', isDisabled } = props
 
-  const options: Option[] = devices.map((d) => ({ value: d.id, label: d.name }))
+  const options: Option[] = devices.map((d) => ({
+    value: d.id,
+    label: d.description ? `${d.name} — ${d.description}` : d.name,
+  }))
 
   if (props.isMulti) {
     const selectedOptions = options.filter((o) => props.value.includes(o.value))
