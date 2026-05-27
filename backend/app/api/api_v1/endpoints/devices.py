@@ -62,6 +62,7 @@ async def download_excel_template():
             "사용자명*",
             "비밀번호*",
             "HA Peer IP",
+            "모델명",
             "설명",
             "SSH로 마지막 매칭일시 수집 (TRUE/FALSE)"
         ]
@@ -79,8 +80,8 @@ async def download_excel_template():
         
         # 예시 데이터 작성
         example_data = [
-            ["PaloAlto-FW-01", "192.168.1.1", "paloalto", "admin", "password123", "192.168.1.2", "본사 방화벽", "FALSE"],
-            ["NGF-FW-01", "192.168.2.1", "ngf", "admin", "password123", "", "지사 방화벽", "FALSE"],
+            ["PaloAlto-FW-01", "192.168.1.1", "paloalto", "admin", "password123", "192.168.1.2", "PA-3220", "본사 방화벽", "FALSE"],
+            ["NGF-FW-01", "192.168.2.1", "ngf", "admin", "password123", "", "NGF-5000", "지사 방화벽", "FALSE"],
         ]
         
         example_fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
@@ -102,6 +103,7 @@ async def download_excel_template():
             ["사용자명", "로그인 사용자명", "필수", "admin"],
             ["비밀번호", "로그인 비밀번호", "필수", "password123"],
             ["HA Peer IP", "HA 구성 시 Peer IP (선택)", "선택", "192.168.1.2"],
+            ["모델명", "장비 모델명 (선택)", "선택", "PA-3220"],
             ["설명", "장비 설명 (선택)", "선택", "본사 방화벽"],
             ["SSH로 마지막 매칭일시 수집", "TRUE 또는 FALSE (기본값: FALSE)", "선택", "FALSE"],
             ["", "", "", ""],
@@ -121,7 +123,7 @@ async def download_excel_template():
                     cell.alignment = header_alignment
         
         # 열 너비 조정
-        column_widths = [20, 15, 12, 12, 15, 15, 30, 30]
+        column_widths = [20, 15, 12, 12, 15, 15, 15, 30, 30]
         for col_idx, width in enumerate(column_widths, start=1):
             ws.column_dimensions[get_column_letter(col_idx)].width = width
         
@@ -223,6 +225,7 @@ async def bulk_import_devices(
             "사용자명*": "username",
             "비밀번호*": "password",
             "HA Peer IP": "ha_peer_ip",
+            "모델명": "model",
             "설명": "description",
             "SSH로 마지막 매칭일시 수집 (TRUE/FALSE)": "use_ssh_for_last_hit_date"
         }
@@ -330,6 +333,7 @@ async def bulk_import_devices(
                     password=device_data["password"],
                     password_confirm=device_data["password"],
                     ha_peer_ip=device_data.get("ha_peer_ip"),
+                    model=device_data.get("model"),
                     description=device_data.get("description"),
                     use_ssh_for_last_hit_date=device_data.get("use_ssh_for_last_hit_date", False)
                 )
