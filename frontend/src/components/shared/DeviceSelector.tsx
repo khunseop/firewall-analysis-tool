@@ -34,6 +34,9 @@ function DeviceItem({ d, selected, onToggle }: { d: Device; selected: boolean; o
         VENDOR_DOT[d.vendor?.toLowerCase()] ?? 'bg-ds-outline'
       )} />
       <span className="truncate font-mono leading-tight">{d.name}</span>
+      {d.description && (
+        <span className="truncate text-[10px] text-ds-on-surface-variant/50 shrink-0 max-w-[80px]">{d.description}</span>
+      )}
     </button>
   )
 }
@@ -67,7 +70,7 @@ export function DeviceSelector() {
   const filtered = useMemo(() => {
     if (!q) return devices
     return devices.filter(
-      (d) => d.name.toLowerCase().includes(q) || d.ip_address.toLowerCase().includes(q) || (d.group ?? '').toLowerCase().includes(q)
+      (d) => d.name.toLowerCase().includes(q) || d.ip_address.toLowerCase().includes(q) || (d.group ?? '').toLowerCase().includes(q) || (d.description ?? '').toLowerCase().includes(q)
     )
   }, [devices, q])
 

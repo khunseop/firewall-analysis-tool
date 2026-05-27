@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { formatRelativeTime } from '@/lib/utils'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Plus, Upload, Download, RefreshCw, Pencil, Trash2, Wifi, Search, XCircle, ChevronDown } from 'lucide-react'
+import { Plus, Upload, Download, RefreshCw, Pencil, Trash2, Wifi, Search, XCircle, ChevronDown, ExternalLink, Settings2, Tag } from 'lucide-react'
 import type { ColDef } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { Input } from '@/components/ui/input'
@@ -134,13 +134,98 @@ function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }: {
   )
 }
 
+function BulkOptionsDialog({ open, onClose, count, initial, onSubmit }: {
+  open: boolean; onClose: () => void; count: number
+  initial: { collect_last_hit_date: boolean; use_ssh_for_last_hit_date: boolean }
+  onSubmit: (opts: { collect_last_hit_date: boolean; use_ssh_for_last_hit_date: boolean }) => void
+}) {
+  const [form, setForm] = useState(initial)
+  useEffect(() => { if (open) setForm(initial) }, [open])  // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-sm bg-ds-surface-container-lowest">
+        <DialogHeader>
+          <DialogTitle className="font-headline text-ds-on-surface">수집 옵션 일괄 변경</DialogTitle>
+        </DialogHeader>
+        <p className="text-[12px] text-ds-on-surface-variant">선택된 {count}개 장비에 동일하게 적용됩니다.</p>
+        <div className="flex flex-col gap-3 py-2">
+          <label className="flex items-center gap-2 text-sm cursor-pointer text-ds-on-surface-variant">
+            <Checkbox checked={form.collect_last_hit_date} onCheckedChange={(v) => setForm(f => ({ ...f, collect_last_hit_date: !!v }))} />
+            최근 사용일 수집
+          </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer text-ds-on-surface-variant">
+            <Checkbox checked={form.use_ssh_for_last_hit_date} onCheckedChange={(v) => setForm(f => ({ ...f, use_ssh_for_last_hit_date: !!v }))} />
+            SSH로 최근 사용일 수집
+          </label>
+        </div>
+        <DialogFooter>
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">취소</button>
+          <button onClick={() => onSubmit(form)} className="px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md">적용</button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function BulkGroupDialog({ open, onClose, count, existingGroups, initial, onSubmit }: {
+  open: boolean; onClose: () => void; count: number
+  existingGroups: string[]; initial: string
+  onSubmit: (group: string) => void
+}) {
+  const [group, setGroup] = useState(initial)
+  useEffect(() => { if (open) setGroup(initial) }, [open])  // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-sm bg-ds-surface-container-lowest">
+        <DialogHeader>
+          <DialogTitle className="font-headline text-ds-on-surface">그룹 일괄 설정</DialogTitle>
+        </DialogHeader>
+        <p className="text-[12px] text-ds-on-surface-variant">선택된 {count}개 장비에 동일하게 적용됩니다.</p>
+        <div className="space-y-1 py-2">
+          <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">그룹명</Label>
+          <Input
+            value={group}
+            onChange={(e) => setGroup(e.target.value)}
+            placeholder="그룹명 입력 (비워두면 그룹 해제)"
+            list="existing-groups"
+            className="bg-white border-ds-outline-variant/30 text-sm"
+          />
+          {existingGroups.length > 0 && (
+            <datalist id="existing-groups">
+              {existingGroups.map(g => <option key={g} value={g} />)}
+            </datalist>
+          )}
+          {existingGroups.length > 0 && (
+            <div className="flex flex-wrap gap-1 pt-1">
+              {existingGroups.map(g => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => setGroup(g)}
+                  className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-ds-tertiary/10 text-ds-tertiary hover:bg-ds-tertiary/20 transition-colors"
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">취소</button>
+          <button onClick={() => onSubmit(group)} className="px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md">적용</button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 const COLUMN_DEFS: ColDef<Device>[] = [
   {
     checkboxSelection: true,
     headerCheckboxSelection: true,
     headerCheckboxSelectionFilteredOnly: true,
     width: 44, minWidth: 44, maxWidth: 44,
-    sortable: false, resizable: false,
+    sortable: false, resizable: false, filter: false,
   },
   {
     headerName: '상태', minWidth: 80,
@@ -161,7 +246,21 @@ const COLUMN_DEFS: ColDef<Device>[] = [
     cellRenderer: (p: { data: Device }) => (
       <div className="flex flex-col leading-tight">
         <span className="text-[12px] font-semibold text-ds-on-surface">{p.data?.name}</span>
-        <span className="text-[10px] text-ds-on-surface-variant/60 font-mono mt-0.5">{p.data?.ip_address}</span>
+        <div className="flex items-center gap-1 mt-0.5">
+          <span className="text-[10px] text-ds-on-surface-variant/60 font-mono">{p.data?.ip_address}</span>
+          {p.data?.ip_address && (
+            <a
+              href={`https://${p.data.ip_address}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              title="웹 관리 콘솔 열기"
+              className="shrink-0 text-ds-tertiary/50 hover:text-ds-tertiary transition-colors"
+            >
+              <ExternalLink className="w-2.5 h-2.5" />
+            </a>
+          )}
+        </div>
       </div>
     ),
   },
@@ -193,7 +292,7 @@ const COLUMN_DEFS: ColDef<Device>[] = [
     cellRenderer: (p: { value: string }) => <span className="text-[12px] text-ds-on-surface-variant">{p.value ?? '—'}</span>,
   },
   {
-    headerName: '수집 옵션', minWidth: 100, sortable: false,
+    headerName: '수집 옵션', minWidth: 100, sortable: false, filter: false,
     cellRenderer: (p: { data: Device }) => (
       <div className="flex gap-1 flex-wrap items-center">
         {p.data?.collect_last_hit_date && <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">히트수집</span>}
@@ -203,7 +302,7 @@ const COLUMN_DEFS: ColDef<Device>[] = [
     ),
   },
   {
-    headerName: '마지막 동기화', minWidth: 120,
+    headerName: '마지막 동기화', minWidth: 120, filter: false,
     valueGetter: (p) => formatRelativeTime(p.data?.last_sync_at ?? null),
     cellRenderer: (p: { value: string }) => <span className="text-[12px] text-ds-on-surface-variant">{p.value}</span>,
   },
@@ -219,6 +318,8 @@ export function DevicesPage() {
   const [bulkFile, setBulkFile] = useState<File | null>(null)
   const [selectedDevices, setSelectedDevices] = useState<Device[]>([])
   const [addMenuOpen, setAddMenuOpen] = useState(false)
+  const [bulkOptionsOpen, setBulkOptionsOpen] = useState(false)
+  const [bulkGroupOpen, setBulkGroupOpen] = useState(false)
   const addMenuRef = useRef<HTMLDivElement>(null)
   const { confirm, ConfirmDialogElement } = useConfirm()
 
@@ -234,6 +335,10 @@ export function DevicesPage() {
   }, [addMenuOpen])
 
   const { data: devices = [], isLoading } = useQuery({ queryKey: ['devices'], queryFn: listDevices })
+
+  const existingGroups = useMemo(() =>
+    [...new Set(devices.map(d => d.group).filter(Boolean) as string[])].sort()
+  , [devices])
 
   const syncCounts = useMemo(() => ({
     total:   devices.length,
@@ -339,6 +444,24 @@ export function DevicesPage() {
       catch (e: unknown) { toast.error(`[${d.name}] ${(e as Error).message}`) }
     }
   }, [selectedDevices])
+
+  const handleBulkSetOptions = useCallback(async (opts: Pick<DeviceUpdate, 'collect_last_hit_date' | 'use_ssh_for_last_hit_date'>) => {
+    setBulkOptionsOpen(false)
+    try {
+      await Promise.all(selectedDevices.map(d => updateDevice(d.id, opts)))
+      queryClient.invalidateQueries({ queryKey: ['devices'] })
+      toast.success(`${selectedDevices.length}개 장비 수집 옵션이 변경되었습니다.`)
+    } catch (e: unknown) { toast.error((e as Error).message) }
+  }, [selectedDevices, queryClient])
+
+  const handleBulkSetGroup = useCallback(async (group: string) => {
+    setBulkGroupOpen(false)
+    try {
+      await Promise.all(selectedDevices.map(d => updateDevice(d.id, { group })))
+      queryClient.invalidateQueries({ queryKey: ['devices'] })
+      toast.success(`${selectedDevices.length}개 장비 그룹이 변경되었습니다.`)
+    } catch (e: unknown) { toast.error((e as Error).message) }
+  }, [selectedDevices, queryClient])
 
   const handleEdit = useCallback(() => {
     if (selectedDevices.length !== 1) return
@@ -477,6 +600,20 @@ export function DevicesPage() {
                   수정
                 </button>
                 <button
+                  onClick={() => setBulkOptionsOpen(true)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
+                >
+                  <Settings2 className="w-3 h-3" />
+                  수집 옵션
+                </button>
+                <button
+                  onClick={() => setBulkGroupOpen(true)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
+                >
+                  <Tag className="w-3 h-3" />
+                  그룹 설정
+                </button>
+                <button
                   onClick={handleBulkSync}
                   className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
                 >
@@ -528,7 +665,7 @@ export function DevicesPage() {
           noRowsText="등록된 장비가 없습니다."
           rowSelection="multiple"
           onSelectionChanged={(rows) => setSelectedDevices(rows)}
-          defaultColDefOverride={{ filter: false, resizable: true, sortable: true }}
+          defaultColDefOverride={{ resizable: true, sortable: true }}
           fitColumns
           getRowStyle={(p) => {
             const s = p.data?.last_sync_status
@@ -561,6 +698,28 @@ export function DevicesPage() {
           }
         }}
         isPending={createMutation.isPending || updateMutation.isPending}
+      />
+
+      {/* 수집 옵션 일괄 수정 다이얼로그 */}
+      <BulkOptionsDialog
+        open={bulkOptionsOpen}
+        onClose={() => setBulkOptionsOpen(false)}
+        count={sel}
+        initial={{
+          collect_last_hit_date: selectedDevices.every(d => d.collect_last_hit_date),
+          use_ssh_for_last_hit_date: selectedDevices.every(d => d.use_ssh_for_last_hit_date),
+        }}
+        onSubmit={handleBulkSetOptions}
+      />
+
+      {/* 그룹 일괄 설정 다이얼로그 */}
+      <BulkGroupDialog
+        open={bulkGroupOpen}
+        onClose={() => setBulkGroupOpen(false)}
+        count={sel}
+        existingGroups={existingGroups}
+        initial={isSingle ? (selectedDevices[0]?.group ?? '') : ''}
+        onSubmit={handleBulkSetGroup}
       />
 
       {/* 일괄 등록 다이얼로그 */}
