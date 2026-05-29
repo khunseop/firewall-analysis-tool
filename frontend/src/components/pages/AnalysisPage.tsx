@@ -342,21 +342,12 @@ export function AnalysisPage() {
         <p className="text-[13px] text-ds-on-surface-variant/70 mt-0.5">방화벽 정책을 분석하여 보안 이슈와 최적화 포인트를 발견합니다.</p>
       </div>
 
-      {/* Config panel */}
+      {/* 카드 A: 분석 유형 선택 */}
       <div className="card rounded-xl">
-      <div className="px-5 py-3">
-        <span className="text-[13px] font-semibold text-ds-on-surface">분석 설정</span>
-      </div>
-      <div className="p-5 space-y-5">
-        {/* 장비 선택 */}
-        <div className="space-y-1.5 max-w-sm">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">장비 *</label>
-          <DeviceSelect devices={devices} value={deviceId} onChange={setDeviceId} />
+        <div className="px-5 py-3">
+          <span className="text-[13px] font-semibold text-ds-on-surface">분석 유형</span>
         </div>
-
-        {/* 분석 유형 카드 그리드 */}
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">분석 유형 *</label>
+        <div className="px-5 pb-5">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {ANALYSIS_TYPES.map((t) => {
               const Icon = t.icon
@@ -385,72 +376,86 @@ export function AnalysisPage() {
             })}
           </div>
         </div>
+      </div>
 
-        {analysisType === 'unused' && (
-          <div className="space-y-1.5 max-w-xs">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">미사용 기준 (일)</label>
-            <input
-              type="number" value={days} onChange={(e) => setDays(e.target.value)} min="1"
-              className="w-32 h-9 px-3 text-sm bg-ds-surface-container-low border border-ds-outline-variant/30 rounded-md focus:outline-none focus:border-ds-tertiary"
-            />
+      {/* 카드 B: 분석 대상 & 옵션 */}
+      <div className="card rounded-xl">
+        <div className="px-5 py-3">
+          <span className="text-[13px] font-semibold text-ds-on-surface">분석 대상 & 옵션</span>
+        </div>
+        <div className="px-5 pb-5 space-y-5">
+          {/* 장비 선택 */}
+          <div className="space-y-1.5 max-w-sm">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">장비 *</label>
+            <DeviceSelect devices={devices} value={deviceId} onChange={setDeviceId} />
           </div>
-        )}
 
-        {needsPolicySelect && (
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">
-              {analysisType === 'impact' ? '이동할 정책 *' : '분석 대상 정책 (미선택 시 전체)'}
-            </label>
-            <PolicyMultiSelect
-              deviceId={deviceId} value={targetPolicyIds} onChange={setTargetPolicyIds}
-              placeholder={analysisType === 'impact' ? '이동할 정책을 선택하세요…' : '전체 정책 분석'}
-            />
-          </div>
-        )}
-
-        {needsNewPosition && (
-          <div className="grid grid-cols-2 gap-4 max-w-md">
+          {analysisType === 'unused' && (
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">이동 후 순번 *</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">미사용 기준 (일)</label>
               <input
-                type="number" value={newPosition} onChange={(e) => setNewPosition(e.target.value)} placeholder="순번 입력"
-                className="w-full h-9 px-3 text-sm bg-ds-surface-container-low border border-ds-outline-variant/30 rounded-md focus:outline-none focus:border-ds-tertiary"
+                type="number" value={days} onChange={(e) => setDays(e.target.value)} min="1"
+                className="w-32 h-9 px-3 text-sm bg-ds-surface-container-low border border-ds-outline-variant/30 rounded-md focus:outline-none focus:border-ds-tertiary"
               />
             </div>
+          )}
+
+          {needsPolicySelect && (
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">이동 방향</label>
-              <ShadSelect value={moveDirection || '_none_'} onValueChange={(v) => setMoveDirection(v === '_none_' ? '' : v)}>
-                <SelectTrigger className="bg-ds-surface-container-low border-ds-outline-variant/30 text-sm">
-                  <SelectValue placeholder="선택 (선택사항)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="_none_">선택 안 함</SelectItem>
-                  <SelectItem value="before">before</SelectItem>
-                  <SelectItem value="after">after</SelectItem>
-                </SelectContent>
-              </ShadSelect>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">
+                {analysisType === 'impact' ? '이동할 정책 *' : '분석 대상 정책 (미선택 시 전체)'}
+              </label>
+              <PolicyMultiSelect
+                deviceId={deviceId} value={targetPolicyIds} onChange={setTargetPolicyIds}
+                placeholder={analysisType === 'impact' ? '이동할 정책을 선택하세요…' : '전체 정책 분석'}
+              />
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="flex items-center gap-4 pt-1">
-          <button
-            onClick={() => startMutation.mutate()}
-            disabled={!deviceId || startMutation.isPending || isPolling}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-lg disabled:opacity-50 transition-all"
-          >
-            <Play className="w-4 h-4" />
-            {isPolling ? '분석 중…' : '분석 시작'}
-          </button>
-
-          {currentStatus && (
-            <span className={`flex items-center gap-1.5 text-[12px] font-semibold ${currentStatus.text}`}>
-              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${currentStatus.dot}`} />
-              {currentStatus.label}
-            </span>
+          {needsNewPosition && (
+            <div className="grid grid-cols-2 gap-4 max-w-md">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">이동 후 순번 *</label>
+                <input
+                  type="number" value={newPosition} onChange={(e) => setNewPosition(e.target.value)} placeholder="순번 입력"
+                  className="w-full h-9 px-3 text-sm bg-ds-surface-container-low border border-ds-outline-variant/30 rounded-md focus:outline-none focus:border-ds-tertiary"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">이동 방향</label>
+                <ShadSelect value={moveDirection || '_none_'} onValueChange={(v) => setMoveDirection(v === '_none_' ? '' : v)}>
+                  <SelectTrigger className="bg-ds-surface-container-low border-ds-outline-variant/30 text-sm">
+                    <SelectValue placeholder="선택 (선택사항)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none_">선택 안 함</SelectItem>
+                    <SelectItem value="before">before</SelectItem>
+                    <SelectItem value="after">after</SelectItem>
+                  </SelectContent>
+                </ShadSelect>
+              </div>
+            </div>
           )}
         </div>
       </div>
+
+      {/* 실행 바 */}
+      <div className="flex items-center gap-4">
+        <button
+          onClick={() => startMutation.mutate()}
+          disabled={!deviceId || startMutation.isPending || isPolling}
+          className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-lg disabled:opacity-50 transition-all"
+        >
+          <Play className="w-4 h-4" />
+          {isPolling ? '분석 중…' : '분석 시작'}
+        </button>
+
+        {currentStatus && (
+          <span className={`flex items-center gap-1.5 text-[12px] font-semibold ${currentStatus.text}`}>
+            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${currentStatus.dot}`} />
+            {currentStatus.label}
+          </span>
+        )}
       </div>
 
       {/* Results */}
