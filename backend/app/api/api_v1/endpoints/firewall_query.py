@@ -311,7 +311,7 @@ async def get_policy_history(
         select(ChangeLog)
         .where(
             ChangeLog.device_id == device_id,
-            ChangeLog.data_type == "Policy",
+            ChangeLog.data_type == "policies",
             ChangeLog.object_name == rule_name,
         )
         .order_by(desc(ChangeLog.timestamp))
@@ -349,7 +349,7 @@ async def get_change_stats(
         )
         .where(
             ChangeLog.device_id.in_(device_ids),
-            ChangeLog.data_type == "Policy",
+            ChangeLog.data_type == "policies",
             ChangeLog.timestamp >= since,
         )
         .group_by(
@@ -376,7 +376,7 @@ async def get_policy_change_logs(
         select(ChangeLog)
         .where(
             ChangeLog.device_id.in_(device_ids),
-            ChangeLog.data_type == "Policy",
+            ChangeLog.data_type == "policies",
         )
         .order_by(desc(ChangeLog.timestamp))
         .limit(limit)

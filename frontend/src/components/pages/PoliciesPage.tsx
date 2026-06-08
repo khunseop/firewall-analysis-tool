@@ -2,7 +2,7 @@ import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Download, SlidersHorizontal, AlertTriangle, X, History, Search } from 'lucide-react'
+import { Download, SlidersHorizontal, AlertTriangle, X, History, Search, Bookmark, BookmarkPlus } from 'lucide-react'
 import type { ColDef, RowClickedEvent } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { listDevices } from '@/api/devices'
@@ -107,6 +107,38 @@ export function PoliciesPage() {
   const [detailModal, setDetailModal] = useState<Policy | null>(null)
   const [quickFilterInput, setQuickFilterInput] = useState(quickFilterText)
 
+  // 검색 조건 프리셋 (localStorage)
+  type Preset = { name: string; tree: FilterTree }
+  const PRESET_KEY = 'fat_policy_presets'
+  const [presets, setPresets] = useState<Preset[]>(() => {
+    try { return JSON.parse(localStorage.getItem(PRESET_KEY) ?? '[]') } catch { return [] }
+  })
+  const [presetNameInput, setPresetNameInput] = useState('')
+  const [showPresetInput, setShowPresetInput] = useState(false)
+
+  const savePreset = () => {
+    const name = presetNameInput.trim()
+    if (!name) return
+    const updated = [...presets.filter(p => p.name !== name), { name, tree: filterTree }]
+    setPresets(updated)
+    localStorage.setItem(PRESET_KEY, JSON.stringify(updated))
+    setPresetNameInput('')
+    setShowPresetInput(false)
+    toast.success(`프리셋 "${name}" 저장됨`)
+  }
+
+  const loadPreset = (preset: Preset) => {
+    setFilterTree(preset.tree)
+    setFiltersOpen(true)
+    toast.info(`프리셋 "${preset.name}" 불러옴`)
+  }
+
+  const deletePreset = (name: string) => {
+    const updated = presets.filter(p => p.name !== name)
+    setPresets(updated)
+    localStorage.setItem(PRESET_KEY, JSON.stringify(updated))
+  }
+
   const { data: devices = [] } = useQuery({ queryKey: ['devices'], queryFn: listDevices })
 
   // 새로고침 후 자동 재검색: searched=true지만 policies가 비어있으면 (partialize로 미저장)
@@ -117,15 +149,16 @@ export function PoliciesPage() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // URL 파라미터로 필터 자동 세팅 (ObjectDetailModal → 정책 검색 연동)
+  // URL 파라미터로 필터 자동 세팅 (ObjectDetailModal / AnalysisPage → 정책 검색 연동)
   useEffect(() => {
-    const srcName = searchParams.get('src_name')
-    const dstName = searchParams.get('dst_name')
-    const svcName = searchParams.get('svc_name')
-    const srcIp   = searchParams.get('src_ip')
-    const dstIp   = searchParams.get('dst_ip')
-    const objName = searchParams.get('obj_name') // 출발지+목적지 OR 검색
-    if (srcName || dstName || svcName || srcIp || dstIp || objName) {
+    const srcName  = searchParams.get('src_name')
+    const dstName  = searchParams.get('dst_name')
+    const svcName  = searchParams.get('svc_name')
+    const srcIp    = searchParams.get('src_ip')
+    const dstIp    = searchParams.get('dst_ip')
+    const objName  = searchParams.get('obj_name') // 출발지+목적지 OR 검색
+    const ruleName = searchParams.get('rule_name')
+    if (srcName || dstName || svcName || srcIp || dstIp || objName || ruleName) {
       let newTree: FilterTree
       if (objName) {
         // src_name OR dst_name 동시 검색
@@ -139,11 +172,12 @@ export function PoliciesPage() {
         }]
       } else {
         const newConds = []
-        if (srcName) newConds.push({ field: 'src_name', operator: 'contains' as const, value: srcName })
-        if (dstName) newConds.push({ field: 'dst_name', operator: 'contains' as const, value: dstName })
-        if (svcName) newConds.push({ field: 'service_name', operator: 'contains' as const, value: svcName })
-        if (srcIp)   newConds.push({ field: 'src_ip', operator: 'contains' as const, value: srcIp })
-        if (dstIp)   newConds.push({ field: 'dst_ip', operator: 'contains' as const, value: dstIp })
+        if (ruleName) newConds.push({ field: 'rule_name', operator: 'equals' as const, value: ruleName })
+        if (srcName)  newConds.push({ field: 'src_name', operator: 'contains' as const, value: srcName })
+        if (dstName)  newConds.push({ field: 'dst_name', operator: 'contains' as const, value: dstName })
+        if (svcName)  newConds.push({ field: 'service_name', operator: 'contains' as const, value: svcName })
+        if (srcIp)    newConds.push({ field: 'src_ip', operator: 'contains' as const, value: srcIp })
+        if (dstIp)    newConds.push({ field: 'dst_ip', operator: 'contains' as const, value: dstIp })
         newTree = conditionsToFilterTree(newConds)
       }
       setFilterTree(newTree)
@@ -392,6 +426,44 @@ export function PoliciesPage() {
           )}
 
           <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+            {/* 프리셋 */}
+            {presets.length > 0 && (
+              <div className="relative group">
+                <button className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors">
+                  <Bookmark className="w-3 h-3" /> 프리셋
+                </button>
+                <div className="absolute right-0 top-full mt-1 z-50 hidden group-hover:block bg-white border border-ds-outline-variant/20 rounded-lg shadow-lg min-w-44 py-1">
+                  {presets.map(p => (
+                    <div key={p.name} className="flex items-center justify-between px-3 py-1.5 hover:bg-ds-surface-container-low gap-2">
+                      <button className="text-[12px] text-ds-on-surface truncate flex-1 text-left" onClick={() => loadPreset(p)}>{p.name}</button>
+                      <button className="text-ds-error hover:text-ds-error/70 shrink-0" onClick={() => deletePreset(p.name)}><X className="w-3 h-3" /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {hasConditions && !showPresetInput && (
+              <button
+                onClick={() => setShowPresetInput(true)}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
+              >
+                <BookmarkPlus className="w-3 h-3" /> 저장
+              </button>
+            )}
+            {showPresetInput && (
+              <div className="flex items-center gap-1">
+                <input
+                  autoFocus
+                  value={presetNameInput}
+                  onChange={e => setPresetNameInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') savePreset(); if (e.key === 'Escape') setShowPresetInput(false) }}
+                  placeholder="프리셋 이름"
+                  className="h-7 px-2 text-[12px] border border-ds-outline-variant/30 rounded-md focus:outline-none focus:border-ds-tertiary w-28"
+                />
+                <button onClick={savePreset} className="text-[12px] font-semibold text-ds-tertiary px-2 py-1 rounded hover:bg-ds-tertiary/10 transition-colors">저장</button>
+                <button onClick={() => setShowPresetInput(false)} className="text-[12px] text-ds-on-surface-variant px-1 py-1 rounded hover:bg-ds-surface-container-low transition-colors"><X className="w-3 h-3" /></button>
+              </div>
+            )}
             {policies.length > 0 && (
               <button onClick={handleExport} className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors">
                 <Download className="w-3 h-3" /> Excel

@@ -43,6 +43,7 @@ class AnalysisTask(Base):
     created_at = Column(DateTime, nullable=False)
     started_at = Column(DateTime)
     completed_at = Column(DateTime)
+    error_message = Column(String, nullable=True)
 
     device = relationship("Device")
 

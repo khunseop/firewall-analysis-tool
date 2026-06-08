@@ -8,6 +8,7 @@ export interface AnalysisTask {
   created_at: string
   started_at: string | null
   completed_at: string | null
+  error_message: string | null
 }
 
 export interface AnalysisResult {
