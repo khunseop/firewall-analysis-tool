@@ -115,6 +115,8 @@ export function PoliciesPage() {
   })
   const [presetNameInput, setPresetNameInput] = useState('')
   const [showPresetInput, setShowPresetInput] = useState(false)
+  const [presetDropdownOpen, setPresetDropdownOpen] = useState(false)
+  const presetBtnRef = useRef<HTMLButtonElement>(null)
 
   const savePreset = () => {
     const name = presetNameInput.trim()
@@ -428,18 +430,33 @@ export function PoliciesPage() {
           <div className="flex items-center gap-1.5 shrink-0 ml-auto">
             {/* 프리셋 */}
             {presets.length > 0 && (
-              <div className="relative group">
-                <button className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors">
+              <div className="relative">
+                <button
+                  ref={presetBtnRef}
+                  onClick={() => setPresetDropdownOpen(o => !o)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
+                >
                   <Bookmark className="w-3 h-3" /> 프리셋
                 </button>
-                <div className="absolute right-0 top-full mt-1 z-50 hidden group-hover:block bg-white border border-ds-outline-variant/20 rounded-lg shadow-lg min-w-44 py-1">
-                  {presets.map(p => (
-                    <div key={p.name} className="flex items-center justify-between px-3 py-1.5 hover:bg-ds-surface-container-low gap-2">
-                      <button className="text-[12px] text-ds-on-surface truncate flex-1 text-left" onClick={() => loadPreset(p)}>{p.name}</button>
-                      <button className="text-ds-error hover:text-ds-error/70 shrink-0" onClick={() => deletePreset(p.name)}><X className="w-3 h-3" /></button>
+                {presetDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setPresetDropdownOpen(false)} />
+                    <div
+                      className="fixed z-50 bg-white border border-ds-outline-variant/20 rounded-lg shadow-xl min-w-44 py-1"
+                      style={{
+                        top: (presetBtnRef.current?.getBoundingClientRect().bottom ?? 0) + 4,
+                        right: window.innerWidth - (presetBtnRef.current?.getBoundingClientRect().right ?? 0),
+                      }}
+                    >
+                      {presets.map(p => (
+                        <div key={p.name} className="flex items-center justify-between px-3 py-1.5 hover:bg-ds-surface-container-low gap-2">
+                          <button className="text-[12px] text-ds-on-surface truncate flex-1 text-left" onClick={() => { loadPreset(p); setPresetDropdownOpen(false) }}>{p.name}</button>
+                          <button className="text-ds-error hover:text-ds-error/70 shrink-0" onClick={() => deletePreset(p.name)}><X className="w-3 h-3" /></button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </>
+                )}
               </div>
             )}
             {hasConditions && !showPresetInput && (
