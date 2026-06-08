@@ -5,10 +5,9 @@ from typing import List, Optional
 from app import crud, schemas, models
 from app.db.session import get_db
 from sqlalchemy.future import select
-from sqlalchemy import desc, func
+from sqlalchemy import desc
 from app.services.policy_indexer import rebuild_policy_indices
 from app.models.change_log import ChangeLog
-from app.models.policy_members import PolicyAddressMember, PolicyServiceMember
 
 router = APIRouter()
 
@@ -306,41 +305,41 @@ async def get_object_usage_counts(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    각 오브젝트(네트워크/서비스)가 몇 개의 정책에서 직접 참조되는지 반환합니다.
+    각 오브젝트가 몇 개의 정책에서 직접 참조되는지 반환합니다.
+    Policy.source, destination, service 필드의 쉼표 구분 이름을 집계합니다.
     결과: [{"device_id": 1, "name": "obj1", "member_type": "address"|"service", "policy_count": 5}]
     """
-    addr_result = await db.execute(
+    result = await db.execute(
         select(
-            PolicyAddressMember.device_id,
-            PolicyAddressMember.token,
-            func.count(PolicyAddressMember.policy_id.distinct()).label("policy_count"),
-        )
-        .where(
-            PolicyAddressMember.device_id.in_(device_ids),
-            PolicyAddressMember.token.isnot(None),
-        )
-        .group_by(PolicyAddressMember.device_id, PolicyAddressMember.token)
+            models.Policy.device_id,
+            models.Policy.source,
+            models.Policy.destination,
+            models.Policy.service,
+        ).where(models.Policy.device_id.in_(device_ids))
     )
-    svc_result = await db.execute(
-        select(
-            PolicyServiceMember.device_id,
-            PolicyServiceMember.token,
-            func.count(PolicyServiceMember.policy_id.distinct()).label("policy_count"),
-        )
-        .where(
-            PolicyServiceMember.device_id.in_(device_ids),
-            PolicyServiceMember.token.isnot(None),
-        )
-        .group_by(PolicyServiceMember.device_id, PolicyServiceMember.token)
-    )
-    rows = [
-        {"device_id": r.device_id, "name": r.token, "member_type": "address", "policy_count": r.policy_count}
-        for r in addr_result.all()
+    policies = result.all()
+
+    addr_counts: dict[tuple, int] = {}
+    svc_counts: dict[tuple, int] = {}
+
+    for row in policies:
+        for field in (row.source, row.destination):
+            if field:
+                for name in (n.strip() for n in field.split(',') if n.strip()):
+                    key = (row.device_id, name)
+                    addr_counts[key] = addr_counts.get(key, 0) + 1
+        if row.service:
+            for name in (n.strip() for n in row.service.split(',') if n.strip()):
+                key = (row.device_id, name)
+                svc_counts[key] = svc_counts.get(key, 0) + 1
+
+    return [
+        {"device_id": k[0], "name": k[1], "member_type": "address", "policy_count": v}
+        for k, v in addr_counts.items()
     ] + [
-        {"device_id": r.device_id, "name": r.token, "member_type": "service", "policy_count": r.policy_count}
-        for r in svc_result.all()
+        {"device_id": k[0], "name": k[1], "member_type": "service", "policy_count": v}
+        for k, v in svc_counts.items()
     ]
-    return rows
 
 
 @router.get("/policy-history")
