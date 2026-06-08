@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/policies', label: 'Policies' },
   { to: '/objects', label: 'Objects' },
   { to: '/analysis', label: 'Analysis' },
+  { to: '/policy-diff', label: 'Policy Diff' },
   { to: '/schedules', label: 'Schedules' },
 ]
 
