@@ -13,6 +13,7 @@ import { AnalysisPage } from '@/components/pages/AnalysisPage'
 import { SchedulesPage } from '@/components/pages/SchedulesPage'
 import { SettingsPage } from '@/components/pages/SettingsPage'
 import { NotificationsPage } from '@/components/pages/NotificationsPage'
+import { PolicyDiffPage } from '@/components/pages/PolicyDiffPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +37,7 @@ export default function App() {
               <Route path="policies" element={<PoliciesPage />} />
               <Route path="objects" element={<ObjectsPage />} />
               <Route path="analysis" element={<AnalysisPage />} />
+              <Route path="policy-diff" element={<PolicyDiffPage />} />
               <Route path="schedules" element={<SchedulesPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="notifications" element={<NotificationsPage />} />

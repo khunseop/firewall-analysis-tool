@@ -8,6 +8,7 @@ from sqlalchemy.future import select
 from sqlalchemy import desc
 from app.services.policy_indexer import rebuild_policy_indices
 from app.models.change_log import ChangeLog
+from app.models.sync_history import SyncHistory
 
 router = APIRouter()
 
@@ -435,4 +436,186 @@ async def get_policy_change_logs(
         }
         for log in logs
     ]
+
+
+@router.get("/sync-history")
+async def get_sync_history(
+    device_id: int = Query(..., description="장비 ID"),
+    limit: int = Query(50, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+):
+    """동기화 시점 이력 조회 (정책 diff 비교용 sync point 목록)"""
+    result = await db.execute(
+        select(SyncHistory)
+        .where(SyncHistory.device_id == device_id)
+        .order_by(desc(SyncHistory.sync_at))
+        .limit(limit)
+    )
+    records = result.scalars().all()
+    return [
+        {
+            "id": r.id,
+            "device_id": r.device_id,
+            "sync_at": r.sync_at.isoformat() if r.sync_at else None,
+            "total_policies": r.total_policies,
+            "created_count": r.created_count,
+            "updated_count": r.updated_count,
+            "deleted_count": r.deleted_count,
+        }
+        for r in records
+    ]
+
+
+@router.get("/policy-diff")
+async def get_policy_diff(
+    device_id: int = Query(..., description="장비 ID"),
+    from_sync_id: int = Query(..., description="비교 시작 sync point ID"),
+    to_sync_id: int = Query(..., description="비교 종료 sync point ID"),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    두 동기화 시점 사이의 정책 변경 Diff를 반환합니다.
+    from_sync_id → to_sync_id 기간 동안 추가/수정/삭제된 정책을 필드 레벨까지 상세히 제공합니다.
+    """
+    from_result = await db.execute(select(SyncHistory).where(SyncHistory.id == from_sync_id))
+    from_sync = from_result.scalar_one_or_none()
+    to_result = await db.execute(select(SyncHistory).where(SyncHistory.id == to_sync_id))
+    to_sync = to_result.scalar_one_or_none()
+
+    if not from_sync or not to_sync:
+        raise HTTPException(status_code=404, detail="Sync history record not found")
+    if from_sync.device_id != device_id or to_sync.device_id != device_id:
+        raise HTTPException(status_code=400, detail="Sync records do not belong to the specified device")
+
+    # from_sync와 to_sync 중 시간순 정렬
+    earlier, later = (from_sync, to_sync) if from_sync.sync_at <= to_sync.sync_at else (to_sync, from_sync)
+
+    # earlier.sync_at 이후 ~ later.sync_at 이하 구간의 정책 변경 로그 조회
+    logs_result = await db.execute(
+        select(ChangeLog)
+        .where(
+            ChangeLog.device_id == device_id,
+            ChangeLog.data_type == "policies",
+            ChangeLog.timestamp > earlier.sync_at,
+            ChangeLog.timestamp <= later.sync_at,
+            ChangeLog.action.in_(["created", "updated", "deleted"]),
+        )
+        .order_by(ChangeLog.timestamp)
+    )
+    logs = logs_result.scalars().all()
+
+    # 정책별 변경 이력 집계 (rule_name → [logs])
+    policy_logs: dict[str, list] = {}
+    for log in logs:
+        key = log.object_name
+        if key not in policy_logs:
+            policy_logs[key] = []
+        policy_logs[key].append(log)
+
+    DIFF_FIELDS = ["enable", "action", "source", "destination", "service", "description", "user", "application", "security_profile", "category"]
+
+    changes = []
+    for rule_name, rule_logs in policy_logs.items():
+        actions = [l.action for l in rule_logs]
+        first_log = rule_logs[0]
+        last_log = rule_logs[-1]
+
+        # 순 변경 유형 결정
+        if "created" in actions and "deleted" in actions:
+            net_action = "deleted"  # 생성 후 삭제 → 사실상 삭제
+        elif "created" in actions:
+            net_action = "created"
+        elif "deleted" in actions:
+            net_action = "deleted"
+        else:
+            net_action = "updated"
+
+        # before/after 데이터 추출
+        before_data = None
+        after_data = None
+
+        if net_action == "created":
+            # 생성된 정책: after 데이터 = 마지막 상태
+            details = last_log.details or {}
+            if isinstance(details, str):
+                import json as _json
+                details = _json.loads(details)
+            after_data = details.get("after") or details
+            field_changes = []
+
+        elif net_action == "deleted":
+            # 삭제된 정책: before 데이터 = 삭제 로그의 before
+            del_log = next((l for l in reversed(rule_logs) if l.action == "deleted"), last_log)
+            details = del_log.details or {}
+            if isinstance(details, str):
+                import json as _json
+                details = _json.loads(details)
+            before_data = details.get("before") or details
+            field_changes = []
+
+        else:
+            # 수정된 정책: 최초 before와 최종 after를 비교
+            first_details = first_log.details or {}
+            last_details = last_log.details or {}
+            if isinstance(first_details, str):
+                import json as _json
+                first_details = _json.loads(first_details)
+            if isinstance(last_details, str):
+                import json as _json
+                last_details = _json.loads(last_details)
+
+            before_data = first_details.get("before", {}) or {}
+            after_data = last_details.get("after", {}) or {}
+
+            field_changes = []
+            all_fields = set(list(before_data.keys()) + list(after_data.keys()))
+            for field in DIFF_FIELDS:
+                if field not in all_fields:
+                    continue
+                b_val = str(before_data.get(field, "")) if before_data.get(field) is not None else ""
+                a_val = str(after_data.get(field, "")) if after_data.get(field) is not None else ""
+                if b_val != a_val:
+                    field_changes.append({"field": field, "before": b_val, "after": a_val})
+
+        vsys = None
+        if before_data and isinstance(before_data, dict):
+            vsys = before_data.get("vsys")
+        if not vsys and after_data and isinstance(after_data, dict):
+            vsys = after_data.get("vsys")
+
+        changes.append({
+            "rule_name": rule_name,
+            "vsys": vsys,
+            "action": net_action,
+            "field_changes": field_changes,
+            "before": before_data if net_action in ("deleted", "updated") else None,
+            "after": after_data if net_action in ("created", "updated") else None,
+            "change_count": len(rule_logs),
+        })
+
+    # 정렬: 삭제 → 수정 → 추가 순
+    order = {"deleted": 0, "updated": 1, "created": 2}
+    changes.sort(key=lambda c: (order.get(c["action"], 9), c["rule_name"]))
+
+    summary = {
+        "created": sum(1 for c in changes if c["action"] == "created"),
+        "updated": sum(1 for c in changes if c["action"] == "updated"),
+        "deleted": sum(1 for c in changes if c["action"] == "deleted"),
+        "total": len(changes),
+    }
+
+    return {
+        "from_sync": {
+            "id": earlier.id,
+            "sync_at": earlier.sync_at.isoformat(),
+            "total_policies": earlier.total_policies,
+        },
+        "to_sync": {
+            "id": later.id,
+            "sync_at": later.sync_at.isoformat(),
+            "total_policies": later.total_policies,
+        },
+        "summary": summary,
+        "changes": changes,
+    }
 

@@ -11,3 +11,4 @@ from .analysis import AnalysisTask, RedundancyPolicySet, AnalysisResult
 from .sync_schedule import SyncSchedule
 from .settings import Settings
 from .notification_log import NotificationLog
+from .sync_history import SyncHistory

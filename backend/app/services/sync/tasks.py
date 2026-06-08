@@ -603,7 +603,26 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                     if device_to_update:
                         await crud.device.update_sync_status(db=db, device=device_to_update, status="success")
                         await crud.device.update_device_stats_cache(db=db, device_id=device_id)
-                        await db.commit()
+
+                    # 동기화 이력 저장 (정책 diff 비교용)
+                    policy_count_result = await db.execute(
+                        select(models.Policy).where(models.Policy.device_id == device_id)
+                    )
+                    total_policies = len(policy_count_result.scalars().all())
+
+                    from datetime import datetime as _dt
+                    from zoneinfo import ZoneInfo as _ZoneInfo
+                    sync_at = _dt.now(_ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
+
+                    db.add(models.SyncHistory(
+                        device_id=device_id,
+                        sync_at=sync_at,
+                        total_policies=total_policies,
+                        created_count=0,
+                        updated_count=0,
+                        deleted_count=0,
+                    ))
+                    await db.commit()
 
             logging.info(f"[orchestrator] sync-all finished successfully for device_id={device_id}")
 
