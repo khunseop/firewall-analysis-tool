@@ -1,11 +1,14 @@
-import { useRef, useCallback, useState } from 'react'
+import { useRef, useCallback, useState, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw, Search, XCircle, AlertTriangle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { ColDef } from '@ag-grid-community/core'
 import type { GridApi } from '@ag-grid-community/core'
+import ReactApexChart from 'react-apexcharts'
+import type { ApexOptions } from 'apexcharts'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { getDashboardStats, type DeviceStats } from '@/api/devices'
+import { getChangeStats } from '@/api/firewall'
 import { useSyncStatusWebSocket } from '@/hooks/useWebSocket'
 import { notify } from '@/store/notificationStore'
 import { formatNumber, formatRelativeTime } from '@/lib/utils'
@@ -156,6 +159,42 @@ export function DashboardPage() {
     gridRef.current?.gridApi?.setGridOption('quickFilterText', value)
   }
 
+  const deviceIds = stats?.device_stats.map(d => d.id) ?? []
+
+  const { data: changeStats = [] } = useQuery({
+    queryKey: ['change-stats', deviceIds],
+    queryFn: () => getChangeStats(deviceIds),
+    enabled: deviceIds.length > 0,
+    staleTime: 60_000,
+  })
+
+  const chartData = useMemo(() => {
+    const weeks = [...new Set(changeStats.map(s => s.week))].sort()
+    const get = (week: string, action: string) => changeStats.find(s => s.week === week && s.action === action)?.count ?? 0
+    return {
+      categories: weeks.map(w => {
+        const [y, wn] = w.split('-')
+        return `${y}-W${wn}`
+      }),
+      series: [
+        { name: '신규', data: weeks.map(w => get(w, 'created')), color: '#22c55e' },
+        { name: '변경', data: weeks.map(w => get(w, 'updated')), color: '#f59e0b' },
+        { name: '삭제', data: weeks.map(w => get(w, 'deleted')), color: '#ef4444' },
+      ],
+    }
+  }, [changeStats])
+
+  const chartOptions: ApexOptions = {
+    chart: { type: 'bar', stacked: true, toolbar: { show: false }, background: 'transparent' },
+    plotOptions: { bar: { columnWidth: '55%', borderRadius: 2 } },
+    xaxis: { categories: chartData.categories, labels: { style: { fontSize: '11px' } } },
+    yaxis: { labels: { style: { fontSize: '11px' } }, min: 0 },
+    legend: { position: 'top', fontSize: '12px' },
+    dataLabels: { enabled: false },
+    tooltip: { shared: true, intersect: false },
+    grid: { borderColor: 'rgba(0,0,0,0.05)' },
+  }
+
   const errorDevices = rowData.filter(d => d.sync_status === 'failure' || d.sync_status === 'error')
   const totalPolicies = stats?.total_policies ?? 0
   const activePolicies = stats?.total_active_policies ?? 0
@@ -251,6 +290,24 @@ export function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* 주간 정책 변경 추이 */}
+      {chartData.categories.length > 0 && (
+        <div className="card rounded-xl shrink-0">
+          <div className="px-5 py-3 border-b border-ds-outline-variant/10">
+            <span className="text-[13px] font-semibold text-ds-on-surface">주간 정책 변경 추이</span>
+            <span className="text-[11px] text-ds-on-surface-variant/60 ml-2">최근 12주</span>
+          </div>
+          <div className="px-4 py-3">
+            <ReactApexChart
+              type="bar"
+              height={200}
+              series={chartData.series}
+              options={chartOptions}
+            />
+          </div>
+        </div>
+      )}
 
       {/* 장비 현황 테이블 */}
       <div className="card rounded-xl flex flex-col overflow-hidden">

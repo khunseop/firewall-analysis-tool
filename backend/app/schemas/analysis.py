@@ -16,6 +16,7 @@ class AnalysisTaskUpdate(BaseModel):
     task_status: Optional[AnalysisTaskStatus] = None
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+    error_message: Optional[str] = None
 
 class AnalysisTask(AnalysisTaskBase):
     id: int
@@ -23,6 +24,7 @@ class AnalysisTask(AnalysisTaskBase):
     created_at: datetime
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+    error_message: Optional[str] = None
 
     class Config:
         from_attributes = True

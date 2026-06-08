@@ -100,7 +100,8 @@ async def run_redundancy_analysis_task(db: AsyncSession, device_id: int):
             # 실패 상태로 업데이트
             task_update = AnalysisTaskUpdate(
                 completed_at=get_kst_now(),
-                task_status='failure'
+                task_status='failure',
+                error_message=str(e)
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
 
@@ -157,7 +158,8 @@ async def run_unused_analysis_task(db: AsyncSession, device_id: int, days: int =
             logger.error(f"미사용 정책 분석 실패. Task ID: {task.id}, Error: {e}", exc_info=True)
             task_update = AnalysisTaskUpdate(
                 completed_at=get_kst_now(),
-                task_status='failure'
+                task_status='failure',
+                error_message=str(e)
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
 
@@ -220,7 +222,8 @@ async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_poli
             logger.error(f"정책이동 영향 분석 실패. Task ID: {task.id}, Error: {e}", exc_info=True)
             task_update = AnalysisTaskUpdate(
                 completed_at=get_kst_now(),
-                task_status='failure'
+                task_status='failure',
+                error_message=str(e)
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
 
@@ -276,7 +279,8 @@ async def run_unreferenced_objects_analysis_task(db: AsyncSession, device_id: in
             logger.error(f"미참조 객체 분석 실패. Task ID: {task.id}, Error: {e}", exc_info=True)
             task_update = AnalysisTaskUpdate(
                 completed_at=get_kst_now(),
-                task_status='failure'
+                task_status='failure',
+                error_message=str(e)
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
 
@@ -333,7 +337,8 @@ async def run_risky_ports_analysis_task(db: AsyncSession, device_id: int, target
             logger.error(f"위험 포트 정책 분석 작업 실패. Task ID: {task.id}, Error: {e}", exc_info=True)
             task_update = AnalysisTaskUpdate(
                 completed_at=get_kst_now(),
-                task_status='failure'
+                task_status='failure',
+                error_message=str(e)
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
 
@@ -389,6 +394,7 @@ async def run_over_permissive_analysis_task(db: AsyncSession, device_id: int, ta
             logger.error(f"과허용정책 분석 작업 실패. Task ID: {task.id}, Error: {e}", exc_info=True)
             task_update = AnalysisTaskUpdate(
                 completed_at=get_kst_now(),
-                task_status='failure'
+                task_status='failure',
+                error_message=str(e)
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)

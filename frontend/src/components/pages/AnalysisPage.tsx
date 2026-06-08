@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Play, Download, Copy, Clock, ArrowLeftRight, Unlink, ShieldAlert, Expand, Check } from 'lucide-react'
 import type { ColDef, RowStyle, RowClassParams } from '@ag-grid-community/core'
@@ -34,23 +35,37 @@ const ANALYSIS_TYPES: AnalysisTypeOption[] = [
 // Policy fields accessed from nested policy sub-object (all analyzers wrap policy data under "policy" key)
 const pv = (key: string) => (p: { data?: Record<string, unknown> }) => (p.data?.policy as Record<string, unknown> | undefined)?.[key] ?? p.data?.[key]
 
-const POLICY_COLS: ColDef[] = [
-  { headerName: '순번',        filter: 'agNumberColumnFilter', width: 70,  valueGetter: pv('seq') },
-  { headerName: '정책명',      filter: 'agTextColumnFilter',   width: 160, valueGetter: pv('rule_name') },
-  { headerName: '액션',        filter: 'agTextColumnFilter',   width: 80,  valueGetter: pv('action') },
-  { headerName: '활성',        width: 70,  valueGetter: pv('enable'), valueFormatter: (p) => (p.value ? '활성' : '비활성') },
-  { headerName: '출발지',      filter: 'agTextColumnFilter',   width: 200, valueGetter: pv('source') },
-  { headerName: '목적지',      filter: 'agTextColumnFilter',   width: 200, valueGetter: pv('destination') },
-  { headerName: '서비스',      filter: 'agTextColumnFilter',   width: 160, valueGetter: pv('service') },
-  { headerName: '사용자',      filter: 'agTextColumnFilter',   width: 100, valueGetter: pv('user') },
-  { headerName: '보안 프로파일', filter: 'agTextColumnFilter', width: 130, valueGetter: pv('security_profile') },
-  { headerName: '카테고리',    filter: 'agTextColumnFilter',   width: 100, valueGetter: pv('category') },
-  { headerName: '설명',        filter: 'agTextColumnFilter',   width: 150, valueGetter: pv('description') },
-  { headerName: '마지막 사용일', filter: 'agTextColumnFilter', width: 130, valueGetter: pv('last_hit_date') },
-  { headerName: 'VSYS',        filter: 'agTextColumnFilter',   width: 80,  valueGetter: pv('vsys') },
-]
+function makePolicyCols(onRuleNameClick?: (name: string) => void): ColDef[] {
+  return [
+    { headerName: '순번',        filter: 'agNumberColumnFilter', width: 70,  valueGetter: pv('seq') },
+    {
+      headerName: '정책명', filter: 'agTextColumnFilter', width: 160, valueGetter: pv('rule_name'),
+      ...(onRuleNameClick && {
+        cellRenderer: (p: { value: string }) => {
+          if (!p.value) return p.value
+          const btn = document.createElement('button')
+          btn.textContent = p.value
+          btn.className = 'text-ds-primary underline-offset-2 hover:underline text-left w-full truncate'
+          btn.addEventListener('click', () => onRuleNameClick(p.value))
+          return btn
+        },
+      }),
+    },
+    { headerName: '액션',        filter: 'agTextColumnFilter',   width: 80,  valueGetter: pv('action') },
+    { headerName: '활성',        width: 70,  valueGetter: pv('enable'), valueFormatter: (p) => (p.value ? '활성' : '비활성') },
+    { headerName: '출발지',      filter: 'agTextColumnFilter',   width: 200, valueGetter: pv('source') },
+    { headerName: '목적지',      filter: 'agTextColumnFilter',   width: 200, valueGetter: pv('destination') },
+    { headerName: '서비스',      filter: 'agTextColumnFilter',   width: 160, valueGetter: pv('service') },
+    { headerName: '사용자',      filter: 'agTextColumnFilter',   width: 100, valueGetter: pv('user') },
+    { headerName: '보안 프로파일', filter: 'agTextColumnFilter', width: 130, valueGetter: pv('security_profile') },
+    { headerName: '카테고리',    filter: 'agTextColumnFilter',   width: 100, valueGetter: pv('category') },
+    { headerName: '설명',        filter: 'agTextColumnFilter',   width: 150, valueGetter: pv('description') },
+    { headerName: '마지막 사용일', filter: 'agTextColumnFilter', width: 130, valueGetter: pv('last_hit_date') },
+    { headerName: 'VSYS',        filter: 'agTextColumnFilter',   width: 80,  valueGetter: pv('vsys') },
+  ]
+}
 
-function getColumnDefs(analysisType: string): ColDef[] {
+function getColumnDefs(analysisType: string, onRuleNameClick?: (name: string) => void): ColDef[] {
   if (analysisType === 'redundancy') {
     return [
       { field: 'set_number', headerName: '중복번호', filter: 'agNumberColumnFilter', pinned: 'left', width: 100, valueFormatter: (p) => formatNumber(p.value) },
@@ -63,14 +78,14 @@ function getColumnDefs(analysisType: string): ColDef[] {
           return null
         },
       },
-      ...POLICY_COLS,
+      ...makePolicyCols(onRuleNameClick),
     ]
   }
   if (analysisType === 'unused') {
     return [
       { field: 'reason', headerName: '미사용 사유', filter: 'agTextColumnFilter', pinned: 'left', width: 150 },
       { field: 'days_unused', headerName: '미사용 일수', filter: 'agNumberColumnFilter', width: 120, valueFormatter: (p) => p.value ? `${p.value}일` : '-' },
-      ...POLICY_COLS,
+      ...makePolicyCols(onRuleNameClick),
     ]
   }
   if (analysisType === 'unreferenced_objects') {
@@ -97,7 +112,7 @@ function getColumnDefs(analysisType: string): ColDef[] {
         },
       },
       { headerName: '서비스', filter: 'agTextColumnFilter', width: 160, valueGetter: (p) => p.data?.policy?.service ?? '' },
-      ...POLICY_COLS,
+      ...makePolicyCols(onRuleNameClick),
     ]
   }
   if (analysisType === 'over_permissive') {
@@ -105,7 +120,7 @@ function getColumnDefs(analysisType: string): ColDef[] {
       { field: 'source_range_size', headerName: '출발지 범위', filter: 'agNumberColumnFilter', width: 130, valueFormatter: (p) => formatNumber(p.value) },
       { field: 'destination_range_size', headerName: '목적지 범위', filter: 'agNumberColumnFilter', width: 130, valueFormatter: (p) => formatNumber(p.value) },
       { field: 'service_range_size', headerName: '서비스 범위', filter: 'agNumberColumnFilter', width: 130, valueFormatter: (p) => formatNumber(p.value) },
-      ...POLICY_COLS,
+      ...makePolicyCols(onRuleNameClick),
     ]
   }
   if (analysisType === 'impact') {
@@ -120,10 +135,10 @@ function getColumnDefs(analysisType: string): ColDef[] {
         },
       },
       { field: 'reason', headerName: '사유', filter: 'agTextColumnFilter', width: 300 },
-      ...POLICY_COLS,
+      ...makePolicyCols(onRuleNameClick),
     ]
   }
-  return POLICY_COLS
+  return makePolicyCols(onRuleNameClick)
 }
 
 function buildExcelPayload(
@@ -257,6 +272,7 @@ const STATUS_LABELS: Record<string, { label: string; dot: string; text: string }
 }
 
 export function AnalysisPage() {
+  const navigate = useNavigate()
   const [deviceId, setDeviceId] = useState<number | null>(null)
   const [analysisType, setAnalysisType] = useState('redundancy')
   const [days, setDays] = useState('90')
@@ -268,6 +284,12 @@ export function AnalysisPage() {
   const [resultCompletedAt, setResultCompletedAt] = useState<string | null>(null)
 
   const { data: devices = [] } = useQuery({ queryKey: ['devices'], queryFn: listDevices })
+
+  const onRuleNameClick = (ruleName: string) => {
+    const params = new URLSearchParams({ rule_name: ruleName })
+    if (deviceId) params.set('device_id', String(deviceId))
+    navigate(`/policies?${params.toString()}`)
+  }
 
   const statusQuery = useQuery({
     queryKey: ['analysis-status', deviceId],
@@ -329,7 +351,7 @@ export function AnalysisPage() {
 
   const needsPolicySelect = ['impact', 'risky_ports', 'over_permissive'].includes(analysisType)
   const needsNewPosition = analysisType === 'impact'
-  const columnDefs = getColumnDefs(analysisType)
+  const columnDefs = getColumnDefs(analysisType, onRuleNameClick)
   const rowStyleFn = getRowStyle(analysisType)
 
   const currentStatus = taskStatus ? STATUS_LABELS[taskStatus.task_status] : null
@@ -451,10 +473,17 @@ export function AnalysisPage() {
         </button>
 
         {currentStatus && (
-          <span className={`flex items-center gap-1.5 text-[12px] font-semibold ${currentStatus.text}`}>
-            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${currentStatus.dot}`} />
-            {currentStatus.label}
-          </span>
+          <div className="flex flex-col gap-0.5">
+            <span className={`flex items-center gap-1.5 text-[12px] font-semibold ${currentStatus.text}`}>
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${currentStatus.dot}`} />
+              {currentStatus.label}
+            </span>
+            {taskStatus?.task_status === 'failure' && taskStatus.error_message && (
+              <span className="text-[11px] text-ds-error/80 font-mono max-w-sm truncate" title={taskStatus.error_message}>
+                {taskStatus.error_message}
+              </span>
+            )}
+          </div>
         )}
       </div>
 

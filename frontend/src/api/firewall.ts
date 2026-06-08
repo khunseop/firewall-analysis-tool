@@ -230,6 +230,14 @@ export const getPolicyHistory = async (deviceId: number, ruleName: string): Prom
   return res.data
 }
 
+export interface ChangeStatEntry { week: string; action: string; count: number }
+
+export const getChangeStats = async (deviceIds: number[], weeks = 12): Promise<ChangeStatEntry[]> => {
+  const q = deviceIds.map(id => `device_ids=${id}`).join('&')
+  const res = await apiClient.get<ChangeStatEntry[]>(`/firewall/change-stats?${q}&weeks=${weeks}`)
+  return res.data
+}
+
 interface ExcelColumn { header: string; width: number }
 interface ExcelRow { values: (string | number | null)[]; rowBg: string | null; cellFontColors: (string | null)[] }
 export interface StyledExcelPayload { filename: string; columns: ExcelColumn[]; rows: ExcelRow[] }
