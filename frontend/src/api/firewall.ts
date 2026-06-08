@@ -230,6 +230,14 @@ export const getPolicyHistory = async (deviceId: number, ruleName: string): Prom
   return res.data
 }
 
+export interface ObjectUsageCount { device_id: number; name: string; member_type: 'address' | 'service'; policy_count: number }
+
+export const getObjectUsageCounts = async (deviceIds: number[]): Promise<ObjectUsageCount[]> => {
+  const q = deviceIds.map(id => `device_ids=${id}`).join('&')
+  const res = await apiClient.get<ObjectUsageCount[]>(`/firewall/objects/usage-counts?${q}`)
+  return res.data
+}
+
 export interface ChangeStatEntry { week: string; action: string; count: number }
 
 export const getChangeStats = async (deviceIds: number[], weeks = 12): Promise<ChangeStatEntry[]> => {

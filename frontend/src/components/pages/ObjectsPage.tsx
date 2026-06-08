@@ -11,6 +11,7 @@ import { listDevices } from '@/api/devices'
 import { useDeviceStore } from '@/store/deviceStore'
 import {
   getNetworkObjects, getNetworkGroups, getServices, getServiceGroups, exportToExcel,
+  getObjectUsageCounts,
   type NetworkObject, type NetworkGroup, type Service, type ServiceGroup,
 } from '@/api/firewall'
 
@@ -75,6 +76,30 @@ export function ObjectsPage() {
   const navigate = useNavigate()
   const { networkObjects, networkGroups, services, serviceGroups } = useObjectsData(deviceIds, activeTab)
 
+  const { data: usageCounts = [] } = useQuery({
+    queryKey: ['object-usage-counts', ...deviceIds],
+    queryFn: () => getObjectUsageCounts(deviceIds),
+    enabled: deviceIds.length > 0,
+    staleTime: 60_000,
+  })
+
+  // key: "{device_id}_{name}" → policy_count (address용, service용 분리)
+  const addrUsageMap = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const u of usageCounts) {
+      if (u.member_type === 'address') m.set(`${u.device_id}_${u.name}`, u.policy_count)
+    }
+    return m
+  }, [usageCounts])
+
+  const svcUsageMap = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const u of usageCounts) {
+      if (u.member_type === 'service') m.set(`${u.device_id}_${u.name}`, u.policy_count)
+    }
+    return m
+  }, [usageCounts])
+
   const handleTabChange = (tab: TabKey) => {
     setActiveTab(tab)
     setQuickFilter('')
@@ -136,6 +161,20 @@ export function ObjectsPage() {
     ),
   })
 
+  const usageCol = <T extends { device_id: number; name: string }>(usageMap: Map<string, number>): ColDef<T> => ({
+    headerName: '사용 정책',
+    filter: 'agNumberColumnFilter',
+    width: 100,
+    sort: 'asc' as const,
+    valueGetter: (p) => usageMap.get(`${(p.data as T)?.device_id}_${(p.data as T)?.name}`) ?? 0,
+    cellRenderer: (p: { value: number }) => {
+      if (p.value === 0) {
+        return <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600">미사용</span>
+      }
+      return <span className="text-[12px] font-semibold tabular-nums text-ds-on-surface">{p.value}</span>
+    },
+  })
+
   const networkObjectCols: ColDef<NetworkObject>[] = [
     deviceNameCol<NetworkObject>() as ColDef<NetworkObject>,
     {
@@ -152,6 +191,7 @@ export function ObjectsPage() {
         </div>
       ),
     },
+    usageCol<NetworkObject>(addrUsageMap) as ColDef<NetworkObject>,
     { field: 'ip_address', headerName: 'IP 주소', filter: 'agTextColumnFilter', width: 180, cellRenderer: (p: { value: string }) => <span className="font-mono text-xs text-ds-on-surface-variant">{p.value ?? '-'}</span> },
     { field: 'type', headerName: '타입', filter: 'agTextColumnFilter', width: 100, cellRenderer: (p: { value: string }) => <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-ds-surface-container text-ds-on-surface-variant uppercase">{p.value}</span> },
     { field: 'description', headerName: '설명', filter: 'agTextColumnFilter', flex: 1 },
@@ -173,6 +213,7 @@ export function ObjectsPage() {
         </div>
       ),
     },
+    usageCol<NetworkGroup>(addrUsageMap) as ColDef<NetworkGroup>,
     {
       field: 'members', headerName: '멤버', filter: 'agTextColumnFilter', flex: 1,
       cellRenderer: (p: { value: string }) => {
@@ -210,6 +251,7 @@ export function ObjectsPage() {
         </div>
       ),
     },
+    usageCol<Service>(svcUsageMap) as ColDef<Service>,
     { field: 'protocol', headerName: '프로토콜', filter: 'agTextColumnFilter', width: 110, cellRenderer: (p: { value: string }) => <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-ds-surface-container text-ds-on-surface-variant uppercase">{p.value}</span> },
     { field: 'port', headerName: '포트', filter: 'agTextColumnFilter', width: 140, cellRenderer: (p: { value: string }) => <span className="font-mono text-xs text-ds-on-surface-variant">{p.value ?? '-'}</span> },
     { field: 'description', headerName: '설명', filter: 'agTextColumnFilter', flex: 1 },
@@ -231,6 +273,7 @@ export function ObjectsPage() {
         </div>
       ),
     },
+    usageCol<ServiceGroup>(svcUsageMap) as ColDef<ServiceGroup>,
     {
       field: 'members', headerName: '멤버', filter: 'agTextColumnFilter', flex: 1,
       cellRenderer: (p: { value: string }) => {

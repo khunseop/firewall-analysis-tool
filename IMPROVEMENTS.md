@@ -14,9 +14,9 @@
 - **수정**: `AnalysisTask` 모델에 `error_message` 컬럼 추가 (Alembic 마이그레이션)
 - 분석 실패 시 에러 메시지 DB 저장, UI에서 실패 상태 아래 에러 텍스트 표시
 
-### [ ] 3. 오브젝트 참조 정책 수 컬럼
-- **현황**: Objects 페이지에서 각 오브젝트가 몇 개 정책에서 쓰이는지 알 수 없음
-- **수정**: 테이블에 "사용 정책 수" 컬럼 추가, 0이면 빨간 배지
+### [x] 3. 오브젝트 참조 정책 수 컬럼
+- **수정**: 백엔드 `/objects/usage-counts` API 추가 (`PolicyAddressMember`, `PolicyServiceMember` 집계)
+- Objects 페이지 4개 탭 모두 "사용 정책" 컬럼 추가, 0이면 빨간 "미사용" 배지
 
 ### [x] 4. 분석 결과 → 정책 페이지 딥링크
 - **수정**: 분석 결과 정책명 클릭 → `/policies?rule_name=<name>` 이동
