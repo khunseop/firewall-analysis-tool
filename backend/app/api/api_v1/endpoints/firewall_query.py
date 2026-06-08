@@ -5,9 +5,10 @@ from typing import List, Optional
 from app import crud, schemas, models
 from app.db.session import get_db
 from sqlalchemy.future import select
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from app.services.policy_indexer import rebuild_policy_indices
 from app.models.change_log import ChangeLog
+from app.models.policy_members import PolicyAddressMember, PolicyServiceMember
 
 router = APIRouter()
 
@@ -297,6 +298,49 @@ async def search_objects(req: schemas.ObjectSearchRequest, db: AsyncSession = De
     except Exception as e:
         logger.error(f"Unexpected error in search_objects: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to search objects: {str(e)}")
+
+
+@router.get("/objects/usage-counts")
+async def get_object_usage_counts(
+    device_ids: List[int] = Query(..., description="장비 ID 목록"),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    각 오브젝트(네트워크/서비스)가 몇 개의 정책에서 직접 참조되는지 반환합니다.
+    결과: [{"device_id": 1, "name": "obj1", "member_type": "address"|"service", "policy_count": 5}]
+    """
+    addr_result = await db.execute(
+        select(
+            PolicyAddressMember.device_id,
+            PolicyAddressMember.token,
+            func.count(PolicyAddressMember.policy_id.distinct()).label("policy_count"),
+        )
+        .where(
+            PolicyAddressMember.device_id.in_(device_ids),
+            PolicyAddressMember.token.isnot(None),
+        )
+        .group_by(PolicyAddressMember.device_id, PolicyAddressMember.token)
+    )
+    svc_result = await db.execute(
+        select(
+            PolicyServiceMember.device_id,
+            PolicyServiceMember.token,
+            func.count(PolicyServiceMember.policy_id.distinct()).label("policy_count"),
+        )
+        .where(
+            PolicyServiceMember.device_id.in_(device_ids),
+            PolicyServiceMember.token.isnot(None),
+        )
+        .group_by(PolicyServiceMember.device_id, PolicyServiceMember.token)
+    )
+    rows = [
+        {"device_id": r.device_id, "name": r.token, "member_type": "address", "policy_count": r.policy_count}
+        for r in addr_result.all()
+    ] + [
+        {"device_id": r.device_id, "name": r.token, "member_type": "service", "policy_count": r.policy_count}
+        for r in svc_result.all()
+    ]
+    return rows
 
 
 @router.get("/policy-history")
