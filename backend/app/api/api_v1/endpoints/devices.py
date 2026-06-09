@@ -63,7 +63,9 @@ async def download_excel_template():
             "비밀번호*",
             "HA Peer IP",
             "모델명",
+            "그룹",
             "설명",
+            "최근 사용일 수집 (TRUE/FALSE)",
             "SSH로 마지막 매칭일시 수집 (TRUE/FALSE)"
         ]
         
@@ -80,8 +82,8 @@ async def download_excel_template():
         
         # 예시 데이터 작성
         example_data = [
-            ["PaloAlto-FW-01", "192.168.1.1", "paloalto", "admin", "password123", "192.168.1.2", "PA-3220", "본사 방화벽", "FALSE"],
-            ["NGF-FW-01", "192.168.2.1", "ngf", "admin", "password123", "", "NGF-5000", "지사 방화벽", "FALSE"],
+            ["PaloAlto-FW-01", "192.168.1.1", "paloalto", "admin", "password123", "192.168.1.2", "PA-3220", "서울DC", "본사 방화벽", "TRUE", "FALSE"],
+            ["NGF-FW-01", "192.168.2.1", "ngf", "admin", "password123", "", "NGF-5000", "부산DR", "지사 방화벽", "TRUE", "FALSE"],
         ]
         
         example_fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
@@ -104,7 +106,9 @@ async def download_excel_template():
             ["비밀번호", "로그인 비밀번호", "필수", "password123"],
             ["HA Peer IP", "HA 구성 시 Peer IP (선택)", "선택", "192.168.1.2"],
             ["모델명", "장비 모델명 (선택)", "선택", "PA-3220"],
+            ["그룹", "장비 그룹명 (선택)", "선택", "서울DC"],
             ["설명", "장비 설명 (선택)", "선택", "본사 방화벽"],
+            ["최근 사용일 수집", "TRUE 또는 FALSE (기본값: TRUE)", "선택", "TRUE"],
             ["SSH로 마지막 매칭일시 수집", "TRUE 또는 FALSE (기본값: FALSE)", "선택", "FALSE"],
             ["", "", "", ""],
             ["주의사항", "", "", ""],
@@ -123,7 +127,7 @@ async def download_excel_template():
                     cell.alignment = header_alignment
         
         # 열 너비 조정
-        column_widths = [20, 15, 12, 12, 15, 15, 15, 30, 30]
+        column_widths = [20, 15, 12, 12, 15, 15, 15, 15, 30, 25, 30]
         for col_idx, width in enumerate(column_widths, start=1):
             ws.column_dimensions[get_column_letter(col_idx)].width = width
         
@@ -226,7 +230,9 @@ async def bulk_import_devices(
             "비밀번호*": "password",
             "HA Peer IP": "ha_peer_ip",
             "모델명": "model",
+            "그룹": "group",
             "설명": "description",
+            "최근 사용일 수집 (TRUE/FALSE)": "collect_last_hit_date",
             "SSH로 마지막 매칭일시 수집 (TRUE/FALSE)": "use_ssh_for_last_hit_date"
         }
         
@@ -282,12 +288,12 @@ async def bulk_import_devices(
                         errors.append(f"{row_idx}행: 잘못된 벤더 코드입니다. (paloalto, ngf, mock 중 하나)")
                         break
                 
-                # SSH 옵션 처리
-                if field_name == "use_ssh_for_last_hit_date":
+                # Boolean 옵션 처리
+                if field_name in ("use_ssh_for_last_hit_date", "collect_last_hit_date"):
                     if isinstance(value, str):
                         value = value.upper() in ["TRUE", "1", "YES", "Y"]
                     elif value is None:
-                        value = False
+                        value = False if field_name == "use_ssh_for_last_hit_date" else True
                     else:
                         value = bool(value)
                 
@@ -334,7 +340,9 @@ async def bulk_import_devices(
                     password_confirm=device_data["password"],
                     ha_peer_ip=device_data.get("ha_peer_ip"),
                     model=device_data.get("model"),
+                    group=device_data.get("group"),
                     description=device_data.get("description"),
+                    collect_last_hit_date=device_data.get("collect_last_hit_date", True),
                     use_ssh_for_last_hit_date=device_data.get("use_ssh_for_last_hit_date", False)
                 )
                 

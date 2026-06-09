@@ -20,8 +20,18 @@ class DeviceCreate(DeviceBase):
     password: str
     password_confirm: str
 
-# Schema for updating an existing device
-class DeviceUpdate(DeviceBase):
+# Schema for updating an existing device (모든 필드 optional — PATCH 스타일 부분 업데이트 지원)
+class DeviceUpdate(BaseModel):
+    name: Optional[str] = None
+    ip_address: Optional[str] = None
+    vendor: Optional[str] = None
+    username: Optional[str] = None
+    description: Optional[str] = None
+    ha_peer_ip: Optional[str] = None
+    use_ssh_for_last_hit_date: Optional[bool] = None
+    collect_last_hit_date: Optional[bool] = None
+    model: Optional[str] = None
+    group: Optional[str] = None
     password: Optional[str] = None
     password_confirm: Optional[str] = None
 
