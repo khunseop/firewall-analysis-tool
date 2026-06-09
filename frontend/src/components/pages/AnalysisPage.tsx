@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -42,12 +42,11 @@ function makePolicyCols(onRuleNameClick?: (name: string) => void): ColDef[] {
       headerName: '정책명', filter: 'agTextColumnFilter', width: 160, valueGetter: pv('rule_name'),
       ...(onRuleNameClick && {
         cellRenderer: (p: { value: string }) => {
-          if (!p.value) return p.value
-          const btn = document.createElement('button')
-          btn.textContent = p.value
-          btn.className = 'text-ds-primary underline-offset-2 hover:underline text-left w-full truncate'
-          btn.addEventListener('click', () => onRuleNameClick(p.value))
-          return btn
+          if (!p.value) return null
+          return React.createElement('button', {
+            className: 'text-ds-primary underline-offset-2 hover:underline text-left w-full truncate',
+            onClick: () => onRuleNameClick(p.value),
+          }, p.value)
         },
       }),
     },
