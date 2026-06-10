@@ -10,12 +10,41 @@ import os
 import io
 import logging
 import zipfile
+import datetime
 from typing import List, Tuple
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+import pandas as pd
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from fastapi.responses import Response, StreamingResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.session import get_db
+from app import crud
+from app.models.analysis import AnalysisTaskType, AnalysisTaskStatus
 from app.services.deletion_workflow.core.workspace_runner import WorkspaceRunner
+from app.services.sync.collector import create_collector_from_device
+
+# fpat 호환 컬럼 매핑 (FAT snake_case → fpat Title Case)
+_POLICY_COL_MAP = {
+    "vsys": "Vsys",
+    "seq": "Seq",
+    "rule_name": "Rule Name",
+    "enable": "Enable",
+    "action": "Action",
+    "source": "Source",
+    "user": "User",
+    "destination": "Destination",
+    "service": "Service",
+    "application": "Application",
+    "security_profile": "Security Profile",
+    "category": "Category",
+    "description": "Description",
+}
+_USAGE_COL_MAP = {
+    "vsys": "Vsys",
+    "rule_name": "Rule Name",
+    "last_hit_date": "Last Hit Date",
+}
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -159,3 +188,226 @@ async def execute_task(
 
     # 복수 파일: ZIP 반환
     return _make_zip_response(output_files, f"task{task_id}_{task_name}.zip")
+
+
+def _df_to_xlsx_bytes(sheets: dict) -> bytes:
+    """sheets = {sheet_name: DataFrame} → in-memory xlsx bytes"""
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        for sheet_name, df in sheets.items():
+            if df is not None and not df.empty:
+                df.to_excel(writer, sheet_name=sheet_name, index=False)
+    return buf.getvalue()
+
+
+def _add_unused_days(df: pd.DataFrame) -> pd.DataFrame:
+    """Last Hit Date 컬럼에서 Unused Days 계산하여 추가."""
+    today = datetime.date.today()
+    def _calc(val):
+        if pd.isna(val) or val is None:
+            return None
+        try:
+            d = pd.to_datetime(val).date()
+            return (today - d).days
+        except Exception:
+            return None
+    df = df.copy()
+    df["Unused Days"] = df["Last Hit Date"].apply(_calc)
+    return df
+
+
+@router.post("/extract")
+async def extract_device_data(
+    device_id: int = Form(...),
+    use_ha_peer: bool = Form(default=False),
+    use_ssh: bool = Form(default=False),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    등록된 FAT 장비에서 직접 데이터를 추출하여 fpat 호환 Excel을 반환합니다.
+
+    - **device_id**: FAT에 등록된 장비 ID
+    - **use_ha_peer**: HA Secondary IP로 연결 (사용이력 추출용)
+    - **use_ssh**: PaloAlto에서 SSH 방식으로 사용이력 수집
+
+    반환: policy, address, address_group, service, service_group, usage 시트가 포함된 xlsx
+    """
+    device = await crud.device.get_device(db=db, device_id=device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail=f"장비 ID {device_id}를 찾을 수 없습니다.")
+
+    import asyncio
+    loop = asyncio.get_event_loop()
+
+    def _collect():
+        collector = create_collector_from_device(device, use_ha_ip=use_ha_peer)
+        if not collector.connect():
+            raise RuntimeError(f"장비 연결 실패: {device.name} ({device.ip_address})")
+
+        sheets = {}
+
+        # 보안 정책 (컬럼 매핑 적용)
+        policy_df = collector.export_security_rules()
+        if not policy_df.empty:
+            policy_df = policy_df.rename(columns=_POLICY_COL_MAP)
+            sheets["policy"] = policy_df
+
+        # 주소 객체
+        try:
+            addr_df = collector.export_network_objects()
+            if not addr_df.empty:
+                sheets["address"] = addr_df
+        except Exception as e:
+            logger.warning("address 객체 추출 실패: %s", e)
+
+        # 주소 그룹 객체
+        try:
+            ag_df = collector.export_network_group_objects()
+            if not ag_df.empty:
+                sheets["address_group"] = ag_df
+        except Exception as e:
+            logger.warning("address_group 객체 추출 실패: %s", e)
+
+        # 서비스 객체
+        try:
+            svc_df = collector.export_service_objects()
+            if not svc_df.empty:
+                sheets["service"] = svc_df
+        except Exception as e:
+            logger.warning("service 객체 추출 실패: %s", e)
+
+        # 서비스 그룹 객체
+        try:
+            sg_df = collector.export_service_group_objects()
+            if not sg_df.empty:
+                sheets["service_group"] = sg_df
+        except Exception as e:
+            logger.warning("service_group 객체 추출 실패: %s", e)
+
+        # 사용이력 (PaloAlto: export_last_hit_date / export_last_hit_date_ssh)
+        try:
+            vendor_lower = (device.vendor or "").lower()
+            if vendor_lower == "paloalto":
+                if use_ssh and hasattr(collector, "export_last_hit_date_ssh"):
+                    usage_df = collector.export_last_hit_date_ssh()
+                else:
+                    usage_df = collector.export_last_hit_date()
+            elif hasattr(collector, "export_last_hit_date"):
+                usage_df = collector.export_last_hit_date()
+            else:
+                usage_df = pd.DataFrame()
+
+            if not usage_df.empty:
+                usage_df = usage_df.rename(columns=_USAGE_COL_MAP)
+                usage_df = _add_unused_days(usage_df)
+                sheets["usage"] = usage_df
+        except Exception as e:
+            logger.warning("사용이력 추출 실패: %s", e)
+
+        collector.disconnect()
+        return sheets
+
+    try:
+        sheets = await loop.run_in_executor(None, _collect)
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    except Exception as e:
+        logger.exception("장비 데이터 추출 중 예외: %s", e)
+        raise HTTPException(status_code=500, detail=f"데이터 추출 실패: {e}")
+
+    if not sheets:
+        raise HTTPException(status_code=500, detail="추출된 데이터가 없습니다.")
+
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    ip = device.ha_peer_ip if use_ha_peer and device.ha_peer_ip else device.ip_address
+    filename = f"{today}_{ip}_policy.xlsx"
+
+    content = await loop.run_in_executor(None, lambda: _df_to_xlsx_bytes(sheets))
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/redundancy-export/{device_id}")
+async def export_redundancy(
+    device_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    FAT DB의 중복 분석 결과를 fpat 호환 Excel로 내보냅니다.
+
+    fpat Task 8(중복정책분류) 입력 파일로 사용 가능한 형식:
+    No, Type(Upper/Lower), Seq, Rule Name, Enable, Action, ...
+    """
+    device = await crud.device.get_device(db=db, device_id=device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail=f"장비 ID {device_id}를 찾을 수 없습니다.")
+
+    # 최신 완료된 중복 분석 태스크 조회
+    from sqlalchemy import select
+    from app.models.analysis import AnalysisTask, RedundancyPolicySet
+    result = await db.execute(
+        select(AnalysisTask)
+        .filter(
+            AnalysisTask.device_id == device_id,
+            AnalysisTask.task_type == AnalysisTaskType.REDUNDANCY,
+            AnalysisTask.task_status == AnalysisTaskStatus.SUCCESS,
+        )
+        .order_by(AnalysisTask.completed_at.desc())
+        .limit(1)
+    )
+    task = result.scalar_one_or_none()
+    if not task:
+        raise HTTPException(
+            status_code=404,
+            detail=f"장비 {device.name}에 대한 완료된 중복 분석 결과가 없습니다. 먼저 분석을 실행하세요."
+        )
+
+    redundancy_sets = await crud.analysis.get_redundancy_policy_sets_by_task(db=db, task_id=task.id)
+    if not redundancy_sets:
+        raise HTTPException(status_code=404, detail="중복 정책 데이터가 없습니다.")
+
+    rows = []
+    for rps in redundancy_sets:
+        p = rps.policy
+        if p is None:
+            continue
+        rows.append({
+            "No": rps.set_number,
+            "Type": rps.type.value,  # "UPPER" | "LOWER"
+            "Vsys": p.vsys,
+            "Seq": p.seq,
+            "Rule Name": p.rule_name,
+            "Enable": p.enable,
+            "Action": p.action,
+            "Source": p.source,
+            "User": p.user,
+            "Destination": p.destination,
+            "Service": p.service,
+            "Application": p.application,
+            "Security Profile": p.security_profile,
+            "Category": p.category,
+            "Description": p.description,
+        })
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="중복 정책 데이터를 구성할 수 없습니다.")
+
+    df = pd.DataFrame(rows)
+
+    import asyncio
+    loop = asyncio.get_event_loop()
+    content = await loop.run_in_executor(
+        None,
+        lambda: _df_to_xlsx_bytes({"redundancy": df})
+    )
+
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    filename = f"{today}_{device.ip_address}_redundancy.xlsx"
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

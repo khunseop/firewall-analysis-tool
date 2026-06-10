@@ -18,6 +18,62 @@ export const fetchDeletionTasks = async (): Promise<DeletionTaskListResponse> =>
   return res.data
 }
 
+export const extractDeviceData = async (
+  deviceId: number,
+  options?: { useHaPeer?: boolean; useSsh?: boolean }
+): Promise<{ blob: Blob; filename: string }> => {
+  const token = useAuthStore.getState().token
+  const formData = new FormData()
+  formData.append('device_id', String(deviceId))
+  if (options?.useHaPeer) formData.append('use_ha_peer', 'true')
+  if (options?.useSsh) formData.append('use_ssh', 'true')
+
+  const res = await fetch('/api/v1/deletion-workflow/extract', {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  })
+
+  if (!res.ok) {
+    let detail = '데이터 추출 실패'
+    try {
+      const data = await res.json()
+      detail = data.detail || data.msg || detail
+    } catch {}
+    throw new Error(detail)
+  }
+
+  const blob = await res.blob()
+  const disposition = res.headers.get('content-disposition') || ''
+  const match = disposition.match(/filename="?([^";]+)"?/)
+  const filename = match ? match[1] : `policy_${deviceId}.xlsx`
+  return { blob, filename }
+}
+
+export const exportRedundancyData = async (
+  deviceId: number
+): Promise<{ blob: Blob; filename: string }> => {
+  const token = useAuthStore.getState().token
+  const res = await fetch(`/api/v1/deletion-workflow/redundancy-export/${deviceId}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+
+  if (!res.ok) {
+    let detail = '중복 분석 내보내기 실패'
+    try {
+      const data = await res.json()
+      detail = data.detail || data.msg || detail
+    } catch {}
+    throw new Error(detail)
+  }
+
+  const blob = await res.blob()
+  const disposition = res.headers.get('content-disposition') || ''
+  const match = disposition.match(/filename="?([^";]+)"?/)
+  const filename = match ? match[1] : `redundancy_${deviceId}.xlsx`
+  return { blob, filename }
+}
+
 export const executeDeletionTask = async (
   taskId: number,
   files: File[],
