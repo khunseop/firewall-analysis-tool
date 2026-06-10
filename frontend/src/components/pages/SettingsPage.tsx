@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Save, Plus, Trash2, KeyRound, UserCheck, UserX } from 'lucide-react'
+import { Save, Plus, Trash2, KeyRound, UserCheck, UserX, ChevronDown, ChevronUp } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
-import { getSettings, updateSetting } from '@/api/settings'
+import { getSettings, updateSetting, getDeletionWorkflowConfig, updateDeletionWorkflowConfig } from '@/api/settings'
 import { getUsers, createUser, changeUserPassword, toggleUserActive, deleteUser, type User } from '@/api/users'
 import { deleteOldNotifications } from '@/api/notifications'
 
@@ -34,8 +34,8 @@ function GeneralSettings() {
 
   if (isLoading) return <div className="py-8 text-center text-sm text-ds-on-surface-variant">로딩 중…</div>
 
-  // risky_ports 제외 — 별도 탭에서 관리
-  const generalSettings = settings.filter(s => s.key !== 'risky_ports')
+  // 별도 탭에서 관리하는 키 제외
+  const generalSettings = settings.filter(s => !['risky_ports', 'deletion_workflow_config'].includes(s.key))
 
   return (
     <div className="space-y-3">
@@ -435,15 +435,265 @@ function LogSettings() {
 }
 
 // ──────────────────────────────────────────────────────────────────
+// 삭제 워크플로우 설정
+// ──────────────────────────────────────────────────────────────────
+interface ExceptionItem { id?: string; name?: string; pattern?: string; reason: string; start?: string; until?: string }
+
+function ExceptionTable({
+  title, items, keyField, keyPlaceholder, onAdd, onRemove, onUpdate
+}: {
+  title: string
+  items: ExceptionItem[]
+  keyField: 'id' | 'name' | 'pattern'
+  keyPlaceholder: string
+  onAdd: () => void
+  onRemove: (idx: number) => void
+  onUpdate: (idx: number, patch: Partial<ExceptionItem>) => void
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-[12px] font-semibold text-ds-on-surface">{title}</p>
+        <button
+          onClick={onAdd}
+          className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-ds-tertiary bg-ds-tertiary/8 border border-ds-tertiary/20 rounded-lg hover:bg-ds-tertiary/12 transition-colors"
+        >
+          <Plus className="w-3 h-3" />
+          추가
+        </button>
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-ds-outline-variant/8">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-ds-outline-variant/8 bg-ds-surface-container-low/30">
+              <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">{keyPlaceholder}</th>
+              <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">사유</th>
+              <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-28">시작일</th>
+              <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-28">만료일</th>
+              <th className="px-3 py-2 w-10"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-ds-outline-variant/8">
+            {items.map((item, idx) => (
+              <tr key={idx} className="hover:bg-ds-surface-container-low/20">
+                <td className="px-3 py-1.5">
+                  <input
+                    value={(item[keyField] as string) ?? ''}
+                    onChange={(e) => onUpdate(idx, { [keyField]: e.target.value })}
+                    placeholder={keyPlaceholder}
+                    className="w-full h-7 px-2 text-[12px] font-mono bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                  />
+                </td>
+                <td className="px-3 py-1.5">
+                  <input
+                    value={item.reason ?? ''}
+                    onChange={(e) => onUpdate(idx, { reason: e.target.value })}
+                    placeholder="예외 사유"
+                    className="w-full h-7 px-2 text-[12px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                  />
+                </td>
+                <td className="px-3 py-1.5">
+                  <input
+                    type="date"
+                    value={item.start ?? ''}
+                    onChange={(e) => onUpdate(idx, { start: e.target.value || undefined })}
+                    className="w-full h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                  />
+                </td>
+                <td className="px-3 py-1.5">
+                  <input
+                    type="date"
+                    value={item.until ?? ''}
+                    onChange={(e) => onUpdate(idx, { until: e.target.value || undefined })}
+                    className="w-full h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                  />
+                </td>
+                <td className="px-3 py-1.5 text-right">
+                  <button onClick={() => onRemove(idx)} className="p-1 rounded hover:bg-red-50 text-ds-error transition-colors">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {items.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-4 py-6 text-center text-[12px] text-ds-on-surface-variant italic">등록된 항목이 없습니다.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function DeletionWorkflowSettings() {
+  const queryClient = useQueryClient()
+  const [config, setConfig] = useState<Record<string, unknown>>({})
+  const [dirty, setDirty] = useState(false)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['deletion-workflow-config'],
+    queryFn: getDeletionWorkflowConfig,
+  })
+
+  useEffect(() => {
+    if (data) setConfig(data)
+  }, [data])
+
+  const saveMutation = useMutation({
+    mutationFn: () => updateDeletionWorkflowConfig(config),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deletion-workflow-config'] })
+      toast.success('설정이 저장되었습니다.')
+      setDirty(false)
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+  const getExceptions = (key: string): ExceptionItem[] =>
+    ((config as { exceptions?: Record<string, unknown> }).exceptions?.[key] ?? []) as ExceptionItem[]
+
+  const setExceptions = (key: string, items: ExceptionItem[]) => {
+    setConfig((prev) => ({
+      ...prev,
+      exceptions: { ...(prev.exceptions as Record<string, unknown> ?? {}), [key]: items },
+    }))
+    setDirty(true)
+  }
+
+  const addItem = (key: string, keyField: 'id' | 'name' | 'pattern') => {
+    setExceptions(key, [...getExceptions(key), { [keyField]: '', reason: '' } as ExceptionItem])
+  }
+
+  const removeItem = (key: string, idx: number) => {
+    setExceptions(key, getExceptions(key).filter((_, i) => i !== idx))
+  }
+
+  const updateItem = (key: string, idx: number, patch: Partial<ExceptionItem>) => {
+    setExceptions(key, getExceptions(key).map((item, i) => i === idx ? { ...item, ...patch } : item))
+  }
+
+  const getCriteria = () => (config as { analysis_criteria?: Record<string, number> }).analysis_criteria ?? {}
+  const setCriteria = (patch: Record<string, number>) => {
+    setConfig((prev) => ({ ...prev, analysis_criteria: { ...(prev.analysis_criteria as Record<string, number> ?? {}), ...patch } }))
+    setDirty(true)
+  }
+
+  if (isLoading) return <div className="py-8 text-center text-sm text-ds-on-surface-variant">로딩 중…</div>
+
+  return (
+    <div className="space-y-6">
+      {/* 예외 설정 */}
+      <div className="space-y-4">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">예외 설정</p>
+        <ExceptionTable
+          title="신청번호 예외"
+          items={getExceptions('request_ids')}
+          keyField="id"
+          keyPlaceholder="신청번호 (예: REQ-1234)"
+          onAdd={() => addItem('request_ids', 'id')}
+          onRemove={(i) => removeItem('request_ids', i)}
+          onUpdate={(i, patch) => updateItem('request_ids', i, patch)}
+        />
+        <ExceptionTable
+          title="정규식 패턴 예외"
+          items={getExceptions('policy_rules')}
+          keyField="pattern"
+          keyPlaceholder="정규식 패턴 (예: ^SYS_)"
+          onAdd={() => addItem('policy_rules', 'pattern')}
+          onRemove={(i) => removeItem('policy_rules', i)}
+          onUpdate={(i, patch) => updateItem('policy_rules', i, patch)}
+        />
+        <ExceptionTable
+          title="고정 예외 목록 (정책명 완전일치)"
+          items={getExceptions('static_list')}
+          keyField="name"
+          keyPlaceholder="정책명"
+          onAdd={() => addItem('static_list', 'name')}
+          onRemove={(i) => removeItem('static_list', i)}
+          onUpdate={(i, patch) => updateItem('static_list', i, patch)}
+        />
+      </div>
+
+      {/* 분석 기준 */}
+      <div className="space-y-3">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">분석 기준</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="bg-ds-surface-container-low/50 rounded-lg border border-ds-outline-variant/8 px-4 py-3">
+            <p className="text-[12px] font-semibold text-ds-on-surface">신규정책 기준 (일)</p>
+            <p className="text-[11px] text-ds-on-surface-variant/70 mt-0.5 mb-2">이 기간 이내에 생성된 정책은 신규정책으로 분류됩니다.</p>
+            <input
+              type="number" min={1} max={3650}
+              value={getCriteria().recent_policy_days ?? 90}
+              onChange={(e) => setCriteria({ recent_policy_days: Number(e.target.value) })}
+              className="w-24 h-8 px-3 text-[12px] text-center bg-white border border-ds-outline-variant/30 rounded-lg focus:outline-none focus:border-ds-tertiary"
+            />
+          </div>
+          <div className="bg-ds-surface-container-low/50 rounded-lg border border-ds-outline-variant/8 px-4 py-3">
+            <p className="text-[12px] font-semibold text-ds-on-surface">미사용 기준 (일)</p>
+            <p className="text-[11px] text-ds-on-surface-variant/70 mt-0.5 mb-2">이 기간 동안 hit가 없는 정책은 미사용으로 분류됩니다.</p>
+            <input
+              type="number" min={1} max={3650}
+              value={getCriteria().unused_threshold_days ?? 90}
+              onChange={(e) => setCriteria({ unused_threshold_days: Number(e.target.value) })}
+              className="w-24 h-8 px-3 text-[12px] text-center bg-white border border-ds-outline-variant/30 rounded-lg focus:outline-none focus:border-ds-tertiary"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 고급 설정 (접기/펼치기) */}
+      <div className="border border-ds-outline-variant/8 rounded-lg overflow-hidden">
+        <button
+          onClick={() => setAdvancedOpen((v) => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 bg-ds-surface-container-low/30 hover:bg-ds-surface-container-low/50 transition-colors text-left"
+        >
+          <span className="text-[12px] font-semibold text-ds-on-surface-variant">고급 설정 (벤더 마커, 파일 형식)</span>
+          {advancedOpen ? <ChevronUp className="w-4 h-4 text-ds-on-surface-variant" /> : <ChevronDown className="w-4 h-4 text-ds-on-surface-variant" />}
+        </button>
+        {advancedOpen && (
+          <div className="p-4 space-y-4 border-t border-ds-outline-variant/8">
+            <p className="text-[11px] text-ds-on-surface-variant/70">
+              아래 설정은 드물게 변경됩니다. 잘못 수정하면 태스크 실행에 영향을 줄 수 있습니다.
+            </p>
+            <div className="rounded-lg bg-ds-surface-container-low/40 border border-ds-outline-variant/8 p-3">
+              <pre className="text-[11px] text-ds-on-surface-variant font-mono whitespace-pre-wrap break-all">
+                {JSON.stringify(config, null, 2)}
+              </pre>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 저장 버튼 */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => saveMutation.mutate()}
+          disabled={!dirty || saveMutation.isPending}
+          className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold text-ds-on-tertiary btn-primary-gradient rounded-lg shadow-sm disabled:opacity-50 transition-all"
+        >
+          <Save className="w-3.5 h-3.5" />
+          {saveMutation.isPending ? '저장 중…' : '저장'}
+        </button>
+        {dirty && <span className="text-[11px] text-amber-600 font-semibold">저장되지 않은 변경사항이 있습니다</span>}
+      </div>
+    </div>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────────
 // Main
 // ──────────────────────────────────────────────────────────────────
-type Tab = 'general' | 'risky_ports' | 'accounts' | 'log'
+type Tab = 'general' | 'risky_ports' | 'accounts' | 'log' | 'deletion_workflow'
 
 const TABS: { key: Tab; label: string }[] = [
-  { key: 'general',     label: '일반 설정' },
-  { key: 'risky_ports', label: '위험 포트' },
-  { key: 'accounts',    label: '계정 관리' },
-  { key: 'log',         label: '로그 설정' },
+  { key: 'general',            label: '일반 설정' },
+  { key: 'risky_ports',        label: '위험 포트' },
+  { key: 'accounts',           label: '계정 관리' },
+  { key: 'log',                label: '로그 설정' },
+  { key: 'deletion_workflow',  label: '삭제 워크플로우' },
 ]
 
 export function SettingsPage() {
@@ -476,10 +726,11 @@ export function SettingsPage() {
         </div>
 
         <div className="p-6">
-          {activeTab === 'general'     && <GeneralSettings />}
-          {activeTab === 'risky_ports' && <RiskyPortsSettings />}
-          {activeTab === 'accounts'    && <AccountSettings />}
-          {activeTab === 'log'         && <LogSettings />}
+          {activeTab === 'general'           && <GeneralSettings />}
+          {activeTab === 'risky_ports'       && <RiskyPortsSettings />}
+          {activeTab === 'accounts'          && <AccountSettings />}
+          {activeTab === 'log'               && <LogSettings />}
+          {activeTab === 'deletion_workflow' && <DeletionWorkflowSettings />}
         </div>
       </div>
     </div>
