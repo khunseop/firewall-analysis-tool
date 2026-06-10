@@ -14,6 +14,7 @@ import { SchedulesPage } from '@/components/pages/SchedulesPage'
 import { SettingsPage } from '@/components/pages/SettingsPage'
 import { NotificationsPage } from '@/components/pages/NotificationsPage'
 import { PolicyDiffPage } from '@/components/pages/PolicyDiffPage'
+import { DeletionWorkflowPage } from '@/components/pages/DeletionWorkflowPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,6 +42,7 @@ export default function App() {
               <Route path="schedules" element={<SchedulesPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="notifications" element={<NotificationsPage />} />
+              <Route path="deletion-workflow" element={<DeletionWorkflowPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
