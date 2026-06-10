@@ -359,10 +359,7 @@ export function AnalysisPage() {
     <div className="flex flex-col gap-6">
       {/* Page header */}
       <div className="flex items-center justify-between shrink-0">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">정책 분석</h1>
-          <p className="text-[13px] text-ds-on-surface-variant/70 mt-0.5">방화벽 정책을 분석하여 보안 이슈와 최적화 포인트를 발견합니다.</p>
-        </div>
+        <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">정책 분석</h1>
         <DeviceSelectorSingle value={deviceId} onChange={setDeviceId} />
       </div>
 
