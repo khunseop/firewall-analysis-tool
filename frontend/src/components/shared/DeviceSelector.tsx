@@ -106,7 +106,7 @@ export function DeviceSelector() {
             ? 'bg-ds-tertiary/10 text-ds-tertiary border-ds-tertiary/20'
             : selectedIds.length > 0
               ? 'bg-ds-secondary-container text-ds-tertiary border-ds-tertiary/15 hover:bg-ds-tertiary/10'
-              : 'text-ds-on-surface-variant border-ds-outline-variant/20 bg-ds-surface-container-low hover:border-ds-outline-variant/40 hover:text-ds-on-surface'
+              : 'text-ds-tertiary border-ds-tertiary/40 border-dashed bg-ds-tertiary/5 hover:bg-ds-tertiary/10 hover:border-ds-tertiary/60'
         )}
       >
         <Monitor className="w-3.5 h-3.5 shrink-0" />
