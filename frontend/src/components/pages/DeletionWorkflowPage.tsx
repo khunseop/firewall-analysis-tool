@@ -3,9 +3,13 @@ import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   Upload, Download, Play, CheckCircle2, XCircle, Loader2,
-  AlertTriangle, ChevronRight, FileText, X, ArrowRight
+  AlertTriangle, ChevronRight, FileText, X, ArrowRight, Database
 } from 'lucide-react'
-import { fetchDeletionTasks, executeDeletionTask, type DeletionTaskMeta } from '@/api/deletionWorkflow'
+import {
+  fetchDeletionTasks, executeDeletionTask, extractDeviceData, exportRedundancyData,
+  type DeletionTaskMeta
+} from '@/api/deletionWorkflow'
+import { listDevices, type Device } from '@/api/devices'
 import { cn } from '@/lib/utils'
 
 // ──────────────────────────────────────────────────────────────────
@@ -31,6 +35,144 @@ const PHASE2_TASK_IDS = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 // Task 6/7은 vendor 선택 필요
 const VENDOR_TASK_IDS = [6, 7]
 const TASK_DEFAULT_VENDOR: Record<number, string> = { 6: 'paloalto', 7: 'secui' }
+
+// ──────────────────────────────────────────────────────────────────
+// 데이터 추출 패널 (Task 0 AutoCollector 대체)
+// ──────────────────────────────────────────────────────────────────
+interface ExtractionPanelProps {
+  devices: Device[]
+  onExtracted: (blob: Blob, name: string) => void
+}
+
+function ExtractionPanel({ devices, onExtracted }: ExtractionPanelProps) {
+  const [deviceId, setDeviceId] = useState<number | ''>('')
+  const [haDeviceId, setHaDeviceId] = useState<number | ''>('')
+  const [useSsh, setUseSsh] = useState(false)
+  const [primaryLoading, setPrimaryLoading] = useState(false)
+  const [haLoading, setHaLoading] = useState(false)
+  const [redundancyLoading, setRedundancyLoading] = useState(false)
+
+  const downloadBlob = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  const handleExtract = async (useHaPeer = false) => {
+    const id = useHaPeer ? haDeviceId : deviceId
+    if (!id) return
+    const setLoading = useHaPeer ? setHaLoading : setPrimaryLoading
+    setLoading(true)
+    try {
+      const { blob, filename } = await extractDeviceData(Number(id), { useHaPeer, useSsh })
+      downloadBlob(blob, filename)
+      if (!useHaPeer) onExtracted(blob, filename)
+      toast.success(`${filename} 추출 완료`)
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRedundancyExport = async () => {
+    if (!deviceId) return
+    setRedundancyLoading(true)
+    try {
+      const { blob, filename } = await exportRedundancyData(Number(deviceId))
+      downloadBlob(blob, filename)
+      toast.success(`${filename} 내보내기 완료`)
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setRedundancyLoading(false)
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-ds-outline-variant/8 shadow-sm p-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <Database className="w-4 h-4 text-ds-tertiary" />
+        <span className="text-[13px] font-semibold text-ds-on-surface">데이터 추출 (Task 0)</span>
+        <span className="text-[10px] text-ds-on-surface-variant/60 ml-1">방화벽 장비에서 직접 추출</span>
+      </div>
+
+      {/* 장비 선택 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">Primary 장비</p>
+          <select
+            value={deviceId}
+            onChange={(e) => setDeviceId(e.target.value ? Number(e.target.value) : '')}
+            className="w-full h-8 px-2 text-[12px] bg-ds-surface-container-low border border-ds-outline-variant/20 rounded-lg focus:outline-none focus:border-ds-tertiary"
+          >
+            <option value="">장비 선택…</option>
+            {devices.map((d) => (
+              <option key={d.id} value={d.id}>{d.name} ({d.ip_address})</option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">Secondary 장비 (HA, 선택)</p>
+          <select
+            value={haDeviceId}
+            onChange={(e) => setHaDeviceId(e.target.value ? Number(e.target.value) : '')}
+            className="w-full h-8 px-2 text-[12px] bg-ds-surface-container-low border border-ds-outline-variant/20 rounded-lg focus:outline-none focus:border-ds-tertiary"
+          >
+            <option value="">사용 안 함</option>
+            {devices.map((d) => (
+              <option key={d.id} value={d.id}>{d.name} ({d.ip_address})</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* SSH 옵션 */}
+      <label className="flex items-center gap-2 cursor-pointer w-fit">
+        <input
+          type="checkbox"
+          checked={useSsh}
+          onChange={(e) => setUseSsh(e.target.checked)}
+          className="w-3.5 h-3.5 accent-ds-tertiary"
+        />
+        <span className="text-[12px] text-ds-on-surface-variant">SSH 방식으로 사용이력 수집 (PaloAlto)</span>
+      </label>
+
+      {/* 액션 버튼들 */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => handleExtract(false)}
+          disabled={!deviceId || primaryLoading}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold btn-primary-gradient text-white rounded-lg shadow-sm disabled:opacity-40 hover:opacity-90 transition-all"
+        >
+          {primaryLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+          Primary 추출
+        </button>
+        <button
+          onClick={() => handleExtract(true)}
+          disabled={!haDeviceId || haLoading}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-tertiary bg-ds-tertiary/8 border border-ds-tertiary/20 rounded-lg disabled:opacity-40 hover:bg-ds-tertiary/12 transition-colors"
+        >
+          {haLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+          Secondary 사용이력
+        </button>
+        <button
+          onClick={handleRedundancyExport}
+          disabled={!deviceId || redundancyLoading}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/20 rounded-lg disabled:opacity-40 hover:bg-ds-surface-container-high transition-colors"
+        >
+          {redundancyLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+          중복분석 내보내기
+        </button>
+      </div>
+    </div>
+  )
+}
 
 // ──────────────────────────────────────────────────────────────────
 // Phase 스테퍼
@@ -350,6 +492,11 @@ export function DeletionWorkflowPage() {
     staleTime: Infinity,
   })
 
+  const { data: devices = [] } = useQuery({
+    queryKey: ['devices'],
+    queryFn: listDevices,
+  })
+
   const getState = (taskId: number): TaskState =>
     taskStates[taskId] ?? { status: 'idle', files: [] }
 
@@ -437,6 +584,12 @@ export function DeletionWorkflowPage() {
   const phase2Tasks = tasks.filter((t) => PHASE2_TASK_IDS.includes(t.id))
   const phase1AllDone = PHASE1_TASK_IDS.every((id) => taskStates[id]?.status === 'done')
 
+  const handleExtracted = (blob: Blob, name: string) => {
+    // 추출된 Primary 파일을 Task 1의 첫 번째 입력으로 자동 설정
+    const file = new File([blob], name, { type: blob.type })
+    setTaskState(1, { files: [file] })
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* 페이지 헤더 */}
@@ -448,6 +601,9 @@ export function DeletionWorkflowPage() {
           </span>
         )}
       </div>
+
+      {/* 데이터 추출 */}
+      <ExtractionPanel devices={devices} onExtracted={handleExtracted} />
 
       {/* Phase 스테퍼 */}
       <div className="bg-white rounded-xl border border-ds-outline-variant/8 shadow-sm px-4 py-3">
