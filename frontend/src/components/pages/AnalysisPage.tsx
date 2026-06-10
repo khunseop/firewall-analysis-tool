@@ -7,7 +7,7 @@ import type { ColDef, RowStyle, RowClassParams } from '@ag-grid-community/core'
 import Select from 'react-select'
 import { Select as ShadSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AgGridWrapper } from '@/components/shared/AgGridWrapper'
-import { DeviceSelect } from '@/components/shared/DeviceSelect'
+import { DeviceSelectorSingle } from '@/components/shared/DeviceSelectorSingle'
 import { listDevices } from '@/api/devices'
 import { getPolicies, exportStyledToExcel } from '@/api/firewall'
 import type { StyledExcelPayload } from '@/api/firewall'
@@ -358,9 +358,12 @@ export function AnalysisPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Page header */}
-      <div className="shrink-0">
-        <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">정책 분석</h1>
-        <p className="text-[13px] text-ds-on-surface-variant/70 mt-0.5">방화벽 정책을 분석하여 보안 이슈와 최적화 포인트를 발견합니다.</p>
+      <div className="flex items-center justify-between shrink-0">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">정책 분석</h1>
+          <p className="text-[13px] text-ds-on-surface-variant/70 mt-0.5">방화벽 정책을 분석하여 보안 이슈와 최적화 포인트를 발견합니다.</p>
+        </div>
+        <DeviceSelectorSingle value={deviceId} onChange={setDeviceId} />
       </div>
 
       {/* 카드 A: 분석 유형 선택 */}
@@ -405,12 +408,6 @@ export function AnalysisPage() {
           <span className="text-[13px] font-semibold text-ds-on-surface">분석 대상 & 옵션</span>
         </div>
         <div className="px-5 pb-5 space-y-5">
-          {/* 장비 선택 */}
-          <div className="space-y-1.5 max-w-sm">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">장비 *</label>
-            <DeviceSelect devices={devices} value={deviceId} onChange={setDeviceId} />
-          </div>
-
           {analysisType === 'unused' && (
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">미사용 기준 (일)</label>
