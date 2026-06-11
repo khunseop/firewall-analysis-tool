@@ -14,106 +14,44 @@ import {
 } from '@/api/deletionWorkflow'
 
 // ── 태스크 메타 ──────────────────────────────────────────────────────────────
-// workflow_wizard.py PHASE1_STEPS / PHASE2_STEPS 기준
+// workflow_wizard.py PHASE1_STEPS / PHASE2_STEPS 실행 순서 기준
+// step: 사용자에게 보이는 순번 (1부터 시작)
+// id:   fpat 내부 task ID (파일 체이닝에 사용)
 
 interface TaskMeta {
-  id: number
+  step: number   // 표시용 순번
+  id: number     // fpat task ID
   name: string
   description: string
   externalInputs?: { slot: string; label: string; required: boolean }[]
   autoFromDb?: boolean
 }
 
-// Phase 1: 0 → 1 → 17 → 1(19) → 3 → 2
+// Phase 1 실행 순서: 1 → 17 → 19 → 3 → 2
 const PHASE1_TASKS: TaskMeta[] = [
-  {
-    id: 1,
-    name: '정책 파일 신청정보 파싱',
-    description: 'DB 추출 파일에서 신청정보 파싱',
-  },
-  {
-    id: 17,
-    name: '중복정책 분석',
-    description: 'FAT DB 중복분석 결과를 Excel로 자동 생성',
-    autoFromDb: true,
-  },
-  {
-    id: 19,
-    name: '중복결과 파일 신청정보 파싱',
-    description: '중복분석 결과 파일에서 신청정보 파싱',
-  },
-  {
-    id: 3,
-    name: 'MIS ID 매핑',
-    description: '정책 파일 + MIS CSV → MIS ID 추가',
-    externalInputs: [{ slot: 'external_1', label: 'MIS CSV 파일', required: true }],
-  },
-  {
-    id: 2,
-    name: '신청번호 추출',
-    description: '고유 신청 ID 추출',
-  },
+  { step: 1, id: 1,  name: '신청정보 파싱',       description: 'DB 추출 파일에서 신청정보 파싱' },
+  { step: 2, id: 17, name: '중복정책 분석',       description: 'FAT DB 중복분석 결과를 Excel로 자동 생성', autoFromDb: true },
+  { step: 3, id: 19, name: '중복결과 파싱',       description: '중복분석 결과 파일에서 신청정보 파싱' },
+  { step: 4, id: 3,  name: 'MIS ID 매핑',        description: '정책 파일 + MIS CSV → MIS ID 추가',
+    externalInputs: [{ slot: 'external_1', label: 'MIS CSV 파일', required: true }] },
+  { step: 5, id: 2,  name: '신청번호 추출',       description: '고유 신청 ID 추출' },
 ]
 
-// Phase 2: 4 → 5 → 15 → 6/7 → 13 → 8 → 9 → 11 → 10 → 18 → 16
+// Phase 2 실행 순서: 4 → 5 → 15 → 6/7 → 13 → 8 → 9 → 11 → 10 → 18 → 16
 const PHASE2_TASKS: TaskMeta[] = [
-  {
-    id: 4,
-    name: '신청정보 가공 (GSAMS)',
-    description: 'GSAMS 신청정보 취합',
-    externalInputs: [{ slot: 'external_1', label: 'GSAMS Excel 파일', required: true }],
-  },
-  {
-    id: 5,
-    name: '신청정보 정책파일 매핑',
-    description: '정책 파일 + GSAMS → 신청정보 매핑',
-  },
-  {
-    id: 15,
-    name: '자동연장 날짜 업데이트',
-    description: '자동연장 정책 탐지 및 날짜 업데이트',
-  },
-  {
-    id: 6,
-    name: '예외처리 (벤더별)',
-    description: '정책 예외 분류 — 벤더에 따라 PaloAlto(6) 또는 SECUI(7) 자동 선택',
-  },
-  {
-    id: 13,
-    name: '사용이력 반영',
-    description: '예외처리 결과 + 히트카운트 → 사용이력 반영',
-  },
-  {
-    id: 8,
-    name: '하단 최신정책 검증',
-    description: '동일 신청번호 내 최신 날짜 정책 위치 검증 및 분류',
-  },
-  {
-    id: 9,
-    name: '중복정책 분류',
-    description: '중복결과(파싱) + 예외처리 결과 → 공지/삭제 분류',
-  },
-  {
-    id: 11,
-    name: '중복 만료셋 예외처리',
-    description: '전체 만료 / 차단 영향 중복 세트 예외 분류',
-  },
-  {
-    id: 10,
-    name: '중복정책 상태 업데이트',
-    description: '예외처리 결과 + 분류결과 → 중복여부 반영',
-  },
-  {
-    id: 18,
-    name: '중복 예외 반영',
-    description: 'YAML 예외 목록 → 정책 파일 반영',
-    externalInputs: [{ slot: 'external_1', label: '중복예외 YAML 파일 (선택)', required: false }],
-  },
-  {
-    id: 16,
-    name: '통보대상 분류',
-    description: '정책 Excel → 유형별 공지파일 생성',
-  },
+  { step: 1, id: 4,  name: '신청정보 가공 (GSAMS)',   description: 'GSAMS 신청정보 취합',
+    externalInputs: [{ slot: 'external_1', label: 'GSAMS Excel 파일', required: true }] },
+  { step: 2, id: 5,  name: '신청정보 매핑',           description: '정책 파일 + GSAMS → 신청정보 매핑' },
+  { step: 3, id: 15, name: '자동연장 날짜 업데이트',  description: '자동연장 정책 탐지 및 날짜 업데이트' },
+  { step: 4, id: 6,  name: '예외처리 (벤더별)',       description: '정책 예외 분류 — 벤더에 따라 PaloAlto(6) 또는 SECUI(7) 자동 선택' },
+  { step: 5, id: 13, name: '사용이력 반영',           description: '예외처리 결과 + 히트카운트 → 사용이력 반영' },
+  { step: 6, id: 8,  name: '하단 최신정책 검증',     description: '동일 신청번호 내 최신 날짜 정책 위치 검증 및 분류' },
+  { step: 7, id: 9,  name: '중복정책 분류',           description: '중복결과(파싱) + 예외처리 결과 → 공지/삭제 분류' },
+  { step: 8, id: 11, name: '중복 만료셋 예외처리',   description: '전체 만료 / 차단 영향 중복 세트 예외 분류' },
+  { step: 9, id: 10, name: '중복정책 상태 업데이트', description: '예외처리 결과 + 분류결과 → 중복여부 반영' },
+  { step: 10, id: 18, name: '중복 예외 반영',        description: 'YAML 예외 목록 → 정책 파일 반영',
+    externalInputs: [{ slot: 'external_1', label: '중복예외 YAML 파일 (선택)', required: false }] },
+  { step: 11, id: 16, name: '통보대상 분류',          description: '정책 Excel → 유형별 공지파일 생성' },
 ]
 
 // ── 유틸 ─────────────────────────────────────────────────────────────────────
@@ -188,9 +126,10 @@ function ExternalFileUpload({
 // ── 컴포넌트: 태스크 카드 ────────────────────────────────────────────────────
 
 function TaskCard({
-  task, projectId, files, onRefresh,
+  task, projectId, files, phase, onRefresh,
 }: {
-  task: TaskMeta; projectId: number; files: ProjectFileState[]; onRefresh: () => void
+  task: TaskMeta; projectId: number; files: ProjectFileState[]
+  phase: 1 | 2; onRefresh: () => void
 }) {
   const [running, setRunning] = useState(false)
   const outputs = getOutputFiles(files, task.id)
@@ -200,7 +139,7 @@ function TaskCard({
     setRunning(true)
     try {
       const res = await runProjectTask(projectId, task.id)
-      toast.success(`Task ${task.id} 완료 (출력 ${res.outputs.length}개)`)
+      toast.success(`${task.name} 완료 (출력 ${res.outputs.length}개)`)
       onRefresh()
     } catch (e: unknown) {
       toast.error((e as Error).message)
@@ -218,17 +157,20 @@ function TaskCard({
     }
   }
 
+  const stepLabel = `P${phase}-${task.step}`
+
   return (
     <div className={`rounded-xl border p-4 space-y-3 ${done ? 'border-emerald-200 bg-emerald-50/30' : 'border-ds-outline-variant/30 bg-white'}`}>
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {done
               ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
               : <div className="w-4 h-4 rounded-full border-2 border-ds-outline-variant/40 shrink-0" />
             }
-            <span className="text-sm font-medium text-ds-on-surface">
-              Task {task.id}: {task.name}
+            <span className="text-sm font-medium text-ds-on-surface">{task.name}</span>
+            <span className="px-1.5 py-0.5 text-[10px] rounded bg-ds-surface-container text-ds-on-surface-variant font-mono shrink-0">
+              {stepLabel}
             </span>
             {task.autoFromDb && (
               <span className="px-1.5 py-0.5 text-[10px] rounded bg-blue-50 text-blue-600 font-medium shrink-0">
@@ -282,10 +224,10 @@ function TaskCard({
 // ── 컴포넌트: Task 0 섹션 (데이터 추출 + HA 히트카운트) ─────────────────────
 
 function Task0Section({
-  projectId, files, deviceVendor, hasPeerIp, onRefresh,
+  projectId, files, hasPeerIp, onRefresh,
 }: {
   projectId: number; files: ProjectFileState[]
-  deviceVendor: string; hasPeerIp: boolean; onRefresh: () => void
+  hasPeerIp: boolean; onRefresh: () => void
 }) {
   const [extracting, setExtracting] = useState(false)
   const [merging, setMerging] = useState(false)
@@ -347,7 +289,10 @@ function Task0Section({
               : <Database className="w-4 h-4 text-ds-on-surface-variant" />
             }
             <span className="text-sm font-medium text-ds-on-surface">
-              Task 0: 데이터 추출 및 사용이력 병합
+              데이터 추출 및 사용이력 병합
+            </span>
+            <span className="px-1.5 py-0.5 text-[10px] rounded bg-ds-surface-container text-ds-on-surface-variant font-mono">
+              P0
             </span>
           </div>
           <p className="text-xs text-ds-on-surface-variant mt-0.5 ml-6">
@@ -393,7 +338,10 @@ function Task0Section({
                   : <div className="w-3.5 h-3.5 rounded-full border-2 border-ds-outline-variant/40" />
                 }
                 <span className="text-xs font-medium text-ds-on-surface">
-                  Task 12: HA Secondary 히트카운트 병합 (선택)
+                  HA Secondary 히트카운트 병합
+                </span>
+                <span className="px-1.5 py-0.5 text-[10px] rounded bg-ds-surface-container text-ds-on-surface-variant font-mono">
+                  선택
                 </span>
               </div>
               <p className="text-[11px] text-ds-on-surface-variant mt-0.5 ml-5">
@@ -414,7 +362,7 @@ function Task0Section({
             </button>
           </div>
           <div className="ml-5 flex items-center gap-2 text-xs">
-            <span className="text-ds-on-surface-variant">📋 HA Secondary 히트카운트 Excel (선택):</span>
+            <span className="text-ds-on-surface-variant">📋 HA Secondary 히트카운트 Excel:</span>
             {haSecFile ? (
               <span className="text-emerald-600 flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" /> {haSecFile.filename}
@@ -472,7 +420,7 @@ export default function DeletionWorkflowDetailPage() {
   }
 
   const files = project.files ?? []
-  const hasPeerIp = Boolean(project.device_vendor)  // HA peer는 백엔드에서 별도 필드 추가 필요, 임시로 표시
+  const hasPeerIp = Boolean(project.device_vendor)
 
   return (
     <div className="h-full flex flex-col">
@@ -498,11 +446,10 @@ export default function DeletionWorkflowDetailPage() {
       {/* 본문 */}
       <div className="flex-1 overflow-auto px-6 py-5 space-y-6">
 
-        {/* Task 0 + Task 12 */}
+        {/* P0: 데이터 추출 + HA 히트카운트 */}
         <Task0Section
           projectId={projectId}
           files={files}
-          deviceVendor={project.device_vendor}
           hasPeerIp={hasPeerIp}
           onRefresh={refresh}
         />
@@ -514,7 +461,7 @@ export default function DeletionWorkflowDetailPage() {
           </h2>
           <div className="space-y-3">
             {PHASE1_TASKS.map((t) => (
-              <TaskCard key={t.id} task={t} projectId={projectId} files={files} onRefresh={refresh} />
+              <TaskCard key={t.id} task={t} phase={1} projectId={projectId} files={files} onRefresh={refresh} />
             ))}
           </div>
         </section>
@@ -523,7 +470,7 @@ export default function DeletionWorkflowDetailPage() {
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <span className="font-semibold">Checkpoint — GSAMS 신청정보 수령 대기</span>
           <p className="text-xs mt-1 text-amber-700">
-            Phase 1 완료 후 신청번호 파일(Task 2 출력)을 타부서에 전달하고, GSAMS Excel 파일을 수령한 후 Phase 2를 진행하세요.
+            Phase 1 완료 후 신청번호 파일(P1-5 출력)을 타부서에 전달하고, GSAMS Excel 파일을 수령한 후 Phase 2를 진행하세요.
           </p>
         </div>
 
@@ -534,7 +481,7 @@ export default function DeletionWorkflowDetailPage() {
           </h2>
           <div className="space-y-3">
             {PHASE2_TASKS.map((t) => (
-              <TaskCard key={t.id} task={t} projectId={projectId} files={files} onRefresh={refresh} />
+              <TaskCard key={t.id} task={t} phase={2} projectId={projectId} files={files} onRefresh={refresh} />
             ))}
           </div>
         </section>
