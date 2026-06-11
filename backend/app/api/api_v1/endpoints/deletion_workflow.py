@@ -40,28 +40,28 @@ _FPAT_YAML = os.path.join(
 )
 _FPAT_YAML = os.path.abspath(_FPAT_YAML)
 
-# 태스크별 메타데이터
+# 태스크별 메타데이터 (태스크 ID = 위저드 실행 순번)
 TASK_META = {
+    # Phase 0
+    1:  {"name": "히트카운트병합",        "input_count": 1, "description": "HA Primary + Secondary 히트카운트 병합 (선택)"},
     # Phase 1
-    1:  {"name": "신청정보파싱",           "input_count": 1, "description": "정책 파일 신청정보 파싱"},
-    19: {"name": "중복결과신청정보파싱",   "input_count": 1, "description": "중복분석 결과 파일 신청정보 파싱 (Task 1 second run)"},
-    3:  {"name": "MISID매핑",             "input_count": 2, "description": "정책 Excel + MIS CSV → MIS ID 추가"},
-    2:  {"name": "신청번호추출",          "input_count": 1, "description": "고유 신청 ID 추출"},
+    2:  {"name": "신청정보파싱",          "input_count": 1, "description": "정책 파일 신청정보 파싱"},
+    4:  {"name": "중복결과신청정보파싱",  "input_count": 1, "description": "중복분석 결과 파일 신청정보 파싱"},
+    5:  {"name": "MISID매핑",             "input_count": 2, "description": "정책 Excel + MIS CSV → MIS ID 추가"},
+    6:  {"name": "신청번호추출",          "input_count": 1, "description": "고유 신청 ID 추출"},
     # Phase 2
-    4:  {"name": "신청정보취합",          "input_count": 1, "description": "GSAMS 신청정보 취합"},
-    5:  {"name": "신청정보매핑",          "input_count": 2, "description": "정책 Excel + GSAMS → 신청정보 매핑"},
-    15: {"name": "자동연장탐지",          "input_count": 1, "description": "자동연장 날짜 업데이트"},
-    6:  {"name": "예외처리_PaloAlto",     "input_count": 1, "description": "PaloAlto 정책 예외 분류"},
-    7:  {"name": "예외처리_SECUI",        "input_count": 1, "description": "SECUI/MF2 정책 예외 분류"},
-    13: {"name": "사용이력반영",          "input_count": 2, "description": "예외처리 결과 + 히트카운트 → 사용이력 반영"},
-    8:  {"name": "하단최신정책검증",      "input_count": 1, "description": "하단 최신 정책 검증 및 분류"},
-    9:  {"name": "중복정책분류",          "input_count": 2, "description": "중복결과(파싱) + 예외처리 → 공지/삭제 분류"},
-    11: {"name": "중복만료셋예외처리",    "input_count": 4, "description": "정책원본 + 중복정리/공지/삭제 파일 → 만료셋 예외 분류"},
-    10: {"name": "중복정책상태업데이트",  "input_count": 2, "description": "예외처리 + 분류결과 → 중복여부 반영"},
-    18: {"name": "중복예외반영",          "input_count": 2, "description": "중복상태 파일 + YAML(선택) → 중복 예외 반영"},
-    16: {"name": "통보대상분류",          "input_count": 1, "description": "정책 Excel → 유형별 공지파일 생성"},
-    # 히트카운트 (Phase 1/2 중간, 선택)
-    12: {"name": "히트카운트병합",        "input_count": 1, "description": "HA Primary + Secondary 히트카운트 병합 (선택)"},
+    7:  {"name": "신청정보취합",          "input_count": 1, "description": "GSAMS 신청정보 취합"},
+    8:  {"name": "신청정보매핑",          "input_count": 2, "description": "정책 Excel + GSAMS → 신청정보 매핑"},
+    9:  {"name": "자동연장탐지",          "input_count": 1, "description": "자동연장 날짜 업데이트"},
+    10: {"name": "예외처리_PaloAlto",     "input_count": 1, "description": "PaloAlto 정책 예외 분류"},
+    11: {"name": "예외처리_SECUI",        "input_count": 1, "description": "SECUI/MF2 정책 예외 분류"},
+    12: {"name": "사용이력반영",          "input_count": 2, "description": "예외처리 결과 + 히트카운트 → 사용이력 반영"},
+    13: {"name": "하단최신정책검증",      "input_count": 1, "description": "하단 최신 정책 검증 및 분류"},
+    14: {"name": "중복정책분류",          "input_count": 2, "description": "중복결과(파싱) + 예외처리 → 공지/삭제 분류"},
+    15: {"name": "중복만료셋예외처리",    "input_count": 4, "description": "정책원본 + 중복정리/공지/삭제 파일 → 만료셋 예외 분류"},
+    16: {"name": "중복정책상태업데이트",  "input_count": 2, "description": "예외처리 + 분류결과 → 중복여부 반영"},
+    17: {"name": "중복예외반영",          "input_count": 2, "description": "중복상태 파일 + YAML(선택) → 중복 예외 반영"},
+    18: {"name": "통보대상분류",          "input_count": 1, "description": "정책 Excel → 유형별 공지파일 생성"},
 }
 
 
@@ -587,16 +587,16 @@ async def run_project_task(
     device = await crud.device.get_device(db=db, device_id=project.device_id)
     vendor = device.vendor if device else ""
 
-    # ── Task 17: FAT DB 중복분석 → project file 자동 저장 ─────────────────
-    if task_id == 17:
+    # ── Task 3: FAT DB 중복분석 → project file 자동 저장 ──────────────────
+    if task_id == 3:
         return await _run_task17_from_db(project_id, project.device_id, device, db, dwcrud)
 
     if task_id not in TASK_META:
         raise HTTPException(status_code=400, detail=f"유효하지 않은 태스크 번호: {task_id}")
 
-    # Task 6/7 자동 선택: 벤더에 따라 실제 실행할 task_id 결정
+    # Task 10/11 자동 선택: 벤더에 따라 실제 실행할 task_id 결정
     effective_task_id = task_id
-    if task_id in (6, 7):
+    if task_id in (10, 11):
         effective_task_id = get_vendor_task_id(vendor)
 
     files_map = await dwcrud.get_project_files(db, project_id)
@@ -610,9 +610,9 @@ async def run_project_task(
     filenames = [name for _, name in input_files]
 
     extra_kwargs = {}
-    if effective_task_id == 6:
+    if effective_task_id == 10:
         extra_kwargs["vendor"] = "paloalto"
-    elif effective_task_id == 7:
+    elif effective_task_id == 11:
         extra_kwargs["vendor"] = "secui"
 
     import asyncio
@@ -726,10 +726,10 @@ async def _run_task17_from_db(project_id, device_id, device, db, dwcrud):
     device_ip = device.ip_address if device else str(device_id)
     filename = f"{today}_{device_ip}_redundancy.xlsx"
 
-    await dwcrud.upsert_file(db, project_id=project_id, task_id=17, slot="output_0",
+    await dwcrud.upsert_file(db, project_id=project_id, task_id=3, slot="output_0",
                              filename=filename, data=content)
     await db.commit()
-    return {"ok": True, "task_id": 17, "outputs": [{"slot": "output_0", "filename": filename}]}
+    return {"ok": True, "task_id": 3, "outputs": [{"slot": "output_0", "filename": filename}]}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

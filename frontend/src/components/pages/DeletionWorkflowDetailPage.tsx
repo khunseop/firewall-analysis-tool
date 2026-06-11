@@ -27,31 +27,31 @@ interface TaskMeta {
   autoFromDb?: boolean
 }
 
-// Phase 1 실행 순서: 1 → 17 → 19 → 3 → 2
+// Phase 1 실행 순서: 2 → 3 → 4 → 5 → 6
 const PHASE1_TASKS: TaskMeta[] = [
-  { step: 1, id: 1,  name: '신청정보 파싱',       description: 'DB 추출 파일에서 신청정보 파싱' },
-  { step: 2, id: 17, name: '중복정책 분석',       description: 'FAT DB 중복분석 결과를 Excel로 자동 생성', autoFromDb: true },
-  { step: 3, id: 19, name: '중복결과 파싱',       description: '중복분석 결과 파일에서 신청정보 파싱' },
-  { step: 4, id: 3,  name: 'MIS ID 매핑',        description: '정책 파일 + MIS CSV → MIS ID 추가',
+  { step: 1, id: 2,  name: '신청정보 파싱',       description: 'DB 추출 파일에서 신청정보 파싱' },
+  { step: 2, id: 3,  name: '중복정책 분석',       description: 'FAT DB 중복분석 결과를 Excel로 자동 생성', autoFromDb: true },
+  { step: 3, id: 4,  name: '중복결과 파싱',       description: '중복분석 결과 파일에서 신청정보 파싱' },
+  { step: 4, id: 5,  name: 'MIS ID 매핑',        description: '정책 파일 + MIS CSV → MIS ID 추가',
     externalInputs: [{ slot: 'external_1', label: 'MIS CSV 파일', required: true }] },
-  { step: 5, id: 2,  name: '신청번호 추출',       description: '고유 신청 ID 추출' },
+  { step: 5, id: 6,  name: '신청번호 추출',       description: '고유 신청 ID 추출' },
 ]
 
-// Phase 2 실행 순서: 4 → 5 → 15 → 6/7 → 13 → 8 → 9 → 11 → 10 → 18 → 16
+// Phase 2 실행 순서: 7 → 8 → 9 → 10/11 → 12 → 13 → 14 → 15 → 16 → 17 → 18
 const PHASE2_TASKS: TaskMeta[] = [
-  { step: 1, id: 4,  name: '신청정보 가공 (GSAMS)',   description: 'GSAMS 신청정보 취합',
+  { step: 1, id: 7,  name: '신청정보 가공 (GSAMS)',   description: 'GSAMS 신청정보 취합',
     externalInputs: [{ slot: 'external_1', label: 'GSAMS Excel 파일', required: true }] },
-  { step: 2, id: 5,  name: '신청정보 매핑',           description: '정책 파일 + GSAMS → 신청정보 매핑' },
-  { step: 3, id: 15, name: '자동연장 날짜 업데이트',  description: '자동연장 정책 탐지 및 날짜 업데이트' },
-  { step: 4, id: 6,  name: '예외처리 (벤더별)',       description: '정책 예외 분류 — 벤더에 따라 PaloAlto(6) 또는 SECUI(7) 자동 선택' },
-  { step: 5, id: 13, name: '사용이력 반영',           description: '예외처리 결과 + 히트카운트 → 사용이력 반영' },
-  { step: 6, id: 8,  name: '하단 최신정책 검증',     description: '동일 신청번호 내 최신 날짜 정책 위치 검증 및 분류' },
-  { step: 7, id: 9,  name: '중복정책 분류',           description: '중복결과(파싱) + 예외처리 결과 → 공지/삭제 분류' },
-  { step: 8, id: 11, name: '중복 만료셋 예외처리',   description: '전체 만료 / 차단 영향 중복 세트 예외 분류' },
-  { step: 9, id: 10, name: '중복정책 상태 업데이트', description: '예외처리 결과 + 분류결과 → 중복여부 반영' },
-  { step: 10, id: 18, name: '중복 예외 반영',        description: 'YAML 예외 목록 → 정책 파일 반영',
+  { step: 2, id: 8,  name: '신청정보 매핑',           description: '정책 파일 + GSAMS → 신청정보 매핑' },
+  { step: 3, id: 9,  name: '자동연장 날짜 업데이트',  description: '자동연장 정책 탐지 및 날짜 업데이트' },
+  { step: 4, id: 10, name: '예외처리 (벤더별)',       description: '정책 예외 분류 — 벤더에 따라 PaloAlto(10) 또는 SECUI(11) 자동 선택' },
+  { step: 5, id: 12, name: '사용이력 반영',           description: '예외처리 결과 + 히트카운트 → 사용이력 반영' },
+  { step: 6, id: 13, name: '하단 최신정책 검증',     description: '동일 신청번호 내 최신 날짜 정책 위치 검증 및 분류' },
+  { step: 7, id: 14, name: '중복정책 분류',           description: '중복결과(파싱) + 예외처리 결과 → 공지/삭제 분류' },
+  { step: 8, id: 15, name: '중복 만료셋 예외처리',   description: '전체 만료 / 차단 영향 중복 세트 예외 분류' },
+  { step: 9, id: 16, name: '중복정책 상태 업데이트', description: '예외처리 결과 + 분류결과 → 중복여부 반영' },
+  { step: 10, id: 17, name: '중복 예외 반영',        description: 'YAML 예외 목록 → 정책 파일 반영',
     externalInputs: [{ slot: 'external_1', label: '중복예외 YAML 파일 (선택)', required: false }] },
-  { step: 11, id: 16, name: '통보대상 분류',          description: '정책 Excel → 유형별 공지파일 생성' },
+  { step: 11, id: 18, name: '통보대상 분류',          description: '정책 Excel → 유형별 공지파일 생성' },
 ]
 
 // ── 유틸 ─────────────────────────────────────────────────────────────────────
@@ -232,10 +232,10 @@ function Task0Section({
   const [extracting, setExtracting] = useState(false)
   const [merging, setMerging] = useState(false)
   const task0done = hasOutput(files, 0)
-  const task12done = hasOutput(files, 12)
+  const task1done = hasOutput(files, 1)
   const task0file = files.find((f) => f.task_id === 0 && f.slot === 'output_0')
-  const task12file = files.find((f) => f.task_id === 12 && f.slot === 'output_0')
-  const haSecFile = getExternalFile(files, 12, 'external_1')
+  const task1file = files.find((f) => f.task_id === 1 && f.slot === 'output_0')
+  const haSecFile = getExternalFile(files, 1, 'external_1')
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
 
@@ -255,7 +255,7 @@ function Task0Section({
   const handleMerge = async () => {
     setMerging(true)
     try {
-      const res = await runProjectTask(projectId, 12)
+      const res = await runProjectTask(projectId, 1)
       toast.success(`히트카운트 병합 완료 (출력 ${res.outputs.length}개)`)
       onRefresh()
     } catch (e: unknown) {
@@ -268,7 +268,7 @@ function Task0Section({
   const handleHaFile = async (file: File) => {
     setUploading(true)
     try {
-      await uploadExternalFile(projectId, 12, 'external_1', file)
+      await uploadExternalFile(projectId, 1, 'external_1', file)
       toast.success('HA Secondary 파일 업로드 완료')
       onRefresh()
     } catch (e: unknown) {
@@ -333,7 +333,7 @@ function Task0Section({
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                {task12done
+                {task1done
                   ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                   : <div className="w-3.5 h-3.5 rounded-full border-2 border-ds-outline-variant/40" />
                 }
@@ -347,8 +347,8 @@ function Task0Section({
               <p className="text-[11px] text-ds-on-surface-variant mt-0.5 ml-5">
                 HA Secondary 장비의 히트카운트를 병합합니다.
               </p>
-              {task12done && (
-                <p className="text-[11px] text-emerald-600 mt-0.5 ml-5">✓ {task12file?.filename}</p>
+              {task1done && (
+                <p className="text-[11px] text-emerald-600 mt-0.5 ml-5">✓ {task1file?.filename}</p>
               )}
             </div>
             <button
