@@ -44,6 +44,7 @@ def _default_config() -> dict:
             "request_ids": [],
             "policy_rules": [],
             "static_list": [],
+            "duplicate_policies": [],  # [{device_id, name, reason, registered_at, expires_at}]
         },
         "policy_processing": {
             "request_parsing": {},
