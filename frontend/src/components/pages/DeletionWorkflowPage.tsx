@@ -46,13 +46,10 @@ interface ExtractionPanelProps {
 
 function ExtractionPanel({ devices, onExtracted }: ExtractionPanelProps) {
   const [deviceId, setDeviceId] = useState<number | ''>('')
-  const [useSsh, setUseSsh] = useState(false)
-  const [primaryLoading, setPrimaryLoading] = useState(false)
-  const [haLoading, setHaLoading] = useState(false)
+  const [extractLoading, setExtractLoading] = useState(false)
   const [redundancyLoading, setRedundancyLoading] = useState(false)
 
   const selectedDevice = devices.find((d) => d.id === deviceId) ?? null
-  const haPeerIp = selectedDevice?.ha_peer_ip ?? null
 
   const downloadBlob = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob)
@@ -65,19 +62,18 @@ function ExtractionPanel({ devices, onExtracted }: ExtractionPanelProps) {
     URL.revokeObjectURL(url)
   }
 
-  const handleExtract = async (useHaPeer = false) => {
+  const handleExtract = async () => {
     if (!deviceId) return
-    const setLoading = useHaPeer ? setHaLoading : setPrimaryLoading
-    setLoading(true)
+    setExtractLoading(true)
     try {
-      const { blob, filename } = await extractDeviceData(Number(deviceId), { useHaPeer, useSsh })
+      const { blob, filename } = await extractDeviceData(Number(deviceId))
       downloadBlob(blob, filename)
-      if (!useHaPeer) onExtracted(blob, filename)
+      onExtracted(blob, filename)
       toast.success(`${filename} 추출 완료`)
     } catch (e) {
       toast.error((e as Error).message)
     } finally {
-      setLoading(false)
+      setExtractLoading(false)
     }
   }
 
@@ -100,7 +96,7 @@ function ExtractionPanel({ devices, onExtracted }: ExtractionPanelProps) {
       <div className="flex items-center gap-2">
         <Database className="w-4 h-4 text-ds-tertiary" />
         <span className="text-[13px] font-semibold text-ds-on-surface">데이터 추출 (Task 0)</span>
-        <span className="text-[10px] text-ds-on-surface-variant/60 ml-1">방화벽 장비에서 직접 추출</span>
+        <span className="text-[10px] text-ds-on-surface-variant/60 ml-1">FAT DB 동기화 데이터 기반</span>
       </div>
 
       {/* 장비 선택 */}
@@ -116,46 +112,22 @@ function ExtractionPanel({ devices, onExtracted }: ExtractionPanelProps) {
             <option key={d.id} value={d.id}>{d.name} ({d.ip_address})</option>
           ))}
         </select>
-        {selectedDevice && (
+        {selectedDevice?.last_sync_at && (
           <p className="text-[11px] text-ds-on-surface-variant/60">
-            HA Secondary:{' '}
-            {haPeerIp
-              ? <span className="text-ds-on-surface font-medium">{haPeerIp}</span>
-              : <span className="text-ds-on-surface-variant/40">미설정</span>
-            }
+            마지막 동기화: <span className="text-ds-on-surface">{new Date(selectedDevice.last_sync_at).toLocaleString('ko-KR')}</span>
           </p>
         )}
       </div>
 
-      {/* SSH 옵션 */}
-      <label className="flex items-center gap-2 cursor-pointer w-fit">
-        <input
-          type="checkbox"
-          checked={useSsh}
-          onChange={(e) => setUseSsh(e.target.checked)}
-          className="w-3.5 h-3.5 accent-ds-tertiary"
-        />
-        <span className="text-[12px] text-ds-on-surface-variant">SSH 방식으로 사용이력 수집 (PaloAlto)</span>
-      </label>
-
       {/* 액션 버튼들 */}
       <div className="flex flex-wrap gap-2">
         <button
-          onClick={() => handleExtract(false)}
-          disabled={!deviceId || primaryLoading}
+          onClick={handleExtract}
+          disabled={!deviceId || extractLoading}
           className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold btn-primary-gradient text-white rounded-lg shadow-sm disabled:opacity-40 hover:opacity-90 transition-all"
         >
-          {primaryLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-          Primary 추출
-        </button>
-        <button
-          onClick={() => handleExtract(true)}
-          disabled={!deviceId || !haPeerIp || haLoading}
-          title={!haPeerIp ? '장비 설정에 HA Secondary IP가 등록되어 있지 않습니다' : undefined}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-tertiary bg-ds-tertiary/8 border border-ds-tertiary/20 rounded-lg disabled:opacity-40 hover:bg-ds-tertiary/12 transition-colors"
-        >
-          {haLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-          Secondary 사용이력{haPeerIp ? ` (${haPeerIp})` : ''}
+          {extractLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+          정책 데이터 추출
         </button>
         <button
           onClick={handleRedundancyExport}

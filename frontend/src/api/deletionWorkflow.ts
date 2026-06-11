@@ -20,13 +20,10 @@ export const fetchDeletionTasks = async (): Promise<DeletionTaskListResponse> =>
 
 export const extractDeviceData = async (
   deviceId: number,
-  options?: { useHaPeer?: boolean; useSsh?: boolean }
 ): Promise<{ blob: Blob; filename: string }> => {
   const token = useAuthStore.getState().token
   const formData = new FormData()
   formData.append('device_id', String(deviceId))
-  if (options?.useHaPeer) formData.append('use_ha_peer', 'true')
-  if (options?.useSsh) formData.append('use_ssh', 'true')
 
   const res = await fetch('/api/v1/deletion-workflow/extract', {
     method: 'POST',
