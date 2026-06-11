@@ -42,20 +42,27 @@ _FPAT_YAML = os.path.abspath(_FPAT_YAML)
 
 # 태스크별 메타데이터
 TASK_META = {
-    1:  {"name": "신청정보파싱",       "input_count": 1, "description": "정책 Excel에서 신청 정보 파싱"},
-    2:  {"name": "RequestID추출",      "input_count": 1, "description": "고유 신청 ID 추출"},
-    3:  {"name": "MISID업데이트",      "input_count": 2, "description": "정책 Excel + MIS CSV → MIS ID 추가"},
-    4:  {"name": "신청정보취합",       "input_count": 1, "description": "외부 시스템 신청 정보 취합"},
-    5:  {"name": "신청정보매핑",       "input_count": 2, "description": "정책 Excel + 정보 Excel → 매핑"},
-    6:  {"name": "예외처리_PaloAlto",  "input_count": 1, "description": "PaloAlto 정책 예외 분류"},
-    7:  {"name": "예외처리_SECUI",     "input_count": 1, "description": "SECUI 정책 예외 분류"},
-    8:  {"name": "중복정책분류",       "input_count": 2, "description": "중복정책 Excel + 신청정보 Excel → 분류"},
-    9:  {"name": "중복정책상태업데이트","input_count": 2, "description": "정책 Excel + 분류결과 Excel → 중복여부 반영"},
-    10: {"name": "히트카운트병합",     "input_count": 2, "description": "HA Primary + Secondary 히트카운트 병합"},
-    11: {"name": "미사용여부추가",     "input_count": 2, "description": "정책 Excel + 미사용 Excel → 미사용여부 추가"},
-    12: {"name": "미사용예외업데이트", "input_count": 2, "description": "정책 Excel + 중복분류 Excel → 미사용예외 반영"},
-    13: {"name": "공지파일분류",       "input_count": 1, "description": "정책 Excel → 유형별 공지파일 생성"},
-    14: {"name": "자동연장탐지",       "input_count": 1, "description": "신청정보 Excel → 자동연장 정책 탐지"},
+    # Phase 1
+    1:  {"name": "신청정보파싱",           "input_count": 1, "description": "정책 파일 신청정보 파싱"},
+    19: {"name": "중복결과신청정보파싱",   "input_count": 1, "description": "중복분석 결과 파일 신청정보 파싱 (Task 1 second run)"},
+    3:  {"name": "MISID매핑",             "input_count": 2, "description": "정책 Excel + MIS CSV → MIS ID 추가"},
+    2:  {"name": "신청번호추출",          "input_count": 1, "description": "고유 신청 ID 추출"},
+    # Phase 2
+    4:  {"name": "신청정보취합",          "input_count": 1, "description": "GSAMS 신청정보 취합"},
+    5:  {"name": "신청정보매핑",          "input_count": 2, "description": "정책 Excel + GSAMS → 신청정보 매핑"},
+    15: {"name": "자동연장탐지",          "input_count": 1, "description": "자동연장 날짜 업데이트"},
+    6:  {"name": "예외처리_PaloAlto",     "input_count": 1, "description": "PaloAlto 정책 예외 분류"},
+    7:  {"name": "예외처리_SECUI",        "input_count": 1, "description": "SECUI/MF2 정책 예외 분류"},
+    13: {"name": "사용이력반영",          "input_count": 2, "description": "예외처리 결과 + 히트카운트 → 사용이력 반영"},
+    8:  {"name": "하단최신정책검증",      "input_count": 1, "description": "하단 최신 정책 검증 및 분류"},
+    9:  {"name": "중복정책분류",          "input_count": 2, "description": "중복결과(파싱) + 예외처리 → 공지/삭제 분류"},
+    11: {"name": "중복만료셋예외처리",    "input_count": 4, "description": "정책원본 + 중복정리/공지/삭제 파일 → 만료셋 예외 분류"},
+    10: {"name": "중복정책상태업데이트",  "input_count": 2, "description": "예외처리 + 분류결과 → 중복여부 반영"},
+    18: {"name": "중복예외반영",          "input_count": 2, "description": "미사용 상태 파일 + YAML → 중복 예외 반영"},
+    14: {"name": "미사용상태업데이트",    "input_count": 1, "description": "미사용여부 업데이트"},
+    16: {"name": "통보대상분류",          "input_count": 1, "description": "정책 Excel → 유형별 공지파일 생성"},
+    # 히트카운트 (Phase 1/2 중간, 선택)
+    12: {"name": "히트카운트병합",        "input_count": 1, "description": "HA Primary + Secondary 히트카운트 병합 (선택)"},
 }
 
 
@@ -574,9 +581,6 @@ async def run_project_task(
     from app.crud import crud_deletion_workflow as dwcrud
     from app.services.deletion_workflow.core.input_resolver import resolve_inputs, MissingInputError, get_vendor_task_id
 
-    if task_id not in TASK_META:
-        raise HTTPException(status_code=400, detail=f"유효하지 않은 태스크 번호: {task_id}")
-
     project = await dwcrud.get_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
@@ -584,8 +588,14 @@ async def run_project_task(
     device = await crud.device.get_device(db=db, device_id=project.device_id)
     vendor = device.vendor if device else ""
 
+    # ── Task 17: FAT DB 중복분석 → project file 자동 저장 ─────────────────
+    if task_id == 17:
+        return await _run_task17_from_db(project_id, project.device_id, device, db, dwcrud)
+
+    if task_id not in TASK_META:
+        raise HTTPException(status_code=400, detail=f"유효하지 않은 태스크 번호: {task_id}")
+
     # Task 6/7 자동 선택: 벤더에 따라 실제 실행할 task_id 결정
-    # (프론트에서는 항상 "6"을 요청하면 벤더 기반으로 알아서 선택)
     effective_task_id = task_id
     if task_id in (6, 7):
         effective_task_id = get_vendor_task_id(vendor)
@@ -662,6 +672,65 @@ async def download_task_file(
         media_type=media,
         headers={"Content-Disposition": f'attachment; filename="{f.filename}"'},
     )
+
+
+async def _run_task17_from_db(project_id, device_id, device, db, dwcrud):
+    """Task 17 (중복정책분석): FAT DB 중복분석 결과를 Excel로 변환하여 project file 저장."""
+    from app.models.analysis import AnalysisTask, RedundancyPolicySet
+
+    result = await db.execute(
+        select(AnalysisTask)
+        .filter(
+            AnalysisTask.device_id == device_id,
+            AnalysisTask.task_type == AnalysisTaskType.REDUNDANCY,
+            AnalysisTask.task_status == AnalysisTaskStatus.SUCCESS,
+        )
+        .order_by(AnalysisTask.completed_at.desc())
+        .limit(1)
+    )
+    task = result.scalar_one_or_none()
+    if not task:
+        raise HTTPException(
+            status_code=404,
+            detail="FAT DB에 완료된 중복 분석 결과가 없습니다. 분석 → 중복 분석을 먼저 실행하세요."
+        )
+
+    redundancy_sets = await crud.analysis.get_redundancy_policy_sets_by_task(db=db, task_id=task.id)
+    if not redundancy_sets:
+        raise HTTPException(status_code=404, detail="중복 정책 데이터가 없습니다.")
+
+    rows = []
+    for rps in redundancy_sets:
+        p = rps.policy
+        if p is None:
+            continue
+        rows.append({
+            "No": rps.set_number,
+            "Type": rps.type.value,
+            "Vsys": p.vsys, "Seq": p.seq, "Rule Name": p.rule_name,
+            "Enable": p.enable, "Action": p.action, "Source": p.source,
+            "User": p.user, "Destination": p.destination, "Service": p.service,
+            "Application": p.application, "Security Profile": p.security_profile,
+            "Category": p.category, "Description": p.description,
+        })
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="중복 정책 행을 생성할 수 없습니다.")
+
+    import asyncio
+    loop = asyncio.get_event_loop()
+    content = await loop.run_in_executor(
+        None, lambda: _df_to_xlsx_bytes({"redundancy": pd.DataFrame(rows)})
+    )
+
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    device_ip = device.ip_address if device else str(device_id)
+    filename = f"{today}_{device_ip}_redundancy.xlsx"
+
+    await dwcrud.upsert_file(db, project_id=project_id, task_id=17, slot="output_0",
+                             filename=filename, data=content)
+    await db.commit()
+    return {"ok": True, "task_id": 17, "outputs": [{"slot": "output_0", "filename": filename}]}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

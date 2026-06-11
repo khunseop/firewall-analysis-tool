@@ -19,29 +19,48 @@ interface TaskMeta {
   id: number
   name: string
   description: string
-  phase: 1 | 2
+  phase: 1 | 2 | 'hitcount'
   externalInputs?: { slot: string; label: string; required: boolean }[]
+  autoFromDb?: boolean   // FAT DB에서 자동 생성
 }
 
-const TASKS: TaskMeta[] = [
-  { id: 1,  name: '신청정보파싱',       description: '정책 Excel에서 신청 정보 파싱',                   phase: 1 },
-  { id: 2,  name: 'RequestID추출',      description: '고유 신청 ID 추출',                               phase: 1 },
-  { id: 3,  name: 'MISID업데이트',      description: '정책 Excel + MIS CSV → MIS ID 추가',              phase: 1,
-    externalInputs: [{ slot: 'external_1', label: 'MIS CSV 파일', required: true }] },
-  { id: 4,  name: '신청정보취합',       description: '외부 시스템 신청 정보 취합',                       phase: 2,
-    externalInputs: [{ slot: 'external_1', label: 'GSAMS Excel 파일', required: true }] },
-  { id: 5,  name: '신청정보매핑',       description: '정책 Excel + 정보 Excel → 매핑',                  phase: 2 },
-  { id: 6,  name: '예외처리',           description: '정책 예외 분류 (벤더 자동 선택)',                   phase: 2 },
-  { id: 8,  name: '중복정책분류',       description: '중복정책 분류 (FAT DB 중복분석 자동 사용)',          phase: 2,
-    externalInputs: [{ slot: 'external_0', label: '중복분석 Excel (자동 대체 가능)', required: false }] },
-  { id: 9,  name: '중복정책상태업데이트', description: '정책 Excel + 분류결과 Excel → 중복여부 반영',     phase: 2 },
-  { id: 10, name: '히트카운트병합',     description: 'HA Primary + Secondary 히트카운트 병합',           phase: 2,
-    externalInputs: [{ slot: 'external_1', label: 'HA Secondary 히트카운트 Excel (선택)', required: false }] },
-  { id: 11, name: '미사용여부추가',     description: '정책 Excel + 미사용 Excel → 미사용여부 추가',       phase: 2 },
-  { id: 12, name: '미사용예외업데이트', description: '정책 Excel + 중복분류 Excel → 미사용예외 반영',     phase: 2 },
-  { id: 13, name: '공지파일분류',       description: '정책 Excel → 유형별 공지파일 생성',                 phase: 2 },
-  { id: 14, name: '자동연장탐지',       description: '신청정보 Excel → 자동연장 정책 탐지',               phase: 2 },
+// 위저드(workflow_wizard.py) 순서 기준
+const PHASE1_TASKS: TaskMeta[] = [
+  { id: 1,  name: '신청정보파싱',        description: '정책 파일에서 신청정보 파싱', phase: 1 },
+  { id: 17, name: '중복정책분석',        description: 'FAT DB 중복분석 결과 자동 사용', phase: 1, autoFromDb: true },
+  { id: 19, name: '중복결과 신청정보파싱', description: '중복분석 결과 파일에서 신청정보 파싱', phase: 1 },
+  {
+    id: 3, name: 'MIS ID 매핑', description: '정책 Excel + MIS CSV → MIS ID 추가', phase: 1,
+    externalInputs: [{ slot: 'external_1', label: 'MIS CSV 파일', required: true }],
+  },
+  { id: 2,  name: '신청번호추출',        description: '고유 신청 ID 추출', phase: 1 },
 ]
+
+const PHASE2_TASKS: TaskMeta[] = [
+  {
+    id: 4, name: '신청정보취합 (GSAMS)', description: 'GSAMS 신청정보 취합', phase: 2,
+    externalInputs: [{ slot: 'external_1', label: 'GSAMS Excel 파일', required: true }],
+  },
+  { id: 5,  name: '신청정보매핑',        description: '정책 Excel + GSAMS → 신청정보 매핑', phase: 2 },
+  { id: 15, name: '자동연장 날짜 업데이트', description: '자동연장 정책 탐지 및 날짜 업데이트', phase: 2 },
+  { id: 6,  name: '예외처리',            description: '정책 예외 분류 (벤더 자동 선택)', phase: 2 },
+  { id: 13, name: '사용이력 반영',       description: '예외처리 결과 + 히트카운트 → 사용이력 반영', phase: 2 },
+  { id: 8,  name: '하단 최신정책 검증',  description: '동일 신청번호 내 최신 날짜 정책 검증 및 분류', phase: 2 },
+  { id: 9,  name: '중복정책 분류',       description: '중복결과(파싱) + 예외처리 → 공지/삭제 분류', phase: 2 },
+  { id: 11, name: '중복 만료셋 예외처리', description: '전체 만료 / 차단 영향 중복 세트 예외 분류', phase: 2 },
+  { id: 10, name: '중복정책 상태 업데이트', description: '예외처리 + 분류결과 → 중복여부 반영', phase: 2 },
+  {
+    id: 18, name: '중복 예외 반영',      description: 'YAML 예외 목록 → 정책 파일 반영', phase: 2,
+    externalInputs: [{ slot: 'external_1', label: '중복예외 YAML 파일 (선택)', required: false }],
+  },
+  { id: 14, name: '미사용 상태 업데이트', description: '미사용여부 최종 업데이트', phase: 2 },
+  { id: 16, name: '통보대상 분류',       description: '정책 Excel → 유형별 공지파일 생성', phase: 2 },
+]
+
+const HITCOUNT_TASK: TaskMeta = {
+  id: 12, name: '히트카운트 병합', description: 'HA Secondary 히트카운트 병합 (선택)', phase: 'hitcount',
+  externalInputs: [{ slot: 'external_1', label: 'HA Secondary 히트카운트 Excel (선택)', required: false }],
+}
 
 // ── 유틸 ─────────────────────────────────────────────────────────────────────
 
@@ -176,6 +195,11 @@ function TaskCard({
             <span className="text-sm font-medium text-ds-on-surface">
               Task {task.id}: {task.name}
             </span>
+            {task.autoFromDb && (
+              <span className="px-1.5 py-0.5 text-[10px] rounded bg-blue-50 text-blue-600 font-medium">
+                FAT DB 자동
+              </span>
+            )}
           </div>
           <p className="text-xs text-ds-on-surface-variant mt-0.5 ml-6">{task.description}</p>
         </div>
@@ -278,8 +302,8 @@ export default function DeletionWorkflowDetailPage() {
   const files = project.files ?? []
   const hasTask0 = hasOutput(files, 0)
 
-  const phase1Tasks = TASKS.filter((t) => t.phase === 1)
-  const phase2Tasks = TASKS.filter((t) => t.phase === 2)
+  const phase1Tasks = PHASE1_TASKS
+  const phase2Tasks = PHASE2_TASKS
 
   return (
     <div className="h-full flex flex-col">
@@ -379,8 +403,23 @@ export default function DeletionWorkflowDetailPage() {
         {/* GSAMS Checkpoint 배너 */}
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           <span className="font-medium">GSAMS Checkpoint</span>
-          <span className="ml-2 text-amber-700">— Phase 2 진행 전 GSAMS Excel 파일을 업로드하세요 (Task 4).</span>
+          <span className="ml-2 text-amber-700">
+            — Phase 1 완료 후 신청번호 파일을 타부서에 전달하고, GSAMS Excel 파일을 수령하세요 (Task 4 업로드 필요).
+          </span>
         </div>
+
+        {/* 히트카운트 (선택) */}
+        <section>
+          <h2 className="text-xs font-semibold text-ds-on-surface-variant uppercase tracking-wider mb-3">
+            히트카운트 병합 (선택)
+          </h2>
+          <TaskCard
+            task={HITCOUNT_TASK}
+            projectId={projectId}
+            files={files}
+            onRefresh={refresh}
+          />
+        </section>
 
         {/* Phase 2 */}
         <section>
