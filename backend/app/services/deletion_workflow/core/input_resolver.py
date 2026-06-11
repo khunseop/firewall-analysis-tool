@@ -11,7 +11,7 @@ Phase 1:
   3  → task_1.output_0 + ext:MIS    (MIS ID 매핑)
   2  → task_3.output_0              (신청번호 추출)
 
-Phase 2:
+Phase 2 (위저드 순서):
   4  → ext:GSAMS                    (신청정보 가공)
   5  → task_3.output_0 + task_4.output_0 (신청정보 매핑)
   15 → task_4.output_0              (자동연장 탐지)
@@ -19,12 +19,10 @@ Phase 2:
   13 → task_6or7.output_0 + task_12.output_0 (사용이력 반영)
   8  → task_13.output_0             (하단 최신정책 검증)
   9  → task_19.output_0 + task_6or7.output_0 (중복정책 분류)
-  11 → task_9.output_0 (공지) + task_9.output_1 (삭제) (만료셋 예외처리)
-       추가: task_13 or task_8 output (정책 원본)
+  11 → task_9.output_0 + task_8.output_0 (만료셋 예외처리)
   10 → task_6or7.output_0 + task_9.output_0 (중복상태 업데이트)
-  18 → task_8.output_0 + ext:yaml   (중복 예외 반영)
-  14 → task_8.output_0              (미사용 상태 업데이트)
-  16 → task_14.output_0             (통보대상 분류)
+  18 → task_10.output_0 + ext:yaml  (중복 예외 반영)
+  16 → task_18.output_0             (통보대상 분류)
 
 히트카운트:
   12 → task_0.output_0 + ext(선택): HA Secondary  (히트카운트 병합)
@@ -178,20 +176,15 @@ def resolve_inputs(
         classify = _require(project_files, 9, "output_0", "중복정책 분류 결과")
         return collect(exc_file, classify)
 
-    if task_id == 14:
-        # 미사용 상태 업데이트
-        f = _require(project_files, 8, "output_0", "하단최신정책 검증 결과")
-        return collect(f)
-
     if task_id == 18:
-        # 중복 예외 반영: 정책파일 + YAML (선택)
-        policy = _require(project_files, 14, "output_0", "미사용 상태 업데이트 결과")
+        # 중복 예외 반영: 중복상태 업데이트 결과 + YAML (선택)
+        policy = _require(project_files, 10, "output_0", "중복정책 상태 업데이트 결과")
         yaml_f = _get(project_files, 18, "external_1")
         return collect(policy, yaml_f)
 
     if task_id == 16:
         # 통보대상 분류
-        f = _require(project_files, 14, "output_0", "미사용 상태 업데이트 결과")
+        f = _require(project_files, 18, "output_0", "중복 예외 반영 결과")
         return collect(f)
 
     return []
