@@ -46,11 +46,13 @@ interface ExtractionPanelProps {
 
 function ExtractionPanel({ devices, onExtracted }: ExtractionPanelProps) {
   const [deviceId, setDeviceId] = useState<number | ''>('')
-  const [haDeviceId, setHaDeviceId] = useState<number | ''>('')
   const [useSsh, setUseSsh] = useState(false)
   const [primaryLoading, setPrimaryLoading] = useState(false)
   const [haLoading, setHaLoading] = useState(false)
   const [redundancyLoading, setRedundancyLoading] = useState(false)
+
+  const selectedDevice = devices.find((d) => d.id === deviceId) ?? null
+  const haPeerIp = selectedDevice?.ha_peer_ip ?? null
 
   const downloadBlob = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob)
@@ -64,12 +66,11 @@ function ExtractionPanel({ devices, onExtracted }: ExtractionPanelProps) {
   }
 
   const handleExtract = async (useHaPeer = false) => {
-    const id = useHaPeer ? haDeviceId : deviceId
-    if (!id) return
+    if (!deviceId) return
     const setLoading = useHaPeer ? setHaLoading : setPrimaryLoading
     setLoading(true)
     try {
-      const { blob, filename } = await extractDeviceData(Number(id), { useHaPeer, useSsh })
+      const { blob, filename } = await extractDeviceData(Number(deviceId), { useHaPeer, useSsh })
       downloadBlob(blob, filename)
       if (!useHaPeer) onExtracted(blob, filename)
       toast.success(`${filename} 추출 완료`)
@@ -103,33 +104,27 @@ function ExtractionPanel({ devices, onExtracted }: ExtractionPanelProps) {
       </div>
 
       {/* 장비 선택 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">Primary 장비</p>
-          <select
-            value={deviceId}
-            onChange={(e) => setDeviceId(e.target.value ? Number(e.target.value) : '')}
-            className="w-full h-8 px-2 text-[12px] bg-ds-surface-container-low border border-ds-outline-variant/20 rounded-lg focus:outline-none focus:border-ds-tertiary"
-          >
-            <option value="">장비 선택…</option>
-            {devices.map((d) => (
-              <option key={d.id} value={d.id}>{d.name} ({d.ip_address})</option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">Secondary 장비 (HA, 선택)</p>
-          <select
-            value={haDeviceId}
-            onChange={(e) => setHaDeviceId(e.target.value ? Number(e.target.value) : '')}
-            className="w-full h-8 px-2 text-[12px] bg-ds-surface-container-low border border-ds-outline-variant/20 rounded-lg focus:outline-none focus:border-ds-tertiary"
-          >
-            <option value="">사용 안 함</option>
-            {devices.map((d) => (
-              <option key={d.id} value={d.id}>{d.name} ({d.ip_address})</option>
-            ))}
-          </select>
-        </div>
+      <div className="space-y-1 max-w-sm">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">장비</p>
+        <select
+          value={deviceId}
+          onChange={(e) => setDeviceId(e.target.value ? Number(e.target.value) : '')}
+          className="w-full h-8 px-2 text-[12px] bg-ds-surface-container-low border border-ds-outline-variant/20 rounded-lg focus:outline-none focus:border-ds-tertiary"
+        >
+          <option value="">장비 선택…</option>
+          {devices.map((d) => (
+            <option key={d.id} value={d.id}>{d.name} ({d.ip_address})</option>
+          ))}
+        </select>
+        {selectedDevice && (
+          <p className="text-[11px] text-ds-on-surface-variant/60">
+            HA Secondary:{' '}
+            {haPeerIp
+              ? <span className="text-ds-on-surface font-medium">{haPeerIp}</span>
+              : <span className="text-ds-on-surface-variant/40">미설정</span>
+            }
+          </p>
+        )}
       </div>
 
       {/* SSH 옵션 */}
@@ -155,11 +150,12 @@ function ExtractionPanel({ devices, onExtracted }: ExtractionPanelProps) {
         </button>
         <button
           onClick={() => handleExtract(true)}
-          disabled={!haDeviceId || haLoading}
+          disabled={!deviceId || !haPeerIp || haLoading}
+          title={!haPeerIp ? '장비 설정에 HA Secondary IP가 등록되어 있지 않습니다' : undefined}
           className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-tertiary bg-ds-tertiary/8 border border-ds-tertiary/20 rounded-lg disabled:opacity-40 hover:bg-ds-tertiary/12 transition-colors"
         >
           {haLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-          Secondary 사용이력
+          Secondary 사용이력{haPeerIp ? ` (${haPeerIp})` : ''}
         </button>
         <button
           onClick={handleRedundancyExport}
