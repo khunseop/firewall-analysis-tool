@@ -9,6 +9,7 @@ import { useConfirm } from '@/components/shared/ConfirmDialog'
 import { getSettings, updateSetting, getDeletionWorkflowConfig, updateDeletionWorkflowConfig } from '@/api/settings'
 import { getUsers, createUser, changeUserPassword, toggleUserActive, deleteUser, type User } from '@/api/users'
 import { deleteOldNotifications } from '@/api/notifications'
+import { listDevices, type Device } from '@/api/devices'
 
 // ──────────────────────────────────────────────────────────────────
 // 일반 설정
@@ -527,6 +528,127 @@ function ExceptionTable({
   )
 }
 
+// ──────────────────────────────────────────────────────────────────
+// 중복정책 예외 테이블 (장비별, 유효기간 기반)
+// ──────────────────────────────────────────────────────────────────
+interface DuplicatePolicyItem {
+  device_id: number
+  name: string
+  reason: string
+  registered_at: string
+  expires_at: string
+}
+
+function DuplicatePolicyTable({
+  items, devices, onAdd, onRemove, onUpdate
+}: {
+  items: DuplicatePolicyItem[]
+  devices: Device[]
+  onAdd: () => void
+  onRemove: (idx: number) => void
+  onUpdate: (idx: number, patch: Partial<DuplicatePolicyItem>) => void
+}) {
+  const today = new Date().toISOString().slice(0, 10)
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[12px] font-semibold text-ds-on-surface">중복정책 예외</p>
+          <p className="text-[11px] text-ds-on-surface-variant/70 mt-0.5">Task 17 실행 시 해당 장비의 유효한 예외가 자동 적용됩니다.</p>
+        </div>
+        <button
+          onClick={onAdd}
+          className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-ds-tertiary bg-ds-tertiary/8 border border-ds-tertiary/20 rounded-lg hover:bg-ds-tertiary/12 transition-colors"
+        >
+          <Plus className="w-3 h-3" />
+          추가
+        </button>
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-ds-outline-variant/8">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-ds-outline-variant/8 bg-ds-surface-container-low/30">
+              <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-40">장비</th>
+              <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">정책명</th>
+              <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">사유</th>
+              <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-28">등록일</th>
+              <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-28">만료일</th>
+              <th className="px-3 py-2 w-10"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-ds-outline-variant/8">
+            {items.map((item, idx) => {
+              const expired = item.expires_at && item.expires_at < today
+              return (
+                <tr key={idx} className={`hover:bg-ds-surface-container-low/20 ${expired ? 'opacity-50' : ''}`}>
+                  <td className="px-3 py-1.5">
+                    <select
+                      value={item.device_id ?? ''}
+                      onChange={(e) => onUpdate(idx, { device_id: Number(e.target.value) })}
+                      className="w-full h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                    >
+                      <option value="">장비 선택</option>
+                      {devices.map((d) => (
+                        <option key={d.id} value={d.id}>{d.name}({d.ip_address})</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-3 py-1.5">
+                    <input
+                      value={item.name ?? ''}
+                      onChange={(e) => onUpdate(idx, { name: e.target.value })}
+                      placeholder="정책명"
+                      className="w-full h-7 px-2 text-[12px] font-mono bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                    />
+                  </td>
+                  <td className="px-3 py-1.5">
+                    <input
+                      value={item.reason ?? ''}
+                      onChange={(e) => onUpdate(idx, { reason: e.target.value })}
+                      placeholder="예외 사유"
+                      className="w-full h-7 px-2 text-[12px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                    />
+                  </td>
+                  <td className="px-3 py-1.5">
+                    <input
+                      type="date"
+                      value={item.registered_at ?? ''}
+                      onChange={(e) => onUpdate(idx, { registered_at: e.target.value })}
+                      className="w-full h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                    />
+                  </td>
+                  <td className="px-3 py-1.5">
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="date"
+                        value={item.expires_at ?? ''}
+                        onChange={(e) => onUpdate(idx, { expires_at: e.target.value })}
+                        className="w-full h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                      />
+                      {expired && <span className="text-[10px] text-ds-error shrink-0">만료</span>}
+                    </div>
+                  </td>
+                  <td className="px-3 py-1.5 text-right">
+                    <button onClick={() => onRemove(idx)} className="p-1 rounded hover:bg-red-50 text-ds-error transition-colors">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
+            {items.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-6 text-center text-[12px] text-ds-on-surface-variant italic">등록된 항목이 없습니다.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 function DeletionWorkflowSettings() {
   const queryClient = useQueryClient()
   const [config, setConfig] = useState<Record<string, unknown>>({})
@@ -536,6 +658,11 @@ function DeletionWorkflowSettings() {
   const { data, isLoading } = useQuery({
     queryKey: ['deletion-workflow-config'],
     queryFn: getDeletionWorkflowConfig,
+  })
+
+  const { data: devices = [] } = useQuery({
+    queryKey: ['devices'],
+    queryFn: listDevices,
   })
 
   useEffect(() => {
@@ -614,6 +741,30 @@ function DeletionWorkflowSettings() {
           onAdd={() => addItem('static_list', 'name')}
           onRemove={(i) => removeItem('static_list', i)}
           onUpdate={(i, patch) => updateItem('static_list', i, patch)}
+        />
+      </div>
+
+      {/* 중복정책 예외 (장비별, Task 17 자동 주입) */}
+      <div className="space-y-4">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">중복정책 예외</p>
+        <DuplicatePolicyTable
+          items={(getExceptions('duplicate_policies') as unknown as DuplicatePolicyItem[])}
+          devices={devices}
+          onAdd={() => {
+            const today = new Date().toISOString().slice(0, 10)
+            setExceptions('duplicate_policies', [
+              ...(getExceptions('duplicate_policies') as unknown as DuplicatePolicyItem[]),
+              { device_id: 0, name: '', reason: '', registered_at: today, expires_at: '' },
+            ] as unknown as ExceptionItem[])
+          }}
+          onRemove={(i) => {
+            const items = (getExceptions('duplicate_policies') as unknown as DuplicatePolicyItem[])
+            setExceptions('duplicate_policies', items.filter((_, idx) => idx !== i) as unknown as ExceptionItem[])
+          }}
+          onUpdate={(i, patch) => {
+            const items = (getExceptions('duplicate_policies') as unknown as DuplicatePolicyItem[])
+            setExceptions('duplicate_policies', items.map((item, idx) => idx === i ? { ...item, ...patch } : item) as unknown as ExceptionItem[])
+          }}
         />
       </div>
 

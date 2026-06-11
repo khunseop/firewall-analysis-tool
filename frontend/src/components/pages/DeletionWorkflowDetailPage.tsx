@@ -193,13 +193,20 @@ function TaskCard({
       {task.externalInputs && task.externalInputs.length > 0 && (
         <div className="ml-6 space-y-1.5">
           {task.externalInputs.map((inp) => (
-            <ExternalFileUpload
-              key={inp.slot}
-              projectId={projectId} taskId={task.id}
-              slot={inp.slot} label={inp.label} required={inp.required}
-              existingFile={getExternalFile(files, task.id, inp.slot)}
-              onUploaded={onRefresh}
-            />
+            <div key={inp.slot}>
+              <ExternalFileUpload
+                projectId={projectId} taskId={task.id}
+                slot={inp.slot} label={inp.label} required={inp.required}
+                existingFile={getExternalFile(files, task.id, inp.slot)}
+                onUploaded={onRefresh}
+              />
+              {/* Task 17 YAML: 업로드 없으면 Settings 예외 자동 주입 안내 */}
+              {!inp.required && inp.slot === 'external_1' && !getExternalFile(files, task.id, inp.slot) && (
+                <p className="text-[11px] text-ds-on-surface-variant/70 mt-1 ml-1">
+                  ℹ️ 파일 없으면 Settings → 삭제 워크플로우의 중복정책 예외가 자동 적용됩니다.
+                </p>
+              )}
+            </div>
           ))}
         </div>
       )}

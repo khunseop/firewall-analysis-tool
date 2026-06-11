@@ -8,6 +8,7 @@ fpat policy_deletion_processor의 14개 태스크를 REST API로 노출합니다
 
 import os
 import io
+import json
 import logging
 import zipfile
 import datetime
@@ -566,6 +567,49 @@ async def upload_external_file(
     return {"ok": True, "filename": file.filename, "task_id": task_id, "slot": slot}
 
 
+async def _build_duplicate_policy_yaml(db: AsyncSession, device_id: int, device) -> bytes | None:
+    """
+    Settings의 duplicate_policies에서 해당 장비 + 유효기간 예외만 추출해 YAML bytes 생성.
+    유효 항목 없으면 None 반환.
+    """
+    import yaml as _yaml
+    import datetime as _dt
+
+    setting = await crud.settings.get_setting(db, key="deletion_workflow_config")
+    if not setting:
+        return None
+
+    try:
+        cfg = json.loads(setting.value) if isinstance(setting.value, str) else setting.value
+        items = cfg.get("exceptions", {}).get("duplicate_policies", [])
+    except Exception:
+        return None
+
+    today = _dt.date.today()
+    valid = []
+    for item in items:
+        if item.get("device_id") != device_id:
+            continue
+        try:
+            exp = _dt.date.fromisoformat(item["expires_at"])
+            reg = _dt.date.fromisoformat(item["registered_at"])
+        except (KeyError, ValueError):
+            continue
+        if exp >= today and reg < today:
+            valid.append({
+                "name": item.get("name", ""),
+                "reason": item.get("reason", ""),
+                "registered_at": item["registered_at"],
+                "expires_at": item["expires_at"],
+            })
+
+    if not valid:
+        return None
+
+    fw_key = device.ip_address if device else str(device_id)
+    return _yaml.dump({fw_key: valid}, allow_unicode=True, default_flow_style=False).encode("utf-8")
+
+
 @router.post("/projects/{project_id}/tasks/{task_id}/run")
 async def run_project_task(
     project_id: int,
@@ -598,6 +642,15 @@ async def run_project_task(
     effective_task_id = task_id
     if task_id in (10, 11):
         effective_task_id = get_vendor_task_id(vendor)
+
+    # Task 17: external_1(YAML) 없으면 Settings 예외 목록으로 자동 생성
+    if task_id == 17:
+        existing_yaml = await dwcrud.get_file(db, project_id=project_id, task_id=17, slot="external_1")
+        if existing_yaml is None:
+            yaml_bytes = await _build_duplicate_policy_yaml(db, project.device_id, device)
+            if yaml_bytes:
+                await dwcrud.upsert_file(db, project_id=project_id, task_id=17, slot="external_1",
+                                         filename="duplicate_exceptions_auto.yaml", data=yaml_bytes)
 
     files_map = await dwcrud.get_project_files(db, project_id)
 
