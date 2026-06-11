@@ -58,8 +58,7 @@ TASK_META = {
     9:  {"name": "중복정책분류",          "input_count": 2, "description": "중복결과(파싱) + 예외처리 → 공지/삭제 분류"},
     11: {"name": "중복만료셋예외처리",    "input_count": 4, "description": "정책원본 + 중복정리/공지/삭제 파일 → 만료셋 예외 분류"},
     10: {"name": "중복정책상태업데이트",  "input_count": 2, "description": "예외처리 + 분류결과 → 중복여부 반영"},
-    18: {"name": "중복예외반영",          "input_count": 2, "description": "미사용 상태 파일 + YAML → 중복 예외 반영"},
-    14: {"name": "미사용상태업데이트",    "input_count": 1, "description": "미사용여부 업데이트"},
+    18: {"name": "중복예외반영",          "input_count": 2, "description": "중복상태 파일 + YAML(선택) → 중복 예외 반영"},
     16: {"name": "통보대상분류",          "input_count": 1, "description": "정책 Excel → 유형별 공지파일 생성"},
     # 히트카운트 (Phase 1/2 중간, 선택)
     12: {"name": "히트카운트병합",        "input_count": 1, "description": "HA Primary + Secondary 히트카운트 병합 (선택)"},
