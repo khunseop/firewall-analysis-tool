@@ -123,12 +123,21 @@ export const createProject = async (
   name: string,
   memo?: string,
 ): Promise<DeletionWorkflowProject> => {
+  const token = useAuthStore.getState().token
   const form = new FormData()
   form.append('device_id', String(deviceId))
   form.append('name', name)
   if (memo) form.append('memo', memo)
-  const res = await apiClient.post<DeletionWorkflowProject>('/deletion-workflow/projects', form)
-  return res.data
+  const res = await fetch('/api/v1/deletion-workflow/projects', {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.detail || '프로젝트 생성 실패')
+  }
+  return res.json()
 }
 
 export const getProject = async (id: number): Promise<DeletionWorkflowProjectDetail> => {
@@ -143,18 +152,32 @@ export const deleteProject = async (id: number): Promise<void> => {
 // ── 프로젝트 태스크 실행 ────────────────────────────────────────────────────
 
 export const runProjectExtract = async (projectId: number): Promise<{ ok: boolean; filename: string }> => {
-  const res = await apiClient.post(`/deletion-workflow/projects/${projectId}/extract`)
-  return res.data
+  const token = useAuthStore.getState().token
+  const res = await fetch(`/api/v1/deletion-workflow/projects/${projectId}/extract`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.detail || '데이터 추출 실패')
+  }
+  return res.json()
 }
 
 export const runProjectTask = async (
   projectId: number,
   taskId: number,
 ): Promise<ProjectTaskResult> => {
-  const res = await apiClient.post<ProjectTaskResult>(
-    `/deletion-workflow/projects/${projectId}/tasks/${taskId}/run`
-  )
-  return res.data
+  const token = useAuthStore.getState().token
+  const res = await fetch(`/api/v1/deletion-workflow/projects/${projectId}/tasks/${taskId}/run`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.detail || `태스크 ${taskId} 실행 실패`)
+  }
+  return res.json()
 }
 
 export const uploadExternalFile = async (
