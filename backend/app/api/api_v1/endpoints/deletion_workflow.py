@@ -333,6 +333,341 @@ async def extract_device_data(
     )
 
 
+@router.get("/projects")
+async def list_projects(
+    device_id: int = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """프로젝트 목록 조회."""
+    from app.crud import crud_deletion_workflow as dwcrud
+    from app.models.device import Device
+    projects = await dwcrud.list_projects(db, device_id=device_id)
+
+    # device 정보 조인 (lazy load 대신 별도 조회)
+    result = []
+    for p in projects:
+        device = await crud.device.get_device(db=db, device_id=p.device_id)
+        result.append({
+            "id": p.id,
+            "device_id": p.device_id,
+            "device_name": device.name if device else str(p.device_id),
+            "device_ip": device.ip_address if device else "",
+            "name": p.name,
+            "status": p.status,
+            "memo": p.memo,
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+            "updated_at": p.updated_at.isoformat() if p.updated_at else None,
+        })
+    return result
+
+
+@router.post("/projects")
+async def create_project(
+    device_id: int = Form(...),
+    name: str = Form(...),
+    memo: str = Form(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """새 프로젝트 생성."""
+    from app.crud import crud_deletion_workflow as dwcrud
+    device = await crud.device.get_device(db=db, device_id=device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail=f"장비 ID {device_id}를 찾을 수 없습니다.")
+
+    project = await dwcrud.create_project(db, device_id=device_id, name=name, memo=memo or None)
+    await db.commit()
+    return {
+        "id": project.id,
+        "device_id": project.device_id,
+        "name": project.name,
+        "status": project.status,
+        "memo": project.memo,
+        "created_at": project.created_at.isoformat(),
+        "updated_at": project.updated_at.isoformat(),
+    }
+
+
+@router.get("/projects/{project_id}")
+async def get_project(
+    project_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """프로젝트 상세 조회 (태스크 파일 상태 포함)."""
+    from app.crud import crud_deletion_workflow as dwcrud
+    project = await dwcrud.get_project(db, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+
+    device = await crud.device.get_device(db=db, device_id=project.device_id)
+    files_map = await dwcrud.get_project_files(db, project_id)
+
+    # 파일 상태 목록: task_id, slot, filename, created_at
+    file_states = [
+        {
+            "task_id": k[0],
+            "slot": k[1],
+            "filename": f.filename,
+            "created_at": f.created_at.isoformat() if f.created_at else None,
+        }
+        for k, f in sorted(files_map.items())
+    ]
+
+    return {
+        "id": project.id,
+        "device_id": project.device_id,
+        "device_name": device.name if device else str(project.device_id),
+        "device_ip": device.ip_address if device else "",
+        "device_vendor": device.vendor if device else "",
+        "name": project.name,
+        "status": project.status,
+        "memo": project.memo,
+        "created_at": project.created_at.isoformat() if project.created_at else None,
+        "updated_at": project.updated_at.isoformat() if project.updated_at else None,
+        "files": file_states,
+    }
+
+
+@router.delete("/projects/{project_id}")
+async def delete_project(
+    project_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """프로젝트 삭제 (files cascade)."""
+    from app.crud import crud_deletion_workflow as dwcrud
+    project = await dwcrud.get_project(db, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+    await dwcrud.delete_project(db, project_id)
+    await db.commit()
+    return {"ok": True}
+
+
+@router.post("/projects/{project_id}/extract")
+async def project_extract(
+    project_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Task 0: FAT DB에서 데이터를 추출하여 프로젝트에 저장합니다.
+    기존 /extract 와 동일한 로직이지만 결과를 DB에 저장합니다.
+    """
+    from app.crud import crud_deletion_workflow as dwcrud
+    project = await dwcrud.get_project(db, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+
+    device_id = project.device_id
+    device = await crud.device.get_device(db=db, device_id=device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail="장비를 찾을 수 없습니다.")
+
+    # 정책 조회
+    policies_result = await db.execute(
+        select(Policy)
+        .filter(Policy.device_id == device_id, Policy.is_active == True)
+        .order_by(Policy.vsys, Policy.seq)
+    )
+    policies = policies_result.scalars().all()
+    if not policies:
+        raise HTTPException(
+            status_code=404,
+            detail=f"장비 {device.name}에 동기화된 정책 데이터가 없습니다. 먼저 동기화를 실행하세요."
+        )
+
+    today = datetime.date.today()
+    policy_rows = [{
+        "Vsys": p.vsys, "Seq": p.seq, "Rule Name": p.rule_name,
+        "Enable": p.enable, "Action": p.action, "Source": p.source,
+        "User": p.user, "Destination": p.destination, "Service": p.service,
+        "Application": p.application, "Security Profile": p.security_profile,
+        "Category": p.category, "Description": p.description,
+    } for p in policies]
+
+    usage_rows = [{
+        "Vsys": p.vsys,
+        "Rule Name": p.rule_name,
+        "Last Hit Date": p.last_hit_date.strftime("%Y-%m-%d") if p.last_hit_date else None,
+        "Unused Days": (today - p.last_hit_date.date()).days if p.last_hit_date else None,
+    } for p in policies]
+
+    addr_result = await db.execute(
+        select(NetworkObject).filter(NetworkObject.device_id == device_id, NetworkObject.is_active == True)
+    )
+    address_rows = [{"Name": o.name, "Type": o.type, "IP Address": o.ip_address, "Description": o.description}
+                    for o in addr_result.scalars().all()]
+
+    ag_result = await db.execute(
+        select(NetworkGroup).filter(NetworkGroup.device_id == device_id, NetworkGroup.is_active == True)
+    )
+    ag_rows = [{"Group Name": g.name, "Entry": g.members, "Description": g.description}
+               for g in ag_result.scalars().all()]
+
+    svc_result = await db.execute(
+        select(Service).filter(Service.device_id == device_id, Service.is_active == True)
+    )
+    svc_rows = [{"Name": s.name, "Protocol": s.protocol, "Port": s.port, "Description": s.description}
+                for s in svc_result.scalars().all()]
+
+    sg_result = await db.execute(
+        select(ServiceGroup).filter(ServiceGroup.device_id == device_id, ServiceGroup.is_active == True)
+    )
+    sg_rows = [{"Group Name": g.name, "Entry": g.members, "Description": g.description}
+               for g in sg_result.scalars().all()]
+
+    sheets = {"policy": pd.DataFrame(policy_rows), "usage": pd.DataFrame(usage_rows)}
+    if address_rows:
+        sheets["address"] = pd.DataFrame(address_rows)
+    if ag_rows:
+        sheets["address_group"] = pd.DataFrame(ag_rows)
+    if svc_rows:
+        sheets["service"] = pd.DataFrame(svc_rows)
+    if sg_rows:
+        sheets["service_group"] = pd.DataFrame(sg_rows)
+
+    import asyncio
+    loop = asyncio.get_event_loop()
+    content = await loop.run_in_executor(None, lambda: _df_to_xlsx_bytes(sheets))
+
+    filename = f"{today.strftime('%Y-%m-%d')}_{device.ip_address}_policy.xlsx"
+    await dwcrud.upsert_file(db, project_id=project_id, task_id=0, slot="output_0",
+                             filename=filename, data=content)
+    await dwcrud.update_project_status(db, project, "running")
+    await db.commit()
+    return {"ok": True, "filename": filename, "task_id": 0, "slot": "output_0"}
+
+
+@router.post("/projects/{project_id}/tasks/{task_id}/upload")
+async def upload_external_file(
+    project_id: int,
+    task_id: int,
+    slot: str = Form(...),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """외부 파일을 프로젝트에 저장합니다 (실행 없음)."""
+    from app.crud import crud_deletion_workflow as dwcrud
+    project = await dwcrud.get_project(db, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+
+    if slot not in ("external_0", "external_1", "external_2"):
+        raise HTTPException(status_code=400, detail=f"유효하지 않은 slot: {slot}")
+
+    data = await file.read()
+    await dwcrud.upsert_file(db, project_id=project_id, task_id=task_id, slot=slot,
+                             filename=file.filename, data=data)
+    await db.commit()
+    return {"ok": True, "filename": file.filename, "task_id": task_id, "slot": slot}
+
+
+@router.post("/projects/{project_id}/tasks/{task_id}/run")
+async def run_project_task(
+    project_id: int,
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    프로젝트 내에서 태스크를 실행합니다.
+    입력 파일은 프로젝트 파일에서 자동으로 resolve됩니다.
+    외부 파일이 필요한 태스크는 먼저 /upload로 파일을 저장해야 합니다.
+    """
+    from app.crud import crud_deletion_workflow as dwcrud
+    from app.services.deletion_workflow.core.input_resolver import resolve_inputs, MissingInputError, get_vendor_task_id
+
+    if task_id not in TASK_META:
+        raise HTTPException(status_code=400, detail=f"유효하지 않은 태스크 번호: {task_id}")
+
+    project = await dwcrud.get_project(db, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+
+    device = await crud.device.get_device(db=db, device_id=project.device_id)
+    vendor = device.vendor if device else ""
+
+    # Task 6/7 자동 선택: 벤더에 따라 실제 실행할 task_id 결정
+    # (프론트에서는 항상 "6"을 요청하면 벤더 기반으로 알아서 선택)
+    effective_task_id = task_id
+    if task_id in (6, 7):
+        effective_task_id = get_vendor_task_id(vendor)
+
+    files_map = await dwcrud.get_project_files(db, project_id)
+
+    try:
+        input_files = resolve_inputs(effective_task_id, files_map, vendor)
+    except MissingInputError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    contents = [data for data, _ in input_files]
+    filenames = [name for _, name in input_files]
+
+    extra_kwargs = {}
+    if effective_task_id == 6:
+        extra_kwargs["vendor"] = "paloalto"
+    elif effective_task_id == 7:
+        extra_kwargs["vendor"] = "secui"
+
+    import asyncio
+    loop = asyncio.get_event_loop()
+    runner = WorkspaceRunner(config_path=_fpat_yaml_path() or None)
+
+    try:
+        output_files = await loop.run_in_executor(
+            None,
+            lambda: runner.run_task(effective_task_id, contents, filenames, **extra_kwargs)
+        )
+    except (ValueError, RuntimeError) as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        logger.exception(f"Project {project_id} Task {effective_task_id} 실행 오류: {e}")
+        raise HTTPException(status_code=500, detail=f"태스크 실행 실패: {str(e)}")
+
+    if not output_files:
+        raise HTTPException(status_code=500, detail="태스크 실행 완료됐으나 출력 파일이 없습니다.")
+
+    # 출력 파일을 프로젝트에 저장 (output_0, output_1, ...)
+    saved = []
+    for idx, (fname, data) in enumerate(output_files):
+        slot = f"output_{idx}"
+        await dwcrud.upsert_file(db, project_id=project_id, task_id=effective_task_id,
+                                 slot=slot, filename=fname, data=data)
+        saved.append({"slot": slot, "filename": fname})
+
+    await db.commit()
+    return {"ok": True, "task_id": effective_task_id, "outputs": saved}
+
+
+@router.get("/projects/{project_id}/tasks/{task_id}/download")
+async def download_task_file(
+    project_id: int,
+    task_id: int,
+    slot: str = "output_0",
+    db: AsyncSession = Depends(get_db),
+):
+    """저장된 태스크 파일을 다운로드합니다."""
+    from app.crud import crud_deletion_workflow as dwcrud
+    f = await dwcrud.get_file(db, project_id=project_id, task_id=task_id, slot=slot)
+    if not f:
+        raise HTTPException(status_code=404, detail=f"파일을 찾을 수 없습니다: task {task_id} / {slot}")
+
+    ext = os.path.splitext(f.filename)[1].lower()
+    if ext == ".xlsx":
+        media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    elif ext == ".csv":
+        media = "text/csv"
+    else:
+        media = "application/octet-stream"
+
+    return Response(
+        content=f.file_data,
+        media_type=media,
+        headers={"Content-Disposition": f'attachment; filename="{f.filename}"'},
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 기존 레거시 엔드포인트 (하위 호환)
+# ─────────────────────────────────────────────────────────────────────────────
+
 @router.get("/redundancy-export/{device_id}")
 async def export_redundancy(
     device_id: int,
