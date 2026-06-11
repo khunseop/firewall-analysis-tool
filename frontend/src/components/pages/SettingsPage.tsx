@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Save, Plus, Trash2, KeyRound, UserCheck, UserX, ChevronDown, ChevronUp } from 'lucide-react'
+import { Save, Plus, Trash2, KeyRound, UserCheck, UserX, ChevronDown, ChevronUp, Download, Upload } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
-import { getSettings, updateSetting, getDeletionWorkflowConfig, updateDeletionWorkflowConfig } from '@/api/settings'
+import { getSettings, updateSetting, getDeletionWorkflowConfig, updateDeletionWorkflowConfig, exportDeletionWorkflowConfig, importDeletionWorkflowConfig } from '@/api/settings'
 import { getUsers, createUser, changeUserPassword, toggleUserActive, deleteUser, type User } from '@/api/users'
 import { deleteOldNotifications } from '@/api/notifications'
 import { listDevices, type Device } from '@/api/devices'
@@ -654,6 +654,8 @@ function DeletionWorkflowSettings() {
   const [config, setConfig] = useState<Record<string, unknown>>({})
   const [dirty, setDirty] = useState(false)
   const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const importRef = useRef<HTMLInputElement>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['deletion-workflow-config'],
@@ -678,6 +680,37 @@ function DeletionWorkflowSettings() {
     },
     onError: (e: Error) => toast.error(e.message),
   })
+
+  const handleExport = async () => {
+    try {
+      const { blob, filename } = await exportDeletionWorkflowConfig()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error('백업 파일 다운로드에 실패했습니다.')
+    }
+  }
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImporting(true)
+    try {
+      await importDeletionWorkflowConfig(file)
+      await queryClient.invalidateQueries({ queryKey: ['deletion-workflow-config'] })
+      setDirty(false)
+      toast.success('설정이 복구되었습니다.')
+    } catch {
+      toast.error('설정 복구에 실패했습니다. JSON 형식을 확인하세요.')
+    } finally {
+      setImporting(false)
+      if (importRef.current) importRef.current.value = ''
+    }
+  }
 
   const getExceptions = (key: string): ExceptionItem[] =>
     ((config as { exceptions?: Record<string, unknown> }).exceptions?.[key] ?? []) as ExceptionItem[]
@@ -818,8 +851,8 @@ function DeletionWorkflowSettings() {
         )}
       </div>
 
-      {/* 저장 버튼 */}
-      <div className="flex items-center gap-3">
+      {/* 저장 / 백업 / 복구 */}
+      <div className="flex items-center gap-3 flex-wrap">
         <button
           onClick={() => saveMutation.mutate()}
           disabled={!dirty || saveMutation.isPending}
@@ -828,6 +861,23 @@ function DeletionWorkflowSettings() {
           <Save className="w-3.5 h-3.5" />
           {saveMutation.isPending ? '저장 중…' : '저장'}
         </button>
+        <div className="h-5 w-px bg-ds-outline-variant/30" />
+        <button
+          onClick={handleExport}
+          className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/30 rounded-lg hover:bg-ds-surface-container-high transition-colors"
+        >
+          <Download className="w-3.5 h-3.5" />
+          백업
+        </button>
+        <button
+          onClick={() => importRef.current?.click()}
+          disabled={importing}
+          className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/30 rounded-lg hover:bg-ds-surface-container-high disabled:opacity-50 transition-colors"
+        >
+          <Upload className="w-3.5 h-3.5" />
+          {importing ? '복구 중…' : '복구'}
+        </button>
+        <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
         {dirty && <span className="text-[11px] text-amber-600 font-semibold">저장되지 않은 변경사항이 있습니다</span>}
       </div>
     </div>

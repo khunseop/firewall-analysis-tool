@@ -1,9 +1,11 @@
+import datetime
 import json
 import logging
 import os
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -218,3 +220,65 @@ async def update_deletion_workflow_config(
 
     _write_fpat_yaml(payload.config)
     return payload.config
+
+
+@router.get("/deletion-workflow/config/export")
+async def export_deletion_workflow_config(db: AsyncSession = Depends(get_db)):
+    """현재 삭제 워크플로우 설정을 JSON 파일로 다운로드합니다."""
+    setting = await crud.settings.get_setting(db, key=_SETTINGS_KEY)
+    if setting:
+        try:
+            config = json.loads(setting.value)
+        except Exception:
+            config = _load_fpat_yaml()
+    else:
+        config = _load_fpat_yaml()
+
+    today = datetime.date.today().strftime("%Y%m%d")
+    filename = f"deletion_workflow_config_{today}.json"
+    content = json.dumps({"version": 1, "exported_at": today, "config": config},
+                         ensure_ascii=False, indent=2).encode("utf-8")
+    return Response(
+        content=content,
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/deletion-workflow/config/import")
+async def import_deletion_workflow_config(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """JSON 백업 파일에서 삭제 워크플로우 설정을 복구합니다."""
+    raw = await file.read()
+    try:
+        data = json.loads(raw)
+    except Exception:
+        raise HTTPException(status_code=400, detail="유효하지 않은 JSON 파일입니다.")
+
+    # {"version":1, "config":{...}} 형식 또는 config 직접 포함 둘 다 허용
+    config = data.get("config", data) if isinstance(data, dict) else None
+    if not isinstance(config, dict):
+        raise HTTPException(status_code=400, detail="설정 형식이 올바르지 않습니다.")
+
+    value = json.dumps(config, ensure_ascii=False)
+    setting = await crud.settings.get_setting(db, key=_SETTINGS_KEY)
+    if setting is None:
+        await crud.settings.create_setting(
+            db,
+            schemas.SettingsCreate(
+                key=_SETTINGS_KEY,
+                value=value,
+                description='정책 삭제 워크플로우 설정 (fpat.yaml 형식)',
+            ),
+        )
+    else:
+        await crud.settings.update_setting(
+            db=db,
+            db_obj=setting,
+            obj_in=schemas.SettingsUpdate(value=value),
+        )
+
+    _write_fpat_yaml(config)
+    return {"ok": True, "message": "설정이 복구되었습니다."}
