@@ -18,33 +18,16 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from sqlalchemy import select
 from app.db.session import get_db
 from app import crud
 from app.models.analysis import AnalysisTaskType, AnalysisTaskStatus
+from app.models.policy import Policy
+from app.models.network_object import NetworkObject
+from app.models.network_group import NetworkGroup
+from app.models.service import Service
+from app.models.service_group import ServiceGroup
 from app.services.deletion_workflow.core.workspace_runner import WorkspaceRunner
-from app.services.sync.collector import create_collector_from_device
-
-# fpat 호환 컬럼 매핑 (FAT snake_case → fpat Title Case)
-_POLICY_COL_MAP = {
-    "vsys": "Vsys",
-    "seq": "Seq",
-    "rule_name": "Rule Name",
-    "enable": "Enable",
-    "action": "Action",
-    "source": "Source",
-    "user": "User",
-    "destination": "Destination",
-    "service": "Service",
-    "application": "Application",
-    "security_profile": "Security Profile",
-    "category": "Category",
-    "description": "Description",
-}
-_USAGE_COL_MAP = {
-    "vsys": "Vsys",
-    "rule_name": "Rule Name",
-    "last_hit_date": "Last Hit Date",
-}
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -219,16 +202,12 @@ def _add_unused_days(df: pd.DataFrame) -> pd.DataFrame:
 @router.post("/extract")
 async def extract_device_data(
     device_id: int = Form(...),
-    use_ha_peer: bool = Form(default=False),
-    use_ssh: bool = Form(default=False),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    등록된 FAT 장비에서 직접 데이터를 추출하여 fpat 호환 Excel을 반환합니다.
+    FAT DB에서 동기화된 데이터를 fpat 호환 Excel로 내보냅니다.
 
     - **device_id**: FAT에 등록된 장비 ID
-    - **use_ha_peer**: HA Secondary IP로 연결 (사용이력 추출용)
-    - **use_ssh**: PaloAlto에서 SSH 방식으로 사용이력 수집
 
     반환: policy, address, address_group, service, service_group, usage 시트가 포함된 xlsx
     """
@@ -236,93 +215,117 @@ async def extract_device_data(
     if not device:
         raise HTTPException(status_code=404, detail=f"장비 ID {device_id}를 찾을 수 없습니다.")
 
+    # ── policy 시트 ──────────────────────────────────────────────────
+    policies_result = await db.execute(
+        select(Policy)
+        .filter(Policy.device_id == device_id, Policy.is_active == True)
+        .order_by(Policy.vsys, Policy.seq)
+    )
+    policies = policies_result.scalars().all()
+
+    if not policies:
+        raise HTTPException(
+            status_code=404,
+            detail=f"장비 {device.name}에 동기화된 정책 데이터가 없습니다. 먼저 동기화를 실행하세요."
+        )
+
+    policy_rows = [{
+        "Vsys": p.vsys,
+        "Seq": p.seq,
+        "Rule Name": p.rule_name,
+        "Enable": p.enable,
+        "Action": p.action,
+        "Source": p.source,
+        "User": p.user,
+        "Destination": p.destination,
+        "Service": p.service,
+        "Application": p.application,
+        "Security Profile": p.security_profile,
+        "Category": p.category,
+        "Description": p.description,
+    } for p in policies]
+
+    # ── usage 시트 (last_hit_date → Last Hit Date + Unused Days) ─────
+    today = datetime.date.today()
+    usage_rows = []
+    for p in policies:
+        if p.last_hit_date:
+            unused_days = (today - p.last_hit_date.date()).days
+            last_hit_str = p.last_hit_date.strftime("%Y-%m-%d")
+        else:
+            unused_days = None
+            last_hit_str = None
+        usage_rows.append({
+            "Vsys": p.vsys,
+            "Rule Name": p.rule_name,
+            "Last Hit Date": last_hit_str,
+            "Unused Days": unused_days,
+        })
+
+    # ── address 시트 ─────────────────────────────────────────────────
+    addr_result = await db.execute(
+        select(NetworkObject)
+        .filter(NetworkObject.device_id == device_id, NetworkObject.is_active == True)
+    )
+    address_rows = [{
+        "Name": o.name,
+        "Type": o.type,
+        "IP Address": o.ip_address,
+        "Description": o.description,
+    } for o in addr_result.scalars().all()]
+
+    # ── address_group 시트 ───────────────────────────────────────────
+    ag_result = await db.execute(
+        select(NetworkGroup)
+        .filter(NetworkGroup.device_id == device_id, NetworkGroup.is_active == True)
+    )
+    ag_rows = [{
+        "Group Name": g.name,
+        "Entry": g.members,
+        "Description": g.description,
+    } for g in ag_result.scalars().all()]
+
+    # ── service 시트 ─────────────────────────────────────────────────
+    svc_result = await db.execute(
+        select(Service)
+        .filter(Service.device_id == device_id, Service.is_active == True)
+    )
+    svc_rows = [{
+        "Name": s.name,
+        "Protocol": s.protocol,
+        "Port": s.port,
+        "Description": s.description,
+    } for s in svc_result.scalars().all()]
+
+    # ── service_group 시트 ───────────────────────────────────────────
+    sg_result = await db.execute(
+        select(ServiceGroup)
+        .filter(ServiceGroup.device_id == device_id, ServiceGroup.is_active == True)
+    )
+    sg_rows = [{
+        "Group Name": g.name,
+        "Entry": g.members,
+        "Description": g.description,
+    } for g in sg_result.scalars().all()]
+
+    sheets: dict = {
+        "policy": pd.DataFrame(policy_rows),
+        "usage": pd.DataFrame(usage_rows),
+    }
+    if address_rows:
+        sheets["address"] = pd.DataFrame(address_rows)
+    if ag_rows:
+        sheets["address_group"] = pd.DataFrame(ag_rows)
+    if svc_rows:
+        sheets["service"] = pd.DataFrame(svc_rows)
+    if sg_rows:
+        sheets["service_group"] = pd.DataFrame(sg_rows)
+
     import asyncio
     loop = asyncio.get_event_loop()
-
-    def _collect():
-        collector = create_collector_from_device(device, use_ha_ip=use_ha_peer)
-        if not collector.connect():
-            raise RuntimeError(f"장비 연결 실패: {device.name} ({device.ip_address})")
-
-        sheets = {}
-
-        # 보안 정책 (컬럼 매핑 적용)
-        policy_df = collector.export_security_rules()
-        if not policy_df.empty:
-            policy_df = policy_df.rename(columns=_POLICY_COL_MAP)
-            sheets["policy"] = policy_df
-
-        # 주소 객체
-        try:
-            addr_df = collector.export_network_objects()
-            if not addr_df.empty:
-                sheets["address"] = addr_df
-        except Exception as e:
-            logger.warning("address 객체 추출 실패: %s", e)
-
-        # 주소 그룹 객체
-        try:
-            ag_df = collector.export_network_group_objects()
-            if not ag_df.empty:
-                sheets["address_group"] = ag_df
-        except Exception as e:
-            logger.warning("address_group 객체 추출 실패: %s", e)
-
-        # 서비스 객체
-        try:
-            svc_df = collector.export_service_objects()
-            if not svc_df.empty:
-                sheets["service"] = svc_df
-        except Exception as e:
-            logger.warning("service 객체 추출 실패: %s", e)
-
-        # 서비스 그룹 객체
-        try:
-            sg_df = collector.export_service_group_objects()
-            if not sg_df.empty:
-                sheets["service_group"] = sg_df
-        except Exception as e:
-            logger.warning("service_group 객체 추출 실패: %s", e)
-
-        # 사용이력 (PaloAlto: export_last_hit_date / export_last_hit_date_ssh)
-        try:
-            vendor_lower = (device.vendor or "").lower()
-            if vendor_lower == "paloalto":
-                if use_ssh and hasattr(collector, "export_last_hit_date_ssh"):
-                    usage_df = collector.export_last_hit_date_ssh()
-                else:
-                    usage_df = collector.export_last_hit_date()
-            elif hasattr(collector, "export_last_hit_date"):
-                usage_df = collector.export_last_hit_date()
-            else:
-                usage_df = pd.DataFrame()
-
-            if not usage_df.empty:
-                usage_df = usage_df.rename(columns=_USAGE_COL_MAP)
-                usage_df = _add_unused_days(usage_df)
-                sheets["usage"] = usage_df
-        except Exception as e:
-            logger.warning("사용이력 추출 실패: %s", e)
-
-        collector.disconnect()
-        return sheets
-
-    try:
-        sheets = await loop.run_in_executor(None, _collect)
-    except RuntimeError as e:
-        raise HTTPException(status_code=502, detail=str(e))
-    except Exception as e:
-        logger.exception("장비 데이터 추출 중 예외: %s", e)
-        raise HTTPException(status_code=500, detail=f"데이터 추출 실패: {e}")
-
-    if not sheets:
-        raise HTTPException(status_code=500, detail="추출된 데이터가 없습니다.")
-
-    today = datetime.date.today().strftime("%Y-%m-%d")
-    ip = device.ha_peer_ip if use_ha_peer and device.ha_peer_ip else device.ip_address
-    filename = f"{today}_{ip}_policy.xlsx"
-
     content = await loop.run_in_executor(None, lambda: _df_to_xlsx_bytes(sheets))
+
+    filename = f"{today.strftime('%Y-%m-%d')}_{device.ip_address}_policy.xlsx"
     return Response(
         content=content,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
