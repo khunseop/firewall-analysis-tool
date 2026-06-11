@@ -1,27 +1,27 @@
 # app/services/deletion_workflow/core/pipeline.py
 """
 정책 삭제 프로세스용 파이프라인 엔진 및 태스크 레지스트리.
-fpat pipeline.py 이식 — 태스크 ID가 fpat 원본과 동일합니다.
+태스크 ID는 위저드 실행 순서 기준 0-18 순번.
 
-Task  1: RequestParser           — 정책 파일 신청정보 파싱
-Task  2: RequestExtractor        — 신청번호 추출
-Task  3: MisIdAdder              — MIS ID 매핑
-Task  4: ApplicationAggregator   — 신청정보 가공 (GSAMS)
-Task  5: RequestInfoAdder        — 신청정보 정책파일 매핑
-Task  6: ExceptionHandler        — 예외처리 (PaloAlto)
-Task  7: ExceptionHandler        — 예외처리 (SECUI/MF2)
-Task  8: BottomLatestPolicyValidator — 하단 최신정책 검증
-Task  9: DuplicatePolicyClassifier(classify) — 중복정책 분류
-Task 10: DuplicatePolicyClassifier(update)   — 중복정책 상태 업데이트
-Task 11: DuplicateExpiredCleaner — 중복 만료셋 예외처리
-Task 12: MergeHitcount           — 히트카운트 병합
-Task 13: PolicyUsageProcessor(add) — 사용이력 반영
-Task 14: PolicyUsageProcessor(update) — 미사용 상태 업데이트
-Task 15: AutoRenewalChecker      — 자동연장 탐지
-Task 16: NotificationClassifier  — 통보대상 분류
-Task 17: (FAT DB 중복분석 — WorkspaceRunner 외부에서 처리)
-Task 18: DuplicateExceptionApplier — 중복 예외 반영
-Task 19: RequestParser (2nd run) — 중복결과 파일 신청정보 파싱
+Task  0: DB 추출                   — (WorkspaceRunner 외부, FAT DB → Excel)
+Task  1: MergeHitcount             — 히트카운트 병합 (HA, 선택)
+Task  2: RequestParser             — 정책 파일 신청정보 파싱
+Task  3: (FAT DB 중복분석)         — WorkspaceRunner 외부에서 처리
+Task  4: RequestParser (2nd run)   — 중복결과 파일 신청정보 파싱
+Task  5: MisIdAdder                — MIS ID 매핑
+Task  6: RequestExtractor          — 신청번호 추출
+Task  7: ApplicationAggregator     — 신청정보 가공 (GSAMS)
+Task  8: RequestInfoAdder          — 신청정보 정책파일 매핑
+Task  9: AutoRenewalChecker        — 자동연장 탐지
+Task 10: ExceptionHandler          — 예외처리 (PaloAlto)
+Task 11: ExceptionHandler          — 예외처리 (SECUI/MF2)
+Task 12: PolicyUsageProcessor(add) — 사용이력 반영
+Task 13: BottomLatestPolicyValidator — 하단 최신정책 검증
+Task 14: DuplicatePolicyClassifier(classify) — 중복정책 분류
+Task 15: DuplicateExpiredCleaner   — 중복 만료셋 예외처리
+Task 16: DuplicatePolicyClassifier(update)   — 중복정책 상태 업데이트
+Task 17: DuplicateExceptionApplier — 중복 예외 반영
+Task 18: NotificationClassifier    — 통보대상 분류
 """
 
 import logging
@@ -51,24 +51,23 @@ class TaskRegistry:
     @staticmethod
     def get_processor_info(task_id: int) -> Optional[Dict[str, Any]]:
         registry: Dict[int, Dict[str, Any]] = {
-            1:  {"class": RequestParser,                "kwargs": {}},
-            2:  {"class": RequestExtractor,             "kwargs": {}},
-            3:  {"class": MisIdAdder,                   "kwargs": {}},
-            4:  {"class": ApplicationAggregator,        "kwargs": {}},
-            5:  {"class": RequestInfoAdder,             "kwargs": {}},
-            6:  {"class": ExceptionHandler,             "kwargs": {"vendor": "paloalto"}},
-            7:  {"class": ExceptionHandler,             "kwargs": {"vendor": "secui"}},
-            8:  {"class": BottomLatestPolicyValidator,  "kwargs": {}},
-            9:  {"class": DuplicatePolicyClassifier,    "kwargs": {"mode": "classify"}},
-            10: {"class": DuplicatePolicyClassifier,    "kwargs": {"mode": "update"}},
-            11: {"class": DuplicateExpiredCleaner,      "kwargs": {}},
-            12: {"class": MergeHitcount,                "kwargs": {}},
-            13: {"class": PolicyUsageProcessor,         "kwargs": {"mode": "add"}},
-            14: {"class": PolicyUsageProcessor,         "kwargs": {"mode": "update"}},
-            15: {"class": AutoRenewalChecker,           "kwargs": {}},
-            16: {"class": NotificationClassifier,       "kwargs": {}},
-            18: {"class": DuplicateExceptionApplier,    "kwargs": {}},
-            19: {"class": RequestParser,                "kwargs": {}},  # 중복결과 파일 신청정보 파싱
+            1:  {"class": MergeHitcount,                "kwargs": {}},
+            2:  {"class": RequestParser,                "kwargs": {}},
+            4:  {"class": RequestParser,                "kwargs": {}},  # 중복결과 파싱
+            5:  {"class": MisIdAdder,                   "kwargs": {}},
+            6:  {"class": RequestExtractor,             "kwargs": {}},
+            7:  {"class": ApplicationAggregator,        "kwargs": {}},
+            8:  {"class": RequestInfoAdder,             "kwargs": {}},
+            9:  {"class": AutoRenewalChecker,           "kwargs": {}},
+            10: {"class": ExceptionHandler,             "kwargs": {"vendor": "paloalto"}},
+            11: {"class": ExceptionHandler,             "kwargs": {"vendor": "secui"}},
+            12: {"class": PolicyUsageProcessor,         "kwargs": {"mode": "add"}},
+            13: {"class": BottomLatestPolicyValidator,  "kwargs": {}},
+            14: {"class": DuplicatePolicyClassifier,    "kwargs": {"mode": "classify"}},
+            15: {"class": DuplicateExpiredCleaner,      "kwargs": {}},
+            16: {"class": DuplicatePolicyClassifier,    "kwargs": {"mode": "update"}},
+            17: {"class": DuplicateExceptionApplier,    "kwargs": {}},
+            18: {"class": NotificationClassifier,       "kwargs": {}},
         }
         return registry.get(task_id)
 
