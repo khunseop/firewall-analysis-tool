@@ -59,13 +59,15 @@ class WorkspaceRunner:
         """
         with tempfile.TemporaryDirectory() as tmpdir:
             # 업로드 파일을 워크스페이스에 저장
-            for content, name in zip(input_files, filenames):
-                dest = os.path.join(tmpdir, name)
+            # os.path.basename: Windows에서 full-path 파일명이 넘어오는 경우 방어
+            safe_filenames = [os.path.basename(name) for name in filenames]
+            for content, safe_name in zip(input_files, safe_filenames):
+                dest = os.path.join(tmpdir, safe_name)
                 with open(dest, 'wb') as f:
                     f.write(content)
                 logger.debug(f"워크스페이스 파일 저장: {dest}")
 
-            output_paths = self._execute_in_dir(tmpdir, task_id, filenames, extra_kwargs)
+            output_paths = self._execute_in_dir(tmpdir, task_id, safe_filenames, extra_kwargs)
 
             # 임시 디렉토리 삭제 전에 파일 내용 읽기
             results: List[Tuple[str, bytes]] = []
@@ -88,9 +90,9 @@ class WorkspaceRunner:
         from ..utils.file_manager import FileManager
         from ..utils.excel_manager import ExcelManager
 
-        original_cwd = os.getcwd()
-
         with _workspace_lock:
+            # Lock 안에서 캡처해야 다른 스레드의 chdir과 레이스 없음
+            original_cwd = os.getcwd()
             try:
                 os.chdir(workspace)
 
@@ -130,4 +132,8 @@ class WorkspaceRunner:
                 return output_paths
 
             finally:
-                os.chdir(original_cwd)
+                try:
+                    os.chdir(original_cwd)
+                except OSError:
+                    # original_cwd가 삭제된 경우(이전 임시 디렉토리) 홈 디렉토리로 fallback
+                    os.chdir(os.path.expanduser('~'))
