@@ -140,3 +140,14 @@ async def clear_output_files(
         cond = and_(cond, DeletionWorkflowFile.task_id.in_(task_ids))
     result = await db.execute(delete(DeletionWorkflowFile).where(cond))
     return result.rowcount
+
+
+async def clear_all_files(
+    db: AsyncSession,
+    project_id: int,
+) -> int:
+    """프로젝트의 모든 파일 삭제 (output + external)."""
+    result = await db.execute(
+        delete(DeletionWorkflowFile).where(DeletionWorkflowFile.project_id == project_id)
+    )
+    return result.rowcount

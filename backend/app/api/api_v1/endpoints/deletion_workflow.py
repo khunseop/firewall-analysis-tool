@@ -768,6 +768,21 @@ async def reset_project_outputs(
     return {"ok": True, "deleted": deleted}
 
 
+@router.post("/projects/{project_id}/reset-all")
+async def reset_all_project_files(
+    project_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """모든 파일 삭제 (output + external)."""
+    from app.crud import crud_deletion_workflow as dwcrud
+    project = await dwcrud.get_project(db, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+    deleted = await dwcrud.clear_all_files(db, project_id)
+    await db.commit()
+    return {"ok": True, "deleted": deleted}
+
+
 class ClearOutputsPayload(BaseModel):
     task_ids: List[int]
 

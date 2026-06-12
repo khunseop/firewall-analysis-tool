@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { to: '/analysis', label: 'Analysis' },
   { to: '/policy-diff', label: 'Policy Diff' },
   { to: '/schedules', label: 'Schedules' },
-  { to: '/deletion-workflow', label: '삭제 워크플로우' },
+  { to: '/deletion-workflow', label: 'Deletion Workflow' },
 ]
 
 export function Navbar() {

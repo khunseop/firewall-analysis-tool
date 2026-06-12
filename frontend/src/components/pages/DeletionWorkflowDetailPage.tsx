@@ -12,7 +12,7 @@ import {
   runProjectTask,
   uploadExternalFile,
   downloadTaskFile,
-  resetProjectOutputs,
+  resetAllProjectFiles,
   clearProjectOutputs,
   type DeletionWorkflowProjectDetail,
   type ProjectFileState,
@@ -296,12 +296,13 @@ function TaskCard({
 // ── 컴포넌트: Task 0 섹션 ────────────────────────────────────────────────────
 
 function Task0Section({
-  projectId, files, hasPeerIp, onRefresh,
+  projectId, files, hasPeerIp, autoRunCurrentTaskId, onRefresh,
 }: {
   projectId: number; files: ProjectFileState[]
-  hasPeerIp: boolean; onRefresh: () => void
+  hasPeerIp: boolean; autoRunCurrentTaskId: number | null; onRefresh: () => void
 }) {
   const [extracting, setExtracting] = useState(false)
+  const isAutoExtracting = autoRunCurrentTaskId === 0
   const [merging, setMerging] = useState(false)
   const task0done = hasOutput(files, 0)
   const task1done = hasOutput(files, 1)
@@ -389,11 +390,11 @@ function Task0Section({
           )}
           <button
             onClick={handleExtract}
-            disabled={extracting}
+            disabled={extracting || isAutoExtracting}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-ds-tertiary text-white hover:bg-ds-tertiary/90 disabled:opacity-50"
           >
-            {extracting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-            {extracting ? '추출 중...' : task0done ? '재추출' : '추출 실행'}
+            {(extracting || isAutoExtracting) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+            {(extracting || isAutoExtracting) ? '추출 중...' : task0done ? '재추출' : '추출 실행'}
           </button>
         </div>
       </div>
@@ -490,6 +491,25 @@ export default function DeletionWorkflowDetailPage() {
     setAutoRunning(true)
     setAutoRunBlockedAt(null)
 
+    // Task 0: 처음부터 실행하는 경우에만 데이터 추출 포함
+    const includeTask0 = fromTaskId === undefined
+    if (includeTask0 && autoRunRef.current) {
+      const cur = await getProject(projectId).catch(() => null)
+      if (cur && !hasOutput(cur.files ?? [], 0)) {
+        setAutoRunCurrentTaskId(0)
+        try {
+          await runProjectExtract(projectId)
+        } catch (e: unknown) {
+          toast.error(`데이터 추출 실패: ${(e as Error).message}`)
+          autoRunRef.current = false
+          setAutoRunning(false)
+          setAutoRunCurrentTaskId(null)
+          refresh()
+          return
+        }
+      }
+    }
+
     const startIdx = fromTaskId !== undefined
       ? EXECUTION_ORDER.indexOf(fromTaskId)
       : 0
@@ -557,8 +577,8 @@ export default function DeletionWorkflowDetailPage() {
   const handleReset = async () => {
     setResetting(true)
     try {
-      const res = await resetProjectOutputs(projectId)
-      toast.success(`초기화 완료 — ${res.deleted}개 파일 삭제 (외부 파일 유지)`)
+      const res = await resetAllProjectFiles(projectId)
+      toast.success(`초기화 완료 — ${res.deleted}개 파일 삭제`)
       refresh()
     } catch (e: unknown) {
       toast.error((e as Error).message)
@@ -687,6 +707,7 @@ export default function DeletionWorkflowDetailPage() {
           projectId={projectId}
           files={files}
           hasPeerIp={hasPeerIp}
+          autoRunCurrentTaskId={autoRunCurrentTaskId}
           onRefresh={refresh}
         />
 
@@ -735,8 +756,8 @@ export default function DeletionWorkflowDetailPage() {
               <span className="font-semibold">출력 초기화</span>
             </div>
             <p className="text-sm text-ds-on-surface">
-              모든 태스크 출력 파일을 삭제합니다.<br />
-              <span className="text-ds-on-surface-variant">외부 업로드 파일(GSAMS, MIS CSV 등)은 유지됩니다.</span>
+              모든 파일을 삭제합니다.<br />
+              <span className="text-ds-on-surface-variant">태스크 출력 및 외부 업로드 파일(GSAMS, MIS CSV 등) 모두 포함됩니다.</span>
             </p>
             <div className="flex items-center justify-end gap-2">
               <button

@@ -241,6 +241,19 @@ export const resetProjectOutputs = async (projectId: number): Promise<{ ok: bool
   return res.json()
 }
 
+export const resetAllProjectFiles = async (projectId: number): Promise<{ ok: boolean; deleted: number }> => {
+  const token = useAuthStore.getState().token
+  const res = await fetch(`/api/v1/deletion-workflow/projects/${projectId}/reset-all`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.detail || '초기화 실패')
+  }
+  return res.json()
+}
+
 export const clearProjectOutputs = async (
   projectId: number,
   taskIds: number[],
