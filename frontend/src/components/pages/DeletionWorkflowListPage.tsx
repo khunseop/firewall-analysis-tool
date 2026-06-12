@@ -6,9 +6,8 @@ import { Plus, Trash2, ArrowRight } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
-import { listDevices } from '@/api/devices'
+import { DeviceSelectorSingle } from '@/components/shared/DeviceSelectorSingle'
 import {
   listProjects,
   createProject,
@@ -33,22 +32,16 @@ function StatusBadge({ status }: { status: string }) {
 
 function CreateProjectDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient()
-  const [deviceId, setDeviceId] = useState('')
+  const [deviceId, setDeviceId] = useState<number | null>(null)
   const [name, setName] = useState('')
   const [memo, setMemo] = useState('')
 
-  const { data: devices = [] } = useQuery({
-    queryKey: ['devices'],
-    queryFn: listDevices,
-    staleTime: 30_000,
-  })
-
   const mutation = useMutation({
-    mutationFn: () => createProject(Number(deviceId), name.trim(), memo.trim() || undefined),
+    mutationFn: () => createProject(deviceId!, name.trim(), memo.trim() || undefined),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['deletion-workflow-projects'] })
       toast.success('프로젝트가 생성되었습니다.')
-      setDeviceId(''); setName(''); setMemo('')
+      setDeviceId(null); setName(''); setMemo('')
       onClose()
     },
     onError: (e: Error) => toast.error(e.message),
@@ -56,7 +49,7 @@ function CreateProjectDialog({ open, onClose }: { open: boolean; onClose: () => 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!deviceId) { toast.error('장비를 선택하세요.'); return }
+    if (!deviceId) { toast.error('장비를 선택하세요.'); return; }
     if (!name.trim()) { toast.error('프로젝트명을 입력하세요.'); return }
     mutation.mutate()
   }
@@ -70,18 +63,9 @@ function CreateProjectDialog({ open, onClose }: { open: boolean; onClose: () => 
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
           <div>
             <Label>장비</Label>
-            <Select value={deviceId} onValueChange={setDeviceId}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="장비 선택..." />
-              </SelectTrigger>
-              <SelectContent>
-                {devices.map((d) => (
-                  <SelectItem key={d.id} value={String(d.id)}>
-                    {d.name} ({d.ip_address})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="mt-1">
+              <DeviceSelectorSingle value={deviceId} onChange={setDeviceId} />
+            </div>
           </div>
           <div>
             <Label>프로젝트명</Label>
