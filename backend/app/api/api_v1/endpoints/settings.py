@@ -32,22 +32,36 @@ _SETTINGS_KEY = 'deletion_workflow_config'
 def _default_config() -> dict:
     """UI 렌더링용 기본 설정 (fpat.yaml 구조와 동일)"""
     return {
+        # ── 파일 관리 ───────────────────────────────────────────────
         "file_management": {
             "policy_version_format": "_v{version}",
             "final_version_suffix": "_vf",
-            "request_id_prefix": "GSAMS신청번호_",
             "default_extension": ".xlsx",
         },
+        # request_extractor.py: config.get('file_naming.request_id_prefix')
+        "file_naming": {
+            "request_id_prefix": "GSAMS신청번호_",
+        },
+        # mis_id_adder.py: config.get('file_extensions.csv')
+        "file_extensions": {
+            "csv": ".csv",
+        },
+        # ── 분석 기준 ───────────────────────────────────────────────
         "analysis_criteria": {
-            "recent_policy_days": 90,
             "unused_threshold_days": 90,
         },
+        # exception_handler.py: config.get('timeframes.recent_policy_days')
+        "timeframes": {
+            "recent_policy_days": 90,
+        },
+        # ── 예외 ────────────────────────────────────────────────────
         "exceptions": {
             "request_ids": [],
             "policy_rules": [],
             "static_list": [],
-            "duplicate_policies": [],  # [{device_id, name, reason, registered_at, expires_at}]
+            "duplicate_policies": [],
         },
+        # ── 정책 처리 ───────────────────────────────────────────────
         "policy_processing": {
             "request_parsing": {
                 "gsams_3_pattern": "",
@@ -75,11 +89,34 @@ def _default_config() -> dict:
                 "title_bracket_pattern": "",
             },
         },
+        # ── 통보대상 분류 컬럼 (notification_classifier.py) ──────────
+        # columns.all       : 공지파일에 포함할 전체 컬럼 목록
+        # columns.no_history: 신청이력 없는 정책 공지용 컬럼 목록
+        # columns.date_columns: 날짜 포맷(YYYY-MM-DD)을 적용할 컬럼 목록
+        # translated_columns : 내부 컬럼명 → 공지용 한글 이름 매핑
+        "columns": {
+            "all": [],
+            "no_history": [],
+            "date_columns": [],
+        },
+        "translated_columns": {},
+        # ── 엑셀 스타일 ─────────────────────────────────────────────
         "excel_styles": {
             "header_fill_color": "E0E0E0",
             "history_fill_color": "CCFFFF",
         },
     }
+
+
+def _deep_merge(base: dict, override: dict) -> dict:
+    """base에 override를 재귀적으로 병합합니다. override 값이 우선합니다."""
+    result = dict(base)
+    for k, v in override.items():
+        if k in result and isinstance(result[k], dict) and isinstance(v, dict):
+            result[k] = _deep_merge(result[k], v)
+        else:
+            result[k] = v
+    return result
 
 
 def _load_fpat_yaml() -> dict:
@@ -90,14 +127,7 @@ def _load_fpat_yaml() -> dict:
         import yaml
         with open(_FPAT_YAML, 'r', encoding='utf-8') as f:
             data = yaml.safe_load(f) or {}
-        base = _default_config()
-        # 기본값 위에 파일 값을 덮어씁니다 (1 depth merge)
-        for k, v in data.items():
-            if k in base and isinstance(v, dict) and isinstance(base[k], dict):
-                base[k].update(v)
-            else:
-                base[k] = v
-        return base
+        return _deep_merge(_default_config(), data)
     except Exception as e:
         logger.warning(f"fpat.yaml 로드 실패: {e}")
         return _default_config()
@@ -187,7 +217,8 @@ async def get_deletion_workflow_config(db: AsyncSession = Depends(get_db)):
     setting = await crud.settings.get_setting(db, key=_SETTINGS_KEY)
     if setting:
         try:
-            return json.loads(setting.value)
+            stored = json.loads(setting.value)
+            return _deep_merge(_default_config(), stored)
         except Exception:
             pass
     return _load_fpat_yaml()
@@ -231,7 +262,7 @@ async def export_deletion_workflow_config(db: AsyncSession = Depends(get_db)):
     setting = await crud.settings.get_setting(db, key=_SETTINGS_KEY)
     if setting:
         try:
-            config = json.loads(setting.value)
+            config = _deep_merge(_default_config(), json.loads(setting.value))
         except Exception:
             config = _load_fpat_yaml()
     else:
@@ -293,7 +324,7 @@ async def get_deletion_workflow_config_yaml(db: AsyncSession = Depends(get_db)):
     setting = await crud.settings.get_setting(db, key=_SETTINGS_KEY)
     if setting:
         try:
-            config = json.loads(setting.value)
+            config = _deep_merge(_default_config(), json.loads(setting.value))
         except Exception:
             config = _load_fpat_yaml()
     else:
