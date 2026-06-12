@@ -40,7 +40,9 @@ class NotificationClassifier(BaseProcessor):
             logger.info(f"{log_label}: 해당 정책 없음")
             return
 
-        selected_df = filtered_df[columns].copy().astype(str)
+        # columns 미설정 시 전체 컬럼 사용
+        active_cols = [c for c in columns if c in filtered_df.columns] if columns else list(filtered_df.columns)
+        selected_df = filtered_df[active_cols].copy().astype(str)
         for col in self.date_columns:
             if col in selected_df.columns:
                 selected_df[col] = pd.to_datetime(selected_df[col], errors='coerce').dt.strftime('%Y-%m-%d')
