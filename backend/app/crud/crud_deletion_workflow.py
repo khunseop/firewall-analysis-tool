@@ -1,7 +1,7 @@
 import datetime
 from typing import Dict, List, Optional, Tuple
 
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.deletion_workflow import DeletionWorkflowFile, DeletionWorkflowProject
@@ -124,3 +124,19 @@ async def get_project_files(
         select(DeletionWorkflowFile).where(DeletionWorkflowFile.project_id == project_id)
     )
     return {(f.task_id, f.slot): f for f in result.scalars().all()}
+
+
+async def clear_output_files(
+    db: AsyncSession,
+    project_id: int,
+    task_ids: Optional[List[int]] = None,
+) -> int:
+    """output_* 슬롯 파일 삭제. task_ids 지정 시 해당 태스크만, None이면 전체."""
+    cond = and_(
+        DeletionWorkflowFile.project_id == project_id,
+        DeletionWorkflowFile.slot.like("output_%"),
+    )
+    if task_ids is not None:
+        cond = and_(cond, DeletionWorkflowFile.task_id.in_(task_ids))
+    result = await db.execute(delete(DeletionWorkflowFile).where(cond))
+    return result.rowcount
