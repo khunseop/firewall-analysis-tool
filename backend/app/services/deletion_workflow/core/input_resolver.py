@@ -142,11 +142,16 @@ def resolve_inputs(
         return collect(f)
 
     if task_id == 12:
-        # 사용이력 반영: 예외처리 결과 + 히트카운트
+        # 사용이력 반영: 예외처리 결과 + 사용이력 파일
+        # external_1 수동 업로드 우선, 없으면 task1/task0 출력으로 fallback
         exc_file = _require(project_files, vt, "output_0", "예외처리 결과")
-        hitcount = _get(project_files, 1, "output_0") or _get(project_files, 0, "output_0")
+        hitcount = (
+            _get(project_files, 12, "external_1")
+            or _get(project_files, 1, "output_0")
+            or _get(project_files, 0, "output_0")
+        )
         if hitcount is None:
-            raise MissingInputError("사용이력(hitcount) 파일이 없습니다.")
+            raise MissingInputError("사용이력 파일이 없습니다. 수동 업로드하거나 Task 1 먼저 실행하세요.")
         return collect(exc_file, hitcount)
 
     if task_id == 13:
