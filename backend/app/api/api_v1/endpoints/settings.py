@@ -4,7 +4,7 @@ import logging
 import os
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -285,3 +285,57 @@ async def import_deletion_workflow_config(
 
     _write_fpat_yaml(config)
     return {"ok": True, "message": "설정이 복구되었습니다."}
+
+
+@router.get("/deletion-workflow/config/yaml")
+async def get_deletion_workflow_config_yaml(db: AsyncSession = Depends(get_db)):
+    """현재 삭제 워크플로우 설정을 YAML 텍스트로 반환합니다."""
+    setting = await crud.settings.get_setting(db, key=_SETTINGS_KEY)
+    if setting:
+        try:
+            config = json.loads(setting.value)
+        except Exception:
+            config = _load_fpat_yaml()
+    else:
+        config = _load_fpat_yaml()
+
+    yaml_text = yaml.dump(config, allow_unicode=True, default_flow_style=False, sort_keys=False)
+    return Response(content=yaml_text, media_type="text/plain; charset=utf-8")
+
+
+@router.put("/deletion-workflow/config/yaml")
+async def update_deletion_workflow_config_yaml(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """raw YAML 텍스트로 삭제 워크플로우 설정을 저장합니다."""
+    raw = await request.body()
+    try:
+        yaml_text = raw.decode("utf-8")
+        config = yaml.safe_load(yaml_text)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"YAML 파싱 오류: {e}")
+
+    if not isinstance(config, dict):
+        raise HTTPException(status_code=400, detail="YAML은 매핑(dict) 형식이어야 합니다.")
+
+    value = json.dumps(config, ensure_ascii=False)
+    setting = await crud.settings.get_setting(db, key=_SETTINGS_KEY)
+    if setting is None:
+        await crud.settings.create_setting(
+            db,
+            schemas.SettingsCreate(
+                key=_SETTINGS_KEY,
+                value=value,
+                description='정책 삭제 워크플로우 설정 (fpat.yaml 형식)',
+            ),
+        )
+    else:
+        await crud.settings.update_setting(
+            db=db,
+            db_obj=setting,
+            obj_in=schemas.SettingsUpdate(value=value),
+        )
+
+    _write_fpat_yaml(config)
+    return {"ok": True}

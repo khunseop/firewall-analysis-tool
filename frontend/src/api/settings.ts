@@ -46,3 +46,16 @@ export const importDeletionWorkflowConfig = async (file: File): Promise<void> =>
     headers: { 'Content-Type': 'multipart/form-data' },
   })
 }
+
+export const getDeletionWorkflowConfigYaml = async (): Promise<string> => {
+  const res = await apiClient.get<string>('/settings/deletion-workflow/config/yaml', {
+    responseType: 'text',
+  })
+  return res.data
+}
+
+export const updateDeletionWorkflowConfigYaml = async (yamlText: string): Promise<void> => {
+  await apiClient.put('/settings/deletion-workflow/config/yaml', yamlText, {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  })
+}
