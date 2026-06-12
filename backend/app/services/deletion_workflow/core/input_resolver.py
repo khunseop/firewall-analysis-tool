@@ -17,14 +17,14 @@ Phase 1:
 Phase 2 (위저드 순서):
   7  → ext:GSAMS                    (신청정보 가공)
   8  → task_5.output_0 + task_7.output_0 (신청정보 매핑)
-  9  → task_7.output_0              (자동연장 탐지)
-  10/11 → task_8.output_0           (예외처리, 벤더 자동선택)
+  9  → task_8.output_0 + task_7.output_0 (자동연장 탐지 + 날짜 업데이트)
+  10/11 → task_9.output_0           (예외처리, 벤더 자동선택)
   12 → task_10or11.output_0 + task_1.output_0 (사용이력 반영)
   13 → task_12.output_0             (하단 최신정책 검증)
   14 → task_4.output_0 + task_13.output_0 (중복정책 분류)  ← 미사용여부 포함 정책 파일 사용
   15 → task_14.output_0 + task_13.output_0 (만료셋 예외처리)
   16 → task_13.output_0 + task_14.output_0 (중복상태 업데이트)  ← 미사용여부 포함 정책 파일 사용
-  17 → task_16.output_0 + ext:yaml  (중복 예외 반영)
+  17 → task_16.output_0 + task_15.output_3(or ext:yaml) (중복 예외 반영)
   18 → task_17.output_0             (통보대상 분류)
 """
 
@@ -132,13 +132,14 @@ def resolve_inputs(
         return collect(policy, gsams)
 
     if task_id == 9:
-        # 자동연장 탐지
-        f = _require(project_files, 7, "output_0", "GSAMS 처리 결과")
-        return collect(f)
+        # 자동연장 탐지 + 날짜 업데이트: 정책파일(task_8) + GSAMS conv(task_7)
+        policy = _require(project_files, 8, "output_0", "신청정보 매핑 결과")
+        gsams  = _require(project_files, 7, "output_0", "GSAMS 처리 결과")
+        return collect(policy, gsams)
 
     if task_id in (10, 11):
-        # 예외처리 (벤더 자동선택)
-        f = _require(project_files, 8, "output_0", "신청정보 매핑 결과")
+        # 예외처리: task_9(자동연장 날짜 업데이트 결과)를 입력으로 사용
+        f = _require(project_files, 9, "output_0", "자동연장 날짜 업데이트 결과")
         return collect(f)
 
     if task_id == 12:
@@ -169,10 +170,11 @@ def resolve_inputs(
 
     if task_id == 15:
         # 만료셋 예외처리: 정책원본 + 중복정리 + 중복공지 + 중복삭제
+        # Task 14 출력 파일은 알파벳순 정렬: _공지(output_0) < _삭제(output_1) < _정리(output_2)
         policy_src = _require(project_files, 13, "output_0", "하단최신정책 검증 결과")
-        summary    = _require(project_files, 14, "output_0", "중복정책 분류 결과(공지)")
-        notice     = _get(project_files, 14, "output_1")
-        delete     = _get(project_files, 14, "output_2")
+        summary    = _require(project_files, 14, "output_2", "중복정책 정리 결과")    # 정리 = output_2
+        notice     = _get(project_files, 14, "output_0")                             # 공지 = output_0
+        delete     = _get(project_files, 14, "output_1")                             # 삭제 = output_1
         files = [policy_src, summary]
         if notice: files.append(notice)
         if delete: files.append(delete)
@@ -188,8 +190,9 @@ def resolve_inputs(
 
     if task_id == 17:
         # 중복 예외 반영: 중복상태 업데이트 결과 + YAML (선택)
+        # YAML: Task 15 자동 생성(output_3) 우선, 없으면 수동 업로드(external_1) 사용
         policy = _require(project_files, 16, "output_0", "중복정책 상태 업데이트 결과")
-        yaml_f = _get(project_files, 17, "external_1")
+        yaml_f = _get(project_files, 15, "output_3") or _get(project_files, 17, "external_1")
         return collect(policy, yaml_f)
 
     if task_id == 18:

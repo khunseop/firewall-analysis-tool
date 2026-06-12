@@ -37,6 +37,11 @@ class DuplicatePolicyClassifier(BaseProcessor):
 
             df = pd.read_excel(selected_file)
 
+            # REQUESTER_EMAIL 매핑 (info_df = task_13 policy, REQUESTER_EMAIL 포함)
+            if 'Rule Name' in info_df.columns and 'REQUESTER_EMAIL' in info_df.columns:
+                email_map = info_df.set_index('Rule Name')['REQUESTER_EMAIL'].to_dict()
+                df['Requester Email'] = df['Rule Name'].map(email_map).fillna('')
+
             df['자동연장'] = df['Request ID'].isin(auto_extension_id)
             df['늦은종료일'] = df.groupby('No')['End Date'].transform(
                 lambda x: (x == x.max()) & (~x.duplicated(keep='first'))
@@ -84,8 +89,9 @@ class DuplicatePolicyClassifier(BaseProcessor):
 
             cols_to_drop = ['Request Type', 'Ruleset ID', 'MIS ID', 'Start Date', 'End Date',
                             '늦은종료일', '신청자검증', '날짜검증', '공지여부', '미사용예외', '자동연장']
-            notice_df.drop(columns=cols_to_drop, inplace=True, errors='ignore')
-            delete_df.drop(columns=cols_to_drop, inplace=True, errors='ignore')
+            extra_drop = ['Vsys', 'Seq', 'Enable', 'Action']
+            notice_df.drop(columns=cols_to_drop + extra_drop, inplace=True, errors='ignore')
+            delete_df.drop(columns=cols_to_drop + extra_drop, inplace=True, errors='ignore')
 
             filename = file_manager.remove_extension(selected_file)
             output_path = f'{filename}_정리.xlsx'

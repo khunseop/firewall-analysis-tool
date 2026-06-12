@@ -67,8 +67,12 @@ class PaloAltoAPI(FirewallInterface):
 
     @staticmethod
     def list_to_string(list_data: list) -> str:
-        """리스트 요소를 콤마(,)로 구분된 문자열로 변환합니다."""
-        return ','.join(str(item) for item in list_data)
+        """리스트 요소를 콤마(,)로 구분된 문자열로 변환합니다. 콤마를 포함한 항목은 따옴표로 감쌉니다."""
+        processed = []
+        for item in list_data:
+            s = str(item)
+            processed.append(f'"{s}"' if ',' in s else s)
+        return ','.join(processed)
 
     def get_api_data(self, parameters, timeout: int = 10000):
         """
@@ -312,17 +316,23 @@ class PaloAltoAPI(FirewallInterface):
 
     def export_last_hit_date(self, vsys: list[str] | set[str] | None = None) -> pd.DataFrame:
         """
-        XML API를 사용하여 정책별 마지막 히트 일시를 조회합니다.
-        
-        Palo Alto XML API 응답 분석:
-        - <rule-hit-count> 명령의 응답 XML에서 각 정책(<entry>)의 하위 텍스트 노드를 파싱합니다.
-        - 일반적으로 인덱스 2 위치에 Epoch Timestamp(초 단위 문자열)가 포함되어 있습니다.
-        - 이 값을 datetime 객체로 변환하여 표준 포맷(%Y-%m-%d %H:%M:%S)으로 제공합니다.
+        XML API를 사용하여 정책별 히트 카운트 및 날짜 정보를 조회합니다.
+
+        Palo Alto XML API 응답 구조:
+        - member_texts[1]: Hit Count
+        - member_texts[2]: Last Hit Timestamp (Epoch)
+        - member_texts[4]: First Hit Timestamp (Epoch)
         """
         results: list[dict] = []
 
+        no_hit_date = datetime.datetime(1900, 1, 1).strftime('%Y-%m-%d')
+
+        def _ts_to_date(ts_int: int) -> str:
+            if ts_int == 0:
+                return no_hit_date
+            return datetime.datetime.fromtimestamp(ts_int).strftime('%Y-%m-%d')
+
         def _fetch_vsys_hit(vsys_name: str) -> list[dict]:
-            # 특정 VSYS의 모든 보안 정책 히트 카운트를 요청하는 조작 명령(Operational Command)
             params = (
                 ('type', 'op'),
                 (
@@ -340,42 +350,35 @@ class PaloAltoAPI(FirewallInterface):
             vsys_results: list[dict] = []
             for rule in rule_entries:
                 rule_name = str(rule.attrib.get('name'))
-                # 해당 XML 노드의 모든 텍스트 멤버를 가져옵니다.
+
+                # 기본 정책 제외
+                if rule_name in ('intrazone-default', 'interzone-default'):
+                    continue
+
                 member_texts = self._get_member_texts(rule)
-                
                 try:
-                    # Palo Alto API 구조상 3번째(index 2) 텍스트가 last-hit-timestamp인 경우가 많습니다.
-                    last_hit_ts = member_texts[2] if len(member_texts) > 2 else None
-                    
-                    # 0 또는 빈 값인 경우 히트 이력이 없는 것으로 간주합니다.
-                    if last_hit_ts in [None, '', 0, '0']:
-                        last_hit_date = None
-                    else:
-                        try:
-                            ts_int = int(last_hit_ts)
-                            if ts_int == 0:
-                                last_hit_date = None
-                            else:
-                                # Epoch(1970-01-01) 기반 정수를 날짜 문자열로 변환
-                                last_hit_date = datetime.datetime.fromtimestamp(ts_int).strftime("%Y-%m-%d %H:%M:%S")
-                        except (ValueError, TypeError):
-                            last_hit_date = None
-                except IndexError:
-                    last_hit_date = None
+                    hit_count = member_texts[1]
+                    last_hit_ts = int(member_texts[2])
+                    first_hit_ts = int(member_texts[4])
+                except (IndexError, ValueError) as e:
+                    self.logger.error("히트 카운트 파싱 오류 (%s): %s", rule_name, e)
+                    continue
+
+                unused_days = 99999 if first_hit_ts == 0 else (
+                    datetime.datetime.now() - datetime.datetime.fromtimestamp(last_hit_ts)
+                ).days
 
                 vsys_results.append({
-                    "vsys": vsys_name,
-                    "rule_name": rule_name,
-                    "last_hit_date": last_hit_date,
+                    "Vsys": vsys_name,
+                    "Rule Name": rule_name,
+                    "Hit Count": hit_count,
+                    "First Hit Date": _ts_to_date(first_hit_ts),
+                    "Last Hit Date": _ts_to_date(last_hit_ts),
+                    "Unused Days": unused_days,
                 })
             return vsys_results
 
-        # 조회 대상 VSYS 목록 설정 (기본값 vsys1)
-        target_vsys_list: list[str]
-        if vsys:
-            target_vsys_list = [str(v) for v in vsys]
-        else:
-            target_vsys_list = ['vsys1']
+        target_vsys_list: list[str] = [str(v) for v in vsys] if vsys else ['vsys1']
 
         for vsys_name in target_vsys_list:
             try:
@@ -470,7 +473,7 @@ class PaloAltoAPI(FirewallInterface):
                         continue
 
                     # 기본 정책이 나타나면 사용자 정의 정책 영역 종료로 간주
-                    if line.startswith('intrazone-default'):
+                    if 'intrazone-default' in line or 'interzone-default' in line:
                         break
 
                     # 정규식 패턴 분석: [룰이름] [히트수] [날짜문자열 또는 '-']
