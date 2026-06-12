@@ -21,9 +21,9 @@ Phase 2 (위저드 순서):
   10/11 → task_8.output_0           (예외처리, 벤더 자동선택)
   12 → task_10or11.output_0 + task_1.output_0 (사용이력 반영)
   13 → task_12.output_0             (하단 최신정책 검증)
-  14 → task_4.output_0 + task_10or11.output_0 (중복정책 분류)
+  14 → task_4.output_0 + task_13.output_0 (중복정책 분류)  ← 미사용여부 포함 정책 파일 사용
   15 → task_14.output_0 + task_13.output_0 (만료셋 예외처리)
-  16 → task_10or11.output_0 + task_14.output_0 (중복상태 업데이트)
+  16 → task_13.output_0 + task_14.output_0 (중복상태 업데이트)  ← 미사용여부 포함 정책 파일 사용
   17 → task_16.output_0 + ext:yaml  (중복 예외 반영)
   18 → task_17.output_0             (통보대상 분류)
 """
@@ -160,10 +160,12 @@ def resolve_inputs(
         return collect(f)
 
     if task_id == 14:
-        # 중복정책 분류: 중복결과(파싱) + 예외처리 결과
+        # 중복정책 분류: 중복결과(파싱) + 하단최신정책 검증 결과
+        # task_13을 사용하는 이유: REQUEST_STATUS 조회에 필요한 컬럼이 보존되어 있으며,
+        # 이후 Task 16 → 17 → 18 흐름과 동일한 정책 파일 기준을 유지하기 위함
         redundancy = _require(project_files, 4, "output_0", "중복결과 파싱 파일")
-        exc_file   = _require(project_files, vt, "output_0", "예외처리 결과")
-        return collect(redundancy, exc_file)
+        policy     = _require(project_files, 13, "output_0", "하단최신정책 검증 결과")
+        return collect(redundancy, policy)
 
     if task_id == 15:
         # 만료셋 예외처리: 정책원본 + 중복정리 + 중복공지 + 중복삭제
@@ -178,9 +180,11 @@ def resolve_inputs(
 
     if task_id == 16:
         # 중복정책 상태 업데이트
-        exc_file = _require(project_files, vt, "output_0", "예외처리 결과")
+        # policy: task_13(미사용여부 포함) 사용 — task_10/11(예외처리 결과)에는 미사용여부가 없어
+        # task_16 → 17 → 18 흐름에서 통보대상 분류(Task 18)가 미사용여부를 읽지 못하는 버그 수정
+        policy   = _require(project_files, 13, "output_0", "하단최신정책 검증 결과")
         classify = _require(project_files, 14, "output_0", "중복정책 분류 결과")
-        return collect(exc_file, classify)
+        return collect(policy, classify)
 
     if task_id == 17:
         # 중복 예외 반영: 중복상태 업데이트 결과 + YAML (선택)
