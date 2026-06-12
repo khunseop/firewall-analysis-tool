@@ -33,14 +33,30 @@ class PolicyUsageProcessor(BaseProcessor):
                 return False
 
             policy_df = pd.read_excel(policy_file)
-            usage_df = pd.read_excel(usage_file)
+
+            # 멀티시트 파일(DB 추출 형식) 대응: 'usage' 시트 우선 읽기
+            xl = pd.ExcelFile(usage_file)
+            if 'usage' in xl.sheet_names:
+                usage_df = xl.parse('usage')
+            else:
+                usage_df = xl.parse(0)
 
             if '미사용여부' not in policy_df.columns:
                 policy_df['미사용여부'] = ''
 
-            if 'Rule Name' not in usage_df.columns or '미사용여부' not in usage_df.columns:
-                logger.error("미사용 정보 파일에 'Rule Name' 또는 '미사용여부' 컬럼이 없습니다.")
+            if 'Rule Name' not in usage_df.columns:
+                logger.error("미사용 정보 파일에 'Rule Name' 컬럼이 없습니다.")
                 return False
+
+            # 미사용여부 없으면 Unused Days로 계산 (DB 추출 usage 시트 형식 대응)
+            if '미사용여부' not in usage_df.columns:
+                if 'Unused Days' not in usage_df.columns:
+                    logger.error("미사용 정보 파일에 '미사용여부' 또는 'Unused Days' 컬럼이 없습니다.")
+                    return False
+                threshold = self.config.get('analysis_criteria.unused_threshold_days', 90)
+                usage_df['미사용여부'] = usage_df['Unused Days'].apply(
+                    lambda x: '미사용' if pd.notna(x) and float(x) > threshold else '사용'
+                )
 
             usage_map = usage_df[['Rule Name', '미사용여부']].set_index('Rule Name').to_dict()['미사용여부']
             updated_count = 0
