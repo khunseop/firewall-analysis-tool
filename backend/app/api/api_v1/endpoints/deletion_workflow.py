@@ -71,6 +71,21 @@ def _fpat_yaml_path() -> str:
     return _FPAT_YAML if os.path.exists(_FPAT_YAML) else ""
 
 
+_SETTINGS_KEY = "deletion_workflow_config"
+
+async def _load_config_dict(db: AsyncSession) -> dict:
+    """DB에서 삭제 워크플로우 config를 로드합니다. 없으면 fpat.yaml → 기본값 순으로 폴백."""
+    from app.api.api_v1.endpoints.settings import _default_config, _deep_merge, _load_fpat_yaml
+    setting = await crud.settings.get_setting(db, key=_SETTINGS_KEY)
+    if setting:
+        try:
+            stored = json.loads(setting.value)
+            return _deep_merge(_default_config(), stored)
+        except Exception:
+            pass
+    return _load_fpat_yaml()
+
+
 def _make_zip_response(output_files: List[Tuple[str, bytes]], zip_name: str) -> StreamingResponse:
     """여러 (filename, bytes) 튜플을 ZIP으로 묶어 StreamingResponse를 반환합니다."""
     buf = io.BytesIO()
@@ -140,7 +155,8 @@ async def execute_task(
     import asyncio
     loop = asyncio.get_event_loop()
 
-    runner = WorkspaceRunner(config_path=_fpat_yaml_path() or None)
+    config_dict = await _load_config_dict(db)
+    runner = WorkspaceRunner(config_dict=config_dict)
     try:
         output_files = await loop.run_in_executor(
             None,
@@ -670,7 +686,8 @@ async def run_project_task(
 
     import asyncio
     loop = asyncio.get_event_loop()
-    runner = WorkspaceRunner(config_path=_fpat_yaml_path() or None)
+    config_dict = await _load_config_dict(db)
+    runner = WorkspaceRunner(config_dict=config_dict)
 
     try:
         output_files = await loop.run_in_executor(

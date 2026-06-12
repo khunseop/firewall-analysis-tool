@@ -41,17 +41,18 @@ class RequestParser(BaseProcessor):
             return data_dict
 
         conf_prefix = 'policy_processing.request_parsing'
-        pattern_gsams_3 = re.compile(self.config.get(f'{conf_prefix}.gsams_3_pattern', r'마스킹'))
-        pattern_gsams_1_rulename = re.compile(self.config.get(f'{conf_prefix}.gsams_1_rulename_pattern', r'마스킹'))
-        pattern_gsams_1_user = self.config.get(f'{conf_prefix}.gsams_1_user_pattern', r'마스킹')
-        gsams_1_rulename = self.config.get(f'{conf_prefix}.gsams_1_desc_pattern', r'마스킹')
-        gsams_1_date = self.config.get(f'{conf_prefix}.gsams_1_date_pattern', r'마스킹')
+        p_gsams3    = self.config.get(f'{conf_prefix}.gsams_3_pattern', '')
+        p_gsams1_rn = self.config.get(f'{conf_prefix}.gsams_1_rulename_pattern', '')
+        p_gsams1_u  = self.config.get(f'{conf_prefix}.gsams_1_user_pattern', '')
+        p_gsams1_d  = self.config.get(f'{conf_prefix}.gsams_1_desc_pattern', '')
+        p_gsams1_dt = self.config.get(f'{conf_prefix}.gsams_1_date_pattern', '')
 
-        gsams3_match = pattern_gsams_3.match(description)
-        gsams1_name_match = pattern_gsams_1_rulename.match(str(rulename))
-        gsams1_user_match = re.search(pattern_gsams_1_user, description)
-        gsams1_desc_match = re.search(gsams_1_rulename, description)
-        gsams1_date_match = re.search(gsams_1_date, description)
+        # 빈 패턴이면 None으로 처리 (re.compile("") 은 모든 문자열에 매치되어 오동작)
+        gsams3_match      = re.compile(p_gsams3).match(description)       if p_gsams3    else None
+        gsams1_name_match = re.compile(p_gsams1_rn).match(str(rulename))  if p_gsams1_rn else None
+        gsams1_user_match = re.search(p_gsams1_u, description)            if p_gsams1_u  else None
+        gsams1_desc_match = re.search(p_gsams1_d, description)            if p_gsams1_d  else None
+        gsams1_date_match = re.search(p_gsams1_dt, description)           if p_gsams1_dt else None
 
         if gsams3_match:
             request_id = gsams3_match.group(5)

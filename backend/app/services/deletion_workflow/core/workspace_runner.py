@@ -29,8 +29,13 @@ class WorkspaceRunner:
         result_files = runner.run_task(task_id=1, input_files=[b"...excel bytes..."], filenames=["policy.xlsx"])
     """
 
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(
+        self,
+        config_path: Optional[str] = None,
+        config_dict: Optional[dict] = None,
+    ):
         self.config_path = config_path
+        self.config_dict = config_dict
 
     def run_task(
         self,
@@ -89,7 +94,7 @@ class WorkspaceRunner:
             try:
                 os.chdir(workspace)
 
-                config = ConfigManager(config_path=self.config_path)
+                config = ConfigManager(config_path=self.config_path, config_dict=self.config_dict)
                 file_manager = FileManager(config)
                 excel_manager = ExcelManager(config)
                 file_manager.set_forced_files(list(filenames))

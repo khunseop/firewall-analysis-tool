@@ -22,8 +22,8 @@ class AutoRenewalChecker(BaseProcessor):
     def renewal_check(self, file_manager) -> bool:
         bracket_pattern = self.config.get(
             'policy_processing.aggregation.title_bracket_pattern',
-            r'^\[([^\[\]]{1,8})\]'
-        )
+            ''
+        ) or r'^\[([^\[\]]{1,8})\]'
 
         def remove_bracket_prefix(text: str) -> str:
             if isinstance(text, str) and text.startswith('['):
