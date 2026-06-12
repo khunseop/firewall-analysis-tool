@@ -12,6 +12,7 @@ import json
 import logging
 import zipfile
 import datetime
+from urllib.parse import quote
 from typing import List, Tuple
 
 import pandas as pd
@@ -86,6 +87,13 @@ async def _load_config_dict(db: AsyncSession) -> dict:
     return _load_fpat_yaml()
 
 
+def _content_disposition(filename: str) -> str:
+    """RFC 5987 인코딩으로 Content-Disposition 헤더 값을 반환합니다 (한글 파일명 지원)."""
+    ascii_name = filename.encode("ascii", "ignore").decode()
+    encoded = quote(filename, safe="")
+    return f'attachment; filename="{ascii_name}"; filename*=UTF-8\'\'{encoded}'
+
+
 def _make_zip_response(output_files: List[Tuple[str, bytes]], zip_name: str) -> StreamingResponse:
     """여러 (filename, bytes) 튜플을 ZIP으로 묶어 StreamingResponse를 반환합니다."""
     buf = io.BytesIO()
@@ -96,7 +104,7 @@ def _make_zip_response(output_files: List[Tuple[str, bytes]], zip_name: str) -> 
     return StreamingResponse(
         buf,
         media_type='application/zip',
-        headers={"Content-Disposition": f'attachment; filename="{zip_name}"'},
+        headers={"Content-Disposition": _content_disposition(zip_name)},
     )
 
 
@@ -189,7 +197,7 @@ async def execute_task(
         return Response(
             content=content,
             media_type=media,
-            headers={"Content-Disposition": f'attachment; filename="{name}"'},
+            headers={"Content-Disposition": _content_disposition(name)},
         )
 
     # 복수 파일: ZIP 반환
@@ -352,7 +360,7 @@ async def extract_device_data(
     return Response(
         content=content,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": _content_disposition(filename)},
     )
 
 
@@ -739,7 +747,7 @@ async def download_task_file(
     return Response(
         content=f.file_data,
         media_type=media,
-        headers={"Content-Disposition": f'attachment; filename="{f.filename}"'},
+        headers={"Content-Disposition": _content_disposition(f.filename)},
     )
 
 
@@ -885,5 +893,5 @@ async def export_redundancy(
     return Response(
         content=content,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": _content_disposition(filename)},
     )
