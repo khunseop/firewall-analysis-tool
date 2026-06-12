@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
-import { getSettings, updateSetting, getDeletionWorkflowConfig, updateDeletionWorkflowConfig, exportDeletionWorkflowConfig, importDeletionWorkflowConfig } from '@/api/settings'
+import { getSettings, updateSetting, getDeletionWorkflowConfig, updateDeletionWorkflowConfig, exportDeletionWorkflowConfig, importDeletionWorkflowConfig, getDeletionWorkflowConfigYaml, updateDeletionWorkflowConfigYaml } from '@/api/settings'
 import { getUsers, createUser, changeUserPassword, toggleUserActive, deleteUser, type User } from '@/api/users'
 import { deleteOldNotifications } from '@/api/notifications'
 import { listDevices, type Device } from '@/api/devices'
@@ -654,6 +654,9 @@ function DeletionWorkflowSettings() {
   const [config, setConfig] = useState<Record<string, unknown>>({})
   const [dirty, setDirty] = useState(false)
   const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [yamlText, setYamlText] = useState('')
+  const [yamlDirty, setYamlDirty] = useState(false)
+  const [yamlSaving, setYamlSaving] = useState(false)
   const [importing, setImporting] = useState(false)
   const importRef = useRef<HTMLInputElement>(null)
 
@@ -670,6 +673,27 @@ function DeletionWorkflowSettings() {
   useEffect(() => {
     if (data) setConfig(data)
   }, [data])
+
+  useEffect(() => {
+    if (!advancedOpen) return
+    getDeletionWorkflowConfigYaml()
+      .then((yaml) => { setYamlText(yaml); setYamlDirty(false) })
+      .catch(() => toast.error('YAML 설정 로드에 실패했습니다.'))
+  }, [advancedOpen])
+
+  const handleYamlSave = async () => {
+    setYamlSaving(true)
+    try {
+      await updateDeletionWorkflowConfigYaml(yamlText)
+      await queryClient.invalidateQueries({ queryKey: ['deletion-workflow-config'] })
+      toast.success('YAML 설정이 저장되었습니다.')
+      setYamlDirty(false)
+    } catch {
+      toast.error('YAML 저장에 실패했습니다. 형식을 확인해 주세요.')
+    } finally {
+      setYamlSaving(false)
+    }
+  }
 
   const saveMutation = useMutation({
     mutationFn: () => updateDeletionWorkflowConfig(config),
@@ -828,136 +852,39 @@ function DeletionWorkflowSettings() {
         </div>
       </div>
 
-      {/* 고급 설정 (접기/펼치기) */}
+      {/* 고급 설정 — YAML 직접 편집 */}
       <div className="border border-ds-outline-variant/8 rounded-lg overflow-hidden">
         <button
           onClick={() => setAdvancedOpen((v) => !v)}
           className="w-full flex items-center justify-between px-4 py-3 bg-ds-surface-container-low/30 hover:bg-ds-surface-container-low/50 transition-colors text-left"
         >
-          <span className="text-[12px] font-semibold text-ds-on-surface-variant">고급 설정 (정규식 패턴, 벤더 마커)</span>
+          <span className="text-[12px] font-semibold text-ds-on-surface-variant">고급 설정 (YAML 직접 편집)</span>
           {advancedOpen ? <ChevronUp className="w-4 h-4 text-ds-on-surface-variant" /> : <ChevronDown className="w-4 h-4 text-ds-on-surface-variant" />}
         </button>
         {advancedOpen && (
-          <div className="p-4 space-y-5 border-t border-ds-outline-variant/8">
+          <div className="p-4 space-y-3 border-t border-ds-outline-variant/8">
             <p className="text-[11px] text-ds-on-surface-variant/70">
-              아래 설정은 드물게 변경됩니다. 잘못 수정하면 태스크 실행에 영향을 줄 수 있습니다.
+              전체 설정을 YAML로 직접 편집합니다. 저장하면 fpat.yaml과 DB에 동시에 반영됩니다.
             </p>
-
-            {/* request_parsing 패턴 */}
-            <div className="space-y-2">
-              <p className="text-[11px] font-semibold text-ds-on-surface-variant uppercase tracking-widest">GSAMS 신청정보 파싱 패턴</p>
-              {([
-                ['gsams_3_pattern',        'GSAMS 3차 신청 패턴'],
-                ['gsams_1_rulename_pattern','GSAMS 1차 Rule Name 패턴'],
-                ['gsams_1_user_pattern',   'GSAMS 1차 User 패턴'],
-                ['gsams_1_desc_pattern',   'GSAMS 1차 Description 패턴'],
-                ['gsams_1_date_pattern',   'GSAMS 1차 Date 패턴'],
-              ] as [string, string][]).map(([key, label]) => (
-                <div key={key} className="grid grid-cols-[180px_1fr] items-center gap-2">
-                  <span className="text-[11px] text-ds-on-surface-variant">{label}</span>
-                  <input
-                    value={((config as Record<string, Record<string, Record<string, string>>>)
-                      .policy_processing?.request_parsing?.[key] ?? '')}
-                    onChange={(e) => {
-                      setConfig((prev) => ({
-                        ...prev,
-                        policy_processing: {
-                          ...(prev.policy_processing as Record<string, unknown>),
-                          request_parsing: {
-                            ...((prev.policy_processing as Record<string, Record<string, string>>)?.request_parsing ?? {}),
-                            [key]: e.target.value,
-                          },
-                        },
-                      }))
-                      setDirty(true)
-                    }}
-                    placeholder="정규식 패턴"
-                    className="h-7 px-2 text-[11px] font-mono bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
-                  />
-                </div>
-              ))}
-            </div>
-
-            {/* 벤더 마커 */}
-            <div className="space-y-2">
-              <p className="text-[11px] font-semibold text-ds-on-surface-variant uppercase tracking-widest">벤더 마커 (PaloAlto)</p>
-              {([
-                ['deny_standard_rule_name',    '기본 차단 Rule Name'],
-                ['infrastructure_exception_label', '인프라 예외 레이블'],
-                ['special_policy_label',       '특수 정책 레이블'],
-              ] as [string, string][]).map(([key, label]) => (
-                <div key={key} className="grid grid-cols-[180px_1fr] items-center gap-2">
-                  <span className="text-[11px] text-ds-on-surface-variant">{label}</span>
-                  <input
-                    value={((config as Record<string, Record<string, Record<string, Record<string, string>>>>)
-                      .policy_processing?.analysis_markers?.paloalto?.[key] ?? '')}
-                    onChange={(e) => {
-                      setConfig((prev) => {
-                        const pp = (prev.policy_processing as Record<string, unknown>) ?? {}
-                        const am = (pp.analysis_markers as Record<string, unknown>) ?? {}
-                        const pa = (am.paloalto as Record<string, unknown>) ?? {}
-                        return {
-                          ...prev,
-                          policy_processing: { ...pp, analysis_markers: { ...am, paloalto: { ...pa, [key]: e.target.value } } },
-                        }
-                      })
-                      setDirty(true)
-                    }}
-                    className="h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
-                  />
-                </div>
-              ))}
-              <div className="grid grid-cols-[180px_1fr] items-center gap-2">
-                <span className="text-[11px] text-ds-on-surface-variant">인프라 접두어 목록</span>
-                <input
-                  value={((config as Record<string, Record<string, Record<string, Record<string, string[]>>>>)
-                    .policy_processing?.analysis_markers?.paloalto?.infrastructure_prefixes ?? []).join(', ')}
-                  onChange={(e) => {
-                    const prefixes = e.target.value.split(',').map((s) => s.trim()).filter(Boolean)
-                    setConfig((prev) => {
-                      const pp = (prev.policy_processing as Record<string, unknown>) ?? {}
-                      const am = (pp.analysis_markers as Record<string, unknown>) ?? {}
-                      const pa = (am.paloalto as Record<string, unknown>) ?? {}
-                      return {
-                        ...prev,
-                        policy_processing: { ...pp, analysis_markers: { ...am, paloalto: { ...pa, infrastructure_prefixes: prefixes } } },
-                      }
-                    })
-                    setDirty(true)
-                  }}
-                  placeholder="쉼표로 구분 (예: X, X-, SYS_)"
-                  className="h-7 px-2 text-[11px] font-mono bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-[11px] font-semibold text-ds-on-surface-variant uppercase tracking-widest">벤더 마커 (SECUI)</p>
-              {([
-                ['deny_standard_description_keyword', '기본 차단 Description 키워드'],
-                ['infrastructure_exception_label',    '인프라 예외 레이블'],
-              ] as [string, string][]).map(([key, label]) => (
-                <div key={key} className="grid grid-cols-[180px_1fr] items-center gap-2">
-                  <span className="text-[11px] text-ds-on-surface-variant">{label}</span>
-                  <input
-                    value={((config as Record<string, Record<string, Record<string, Record<string, string>>>>)
-                      .policy_processing?.analysis_markers?.secui?.[key] ?? '')}
-                    onChange={(e) => {
-                      setConfig((prev) => {
-                        const pp = (prev.policy_processing as Record<string, unknown>) ?? {}
-                        const am = (pp.analysis_markers as Record<string, unknown>) ?? {}
-                        const sc = (am.secui as Record<string, unknown>) ?? {}
-                        return {
-                          ...prev,
-                          policy_processing: { ...pp, analysis_markers: { ...am, secui: { ...sc, [key]: e.target.value } } },
-                        }
-                      })
-                      setDirty(true)
-                    }}
-                    className="h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
-                  />
-                </div>
-              ))}
+            <textarea
+              value={yamlText}
+              onChange={(e) => { setYamlText(e.target.value); setYamlDirty(true) }}
+              spellCheck={false}
+              rows={30}
+              className="w-full px-3 py-2 text-[12px] font-mono leading-relaxed bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary resize-y"
+            />
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleYamlSave}
+                disabled={!yamlDirty || yamlSaving}
+                className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold text-ds-on-tertiary btn-primary-gradient rounded-lg shadow-sm disabled:opacity-50 transition-all"
+              >
+                <Save className="w-3.5 h-3.5" />
+                {yamlSaving ? '저장 중…' : 'YAML 저장'}
+              </button>
+              {yamlDirty && (
+                <span className="text-[11px] text-amber-600">저장되지 않은 변경사항이 있습니다.</span>
+              )}
             </div>
           </div>
         )}
