@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -86,6 +86,12 @@ function getDownstreamTaskIds(fromTaskId: number): number[] {
   return EXECUTION_ORDER.slice(idx + 1)
 }
 
+function formatElapsed(ms: number): string {
+  if (ms < 1000) return `${ms}ms`
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
+  return `${Math.floor(ms / 60000)}분 ${Math.floor((ms % 60000) / 1000)}s`
+}
+
 // ── 컴포넌트: 외부 파일 업로드 ───────────────────────────────────────────────
 
 function ExternalFileUpload({
@@ -139,27 +145,71 @@ function ExternalFileUpload({
 // ── 컴포넌트: 태스크 카드 ────────────────────────────────────────────────────
 
 function TaskCard({
-  task, projectId, files, phase, autoRunCurrentTaskId, onRefresh, onOutputReplaced,
+  task, projectId, files, phase, autoRunCurrentTaskId,
+  timing, onRefresh, onOutputReplaced, onWillRerun,
 }: {
   task: TaskMeta; projectId: number; files: ProjectFileState[]
   phase: 1 | 2; autoRunCurrentTaskId: number | null
+  timing?: { startedAt: number; completedAt?: number }
   onRefresh: () => void; onOutputReplaced: (taskId: number) => void
+  onWillRerun?: (taskId: number) => Promise<void>
 }) {
   const [running, setRunning] = useState(false)
   const [replacingSlot, setReplacingSlot] = useState<string | null>(null)
   const replaceRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const [manualStartedAt, setManualStartedAt] = useState<number | null>(null)
+  const [manualCompletedMs, setManualCompletedMs] = useState<number | null>(null)
+  const [elapsedMs, setElapsedMs] = useState(0)
+
   const outputs = getOutputFiles(files, task.id)
   const done = outputs.length > 0
   const isAutoRunning = autoRunCurrentTaskId === task.id
+  // 완료된 태스크는 auto-run이 가리켜도 스피너 대신 체크마크 표시
+  const isBlinking = !done && (isAutoRunning || running)
+
+  // effectiveStartedAt: auto-run은 timing prop, 수동 실행은 로컬 state
+  const effectiveStartedAt = isAutoRunning ? (timing?.startedAt ?? null) : manualStartedAt
+
+  // 실행 중 경과 시간 타이머
+  useEffect(() => {
+    if (!isBlinking || effectiveStartedAt === null) return
+    setElapsedMs(Date.now() - effectiveStartedAt)
+    const timer = setInterval(() => setElapsedMs(Date.now() - effectiveStartedAt), 100)
+    return () => clearInterval(timer)
+  }, [isBlinking, effectiveStartedAt])
+
+  // 완료 시간 (ms): auto-run은 timing prop, 수동은 로컬 state
+  const displayCompletedMs = done
+    ? (timing?.completedAt != null
+        ? timing.completedAt - timing.startedAt
+        : manualCompletedMs)
+    : null
 
   const handleRun = async () => {
+    const isRerun = done
+    const startMs = Date.now()
+    setManualStartedAt(startMs)
+    setManualCompletedMs(null)
+    setElapsedMs(0)
     setRunning(true)
     try {
+      // 재실행 시 이후 태스크 즉시 초기화 (실행 전 UI 즉각 반영)
+      if (isRerun && onWillRerun) {
+        await onWillRerun(task.id)
+      }
       const res = await runProjectTask(projectId, task.id)
+      setManualCompletedMs(Date.now() - startMs)
       toast.success(`${task.name} 완료 (출력 ${res.outputs.length}개)`)
-      onRefresh()
+      if (isRerun) {
+        // 재실행 완료: 이후 태스크 자동실행 시작
+        onOutputReplaced(task.id)
+      } else {
+        onRefresh()
+      }
     } catch (e: unknown) {
       toast.error((e as Error).message)
+      setManualStartedAt(null)
+      setManualCompletedMs(null)
     } finally {
       setRunning(false)
     }
@@ -188,7 +238,6 @@ function TaskCard({
   }
 
   const stepLabel = `P${phase}-${task.step}`
-  const isBlinking = isAutoRunning || running
 
   return (
     <div className={`rounded-xl border p-4 space-y-3 transition-all ${
@@ -211,6 +260,17 @@ function TaskCard({
             {task.autoFromDb && (
               <span className="px-1.5 py-0.5 text-[10px] rounded bg-blue-50 text-blue-600 font-medium shrink-0">
                 FAT DB 자동
+              </span>
+            )}
+            {/* 소요 시간 표시 */}
+            {isBlinking && effectiveStartedAt !== null && (
+              <span className="text-[10px] text-ds-tertiary/80 font-mono shrink-0">
+                {formatElapsed(elapsedMs)}
+              </span>
+            )}
+            {!isBlinking && displayCompletedMs != null && (
+              <span className="text-[10px] text-emerald-600/70 font-mono shrink-0">
+                완료 · {formatElapsed(displayCompletedMs)}
               </span>
             )}
           </div>
@@ -254,6 +314,16 @@ function TaskCard({
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* 실행 중 progress bar */}
+      {isBlinking && (
+        <div className="ml-6 h-0.5 rounded-full bg-ds-tertiary/15 overflow-hidden">
+          <div
+            className="h-full w-1/3 rounded-full bg-ds-tertiary/60"
+            style={{ animation: 'task-progress-slide 1.4s ease-in-out infinite' }}
+          />
         </div>
       )}
 
@@ -472,6 +542,11 @@ export default function DeletionWorkflowDetailPage() {
   const [autoRunCurrentTaskId, setAutoRunCurrentTaskId] = useState<number | null>(null)
   const [autoRunBlockedAt, setAutoRunBlockedAt] = useState<number | null>(null)
 
+  // 태스크별 타이밍 (자동실행 기준; 수동 실행은 TaskCard 내부 로컬 state)
+  const [taskTimings, setTaskTimings] = useState<
+    Record<number, { startedAt: number; completedAt?: number }>
+  >({})
+
   // 초기화 확인 모달
   const [resetConfirm, setResetConfirm] = useState(false)
   const [resetting, setResetting] = useState(false)
@@ -496,9 +571,29 @@ export default function DeletionWorkflowDetailPage() {
     if (includeTask0 && autoRunRef.current) {
       const cur = await getProject(projectId).catch(() => null)
       if (cur && !hasOutput(cur.files ?? [], 0)) {
+        setTaskTimings((prev) => ({ ...prev, 0: { startedAt: Date.now() } }))
         setAutoRunCurrentTaskId(0)
         try {
-          await runProjectExtract(projectId)
+          const extractResult = await runProjectExtract(projectId)
+          const completedAt = Date.now()
+          setTaskTimings((prev) => ({ ...prev, 0: { ...prev[0], completedAt } }))
+          // 즉시 캐시 업데이트
+          qc.setQueryData(
+            ['deletion-workflow-project', projectId],
+            (old: DeletionWorkflowProjectDetail | undefined) => {
+              if (!old) return old
+              const existing = (old.files ?? []).filter(
+                (f) => !(f.task_id === 0 && f.slot === 'output_0'),
+              )
+              return {
+                ...old,
+                files: [
+                  ...existing,
+                  { task_id: 0, slot: 'output_0', filename: extractResult.filename, created_at: new Date().toISOString() },
+                ],
+              }
+            },
+          )
         } catch (e: unknown) {
           toast.error(`데이터 추출 실패: ${(e as Error).message}`)
           autoRunRef.current = false
@@ -518,28 +613,55 @@ export default function DeletionWorkflowDetailPage() {
     for (const taskId of tasksToRun) {
       if (!autoRunRef.current) break
 
-      // 최신 상태 조회
-      const currentProject = await getProject(projectId).catch(() => null)
-      if (!currentProject) break
-      const currentFiles = currentProject.files ?? []
+      // 캐시 우선 조회 (setQueryData로 즉시 반영된 최신 상태 사용)
+      const cachedProject = qc.getQueryData<DeletionWorkflowProjectDetail>(
+        ['deletion-workflow-project', projectId],
+      )
+      const currentFiles = cachedProject?.files ?? []
 
       // 이미 완료 → 건너뜀
       if (hasOutput(currentFiles, taskId)) continue
 
-      // 필수 외부 파일 확인
+      // 필수 외부 파일 확인 (캐시에 없으면 서버 조회)
       const taskMeta = ALL_TASK_META.find((t) => t.id === taskId)
       if (!taskMeta) continue
+
+      let checkFiles = currentFiles
+      if ((taskMeta.externalInputs ?? []).some((inp) => inp.required)) {
+        const freshProject = await getProject(projectId).catch(() => null)
+        checkFiles = freshProject?.files ?? currentFiles
+      }
       const missingRequired = (taskMeta.externalInputs ?? [])
-        .filter((inp) => inp.required && !getExternalFile(currentFiles, taskId, inp.slot))
+        .filter((inp) => inp.required && !getExternalFile(checkFiles, taskId, inp.slot))
       if (missingRequired.length > 0) {
         setAutoRunBlockedAt(taskId)
         toast.info(`${taskMeta.name}: '${missingRequired[0].label}'을 업로드하면 자동실행이 계속됩니다.`)
         break
       }
 
+      setTaskTimings((prev) => ({ ...prev, [taskId]: { startedAt: Date.now() } }))
       setAutoRunCurrentTaskId(taskId)
       try {
-        await runProjectTask(projectId, taskId)
+        const result = await runProjectTask(projectId, taskId)
+        // 완료 즉시 캐시 업데이트 (다음 태스크 판정 + 체크마크 즉각 표시)
+        const completedAt = Date.now()
+        setTaskTimings((prev) => ({ ...prev, [taskId]: { ...prev[taskId], completedAt } }))
+        qc.setQueryData(
+          ['deletion-workflow-project', projectId],
+          (old: DeletionWorkflowProjectDetail | undefined) => {
+            if (!old) return old
+            const newFiles: ProjectFileState[] = result.outputs.map((o) => ({
+              task_id: result.task_id,
+              slot: o.slot,
+              filename: o.filename,
+              created_at: new Date().toISOString(),
+            }))
+            const existing = (old.files ?? []).filter(
+              (f) => !(f.task_id === result.task_id && newFiles.some((nf) => nf.slot === f.slot)),
+            )
+            return { ...old, files: [...existing, ...newFiles] }
+          },
+        )
       } catch (e: unknown) {
         toast.error(`${taskMeta.name} 실패: ${(e as Error).message}`)
         autoRunRef.current = false
@@ -555,6 +677,27 @@ export default function DeletionWorkflowDetailPage() {
 
   const stopAutoRun = () => {
     autoRunRef.current = false
+  }
+
+  // ── 재실행 전 이후 태스크 초기화 ────────────────────────────────────────────
+
+  const handleWillRerun = async (taskId: number) => {
+    const downstreamIds = getDownstreamTaskIds(taskId)
+    if (downstreamIds.length === 0) return
+    await clearProjectOutputs(projectId, downstreamIds).catch(() => null)
+    // 즉시 캐시에서 이후 태스크 output 파일 제거 (UI 즉각 반영)
+    qc.setQueryData(
+      ['deletion-workflow-project', projectId],
+      (old: DeletionWorkflowProjectDetail | undefined) => {
+        if (!old) return old
+        return {
+          ...old,
+          files: (old.files ?? []).filter(
+            (f) => !(downstreamIds.includes(f.task_id) && f.slot.startsWith('output_')),
+          ),
+        }
+      },
+    )
   }
 
   // ── 출력파일 교체 후 이후 재실행 ────────────────────────────────────────────
@@ -721,8 +864,10 @@ export default function DeletionWorkflowDetailPage() {
                 key={t.id} task={t} phase={1}
                 projectId={projectId} files={files}
                 autoRunCurrentTaskId={autoRunCurrentTaskId}
+                timing={taskTimings[t.id]}
                 onRefresh={refresh}
                 onOutputReplaced={handleOutputReplaced}
+                onWillRerun={handleWillRerun}
               />
             ))}
           </div>
@@ -738,8 +883,10 @@ export default function DeletionWorkflowDetailPage() {
                 key={t.id} task={t} phase={2}
                 projectId={projectId} files={files}
                 autoRunCurrentTaskId={autoRunCurrentTaskId}
+                timing={taskTimings[t.id]}
                 onRefresh={refresh}
                 onOutputReplaced={handleOutputReplaced}
+                onWillRerun={handleWillRerun}
               />
             ))}
           </div>

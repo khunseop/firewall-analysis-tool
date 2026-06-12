@@ -214,3 +214,10 @@
 .ag-theme-quartz.ag-clickable-rows .ag-row {
   cursor: pointer;
 }
+
+/* 태스크 카드 indeterminate progress bar */
+@keyframes task-progress-slide {
+  0%   { transform: translateX(-100%); }
+  60%  { transform: translateX(300%); }
+  100% { transform: translateX(300%); }
+}
