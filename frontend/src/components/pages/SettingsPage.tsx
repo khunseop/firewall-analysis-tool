@@ -611,22 +611,29 @@ function DuplicatePolicyTable({
 }) {
   const today = new Date().toISOString().slice(0, 10)
   const [search, setSearch] = useState('')
+  const [filterDeviceId, setFilterDeviceId] = useState<number | ''>('')
+  const [hideExpired, setHideExpired] = useState(false)
   const [page, setPage] = useState(0)
   const [yamlOpen, setYamlOpen] = useState(false)
   const [yamlInput, setYamlInput] = useState('')
   const [parsing, setParsing] = useState(false)
 
-  useEffect(() => { setPage(0) }, [search])
+  useEffect(() => { setPage(0) }, [search, filterDeviceId, hideExpired])
 
   const deviceMap = Object.fromEntries(devices.map(d => [d.id, d]))
   const withIdx = items.map((item, i) => ({ item, i }))
-  const filtered = search
-    ? withIdx.filter(({ item }) => {
+  const filtered = withIdx
+    .filter(({ item }) => {
+      if (filterDeviceId !== '' && item.device_id !== filterDeviceId) return false
+      if (hideExpired && item.expires_at && item.expires_at < today) return false
+      if (search) {
         const dev = deviceMap[item.device_id]
         return [item.name, item.reason, item.registered_at, item.expires_at, dev?.name, dev?.ip_address]
           .some(v => String(v ?? '').toLowerCase().includes(search.toLowerCase()))
-      })
-    : withIdx
+      }
+      return true
+    })
+    .sort((a, b) => (b.item.registered_at ?? '').localeCompare(a.item.registered_at ?? ''))
   const totalPages = Math.max(1, Math.ceil(filtered.length / EX_PAGE_SIZE))
   const paged = filtered.slice(page * EX_PAGE_SIZE, (page + 1) * EX_PAGE_SIZE)
 
@@ -648,21 +655,13 @@ function DuplicatePolicyTable({
 
   return (
     <div className="space-y-2">
+      {/* 행1: 제목 + 액션 버튼 */}
       <div className="flex items-center justify-between gap-2">
         <div className="shrink-0">
           <p className="text-[12px] font-semibold text-ds-on-surface">중복정책 예외</p>
           <p className="text-[11px] text-ds-on-surface-variant/70 mt-0.5">Task 17 실행 시 해당 장비의 유효한 예외가 자동 적용됩니다.</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-ds-on-surface-variant/50 pointer-events-none" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="검색"
-              className="h-7 pl-6 pr-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary w-32"
-            />
-          </div>
           <button
             onClick={() => setYamlOpen(v => !v)}
             className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/30 rounded-lg hover:bg-ds-surface-container-high transition-colors shrink-0"
@@ -678,6 +677,37 @@ function DuplicatePolicyTable({
             추가
           </button>
         </div>
+      </div>
+      {/* 행2: 필터 컨트롤 */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <select
+          value={filterDeviceId}
+          onChange={(e) => setFilterDeviceId(e.target.value === '' ? '' : Number(e.target.value))}
+          className="h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+        >
+          <option value="">전체 장비</option>
+          {devices.map(d => (
+            <option key={d.id} value={d.id}>{d.name} ({d.ip_address})</option>
+          ))}
+        </select>
+        <div className="relative flex-1 min-w-[140px]">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-ds-on-surface-variant/50 pointer-events-none" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="정책명, 사유 검색"
+            className="h-7 w-full pl-6 pr-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+          />
+        </div>
+        <label className="flex items-center gap-1.5 text-[11px] text-ds-on-surface-variant cursor-pointer select-none shrink-0">
+          <input
+            type="checkbox"
+            checked={hideExpired}
+            onChange={(e) => setHideExpired(e.target.checked)}
+            className="w-3.5 h-3.5 accent-ds-tertiary"
+          />
+          만료 숨기기
+        </label>
       </div>
 
       {yamlOpen && (
@@ -792,7 +822,20 @@ function DuplicatePolicyTable({
         </table>
       </div>
       <div className="flex items-center justify-between text-[11px] text-ds-on-surface-variant">
-        <span>{filtered.length}개 항목</span>
+        <span>
+          {filtered.length}개 항목
+          {(filterDeviceId !== '' || hideExpired || search) && (
+            <span className="text-ds-on-surface-variant/50"> / 전체 {items.length}개</span>
+          )}
+          {filterDeviceId !== '' && (
+            <button
+              onClick={() => setFilterDeviceId('')}
+              className="ml-2 text-ds-tertiary hover:underline"
+            >
+              필터 해제
+            </button>
+          )}
+        </span>
         {totalPages > 1 && (
           <div className="flex items-center gap-1">
             <button
