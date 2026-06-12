@@ -2,32 +2,33 @@ import { useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ArrowLeft, Database, Play, Download, Upload, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import {
+  ArrowLeft, Database, Play, Download, Upload, CheckCircle2, AlertCircle,
+  Loader2, Zap, RotateCcw, Square, RefreshCw,
+} from 'lucide-react'
 import {
   getProject,
   runProjectExtract,
   runProjectTask,
   uploadExternalFile,
   downloadTaskFile,
+  resetProjectOutputs,
+  clearProjectOutputs,
   type DeletionWorkflowProjectDetail,
   type ProjectFileState,
 } from '@/api/deletionWorkflow'
 
 // ── 태스크 메타 ──────────────────────────────────────────────────────────────
-// workflow_wizard.py PHASE1_STEPS / PHASE2_STEPS 실행 순서 기준
-// step: 사용자에게 보이는 순번 (1부터 시작)
-// id:   fpat 내부 task ID (파일 체이닝에 사용)
 
 interface TaskMeta {
-  step: number   // 표시용 순번
-  id: number     // fpat task ID
+  step: number
+  id: number
   name: string
   description: string
   externalInputs?: { slot: string; label: string; required: boolean }[]
   autoFromDb?: boolean
 }
 
-// Phase 1 실행 순서: 2 → 3 → 4 → 5 → 6
 const PHASE1_TASKS: TaskMeta[] = [
   { step: 1, id: 2,  name: '신청정보 파싱',       description: 'DB 추출 파일에서 신청정보 파싱' },
   { step: 2, id: 3,  name: '중복정책 분석',       description: 'FAT DB 중복분석 결과를 Excel로 자동 생성', autoFromDb: true },
@@ -37,7 +38,6 @@ const PHASE1_TASKS: TaskMeta[] = [
   { step: 5, id: 6,  name: '신청번호 추출',       description: '고유 신청 ID 추출' },
 ]
 
-// Phase 2 실행 순서: 7 → 8 → 9 → 10/11 → 12 → 13 → 14 → 15 → 16 → 17 → 18
 const PHASE2_TASKS: TaskMeta[] = [
   { step: 1, id: 7,  name: '신청정보 가공 (GSAMS)',   description: 'GSAMS 신청정보 취합',
     externalInputs: [{ slot: 'external_1', label: 'GSAMS Excel 파일', required: true }] },
@@ -54,6 +54,10 @@ const PHASE2_TASKS: TaskMeta[] = [
     externalInputs: [{ slot: 'external_1', label: '중복예외 YAML 파일 (선택)', required: false }] },
   { step: 11, id: 18, name: '통보대상 분류',          description: '정책 Excel → 유형별 공지파일 생성' },
 ]
+
+// Phase 1 + Phase 2 실행 순서 (Task 0, 1은 별도)
+const EXECUTION_ORDER = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18]
+const ALL_TASK_META = [...PHASE1_TASKS, ...PHASE2_TASKS]
 
 // ── 유틸 ─────────────────────────────────────────────────────────────────────
 
@@ -74,6 +78,12 @@ function hasOutput(files: ProjectFileState[], taskId: number) {
 
 function getExternalFile(files: ProjectFileState[], taskId: number, slot: string) {
   return files.find((f) => f.task_id === taskId && f.slot === slot)
+}
+
+function getDownstreamTaskIds(fromTaskId: number): number[] {
+  const idx = EXECUTION_ORDER.indexOf(fromTaskId)
+  if (idx === -1) return []
+  return EXECUTION_ORDER.slice(idx + 1)
 }
 
 // ── 컴포넌트: 외부 파일 업로드 ───────────────────────────────────────────────
@@ -101,14 +111,16 @@ function ExternalFileUpload({
   }
 
   return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="text-ds-on-surface-variant">{required ? '📎' : '📋'} {label}:</span>
+    <div className="flex items-center gap-2 text-xs flex-wrap">
+      <span className="text-ds-on-surface-variant">
+        {required ? '📎' : '📋'} {label}{required ? ' (필수)' : ' (선택)'}:
+      </span>
       {existingFile ? (
         <span className="text-emerald-600 flex items-center gap-1">
           <CheckCircle2 className="w-3 h-3" /> {existingFile.filename}
         </span>
       ) : (
-        <span className="text-ds-on-surface-variant/60">{required ? '(필수)' : '(선택)'}</span>
+        <span className="text-ds-on-surface-variant/60">미업로드</span>
       )}
       <button
         onClick={() => fileRef.current?.click()}
@@ -127,14 +139,18 @@ function ExternalFileUpload({
 // ── 컴포넌트: 태스크 카드 ────────────────────────────────────────────────────
 
 function TaskCard({
-  task, projectId, files, phase, onRefresh,
+  task, projectId, files, phase, autoRunCurrentTaskId, onRefresh, onOutputReplaced,
 }: {
   task: TaskMeta; projectId: number; files: ProjectFileState[]
-  phase: 1 | 2; onRefresh: () => void
+  phase: 1 | 2; autoRunCurrentTaskId: number | null
+  onRefresh: () => void; onOutputReplaced: (taskId: number) => void
 }) {
   const [running, setRunning] = useState(false)
+  const [replacingSlot, setReplacingSlot] = useState<string | null>(null)
+  const replaceRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const outputs = getOutputFiles(files, task.id)
   const done = outputs.length > 0
+  const isAutoRunning = autoRunCurrentTaskId === task.id
 
   const handleRun = async () => {
     setRunning(true)
@@ -158,16 +174,35 @@ function TaskCard({
     }
   }
 
+  const handleReplaceOutput = async (slot: string, file: File) => {
+    setReplacingSlot(slot)
+    try {
+      await uploadExternalFile(projectId, task.id, slot, file)
+      toast.success(`출력 파일 교체 완료 — 이후 태스크 결과를 재실행해야 합니다.`)
+      onOutputReplaced(task.id)
+    } catch (e: unknown) {
+      toast.error((e as Error).message)
+    } finally {
+      setReplacingSlot(null)
+    }
+  }
+
   const stepLabel = `P${phase}-${task.step}`
+  const isBlinking = isAutoRunning || running
 
   return (
-    <div className={`rounded-xl border p-4 space-y-3 ${done ? 'border-emerald-200 bg-emerald-50/30' : 'border-ds-outline-variant/30 bg-white'}`}>
+    <div className={`rounded-xl border p-4 space-y-3 transition-all ${
+      isBlinking ? 'border-ds-tertiary/50 bg-ds-tertiary/4 shadow-sm' :
+      done ? 'border-emerald-200 bg-emerald-50/30' : 'border-ds-outline-variant/30 bg-white'
+    }`}>
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            {done
-              ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-              : <div className="w-4 h-4 rounded-full border-2 border-ds-outline-variant/40 shrink-0" />
+            {isBlinking
+              ? <Loader2 className="w-4 h-4 text-ds-tertiary animate-spin shrink-0" />
+              : done
+                ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                : <div className="w-4 h-4 rounded-full border-2 border-ds-outline-variant/40 shrink-0" />
             }
             <span className="text-sm font-medium text-ds-on-surface">{task.name}</span>
             <span className="px-1.5 py-0.5 text-[10px] rounded bg-ds-surface-container text-ds-on-surface-variant font-mono shrink-0">
@@ -180,14 +215,20 @@ function TaskCard({
             )}
           </div>
           <p className="text-xs text-ds-on-surface-variant mt-0.5 ml-6">{task.description}</p>
+          {/* Task 7 GSAMS 안내 */}
+          {task.id === 7 && !getExternalFile(files, 7, 'external_1') && (
+            <p className="text-[11px] text-amber-700 bg-amber-50 rounded px-2 py-1 mt-1 ml-6">
+              Phase 1 완료 후 외부에서 GSAMS Excel을 수령하여 업로드하면 자동실행이 계속됩니다.
+            </p>
+          )}
         </div>
         <button
           onClick={handleRun}
-          disabled={running}
+          disabled={running || isAutoRunning}
           className="flex items-center gap-1 ml-3 px-3 py-1 text-xs rounded-lg bg-ds-tertiary/10 text-ds-tertiary hover:bg-ds-tertiary/20 disabled:opacity-50 shrink-0"
         >
-          {running ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
-          {running ? '실행 중...' : done ? '재실행' : '실행'}
+          {running || isAutoRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+          {running || isAutoRunning ? '실행 중...' : done ? '재실행' : '실행'}
         </button>
       </div>
 
@@ -201,7 +242,6 @@ function TaskCard({
                 existingFile={getExternalFile(files, task.id, inp.slot)}
                 onUploaded={onRefresh}
               />
-              {/* 선택 파일 미업로드 시 동작 안내 */}
               {!inp.required && inp.slot === 'external_1' && !getExternalFile(files, task.id, inp.slot) && task.id === 17 && (
                 <p className="text-[11px] text-ds-on-surface-variant/70 mt-1 ml-1">
                   ℹ️ 파일 없으면 Settings → 삭제 워크플로우의 중복정책 예외가 자동 적용됩니다.
@@ -220,13 +260,32 @@ function TaskCard({
       {outputs.length > 0 && (
         <div className="ml-6 flex flex-wrap gap-2">
           {outputs.map((f) => (
-            <button
-              key={f.slot}
-              onClick={() => handleDownload(f.slot, f.filename)}
-              className="flex items-center gap-1 px-2 py-1 text-xs rounded border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50"
-            >
-              <Download className="w-3 h-3" /> {f.filename}
-            </button>
+            <div key={f.slot} className="flex items-center gap-1">
+              <button
+                onClick={() => handleDownload(f.slot, f.filename)}
+                className="flex items-center gap-1 px-2 py-1 text-xs rounded border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50"
+              >
+                <Download className="w-3 h-3" /> {f.filename}
+              </button>
+              {/* 출력 파일 교체 버튼 */}
+              <button
+                onClick={() => replaceRefs.current[f.slot]?.click()}
+                disabled={replacingSlot === f.slot}
+                title="수정된 파일로 교체"
+                className="p-1 rounded border border-ds-outline-variant/30 hover:bg-black/5 disabled:opacity-50 text-ds-on-surface-variant hover:text-ds-on-surface"
+              >
+                {replacingSlot === f.slot
+                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                  : <RefreshCw className="w-3 h-3" />
+                }
+              </button>
+              <input
+                ref={(el) => { replaceRefs.current[f.slot] = el }}
+                type="file"
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && handleReplaceOutput(f.slot, e.target.files[0])}
+              />
+            </div>
           ))}
         </div>
       )}
@@ -234,7 +293,7 @@ function TaskCard({
   )
 }
 
-// ── 컴포넌트: Task 0 섹션 (데이터 추출 + HA 히트카운트) ─────────────────────
+// ── 컴포넌트: Task 0 섹션 ────────────────────────────────────────────────────
 
 function Task0Section({
   projectId, files, hasPeerIp, onRefresh,
@@ -293,7 +352,6 @@ function Task0Section({
 
   return (
     <div className="rounded-xl border border-ds-outline-variant/30 bg-white p-5 space-y-4">
-      {/* Task 0: DB 추출 */}
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
@@ -340,7 +398,6 @@ function Task0Section({
         </div>
       </div>
 
-      {/* Task 12: HA Secondary 히트카운트 (HA 장비인 경우) */}
       {hasPeerIp && (
         <div className="ml-6 pt-3 border-t border-ds-outline-variant/20 space-y-2">
           <div className="flex items-center justify-between">
@@ -408,6 +465,16 @@ export default function DeletionWorkflowDetailPage() {
   const qc = useQueryClient()
   const projectId = Number(id)
 
+  // 자동실행 상태
+  const autoRunRef = useRef(false)
+  const [autoRunning, setAutoRunning] = useState(false)
+  const [autoRunCurrentTaskId, setAutoRunCurrentTaskId] = useState<number | null>(null)
+  const [autoRunBlockedAt, setAutoRunBlockedAt] = useState<number | null>(null)
+
+  // 초기화 확인 모달
+  const [resetConfirm, setResetConfirm] = useState(false)
+  const [resetting, setResetting] = useState(false)
+
   const { data: project, isLoading, error } = useQuery<DeletionWorkflowProjectDetail>({
     queryKey: ['deletion-workflow-project', projectId],
     queryFn: () => getProject(projectId),
@@ -415,6 +482,93 @@ export default function DeletionWorkflowDetailPage() {
   })
 
   const refresh = () => qc.invalidateQueries({ queryKey: ['deletion-workflow-project', projectId] })
+
+  // ── 자동실행 ──────────────────────────────────────────────────────────────
+
+  const startAutoRunFrom = async (fromTaskId?: number) => {
+    autoRunRef.current = true
+    setAutoRunning(true)
+    setAutoRunBlockedAt(null)
+
+    const startIdx = fromTaskId !== undefined
+      ? EXECUTION_ORDER.indexOf(fromTaskId)
+      : 0
+    const tasksToRun = EXECUTION_ORDER.slice(Math.max(startIdx, 0))
+
+    for (const taskId of tasksToRun) {
+      if (!autoRunRef.current) break
+
+      // 최신 상태 조회
+      const currentProject = await getProject(projectId).catch(() => null)
+      if (!currentProject) break
+      const currentFiles = currentProject.files ?? []
+
+      // 이미 완료 → 건너뜀
+      if (hasOutput(currentFiles, taskId)) continue
+
+      // 필수 외부 파일 확인
+      const taskMeta = ALL_TASK_META.find((t) => t.id === taskId)
+      if (!taskMeta) continue
+      const missingRequired = (taskMeta.externalInputs ?? [])
+        .filter((inp) => inp.required && !getExternalFile(currentFiles, taskId, inp.slot))
+      if (missingRequired.length > 0) {
+        setAutoRunBlockedAt(taskId)
+        toast.info(`${taskMeta.name}: '${missingRequired[0].label}'을 업로드하면 자동실행이 계속됩니다.`)
+        break
+      }
+
+      setAutoRunCurrentTaskId(taskId)
+      try {
+        await runProjectTask(projectId, taskId)
+      } catch (e: unknown) {
+        toast.error(`${taskMeta.name} 실패: ${(e as Error).message}`)
+        autoRunRef.current = false
+        break
+      }
+    }
+
+    setAutoRunning(false)
+    setAutoRunCurrentTaskId(null)
+    autoRunRef.current = false
+    refresh()
+  }
+
+  const stopAutoRun = () => {
+    autoRunRef.current = false
+  }
+
+  // ── 출력파일 교체 후 이후 재실행 ────────────────────────────────────────────
+
+  const handleOutputReplaced = async (taskId: number) => {
+    const downstreamIds = getDownstreamTaskIds(taskId)
+    if (downstreamIds.length > 0) {
+      await clearProjectOutputs(projectId, downstreamIds).catch(() => null)
+    }
+    refresh()
+    // 이후 자동실행 시작
+    const nextIdx = EXECUTION_ORDER.indexOf(taskId) + 1
+    if (nextIdx < EXECUTION_ORDER.length) {
+      startAutoRunFrom(EXECUTION_ORDER[nextIdx])
+    }
+  }
+
+  // ── 전체 초기화 ──────────────────────────────────────────────────────────
+
+  const handleReset = async () => {
+    setResetting(true)
+    try {
+      const res = await resetProjectOutputs(projectId)
+      toast.success(`초기화 완료 — ${res.deleted}개 파일 삭제 (외부 파일 유지)`)
+      refresh()
+    } catch (e: unknown) {
+      toast.error((e as Error).message)
+    } finally {
+      setResetting(false)
+      setResetConfirm(false)
+    }
+  }
+
+  // ── 렌더링 ──────────────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
@@ -435,6 +589,18 @@ export default function DeletionWorkflowDetailPage() {
   const files = project.files ?? []
   const hasPeerIp = Boolean(project.device_vendor)
 
+  // 진행률 계산
+  const phase1Done = PHASE1_TASKS.filter((t) => hasOutput(files, t.id)).length
+  const phase2Done = PHASE2_TASKS.filter((t) => hasOutput(files, t.id)).length
+  const totalDone = phase1Done + phase2Done
+  const totalTasks = PHASE1_TASKS.length + PHASE2_TASKS.length
+  const progressPct = Math.round((totalDone / totalTasks) * 100)
+
+  // 자동실행 버튼 텍스트
+  const autoRunBlockedMeta = autoRunBlockedAt !== null
+    ? ALL_TASK_META.find((t) => t.id === autoRunBlockedAt)
+    : null
+
   return (
     <div className="h-full flex flex-col">
       {/* 헤더 */}
@@ -454,12 +620,69 @@ export default function DeletionWorkflowDetailPage() {
             {project.device_ip} · {project.device_vendor} · 생성 {new Date(project.created_at).toLocaleDateString('ko-KR')}
           </p>
         </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {/* 자동실행 / 중지 */}
+          {autoRunning ? (
+            <button
+              onClick={stopAutoRun}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors"
+            >
+              <Square className="w-3 h-3" /> 중지
+            </button>
+          ) : (
+            <button
+              onClick={() => startAutoRunFrom()}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-ds-tertiary text-white hover:bg-ds-tertiary/90 transition-colors"
+            >
+              <Zap className="w-3 h-3" /> 자동실행
+            </button>
+          )}
+          {/* 초기화 */}
+          <button
+            onClick={() => setResetConfirm(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-ds-outline-variant/40 text-ds-on-surface-variant hover:bg-ds-surface-container transition-colors"
+          >
+            <RotateCcw className="w-3 h-3" /> 초기화
+          </button>
+        </div>
+      </div>
+
+      {/* 진행률 바 */}
+      <div className="px-6 py-3 border-b border-ds-outline-variant/20 bg-ds-surface-container-low/30 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-1.5 bg-ds-outline-variant/20 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+          <span className="text-[11px] font-medium text-ds-on-surface-variant whitespace-nowrap">
+            {totalDone} / {totalTasks} 완료
+          </span>
+          <span className="text-[11px] text-ds-on-surface-variant/60 whitespace-nowrap">
+            Phase1 {phase1Done}/{PHASE1_TASKS.length}
+            {phase1Done === PHASE1_TASKS.length && <span className="text-emerald-500 ml-1">✓</span>}
+            &nbsp;·&nbsp;
+            Phase2 {phase2Done}/{PHASE2_TASKS.length}
+            {phase2Done === PHASE2_TASKS.length && <span className="text-emerald-500 ml-1">✓</span>}
+          </span>
+          {autoRunning && autoRunCurrentTaskId !== null && (
+            <span className="text-[11px] text-ds-tertiary flex items-center gap-1 whitespace-nowrap">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              {ALL_TASK_META.find((t) => t.id === autoRunCurrentTaskId)?.name ?? `Task ${autoRunCurrentTaskId}`} 실행 중
+            </span>
+          )}
+          {!autoRunning && autoRunBlockedMeta && (
+            <span className="text-[11px] text-amber-700 whitespace-nowrap">
+              ⏸ {autoRunBlockedMeta.name} — 파일 업로드 필요
+            </span>
+          )}
+        </div>
       </div>
 
       {/* 본문 */}
       <div className="flex-1 overflow-auto px-6 py-5 space-y-6">
 
-        {/* P0: 데이터 추출 + HA 히트카운트 */}
         <Task0Section
           projectId={projectId}
           files={files}
@@ -467,39 +690,73 @@ export default function DeletionWorkflowDetailPage() {
           onRefresh={refresh}
         />
 
-        {/* Phase 1 */}
         <section>
           <h2 className="text-xs font-semibold text-ds-on-surface-variant uppercase tracking-wider mb-3">
             Phase 1 — 신청정보 처리
           </h2>
           <div className="space-y-3">
             {PHASE1_TASKS.map((t) => (
-              <TaskCard key={t.id} task={t} phase={1} projectId={projectId} files={files} onRefresh={refresh} />
+              <TaskCard
+                key={t.id} task={t} phase={1}
+                projectId={projectId} files={files}
+                autoRunCurrentTaskId={autoRunCurrentTaskId}
+                onRefresh={refresh}
+                onOutputReplaced={handleOutputReplaced}
+              />
             ))}
           </div>
         </section>
 
-        {/* GSAMS Checkpoint */}
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <span className="font-semibold">Checkpoint — GSAMS 신청정보 수령 대기</span>
-          <p className="text-xs mt-1 text-amber-700">
-            Phase 1 완료 후 신청번호 파일(P1-5 출력)을 타부서에 전달하고, GSAMS Excel 파일을 수령한 후 Phase 2를 진행하세요.
-          </p>
-        </div>
-
-        {/* Phase 2 */}
         <section>
           <h2 className="text-xs font-semibold text-ds-on-surface-variant uppercase tracking-wider mb-3">
             Phase 2 — 정책 분류·공지
           </h2>
           <div className="space-y-3">
             {PHASE2_TASKS.map((t) => (
-              <TaskCard key={t.id} task={t} phase={2} projectId={projectId} files={files} onRefresh={refresh} />
+              <TaskCard
+                key={t.id} task={t} phase={2}
+                projectId={projectId} files={files}
+                autoRunCurrentTaskId={autoRunCurrentTaskId}
+                onRefresh={refresh}
+                onOutputReplaced={handleOutputReplaced}
+              />
             ))}
           </div>
         </section>
 
       </div>
+
+      {/* 초기화 확인 모달 */}
+      {resetConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-80 space-y-4">
+            <div className="flex items-center gap-2 text-ds-error">
+              <RotateCcw className="w-5 h-5" />
+              <span className="font-semibold">출력 초기화</span>
+            </div>
+            <p className="text-sm text-ds-on-surface">
+              모든 태스크 출력 파일을 삭제합니다.<br />
+              <span className="text-ds-on-surface-variant">외부 업로드 파일(GSAMS, MIS CSV 등)은 유지됩니다.</span>
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => setResetConfirm(false)}
+                className="px-4 py-2 text-sm text-ds-on-surface-variant hover:text-ds-on-surface"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleReset}
+                disabled={resetting}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-ds-error text-white hover:bg-ds-error/90 disabled:opacity-50"
+              >
+                {resetting && <Loader2 className="w-4 h-4 animate-spin" />}
+                초기화
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -18,6 +18,7 @@ from typing import List, Tuple
 import pandas as pd
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from fastapi.responses import Response, StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy import select
@@ -581,7 +582,8 @@ async def upload_external_file(
     if not project:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
 
-    if slot not in ("external_0", "external_1", "external_2"):
+    VALID_SLOTS = {"external_0", "external_1", "external_2", "output_0", "output_1", "output_2"}
+    if slot not in VALID_SLOTS:
         raise HTTPException(status_code=400, detail=f"유효하지 않은 slot: {slot}")
 
     data = await file.read()
@@ -749,6 +751,41 @@ async def download_task_file(
         media_type=media,
         headers={"Content-Disposition": _content_disposition(f.filename)},
     )
+
+
+@router.post("/projects/{project_id}/reset-outputs")
+async def reset_project_outputs(
+    project_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """모든 태스크 output 파일 삭제 (external 파일은 유지)."""
+    from app.crud import crud_deletion_workflow as dwcrud
+    project = await dwcrud.get_project(db, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+    deleted = await dwcrud.clear_output_files(db, project_id)
+    await db.commit()
+    return {"ok": True, "deleted": deleted}
+
+
+class ClearOutputsPayload(BaseModel):
+    task_ids: List[int]
+
+
+@router.post("/projects/{project_id}/clear-outputs")
+async def clear_project_outputs(
+    project_id: int,
+    payload: ClearOutputsPayload,
+    db: AsyncSession = Depends(get_db),
+):
+    """지정한 태스크들의 output 파일 삭제."""
+    from app.crud import crud_deletion_workflow as dwcrud
+    project = await dwcrud.get_project(db, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+    deleted = await dwcrud.clear_output_files(db, project_id, task_ids=payload.task_ids)
+    await db.commit()
+    return {"ok": True, "deleted": deleted}
 
 
 async def _run_task17_from_db(project_id, device_id, device, db, dwcrud):
