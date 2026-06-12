@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from typing import Any, Dict, List
+from urllib.parse import quote
 
 import yaml
 
@@ -275,7 +276,7 @@ async def export_deletion_workflow_config(db: AsyncSession = Depends(get_db)):
     return Response(
         content=content,
         media_type="application/json",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": f"attachment; filename=\"{filename}\"; filename*=UTF-8''{quote(filename, safe='')}"},
     )
 
 
