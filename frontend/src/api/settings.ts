@@ -59,3 +59,10 @@ export const updateDeletionWorkflowConfigYaml = async (yamlText: string): Promis
     headers: { 'Content-Type': 'text/plain; charset=utf-8' },
   })
 }
+
+export const parseYamlToJson = async (yamlText: string): Promise<unknown> => {
+  const res = await apiClient.post<{ data: unknown }>('/settings/deletion-workflow/parse-yaml', yamlText, {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  })
+  return res.data.data
+}

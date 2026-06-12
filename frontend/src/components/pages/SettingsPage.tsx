@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Save, Plus, Trash2, KeyRound, UserCheck, UserX, ChevronDown, ChevronUp, Download, Upload } from 'lucide-react'
+import { Save, Plus, Trash2, KeyRound, UserCheck, UserX, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Download, Upload, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
-import { getSettings, updateSetting, getDeletionWorkflowConfig, updateDeletionWorkflowConfig, exportDeletionWorkflowConfig, importDeletionWorkflowConfig, getDeletionWorkflowConfigYaml, updateDeletionWorkflowConfigYaml } from '@/api/settings'
+import { getSettings, updateSetting, getDeletionWorkflowConfig, updateDeletionWorkflowConfig, exportDeletionWorkflowConfig, importDeletionWorkflowConfig, getDeletionWorkflowConfigYaml, updateDeletionWorkflowConfigYaml, parseYamlToJson } from '@/api/settings'
 import { getUsers, createUser, changeUserPassword, toggleUserActive, deleteUser, type User } from '@/api/users'
 import { deleteOldNotifications } from '@/api/notifications'
 import { listDevices, type Device } from '@/api/devices'
@@ -440,6 +440,8 @@ function LogSettings() {
 // ──────────────────────────────────────────────────────────────────
 interface ExceptionItem { id?: string; name?: string; pattern?: string; reason: string; start?: string; until?: string }
 
+const EX_PAGE_SIZE = 20
+
 function ExceptionTable({
   title, items, keyField, keyPlaceholder, onAdd, onRemove, onUpdate
 }: {
@@ -451,17 +453,43 @@ function ExceptionTable({
   onRemove: (idx: number) => void
   onUpdate: (idx: number, patch: Partial<ExceptionItem>) => void
 }) {
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(0)
+
+  useEffect(() => { setPage(0) }, [search])
+
+  const withIdx = items.map((item, i) => ({ item, i }))
+  const filtered = search
+    ? withIdx.filter(({ item }) =>
+        [item[keyField], item.reason, item.start, item.until]
+          .some(v => String(v ?? '').toLowerCase().includes(search.toLowerCase()))
+      )
+    : withIdx
+  const totalPages = Math.max(1, Math.ceil(filtered.length / EX_PAGE_SIZE))
+  const paged = filtered.slice(page * EX_PAGE_SIZE, (page + 1) * EX_PAGE_SIZE)
+
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <p className="text-[12px] font-semibold text-ds-on-surface">{title}</p>
-        <button
-          onClick={onAdd}
-          className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-ds-tertiary bg-ds-tertiary/8 border border-ds-tertiary/20 rounded-lg hover:bg-ds-tertiary/12 transition-colors"
-        >
-          <Plus className="w-3 h-3" />
-          추가
-        </button>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[12px] font-semibold text-ds-on-surface shrink-0">{title}</p>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-ds-on-surface-variant/50 pointer-events-none" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="검색"
+              className="h-7 pl-6 pr-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary w-32"
+            />
+          </div>
+          <button
+            onClick={onAdd}
+            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-ds-tertiary bg-ds-tertiary/8 border border-ds-tertiary/20 rounded-lg hover:bg-ds-tertiary/12 transition-colors shrink-0"
+          >
+            <Plus className="w-3 h-3" />
+            추가
+          </button>
+        </div>
       </div>
       <div className="overflow-x-auto rounded-lg border border-ds-outline-variant/8">
         <table className="w-full text-left border-collapse">
@@ -475,12 +503,12 @@ function ExceptionTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-ds-outline-variant/8">
-            {items.map((item, idx) => (
-              <tr key={idx} className="hover:bg-ds-surface-container-low/20">
+            {paged.map(({ item, i }) => (
+              <tr key={i} className="hover:bg-ds-surface-container-low/20">
                 <td className="px-3 py-1.5">
                   <input
                     value={(item[keyField] as string) ?? ''}
-                    onChange={(e) => onUpdate(idx, { [keyField]: e.target.value })}
+                    onChange={(e) => onUpdate(i, { [keyField]: e.target.value })}
                     placeholder={keyPlaceholder}
                     className="w-full h-7 px-2 text-[12px] font-mono bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
                   />
@@ -488,7 +516,7 @@ function ExceptionTable({
                 <td className="px-3 py-1.5">
                   <input
                     value={item.reason ?? ''}
-                    onChange={(e) => onUpdate(idx, { reason: e.target.value })}
+                    onChange={(e) => onUpdate(i, { reason: e.target.value })}
                     placeholder="예외 사유"
                     className="w-full h-7 px-2 text-[12px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
                   />
@@ -497,7 +525,7 @@ function ExceptionTable({
                   <input
                     type="date"
                     value={item.start ?? ''}
-                    onChange={(e) => onUpdate(idx, { start: e.target.value || undefined })}
+                    onChange={(e) => onUpdate(i, { start: e.target.value || undefined })}
                     className="w-full h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
                   />
                 </td>
@@ -505,24 +533,48 @@ function ExceptionTable({
                   <input
                     type="date"
                     value={item.until ?? ''}
-                    onChange={(e) => onUpdate(idx, { until: e.target.value || undefined })}
+                    onChange={(e) => onUpdate(i, { until: e.target.value || undefined })}
                     className="w-full h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
                   />
                 </td>
                 <td className="px-3 py-1.5 text-right">
-                  <button onClick={() => onRemove(idx)} className="p-1 rounded hover:bg-red-50 text-ds-error transition-colors">
+                  <button onClick={() => onRemove(i)} className="p-1 rounded hover:bg-red-50 text-ds-error transition-colors">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </td>
               </tr>
             ))}
-            {items.length === 0 && (
+            {paged.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-[12px] text-ds-on-surface-variant italic">등록된 항목이 없습니다.</td>
+                <td colSpan={5} className="px-4 py-6 text-center text-[12px] text-ds-on-surface-variant italic">
+                  {search ? '검색 결과가 없습니다.' : '등록된 항목이 없습니다.'}
+                </td>
               </tr>
             )}
           </tbody>
         </table>
+      </div>
+      <div className="flex items-center justify-between text-[11px] text-ds-on-surface-variant">
+        <span>{filtered.length}개 항목</span>
+        {totalPages > 1 && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(p => p - 1)}
+              disabled={page === 0}
+              className="p-0.5 rounded hover:bg-ds-surface-container-high disabled:opacity-30"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span>{page + 1} / {totalPages}</span>
+            <button
+              onClick={() => setPage(p => p + 1)}
+              disabled={page >= totalPages - 1}
+              className="p-0.5 rounded hover:bg-ds-surface-container-high disabled:opacity-30"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -539,32 +591,124 @@ interface DuplicatePolicyItem {
   expires_at: string
 }
 
+const YAML_EXAMPLE = `# device_id: 장비 ID (숫자), name: 정책명, reason: 사유
+# registered_at/expires_at: YYYY-MM-DD 형식
+- device_id: 1
+  name: allow_xxx
+  reason: 임시예외
+  registered_at: "${new Date().toISOString().slice(0, 10)}"
+  expires_at: "2026-12-31"`
+
 function DuplicatePolicyTable({
-  items, devices, onAdd, onRemove, onUpdate
+  items, devices, onAdd, onRemove, onUpdate, onBulkAdd
 }: {
   items: DuplicatePolicyItem[]
   devices: Device[]
   onAdd: () => void
   onRemove: (idx: number) => void
   onUpdate: (idx: number, patch: Partial<DuplicatePolicyItem>) => void
+  onBulkAdd: (newItems: DuplicatePolicyItem[]) => void
 }) {
   const today = new Date().toISOString().slice(0, 10)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(0)
+  const [yamlOpen, setYamlOpen] = useState(false)
+  const [yamlInput, setYamlInput] = useState('')
+  const [parsing, setParsing] = useState(false)
+
+  useEffect(() => { setPage(0) }, [search])
+
+  const deviceMap = Object.fromEntries(devices.map(d => [d.id, d]))
+  const withIdx = items.map((item, i) => ({ item, i }))
+  const filtered = search
+    ? withIdx.filter(({ item }) => {
+        const dev = deviceMap[item.device_id]
+        return [item.name, item.reason, item.registered_at, item.expires_at, dev?.name, dev?.ip_address]
+          .some(v => String(v ?? '').toLowerCase().includes(search.toLowerCase()))
+      })
+    : withIdx
+  const totalPages = Math.max(1, Math.ceil(filtered.length / EX_PAGE_SIZE))
+  const paged = filtered.slice(page * EX_PAGE_SIZE, (page + 1) * EX_PAGE_SIZE)
+
+  const handleYamlAdd = async () => {
+    setParsing(true)
+    try {
+      const parsed = await parseYamlToJson(yamlInput)
+      if (!Array.isArray(parsed)) throw new Error('리스트(-) 형식이어야 합니다.')
+      onBulkAdd(parsed as DuplicatePolicyItem[])
+      setYamlInput('')
+      setYamlOpen(false)
+      toast.success(`${(parsed as unknown[]).length}개 항목이 추가되었습니다.`)
+    } catch (e) {
+      toast.error('YAML 오류: ' + (e as Error).message)
+    } finally {
+      setParsing(false)
+    }
+  }
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="shrink-0">
           <p className="text-[12px] font-semibold text-ds-on-surface">중복정책 예외</p>
           <p className="text-[11px] text-ds-on-surface-variant/70 mt-0.5">Task 17 실행 시 해당 장비의 유효한 예외가 자동 적용됩니다.</p>
         </div>
-        <button
-          onClick={onAdd}
-          className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-ds-tertiary bg-ds-tertiary/8 border border-ds-tertiary/20 rounded-lg hover:bg-ds-tertiary/12 transition-colors"
-        >
-          <Plus className="w-3 h-3" />
-          추가
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-ds-on-surface-variant/50 pointer-events-none" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="검색"
+              className="h-7 pl-6 pr-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary w-32"
+            />
+          </div>
+          <button
+            onClick={() => setYamlOpen(v => !v)}
+            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/30 rounded-lg hover:bg-ds-surface-container-high transition-colors shrink-0"
+          >
+            YAML 일괄 추가
+            {yamlOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+          <button
+            onClick={onAdd}
+            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-ds-tertiary bg-ds-tertiary/8 border border-ds-tertiary/20 rounded-lg hover:bg-ds-tertiary/12 transition-colors shrink-0"
+          >
+            <Plus className="w-3 h-3" />
+            추가
+          </button>
+        </div>
       </div>
+
+      {yamlOpen && (
+        <div className="border border-ds-tertiary/20 bg-ds-tertiary/4 rounded-lg p-3 space-y-2">
+          <p className="text-[11px] text-ds-on-surface-variant/70">아래 형식으로 입력 후 추가하면 기존 목록에 병합됩니다.</p>
+          <textarea
+            value={yamlInput}
+            onChange={(e) => setYamlInput(e.target.value)}
+            placeholder={YAML_EXAMPLE}
+            spellCheck={false}
+            rows={8}
+            className="w-full px-3 py-2 text-[12px] font-mono leading-relaxed bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary resize-y"
+          />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleYamlAdd}
+              disabled={!yamlInput.trim() || parsing}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-ds-on-tertiary btn-primary-gradient rounded-lg shadow-sm disabled:opacity-50 transition-all"
+            >
+              {parsing ? '파싱 중…' : '추가'}
+            </button>
+            <button
+              onClick={() => { setYamlOpen(false); setYamlInput('') }}
+              className="px-3 py-1.5 text-[12px] text-ds-on-surface-variant hover:text-ds-on-surface transition-colors"
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="overflow-x-auto rounded-lg border border-ds-outline-variant/8">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -578,14 +722,14 @@ function DuplicatePolicyTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-ds-outline-variant/8">
-            {items.map((item, idx) => {
+            {paged.map(({ item, i }) => {
               const expired = item.expires_at && item.expires_at < today
               return (
-                <tr key={idx} className={`hover:bg-ds-surface-container-low/20 ${expired ? 'opacity-50' : ''}`}>
+                <tr key={i} className={`hover:bg-ds-surface-container-low/20 ${expired ? 'opacity-50' : ''}`}>
                   <td className="px-3 py-1.5">
                     <select
                       value={item.device_id ?? ''}
-                      onChange={(e) => onUpdate(idx, { device_id: Number(e.target.value) })}
+                      onChange={(e) => onUpdate(i, { device_id: Number(e.target.value) })}
                       className="w-full h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
                     >
                       <option value="">장비 선택</option>
@@ -597,7 +741,7 @@ function DuplicatePolicyTable({
                   <td className="px-3 py-1.5">
                     <input
                       value={item.name ?? ''}
-                      onChange={(e) => onUpdate(idx, { name: e.target.value })}
+                      onChange={(e) => onUpdate(i, { name: e.target.value })}
                       placeholder="정책명"
                       className="w-full h-7 px-2 text-[12px] font-mono bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
                     />
@@ -605,7 +749,7 @@ function DuplicatePolicyTable({
                   <td className="px-3 py-1.5">
                     <input
                       value={item.reason ?? ''}
-                      onChange={(e) => onUpdate(idx, { reason: e.target.value })}
+                      onChange={(e) => onUpdate(i, { reason: e.target.value })}
                       placeholder="예외 사유"
                       className="w-full h-7 px-2 text-[12px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
                     />
@@ -614,7 +758,7 @@ function DuplicatePolicyTable({
                     <input
                       type="date"
                       value={item.registered_at ?? ''}
-                      onChange={(e) => onUpdate(idx, { registered_at: e.target.value })}
+                      onChange={(e) => onUpdate(i, { registered_at: e.target.value })}
                       className="w-full h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
                     />
                   </td>
@@ -623,27 +767,51 @@ function DuplicatePolicyTable({
                       <input
                         type="date"
                         value={item.expires_at ?? ''}
-                        onChange={(e) => onUpdate(idx, { expires_at: e.target.value })}
+                        onChange={(e) => onUpdate(i, { expires_at: e.target.value })}
                         className="w-full h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
                       />
                       {expired && <span className="text-[10px] text-ds-error shrink-0">만료</span>}
                     </div>
                   </td>
                   <td className="px-3 py-1.5 text-right">
-                    <button onClick={() => onRemove(idx)} className="p-1 rounded hover:bg-red-50 text-ds-error transition-colors">
+                    <button onClick={() => onRemove(i)} className="p-1 rounded hover:bg-red-50 text-ds-error transition-colors">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </td>
                 </tr>
               )
             })}
-            {items.length === 0 && (
+            {paged.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-[12px] text-ds-on-surface-variant italic">등록된 항목이 없습니다.</td>
+                <td colSpan={6} className="px-4 py-6 text-center text-[12px] text-ds-on-surface-variant italic">
+                  {search ? '검색 결과가 없습니다.' : '등록된 항목이 없습니다.'}
+                </td>
               </tr>
             )}
           </tbody>
         </table>
+      </div>
+      <div className="flex items-center justify-between text-[11px] text-ds-on-surface-variant">
+        <span>{filtered.length}개 항목</span>
+        {totalPages > 1 && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(p => p - 1)}
+              disabled={page === 0}
+              className="p-0.5 rounded hover:bg-ds-surface-container-high disabled:opacity-30"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span>{page + 1} / {totalPages}</span>
+            <button
+              onClick={() => setPage(p => p + 1)}
+              disabled={page >= totalPages - 1}
+              className="p-0.5 rounded hover:bg-ds-surface-container-high disabled:opacity-30"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -821,6 +989,10 @@ function DeletionWorkflowSettings() {
           onUpdate={(i, patch) => {
             const items = (getExceptions('duplicate_policies') as unknown as DuplicatePolicyItem[])
             setExceptions('duplicate_policies', items.map((item, idx) => idx === i ? { ...item, ...patch } : item) as unknown as ExceptionItem[])
+          }}
+          onBulkAdd={(newItems) => {
+            const existing = (getExceptions('duplicate_policies') as unknown as DuplicatePolicyItem[])
+            setExceptions('duplicate_policies', [...existing, ...newItems] as unknown as ExceptionItem[])
           }}
         />
       </div>

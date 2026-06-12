@@ -318,6 +318,17 @@ async def import_deletion_workflow_config(
     return {"ok": True, "message": "설정이 복구되었습니다."}
 
 
+@router.post("/deletion-workflow/parse-yaml")
+async def parse_yaml_to_json(request: Request):
+    """YAML 텍스트를 JSON으로 파싱하여 반환합니다."""
+    raw = await request.body()
+    try:
+        result = yaml.safe_load(raw.decode("utf-8"))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"YAML 파싱 오류: {e}")
+    return {"data": result}
+
+
 @router.get("/deletion-workflow/config/yaml")
 async def get_deletion_workflow_config_yaml(db: AsyncSession = Depends(get_db)):
     """현재 삭제 워크플로우 설정을 YAML 텍스트로 반환합니다."""
