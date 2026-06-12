@@ -950,15 +950,6 @@ function DeletionWorkflowSettings() {
           onUpdate={(i, patch) => updateItem('request_ids', i, patch)}
         />
         <ExceptionTable
-          title="정규식 패턴 예외"
-          items={getExceptions('policy_rules')}
-          keyField="pattern"
-          keyPlaceholder="정규식 패턴 (예: ^SYS_)"
-          onAdd={() => addItem('policy_rules', 'pattern')}
-          onRemove={(i) => removeItem('policy_rules', i)}
-          onUpdate={(i, patch) => updateItem('policy_rules', i, patch)}
-        />
-        <ExceptionTable
           title="고정 예외 목록 (정책명 완전일치)"
           items={getExceptions('static_list')}
           keyField="name"
