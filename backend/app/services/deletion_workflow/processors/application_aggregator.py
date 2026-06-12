@@ -36,46 +36,46 @@ class ApplicationAggregator(BaseProcessor):
         column_mapping = self.config.get(f'{agg_conf}.column_mapping', {})
         domain_map = self.config.get(f'{agg_conf}.email_domain_map', {})
 
-        xls = pd.ExcelFile(input_file)
+        # context manager: Windows에서 파일 핸들을 즉시 해제하기 위해 with 사용
         processed_sheets = []
+        with pd.ExcelFile(input_file) as xls:
+            for sheet_name in xls.sheet_names:
+                logger.info(f"처리 중: {sheet_name}")
+                df = pd.read_excel(xls, sheet_name=sheet_name)
 
-        for sheet_name in xls.sheet_names:
-            logger.info(f"처리 중: {sheet_name}")
-            df = pd.read_excel(xls, sheet_name=sheet_name)
+                if 'REQUEST_ID' in df.columns and '신청번호' in df.columns:
+                    df = df.drop(columns='신청번호')
 
-            if 'REQUEST_ID' in df.columns and '신청번호' in df.columns:
-                df = df.drop(columns='신청번호')
+                for old_col, new_col in column_mapping.items():
+                    if old_col in df.columns:
+                        df.rename(columns={old_col: new_col}, inplace=True)
 
-            for old_col, new_col in column_mapping.items():
-                if old_col in df.columns:
-                    df.rename(columns={old_col: new_col}, inplace=True)
+                df = df.reindex(columns=final_columns, fill_value="")
 
-            df = df.reindex(columns=final_columns, fill_value="")
+                df['WRITE_PERSON_EMAIL'] = df.apply(
+                    lambda row: f"{row['WRITE_PERSON_ID']}@{row['REQUESTER_EMAIL'].split('@')[1]}"
+                    if row.get('WRITE_PERSON_EMAIL') == "" and pd.notna(row.get('WRITE_PERSON_ID'))
+                    else row.get('WRITE_PERSON_EMAIL', ''),
+                    axis=1
+                )
 
-            df['WRITE_PERSON_EMAIL'] = df.apply(
-                lambda row: f"{row['WRITE_PERSON_ID']}@{row['REQUESTER_EMAIL'].split('@')[1]}"
-                if row.get('WRITE_PERSON_EMAIL') == "" and pd.notna(row.get('WRITE_PERSON_ID'))
-                else row.get('WRITE_PERSON_EMAIL', ''),
-                axis=1
-            )
-
-            def map_approval_email(row):
-                if not row.get('REQUESTER_EMAIL') or '@' not in row['REQUESTER_EMAIL']:
+                def map_approval_email(row):
+                    if not row.get('REQUESTER_EMAIL') or '@' not in row['REQUESTER_EMAIL']:
+                        return row.get('APPROVAL_PERSON_EMAIL', '')
+                    domain = row['REQUESTER_EMAIL'].split('@')[1]
+                    target_domain = domain_map.get(domain, domain)
+                    if row.get('APPROVAL_PERSON_EMAIL') == "" and pd.notna(row.get('APPROVAL_PERSON_ID')):
+                        return f"{row['APPROVAL_PERSON_ID']}@{target_domain}"
                     return row.get('APPROVAL_PERSON_EMAIL', '')
-                domain = row['REQUESTER_EMAIL'].split('@')[1]
-                target_domain = domain_map.get(domain, domain)
-                if row.get('APPROVAL_PERSON_EMAIL') == "" and pd.notna(row.get('APPROVAL_PERSON_ID')):
-                    return f"{row['APPROVAL_PERSON_ID']}@{target_domain}"
-                return row.get('APPROVAL_PERSON_EMAIL', '')
 
-            df['APPROVAL_PERSON_EMAIL'] = df.apply(map_approval_email, axis=1)
+                df['APPROVAL_PERSON_EMAIL'] = df.apply(map_approval_email, axis=1)
 
-            for date_column in ['REQUEST_START_DATE', 'REQUEST_END_DATE']:
-                if date_column in df.columns:
-                    df[date_column] = df[date_column].apply(self.format_date)
+                for date_column in ['REQUEST_START_DATE', 'REQUEST_END_DATE']:
+                    if date_column in df.columns:
+                        df[date_column] = df[date_column].apply(self.format_date)
 
-            processed_sheets.append(df)
-            logger.info(f"시트 '{sheet_name}' 처리 완료")
+                processed_sheets.append(df)
+                logger.info(f"시트 '{sheet_name}' 처리 완료")
 
         final_df = pd.concat(processed_sheets, ignore_index=True)
         if 'REQUEST_END_DATE' in final_df.columns:
