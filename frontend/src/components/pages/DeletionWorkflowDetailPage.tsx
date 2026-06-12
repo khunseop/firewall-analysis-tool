@@ -44,7 +44,8 @@ const PHASE2_TASKS: TaskMeta[] = [
   { step: 2, id: 8,  name: '신청정보 매핑',           description: '정책 파일 + GSAMS → 신청정보 매핑' },
   { step: 3, id: 9,  name: '자동연장 날짜 업데이트',  description: '자동연장 정책 탐지 및 날짜 업데이트' },
   { step: 4, id: 10, name: '예외처리 (벤더별)',       description: '정책 예외 분류 — 벤더에 따라 PaloAlto(10) 또는 SECUI(11) 자동 선택' },
-  { step: 5, id: 12, name: '사용이력 반영',           description: '예외처리 결과 + 히트카운트 → 사용이력 반영' },
+  { step: 5, id: 12, name: '사용이력 반영',           description: '예외처리 결과 + 히트카운트 → 사용이력 반영',
+    externalInputs: [{ slot: 'external_1', label: '사용이력 파일 (선택)', required: false }] },
   { step: 6, id: 13, name: '하단 최신정책 검증',     description: '동일 신청번호 내 최신 날짜 정책 위치 검증 및 분류' },
   { step: 7, id: 14, name: '중복정책 분류',           description: '중복결과(파싱) + 예외처리 결과 → 공지/삭제 분류' },
   { step: 8, id: 15, name: '중복 만료셋 예외처리',   description: '전체 만료 / 차단 영향 중복 세트 예외 분류' },
@@ -200,10 +201,15 @@ function TaskCard({
                 existingFile={getExternalFile(files, task.id, inp.slot)}
                 onUploaded={onRefresh}
               />
-              {/* Task 17 YAML: 업로드 없으면 Settings 예외 자동 주입 안내 */}
-              {!inp.required && inp.slot === 'external_1' && !getExternalFile(files, task.id, inp.slot) && (
+              {/* 선택 파일 미업로드 시 동작 안내 */}
+              {!inp.required && inp.slot === 'external_1' && !getExternalFile(files, task.id, inp.slot) && task.id === 17 && (
                 <p className="text-[11px] text-ds-on-surface-variant/70 mt-1 ml-1">
                   ℹ️ 파일 없으면 Settings → 삭제 워크플로우의 중복정책 예외가 자동 적용됩니다.
+                </p>
+              )}
+              {!inp.required && inp.slot === 'external_1' && !getExternalFile(files, task.id, inp.slot) && task.id === 12 && (
+                <p className="text-[11px] text-ds-on-surface-variant/70 mt-1 ml-1">
+                  ℹ️ 파일 없으면 Task 1 출력(히트카운트 병합)을 자동 사용합니다. 별도 사용이력 파일이 있으면 업로드하세요.
                 </p>
               )}
             </div>
