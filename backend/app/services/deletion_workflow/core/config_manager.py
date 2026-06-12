@@ -23,16 +23,26 @@ logger = logging.getLogger(__name__)
 class ConfigManager:
     """fpat.yaml 기반 삭제 워크플로 설정 관리자"""
 
-    def __init__(self, config_path: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        config_path: Optional[str] = None,
+        config_dict: Optional[Dict[str, Any]] = None,
+    ) -> None:
         """
         설정 관리자를 초기화합니다.
 
-        탐색 순서:
+        config_dict가 주어지면 파일 탐색 없이 직접 사용합니다 (DB 연동용).
+        없으면 탐색 순서:
         1. config_path (명시적 경로)
         2. FPAT_CONFIG 환경 변수
         3. 현재 작업 디렉토리의 fpat.yaml / fpat.yml / config.json
         4. 이 모듈 기준 상위 디렉토리의 fpat.yaml
         """
+        if config_dict is not None:
+            self.config_path = "<dict>"
+            self.config_data = config_dict
+            logger.info("설정 dict에서 직접 로드")
+            return
         self.config_path = self._find_config(config_path)
         self.config_data = self._load_config()
         logger.info(f"설정 파일 로드: {self.config_path}")
