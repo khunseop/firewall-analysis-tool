@@ -35,7 +35,7 @@ def _default_config() -> dict:
         "file_management": {
             "policy_version_format": "_v{version}",
             "final_version_suffix": "_vf",
-            "request_id_prefix": "request_id_",
+            "request_id_prefix": "GSAMS신청번호_",
             "default_extension": ".xlsx",
         },
         "analysis_criteria": {
@@ -49,27 +49,30 @@ def _default_config() -> dict:
             "duplicate_policies": [],  # [{device_id, name, reason, registered_at, expires_at}]
         },
         "policy_processing": {
-            "request_parsing": {},
+            "request_parsing": {
+                "gsams_3_pattern": "",
+                "gsams_1_rulename_pattern": "",
+                "gsams_1_user_pattern": "",
+                "gsams_1_desc_pattern": "",
+                "gsams_1_date_pattern": "",
+            },
             "analysis_markers": {
                 "paloalto": {
-                    "deny_standard_rule_name": "Deny_All",
-                    "infrastructure_prefixes": ["X", "X-", "SYS_"],
+                    "deny_standard_rule_name": "",
+                    "infrastructure_prefixes": [],
                     "infrastructure_exception_label": "인프라정책",
-                    "special_policy_label": "특수정책",
+                    "special_policy_label": "라인그룹정책",
                 },
                 "secui": {
-                    "deny_standard_description_keyword": "차단기준",
+                    "deny_standard_description_keyword": "",
                     "infrastructure_exception_label": "인프라정책",
                 },
             },
             "aggregation": {
                 "column_mapping": {},
-                "final_columns": [
-                    "REQUEST_ID", "REQUEST_START_DATE",
-                    "REQUEST_END_DATE", "REQUESTER_ID",
-                ],
+                "final_columns": [],
                 "email_domain_map": {},
-                "title_bracket_pattern": r"^\[([^\[\]]{1,8})\]",
+                "title_bracket_pattern": "",
             },
         },
         "excel_styles": {
