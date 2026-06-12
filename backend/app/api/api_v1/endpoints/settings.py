@@ -4,6 +4,8 @@ import logging
 import os
 from typing import Any, Dict, List
 
+import yaml
+
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from fastapi.responses import Response
 from pydantic import BaseModel
@@ -124,7 +126,6 @@ def _load_fpat_yaml() -> dict:
     if not os.path.exists(_FPAT_YAML):
         return _default_config()
     try:
-        import yaml
         with open(_FPAT_YAML, 'r', encoding='utf-8') as f:
             data = yaml.safe_load(f) or {}
         return _deep_merge(_default_config(), data)
@@ -138,7 +139,6 @@ def _write_fpat_yaml(config: dict) -> None:
     if not os.path.exists(os.path.dirname(_FPAT_YAML)):
         return
     try:
-        import yaml
         with open(_FPAT_YAML, 'w', encoding='utf-8') as f:
             yaml.dump(
                 config, f,
