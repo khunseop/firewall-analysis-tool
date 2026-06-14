@@ -21,6 +21,7 @@ def get_kst_now():
 from app import crud
 from app.schemas.analysis import AnalysisTaskCreate, AnalysisTaskUpdate, AnalysisResultCreate
 from app.models.analysis import AnalysisTaskType
+from app.services.audit_log import log_activity
 from .redundancy import RedundancyAnalyzer
 from .unused import UnusedPolicyAnalyzer
 from .impact import ImpactAnalyzer
@@ -64,6 +65,7 @@ async def run_redundancy_analysis_task(db: AsyncSession, device_id: int):
             task_status='in_progress'
         )
         task = await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+        await log_activity(db, title="중복 정책 분석 시작", message=f"Device ID {device_id} 중복 정책 분석 시작", type="info", category="analysis", device_id=device_id)
 
         try:
             # [단계 3] 실제 분석 로직 실행 (해소된 값 기준 정확한 일치)
@@ -93,17 +95,18 @@ async def run_redundancy_analysis_task(db: AsyncSession, device_id: int):
                 task_status='success'
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+            await log_activity(db, title="중복 정책 분석 완료", message=f"Device ID {device_id} 중복 정책 분석 완료", type="success", category="analysis", device_id=device_id)
             logger.info(f"중복 정책 분석 성공. Task ID: {task.id}")
 
         except Exception as e:
             logger.error(f"중복 정책 분석 실패. Task ID: {task.id}, Error: {e}", exc_info=True)
-            # 실패 상태로 업데이트
             task_update = AnalysisTaskUpdate(
                 completed_at=get_kst_now(),
                 task_status='failure',
                 error_message=str(e)
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+            await log_activity(db, title="중복 정책 분석 실패", message=f"Device ID {device_id} 중복 정책 분석 실패: {str(e)[:200]}", type="error", category="analysis", device_id=device_id)
 
 
 async def run_unused_analysis_task(db: AsyncSession, device_id: int, days: int = 90):
@@ -130,6 +133,7 @@ async def run_unused_analysis_task(db: AsyncSession, device_id: int, days: int =
             task_status='in_progress'
         )
         task = await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+        await log_activity(db, title="미사용 정책 분석 시작", message=f"Device ID {device_id} 미사용 정책 분석 시작 (기준: {days}일)", type="info", category="analysis", device_id=device_id)
 
         try:
             # 분석 엔진 실행
@@ -152,6 +156,7 @@ async def run_unused_analysis_task(db: AsyncSession, device_id: int, days: int =
                 task_status='success'
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+            await log_activity(db, title="미사용 정책 분석 완료", message=f"Device ID {device_id} 미사용 정책 분석 완료", type="success", category="analysis", device_id=device_id)
             logger.info(f"미사용 정책 분석 성공. Task ID: {task.id}")
 
         except Exception as e:
@@ -162,6 +167,7 @@ async def run_unused_analysis_task(db: AsyncSession, device_id: int, days: int =
                 error_message=str(e)
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+            await log_activity(db, title="미사용 정책 분석 실패", message=f"Device ID {device_id} 미사용 정책 분석 실패: {str(e)[:200]}", type="error", category="analysis", device_id=device_id)
 
 
 async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_policy_ids: List[int], new_position: int, move_direction: Optional[str] = None):
@@ -189,6 +195,7 @@ async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_poli
             task_status='in_progress'
         )
         task = await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+        await log_activity(db, title="영향도 분석 시작", message=f"Device ID {device_id} 정책 이동 영향도 분석 시작", type="info", category="analysis", device_id=device_id)
 
         try:
             # 영향 분석 엔진 실행
@@ -216,6 +223,7 @@ async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_poli
                 task_status='success'
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+            await log_activity(db, title="영향도 분석 완료", message=f"Device ID {device_id} 정책 이동 영향도 분석 완료", type="success", category="analysis", device_id=device_id)
             logger.info(f"정책이동 영향 분석 성공. Task ID: {task.id}")
 
         except Exception as e:
@@ -226,6 +234,7 @@ async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_poli
                 error_message=str(e)
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+            await log_activity(db, title="영향도 분석 실패", message=f"Device ID {device_id} 정책 이동 영향도 분석 실패: {str(e)[:200]}", type="error", category="analysis", device_id=device_id)
 
 
 async def run_unreferenced_objects_analysis_task(db: AsyncSession, device_id: int):
@@ -252,6 +261,7 @@ async def run_unreferenced_objects_analysis_task(db: AsyncSession, device_id: in
             task_status='in_progress'
         )
         task = await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+        await log_activity(db, title="미참조 객체 분석 시작", message=f"Device ID {device_id} 미참조 객체 분석 시작", type="info", category="analysis", device_id=device_id)
 
         try:
             # 미참조 객체 분석 엔진 실행
@@ -273,6 +283,7 @@ async def run_unreferenced_objects_analysis_task(db: AsyncSession, device_id: in
                 task_status='success'
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+            await log_activity(db, title="미참조 객체 분석 완료", message=f"Device ID {device_id} 미참조 객체 분석 완료", type="success", category="analysis", device_id=device_id)
             logger.info(f"미참조 객체 분석 성공. Task ID: {task.id}")
 
         except Exception as e:
@@ -283,6 +294,7 @@ async def run_unreferenced_objects_analysis_task(db: AsyncSession, device_id: in
                 error_message=str(e)
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+            await log_activity(db, title="미참조 객체 분석 실패", message=f"Device ID {device_id} 미참조 객체 분석 실패: {str(e)[:200]}", type="error", category="analysis", device_id=device_id)
 
 
 
@@ -310,6 +322,7 @@ async def run_risky_ports_analysis_task(db: AsyncSession, device_id: int, target
             task_status='in_progress'
         )
         task = await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+        await log_activity(db, title="위험 포트 분석 시작", message=f"Device ID {device_id} 위험 포트 분석 시작", type="info", category="analysis", device_id=device_id)
 
         try:
             analyzer = RiskyPortsAnalyzer(db_session=db, task=task, target_policy_ids=target_policy_ids)
@@ -331,6 +344,7 @@ async def run_risky_ports_analysis_task(db: AsyncSession, device_id: int, target
                 task_status='success'
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+            await log_activity(db, title="위험 포트 분석 완료", message=f"Device ID {device_id} 위험 포트 분석 완료", type="success", category="analysis", device_id=device_id)
             logger.info(f"위험 포트 정책 분석 작업 성공. Task ID: {task.id}")
 
         except Exception as e:
@@ -341,6 +355,7 @@ async def run_risky_ports_analysis_task(db: AsyncSession, device_id: int, target
                 error_message=str(e)
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+            await log_activity(db, title="위험 포트 분석 실패", message=f"Device ID {device_id} 위험 포트 분석 실패: {str(e)[:200]}", type="error", category="analysis", device_id=device_id)
 
 
 async def run_over_permissive_analysis_task(db: AsyncSession, device_id: int, target_policy_ids: Optional[List[int]] = None):
@@ -367,6 +382,7 @@ async def run_over_permissive_analysis_task(db: AsyncSession, device_id: int, ta
             task_status='in_progress'
         )
         task = await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+        await log_activity(db, title="과허용 정책 분석 시작", message=f"Device ID {device_id} 과허용 정책 분석 시작", type="info", category="analysis", device_id=device_id)
 
         try:
             analyzer = OverPermissiveAnalyzer(db_session=db, task=task, target_policy_ids=target_policy_ids)
@@ -388,6 +404,7 @@ async def run_over_permissive_analysis_task(db: AsyncSession, device_id: int, ta
                 task_status='success'
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+            await log_activity(db, title="과허용 정책 분석 완료", message=f"Device ID {device_id} 과허용 정책 분석 완료", type="success", category="analysis", device_id=device_id)
             logger.info(f"과허용정책 분석 작업 성공. Task ID: {task.id}")
 
         except Exception as e:
@@ -398,3 +415,4 @@ async def run_over_permissive_analysis_task(db: AsyncSession, device_id: int, ta
                 error_message=str(e)
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+            await log_activity(db, title="과허용 정책 분석 실패", message=f"Device ID {device_id} 과허용 정책 분석 실패: {str(e)[:200]}", type="error", category="analysis", device_id=device_id)
