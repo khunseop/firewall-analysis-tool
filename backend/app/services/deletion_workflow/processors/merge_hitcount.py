@@ -34,7 +34,7 @@ class MergeHitcount(BaseProcessor):
             merged_df = pd.merge(df1, df2, on='Rule Name', suffixes=('_df1', '_df2'))
 
             merged_df['Vsys'] = merged_df['Vsys_df1']
-            merged_df['Hit Counts'] = merged_df['Hit Count_df1'] + merged_df['Hit Count_df2']
+            merged_df['Hit Counts'] = merged_df['Hit Count_df1'].fillna(0) + merged_df['Hit Count_df2'].fillna(0)
             merged_df['Last Hit Date'] = merged_df[['Last Hit Date_df1', 'Last Hit Date_df2']].max(axis=1)
             merged_df['Unused Days'] = merged_df[['Unused Days_df1', 'Unused Days_df2']].min(axis=1)
 

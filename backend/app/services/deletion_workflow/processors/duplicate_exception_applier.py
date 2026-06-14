@@ -40,8 +40,12 @@ class DuplicateExceptionApplier(BaseProcessor):
             valid_names = []
             for fw_exceptions in all_exceptions.values():
                 for item in fw_exceptions:
-                    expires_at    = datetime.strptime(item['expires_at'], '%Y-%m-%d').date()
-                    registered_at = datetime.strptime(item['registered_at'], '%Y-%m-%d').date()
+                    try:
+                        expires_at    = datetime.strptime(item['expires_at'], '%Y-%m-%d').date()
+                        registered_at = datetime.strptime(item['registered_at'], '%Y-%m-%d').date()
+                    except (ValueError, KeyError) as e:
+                        logger.warning(f"YAML 항목 날짜 파싱 실패 ({item.get('name', '?')}): {e}")
+                        continue
                     if expires_at >= current_date and registered_at < current_date:
                         valid_names.append(item['name'])
 
