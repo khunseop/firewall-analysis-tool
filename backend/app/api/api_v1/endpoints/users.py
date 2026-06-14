@@ -8,6 +8,7 @@ from app.models.user import User
 from app.schemas.user import UserOut, UserCreate
 from app.core.auth import get_current_user, hash_password
 from app import crud
+from app.services.audit_log import log_activity
 
 router = APIRouter()
 
@@ -31,13 +32,24 @@ async def list_users(
 async def create_user(
     body: UserCreate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(_require_admin),
+    current_user: User = Depends(_require_admin),
 ):
     """사용자 생성"""
     existing = await crud.user.get_user_by_username(db, body.username)
     if existing:
         raise HTTPException(status_code=409, detail="이미 존재하는 사용자명입니다")
-    return await crud.user.create_user(db, body.username, body.password, body.is_admin)
+    new_user = await crud.user.create_user(db, body.username, body.password, body.is_admin)
+    role = "관리자" if body.is_admin else "일반 사용자"
+    await log_activity(
+        db,
+        title="사용자 생성",
+        message=f"'{body.username}' 계정 생성 ({role}) — 수행자: {current_user.username}",
+        type="success",
+        category="user",
+        user_id=current_user.id,
+        username=current_user.username,
+    )
+    return new_user
 
 
 @router.patch("/{user_id}/password", status_code=204)
@@ -45,7 +57,7 @@ async def change_password(
     user_id: int,
     body: dict,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(_require_admin),
+    current_user: User = Depends(_require_admin),
 ):
     """비밀번호 변경"""
     new_password = body.get("password", "").strip()
@@ -59,6 +71,15 @@ async def change_password(
 
     user.hashed_password = hash_password(new_password)
     await db.commit()
+    await log_activity(
+        db,
+        title="비밀번호 변경",
+        message=f"'{user.username}' 계정 비밀번호 변경 — 수행자: {current_user.username}",
+        type="info",
+        category="user",
+        user_id=current_user.id,
+        username=current_user.username,
+    )
 
 
 @router.patch("/{user_id}/active", response_model=UserOut)
@@ -84,6 +105,16 @@ async def toggle_active(
     user.is_active = bool(is_active)
     await db.commit()
     await db.refresh(user)
+    action = "활성화" if is_active else "비활성화"
+    await log_activity(
+        db,
+        title=f"계정 {action}",
+        message=f"'{user.username}' 계정 {action} — 수행자: {current_user.username}",
+        type="info",
+        category="user",
+        user_id=current_user.id,
+        username=current_user.username,
+    )
     return user
 
 
@@ -102,5 +133,15 @@ async def delete_user(
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
 
+    deleted_username = user.username
     await db.delete(user)
     await db.commit()
+    await log_activity(
+        db,
+        title="사용자 삭제",
+        message=f"'{deleted_username}' 계정 삭제 — 수행자: {current_user.username}",
+        type="warning",
+        category="user",
+        user_id=current_user.id,
+        username=current_user.username,
+    )

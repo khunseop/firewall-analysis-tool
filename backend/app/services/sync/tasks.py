@@ -21,6 +21,7 @@ from app.services.sync.transform import (
 )
 from app.services.sync.collector import create_collector_from_device
 from app.services.policy_indexer import rebuild_policy_indices
+from app.services.audit_log import log_activity
 
 # 동적 세마포어를 위한 전역 변수
 _device_sync_semaphore: asyncio.Semaphore | None = None
@@ -440,6 +441,15 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
             # 상태 업데이트: 연결 중
             await crud.device.update_sync_status(db=db, device=device, status="in_progress", step="Connecting...")
             await db.commit()
+            await log_activity(
+                db,
+                title="동기화 시작",
+                message=f"'{device.name}' ({device.ip_address}) 동기화 시작",
+                type="info",
+                category="sync",
+                device_id=device.id,
+                device_name=device.name,
+            )
 
         collector = create_collector_from_device(device)
         loop = asyncio.get_running_loop()
@@ -623,6 +633,15 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                         deleted_count=0,
                     ))
                     await db.commit()
+                    await log_activity(
+                        db,
+                        title="동기화 완료",
+                        message=f"'{device.name}' 동기화 완료 (정책 {total_policies}건)",
+                        type="success",
+                        category="sync",
+                        device_id=device_id,
+                        device_name=device.name,
+                    )
 
             logging.info(f"[orchestrator] sync-all finished successfully for device_id={device_id}")
 
@@ -633,6 +652,15 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                 if device_to_update:
                     await crud.device.update_sync_status(db=db, device=device_to_update, status="failure", step="Failed")
                     await db.commit()
+                    await log_activity(
+                        db,
+                        title="동기화 실패",
+                        message=f"'{device_to_update.name}' 동기화 실패: {str(e)[:200]}",
+                        type="error",
+                        category="sync",
+                        device_id=device_id,
+                        device_name=device_to_update.name,
+                    )
         finally:
             # 장비 연결 해제
             await loop.run_in_executor(None, getattr(collector, 'disconnect', lambda: None))

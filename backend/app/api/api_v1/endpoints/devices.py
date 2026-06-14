@@ -12,6 +12,9 @@ import logging
 from app import crud, models, schemas
 from app.db.session import get_db
 from app.services import device_service
+from app.core.auth import get_current_user
+from app.models.user import User
+from app.services.audit_log import log_activity
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -19,14 +22,27 @@ logger = logging.getLogger(__name__)
 @router.post("/", response_model=schemas.Device)
 async def create_device(
     device_in: schemas.DeviceCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     if device_in.password != device_in.password_confirm:
         raise HTTPException(status_code=400, detail="Passwords do not match")
     db_device = await crud.device.get_device_by_name(db, name=device_in.name)
     if db_device:
         raise HTTPException(status_code=400, detail="Device with this name already registered")
-    return await crud.device.create_device(db=db, device=device_in)
+    new_device = await crud.device.create_device(db=db, device=device_in)
+    await log_activity(
+        db,
+        title="장비 등록",
+        message=f"'{device_in.name}' ({device_in.ip_address}, {device_in.vendor}) 장비 등록 — 수행자: {current_user.username}",
+        type="success",
+        category="device",
+        device_id=new_device.id,
+        device_name=new_device.name,
+        user_id=current_user.id,
+        username=current_user.username,
+    )
+    return new_device
 
 @router.get("/", response_model=List[schemas.Device])
 async def read_devices(
@@ -166,7 +182,8 @@ async def read_device(
 async def update_device(
     device_id: int,
     device_in: schemas.DeviceUpdate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     if device_in.password and device_in.password != device_in.password_confirm:
         raise HTTPException(status_code=400, detail="Passwords do not match")
@@ -174,16 +191,39 @@ async def update_device(
     if db_device is None:
         raise HTTPException(status_code=404, detail="Device not found")
     updated_device = await crud.device.update_device(db=db, db_obj=db_device, obj_in=device_in)
+    await log_activity(
+        db,
+        title="장비 정보 수정",
+        message=f"'{updated_device.name}' 장비 정보 수정 — 수행자: {current_user.username}",
+        type="info",
+        category="device",
+        device_id=updated_device.id,
+        device_name=updated_device.name,
+        user_id=current_user.id,
+        username=current_user.username,
+    )
     return updated_device
 
 @router.delete("/{device_id}", response_model=schemas.Device)
 async def delete_device(
     device_id: int,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     db_device = await crud.device.remove_device(db, id=device_id)
     if db_device is None:
         raise HTTPException(status_code=404, detail="Device not found")
+    await log_activity(
+        db,
+        title="장비 삭제",
+        message=f"'{db_device.name}' ({db_device.ip_address}) 장비 삭제 — 수행자: {current_user.username}",
+        type="warning",
+        category="device",
+        device_id=db_device.id,
+        device_name=db_device.name,
+        user_id=current_user.id,
+        username=current_user.username,
+    )
     return db_device
 
 @router.post("/{device_id}/test-connection", response_model=dict)
@@ -208,7 +248,8 @@ async def test_connection(
 @router.post("/bulk-import")
 async def bulk_import_devices(
     file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """엑셀 파일을 통한 장비 일괄 등록"""
     if not file.filename.endswith(('.xlsx', '.xls')):
@@ -356,7 +397,19 @@ async def bulk_import_devices(
         result_message = f"총 {len(devices)}개 중 {success_count}개 장비가 등록되었습니다."
         if failed_devices:
             result_message += f"\n\n실패한 항목:\n" + "\n".join(failed_devices)
-        
+
+        await log_activity(
+            db,
+            title="장비 일괄 등록",
+            message=f"엑셀 일괄 등록: 총 {len(devices)}개 중 {success_count}개 성공"
+                    + (f", {len(failed_devices)}개 실패" if failed_devices else "")
+                    + f" — 수행자: {current_user.username}",
+            type="success" if success_count > 0 else "warning",
+            category="device",
+            user_id=current_user.id,
+            username=current_user.username,
+        )
+
         return {
             "success": True,
             "total": len(devices),
