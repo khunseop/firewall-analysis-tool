@@ -283,6 +283,25 @@ export const resetAllProjectFiles = async (projectId: number): Promise<{ ok: boo
   return res.json()
 }
 
+export const completeProject = async (
+  projectId: number,
+): Promise<{ blob: Blob; filename: string }> => {
+  const token = useAuthStore.getState().token
+  const res = await fetch(`/api/v1/deletion-workflow/projects/${projectId}/complete`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.detail || '완료 처리 실패')
+  }
+  const blob = await res.blob()
+  const disposition = res.headers.get('content-disposition') || ''
+  const match = disposition.match(/filename\*=UTF-8''([^;]+)/i) || disposition.match(/filename="?([^";]+)"?/)
+  const filename = match ? decodeURIComponent(match[1]) : `project_${projectId}_완료결과.zip`
+  return { blob, filename }
+}
+
 export const clearProjectOutputs = async (
   projectId: number,
   taskIds: number[],

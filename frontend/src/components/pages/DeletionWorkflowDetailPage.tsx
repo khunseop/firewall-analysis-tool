@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   ArrowLeft, Database, Play, Download, Upload, CheckCircle2, AlertCircle,
-  Loader2, Zap, RotateCcw, Square, RefreshCw, CalendarDays, Pencil, X, Check,
+  Loader2, Zap, RotateCcw, Square, RefreshCw, CalendarDays, Pencil, X, Check, PackageCheck,
 } from 'lucide-react'
 import {
   getProject,
@@ -15,6 +15,7 @@ import {
   resetAllProjectFiles,
   clearProjectOutputs,
   updateProject,
+  completeProject,
   type DeletionWorkflowProjectDetail,
   type ProjectFileState,
 } from '@/api/deletionWorkflow'
@@ -552,6 +553,9 @@ export default function DeletionWorkflowDetailPage() {
   const [resetConfirm, setResetConfirm] = useState(false)
   const [resetting, setResetting] = useState(false)
 
+  // 완료 처리
+  const [completing, setCompleting] = useState(false)
+
   // 기준일 인라인 편집
   const [editingRefDate, setEditingRefDate] = useState(false)
   const [refDateInput, setRefDateInput] = useState('')
@@ -760,6 +764,23 @@ export default function DeletionWorkflowDetailPage() {
     }
   }
 
+  // ── 완료 처리 ────────────────────────────────────────────────────────────
+
+  const handleComplete = async () => {
+    setCompleting(true)
+    try {
+      const { blob, filename } = await completeProject(projectId)
+      triggerDownload(blob, filename)
+      qc.invalidateQueries({ queryKey: ['deletion-workflow-project', projectId] })
+      qc.invalidateQueries({ queryKey: ['deletion-workflow-projects'] })
+      toast.success('프로젝트 완료 — 결과파일이 저장되었습니다.')
+    } catch (e: unknown) {
+      toast.error((e as Error).message)
+    } finally {
+      setCompleting(false)
+    }
+  }
+
   // ── 렌더링 ──────────────────────────────────────────────────────────────
 
   if (isLoading) {
@@ -792,6 +813,10 @@ export default function DeletionWorkflowDetailPage() {
   const autoRunBlockedMeta = autoRunBlockedAt !== null
     ? ALL_TASK_META.find((t) => t.id === autoRunBlockedAt)
     : null
+
+  // 완료 버튼 표시 조건: task 14 또는 18에 output 파일이 존재
+  const canComplete = project.status !== 'completed' &&
+    (hasOutput(files, 14) || hasOutput(files, 18))
 
   return (
     <div className="h-full flex flex-col">
@@ -868,6 +893,21 @@ export default function DeletionWorkflowDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {/* 완료됨 배지 or 완료 버튼 */}
+          {project.status === 'completed' ? (
+            <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <PackageCheck className="w-3 h-3" /> 완료됨
+            </span>
+          ) : canComplete && (
+            <button
+              onClick={handleComplete}
+              disabled={completing}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+            >
+              {completing ? <Loader2 className="w-3 h-3 animate-spin" /> : <PackageCheck className="w-3 h-3" />}
+              완료
+            </button>
+          )}
           {/* 자동실행 / 중지 */}
           {autoRunning ? (
             <button
