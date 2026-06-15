@@ -12,6 +12,7 @@ import shutil
 import logging
 import tempfile
 import threading
+from datetime import date
 from typing import List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -34,9 +35,11 @@ class WorkspaceRunner:
         self,
         config_path: Optional[str] = None,
         config_dict: Optional[dict] = None,
+        reference_date: Optional[date] = None,
     ):
         self.config_path = config_path
         self.config_dict = config_dict
+        self.reference_date = reference_date
 
     def run_task(
         self,
@@ -104,7 +107,7 @@ class WorkspaceRunner:
             try:
                 os.chdir(workspace)
 
-                config = ConfigManager(config_path=self.config_path, config_dict=self.config_dict)
+                config = ConfigManager(config_path=self.config_path, config_dict=self.config_dict, reference_date=self.reference_date)
                 file_manager = FileManager(config)
                 excel_manager = ExcelManager(config)
                 file_manager.set_forced_files(list(filenames))

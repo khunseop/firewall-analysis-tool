@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, LargeBinary, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, Date, ForeignKey, LargeBinary, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 import datetime
@@ -12,6 +12,7 @@ class DeletionWorkflowProject(Base):
     name = Column(String, nullable=False)
     status = Column(String, default="draft", nullable=False)  # draft/running/completed
     memo = Column(String, nullable=True)
+    reference_date = Column(Date, nullable=True)  # 기준일: None이면 실행 시점 현재 날짜 사용
     created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 

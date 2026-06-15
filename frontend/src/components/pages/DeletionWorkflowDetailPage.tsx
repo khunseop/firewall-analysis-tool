@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   ArrowLeft, Database, Play, Download, Upload, CheckCircle2, AlertCircle,
-  Loader2, Zap, RotateCcw, Square, RefreshCw,
+  Loader2, Zap, RotateCcw, Square, RefreshCw, CalendarDays, Pencil, X, Check,
 } from 'lucide-react'
 import {
   getProject,
@@ -14,6 +14,7 @@ import {
   downloadTaskFile,
   resetAllProjectFiles,
   clearProjectOutputs,
+  updateProject,
   type DeletionWorkflowProjectDetail,
   type ProjectFileState,
 } from '@/api/deletionWorkflow'
@@ -551,6 +552,10 @@ export default function DeletionWorkflowDetailPage() {
   const [resetConfirm, setResetConfirm] = useState(false)
   const [resetting, setResetting] = useState(false)
 
+  // 기준일 인라인 편집
+  const [editingRefDate, setEditingRefDate] = useState(false)
+  const [refDateInput, setRefDateInput] = useState('')
+
   const { data: project, isLoading, error } = useQuery<DeletionWorkflowProjectDetail>({
     queryKey: ['deletion-workflow-project', projectId],
     queryFn: () => getProject(projectId),
@@ -558,6 +563,30 @@ export default function DeletionWorkflowDetailPage() {
   })
 
   const refresh = () => qc.invalidateQueries({ queryKey: ['deletion-workflow-project', projectId] })
+
+  const refDateMutation = useMutation({
+    mutationFn: (date: string | null) => updateProject(projectId, { reference_date: date }),
+    onSuccess: (data) => {
+      qc.setQueryData(
+        ['deletion-workflow-project', projectId],
+        (old: DeletionWorkflowProjectDetail | undefined) =>
+          old ? { ...old, reference_date: data.reference_date } : old,
+      )
+      qc.invalidateQueries({ queryKey: ['deletion-workflow-projects'] })
+      toast.success(data.reference_date ? `기준일이 ${data.reference_date}로 설정되었습니다.` : '기준일이 해제되었습니다.')
+      setEditingRefDate(false)
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+  const handleRefDateSave = () => {
+    refDateMutation.mutate(refDateInput || null)
+  }
+
+  const handleRefDateEdit = () => {
+    setRefDateInput(project?.reference_date ?? '')
+    setEditingRefDate(true)
+  }
 
   // ── 자동실행 ──────────────────────────────────────────────────────────────
 
@@ -779,9 +808,64 @@ export default function DeletionWorkflowDetailPage() {
           <h1 className="text-base font-semibold text-ds-on-surface truncate">
             {project.device_name} / {project.name}
           </h1>
-          <p className="text-xs text-ds-on-surface-variant mt-0.5">
-            {project.device_ip} · {project.device_vendor} · 생성 {new Date(project.created_at).toLocaleDateString('ko-KR')}
-          </p>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <p className="text-xs text-ds-on-surface-variant">
+              {project.device_ip} · {project.device_vendor} · 생성 {new Date(project.created_at).toLocaleDateString('ko-KR')}
+            </p>
+            <span className="text-ds-on-surface-variant/30 text-xs">·</span>
+            {editingRefDate ? (
+              <span className="flex items-center gap-1">
+                <CalendarDays className="w-3 h-3 text-amber-600 shrink-0" />
+                <input
+                  type="date"
+                  autoFocus
+                  value={refDateInput}
+                  onChange={(e) => setRefDateInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleRefDateSave()
+                    if (e.key === 'Escape') setEditingRefDate(false)
+                  }}
+                  className="text-xs border border-amber-300 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-400 bg-amber-50"
+                />
+                <button
+                  onClick={handleRefDateSave}
+                  disabled={refDateMutation.isPending}
+                  title="저장"
+                  className="p-0.5 rounded hover:bg-emerald-100 text-emerald-600 disabled:opacity-50"
+                >
+                  {refDateMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                </button>
+                <button
+                  onClick={() => setEditingRefDate(false)}
+                  title="취소"
+                  className="p-0.5 rounded hover:bg-gray-100 text-ds-on-surface-variant"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+                {refDateInput && (
+                  <button
+                    onClick={() => { setRefDateInput(''); refDateMutation.mutate(null) }}
+                    className="text-[10px] text-ds-on-surface-variant/60 hover:text-ds-error underline"
+                  >
+                    해제
+                  </button>
+                )}
+              </span>
+            ) : (
+              <button
+                onClick={handleRefDateEdit}
+                className="flex items-center gap-1 text-xs group"
+                title="기준일 수정"
+              >
+                <CalendarDays className="w-3 h-3 text-amber-600 shrink-0" />
+                {project.reference_date
+                  ? <span className="text-amber-700 font-medium">기준일: {project.reference_date}</span>
+                  : <span className="text-ds-on-surface-variant/50">기준일: 당일</span>
+                }
+                <Pencil className="w-2.5 h-2.5 text-ds-on-surface-variant/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {/* 자동실행 / 중지 */}

@@ -40,7 +40,7 @@ class DuplicateExceptionApplier(BaseProcessor):
                 return True
 
             # 모든 방화벽 예외 통합 적용 (인터랙티브 방화벽명 선택 제거)
-            current_date = datetime.now().date()
+            current_date = self.config.get_reference_date()
             valid_names = []
             for fw_exceptions in all_exceptions.values():
                 for item in fw_exceptions:

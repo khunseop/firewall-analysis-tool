@@ -86,7 +86,7 @@ class DuplicateExpiredCleaner(BaseProcessor):
                 unused_exc_df = df_summary_main[df_summary_main['미사용예외'] == True]
                 if not unused_exc_df.empty:
                     unused_threshold = self.config.get('analysis_criteria.unused_threshold_days', 90)
-                    today = datetime.now()
+                    today = self.config.get_reference_datetime()
                     entries = [
                         {
                             'name': str(r),
