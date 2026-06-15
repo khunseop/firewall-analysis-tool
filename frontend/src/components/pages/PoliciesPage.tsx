@@ -37,6 +37,30 @@ const CHANGE_META: Record<string, { label: string; cls: string }> = {
   hit_date_updated: { label: '히트', cls: 'bg-gray-100   text-gray-500' },
 }
 
+/**
+ * 콤마 구분 문자열을 파싱합니다. LDAP DN처럼 값 내부에 콤마가 있는 경우
+ * list_to_string이 생성한 quoted CSV 형식("v1,v2","v3,v4")을 올바르게 처리합니다.
+ */
+function parseCSVTokens(value: string): string[] {
+  const tokens: string[] = []
+  let current = ''
+  let inQuotes = false
+  for (const ch of value) {
+    if (ch === '"') {
+      inQuotes = !inQuotes
+    } else if (ch === ',' && !inQuotes) {
+      const trimmed = current.trim()
+      if (trimmed) tokens.push(trimmed)
+      current = ''
+    } else {
+      current += ch
+    }
+  }
+  const trimmed = current.trim()
+  if (trimmed) tokens.push(trimmed)
+  return tokens
+}
+
 /** 그리드 셀용 인라인 태그 (고정 높이, 최대 2개 + 개수) */
 function InlineTagCell({ value }: { value: string }) {
   const names = (value ?? '').split(',').map((s) => s.trim()).filter(Boolean)
@@ -339,7 +363,7 @@ export function PoliciesPage() {
       field: 'user', headerName: '사용자', minWidth: 100,
       cellRenderer: (p: { value: string | null }) => {
         if (!p.value) return <span className="text-[11px] text-ds-on-surface-variant">-</span>
-        const users = p.value.split(',').map((u) => u.trim()).filter(Boolean)
+        const users = parseCSVTokens(p.value)
         const first = users[0]
         const extra = users.length - 1
         return (
