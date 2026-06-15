@@ -31,6 +31,7 @@ _PUBLIC_PREFIXES = (
     "/static/",
     "/assets/",
     "/fonts/",
+    "/favicon",
     "/login",
     "/docs",
     "/redoc",
@@ -127,6 +128,11 @@ def _serve_react(fallback_status: int = 200) -> FileResponse:
     return JSONResponse({"detail": "Frontend not built"}, status_code=503)
 
 
+@app.get("/favicon.svg", include_in_schema=False)
+async def serve_favicon():
+    return FileResponse(REACT_DIST_DIR / "favicon.svg", media_type="image/svg+xml")
+
+
 @app.get("/login", include_in_schema=False)
 def serve_login():
     return _serve_react()
@@ -147,7 +153,7 @@ async def spa_fallback_handler(request: Request, exc: StarletteHTTPException):
     """Catch-all 404 handler for any React Router path not explicitly listed."""
     if exc.status_code == 404:
         path = request.url.path
-        excluded = ("/api/", "/static/", "/assets/", "/fonts/", "/docs", "/redoc")
+        excluded = ("/api/", "/static/", "/assets/", "/fonts/", "/favicon", "/docs", "/redoc")
         if not any(path.startswith(p) for p in excluded):
             index = REACT_DIST_DIR / "index.html"
             if index.exists():
