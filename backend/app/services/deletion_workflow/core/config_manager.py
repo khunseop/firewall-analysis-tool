@@ -177,7 +177,8 @@ class ConfigManager:
 
             match = False
             if category == 'request_ids':
-                match = (value == item.get('id', ''))
+                id_prefix = item.get('id', '')
+                match = bool(id_prefix) and value.startswith(id_prefix)
             elif category == 'policy_rules':
                 pattern = item.get('pattern', '')
                 try:
