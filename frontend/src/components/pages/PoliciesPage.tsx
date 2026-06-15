@@ -61,6 +61,13 @@ function parseCSVTokens(value: string): string[] {
   return tokens
 }
 
+/** parseCSVTokens로 파싱한 뒤, 콤마를 포함한 토큰을 따옴표로 재감싸 list_to_string 형식으로 복원합니다. */
+function formatCSVField(value: string | null | undefined): string {
+  if (!value) return ''
+  const tokens = parseCSVTokens(value)
+  return tokens.map(t => t.includes(',') ? `"${t}"` : t).join(',')
+}
+
 /** 그리드 셀용 인라인 태그 (고정 높이, 최대 2개 + 개수) */
 function InlineTagCell({ value }: { value: string }) {
   const names = (value ?? '').split(',').map((s) => s.trim()).filter(Boolean)
@@ -272,7 +279,7 @@ export function PoliciesPage() {
         '출발지': p.source,
         '목적지': p.destination,
         '서비스': p.service,
-        '사용자': p.user,
+        '사용자': formatCSVField(p.user),
         '보안 프로파일': p.security_profile,
         '카테고리': p.category,
         '설명': p.description,
