@@ -21,18 +21,22 @@ class DuplicateExceptionApplier(BaseProcessor):
             if not policy_file:
                 return False
 
+            df_policy = pd.read_excel(policy_file)
+
             yaml_file = file_manager.select_files()
             if not yaml_file:
                 logger.warning("YAML 파일이 제공되지 않아 예외 반영 없이 통과합니다.")
+                output_file = file_manager.update_version(policy_file, False)
+                df_policy.to_excel(output_file, index=False, engine='openpyxl')
                 return True
-
-            df_policy = pd.read_excel(policy_file)
 
             with open(yaml_file, 'r', encoding='utf-8') as f:
                 all_exceptions = yaml.safe_load(f) or {}
 
             if not all_exceptions:
                 logger.info("YAML 파일에 기록된 예외 데이터가 없습니다.")
+                output_file = file_manager.update_version(policy_file, False)
+                df_policy.to_excel(output_file, index=False, engine='openpyxl')
                 return True
 
             # 모든 방화벽 예외 통합 적용 (인터랙티브 방화벽명 선택 제거)
@@ -51,6 +55,8 @@ class DuplicateExceptionApplier(BaseProcessor):
 
             if not valid_names:
                 logger.info("유효기간 내 예외 정책이 없습니다.")
+                output_file = file_manager.update_version(policy_file, False)
+                df_policy.to_excel(output_file, index=False, engine='openpyxl')
                 return True
 
             if '미사용여부' not in df_policy.columns:
