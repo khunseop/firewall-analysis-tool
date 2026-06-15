@@ -26,6 +26,13 @@
 | `last_sync_at` | `DATETIME` | `NULLABLE` | 마지막 동기화 완료 시간 |
 | `last_sync_status` | `VARCHAR` | `NULLABLE` | 동기화 상태 (in_progress, success, failure) |
 | `last_sync_step` | `VARCHAR` | `NULLABLE` | 현재 진행 중인 동기화 단계 메시지 |
+| `cached_policies` | `INTEGER` | `DEFAULT 0` | 전체 정책 수 캐시 |
+| `cached_active_policies` | `INTEGER` | `DEFAULT 0` | 활성 정책 수 캐시 |
+| `cached_disabled_policies` | `INTEGER` | `DEFAULT 0` | 비활성 정책 수 캐시 |
+| `cached_network_objects` | `INTEGER` | `DEFAULT 0` | 네트워크 객체 수 캐시 |
+| `cached_network_groups` | `INTEGER` | `DEFAULT 0` | 네트워크 그룹 수 캐시 |
+| `cached_services` | `INTEGER` | `DEFAULT 0` | 서비스 객체 수 캐시 |
+| `cached_service_groups` | `INTEGER` | `DEFAULT 0` | 서비스 그룹 수 캐시 |
 
 ### `change_logs` Table (변경 이력)
 동기화 과정에서 탐지된 객체 및 정책의 변경 이력을 저장합니다.
@@ -159,9 +166,12 @@
 | :--- | :--- | :--- | :--- |
 | `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
 | `device_id` | `INTEGER` | `FOREIGN KEY` | 장비 참조 |
-| `task_type` | `ENUM` | `NOT NULL` | 분석 유형 (redundancy, unused 등) |
-| `task_status` | `ENUM` | `NOT NULL` | 상태 (pending, success 등) |
+| `task_type` | `ENUM` | `NOT NULL` | 분석 유형 (redundancy, unused, impact, unreferenced_objects, risky_ports, over_permissive) |
+| `task_status` | `ENUM` | `NOT NULL` | 상태 (pending, in_progress, success, failure) |
 | `created_at` | `DATETIME` | `NOT NULL` | 생성 시간 |
+| `started_at` | `DATETIME` | `NULLABLE` | 분석 시작 시간 |
+| `completed_at` | `DATETIME` | `NULLABLE` | 분석 완료 시간 |
+| `error_message` | `VARCHAR` | `NULLABLE` | 실패 시 오류 메시지 |
 
 ### `analysis_results` Table (분석 결과)
 | Column | Type | Constraints | Description |
@@ -175,12 +185,10 @@
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
 | `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
-| `device_id` | `INTEGER` | `FOREIGN KEY` | 장비 참조 |
-| `policy_id` | `INTEGER` | `FOREIGN KEY` | 정책 참조 |
-| `redundant_policy_ids` | `JSON` | `NOT NULL` | 중복된 정책 ID 리스트 (JSON) |
-| `redundancy_type` | `VARCHAR` | `NOT NULL` | 중복 유형 (covered_by, covers, exact_match) |
-| `confidence_score` | `FLOAT` | `NULLABLE` | 신뢰도 점수 (0.0 ~ 1.0) |
-| `created_at` | `DATETIME` | `NOT NULL` | 분석 생성 시간 |
+| `task_id` | `INTEGER` | `FOREIGN KEY (analysistasks.id)` | 분석 작업 참조 (CASCADE) |
+| `set_number` | `INTEGER` | `NOT NULL` | 중복 세트 번호 (같은 번호끼리 한 세트) |
+| `type` | `ENUM` | `NOT NULL` | 정책 역할 (UPPER: 가리는 정책, LOWER: 가려지는 정책) |
+| `policy_id` | `INTEGER` | `FOREIGN KEY (policies.id)` | 정책 참조 (CASCADE) |
 
 ### `notification_logs` Table (시스템 알림)
 | Column | Type | Constraints | Description |
@@ -191,6 +199,17 @@
 | `message` | `TEXT` | `NOT NULL` | 내용 |
 | `type` | `VARCHAR` | `NOT NULL` | 타입 (info, error 등) |
 | `category` | `VARCHAR` | `NULLABLE` | 카테고리 (sync, analysis) |
+
+### `sync_histories` Table (동기화 이력)
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
+| `device_id` | `INTEGER` | `FOREIGN KEY (devices.id)` | 장비 참조 |
+| `sync_at` | `DATETIME` | `NOT NULL` | 동기화 실행 시간 |
+| `total_policies` | `INTEGER` | `NULLABLE` | 동기화 후 전체 정책 수 |
+| `created_count` | `INTEGER` | `DEFAULT 0` | 신규 생성된 항목 수 |
+| `updated_count` | `INTEGER` | `DEFAULT 0` | 수정된 항목 수 |
+| `deleted_count` | `INTEGER` | `DEFAULT 0` | 삭제된 항목 수 |
 
 ---
 
@@ -211,3 +230,31 @@
 | `days_of_week` | `JSON` | `NOT NULL` | 실행 요일 [0-6] |
 | `time` | `VARCHAR` | `NOT NULL` | 실행 시간 (HH:MM) |
 | `device_ids` | `JSON` | `NOT NULL` | 대상 장비 ID 리스트 |
+
+---
+
+## 6. 삭제 워크플로우
+
+### `deletion_workflow_projects` Table (삭제 워크플로우 프로젝트)
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
+| `device_id` | `INTEGER` | `FOREIGN KEY (devices.id)` | 장비 참조 |
+| `name` | `VARCHAR` | `NOT NULL` | 프로젝트 이름 |
+| `status` | `VARCHAR` | `DEFAULT 'draft'` | 상태 (draft, running, completed) |
+| `memo` | `VARCHAR` | `NULLABLE` | 메모 |
+| `created_at` | `DATETIME` | `NOT NULL` | 생성 시간 |
+| `updated_at` | `DATETIME` | `NOT NULL` | 마지막 수정 시간 |
+
+### `deletion_workflow_files` Table (삭제 워크플로우 파일)
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
+| `project_id` | `INTEGER` | `FOREIGN KEY (deletion_workflow_projects.id)` | 프로젝트 참조 (CASCADE) |
+| `task_id` | `INTEGER` | `NOT NULL` | 파이프라인 태스크 번호 (0~14) |
+| `slot` | `VARCHAR` | `NOT NULL` | 파일 슬롯 (output_0, output_1, external_1, external_2) |
+| `filename` | `VARCHAR` | `NOT NULL` | 파일명 |
+| `file_data` | `BLOB` | `NOT NULL` | 파일 바이너리 데이터 |
+| `created_at` | `DATETIME` | `NOT NULL` | 생성 시간 |
+
+> `(project_id, task_id, slot)` 조합이 UNIQUE 제약.

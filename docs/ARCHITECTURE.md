@@ -9,7 +9,8 @@
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      React Frontend (SPA)                        │
-│  (Auth, Devices, Policies, Objects, Analysis, Scheduling)       │
+│  Dashboard, Devices, Policies, Objects, Analysis, PolicyDiff,   │
+│  Schedules, Settings, Notifications, DeletionWorkflow           │
 └────────────────────────┬────────────────────────────────────────┘
                          │ HTTP/WebSocket
                          ▼
@@ -17,11 +18,18 @@
 │                         FastAPI Backend                         │
 ├─────────────────────────────────────────────────────────────────┤
 │ API Layer (app/api/api_v1/endpoints/)                           │
-│  ├─ auth.py          (인증)                                     │
-│  ├─ devices.py       (장비 관리)                                │
-│  ├─ firewall_*.py    (정책/객체 조회)                           │
-│  ├─ analysis.py      (분석 결과)                                │
-│  └─ ...                                                         │
+│  ├─ auth.py              (인증)                                 │
+│  ├─ devices.py           (장비 관리)                            │
+│  ├─ firewall_query.py    (정책/객체 조회)                       │
+│  ├─ firewall_sync.py     (동기화 실행)                          │
+│  ├─ analysis.py          (분석 결과)                            │
+│  ├─ deletion_workflow.py (삭제 워크플로우)                      │
+│  ├─ export.py            (데이터 내보내기)                      │
+│  ├─ notifications.py     (알림 로그)                            │
+│  ├─ settings.py          (앱 설정)                              │
+│  ├─ sync_schedule.py     (스케줄 관리)                          │
+│  ├─ users.py             (사용자 관리)                          │
+│  └─ websocket.py         (WebSocket)                            │
 ├─────────────────────────────────────────────────────────────────┤
 │ Service Layer (app/services/)                                   │
 │  ├─ sync/            (동기화 오케스트레이션)                    │
@@ -250,15 +258,25 @@ useSyncStatusWebSocket((msg) => {
 
 `app/services/deletion_workflow/`
 
-**흐름**:
+프로젝트(`deletion_workflow_projects`) 단위로 관리되며, Config 기반 프로세서 파이프라인을 통해 Excel 파일을 입출력합니다.
+
+**구조**:
 ```
-1. 삭제 대상 정책 선택
-2. Config 기반 프로세서 파이프라인
-   ├─ Validation
-   ├─ Dependency Check
-   └─ Excel Export
-3. 관리자 검토 및 승인
-4. 배치 삭제
+core/
+  ├─ config_manager.py    (파이프라인 설정 로드)
+  ├─ input_resolver.py    (입력 파일 해석)
+  ├─ pipeline.py          (태스크 실행 오케스트레이션)
+  └─ workspace_runner.py  (작업공간 관리)
+processors/
+  ├─ request_parser.py / request_extractor.py  (삭제 요청 파싱)
+  ├─ merge_hitcount.py                         (히트 카운트 병합)
+  ├─ duplicate_policy_classifier.py            (중복 정책 분류)
+  ├─ policy_usage_processor.py                 (정책 사용 여부 판단)
+  ├─ notification_classifier.py                (통보 대상 분류)
+  └─ ...
+utils/
+  ├─ excel_manager.py    (Excel 읽기/쓰기)
+  └─ file_manager.py     (파일 저장: deletion_workflow_files)
 ```
 
 ---

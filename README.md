@@ -125,15 +125,15 @@ ORM Models     (app/models/)  ──►  SQLite fat.db  (via Alembic)
 - **UI 라이브러리**: Radix UI (shadcn 스타일) + Tailwind CSS
 - **데이터 그리드**: Ag-Grid Community
 - **실시간 통신**: WebSocket (동기화·분석 진행 상황 업데이트)
+- **페이지**: Dashboard, Devices, Policies, Objects, Analysis, PolicyDiff, Schedules, Settings, Notifications, DeletionWorkflow
 
 ### 상세 문서
 
 | 문서 | 내용 |
 |------|------|
-| [DEVELOPMENT.md](./DEVELOPMENT.md) | 개발 환경 설정 및 명령어 |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | 시스템 아키텍처 및 데이터 흐름 상세 |
-| [DATABASE.md](./DATABASE.md) | DB 테이블 명세 |
-| [API.md](./API.md) | API 엔드포인트 명세 |
+| [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md) | 개발 환경 설정 및 명령어 |
+| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | 시스템 아키텍처 및 데이터 흐름 상세 |
+| [docs/DATABASE.md](./docs/DATABASE.md) | DB 테이블 명세 |
 | [CLAUDE.md](./CLAUDE.md) | 개발자 가이드라인 및 제약사항 |
 
 ---
