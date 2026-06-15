@@ -129,12 +129,7 @@ class DuplicatePolicyClassifier(BaseProcessor):
                 logger.error("중복정책 파일에 'Rule Name' 또는 '작업구분' 컬럼이 없습니다.")
                 return False
 
-            # 같은 Rule Name이 여러 그룹에 걸쳐 있으면 '삭제' 우선 유지
-            _pri = {'삭제': 0, '유지': 1}
-            _dup = duplicate_df[['Rule Name', '작업구분']].copy()
-            _dup['_p'] = _dup['작업구분'].map(_pri).fillna(99)
-            _dup = _dup.sort_values('_p').drop_duplicates(subset='Rule Name', keep='first')
-            duplicate_map = _dup.set_index('Rule Name')['작업구분'].to_dict()
+            duplicate_map = duplicate_df.set_index('Rule Name')['작업구분'].to_dict()
 
             updated_count = 0
             for idx, row in policy_df.iterrows():
