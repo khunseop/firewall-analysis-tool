@@ -184,8 +184,9 @@ def resolve_inputs(
         # 중복정책 상태 업데이트
         # policy: task_13(미사용여부 포함) 사용 — task_10/11(예외처리 결과)에는 미사용여부가 없어
         # task_16 → 17 → 18 흐름에서 통보대상 분류(Task 18)가 미사용여부를 읽지 못하는 버그 수정
+        # classify: output_2(_정리) 사용 — output_0(_공지)은 공지 대상만 포함, 삭제 대상 Rule이 누락됨
         policy   = _require(project_files, 13, "output_0", "하단최신정책 검증 결과")
-        classify = _require(project_files, 14, "output_0", "중복정책 분류 결과")
+        classify = _require(project_files, 14, "output_2", "중복정책 정리 결과")
         return collect(policy, classify)
 
     if task_id == 17:
