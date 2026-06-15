@@ -8,7 +8,7 @@ import json
 import logging
 import os
 import re
-from datetime import datetime
+from datetime import datetime, date
 from typing import Any, Dict, Optional
 
 try:
@@ -27,6 +27,7 @@ class ConfigManager:
         self,
         config_path: Optional[str] = None,
         config_dict: Optional[Dict[str, Any]] = None,
+        reference_date: Optional[date] = None,
     ) -> None:
         """
         설정 관리자를 초기화합니다.
@@ -37,7 +38,10 @@ class ConfigManager:
         2. FPAT_CONFIG 환경 변수
         3. 현재 작업 디렉토리의 fpat.yaml / fpat.yml / config.json
         4. 이 모듈 기준 상위 디렉토리의 fpat.yaml
+
+        reference_date: 만료·미사용 판단 기준일. None이면 실행 시점 현재 날짜 사용.
         """
+        self.reference_date: Optional[date] = reference_date
         if config_dict is not None:
             self.config_path = "<dict>"
             self.config_data = config_dict
@@ -121,6 +125,16 @@ class ConfigManager:
             logger.warning(f"잘못된 날짜 형식: {date_str}")
             return None
 
+    def get_reference_date(self) -> date:
+        """기준일을 date로 반환. 미설정 시 오늘."""
+        return self.reference_date or datetime.now().date()
+
+    def get_reference_datetime(self) -> datetime:
+        """기준일을 datetime으로 반환. 미설정 시 현재 시각."""
+        if self.reference_date:
+            return datetime(self.reference_date.year, self.reference_date.month, self.reference_date.day)
+        return datetime.now()
+
     def _is_in_period(self, item: dict) -> bool:
         """
         현재 날짜가 start~until 범위에 있는지 확인합니다.
@@ -129,7 +143,7 @@ class ConfigManager:
         - until만 있으면 → until 이전까지 예외
         - 둘 다 있으면 → start~until 범위 내 예외
         """
-        today = datetime.now().date()
+        today = self.get_reference_date()
         start = self._parse_date(item.get('start'))
         until = self._parse_date(item.get('until'))
 

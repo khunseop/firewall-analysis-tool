@@ -25,7 +25,7 @@ class ExceptionHandler(BaseProcessor):
     def _check_date(self, row) -> str:
         try:
             end_date = pd.to_datetime(row['REQUEST_END_DATE']).date()
-            return '미만료' if end_date >= datetime.now().date() else '만료'
+            return '미만료' if end_date >= self.config.get_reference_date() else '만료'
         except Exception:
             return '만료'
 
@@ -56,7 +56,7 @@ class ExceptionHandler(BaseProcessor):
                 return False
 
             df = pd.read_excel(rule_file)
-            current_date = datetime.now()
+            current_date = self.config.get_reference_datetime()
             three_months_ago = current_date - timedelta(days=self.config.get('timeframes.recent_policy_days', 90))
 
             df['예외'] = ''
@@ -119,7 +119,7 @@ class ExceptionHandler(BaseProcessor):
                 return False
 
             df = pd.read_excel(rule_file)
-            current_date = datetime.now()
+            current_date = self.config.get_reference_datetime()
             three_months_ago = current_date - timedelta(days=self.config.get('timeframes.recent_policy_days', 90))
 
             df['예외'] = ''

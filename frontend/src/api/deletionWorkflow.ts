@@ -11,6 +11,7 @@ export interface DeletionWorkflowProject {
   name: string
   status: string  // draft / running / completed
   memo: string | null
+  reference_date: string | null  // YYYY-MM-DD, null이면 실행 시점 현재 날짜
   created_at: string
   updated_at: string
 }
@@ -122,12 +123,14 @@ export const createProject = async (
   deviceId: number,
   name: string,
   memo?: string,
+  referenceDate?: string,
 ): Promise<DeletionWorkflowProject> => {
   const token = useAuthStore.getState().token
   const form = new FormData()
   form.append('device_id', String(deviceId))
   form.append('name', name)
   if (memo) form.append('memo', memo)
+  if (referenceDate) form.append('reference_date', referenceDate)
   const res = await fetch('/api/v1/deletion-workflow/projects', {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -136,6 +139,32 @@ export const createProject = async (
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
     throw new Error(data.detail || '프로젝트 생성 실패')
+  }
+  return res.json()
+}
+
+export const updateProject = async (
+  id: number,
+  patch: { memo?: string; reference_date?: string | null },
+): Promise<{ id: number; memo: string | null; reference_date: string | null; updated_at: string }> => {
+  const token = useAuthStore.getState().token
+  const form = new FormData()
+  if (patch.memo !== undefined) form.append('memo', patch.memo ?? '')
+  if (patch.reference_date !== undefined) {
+    if (patch.reference_date === null) {
+      form.append('clear_reference_date', 'true')
+    } else {
+      form.append('reference_date', patch.reference_date)
+    }
+  }
+  const res = await fetch(`/api/v1/deletion-workflow/projects/${id}`, {
+    method: 'PATCH',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.detail || '프로젝트 수정 실패')
   }
   return res.json()
 }

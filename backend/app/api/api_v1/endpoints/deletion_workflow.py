@@ -13,7 +13,7 @@ import logging
 import zipfile
 import datetime
 from urllib.parse import quote
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import pandas as pd
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
@@ -215,9 +215,9 @@ def _df_to_xlsx_bytes(sheets: dict) -> bytes:
     return buf.getvalue()
 
 
-def _add_unused_days(df: pd.DataFrame) -> pd.DataFrame:
+def _add_unused_days(df: pd.DataFrame, reference_date: datetime.date = None) -> pd.DataFrame:
     """Last Hit Date 컬럼에서 Unused Days 계산하여 추가."""
-    today = datetime.date.today()
+    today = reference_date or datetime.date.today()
     def _calc(val):
         if pd.isna(val) or val is None:
             return None
@@ -387,6 +387,7 @@ async def list_projects(
             "name": p.name,
             "status": p.status,
             "memo": p.memo,
+            "reference_date": p.reference_date.isoformat() if p.reference_date else None,
             "created_at": p.created_at.isoformat() if p.created_at else None,
             "updated_at": p.updated_at.isoformat() if p.updated_at else None,
         })
@@ -398,6 +399,7 @@ async def create_project(
     device_id: int = Form(...),
     name: str = Form(...),
     memo: str = Form(default=""),
+    reference_date: str = Form(default=""),
     db: AsyncSession = Depends(get_db),
 ):
     """새 프로젝트 생성."""
@@ -406,7 +408,14 @@ async def create_project(
     if not device:
         raise HTTPException(status_code=404, detail=f"장비 ID {device_id}를 찾을 수 없습니다.")
 
-    project = await dwcrud.create_project(db, device_id=device_id, name=name, memo=memo or None)
+    parsed_ref_date = None
+    if reference_date:
+        try:
+            parsed_ref_date = datetime.date.fromisoformat(reference_date)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"잘못된 날짜 형식: {reference_date} (YYYY-MM-DD 형식 사용)")
+
+    project = await dwcrud.create_project(db, device_id=device_id, name=name, memo=memo or None, reference_date=parsed_ref_date)
     await db.commit()
     return {
         "id": project.id,
@@ -414,6 +423,7 @@ async def create_project(
         "name": project.name,
         "status": project.status,
         "memo": project.memo,
+        "reference_date": project.reference_date.isoformat() if project.reference_date else None,
         "created_at": project.created_at.isoformat(),
         "updated_at": project.updated_at.isoformat(),
     }
@@ -453,6 +463,7 @@ async def get_project(
         "name": project.name,
         "status": project.status,
         "memo": project.memo,
+        "reference_date": project.reference_date.isoformat() if project.reference_date else None,
         "created_at": project.created_at.isoformat() if project.created_at else None,
         "updated_at": project.updated_at.isoformat() if project.updated_at else None,
         "files": file_states,
@@ -472,6 +483,48 @@ async def delete_project(
     await dwcrud.delete_project(db, project_id)
     await db.commit()
     return {"ok": True}
+
+
+@router.patch("/projects/{project_id}")
+async def update_project(
+    project_id: int,
+    memo: Optional[str] = Form(default=None),
+    reference_date: Optional[str] = Form(default=None),
+    clear_reference_date: bool = Form(default=False),
+    db: AsyncSession = Depends(get_db),
+):
+    """프로젝트 메모 또는 기준일을 수정합니다.
+
+    - **memo**: 변경할 메모 (미전달 시 유지)
+    - **reference_date**: 기준일 YYYY-MM-DD 형식 (미전달 시 유지)
+    - **clear_reference_date**: true 전달 시 기준일을 초기화 (현재 날짜 기준으로 복원)
+    """
+    from app.crud import crud_deletion_workflow as dwcrud
+
+    project = await dwcrud.get_project(db, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+
+    kwargs = {}
+    if memo is not None:
+        kwargs["memo"] = memo
+
+    if clear_reference_date:
+        kwargs["reference_date"] = None
+    elif reference_date is not None:
+        try:
+            kwargs["reference_date"] = datetime.date.fromisoformat(reference_date)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"잘못된 날짜 형식: {reference_date} (YYYY-MM-DD 형식 사용)")
+
+    await dwcrud.update_project(db, project, **kwargs)
+    await db.commit()
+    return {
+        "id": project.id,
+        "memo": project.memo,
+        "reference_date": project.reference_date.isoformat() if project.reference_date else None,
+        "updated_at": project.updated_at.isoformat() if project.updated_at else None,
+    }
 
 
 @router.post("/projects/{project_id}/extract")
@@ -506,7 +559,7 @@ async def project_extract(
             detail=f"장비 {device.name}에 동기화된 정책 데이터가 없습니다. 먼저 동기화를 실행하세요."
         )
 
-    today = datetime.date.today()
+    today = project.reference_date or datetime.date.today()
     policy_rows = [{
         "Vsys": p.vsys, "Seq": p.seq, "Rule Name": p.rule_name,
         "Enable": "Y" if p.enable else "N", "Action": p.action, "Source": p.source,
@@ -593,7 +646,7 @@ async def upload_external_file(
     return {"ok": True, "filename": file.filename, "task_id": task_id, "slot": slot}
 
 
-async def _build_duplicate_policy_yaml(db: AsyncSession, device_id: int, device) -> bytes | None:
+async def _build_duplicate_policy_yaml(db: AsyncSession, device_id: int, device, reference_date: datetime.date = None) -> bytes | None:
     """
     Settings의 duplicate_policies에서 해당 장비 + 유효기간 예외만 추출해 YAML bytes 생성.
     유효 항목 없으면 None 반환.
@@ -611,7 +664,7 @@ async def _build_duplicate_policy_yaml(db: AsyncSession, device_id: int, device)
     except Exception:
         return None
 
-    today = _dt.date.today()
+    today = reference_date or _dt.date.today()
     valid = []
     for item in items:
         if item.get("device_id") != device_id:
@@ -673,7 +726,7 @@ async def run_project_task(
     if task_id == 17:
         existing_yaml = await dwcrud.get_file(db, project_id=project_id, task_id=17, slot="external_1")
         if existing_yaml is None:
-            yaml_bytes = await _build_duplicate_policy_yaml(db, project.device_id, device)
+            yaml_bytes = await _build_duplicate_policy_yaml(db, project.device_id, device, reference_date=project.reference_date)
             if yaml_bytes:
                 await dwcrud.upsert_file(db, project_id=project_id, task_id=17, slot="external_1",
                                          filename="duplicate_exceptions_auto.yaml", data=yaml_bytes)
@@ -697,7 +750,7 @@ async def run_project_task(
     import asyncio
     loop = asyncio.get_event_loop()
     config_dict = await _load_config_dict(db)
-    runner = WorkspaceRunner(config_dict=config_dict)
+    runner = WorkspaceRunner(config_dict=config_dict, reference_date=project.reference_date)
 
     try:
         output_files = await loop.run_in_executor(

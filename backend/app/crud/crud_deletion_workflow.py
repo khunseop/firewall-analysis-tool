@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 from sqlalchemy import select, delete, and_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,12 +12,14 @@ async def create_project(
     device_id: int,
     name: str,
     memo: Optional[str] = None,
+    reference_date: Optional[datetime.date] = None,
 ) -> DeletionWorkflowProject:
     now = datetime.datetime.utcnow()
     project = DeletionWorkflowProject(
         device_id=device_id,
         name=name,
         memo=memo,
+        reference_date=reference_date,
         status="draft",
         created_at=now,
         updated_at=now,
@@ -58,6 +60,25 @@ async def update_project_status(
     status: str,
 ) -> DeletionWorkflowProject:
     project.status = status
+    project.updated_at = datetime.datetime.utcnow()
+    await db.flush()
+    return project
+
+
+_UNSET = object()
+
+
+async def update_project(
+    db: AsyncSession,
+    project: DeletionWorkflowProject,
+    memo=_UNSET,
+    reference_date=_UNSET,
+) -> DeletionWorkflowProject:
+    """memo, reference_date 중 전달된 항목만 업데이트합니다. 미전달 시 유지."""
+    if memo is not _UNSET:
+        project.memo = memo
+    if reference_date is not _UNSET:
+        project.reference_date = reference_date
     project.updated_at = datetime.datetime.utcnow()
     await db.flush()
     return project

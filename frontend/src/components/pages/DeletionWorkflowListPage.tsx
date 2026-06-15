@@ -35,13 +35,14 @@ function CreateProjectDialog({ open, onClose }: { open: boolean; onClose: () => 
   const [deviceId, setDeviceId] = useState<number | null>(null)
   const [name, setName] = useState('')
   const [memo, setMemo] = useState('')
+  const [referenceDate, setReferenceDate] = useState('')
 
   const mutation = useMutation({
-    mutationFn: () => createProject(deviceId!, name.trim(), memo.trim() || undefined),
+    mutationFn: () => createProject(deviceId!, name.trim(), memo.trim() || undefined, referenceDate || undefined),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['deletion-workflow-projects'] })
       toast.success('프로젝트가 생성되었습니다.')
-      setDeviceId(null); setName(''); setMemo('')
+      setDeviceId(null); setName(''); setMemo(''); setReferenceDate('')
       onClose()
     },
     onError: (e: Error) => toast.error(e.message),
@@ -83,6 +84,20 @@ function CreateProjectDialog({ open, onClose }: { open: boolean; onClose: () => 
               placeholder="작업 메모..."
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>
+              기준일 (선택)
+              <span className="ml-1.5 text-xs font-normal text-ds-on-surface-variant">
+                — 만료·미사용 판단 기준일. 미설정 시 작업 당일 기준
+              </span>
+            </Label>
+            <Input
+              type="date"
+              className="mt-1"
+              value={referenceDate}
+              onChange={(e) => setReferenceDate(e.target.value)}
             />
           </div>
           <DialogFooter>
@@ -181,6 +196,7 @@ export default function DeletionWorkflowListPage() {
                 <th className="text-left py-2 px-3 font-medium text-ds-on-surface-variant">장비</th>
                 <th className="text-left py-2 px-3 font-medium text-ds-on-surface-variant">프로젝트명</th>
                 <th className="text-left py-2 px-3 font-medium text-ds-on-surface-variant w-24">상태</th>
+                <th className="text-left py-2 px-3 font-medium text-ds-on-surface-variant w-28">기준일</th>
                 <th className="text-left py-2 px-3 font-medium text-ds-on-surface-variant w-28">생성일</th>
                 <th className="text-left py-2 px-3 font-medium text-ds-on-surface-variant w-16"></th>
               </tr>
@@ -203,6 +219,12 @@ export default function DeletionWorkflowListPage() {
                   </td>
                   <td className="py-3 px-3">
                     <StatusBadge status={p.status} />
+                  </td>
+                  <td className="py-3 px-3 text-xs">
+                    {p.reference_date
+                      ? <span className="text-amber-700 font-medium">{p.reference_date}</span>
+                      : <span className="text-ds-on-surface-variant/50">당일</span>
+                    }
                   </td>
                   <td className="py-3 px-3 text-ds-on-surface-variant text-xs">
                     {new Date(p.created_at).toLocaleDateString('ko-KR')}
