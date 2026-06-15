@@ -856,6 +856,62 @@ async def clear_project_outputs(
     return {"ok": True, "deleted": deleted}
 
 
+@router.post("/projects/{project_id}/complete")
+async def complete_project(
+    project_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """프로젝트를 완료 처리하고 최종 결과파일을 ZIP으로 반환합니다.
+
+    수집 파일:
+    - 마지막 정책파일: Task 17 → 16 → 13 우선순위 output_0
+    - 중복정책 정리/공지/삭제: Task 14 output_0~2
+    - 공지대상 4종: Task 18 output_0~3
+    """
+    from app.crud import crud_deletion_workflow as dwcrud
+
+    project = await dwcrud.get_project(db, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+
+    files_map = await dwcrud.get_project_files(db, project_id)
+
+    output_files: List[Tuple[str, bytes]] = []
+
+    # 마지막 정책파일 (Task 17 → 16 → 13)
+    for tid in (17, 16, 13):
+        f = files_map.get((tid, "output_0"))
+        if f:
+            output_files.append((f.filename, f.file_data))
+            break
+
+    # 중복정책 정리/공지/삭제 (Task 14)
+    for slot in ("output_0", "output_1", "output_2"):
+        f = files_map.get((14, slot))
+        if f:
+            output_files.append((f.filename, f.file_data))
+
+    # 공지대상 4종 (Task 18)
+    for slot in ("output_0", "output_1", "output_2", "output_3"):
+        f = files_map.get((18, slot))
+        if f:
+            output_files.append((f.filename, f.file_data))
+
+    if not output_files:
+        raise HTTPException(
+            status_code=422,
+            detail="완료에 필요한 결과파일이 없습니다. Task 14(중복정책분류) 또는 Task 18(통보대상분류)를 먼저 실행하세요."
+        )
+
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    zip_name = f"{today}_{project.name}_완료결과.zip"
+
+    await dwcrud.update_project_status(db, project, "completed")
+    await db.commit()
+
+    return _make_zip_response(output_files, zip_name)
+
+
 async def _run_task17_from_db(project_id, device_id, device, db, dwcrud):
     """Task 17 (중복정책분석): FAT DB 중복분석 결과를 Excel로 변환하여 project file 저장."""
     from app.models.analysis import AnalysisTask, RedundancyPolicySet
