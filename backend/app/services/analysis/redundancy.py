@@ -1,4 +1,6 @@
 
+import csv
+import io
 import logging
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
@@ -59,10 +61,16 @@ class RedundancyAnalyzer:
         """콤마 구분 텍스트 필드를 정렬된 튜플로 정규화합니다.
 
         'A,B' 와 'B,A' 를 동일하게 취급합니다.
+        LDAP DN처럼 값 내부에 콤마가 포함된 경우 따옴표로 감싼 CSV 형식("v1,v2","v3,v4")을 올바르게 처리합니다.
         """
         if not value:
             return ()
-        return tuple(sorted(v.strip() for v in value.split(',') if v.strip()))
+        try:
+            reader = csv.reader(io.StringIO(value))
+            tokens = [v.strip() for row in reader for v in row if v.strip()]
+        except Exception:
+            tokens = [v.strip() for v in value.split(',') if v.strip()]
+        return tuple(sorted(tokens))
 
     def _normalize_policy_key(self, policy: Policy) -> Tuple:
         """
