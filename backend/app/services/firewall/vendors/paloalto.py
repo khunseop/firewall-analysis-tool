@@ -369,12 +369,12 @@ class PaloAltoAPI(FirewallInterface):
                 ).days
 
                 vsys_results.append({
-                    "Vsys": vsys_name,
-                    "Rule Name": rule_name,
-                    "Hit Count": hit_count,
-                    "First Hit Date": _ts_to_date(first_hit_ts),
-                    "Last Hit Date": _ts_to_date(last_hit_ts),
-                    "Unused Days": unused_days,
+                    "vsys": vsys_name,
+                    "rule_name": rule_name,
+                    "hit_count": hit_count,
+                    "first_hit_date": _ts_to_date(first_hit_ts),
+                    "last_hit_date": _ts_to_date(last_hit_ts),
+                    "unused_days": unused_days,
                 })
             return vsys_results
 
