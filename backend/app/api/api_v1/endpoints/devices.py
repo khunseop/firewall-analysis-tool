@@ -1,13 +1,19 @@
-from typing import List, Any
+from typing import List, Any, Literal
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from io import BytesIO
+from urllib.parse import quote
+from datetime import date
+import asyncio
 import openpyxl
+from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
+import pandas as pd
 import logging
+from pydantic import BaseModel
 
 from app import crud, models, schemas
 from app.db.session import get_db
@@ -15,6 +21,91 @@ from app.services import device_service
 from app.core.auth import get_current_user
 from app.models.user import User
 from app.services.audit_log import log_activity
+from app.services.sync.collector import create_collector_from_device
+
+_HEADER_FILL = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+_HEADER_FONT = Font(bold=True, color="FFFFFF", size=11)
+_HEADER_ALIGN = Alignment(horizontal="center", vertical="center")
+
+
+def _write_df_to_ws(ws, df: pd.DataFrame) -> None:
+    ws.append(list(df.columns))
+    for cell in ws[1]:
+        cell.fill = _HEADER_FILL
+        cell.font = _HEADER_FONT
+        cell.alignment = _HEADER_ALIGN
+    ws.row_dimensions[1].height = 20
+    for row in df.itertuples(index=False):
+        ws.append(list(row))
+    for col in ws.columns:
+        max_len = max((len(str(cell.value or "")) for cell in col), default=8)
+        ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 40)
+
+
+def _single_sheet_excel(df: pd.DataFrame, sheet_name: str) -> BytesIO:
+    wb = Workbook()
+    ws = wb.active
+    ws.title = sheet_name
+    _write_df_to_ws(ws, df)
+    buf = BytesIO()
+    wb.save(buf)
+    return buf
+
+
+def _multi_sheet_excel(sheets: dict[str, pd.DataFrame]) -> BytesIO:
+    wb = Workbook()
+    wb.remove(wb.active)
+    for sheet_name, df in sheets.items():
+        ws = wb.create_sheet(title=sheet_name)
+        _write_df_to_ws(ws, df)
+    buf = BytesIO()
+    wb.save(buf)
+    return buf
+
+
+async def _collect_hit_dates(
+    collector,
+    device: models.Device,
+    use_ssh: bool,
+    loop: asyncio.AbstractEventLoop,
+    timeout: int,
+) -> pd.DataFrame:
+    method = collector.export_last_hit_date_ssh if use_ssh else collector.export_last_hit_date
+    main_df: pd.DataFrame = await asyncio.wait_for(
+        loop.run_in_executor(None, method), timeout=timeout
+    )
+
+    if not device.ha_peer_ip:
+        return main_df
+
+    ha_collector = create_collector_from_device(device, use_ha_ip=True)
+    ha_df: pd.DataFrame | None = None
+    try:
+        await loop.run_in_executor(None, ha_collector.connect)
+        ha_method = ha_collector.export_last_hit_date_ssh if use_ssh else ha_collector.export_last_hit_date
+        ha_df = await loop.run_in_executor(None, ha_method)
+    except Exception as e:
+        logger.warning(f"HA peer hit_date 수집 실패 ({device.ha_peer_ip}): {e}")
+    finally:
+        try:
+            await loop.run_in_executor(None, ha_collector.disconnect)
+        except Exception:
+            pass
+
+    if ha_df is None or ha_df.empty:
+        return main_df
+
+    combined = pd.concat([main_df, ha_df])
+    combined["last_hit_date"] = pd.to_datetime(combined["last_hit_date"], errors="coerce")
+    subset = ["vsys", "rule_name"] if "vsys" in combined.columns else ["rule_name"]
+    combined = combined.sort_values("last_hit_date", ascending=False, na_position="last")
+    return combined.drop_duplicates(subset=subset, keep="first")
+
+
+class DirectExportRequest(BaseModel):
+    export_type: Literal["policies", "objects", "hit_dates"]
+    use_ssh: bool = False
+    timeout_seconds: int = 600
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -424,3 +515,80 @@ async def bulk_import_devices(
     except Exception as e:
         logger.error(f"Failed to import devices from Excel: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"엑셀 파일 처리 실패: {str(e)}")
+
+
+@router.post("/{device_id}/direct-export")
+async def direct_export_device(
+    device_id: int,
+    request: DirectExportRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """장비에 직접 연결하여 정책/객체/사용이력을 즉시 Excel로 추출합니다."""
+    device = await crud.device.get_device(db, device_id=device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    loop = asyncio.get_running_loop()
+    timeout = request.timeout_seconds
+
+    try:
+        collector = create_collector_from_device(device)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Collector 초기화 실패: {e}")
+
+    try:
+        await asyncio.wait_for(loop.run_in_executor(None, collector.connect), timeout=min(timeout, 60))
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="장비 연결 타임아웃")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"장비 연결 실패: {e}")
+
+    today = date.today().strftime("%Y%m%d")
+    try:
+        if request.export_type == "policies":
+            df = await asyncio.wait_for(
+                loop.run_in_executor(None, collector.export_security_rules),
+                timeout=timeout,
+            )
+            output = _single_sheet_excel(df, "정책")
+            filename = f"{device.name}_정책_{today}.xlsx"
+
+        elif request.export_type == "objects":
+            net_obj = await loop.run_in_executor(None, collector.export_network_objects)
+            net_grp = await loop.run_in_executor(None, collector.export_network_group_objects)
+            svc_obj = await loop.run_in_executor(None, collector.export_service_objects)
+            svc_grp = await loop.run_in_executor(None, collector.export_service_group_objects)
+            output = _multi_sheet_excel({
+                "주소객체": net_obj,
+                "주소그룹": net_grp,
+                "서비스객체": svc_obj,
+                "서비스그룹": svc_grp,
+            })
+            filename = f"{device.name}_객체_{today}.xlsx"
+
+        elif request.export_type == "hit_dates":
+            df = await _collect_hit_dates(collector, device, request.use_ssh, loop, timeout)
+            output = _single_sheet_excel(df, "사용이력")
+            filename = f"{device.name}_사용이력_{today}.xlsx"
+
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail=f"데이터 수집 타임아웃 ({timeout}초 초과)")
+    except NotImplementedError:
+        raise HTTPException(status_code=400, detail="이 장비는 해당 기능을 지원하지 않습니다.")
+    except Exception as e:
+        logger.error(f"direct-export 실패 device={device_id} type={request.export_type}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"데이터 수집 실패: {e}")
+    finally:
+        try:
+            await loop.run_in_executor(None, collector.disconnect)
+        except Exception:
+            pass
+
+    output.seek(0)
+    encoded_name = quote(filename, safe="")
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_name}"},
+    )

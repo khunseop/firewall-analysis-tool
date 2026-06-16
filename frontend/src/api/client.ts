@@ -49,3 +49,44 @@ export async function downloadBlob(url: string, defaultFilename: string): Promis
   document.body.removeChild(a)
   URL.revokeObjectURL(objectUrl)
 }
+
+export async function downloadBlobPost(
+  url: string,
+  body: object,
+  defaultFilename: string,
+  timeoutMs = 660_000,
+): Promise<void> {
+  const token = useAuthStore.getState().token
+  const controller = new AbortController()
+  const timerId = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+    if (!res.ok) {
+      let detail = 'Download failed'
+      try {
+        const data = await res.json()
+        detail = data.detail || data.msg || detail
+      } catch {}
+      throw new Error(detail)
+    }
+    const blob = await res.blob()
+    const objectUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = objectUrl
+    a.download = defaultFilename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(objectUrl)
+  } finally {
+    clearTimeout(timerId)
+  }
+}
