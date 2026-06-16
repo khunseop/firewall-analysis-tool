@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { formatRelativeTime } from '@/lib/utils'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Plus, Upload, Download, RefreshCw, Pencil, Trash2, Wifi, Search, XCircle, ChevronDown, ExternalLink, Settings2, Tag, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import { Plus, Upload, Download, RefreshCw, Pencil, Trash2, Wifi, Search, XCircle, ChevronDown, ExternalLink, Settings2, Tag, CheckCircle2, AlertCircle, Loader2, FileDown } from 'lucide-react'
 import type { ColDef, IRowNode } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { Input } from '@/components/ui/input'
@@ -13,8 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useConfirm } from '@/components/shared/ConfirmDialog'
 import {
   listDevices, createDevice, updateDevice, deleteDevice,
-  testConnection, syncAll, downloadDeviceTemplate, bulkImportDevices,
-  type Device, type DeviceCreate, type DeviceUpdate,
+  testConnection, syncAll, downloadDeviceTemplate, bulkImportDevices, directExport,
+  type Device, type DeviceCreate, type DeviceUpdate, type DirectExportType,
 } from '@/api/devices'
 import { useSyncStatusWebSocket, type SyncStatusMessage } from '@/hooks/useWebSocket'
 import { notify } from '@/store/notificationStore'
@@ -219,6 +219,119 @@ function BulkGroupDialog({ open, onClose, count, existingGroups, initial, onSubm
   )
 }
 
+const EXPORT_TYPE_OPTIONS: { type: DirectExportType; label: string; desc: string }[] = [
+  { type: 'policies',  label: '정책',    desc: '보안 정책 목록 전체' },
+  { type: 'objects',   label: '객체',    desc: '주소/서비스 객체·그룹 (4개 시트)' },
+  { type: 'hit_dates', label: '사용이력', desc: 'HA Peer 포함 최신 히트 일시' },
+]
+
+function DirectExportDialog({ open, onClose, device }: {
+  open: boolean; onClose: () => void; device: Device | null
+}) {
+  const [exportType, setExportType] = useState<DirectExportType>('policies')
+  const [useSsh, setUseSsh] = useState(false)
+  const [timeout, setTimeout_] = useState(600)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (open && device) {
+      setExportType('policies')
+      setUseSsh(device.use_ssh_for_last_hit_date)
+      setTimeout_(600)
+    }
+  }, [open, device])
+
+  const handleExport = async () => {
+    if (!device) return
+    setLoading(true)
+    try {
+      await directExport(device, exportType, {
+        use_ssh: exportType === 'hit_dates' ? useSsh : false,
+        timeout_seconds: timeout,
+      })
+      toast.success(`${device.name} ${EXPORT_TYPE_OPTIONS.find(o => o.type === exportType)?.label} 추출 완료`)
+      onClose()
+    } catch (e: unknown) {
+      toast.error(`추출 실패: ${(e as Error).message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const needsTimeout = exportType !== 'objects'
+
+  return (
+    <Dialog open={open} onOpenChange={loading ? undefined : onClose}>
+      <DialogContent className="max-w-sm bg-ds-surface-container-lowest">
+        <DialogHeader>
+          <DialogTitle className="font-headline text-ds-on-surface">직접 추출</DialogTitle>
+        </DialogHeader>
+        {device && (
+          <p className="text-[12px] text-ds-on-surface-variant">
+            <span className="font-semibold text-ds-on-surface">{device.name}</span>
+            {device.ha_peer_ip && <span className="ml-1.5 text-[10px] text-ds-tertiary font-semibold">HA</span>}
+          </p>
+        )}
+        <div className="space-y-2 py-1">
+          {EXPORT_TYPE_OPTIONS.map(({ type, label, desc }) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => setExportType(type)}
+              className={`w-full flex items-start gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors ${exportType === type ? 'border-ds-primary bg-ds-primary/5' : 'border-ds-outline-variant/20 hover:border-ds-outline-variant/40 bg-white'}`}
+            >
+              <span className={`mt-0.5 w-3.5 h-3.5 rounded-full border-2 shrink-0 ${exportType === type ? 'border-ds-primary bg-ds-primary' : 'border-ds-outline-variant'}`} />
+              <span>
+                <span className="text-[13px] font-semibold text-ds-on-surface">{label}</span>
+                <span className="block text-[11px] text-ds-on-surface-variant mt-0.5">{desc}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {exportType === 'hit_dates' && (
+          <div className="flex items-center gap-2 px-1">
+            <Checkbox
+              id="use-ssh"
+              checked={useSsh}
+              onCheckedChange={(v) => setUseSsh(!!v)}
+            />
+            <label htmlFor="use-ssh" className="text-[12px] text-ds-on-surface-variant cursor-pointer select-none">
+              SSH로 수집 (API 대신)
+            </label>
+          </div>
+        )}
+
+        {needsTimeout && (
+          <div className="flex items-center gap-2 px-1">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary shrink-0">타임아웃</Label>
+            <Input
+              type="number"
+              min={30}
+              max={3600}
+              value={timeout}
+              onChange={(e) => setTimeout_(Number(e.target.value))}
+              className="bg-white border-ds-outline-variant/30 text-sm w-24 text-right"
+            />
+            <span className="text-[11px] text-ds-on-surface-variant">초</span>
+          </div>
+        )}
+
+        <DialogFooter>
+          <button type="button" onClick={onClose} disabled={loading} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors disabled:opacity-40">취소</button>
+          <button
+            onClick={handleExport}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50"
+          >
+            {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />수집 중…</> : <><FileDown className="w-3.5 h-3.5" />추출</>}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 const COLUMN_DEFS: ColDef<Device>[] = [
   {
     checkboxSelection: true,
@@ -321,6 +434,7 @@ export function DevicesPage() {
   const [addMenuOpen, setAddMenuOpen] = useState(false)
   const [bulkOptionsOpen, setBulkOptionsOpen] = useState(false)
   const [bulkGroupOpen, setBulkGroupOpen] = useState(false)
+  const [directExportOpen, setDirectExportOpen] = useState(false)
   const addMenuRef = useRef<HTMLDivElement>(null)
   const { confirm, ConfirmDialogElement } = useConfirm()
 
@@ -647,6 +761,15 @@ export function DevicesPage() {
                   연결 테스트
                 </button>
                 <button
+                  onClick={() => setDirectExportOpen(true)}
+                  disabled={!isSingle}
+                  title={isSingle ? '직접 추출' : '단일 장비만 지원'}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <FileDown className="w-3 h-3" />
+                  직접 추출
+                </button>
+                <button
                   onClick={handleBulkDelete}
                   className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium rounded-lg border border-ds-error/20 bg-ds-error/5 text-ds-error hover:bg-ds-error/10 transition-colors"
                 >
@@ -764,6 +887,13 @@ export function DevicesPage() {
           use_ssh_for_last_hit_date: selectedDevices.every(d => d.use_ssh_for_last_hit_date),
         }}
         onSubmit={handleBulkSetOptions}
+      />
+
+      {/* 직접 추출 다이얼로그 */}
+      <DirectExportDialog
+        open={directExportOpen}
+        onClose={() => setDirectExportOpen(false)}
+        device={isSingle ? selectedDevices[0] : null}
       />
 
       {/* 그룹 일괄 설정 다이얼로그 */}

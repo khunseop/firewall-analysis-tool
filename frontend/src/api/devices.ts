@@ -1,4 +1,4 @@
-import { apiClient, downloadBlob } from './client'
+import { apiClient, downloadBlob, downloadBlobPost } from './client'
 
 export interface Device {
   id: number
@@ -137,4 +137,23 @@ export const bulkImportDevices = async (file: File): Promise<BulkImportResult> =
     headers: { 'Content-Type': 'multipart/form-data' },
   })
   return res.data
+}
+
+export type DirectExportType = 'policies' | 'objects' | 'hit_dates'
+
+export const directExport = async (
+  device: Device,
+  exportType: DirectExportType,
+  options?: { use_ssh?: boolean; timeout_seconds?: number },
+): Promise<void> => {
+  const timeout = options?.timeout_seconds ?? 600
+  const labelMap: Record<DirectExportType, string> = { policies: '정책', objects: '객체', hit_dates: '사용이력' }
+  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+  const filename = `${device.name}_${labelMap[exportType]}_${today}.xlsx`
+  await downloadBlobPost(
+    `/api/v1/devices/${device.id}/direct-export`,
+    { export_type: exportType, use_ssh: options?.use_ssh ?? false, timeout_seconds: timeout },
+    filename,
+    (timeout + 60) * 1000,
+  )
 }
