@@ -203,11 +203,7 @@ export function DashboardPage() {
   const activePct = totalPolicies > 0 ? Math.round(activePolicies / totalPolicies * 100) : 0
   const syncPct = totalDevices > 0 ? Math.round(successDevices / totalDevices * 100) : 0
 
-  const ROW_H = 44
-  const HEADER_H = 42
-  const gridHeight = rowData.length > 0
-    ? Math.min(rowData.length * ROW_H + HEADER_H, 10 * ROW_H + HEADER_H)
-    : 180
+  const gridHeight = rowData.length > 0 ? 'calc(100vh - 640px)' : 180
 
   return (
     <div className="flex flex-col gap-6">
