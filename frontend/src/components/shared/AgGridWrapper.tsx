@@ -4,7 +4,7 @@ import {
   ModuleRegistry,
   type ColDef, type GridApi, type GridReadyEvent,
   type RowClassParams, type RowStyle, type RowClickedEvent,
-  type GridSizeChangedEvent,
+  type GridSizeChangedEvent, type IRowNode,
 } from '@ag-grid-community/core'
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model'
 import { CsvExportModule } from '@ag-grid-community/csv-export'
@@ -36,6 +36,8 @@ interface AgGridWrapperProps<T> {
   rowSelection?: 'single' | 'multiple'
   onSelectionChanged?: (rows: T[]) => void
   context?: Record<string, unknown>
+  isExternalFilterPresent?: () => boolean
+  doesExternalFilterPass?: (node: IRowNode<T>) => boolean
 }
 
 function AgGridWrapperInner<T>(
@@ -56,6 +58,8 @@ function AgGridWrapperInner<T>(
     rowSelection,
     onSelectionChanged,
     context,
+    isExternalFilterPresent,
+    doesExternalFilterPass,
   }: AgGridWrapperProps<T>,
   ref: React.ForwardedRef<AgGridWrapperHandle>
 ) {
@@ -134,6 +138,8 @@ function AgGridWrapperInner<T>(
         rowSelection={rowSelection}
         onSelectionChanged={onSelectionChanged ? (e) => onSelectionChanged(e.api.getSelectedRows()) : undefined}
         context={context}
+        isExternalFilterPresent={isExternalFilterPresent}
+        doesExternalFilterPass={doesExternalFilterPass}
         defaultColDef={defaultColDef}
         enableCellTextSelection
         overlayNoRowsTemplate={`

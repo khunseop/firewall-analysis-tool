@@ -2,8 +2,8 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { formatRelativeTime } from '@/lib/utils'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Plus, Upload, Download, RefreshCw, Pencil, Trash2, Wifi, Search, XCircle, ChevronDown, ExternalLink, Settings2, Tag } from 'lucide-react'
-import type { ColDef } from '@ag-grid-community/core'
+import { Plus, Upload, Download, RefreshCw, Pencil, Trash2, Wifi, Search, XCircle, ChevronDown, ExternalLink, Settings2, Tag, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import type { ColDef, IRowNode } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -312,6 +312,7 @@ export function DevicesPage() {
   const queryClient = useQueryClient()
   const gridRef = useRef<AgGridWrapperHandle>(null)
   const [quickFilter, setQuickFilter] = useState('')
+  const [groupFilter, setGroupFilter] = useState<string | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Device | null>(null)
   const [bulkOpen, setBulkOpen] = useState(false)
@@ -347,6 +348,27 @@ export function DevicesPage() {
   const existingGroups = useMemo(() =>
     [...new Set(devices.map(d => d.group).filter(Boolean) as string[])].sort()
   , [devices])
+
+  const hasUngrouped = useMemo(() => devices.some(d => d.group == null), [devices])
+
+  const groupCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const d of devices) {
+      const key = d.group ?? '__ungrouped__'
+      counts[key] = (counts[key] ?? 0) + 1
+    }
+    return counts
+  }, [devices])
+
+  useEffect(() => {
+    gridRef.current?.gridApi?.onFilterChanged()
+  }, [groupFilter])
+
+  const isExternalFilterPresent = useCallback(() => groupFilter !== null, [groupFilter])
+  const doesExternalFilterPass = useCallback((node: IRowNode<Device>) => {
+    if (groupFilter === '__ungrouped__') return node.data?.group == null
+    return node.data?.group === groupFilter
+  }, [groupFilter])
 
   const syncCounts = useMemo(() => ({
     total:   devices.length,
@@ -536,61 +558,50 @@ export function DevicesPage() {
         </div>
       </div>
 
-      {/* KPI */}
-      <div className="shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="card rounded-xl px-4 py-3.5">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-ds-on-surface-variant/60">전체 장비</p>
-          <p className="text-2xl font-bold tabular-nums text-ds-on-surface mt-1.5">
-            {isLoading ? '…' : syncCounts.total}
-          </p>
-          <div className="mt-2.5 flex items-center gap-2">
-            <div className="flex-1 h-1 bg-ds-surface-container-high rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${syncPct}%` }} />
-            </div>
-            <span className="text-[10px] font-semibold tabular-nums text-ds-on-surface-variant">{syncPct}%</span>
+      {/* KPI 컴팩트 스트립 */}
+      <div className="shrink-0 card rounded-xl px-4 py-2.5 flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-ds-on-surface-variant/60 font-medium">전체</span>
+          <span className="text-[13px] font-bold tabular-nums text-ds-on-surface">{isLoading ? '…' : syncCounts.total}대</span>
+        </div>
+        <div className="flex items-center gap-2 min-w-[120px]">
+          <div className="w-20 h-1.5 bg-ds-surface-container-high rounded-full overflow-hidden">
+            <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${syncPct}%` }} />
           </div>
-          <p className="text-[10px] text-ds-on-surface-variant/60 mt-1">{syncCounts.synced}대 동기화 완료</p>
+          <span className="text-[11px] font-semibold tabular-nums text-ds-on-surface-variant">{syncPct}%</span>
         </div>
-
-        <div className="card rounded-xl px-4 py-3.5">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-ds-on-surface-variant/60">동기화 완료</p>
-          <p className="text-2xl font-bold tabular-nums text-emerald-600 mt-1.5">
-            {isLoading ? '…' : syncCounts.synced}
-          </p>
-          <p className="text-[10px] text-ds-on-surface-variant/60 mt-3">정상 수집 장비</p>
+        <div className="w-px h-3 bg-ds-outline-variant/20 shrink-0" />
+        <div className="flex items-center gap-1.5">
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+          <span className="text-[11px] text-ds-on-surface-variant/60">완료</span>
+          <span className="text-[13px] font-bold tabular-nums text-emerald-600">{isLoading ? '…' : syncCounts.synced}</span>
         </div>
-
-        <div className="card rounded-xl px-4 py-3.5">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-ds-on-surface-variant/60">동기화 중</p>
-          <p className={`text-2xl font-bold tabular-nums mt-1.5 ${syncCounts.syncing > 0 ? 'text-ds-tertiary' : 'text-ds-on-surface'}`}>
-            {isLoading ? '…' : syncCounts.syncing}
-          </p>
-          <p className="text-[10px] text-ds-on-surface-variant/60 mt-3">
-            {syncCounts.syncing > 0 ? '수집 진행 중' : '진행 없음'}
-          </p>
+        <div className="w-px h-3 bg-ds-outline-variant/20 shrink-0" />
+        <div className="flex items-center gap-1.5">
+          <Loader2 className={`w-3.5 h-3.5 shrink-0 ${syncCounts.syncing > 0 ? 'text-ds-tertiary animate-spin' : 'text-ds-on-surface-variant/30'}`} />
+          <span className="text-[11px] text-ds-on-surface-variant/60">진행</span>
+          <span className={`text-[13px] font-bold tabular-nums ${syncCounts.syncing > 0 ? 'text-ds-tertiary' : 'text-ds-on-surface-variant/40'}`}>{isLoading ? '…' : syncCounts.syncing}</span>
         </div>
-
-        <div className="card rounded-xl px-4 py-3.5">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-ds-on-surface-variant/60">오류</p>
-          <p className={`text-2xl font-bold tabular-nums mt-1.5 ${syncCounts.error > 0 ? 'text-ds-error' : 'text-ds-on-surface'}`}>
-            {isLoading ? '…' : syncCounts.error}
-          </p>
-          <p className="text-[10px] text-ds-on-surface-variant/60 mt-3">
-            {syncCounts.error > 0 ? '조치 필요' : '정상'}
-          </p>
+        <div className="w-px h-3 bg-ds-outline-variant/20 shrink-0" />
+        <div className="flex items-center gap-1.5">
+          <AlertCircle className={`w-3.5 h-3.5 shrink-0 ${syncCounts.error > 0 ? 'text-ds-error' : 'text-ds-on-surface-variant/30'}`} />
+          <span className="text-[11px] text-ds-on-surface-variant/60">오류</span>
+          <span className={`text-[13px] font-bold tabular-nums ${syncCounts.error > 0 ? 'text-ds-error' : 'text-ds-on-surface-variant/40'}`}>{isLoading ? '…' : syncCounts.error}</span>
         </div>
       </div>
 
       {/* 장비 테이블 */}
       <div className="card rounded-xl flex flex-col overflow-hidden">
-        <div className="shrink-0 flex items-center justify-between px-5 py-3 gap-3">
-          {/* 좌측: 제목 + 장비 수 */}
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[13px] font-semibold text-ds-on-surface shrink-0">등록된 장비</span>
-            {devices.length > 0 && (
-              <span className="text-[11px] text-ds-on-surface-variant/50 tabular-nums shrink-0">{devices.length}대</span>
-            )}
-          </div>
+        <div className="shrink-0 px-5 pt-3 pb-2.5">
+          {/* 첫 번째 줄: 제목 + 작업 버튼 + 검색 */}
+          <div className="flex items-center justify-between gap-3">
+            {/* 좌측: 제목 + 장비 수 */}
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[13px] font-semibold text-ds-on-surface shrink-0">등록된 장비</span>
+              {devices.length > 0 && (
+                <span className="text-[11px] text-ds-on-surface-variant/50 tabular-nums shrink-0">{devices.length}대</span>
+              )}
+            </div>
 
           {/* 우측: 작업 버튼(선택 시) + 검색 */}
           <div className="flex items-center gap-2 shrink-0">
@@ -651,8 +662,8 @@ export function DevicesPage() {
               <input
                 value={quickFilter}
                 onChange={(e) => setQuickFilter(e.target.value)}
-                placeholder="장비명, IP 검색"
-                className="text-[12px] bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/40 w-36"
+                placeholder="장비명, IP, 그룹, 설명 검색"
+                className="text-[12px] bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/40 w-48"
               />
               {quickFilter && (
                 <button onClick={() => setQuickFilter('')}>
@@ -661,6 +672,39 @@ export function DevicesPage() {
               )}
             </div>
           </div>
+          </div>
+
+          {/* 두 번째 줄: 그룹 필터 버튼 */}
+          {(existingGroups.length > 0 || hasUngrouped) && (
+            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+              <button
+                onClick={() => setGroupFilter(null)}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors ${groupFilter === null ? 'bg-ds-primary/10 text-ds-primary border-ds-primary/30' : 'bg-ds-surface-container-low text-ds-on-surface-variant border-ds-outline-variant/20 hover:border-ds-outline-variant/40'}`}
+              >
+                전체
+                <span className="tabular-nums opacity-60">{devices.length}</span>
+              </button>
+              {existingGroups.map((g) => (
+                <button
+                  key={g}
+                  onClick={() => setGroupFilter(groupFilter === g ? null : g)}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors ${groupFilter === g ? 'bg-ds-primary/10 text-ds-primary border-ds-primary/30' : 'bg-ds-surface-container-low text-ds-on-surface-variant border-ds-outline-variant/20 hover:border-ds-outline-variant/40'}`}
+                >
+                  {g}
+                  <span className="tabular-nums opacity-60">{groupCounts[g] ?? 0}</span>
+                </button>
+              ))}
+              {hasUngrouped && (
+                <button
+                  onClick={() => setGroupFilter(groupFilter === '__ungrouped__' ? null : '__ungrouped__')}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors ${groupFilter === '__ungrouped__' ? 'bg-ds-primary/10 text-ds-primary border-ds-primary/30' : 'bg-ds-surface-container-low text-ds-on-surface-variant border-ds-outline-variant/20 hover:border-ds-outline-variant/40'}`}
+                >
+                  미분류
+                  <span className="tabular-nums opacity-60">{groupCounts['__ungrouped__'] ?? 0}</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <AgGridWrapper<Device>
@@ -675,6 +719,8 @@ export function DevicesPage() {
           onSelectionChanged={(rows) => setSelectedDevices(rows)}
           defaultColDefOverride={{ resizable: true, sortable: true }}
           fitColumns
+          isExternalFilterPresent={isExternalFilterPresent}
+          doesExternalFilterPass={doesExternalFilterPass}
           getRowStyle={(p) => {
             const s = p.data?.last_sync_status
             if (s === 'failure' || s === 'error') return { borderLeft: '2px solid #9f403d', backgroundColor: 'rgba(254, 226, 226, 0.12)' }
