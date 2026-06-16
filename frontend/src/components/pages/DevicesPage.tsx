@@ -336,6 +336,14 @@ export function DevicesPage() {
 
   const { data: devices = [], isLoading } = useQuery({ queryKey: ['devices'], queryFn: listDevices })
 
+  // devices 쿼리가 갱신될 때 그리드에서 최신 선택 행 데이터를 재동기화
+  useEffect(() => {
+    const api = gridRef.current?.gridApi
+    if (!api) return
+    const fresh = api.getSelectedRows() as Device[]
+    if (fresh.length > 0) setSelectedDevices(fresh)
+  }, [devices])
+
   const existingGroups = useMemo(() =>
     [...new Set(devices.map(d => d.group).filter(Boolean) as string[])].sort()
   , [devices])
