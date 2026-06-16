@@ -225,36 +225,50 @@ const EXPORT_TYPE_OPTIONS: { type: DirectExportType; label: string; desc: string
   { type: 'hit_dates', label: '사용이력', desc: 'HA Peer 포함 최신 히트 일시' },
 ]
 
-function DirectExportDialog({ open, onClose, device }: {
-  open: boolean; onClose: () => void; device: Device | null
+function DirectExportDialog({ open, onClose, devices }: {
+  open: boolean; onClose: () => void; devices: Device[]
 }) {
   const [exportType, setExportType] = useState<DirectExportType>('policies')
   const [useSsh, setUseSsh] = useState(false)
   const [timeout, setTimeout_] = useState(600)
-  const [loading, setLoading] = useState(false)
+  const [progress, setProgress] = useState<{ current: number; total: number; name: string } | null>(null)
+  const [errors, setErrors] = useState<{ name: string; msg: string }[]>([])
+
+  const loading = progress !== null
 
   useEffect(() => {
-    if (open && device) {
+    if (open) {
       setExportType('policies')
-      setUseSsh(device.use_ssh_for_last_hit_date)
+      setUseSsh(devices.length === 1 ? devices[0].use_ssh_for_last_hit_date : false)
       setTimeout_(600)
+      setProgress(null)
+      setErrors([])
     }
-  }, [open, device])
+  }, [open])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleExport = async () => {
-    if (!device) return
-    setLoading(true)
-    try {
-      await directExport(device, exportType, {
-        use_ssh: exportType === 'hit_dates' ? useSsh : false,
-        timeout_seconds: timeout,
-      })
-      toast.success(`${device.name} ${EXPORT_TYPE_OPTIONS.find(o => o.type === exportType)?.label} 추출 완료`)
+    if (devices.length === 0) return
+    const label = EXPORT_TYPE_OPTIONS.find(o => o.type === exportType)?.label ?? exportType
+    const errs: { name: string; msg: string }[] = []
+    for (let i = 0; i < devices.length; i++) {
+      const d = devices[i]
+      setProgress({ current: i + 1, total: devices.length, name: d.name })
+      try {
+        await directExport(d, exportType, {
+          use_ssh: exportType === 'hit_dates' ? useSsh : false,
+          timeout_seconds: timeout,
+        })
+      } catch (e: unknown) {
+        errs.push({ name: d.name, msg: (e as Error).message })
+      }
+    }
+    setProgress(null)
+    setErrors(errs)
+    if (errs.length === 0) {
+      toast.success(`${devices.length}개 장비 ${label} 추출 완료`)
       onClose()
-    } catch (e: unknown) {
-      toast.error(`추출 실패: ${(e as Error).message}`)
-    } finally {
-      setLoading(false)
+    } else if (errs.length < devices.length) {
+      toast.warning(`${devices.length - errs.length}개 성공, ${errs.length}개 실패`)
     }
   }
 
@@ -266,12 +280,15 @@ function DirectExportDialog({ open, onClose, device }: {
         <DialogHeader>
           <DialogTitle className="font-headline text-ds-on-surface">직접 추출</DialogTitle>
         </DialogHeader>
-        {device && (
-          <p className="text-[12px] text-ds-on-surface-variant">
-            <span className="font-semibold text-ds-on-surface">{device.name}</span>
-            {device.ha_peer_ip && <span className="ml-1.5 text-[10px] text-ds-tertiary font-semibold">HA</span>}
-          </p>
-        )}
+        <p className="text-[12px] text-ds-on-surface-variant">
+          {devices.length === 1
+            ? <>
+                <span className="font-semibold text-ds-on-surface">{devices[0].name}</span>
+                {devices[0].ha_peer_ip && <span className="ml-1.5 text-[10px] text-ds-tertiary font-semibold">HA</span>}
+              </>
+            : <><span className="font-semibold text-ds-on-surface">{devices.length}개 장비</span>에서 순차 추출</>
+          }
+        </p>
         <div className="space-y-2 py-1">
           {EXPORT_TYPE_OPTIONS.map(({ type, label, desc }) => (
             <button
@@ -313,18 +330,48 @@ function DirectExportDialog({ open, onClose, device }: {
               onChange={(e) => setTimeout_(Number(e.target.value))}
               className="bg-white border-ds-outline-variant/30 text-sm w-24 text-right"
             />
-            <span className="text-[11px] text-ds-on-surface-variant">초</span>
+            <span className="text-[11px] text-ds-on-surface-variant">초 / 장비</span>
+          </div>
+        )}
+
+        {progress && (
+          <div className="px-1 space-y-1">
+            <div className="flex justify-between text-[11px] text-ds-on-surface-variant">
+              <span className="truncate">{progress.name}</span>
+              <span className="shrink-0 tabular-nums">{progress.current} / {progress.total}</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-ds-outline-variant/20 overflow-hidden">
+              <div
+                className="h-full bg-ds-primary rounded-full transition-all duration-300"
+                style={{ width: `${(progress.current / progress.total) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {errors.length > 0 && !loading && (
+          <div className="px-1 space-y-1">
+            {errors.map(({ name, msg }) => (
+              <p key={name} className="text-[11px] text-ds-error">
+                <span className="font-semibold">{name}</span>: {msg}
+              </p>
+            ))}
           </div>
         )}
 
         <DialogFooter>
-          <button type="button" onClick={onClose} disabled={loading} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors disabled:opacity-40">취소</button>
+          <button type="button" onClick={onClose} disabled={loading} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors disabled:opacity-40">
+            {errors.length > 0 && !loading ? '닫기' : '취소'}
+          </button>
           <button
             onClick={handleExport}
             disabled={loading}
             className="flex items-center gap-1.5 px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50"
           >
-            {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />수집 중…</> : <><FileDown className="w-3.5 h-3.5" />추출</>}
+            {loading
+              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />수집 중…</>
+              : <><FileDown className="w-3.5 h-3.5" />추출</>
+            }
           </button>
         </DialogFooter>
       </DialogContent>
@@ -762,9 +809,7 @@ export function DevicesPage() {
                 </button>
                 <button
                   onClick={() => setDirectExportOpen(true)}
-                  disabled={!isSingle}
-                  title={isSingle ? '직접 추출' : '단일 장비만 지원'}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
                 >
                   <FileDown className="w-3 h-3" />
                   직접 추출
@@ -893,7 +938,7 @@ export function DevicesPage() {
       <DirectExportDialog
         open={directExportOpen}
         onClose={() => setDirectExportOpen(false)}
-        device={isSingle ? selectedDevices[0] : null}
+        devices={selectedDevices}
       />
 
       {/* 그룹 일괄 설정 다이얼로그 */}
