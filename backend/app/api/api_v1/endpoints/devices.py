@@ -63,6 +63,44 @@ def _multi_sheet_excel(sheets: dict[str, pd.DataFrame]) -> BytesIO:
     return buf
 
 
+_POLICY_COL_MAP = {
+    "vsys": "VSYS",
+    "seq": "#",
+    "rule_name": "정책명",
+    "enable": "활성",
+    "action": "액션",
+    "source": "출발지",
+    "destination": "목적지",
+    "service": "서비스",
+    "user": "사용자",
+    "application": "애플리케이션",
+    "security_profile": "보안 프로파일",
+    "category": "카테고리",
+    "description": "설명",
+    "last_hit_date": "마지막 사용일",
+}
+
+def _normalize_policy_df(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    if "enable" in df.columns:
+        df["enable"] = df["enable"].map(lambda v: "활성" if str(v).upper() == "Y" else "비활성")
+    return df.rename(columns={k: v for k, v in _POLICY_COL_MAP.items() if k in df.columns})
+
+
+def _normalize_object_dfs(
+    net_obj: pd.DataFrame,
+    net_grp: pd.DataFrame,
+    svc_obj: pd.DataFrame,
+    svc_grp: pd.DataFrame,
+) -> dict[str, pd.DataFrame]:
+    return {
+        "주소객체": net_obj.rename(columns={"Name": "이름", "Type": "타입", "Value": "IP 주소"}),
+        "주소그룹": net_grp.rename(columns={"Group Name": "이름", "Entry": "멤버"}),
+        "서비스객체": svc_obj.rename(columns={"Name": "이름", "Protocol": "프로토콜", "Port": "포트"}),
+        "서비스그룹": svc_grp.rename(columns={"Group Name": "이름", "Entry": "멤버"}),
+    }
+
+
 async def _collect_hit_dates(
     collector,
     device: models.Device,
@@ -551,7 +589,7 @@ async def direct_export_device(
                 loop.run_in_executor(None, collector.export_security_rules),
                 timeout=timeout,
             )
-            output = _single_sheet_excel(df, "정책")
+            output = _single_sheet_excel(_normalize_policy_df(df), "정책")
             filename = f"{device.name}_정책_{today}.xlsx"
 
         elif request.export_type == "objects":
@@ -559,12 +597,7 @@ async def direct_export_device(
             net_grp = await loop.run_in_executor(None, collector.export_network_group_objects)
             svc_obj = await loop.run_in_executor(None, collector.export_service_objects)
             svc_grp = await loop.run_in_executor(None, collector.export_service_group_objects)
-            output = _multi_sheet_excel({
-                "주소객체": net_obj,
-                "주소그룹": net_grp,
-                "서비스객체": svc_obj,
-                "서비스그룹": svc_grp,
-            })
+            output = _multi_sheet_excel(_normalize_object_dfs(net_obj, net_grp, svc_obj, svc_grp))
             filename = f"{device.name}_객체_{today}.xlsx"
 
         elif request.export_type == "hit_dates":
