@@ -381,9 +381,6 @@ function DirectExportDialog({ open, onClose, devices }: {
 
 const COLUMN_DEFS: ColDef<Device>[] = [
   {
-    checkboxSelection: true,
-    headerCheckboxSelection: true,
-    headerCheckboxSelectionFilteredOnly: true,
     width: 44, minWidth: 44, maxWidth: 44,
     sortable: false, resizable: false, filter: false,
   },
@@ -881,9 +878,9 @@ export function DevicesPage() {
           rowData={devices}
           getRowId={(p) => String(p.data.id)}
           quickFilterText={quickFilter}
-          height="calc(100vh - 380px)"
+          height="calc(100vh - 280px)"
           noRowsText="등록된 장비가 없습니다."
-          rowSelection="multiple"
+          rowSelection={{ mode: 'multiRow', checkboxes: true, headerCheckbox: true, checkboxesFilteredOnly: true }}
           onSelectionChanged={(rows) => setSelectedDevices(rows)}
           defaultColDefOverride={{ resizable: true, sortable: true }}
           fitColumns

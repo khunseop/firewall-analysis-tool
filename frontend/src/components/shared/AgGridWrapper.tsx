@@ -33,7 +33,13 @@ interface AgGridWrapperProps<T> {
   /** 컬럼을 컨테이너 너비에 맞게 분배 (기본값: false = 내용 기반 자동 너비) */
   fitColumns?: boolean
   rowHeight?: number
-  rowSelection?: 'single' | 'multiple'
+  rowSelection?: 'single' | 'multiple' | {
+    mode: 'singleRow' | 'multiRow'
+    checkboxes?: boolean
+    headerCheckbox?: boolean
+    checkboxesFilteredOnly?: boolean
+    enableClickSelection?: boolean
+  }
   onSelectionChanged?: (rows: T[]) => void
   context?: Record<string, unknown>
   isExternalFilterPresent?: () => boolean
