@@ -134,7 +134,8 @@ function AgGridWrapperInner<T>(
         columnDefs={columnDefs}
         rowData={rowData}
         getRowId={getRowId}
-        rowHeight={rowHeight}
+        rowHeight={rowHeight ?? 28}
+        headerHeight={32}
         onGridReady={handleGridReady}
         onFirstDataRendered={handleFirstDataRendered}
         onGridSizeChanged={handleGridSizeChanged}

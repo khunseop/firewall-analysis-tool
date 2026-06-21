@@ -135,10 +135,10 @@
   --ag-header-column-separator-display: none;
   --ag-header-column-resize-handle-display: none;
   --ag-font-family: 'Inter', sans-serif;
-  --ag-font-size: 12px;
-  --ag-row-height: 44px;
-  --ag-header-height: 26px;
-  --ag-cell-horizontal-padding: 20px;
+  --ag-font-size: 11px;
+  --ag-row-height: 28px;
+  --ag-header-height: 32px;
+  --ag-cell-horizontal-padding: 10px;
   --ag-wrapper-border-radius: 0;
   --ag-grid-size: 4px;
   --ag-list-item-height: 32px;
@@ -182,23 +182,23 @@
 
 /* Cell padding + align */
 .ag-theme-quartz .ag-cell {
-  font-size: 12px !important;
+  font-size: 11px !important;
   display: flex !important;
   align-items: center !important;
-  line-height: 1.5 !important;
+  line-height: 1.4 !important;
 }
 
 /* autoHeight cells: allow wrapping */
 .ag-theme-quartz .ag-cell.ag-cell-auto-height {
   align-items: flex-start !important;
-  padding-top: 6px !important;
-  padding-bottom: 6px !important;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
 }
 
 /* Monospace cells */
 .ag-theme-quartz .ag-cell.cell-mono {
   font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
-  font-size: 11px !important;
+  font-size: 10px !important;
 }
 
 /* Sort icon */
