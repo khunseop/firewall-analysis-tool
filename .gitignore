@@ -1,6 +1,7 @@
 # AI tool notes
 .todo_gemini
 
+*.png
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
