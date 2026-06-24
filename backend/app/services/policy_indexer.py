@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete
 from app import crud, models
 from app.services.normalize import parse_ipv4_numeric, parse_port_numeric
-from ipaddress import ip_network, ip_address
+from ipaddress import ip_network, ip_address, IPv4Address, IPv4Network
 
 # --- IP 범위 병합 유틸리티 (Step 2b용) ---
 
@@ -22,17 +22,24 @@ def _ip_str_to_numeric_range(ip_str: str) -> Optional[Tuple[int, int]]:
         # '시작-끝' 형식의 범위 처리
         if '-' in ip_str:
             start_str, end_str = ip_str.split('-', 1)
-            start = int(ip_address(start_str.strip()))
-            end = int(ip_address(end_str.strip()))
-            return min(start, end), max(start, end)
+            start_addr = ip_address(start_str.strip())
+            end_addr = ip_address(end_str.strip())
+            if not (isinstance(start_addr, IPv4Address) and isinstance(end_addr, IPv4Address)):
+                return None
+            return min(int(start_addr), int(end_addr)), max(int(start_addr), int(end_addr))
         # CIDR 형식 처리 (예: 1.1.1.0/24)
         elif '/' in ip_str:
             net = ip_network(ip_str, strict=False)
+            if not isinstance(net, IPv4Network):
+                return None
             return int(net.network_address), int(net.broadcast_address)
         # 단일 IP 주소 처리
         else:
-            addr = int(ip_address(ip_str.strip()))
-            return addr, addr
+            addr = ip_address(ip_str.strip())
+            if not isinstance(addr, IPv4Address):
+                return None
+            n = int(addr)
+            return n, n
     except ValueError:
         return None
 
