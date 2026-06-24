@@ -548,25 +548,22 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                         
                         # 히트 정보가 있는 레코드만 필터링 후 병합
                         hit_date_df = hit_date_df[hit_date_df['rule_name_normalized'].notna()].copy()
-                        
-                        if 'last_hit_date' in policies_df.columns:
-                            policies_df['last_hit_date_old'] = pd.to_datetime(policies_df['last_hit_date'], errors='coerce')
-                            hit_date_df['last_hit_date_new'] = pd.to_datetime(hit_date_df['last_hit_date'], errors='coerce')
-                            
-                            merge_keys = ['vsys_normalized', 'rule_name_normalized'] if 'vsys_normalized' in policies_df.columns else ['rule_name_normalized']
-                            
-                            merged_df = pd.merge(policies_df, hit_date_df[merge_keys + ['last_hit_date_new']], on=merge_keys, how="left")
-                            
-                            # 최신 정보로 갱신 (정보가 없으면 기존 값을 유지하는 대신 새로 수집된 상태(None 포함)로 동기화)
-                            def choose_latest(row):
-                                new_val = row.get('last_hit_date_new')
-                                if pd.notna(new_val):
-                                    return new_val.to_pydatetime() if hasattr(new_val, 'to_pydatetime') else new_val
-                                return None
-                            
-                            merged_df['last_hit_date'] = merged_df.apply(choose_latest, axis=1)
-                            policies_df = merged_df.drop(columns=['last_hit_date_old', 'last_hit_date_new', 'rule_name_normalized', 'vsys_normalized'], errors='ignore')
-                        
+
+                        hit_date_df['last_hit_date_new'] = pd.to_datetime(hit_date_df['last_hit_date'], errors='coerce')
+
+                        merge_keys = ['vsys_normalized', 'rule_name_normalized'] if 'vsys_normalized' in policies_df.columns and 'vsys_normalized' in hit_date_df.columns else ['rule_name_normalized']
+
+                        merged_df = pd.merge(policies_df, hit_date_df[merge_keys + ['last_hit_date_new']], on=merge_keys, how="left")
+
+                        def choose_latest(row):
+                            new_val = row.get('last_hit_date_new')
+                            if pd.notna(new_val):
+                                return new_val.to_pydatetime() if hasattr(new_val, 'to_pydatetime') else new_val
+                            return None
+
+                        merged_df['last_hit_date'] = merged_df.apply(choose_latest, axis=1)
+                        policies_df = merged_df.drop(columns=['last_hit_date_new', 'rule_name_normalized', 'vsys_normalized'], errors='ignore')
+
                         collected_dfs["policies"] = policies_df
                         
                         # 히트 정보 수집 완료 상태 업데이트
