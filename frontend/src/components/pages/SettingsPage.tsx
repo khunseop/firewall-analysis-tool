@@ -599,6 +599,105 @@ const YAML_EXAMPLE = `# device_id: 장비 ID (숫자), name: 정책명, reason: 
   registered_at: "${new Date().toISOString().slice(0, 10)}"
   expires_at: "2026-12-31"`
 
+// 검색 가능한 장비 선택 드롭다운
+function DeviceSearchSelect({
+  value,
+  devices,
+  onChange,
+  placeholder = '장비 선택',
+  className = '',
+}: {
+  value: number | ''
+  devices: Device[]
+  onChange: (id: number | '') => void
+  placeholder?: string
+  className?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const [q, setQ] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const selected = devices.find(d => d.id === value)
+  const filtered = devices.filter(d => {
+    if (!q) return true
+    const lq = q.toLowerCase()
+    return d.name.toLowerCase().includes(lq) || d.ip_address.toLowerCase().includes(lq)
+  })
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 0)
+    else setQ('')
+  }, [open])
+
+  return (
+    <div ref={ref} className={`relative ${className}`}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="w-full h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary flex items-center justify-between gap-1 text-left"
+      >
+        <span className={`truncate ${selected ? 'text-ds-on-surface' : 'text-ds-on-surface-variant/50'}`}>
+          {selected ? `${selected.name} (${selected.ip_address})` : placeholder}
+        </span>
+        <ChevronDown className="w-3 h-3 text-ds-on-surface-variant/50 shrink-0" />
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-0.5 left-0 min-w-full w-max max-w-[280px] bg-white border border-ds-outline-variant/20 rounded-lg shadow-lg">
+          <div className="p-1.5 border-b border-ds-outline-variant/10">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-ds-on-surface-variant/40 pointer-events-none" />
+              <input
+                ref={inputRef}
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                placeholder="이름, IP 검색"
+                className="w-full h-6 pl-6 pr-2 text-[11px] border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary bg-ds-surface-container-low/30"
+              />
+            </div>
+          </div>
+          <ul className="max-h-48 overflow-y-auto py-0.5">
+            {placeholder && (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => { onChange(''); setOpen(false) }}
+                  className="w-full px-3 py-1.5 text-left text-[11px] text-ds-on-surface-variant/60 hover:bg-ds-surface-container-low/50 transition-colors"
+                >
+                  {placeholder}
+                </button>
+              </li>
+            )}
+            {filtered.length === 0 ? (
+              <li className="px-3 py-2 text-[11px] text-ds-on-surface-variant/50">검색 결과 없음</li>
+            ) : filtered.map(d => (
+              <li key={d.id}>
+                <button
+                  type="button"
+                  onClick={() => { onChange(d.id); setOpen(false) }}
+                  className={`w-full px-3 py-1.5 text-left text-[11px] hover:bg-ds-surface-container-low/50 transition-colors ${value === d.id ? 'text-ds-tertiary font-medium bg-ds-tertiary/5' : 'text-ds-on-surface'}`}
+                >
+                  <span className="font-medium">{d.name}</span>
+                  <span className="text-ds-on-surface-variant/60 ml-1">({d.ip_address})</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function DuplicatePolicyTable({
   items, devices, onAdd, onRemove, onUpdate, onBulkAdd
 }: {
@@ -680,16 +779,13 @@ function DuplicatePolicyTable({
       </div>
       {/* 행2: 필터 컨트롤 */}
       <div className="flex items-center gap-2 flex-wrap">
-        <select
+        <DeviceSearchSelect
           value={filterDeviceId}
-          onChange={(e) => setFilterDeviceId(e.target.value === '' ? '' : Number(e.target.value))}
-          className="h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
-        >
-          <option value="">전체 장비</option>
-          {devices.map(d => (
-            <option key={d.id} value={d.id}>{d.name} ({d.ip_address})</option>
-          ))}
-        </select>
+          devices={devices}
+          onChange={setFilterDeviceId}
+          placeholder="전체 장비"
+          className="w-52"
+        />
         <div className="relative flex-1 min-w-[140px]">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-ds-on-surface-variant/50 pointer-events-none" />
           <input
@@ -757,16 +853,11 @@ function DuplicatePolicyTable({
               return (
                 <tr key={i} className={`hover:bg-ds-surface-container-low/20 ${expired ? 'opacity-50' : ''}`}>
                   <td className="px-3 py-1.5">
-                    <select
+                    <DeviceSearchSelect
                       value={item.device_id ?? ''}
-                      onChange={(e) => onUpdate(i, { device_id: Number(e.target.value) })}
-                      className="w-full h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
-                    >
-                      <option value="">장비 선택</option>
-                      {devices.map((d) => (
-                        <option key={d.id} value={d.id}>{d.name}({d.ip_address})</option>
-                      ))}
-                    </select>
+                      devices={devices}
+                      onChange={(id) => onUpdate(i, { device_id: id === '' ? 0 : id })}
+                    />
                   </td>
                   <td className="px-3 py-1.5">
                     <input
