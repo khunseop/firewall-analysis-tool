@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy import select
 from app.db.session import get_db
-from app import crud
+from app import crud, schemas
 from app.models.analysis import AnalysisTaskType, AnalysisTaskStatus
 from app.models.policy import Policy
 from app.models.network_object import NetworkObject
@@ -646,6 +646,97 @@ async def upload_external_file(
     return {"ok": True, "filename": file.filename, "task_id": task_id, "slot": slot}
 
 
+async def _save_task15_exceptions_to_settings(
+    db: AsyncSession,
+    device_id: int,
+    output_files: List[Tuple[str, bytes]],
+) -> None:
+    """
+    Task 15 출력 파일 중 .yaml을 파싱하여 Settings의 duplicate_policies에 누적 저장.
+    (device_id, name) 기준 중복 시 expires_at이 더 긴 항목으로 교체.
+    """
+    import yaml as _yaml
+
+    yaml_data: dict = {}
+    for fname, data in output_files:
+        if fname.endswith('.yaml'):
+            try:
+                yaml_data = _yaml.safe_load(data.decode('utf-8')) or {}
+            except Exception:
+                logger.warning(f"Task 15 YAML 파싱 실패: {fname}")
+            break
+
+    if not yaml_data:
+        return
+
+    new_entries: List[dict] = []
+    for fw_entries in yaml_data.values():
+        if not isinstance(fw_entries, list):
+            continue
+        for item in fw_entries:
+            if not isinstance(item, dict) or not item.get('name'):
+                continue
+            new_entries.append({
+                "device_id": device_id,
+                "name": item.get("name", ""),
+                "reason": item.get("reason", ""),
+                "registered_at": item.get("registered_at", ""),
+                "expires_at": item.get("expires_at", ""),
+            })
+
+    if not new_entries:
+        return
+
+    setting = await crud.settings.get_setting(db, key=_SETTINGS_KEY)
+    if setting:
+        try:
+            cfg = json.loads(setting.value)
+        except Exception:
+            cfg = {}
+    else:
+        cfg = {}
+
+    existing: List[dict] = cfg.get("exceptions", {}).get("duplicate_policies", [])
+
+    # (device_id, name) 키로 인덱싱, expires_at이 더 긴 것으로 교체
+    merged: dict = {(e["device_id"], e["name"]): e for e in existing}
+    for entry in new_entries:
+        key = (entry["device_id"], entry["name"])
+        if key in merged:
+            try:
+                existing_exp = merged[key].get("expires_at", "")
+                new_exp = entry.get("expires_at", "")
+                if new_exp > existing_exp:
+                    merged[key] = entry
+            except Exception:
+                merged[key] = entry
+        else:
+            merged[key] = entry
+
+    updated_list = list(merged.values())
+    if "exceptions" not in cfg:
+        cfg["exceptions"] = {}
+    cfg["exceptions"]["duplicate_policies"] = updated_list
+
+    value = json.dumps(cfg, ensure_ascii=False)
+    if setting:
+        await crud.settings.update_setting(
+            db=db, db_obj=setting,
+            obj_in=schemas.SettingsUpdate(value=value),
+        )
+    else:
+        await crud.settings.create_setting(
+            db,
+            schemas.SettingsCreate(
+                key=_SETTINGS_KEY,
+                value=value,
+                description='정책 삭제 워크플로우 설정 (fpat.yaml 형식)',
+            ),
+        )
+
+    logger.info(f"Task 15 예외 {len(new_entries)}건 → Settings duplicate_policies 저장 완료")
+
+
 async def _build_duplicate_policy_yaml(db: AsyncSession, device_id: int, device, reference_date: datetime.date = None) -> bytes | None:
     """
     Settings의 duplicate_policies에서 해당 장비 + 유효기간 예외만 추출해 YAML bytes 생성.
@@ -766,9 +857,15 @@ async def run_project_task(
     if not output_files:
         raise HTTPException(status_code=500, detail="태스크 실행 완료됐으나 출력 파일이 없습니다.")
 
-    # 출력 파일을 프로젝트에 저장 (output_0, output_1, ...)
+    # Task 15 완료 시 미사용예외를 Settings duplicate_policies에 누적 저장
+    if effective_task_id == 15:
+        await _save_task15_exceptions_to_settings(db, project.device_id, output_files)
+
+    # 출력 파일을 프로젝트에 저장 (output_0, output_1, ...) — .yaml은 제외
     saved = []
-    for idx, (fname, data) in enumerate(output_files):
+    for idx, (fname, data) in enumerate(
+        [(f, d) for f, d in output_files if not f.endswith('.yaml')]
+    ):
         slot = f"output_{idx}"
         await dwcrud.upsert_file(db, project_id=project_id, task_id=effective_task_id,
                                  slot=slot, filename=fname, data=data)
