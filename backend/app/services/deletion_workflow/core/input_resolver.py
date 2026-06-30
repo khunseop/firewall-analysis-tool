@@ -197,9 +197,9 @@ def resolve_inputs(
 
     if task_id == 17:
         # 중복 예외 반영: 중복상태 업데이트 결과 + YAML (선택)
-        # YAML: Task 15 자동 생성(output_3) 우선, 없으면 수동 업로드(external_1) 사용
+        # YAML: 수동 업로드(external_1) 또는 Settings 자동 생성 (run_project_task에서 처리)
         policy = _require(project_files, 16, "output_0", "중복정책 상태 업데이트 결과")
-        yaml_f = _get(project_files, 15, "output_3") or _get(project_files, 17, "external_1")
+        yaml_f = _get(project_files, 17, "external_1")
         return collect(policy, yaml_f)
 
     if task_id == 18:
