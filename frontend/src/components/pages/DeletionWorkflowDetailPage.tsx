@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import {
   ArrowLeft, Database, Play, Download, Upload, CheckCircle2, AlertCircle,
   Loader2, Zap, RotateCcw, Square, RefreshCw, CalendarDays, Pencil, X, Check, PackageCheck,
+  RefreshCcw,
 } from 'lucide-react'
 import {
   getProject,
@@ -19,6 +20,8 @@ import {
   type DeletionWorkflowProjectDetail,
   type ProjectFileState,
 } from '@/api/deletionWorkflow'
+import { getDevice, syncAll, getSyncStatus } from '@/api/devices'
+import { startAnalysis, getAnalysisStatus } from '@/api/analysis'
 
 // ── 태스크 메타 ──────────────────────────────────────────────────────────────
 
@@ -368,10 +371,11 @@ function TaskCard({
 // ── 컴포넌트: Task 0 섹션 ────────────────────────────────────────────────────
 
 function Task0Section({
-  projectId, files, hasPeerIp, autoRunCurrentTaskId, onRefresh,
+  projectId, files, hasPeerIp, autoRunCurrentTaskId, onRefresh, onBeforeExtract,
 }: {
   projectId: number; files: ProjectFileState[]
   hasPeerIp: boolean; autoRunCurrentTaskId: number | null; onRefresh: () => void
+  onBeforeExtract?: () => Promise<boolean>
 }) {
   const [extracting, setExtracting] = useState(false)
   const isAutoExtracting = autoRunCurrentTaskId === 0
@@ -385,6 +389,11 @@ function Task0Section({
   const [uploading, setUploading] = useState(false)
 
   const handleExtract = async () => {
+    if (onBeforeExtract) {
+      const canProceed = await onBeforeExtract()
+      if (!canProceed) return
+    }
+
     setExtracting(true)
     try {
       const res = await runProjectExtract(projectId)
@@ -556,6 +565,15 @@ export default function DeletionWorkflowDetailPage() {
   // 완료 처리
   const [completing, setCompleting] = useState(false)
 
+  // 동기화 확인 모달
+  const [syncConfirm, setSyncConfirm] = useState<{
+    lastSyncDate: string | null
+    refDate: string
+    onSyncAndProceed: () => Promise<void>
+    onSkip: () => Promise<void>
+  } | null>(null)
+  const [syncing, setSyncing] = useState(false)
+
   // 기준일 인라인 편집
   const [editingRefDate, setEditingRefDate] = useState(false)
   const [refDateInput, setRefDateInput] = useState('')
@@ -592,6 +610,109 @@ export default function DeletionWorkflowDetailPage() {
     setEditingRefDate(true)
   }
 
+  // ── 동기화 날짜 확인 ─────────────────────────────────────────────────────
+  // 기준일과 마지막 동기화 날짜가 다르면 확인 다이얼로그를 표시하고 결과(skip/sync/cancel)를 반환
+
+  const askSyncDecision = (lastSyncDate: string | null, refDate: string, deviceId: number) =>
+    new Promise<'sync' | 'skip' | 'cancel'>((resolve) => {
+      setSyncConfirm({
+        lastSyncDate,
+        refDate,
+        onSyncAndProceed: async () => {
+          setSyncConfirm(null)
+          setSyncing(true)
+          try {
+            toast.info('정책 동기화를 시작합니다...')
+            await syncAll(deviceId)
+            for (let i = 0; i < 120; i++) {
+              await new Promise((r) => setTimeout(r, 3000))
+              const status = await getSyncStatus(deviceId).catch(() => null)
+              if (!status) break
+              if (status.last_sync_status === 'success') {
+                toast.success('동기화 완료')
+                break
+              }
+              if (status.last_sync_status === 'failure') {
+                toast.error('동기화 실패 — 그냥 진행합니다.')
+                break
+              }
+            }
+          } catch (e: unknown) {
+            toast.error(`동기화 오류: ${(e as Error).message}`)
+          } finally {
+            setSyncing(false)
+          }
+          resolve('sync')
+        },
+        onSkip: async () => {
+          setSyncConfirm(null)
+          resolve('skip')
+        },
+      })
+    })
+
+  const checkSync = async (projectRef: DeletionWorkflowProjectDetail): Promise<boolean> => {
+    let device
+    try {
+      device = await getDevice(projectRef.device_id)
+    } catch {
+      return true // 장비 조회 실패 시 그냥 진행
+    }
+    const lastSyncDate = device.last_sync_at ? device.last_sync_at.substring(0, 10) : null
+    const refDate = projectRef.reference_date || new Date().toISOString().substring(0, 10)
+    if (lastSyncDate === refDate) return true
+
+    const decision = await askSyncDecision(lastSyncDate, refDate, projectRef.device_id)
+    return decision !== 'cancel'
+  }
+
+  // ── 중복정책 분석 자동 실행 ───────────────────────────────────────────────
+
+  const ensureRedundancyAnalysis = async (deviceId: number): Promise<boolean> => {
+    try {
+      const latest = await getAnalysisStatus(deviceId)
+      if (latest.task_status === 'success') return true
+      if (latest.task_status === 'in_progress' || latest.task_status === 'pending') {
+        // 이미 진행 중 — 완료 대기
+        toast.info('중복정책 분석이 진행 중입니다. 완료를 기다립니다...')
+        for (let i = 0; i < 120; i++) {
+          await new Promise((r) => setTimeout(r, 3000))
+          const s = await getAnalysisStatus(deviceId).catch(() => null)
+          if (!s) break
+          if (s.task_status === 'success') return true
+          if (s.task_status !== 'in_progress' && s.task_status !== 'pending') break
+        }
+        return false
+      }
+    } catch {
+      // 분석 결과 없음 → 신규 실행
+    }
+
+    toast.info('중복정책 분석 결과가 없습니다. 자동으로 분석을 시작합니다...')
+    try {
+      await startAnalysis(deviceId, 'redundancy')
+    } catch (e: unknown) {
+      toast.error(`중복정책 분석 시작 실패: ${(e as Error).message}`)
+      return false
+    }
+
+    for (let i = 0; i < 120; i++) {
+      await new Promise((r) => setTimeout(r, 3000))
+      const s = await getAnalysisStatus(deviceId).catch(() => null)
+      if (!s) break
+      if (s.task_status === 'success') {
+        toast.success('중복정책 분석 완료 — 워크플로우를 계속합니다.')
+        return true
+      }
+      if (s.task_status !== 'in_progress' && s.task_status !== 'pending') {
+        toast.error('중복정책 분석 실패')
+        return false
+      }
+    }
+    toast.error('중복정책 분석 타임아웃')
+    return false
+  }
+
   // ── 자동실행 ──────────────────────────────────────────────────────────────
 
   const startAutoRunFrom = async (fromTaskId?: number) => {
@@ -604,6 +725,15 @@ export default function DeletionWorkflowDetailPage() {
     if (includeTask0 && autoRunRef.current) {
       const cur = await getProject(projectId).catch(() => null)
       if (cur && !hasOutput(cur.files ?? [], 0)) {
+        // 기준일 동기화 확인
+        const canProceed = await checkSync(cur)
+        if (!canProceed) {
+          autoRunRef.current = false
+          setAutoRunning(false)
+          setAutoRunCurrentTaskId(null)
+          return
+        }
+
         setTaskTimings((prev) => ({ ...prev, 0: { startedAt: Date.now() } }))
         setAutoRunCurrentTaskId(0)
         try {
@@ -670,6 +800,23 @@ export default function DeletionWorkflowDetailPage() {
         setAutoRunBlockedAt(taskId)
         toast.info(`${taskMeta.name}: '${missingRequired[0].label}'을 업로드하면 자동실행이 계속됩니다.`)
         break
+      }
+
+      // Task 3(중복정책 분석): FAT DB에 분석 결과가 없으면 자동 실행
+      if (taskId === 3) {
+        const cachedProject2 = qc.getQueryData<DeletionWorkflowProjectDetail>(
+          ['deletion-workflow-project', projectId],
+        )
+        const deviceId = cachedProject2?.device_id
+        if (deviceId) {
+          setAutoRunCurrentTaskId(3) // 분석 중 스피너 표시
+          const ok = await ensureRedundancyAnalysis(deviceId)
+          if (!autoRunRef.current) break
+          if (!ok) {
+            autoRunRef.current = false
+            break
+          }
+        }
       }
 
       setTaskTimings((prev) => ({ ...prev, [taskId]: { startedAt: Date.now() } }))
@@ -976,6 +1123,11 @@ export default function DeletionWorkflowDetailPage() {
           hasPeerIp={hasPeerIp}
           autoRunCurrentTaskId={autoRunCurrentTaskId}
           onRefresh={refresh}
+          onBeforeExtract={async () => {
+            const cur = await getProject(projectId).catch(() => null)
+            if (!cur) return true
+            return checkSync(cur)
+          }}
         />
 
         <section>
@@ -1017,6 +1169,50 @@ export default function DeletionWorkflowDetailPage() {
         </section>
 
       </div>
+
+      {/* 동기화 확인 모달 */}
+      {syncConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-96 space-y-4">
+            <div className="flex items-center gap-2 text-amber-700">
+              <RefreshCcw className="w-5 h-5" />
+              <span className="font-semibold">동기화 확인</span>
+            </div>
+            <div className="text-sm text-ds-on-surface space-y-1.5">
+              <p>
+                기준일 <span className="font-semibold text-amber-700">{syncConfirm.refDate}</span>과 마지막 동기화 날짜가 다릅니다.
+              </p>
+              <p className="text-ds-on-surface-variant text-xs">
+                마지막 동기화: {syncConfirm.lastSyncDate ?? '없음'}
+              </p>
+              <p className="mt-2">정책 동기화를 진행하시겠습니까?</p>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                onClick={() => { setSyncConfirm(null) }}
+                className="px-4 py-2 text-sm text-ds-on-surface-variant hover:text-ds-on-surface"
+              >
+                취소
+              </button>
+              <button
+                onClick={syncConfirm.onSkip}
+                className="px-4 py-2 text-sm rounded-lg border border-ds-outline-variant/50 hover:bg-ds-surface-container text-ds-on-surface"
+              >
+                그냥 진행
+              </button>
+              <button
+                onClick={syncConfirm.onSyncAndProceed}
+                disabled={syncing}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-ds-tertiary text-white hover:bg-ds-tertiary/90 disabled:opacity-50"
+              >
+                {syncing && <Loader2 className="w-4 h-4 animate-spin" />}
+                <RefreshCcw className="w-4 h-4" />
+                동기화 후 진행
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 초기화 확인 모달 */}
       {resetConfirm && (
