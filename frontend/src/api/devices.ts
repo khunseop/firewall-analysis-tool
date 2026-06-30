@@ -91,6 +91,11 @@ export const listDevices = async (): Promise<Device[]> => {
   return res.data
 }
 
+export const getDevice = async (id: number): Promise<Device> => {
+  const res = await apiClient.get<Device>(`/devices/${id}`)
+  return res.data
+}
+
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   const res = await apiClient.get<DashboardStats>('/devices/dashboard/stats')
   return res.data
