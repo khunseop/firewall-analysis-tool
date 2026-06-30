@@ -674,7 +674,7 @@ async def _build_duplicate_policy_yaml(db: AsyncSession, device_id: int, device,
             reg = _dt.date.fromisoformat(item["registered_at"])
         except (KeyError, ValueError):
             continue
-        if exp >= today and reg < today:
+        if exp >= today and reg <= today:
             valid.append({
                 "name": item.get("name", ""),
                 "reason": item.get("reason", ""),
