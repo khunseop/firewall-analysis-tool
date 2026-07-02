@@ -650,39 +650,42 @@ async def _save_task15_exceptions_to_settings(
     db: AsyncSession,
     device_id: int,
     output_files: List[Tuple[str, bytes]],
+    reference_date: Optional[datetime.date],
+    unused_threshold_days: int,
 ) -> None:
     """
-    Task 15 출력 파일 중 .yaml을 파싱하여 Settings의 duplicate_policies에 누적 저장.
+    Task 15 출력 파일(중복정리 결과 Excel의 '예외' 시트)에서 예외 대상을 추출해
+    Settings의 duplicate_policies에 누적 저장.
     (device_id, name) 기준 중복 시 expires_at이 더 긴 항목으로 교체.
     """
-    import yaml as _yaml
-
-    yaml_data: dict = {}
+    df_exc: Optional[pd.DataFrame] = None
     for fname, data in output_files:
-        if fname.endswith('.yaml'):
-            try:
-                yaml_data = _yaml.safe_load(data.decode('utf-8')) or {}
-            except Exception:
-                logger.warning(f"Task 15 YAML 파싱 실패: {fname}")
-            break
+        if not fname.endswith('.xlsx'):
+            continue
+        try:
+            df_exc = pd.read_excel(io.BytesIO(data), sheet_name='예외')
+        except Exception:
+            continue
+        break
 
-    if not yaml_data:
+    if df_exc is None or df_exc.empty or 'Rule Name' not in df_exc.columns:
         return
 
+    today = reference_date or datetime.date.today()
+    expires_at = today + datetime.timedelta(days=unused_threshold_days)
+
     new_entries: List[dict] = []
-    for fw_entries in yaml_data.values():
-        if not isinstance(fw_entries, list):
+    for _, row in df_exc.drop_duplicates(subset=['Rule Name']).iterrows():
+        name = row.get('Rule Name')
+        if not name:
             continue
-        for item in fw_entries:
-            if not isinstance(item, dict) or not item.get('name'):
-                continue
-            new_entries.append({
-                "device_id": device_id,
-                "name": item.get("name", ""),
-                "reason": item.get("reason", ""),
-                "registered_at": item.get("registered_at", ""),
-                "expires_at": item.get("expires_at", ""),
-            })
+        new_entries.append({
+            "device_id": device_id,
+            "name": str(name),
+            "reason": f"중복정책_{row.get('비고', '')}",
+            "registered_at": today.strftime('%Y-%m-%d'),
+            "expires_at": expires_at.strftime('%Y-%m-%d'),
+        })
 
     if not new_entries:
         return
@@ -859,7 +862,12 @@ async def run_project_task(
 
     # Task 15 완료 시 미사용예외를 Settings duplicate_policies에 누적 저장
     if effective_task_id == 15:
-        await _save_task15_exceptions_to_settings(db, project.device_id, output_files)
+        unused_threshold_days = config_dict.get("analysis_criteria", {}).get("unused_threshold_days", 90)
+        await _save_task15_exceptions_to_settings(
+            db, project.device_id, output_files,
+            reference_date=project.reference_date,
+            unused_threshold_days=unused_threshold_days,
+        )
 
     # 출력 파일을 프로젝트에 저장 (output_0, output_1, ...) — .yaml은 제외
     saved = []
