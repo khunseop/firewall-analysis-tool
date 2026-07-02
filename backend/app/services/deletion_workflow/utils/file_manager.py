@@ -20,10 +20,12 @@ class FileManager:
     def __init__(self, config_manager):
         self.config = config_manager
         self._forced_files: List[str] = []
+        self._forced_mode: bool = False
 
     def set_forced_files(self, files: List[str]):
         """API/웹 호출 시 파일 경로를 미리 지정합니다."""
         self._forced_files = list(files)
+        self._forced_mode = True
 
     def update_version(self, filename: str, final_version: bool = False) -> str:
         """파일 이름의 버전 접미사를 업데이트합니다."""
@@ -60,6 +62,11 @@ class FileManager:
             selected = self._forced_files.pop(0)
             logger.info(f"지정된 파일 사용: {selected}")
             return selected
+
+        if self._forced_mode:
+            # 웹 API 모드: 지정된 파일 목록이 소진되면 대화형 입력으로 빠지지 않고 None 반환
+            logger.info("지정된 파일 목록 소진 — 추가 파일 없음으로 처리")
+            return None
 
         if extension is None:
             extension = self.config.get('file_management.default_extension', '.xlsx')

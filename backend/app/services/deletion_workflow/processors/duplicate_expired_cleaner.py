@@ -3,8 +3,9 @@
 fpat/processors/duplicate_expired_cleaner.py 이식.
 """
 import logging
+import yaml
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from .base_processor import BaseProcessor
 
 logger = logging.getLogger(__name__)
@@ -78,6 +79,25 @@ class DuplicateExpiredCleaner(BaseProcessor):
 
             delete_out = file_manager.update_version(delete_file, False)
             df_delete_new.to_excel(delete_out, index=False, engine='openpyxl')
+
+            # 예외 YAML 생성 (Task 17 자동 연결용 — API 레이어가 Settings duplicate_policies에 저장)
+            if not df_summary_exc.empty:
+                firewall_name = kwargs.get('firewall_name') or self.config.get('firewall_name', 'firewall')
+                unused_threshold = self.config.get('analysis_criteria.unused_threshold_days', 90)
+                today = self.config.get_reference_datetime()
+                entries = [
+                    {
+                        'name': str(row['Rule Name']),
+                        'reason': f"중복정책_{row['비고']}",
+                        'registered_at': today.strftime('%Y-%m-%d'),
+                        'expires_at': (today + timedelta(days=unused_threshold)).strftime('%Y-%m-%d'),
+                    }
+                    for _, row in df_summary_exc.drop_duplicates(subset=['Rule Name']).iterrows()
+                ]
+                with open("duplicate_exceptions.yaml", 'w', encoding='utf-8') as f:
+                    yaml.dump({firewall_name: entries}, f, allow_unicode=True,
+                              sort_keys=False, default_flow_style=False)
+                logger.info(f"예외 YAML 생성: {len(entries)}건 → duplicate_exceptions.yaml")
 
             logger.info(f"완료: 예외 {len(all_exc)}건 (만료:{len(expired_nos)}, 차단:{len(blocking_nos)})")
             return True
