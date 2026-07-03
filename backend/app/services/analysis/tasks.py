@@ -170,7 +170,7 @@ async def run_unused_analysis_task(db: AsyncSession, device_id: int, days: int =
             await log_activity(db, title="미사용 정책 분석 실패", message=f"Device ID {device_id} 미사용 정책 분석 실패: {str(e)[:200]}", type="error", category="analysis", device_id=device_id)
 
 
-async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_policy_ids: List[int], new_position: int, move_direction: Optional[str] = None):
+async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_policy_ids: List[int], reference_policy_id: Optional[int] = None, move_direction: Optional[str] = None):
     """
     정책 위치 이동 시 영향도 분석 작업을 실행합니다.
     이동 경로상에 있는 정책들과의 충돌 또는 가림(Shadowing) 현상을 미리 확인합니다.
@@ -203,7 +203,7 @@ async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_poli
                 db_session=db,
                 task=task,
                 target_policy_ids=target_policy_ids,
-                new_position=new_position,
+                reference_policy_id=reference_policy_id,
                 move_direction=move_direction
             )
             result = await analyzer.analyze()

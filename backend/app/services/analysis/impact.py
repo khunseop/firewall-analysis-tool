@@ -20,21 +20,22 @@ class ImpactAnalyzer:
     확인하여 차단 정책에 의한 영향(Blocking)이나 기존 정책을 가리는 현상(Shadowing)을 탐지합니다.
     """
 
-    def __init__(self, db_session: AsyncSession, task: AnalysisTask, target_policy_ids: List[int], new_position: int, move_direction: Optional[str] = None):
+    def __init__(self, db_session: AsyncSession, task: AnalysisTask, target_policy_ids: List[int], reference_policy_id: Optional[int] = None, move_direction: Optional[str] = None):
         """
         ImpactAnalyzer 초기화
 
         :param db_session: 데이터베이스 비동기 세션
         :param task: 분석 작업 객체
         :param target_policy_ids: 이동 대상 정책 ID 리스트
-        :param new_position: 새 위치 (배열 인덱스 기준)
-        :param move_direction: 이동 방향 ('above' 또는 'below')
+        :param reference_policy_id: 이동 기준이 되는 정책 ID (None이면 맨 아래로 이동)
+        :param move_direction: 이동 방향 ('above' 또는 'below'). 기준 정책의 위/아래 중 어디로 이동할지 지정
         """
         self.db = db_session
         self.task = task
         self.device_id = task.device_id
         self.target_policy_ids = target_policy_ids if isinstance(target_policy_ids, list) else [target_policy_ids]
-        self.new_position = new_position
+        self.reference_policy_id = reference_policy_id
+        self.new_position: int = 0  # analyze()에서 정책 로드 후 계산됨
         self.move_direction = move_direction  # 'above' 또는 'below'
 
     async def _get_policies_with_members(self) -> List[Policy]:
@@ -307,7 +308,16 @@ class ImpactAnalyzer:
         logger.info(f"Task ID {self.task.id}에 대한 정책이동 영향분석 시작. 대상: {self.target_policy_ids}")
 
         policies = await self._get_policies_with_members()
-        
+
+        # 기준 정책 ID로 새 위치(배열 인덱스)를 계산. 지정하지 않으면 맨 아래로 이동.
+        if self.reference_policy_id is None:
+            self.new_position = len(policies)
+        else:
+            reference_position = next((i for i, p in enumerate(policies) if p.id == self.reference_policy_id), None)
+            if reference_position is None:
+                raise ValueError(f"기준 정책 ID {self.reference_policy_id}를 찾을 수 없습니다.")
+            self.new_position = reference_position
+
         # 대상 정책 정보 로드
         target_policies_info = []
         for policy_id in self.target_policy_ids:

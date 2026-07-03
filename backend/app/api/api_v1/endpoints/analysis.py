@@ -126,7 +126,7 @@ async def start_unused_analysis(
 async def start_impact_analysis(
     device_id: int,
     target_policy_id: List[int] = Query(..., description="분석할 대상 정책 ID 목록"),
-    new_position: int = Query(..., description="이동할 새 위치"),
+    reference_policy_id: Optional[int] = Query(None, description="이동 기준 정책 ID (미입력 시 맨 아래로 이동)"),
     move_direction: Optional[str] = Query(None, description="이동 방향 (above/below)"),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     db: AsyncSession = Depends(get_db),
@@ -146,7 +146,7 @@ async def start_impact_analysis(
     if running_task:
         raise HTTPException(status_code=409, detail=f"An analysis task (ID: {running_task.id}) is already in progress.")
 
-    background_tasks.add_task(run_impact_analysis_task, db, device_id, target_policy_id, new_position, move_direction)
+    background_tasks.add_task(run_impact_analysis_task, db, device_id, target_policy_id, reference_policy_id, move_direction)
 
     return {"msg": f"Impact analysis has been started in the background for {len(target_policy_id)} policy(ies)."}
 
