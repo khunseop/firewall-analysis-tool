@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { DeviceSelect } from '@/components/shared/DeviceSelect'
+import { GroupedDeviceMultiSelect } from '@/components/shared/GroupedDeviceMultiSelect'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
 import { listDevices } from '@/api/devices'
 import {
@@ -89,7 +89,7 @@ function ScheduleFormDialog({ open, onClose, initial, onSubmit, isPending }: {
           </div>
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">장비 *</label>
-            <DeviceSelect devices={devices} value={form.device_ids} onChange={(ids) => set('device_ids', ids)} isMulti />
+            <GroupedDeviceMultiSelect devices={devices} value={form.device_ids} onChange={(ids) => set('device_ids', ids)} />
           </div>
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">설명</label>

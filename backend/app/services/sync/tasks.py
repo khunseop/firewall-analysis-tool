@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete, update
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.future import select
 
 from app import crud, models, schemas
@@ -67,6 +68,22 @@ async def reset_sync_semaphore():
     """
     global _device_sync_semaphore
     _device_sync_semaphore = None
+
+
+async def _run_with_retry(coro_func, *args, retries: int = 3, base_delay: float = 1.0, **kwargs):
+    """
+    SQLite DB 락(database is locked) 경합으로 실패하는 작업을 지수 백오프로 재시도합니다.
+    락 이외의 예외이거나 마지막 시도인 경우 즉시 재발생시킵니다.
+    """
+    for attempt in range(retries):
+        try:
+            return await coro_func(*args, **kwargs)
+        except OperationalError as e:
+            if 'locked' not in str(e).lower() or attempt == retries - 1:
+                raise
+            delay = base_delay * (2 ** attempt)
+            logging.warning(f"[sync] DB 락으로 재시도 {attempt + 1}/{retries} ({delay}s 대기): {e}")
+            await asyncio.sleep(delay)
 
 
 async def sync_data_task(
@@ -587,7 +604,7 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                 df["device_id"] = device_id
                 # DataFrame을 Pydantic 모델로 변환하여 동기화 작업 전달
                 items_to_sync = dataframe_to_pydantic(df, schema_create)
-                await sync_data_task(device_id, data_type, items_to_sync)
+                await _run_with_retry(sync_data_task, device_id, data_type, items_to_sync)
 
             # 7. 정책 인덱싱 및 마무리
             async with SessionLocal() as db:

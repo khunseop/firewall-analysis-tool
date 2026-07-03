@@ -98,17 +98,15 @@ class NotificationClassifier(BaseProcessor):
             )
 
             # 3. 장기 미사용 정책
-            # GROUP: 예외 비어있는 경우만 / GENERAL: 예외 비어있거나 '자동연장정책'
+            # GROUP(신청이력) 정책은 공지대상에서 제외. GENERAL: 예외 비어있거나 '자동연장정책'
             self._filter_and_save(
                 df,
                 mask=(
                     (df['중복여부'].isna()) &
                     (df['만료여부'] == '미만료') &
                     (df['미사용여부'] == '미사용') &
-                    (
-                        ((df['신청이력'] == 'GROUP') & (df['예외'].isna())) |
-                        ((df['신청이력'] == 'GENERAL') & (df['예외'].isna() | (df['예외'] == '자동연장정책')))
-                    )
+                    (df['신청이력'] == 'GENERAL') &
+                    (df['예외'].isna() | (df['예외'] == '자동연장정책'))
                 ),
                 columns=self.columns,
                 sheet_type='미만료_미사용정책',

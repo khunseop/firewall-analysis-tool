@@ -23,7 +23,7 @@ export interface StartAnalysisParams {
   days?: number
   targetPolicyId?: number
   targetPolicyIds?: number[]
-  newPosition?: number
+  referencePolicyId?: number
   moveDirection?: string
 }
 
@@ -32,7 +32,7 @@ export const startAnalysis = async (
   analysisType: string,
   params: StartAnalysisParams = {}
 ): Promise<{ msg: string }> => {
-  const { days, targetPolicyId, targetPolicyIds, newPosition, moveDirection } = params
+  const { days, targetPolicyId, targetPolicyIds, referencePolicyId, moveDirection } = params
 
   if (analysisType === 'redundancy') {
     const res = await apiClient.post(`/analysis/redundancy/${deviceId}`)
@@ -46,7 +46,7 @@ export const startAnalysis = async (
   if (analysisType === 'impact') {
     const policyIds = targetPolicyIds || (targetPolicyId ? [targetPolicyId] : [])
     const policyIdsParam = policyIds.map((id) => `target_policy_id=${id}`).join('&')
-    const url = `/analysis/impact/${deviceId}?${policyIdsParam}&new_position=${newPosition}${moveDirection ? `&move_direction=${moveDirection}` : ''}`
+    const url = `/analysis/impact/${deviceId}?${policyIdsParam}${referencePolicyId ? `&reference_policy_id=${referencePolicyId}` : ''}${moveDirection ? `&move_direction=${moveDirection}` : ''}`
     const res = await apiClient.post(url)
     return res.data
   }

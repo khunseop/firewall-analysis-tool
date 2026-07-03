@@ -6,8 +6,10 @@ import { Play, Download, Copy, Clock, ArrowLeftRight, Unlink, ShieldAlert, Expan
 import type { ColDef, RowStyle, RowClassParams } from '@ag-grid-community/core'
 import Select from 'react-select'
 import { Select as ShadSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { AgGridWrapper } from '@/components/shared/AgGridWrapper'
 import { DeviceSelectorSingle } from '@/components/shared/DeviceSelectorSingle'
+import { PolicyGridPicker } from '@/components/shared/PolicyGridPicker'
 import { listDevices } from '@/api/devices'
 import { getPolicies, exportStyledToExcel } from '@/api/firewall'
 import type { StyledExcelPayload } from '@/api/firewall'
@@ -276,8 +278,9 @@ export function AnalysisPage() {
   const [analysisType, setAnalysisType] = useState('redundancy')
   const [days, setDays] = useState('90')
   const [targetPolicyIds, setTargetPolicyIds] = useState<number[]>([])
-  const [newPosition, setNewPosition] = useState('')
-  const [moveDirection, setMoveDirection] = useState('')
+  const [referencePolicyId, setReferencePolicyId] = useState<number | null>(null)
+  const [moveToEnd, setMoveToEnd] = useState(false)
+  const [moveDirection, setMoveDirection] = useState('below')
   const [isPolling, setIsPolling] = useState(false)
   const [results, setResults] = useState<unknown[]>([])
   const [resultCompletedAt, setResultCompletedAt] = useState<string | null>(null)
@@ -336,10 +339,12 @@ export function AnalysisPage() {
   const startMutation = useMutation({
     mutationFn: () => {
       if (!deviceId) throw new Error('장비를 선택하세요.')
+      if (analysisType === 'impact' && targetPolicyIds.length === 0) throw new Error('이동할 정책을 선택하세요.')
+      if (analysisType === 'impact' && !moveToEnd && !referencePolicyId) throw new Error('기준 정책을 선택하거나 "맨 아래로 이동"을 선택하세요.')
       const p: StartAnalysisParams = {
         days: analysisType === 'unused' ? Number(days) : undefined,
         targetPolicyIds: targetPolicyIds.length > 0 ? targetPolicyIds : undefined,
-        newPosition: analysisType === 'impact' ? Number(newPosition) : undefined,
+        referencePolicyId: analysisType === 'impact' && !moveToEnd && referencePolicyId ? referencePolicyId : undefined,
         moveDirection: analysisType === 'impact' ? moveDirection : undefined,
       }
       return startAnalysis(deviceId, analysisType, p)
@@ -349,7 +354,7 @@ export function AnalysisPage() {
   })
 
   const needsPolicySelect = ['impact', 'risky_ports', 'over_permissive'].includes(analysisType)
-  const needsNewPosition = analysisType === 'impact'
+  const needsMoveTarget = analysisType === 'impact'
   const columnDefs = getColumnDefs(analysisType, onRuleNameClick)
   const rowStyleFn = getRowStyle(analysisType)
 
@@ -377,7 +382,7 @@ export function AnalysisPage() {
                 <button
                   key={t.value}
                   type="button"
-                  onClick={() => { setAnalysisType(t.value); setTargetPolicyIds([]) }}
+                  onClick={() => { setAnalysisType(t.value); setTargetPolicyIds([]); setReferencePolicyId(null); setMoveToEnd(false) }}
                   className={`relative text-left p-3.5 rounded-xl border transition-all ${
                     selected
                       ? 'border-ds-primary bg-ds-primary/5 shadow-sm'
@@ -420,32 +425,42 @@ export function AnalysisPage() {
               <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">
                 {analysisType === 'impact' ? '이동할 정책 *' : '분석 대상 정책 (미선택 시 전체)'}
               </label>
-              <PolicyMultiSelect
-                deviceId={deviceId} value={targetPolicyIds} onChange={setTargetPolicyIds}
-                placeholder={analysisType === 'impact' ? '이동할 정책을 선택하세요…' : '전체 정책 분석'}
-              />
+              {analysisType === 'impact' ? (
+                <PolicyGridPicker
+                  mode="multi" deviceId={deviceId} value={targetPolicyIds} onChange={setTargetPolicyIds}
+                  placeholder="이동할 정책을 선택하세요…"
+                />
+              ) : (
+                <PolicyMultiSelect
+                  deviceId={deviceId} value={targetPolicyIds} onChange={setTargetPolicyIds}
+                  placeholder="전체 정책 분석"
+                />
+              )}
             </div>
           )}
 
-          {needsNewPosition && (
-            <div className="grid grid-cols-2 gap-4 max-w-md">
+          {needsMoveTarget && (
+            <div className="space-y-3 max-w-md">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">이동 후 순번 *</label>
-                <input
-                  type="number" value={newPosition} onChange={(e) => setNewPosition(e.target.value)} placeholder="순번 입력"
-                  className="w-full h-9 px-3 text-sm bg-ds-surface-container-low border border-ds-outline-variant/30 rounded-md focus:outline-none focus:border-ds-tertiary"
+                <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">기준 정책 *</label>
+                <PolicyGridPicker
+                  mode="single" deviceId={moveToEnd ? null : deviceId} value={referencePolicyId} onChange={setReferencePolicyId}
+                  placeholder="기준 정책을 선택하세요…"
                 />
+                <label className="flex items-center gap-2 text-[12px] text-ds-on-surface-variant cursor-pointer pt-0.5">
+                  <Checkbox checked={moveToEnd} onCheckedChange={(v) => setMoveToEnd(!!v)} />
+                  맨 아래로 이동
+                </label>
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">이동 방향</label>
-                <ShadSelect value={moveDirection || '_none_'} onValueChange={(v) => setMoveDirection(v === '_none_' ? '' : v)}>
+                <ShadSelect value={moveDirection} onValueChange={setMoveDirection} disabled={moveToEnd}>
                   <SelectTrigger className="bg-ds-surface-container-low border-ds-outline-variant/30 text-sm">
-                    <SelectValue placeholder="선택 (선택사항)" />
+                    <SelectValue placeholder="이동 방향 선택" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="_none_">선택 안 함</SelectItem>
-                    <SelectItem value="before">before</SelectItem>
-                    <SelectItem value="after">after</SelectItem>
+                    <SelectItem value="above">기준 정책 위로</SelectItem>
+                    <SelectItem value="below">기준 정책 아래로</SelectItem>
                   </SelectContent>
                 </ShadSelect>
               </div>

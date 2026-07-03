@@ -41,6 +41,10 @@ const STATUS_CONFIG: Record<string, { label: string; dot: string; text: string }
   error:       { label: '오류',   dot: 'bg-ds-error',                  text: 'text-ds-error' },
 }
 
+const STATUS_ORDER: Record<string, number> = {
+  pending: 0, in_progress: 1, success: 2, failure: 3, error: 4,
+}
+
 interface DeviceFormData {
   name: string; ip_address: string; vendor: string; username: string
   password: string; password_confirm: string; ha_peer_ip: string
@@ -387,6 +391,8 @@ const COLUMN_DEFS: ColDef<Device>[] = [
   {
     headerName: '상태', minWidth: 80,
     valueGetter: (p) => STATUS_CONFIG[p.data?.last_sync_status ?? '']?.label ?? '',
+    comparator: (_a, _b, nodeA, nodeB) =>
+      (STATUS_ORDER[nodeA.data?.last_sync_status ?? ''] ?? -1) - (STATUS_ORDER[nodeB.data?.last_sync_status ?? ''] ?? -1),
     cellRenderer: (p: { data: Device }) => {
       const conf = STATUS_CONFIG[p.data?.last_sync_status ?? '']
       return conf
@@ -461,6 +467,8 @@ const COLUMN_DEFS: ColDef<Device>[] = [
   {
     headerName: '마지막 동기화', minWidth: 120, filter: false,
     valueGetter: (p) => formatRelativeTime(p.data?.last_sync_at ?? null),
+    comparator: (_a, _b, nodeA, nodeB) =>
+      new Date(nodeA.data?.last_sync_at ?? 0).getTime() - new Date(nodeB.data?.last_sync_at ?? 0).getTime(),
     cellRenderer: (p: { value: string }) => <span className="text-[12px] text-ds-on-surface-variant">{p.value}</span>,
   },
 ]
