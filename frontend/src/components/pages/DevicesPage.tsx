@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useConfirm } from '@/components/shared/ConfirmDialog'
 import {
   listDevices, createDevice, updateDevice, deleteDevice,
-  testConnection, syncAll, downloadDeviceTemplate, bulkImportDevices, directExport,
+  testConnection, syncAll, downloadDeviceTemplate, bulkImportDevices, directExport, bulkExportDevices,
   type Device, type DeviceCreate, type DeviceUpdate, type DirectExportType,
 } from '@/api/devices'
 import { useSyncStatusWebSocket, type SyncStatusMessage } from '@/hooks/useWebSocket'
@@ -233,6 +233,8 @@ function DirectExportDialog({ open, onClose, devices }: {
   open: boolean; onClose: () => void; devices: Device[]
 }) {
   const [exportType, setExportType] = useState<DirectExportType>('policies')
+  const [source, setSource] = useState<'live' | 'db'>('live')
+  const [merge, setMerge] = useState(false)
   const [useSsh, setUseSsh] = useState(false)
   const [timeout, setTimeout_] = useState(600)
   const [progress, setProgress] = useState<{ current: number; total: number; name: string } | null>(null)
@@ -243,6 +245,8 @@ function DirectExportDialog({ open, onClose, devices }: {
   useEffect(() => {
     if (open) {
       setExportType('policies')
+      setSource('live')
+      setMerge(false)
       setUseSsh(devices.length === 1 ? devices[0].use_ssh_for_last_hit_date : false)
       setTimeout_(600)
       setProgress(null)
@@ -253,15 +257,42 @@ function DirectExportDialog({ open, onClose, devices }: {
   const handleExport = async () => {
     if (devices.length === 0) return
     const label = EXPORT_TYPE_OPTIONS.find(o => o.type === exportType)?.label ?? exportType
+
+    if (merge && devices.length > 1) {
+      setProgress({ current: 1, total: 1, name: `${devices.length}개 장비 병합 중` })
+      try {
+        await bulkExportDevices(devices, exportType, {
+          source, merge: true,
+          use_ssh: exportType === 'hit_dates' ? useSsh : false,
+          timeout_seconds: timeout,
+        })
+        setProgress(null)
+        toast.success(`${devices.length}개 장비 ${label} 통합 추출 완료`)
+        onClose()
+      } catch (e: unknown) {
+        setProgress(null)
+        setErrors([{ name: '통합 추출', msg: (e as Error).message }])
+      }
+      return
+    }
+
     const errs: { name: string; msg: string }[] = []
     for (let i = 0; i < devices.length; i++) {
       const d = devices[i]
       setProgress({ current: i + 1, total: devices.length, name: d.name })
       try {
-        await directExport(d, exportType, {
-          use_ssh: exportType === 'hit_dates' ? useSsh : false,
-          timeout_seconds: timeout,
-        })
+        if (source === 'db') {
+          await bulkExportDevices([d], exportType, {
+            source: 'db',
+            use_ssh: exportType === 'hit_dates' ? useSsh : false,
+            timeout_seconds: timeout,
+          })
+        } else {
+          await directExport(d, exportType, {
+            use_ssh: exportType === 'hit_dates' ? useSsh : false,
+            timeout_seconds: timeout,
+          })
+        }
       } catch (e: unknown) {
         errs.push({ name: d.name, msg: (e as Error).message })
       }
@@ -309,6 +340,33 @@ function DirectExportDialog({ open, onClose, devices }: {
             </button>
           ))}
         </div>
+
+        <div className="flex items-center gap-2 px-1">
+          <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary shrink-0">추출 방식</Label>
+          <div className="flex gap-1.5">
+            <button
+              type="button" onClick={() => setSource('live')}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors ${source === 'live' ? 'border-ds-primary bg-ds-primary/5 text-ds-primary' : 'border-ds-outline-variant/30 text-ds-on-surface-variant hover:bg-ds-surface-container-low'}`}
+            >
+              실시간(장비 접속)
+            </button>
+            <button
+              type="button" onClick={() => setSource('db')}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors ${source === 'db' ? 'border-ds-primary bg-ds-primary/5 text-ds-primary' : 'border-ds-outline-variant/30 text-ds-on-surface-variant hover:bg-ds-surface-container-low'}`}
+            >
+              DB(동기화 데이터)
+            </button>
+          </div>
+        </div>
+
+        {devices.length > 1 && (
+          <div className="flex items-center gap-2 px-1">
+            <Checkbox id="merge-export" checked={merge} onCheckedChange={(v) => setMerge(!!v)} />
+            <label htmlFor="merge-export" className="text-[12px] text-ds-on-surface-variant cursor-pointer select-none">
+              하나의 엑셀로 합치기
+            </label>
+          </div>
+        )}
 
         {exportType === 'hit_dates' && (
           <div className="flex items-center gap-2 px-1">
