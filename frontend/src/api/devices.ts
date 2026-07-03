@@ -162,3 +162,30 @@ export const directExport = async (
     (timeout + 60) * 1000,
   )
 }
+
+export const bulkExportDevices = async (
+  devices: Device[],
+  exportType: DirectExportType,
+  options?: { source?: 'live' | 'db'; merge?: boolean; use_ssh?: boolean; timeout_seconds?: number },
+): Promise<void> => {
+  const timeout = options?.timeout_seconds ?? 600
+  const labelMap: Record<DirectExportType, string> = { policies: '정책', objects: '객체', hit_dates: '사용이력' }
+  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+  const merge = options?.merge ?? false
+  const filename = merge && devices.length > 1
+    ? `통합_${labelMap[exportType]}_${today}.xlsx`
+    : `${devices[0].name}_${labelMap[exportType]}_${today}.xlsx`
+  await downloadBlobPost(
+    '/api/v1/devices/export',
+    {
+      device_ids: devices.map((d) => d.id),
+      export_type: exportType,
+      source: options?.source ?? 'live',
+      merge,
+      use_ssh: options?.use_ssh ?? false,
+      timeout_seconds: timeout,
+    },
+    filename,
+    (timeout + 60) * 1000,
+  )
+}
