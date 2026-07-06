@@ -130,12 +130,13 @@ function getColumnDefs(analysisType: string, onRuleNameClick?: (name: string) =>
         field: 'impact_type', headerName: '영향 유형', filter: 'agTextColumnFilter', pinned: 'left', width: 150,
         cellStyle: (p) => {
           const v = String(p.value ?? '')
+          if (v.includes('최대 안전')) return { color: '#1f7a4d', fontWeight: '600' }
           if (v.includes('차단')) return { color: '#9f403d', fontWeight: '500' }
           if (v.includes('Shadow')) return { color: '#b26b00', fontWeight: '500' }
           return null
         },
       },
-      { field: 'reason', headerName: '사유', filter: 'agTextColumnFilter', width: 300 },
+      { field: 'reason', headerName: '사유 / 이동 요약', filter: 'agTextColumnFilter', width: 340 },
       ...makePolicyCols(onRuleNameClick),
     ]
   }
@@ -190,6 +191,9 @@ function getRowStyle(analysisType: string) {
       if (p.data.type === 'UPPER') return { backgroundColor: '#e8f4fd' }
       if (p.data.type === 'LOWER') return { backgroundColor: '#fff8e1' }
     }
+    if (analysisType === 'impact' && String(p.data.impact_type ?? '').includes('최대 안전')) {
+      return { backgroundColor: '#eaf6ee' }
+    }
     return undefined
   }
 }
@@ -239,7 +243,11 @@ function ResultSummary({
     }
     if (analysisType === 'risky_ports') return `위험 포트 허용 정책 ${r.length}건`
     if (analysisType === 'over_permissive') return `과허용 정책 ${r.length}건`
-    if (analysisType === 'impact') return `영향받는 정책 ${r.length}건`
+    if (analysisType === 'impact') {
+      const summaries = r.filter((x) => x['impact_type'] === '최대 안전 이동 위치').length
+      const conflicts = r.length - summaries
+      return `이동 대상 ${summaries}건 분석 완료 (충돌 ${conflicts}건 발견)`
+    }
     return `${r.length}건`
   }, [analysisType, results, days])
 
