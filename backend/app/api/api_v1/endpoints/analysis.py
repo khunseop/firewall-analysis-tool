@@ -100,31 +100,64 @@ async def read_latest_analysis_result(
         )
     return result
 
-@router.get("/{device_id}/results", response_model=List[schemas.AnalysisResultSummary])
-async def list_analysis_results(
-    device_id: int,
-    analysis_type: str,
-    limit: int = 20,
+@router.get("/tasks", response_model=schemas.AnalysisTaskListResponse)
+async def list_analysis_tasks(
+    device_id: Optional[int] = None,
+    analysis_type: Optional[str] = None,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 20,
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     """
-    특정 장비와 분석 유형에 대한 분석 결과 이력을 최신순으로 조회합니다 (경량 목록, result_data 미포함).
+    분석 실행 이력을 게시판 형태로 조회합니다 (장비명 검색, 유형/상태 필터, 페이지네이션 지원).
     """
-    return await crud.analysis.list_analysis_results(
-        db, device_id=device_id, analysis_type=analysis_type, limit=limit
+    tasks, total = await crud.analysis.list_analysis_tasks_paginated(
+        db, device_id=device_id, task_type=analysis_type, task_status=status,
+        search=search, page=page, page_size=page_size,
     )
+    items = [
+        schemas.AnalysisTaskListItem(
+            id=t.id,
+            device_id=t.device_id,
+            device_name=t.device.name if t.device else str(t.device_id),
+            device_ip=t.device.ip_address if t.device else "",
+            task_type=t.task_type,
+            task_status=t.task_status,
+            created_at=t.created_at,
+            started_at=t.started_at,
+            completed_at=t.completed_at,
+            error_message=t.error_message,
+        )
+        for t in tasks
+    ]
+    return schemas.AnalysisTaskListResponse(items=items, total=total)
 
-@router.get("/results/{result_id}", response_model=schemas.AnalysisResult)
-async def get_analysis_result_detail(
-    result_id: int,
+@router.get("/tasks/{task_id}", response_model=schemas.AnalysisTask)
+async def get_analysis_task_detail(
+    task_id: int,
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     """
-    이력 목록에서 선택한 특정 분석 결과 1건의 상세 데이터를 조회합니다.
+    게시판 목록에서 선택한 특정 분석 실행(task)의 상태를 조회합니다.
     """
-    result = await crud.analysis.get_analysis_result(db, result_id=result_id)
+    task = await crud.analysis.get_analysis_task(db, task_id=task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="분석 작업을 찾을 수 없습니다.")
+    return task
+
+@router.get("/tasks/{task_id}/result", response_model=schemas.AnalysisResult)
+async def get_analysis_task_result(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """
+    특정 분석 실행(task)에 연결된 결과 데이터를 조회합니다.
+    """
+    result = await crud.analysis.get_analysis_result_by_task_id(db, task_id=task_id)
     if not result:
-        raise HTTPException(status_code=404, detail="분석 결과를 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="해당 작업에 대한 분석 결과가 없습니다.")
     return result
 
 @router.post("/unused/{device_id}", response_model=schemas.Msg)

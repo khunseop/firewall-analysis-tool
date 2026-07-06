@@ -1,10 +1,11 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from app.models.analysis import AnalysisTask, RedundancyPolicySet, AnalysisTaskStatus, AnalysisResult
+from app.models.device import Device
 from app.schemas.analysis import (
     AnalysisTaskCreate, AnalysisTaskUpdate, RedundancyPolicySetCreate,
     AnalysisResultCreate
@@ -92,12 +93,45 @@ async def create_or_update_analysis_result(db: AsyncSession, *, obj_in: Analysis
     await db.refresh(db_obj)
     return db_obj
 
-async def list_analysis_results(db: AsyncSession, *, device_id: int, analysis_type: str, limit: int = 20) -> List[AnalysisResult]:
-    """특정 장비와 분석 유형에 대한 분석 결과 이력을 최신순으로 조회합니다."""
-    result = await db.execute(
-        select(AnalysisResult)
-        .filter(AnalysisResult.device_id == device_id, AnalysisResult.analysis_type == analysis_type)
-        .order_by(AnalysisResult.created_at.desc())
-        .limit(limit)
-    )
-    return result.scalars().all()
+async def get_analysis_result_by_task_id(db: AsyncSession, *, task_id: int) -> Optional[AnalysisResult]:
+    """특정 분석 실행(task)에 연결된 결과를 조회합니다."""
+    result = await db.execute(select(AnalysisResult).filter(AnalysisResult.task_id == task_id))
+    return result.scalars().first()
+
+async def list_analysis_tasks_paginated(
+    db: AsyncSession, *,
+    device_id: Optional[int] = None,
+    task_type: Optional[str] = None,
+    task_status: Optional[str] = None,
+    search: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> Tuple[List[AnalysisTask], int]:
+    """분석 실행(task) 이력을 게시판 형태로 검색·페이지네이션 조회합니다."""
+    stmt = select(AnalysisTask).options(selectinload(AnalysisTask.device))
+    count_stmt = select(func.count()).select_from(AnalysisTask)
+
+    if search:
+        stmt = stmt.join(Device, AnalysisTask.device_id == Device.id)
+        count_stmt = count_stmt.join(Device, AnalysisTask.device_id == Device.id)
+
+    conditions = []
+    if device_id is not None:
+        conditions.append(AnalysisTask.device_id == device_id)
+    if task_type:
+        conditions.append(AnalysisTask.task_type == task_type)
+    if task_status:
+        conditions.append(AnalysisTask.task_status == task_status)
+    if search:
+        conditions.append(Device.name.ilike(f"%{search}%"))
+
+    if conditions:
+        stmt = stmt.where(*conditions)
+        count_stmt = count_stmt.where(*conditions)
+
+    total = (await db.execute(count_stmt)).scalar_one()
+
+    stmt = stmt.order_by(AnalysisTask.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    tasks = (await db.execute(stmt)).scalars().all()
+
+    return tasks, total

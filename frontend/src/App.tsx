@@ -9,7 +9,8 @@ import { DashboardPage } from '@/components/pages/DashboardPage'
 import { DevicesPage } from '@/components/pages/DevicesPage'
 import { PoliciesPage } from '@/components/pages/PoliciesPage'
 import { ObjectsPage } from '@/components/pages/ObjectsPage'
-import { AnalysisPage } from '@/components/pages/AnalysisPage'
+import { AnalysisListPage } from '@/components/pages/AnalysisListPage'
+import { AnalysisDetailPage } from '@/components/pages/AnalysisDetailPage'
 import { SchedulesPage } from '@/components/pages/SchedulesPage'
 import { SettingsPage } from '@/components/pages/SettingsPage'
 import { NotificationsPage } from '@/components/pages/NotificationsPage'
@@ -39,7 +40,8 @@ export default function App() {
               <Route path="devices" element={<DevicesPage />} />
               <Route path="policies" element={<PoliciesPage />} />
               <Route path="objects" element={<ObjectsPage />} />
-              <Route path="analysis" element={<AnalysisPage />} />
+              <Route path="analysis" element={<AnalysisListPage />} />
+              <Route path="analysis/:taskId" element={<AnalysisDetailPage />} />
               <Route path="policy-diff" element={<PolicyDiffPage />} />
               <Route path="schedules" element={<SchedulesPage />} />
               <Route path="settings" element={<SettingsPage />} />

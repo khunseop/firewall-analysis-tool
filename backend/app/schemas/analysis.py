@@ -1,7 +1,7 @@
 
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, Any
+from typing import Optional, Any, List
 from app.models.analysis import AnalysisTaskStatus, AnalysisTaskType, RedundancyPolicySetType
 from .policy import Policy
 
@@ -68,11 +68,20 @@ class AnalysisResultInDBBase(AnalysisResultBase):
 class AnalysisResult(AnalysisResultInDBBase):
     pass
 
-class AnalysisResultSummary(BaseModel):
-    """분석 결과 이력 목록 조회용 경량 스키마 (무거운 result_data 제외)."""
+# Schemas for AnalysisTask 게시판(목록) 조회
+class AnalysisTaskListItem(BaseModel):
+    """분석 작업 목록(게시판) 조회용 스키마 — 장비 정보를 포함한 행 1개."""
     id: int
-    task_id: Optional[int] = None
+    device_id: int
+    device_name: str
+    device_ip: str
+    task_type: AnalysisTaskType
+    task_status: AnalysisTaskStatus
     created_at: datetime
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    error_message: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+class AnalysisTaskListResponse(BaseModel):
+    items: List[AnalysisTaskListItem]
+    total: int
