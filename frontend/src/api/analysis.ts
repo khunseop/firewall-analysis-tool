@@ -19,6 +19,12 @@ export interface AnalysisResult {
   created_at: string
 }
 
+export interface AnalysisResultSummary {
+  id: number
+  task_id: number | null
+  created_at: string
+}
+
 export interface StartAnalysisParams {
   days?: number
   targetPolicyId?: number
@@ -89,5 +95,15 @@ export const getAnalysisResults = async (taskId: number): Promise<unknown[]> => 
 
 export const getLatestAnalysisResult = async (deviceId: number, analysisType: string): Promise<AnalysisResult> => {
   const res = await apiClient.get<AnalysisResult>(`/analysis/${deviceId}/latest-result?analysis_type=${analysisType}`)
+  return res.data
+}
+
+export const listAnalysisResults = async (deviceId: number, analysisType: string, limit = 20): Promise<AnalysisResultSummary[]> => {
+  const res = await apiClient.get<AnalysisResultSummary[]>(`/analysis/${deviceId}/results?analysis_type=${analysisType}&limit=${limit}`)
+  return res.data
+}
+
+export const getAnalysisResultById = async (resultId: number): Promise<AnalysisResult> => {
+  const res = await apiClient.get<AnalysisResult>(`/analysis/results/${resultId}`)
   return res.data
 }

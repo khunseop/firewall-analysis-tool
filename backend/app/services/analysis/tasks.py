@@ -85,7 +85,8 @@ async def run_redundancy_analysis_task(db: AsyncSession, device_id: int):
                 result_to_store = AnalysisResultCreate(
                     device_id=device_id,
                     analysis_type=AnalysisTaskType.REDUNDANCY.value,
-                    result_data=result_data_json
+                    result_data=result_data_json,
+                    task_id=task.id
                 )
                 await crud.analysis.create_or_update_analysis_result(db, obj_in=result_to_store)
 
@@ -147,7 +148,8 @@ async def run_unused_analysis_task(db: AsyncSession, device_id: int, days: int =
                 result_to_store = AnalysisResultCreate(
                     device_id=device_id,
                     analysis_type=AnalysisTaskType.UNUSED.value,
-                    result_data=result_data_json
+                    result_data=result_data_json,
+                    task_id=task.id
                 )
                 await crud.analysis.create_or_update_analysis_result(db, obj_in=result_to_store)
 
@@ -214,7 +216,8 @@ async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_poli
                 result_to_store = AnalysisResultCreate(
                     device_id=device_id,
                     analysis_type=AnalysisTaskType.IMPACT.value,
-                    result_data=result_data_json
+                    result_data=result_data_json,
+                    task_id=task.id
                 )
                 await crud.analysis.create_or_update_analysis_result(db, obj_in=result_to_store)
 
@@ -274,7 +277,8 @@ async def run_unreferenced_objects_analysis_task(db: AsyncSession, device_id: in
                 result_to_store = AnalysisResultCreate(
                     device_id=device_id,
                     analysis_type=AnalysisTaskType.UNREFERENCED_OBJECTS.value,
-                    result_data=result_data_json
+                    result_data=result_data_json,
+                    task_id=task.id
                 )
                 await crud.analysis.create_or_update_analysis_result(db, obj_in=result_to_store)
 
@@ -334,7 +338,8 @@ async def run_risky_ports_analysis_task(db: AsyncSession, device_id: int, target
                 result_to_store = AnalysisResultCreate(
                     device_id=device_id,
                     analysis_type=AnalysisTaskType.RISKY_PORTS.value,
-                    result_data=result_data_json
+                    result_data=result_data_json,
+                    task_id=task.id
                 )
                 await crud.analysis.create_or_update_analysis_result(db, obj_in=result_to_store)
                 logger.info(f"Device ID {device_id}에 대한 위험 포트 정책 분석 결과를 저장했습니다.")
@@ -394,7 +399,8 @@ async def run_over_permissive_analysis_task(db: AsyncSession, device_id: int, ta
                 result_to_store = AnalysisResultCreate(
                     device_id=device_id,
                     analysis_type=AnalysisTaskType.OVER_PERMISSIVE.value,
-                    result_data=result_data_json
+                    result_data=result_data_json,
+                    task_id=task.id
                 )
                 await crud.analysis.create_or_update_analysis_result(db, obj_in=result_to_store)
                 logger.info(f"Device ID {device_id}에 대한 과허용정책 분석 결과를 저장했습니다.")
