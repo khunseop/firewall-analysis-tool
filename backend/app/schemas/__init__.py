@@ -10,7 +10,7 @@ from .change_log import ChangeLog, ChangeLogCreate
 from .analysis import (
     AnalysisTask, AnalysisTaskCreate, AnalysisTaskUpdate,
     RedundancyPolicySet, RedundancyPolicySetCreate,
-    AnalysisResult, AnalysisResultCreate, AnalysisResultUpdate
+    AnalysisResult, AnalysisResultCreate, AnalysisResultUpdate, AnalysisResultSummary
 )
 from .sync_schedule import SyncSchedule, SyncScheduleCreate, SyncScheduleUpdate
 from .settings import Settings, SettingsCreate, SettingsUpdate

@@ -100,6 +100,33 @@ async def read_latest_analysis_result(
         )
     return result
 
+@router.get("/{device_id}/results", response_model=List[schemas.AnalysisResultSummary])
+async def list_analysis_results(
+    device_id: int,
+    analysis_type: str,
+    limit: int = 20,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """
+    특정 장비와 분석 유형에 대한 분석 결과 이력을 최신순으로 조회합니다 (경량 목록, result_data 미포함).
+    """
+    return await crud.analysis.list_analysis_results(
+        db, device_id=device_id, analysis_type=analysis_type, limit=limit
+    )
+
+@router.get("/results/{result_id}", response_model=schemas.AnalysisResult)
+async def get_analysis_result_detail(
+    result_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    """
+    이력 목록에서 선택한 특정 분석 결과 1건의 상세 데이터를 조회합니다.
+    """
+    result = await crud.analysis.get_analysis_result(db, result_id=result_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="분석 결과를 찾을 수 없습니다.")
+    return result
+
 @router.post("/unused/{device_id}", response_model=schemas.Msg)
 async def start_unused_analysis(
     device_id: int,

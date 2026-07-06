@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Play, Download, Copy, Clock, ArrowLeftRight, Unlink, ShieldAlert, Expand, Check } from 'lucide-react'
+import { Play, Download, Copy, Clock, ArrowLeftRight, Unlink, ShieldAlert, Expand, Check, History } from 'lucide-react'
 import type { ColDef, RowStyle, RowClassParams } from '@ag-grid-community/core'
 import Select from 'react-select'
 import { Select as ShadSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -13,8 +13,11 @@ import { PolicyGridPicker } from '@/components/shared/PolicyGridPicker'
 import { listDevices } from '@/api/devices'
 import { getPolicies, exportStyledToExcel } from '@/api/firewall'
 import type { StyledExcelPayload } from '@/api/firewall'
-import { startAnalysis, getAnalysisStatus, getLatestAnalysisResult, type StartAnalysisParams } from '@/api/analysis'
-import { formatNumber, formatRelativeTime } from '@/lib/utils'
+import {
+  startAnalysis, getAnalysisStatus, getLatestAnalysisResult, listAnalysisResults, getAnalysisResultById,
+  type StartAnalysisParams,
+} from '@/api/analysis'
+import { formatNumber, formatRelativeTime, formatDate, cn } from '@/lib/utils'
 import { notify } from '@/store/notificationStore'
 import type { LucideIcon } from 'lucide-react'
 
@@ -198,6 +201,67 @@ function getRowStyle(analysisType: string) {
   }
 }
 
+function AnalysisHistoryDropdown({ deviceId, analysisType, selectedResultId, onSelect }: {
+  deviceId: number | null; analysisType: string; selectedResultId: number | null
+  onSelect: (resultId: number) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const { data: history = [] } = useQuery({
+    queryKey: ['analysis-history', deviceId, analysisType],
+    queryFn: () => listAnalysisResults(deviceId!, analysisType),
+    enabled: !!deviceId,
+  })
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  if (!deviceId) return null
+
+  return (
+    <div ref={containerRef} className="relative ml-auto">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border border-ds-outline-variant/30 text-ds-on-surface-variant hover:bg-ds-surface-container-low transition-colors"
+      >
+        <History className="w-3.5 h-3.5" />
+        이력{history.length > 0 ? ` (${history.length})` : ''}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1.5 w-64 max-h-72 overflow-y-auto bg-white rounded-lg border border-ds-outline-variant/20 shadow-ambient-md z-50 py-1">
+          {history.length === 0 ? (
+            <p className="text-[11px] text-ds-on-surface-variant text-center py-4">이력이 없습니다</p>
+          ) : (
+            history.map((h) => (
+              <button
+                key={h.id}
+                type="button"
+                onClick={() => { onSelect(h.id); setOpen(false) }}
+                className={cn(
+                  'w-full text-left px-3 py-1.5 text-[11px] transition-colors',
+                  selectedResultId === h.id
+                    ? 'text-ds-tertiary font-semibold bg-ds-tertiary/5'
+                    : 'text-ds-on-surface-variant hover:bg-ds-surface-container-low'
+                )}
+              >
+                {formatDate(h.created_at)}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function PolicyMultiSelect({ deviceId, value, onChange, placeholder }: {
   deviceId: number | null; value: number[]; onChange: (ids: number[]) => void; placeholder?: string
 }) {
@@ -292,8 +356,10 @@ export function AnalysisPage() {
   const [isPolling, setIsPolling] = useState(false)
   const [results, setResults] = useState<unknown[]>([])
   const [resultCompletedAt, setResultCompletedAt] = useState<string | null>(null)
+  const [selectedResultId, setSelectedResultId] = useState<number | null>(null)
 
   const { data: devices = [] } = useQuery({ queryKey: ['devices'], queryFn: listDevices })
+  const queryClient = useQueryClient()
 
   const onRuleNameClick = (ruleName: string) => {
     const params = new URLSearchParams({ rule_name: ruleName })
@@ -316,10 +382,23 @@ export function AnalysisPage() {
       const result = await getLatestAnalysisResult(devId, type)
       setResults(Array.isArray(result.result_data) ? result.result_data : [])
       setResultCompletedAt(result.created_at ?? null)
+      setSelectedResultId(result.id)
     } catch {
       // No prior result — clear grid silently
       setResults([])
       setResultCompletedAt(null)
+      setSelectedResultId(null)
+    }
+  }
+
+  const loadResultById = async (resultId: number) => {
+    try {
+      const result = await getAnalysisResultById(resultId)
+      setResults(Array.isArray(result.result_data) ? result.result_data : [])
+      setResultCompletedAt(result.created_at ?? null)
+      setSelectedResultId(result.id)
+    } catch (e: unknown) {
+      toast.error((e as Error).message)
     }
   }
 
@@ -331,6 +410,7 @@ export function AnalysisPage() {
       if (taskStatus.task_status === 'success') {
         notify('분석 완료', deviceName ?? `장비 ID ${deviceId}`, 'success', { category: 'analysis', device_id: deviceId ?? undefined, device_name: deviceName })
         loadResults(deviceId ?? undefined, analysisType)
+        queryClient.invalidateQueries({ queryKey: ['analysis-history', deviceId, analysisType] })
       } else {
         notify('분석 실패', deviceName ?? `장비 ID ${deviceId}`, 'error', { category: 'analysis', device_id: deviceId ?? undefined, device_name: deviceName })
       }
@@ -501,6 +581,11 @@ export function AnalysisPage() {
             )}
           </div>
         )}
+
+        <AnalysisHistoryDropdown
+          deviceId={deviceId} analysisType={analysisType}
+          selectedResultId={selectedResultId} onSelect={loadResultById}
+        />
       </div>
 
       {/* Results */}

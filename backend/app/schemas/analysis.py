@@ -50,6 +50,7 @@ class AnalysisResultBase(BaseModel):
     device_id: int
     analysis_type: str
     result_data: Any
+    task_id: Optional[int] = None
 
 class AnalysisResultCreate(AnalysisResultBase):
     pass
@@ -66,3 +67,12 @@ class AnalysisResultInDBBase(AnalysisResultBase):
 
 class AnalysisResult(AnalysisResultInDBBase):
     pass
+
+class AnalysisResultSummary(BaseModel):
+    """분석 결과 이력 목록 조회용 경량 스키마 (무거운 result_data 제외)."""
+    id: int
+    task_id: Optional[int] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

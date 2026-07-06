@@ -1,6 +1,6 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 
@@ -83,18 +83,21 @@ async def get_analysis_result_by_device_and_type(db: AsyncSession, *, device_id:
 async def create_or_update_analysis_result(db: AsyncSession, *, obj_in: AnalysisResultCreate):
     """
     새로운 분석 결과를 생성합니다.
-    만약 동일한 장비와 분석 유형의 이전 결과가 존재한다면, 모두 삭제하고 새로운 결과를 저장합니다.
+    실행마다 새 행으로 쌓여 이력이 보존되며(task_id로 실행을 구분), 과거처럼 동일한
+    장비+분석유형의 이전 결과를 덮어쓰지 않습니다.
     """
-    # 기존 결과 모두 삭제
-    delete_stmt = delete(AnalysisResult).where(
-        AnalysisResult.device_id == obj_in.device_id,
-        AnalysisResult.analysis_type == obj_in.analysis_type
-    )
-    await db.execute(delete_stmt)
-
-    # 새로운 결과 생성
     db_obj = AnalysisResult(**obj_in.model_dump())
     db.add(db_obj)
     await db.commit()
     await db.refresh(db_obj)
     return db_obj
+
+async def list_analysis_results(db: AsyncSession, *, device_id: int, analysis_type: str, limit: int = 20) -> List[AnalysisResult]:
+    """특정 장비와 분석 유형에 대한 분석 결과 이력을 최신순으로 조회합니다."""
+    result = await db.execute(
+        select(AnalysisResult)
+        .filter(AnalysisResult.device_id == device_id, AnalysisResult.analysis_type == analysis_type)
+        .order_by(AnalysisResult.created_at.desc())
+        .limit(limit)
+    )
+    return result.scalars().all()

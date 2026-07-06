@@ -174,11 +174,14 @@
 | `error_message` | `VARCHAR` | `NULLABLE` | 실패 시 오류 메시지 |
 
 ### `analysis_results` Table (분석 결과)
+- 실행(`analysistasks`)마다 새 행이 쌓여 이력으로 보존된다 (device_id+analysis_type 기준으로 덮어쓰지 않음).
+
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
 | `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
 | `device_id` | `INTEGER` | `FOREIGN KEY` | 장비 참조 |
 | `analysis_type` | `VARCHAR` | `NOT NULL` | 분석 유형 |
+| `task_id` | `INTEGER` | `FOREIGN KEY (analysistasks.id), NULLABLE` | 이 결과를 생성한 분석 실행 참조 (CASCADE, 컬럼 추가 이전 데이터 호환을 위해 nullable) |
 | `result_data` | `JSON` | `NOT NULL` | 상세 결과 데이터 (JSON) |
 
 ### `redundancypolicysets` Table (중복 정책 분석 결과)

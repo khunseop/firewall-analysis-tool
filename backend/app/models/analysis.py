@@ -73,22 +73,29 @@ class RedundancyPolicySet(Base):
 class AnalysisResult(Base):
     """
     분석 완료 후의 상세 결과 데이터를 JSON 형태로 저장하는 모델입니다.
-    
+
     Relations:
         - Device (N:1): 특정 장비에 대한 분석 결과입니다.
+        - AnalysisTask (N:1): 이 결과를 생성한 분석 실행(task_id)입니다. 실행마다 새 행이
+          쌓여 이력으로 보존되며(과거처럼 device_id+analysis_type 기준으로 덮어쓰지 않음),
+          nullable인 이유는 이 컬럼 추가 이전에 생성된 기존 결과와의 호환을 위함입니다.
     """
     __tablename__ = 'analysis_results'
 
     id = Column(Integer, primary_key=True, index=True)
     device_id = Column(Integer, ForeignKey('devices.id'), nullable=False, index=True)
-    
+
     # 분석 종류 (redundancy, unused 등)
     analysis_type = Column(String, nullable=False, index=True)
-    
+
+    # 이 결과를 생성한 분석 실행(AnalysisTask)에 대한 참조
+    task_id = Column(Integer, ForeignKey('analysistasks.id', ondelete='CASCADE'), nullable=True, index=True)
+
     # 상세 결과 (JSON 구조)
     result_data = Column(JSON, nullable=False)
-    
+
     # 생성 및 업데이트 시간
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None), onupdate=lambda: datetime.datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None))
 
     device = relationship("Device")
+    task = relationship("AnalysisTask")
