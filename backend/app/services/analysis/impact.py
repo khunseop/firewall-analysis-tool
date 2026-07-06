@@ -299,7 +299,7 @@ class ImpactAnalyzer:
             "total_shadowed": len(shadowed_policies)
         }
 
-    async def analyze(self) -> Dict[str, Any]:
+    async def analyze(self) -> List[Dict[str, Any]]:
         """
         정책 이동 영향 분석을 총괄 실행합니다.
         
@@ -337,44 +337,32 @@ class ImpactAnalyzer:
                 "original_position": original_position
             })
         
-        # 개별 정책 분석 수행 및 통합
+        # 개별 정책 분석 수행 및 통합 (여러 대상 정책 간 중복 제거)
         all_blocking_policies = []
         all_shadowed_policies = []
-        policy_results = []
-        
+        seen_blocking = set()
+        seen_shadowed = set()
+
         for target_info in target_policies_info:
             single_result = await self._analyze_single_policy(
                 target_info["policy"], target_info["original_position"], policies
             )
-            policy_results.append(single_result)
-            
-            # 결과 중복 제거 및 병합
-            seen_blocking = set()
+
             for bp in single_result["blocking_policies"]:
                 key = (bp["policy_id"], bp["current_position"], bp["target_policy_id"])
                 if key not in seen_blocking:
                     seen_blocking.add(key)
                     all_blocking_policies.append(bp)
-            
-            seen_shadowed = set()
+
             for sp in single_result["shadowed_policies"]:
                 key = (sp["policy_id"], sp["current_position"], sp["target_policy_id"])
                 if key not in seen_shadowed:
                     seen_shadowed.add(key)
                     all_shadowed_policies.append(sp)
-        
-        result = {
-            "target_policy_ids": self.target_policy_ids,
-            "target_policies": [info["policy"] for info in target_policies_info],
-            "new_position": self.new_position,
-            "blocking_policies": all_blocking_policies,
-            "shadowed_policies": all_shadowed_policies,
-            "total_blocking": len(all_blocking_policies),
-            "total_shadowed": len(all_shadowed_policies),
-            "policy_results": policy_results
-        }
-        
+
         logger.info(f"분석 완료: 차단 {len(all_blocking_policies)}개, Shadow {len(all_shadowed_policies)}개 발견.")
-        return result
+
+        # 프론트엔드 그리드는 평탄한 행 배열을 기대함 (다른 분석 엔진과 동일한 반환 형태)
+        return all_blocking_policies + all_shadowed_policies
 
 
