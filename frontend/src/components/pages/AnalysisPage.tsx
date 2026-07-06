@@ -136,7 +136,7 @@ function getColumnDefs(analysisType: string, onRuleNameClick?: (name: string) =>
           return null
         },
       },
-      { field: 'reason', headerName: '사유 / 이동 요약', filter: 'agTextColumnFilter', width: 340 },
+      { field: 'reason', headerName: '사유 / 이동 요약', filter: 'agTextColumnFilter', width: 420, wrapText: true, autoHeight: true, cellStyle: { lineHeight: '1.5', paddingTop: '6px', paddingBottom: '6px', whiteSpace: 'normal' } },
       ...makePolicyCols(onRuleNameClick),
     ]
   }

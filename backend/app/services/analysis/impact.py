@@ -1,4 +1,5 @@
 
+import ipaddress
 import logging
 from typing import List, Dict, Any, Set, Tuple, Optional
 from sqlalchemy import select
@@ -155,6 +156,142 @@ class ImpactAnalyzer:
         # 하나라도 겹치면 중첩으로 판단
         return len(apps1 & apps2) > 0
 
+    def _get_policy_members(self, policy: Policy) -> Tuple[List, List, List]:
+        """
+        정책의 출발지/목적지/서비스 멤버 레코드를 방향별로 분류하여 반환합니다 (원본 멤버 객체 유지).
+        """
+        src_members = [m for m in policy.address_members if m.direction == 'source' and m.ip_start is not None and m.ip_end is not None]
+        dst_members = [m for m in policy.address_members if m.direction == 'destination' and m.ip_start is not None and m.ip_end is not None]
+        svc_members = [m for m in policy.service_members if m.protocol and m.port_start is not None and m.port_end is not None]
+        return src_members, dst_members, svc_members
+
+    def _ranges_overlap_any(self, ranges1: List[Tuple[int, int]], ranges2: List[Tuple[int, int]]) -> bool:
+        """멤버 리스트 중 하나라도 서로 겹치면 True (비어있으면 'any'로 간주)."""
+        if not ranges1 or not ranges2:
+            return True
+        return any(self._ranges_overlap(r1, r2) for r1 in ranges1 for r2 in ranges2)
+
+    def _services_overlap_any(self, svc1: List[Tuple[str, int, int]], svc2: List[Tuple[str, int, int]]) -> bool:
+        """서비스 멤버 리스트 중 하나라도 서로 겹치면 True (비어있으면 'any'로 간주)."""
+        if not svc1 or not svc2:
+            return True
+        return any(self._services_overlap(s1, s2) for s1 in svc1 for s2 in svc2)
+
+    def _member_ranges_overlap(
+        self,
+        src1: List[Tuple[int, int]], dst1: List[Tuple[int, int]], svc1: List[Tuple[str, int, int]], app1: str,
+        policy2: Policy,
+    ) -> bool:
+        """주어진 (가상의) 출발지/목적지/서비스/애플리케이션 조건이 policy2와 겹치는지 확인합니다."""
+        src2_m, dst2_m, svc2_m = self._get_policy_members(policy2)
+        src2 = [(m.ip_start, m.ip_end) for m in src2_m]
+        dst2 = [(m.ip_start, m.ip_end) for m in dst2_m]
+        svc2 = [(m.protocol.lower(), m.port_start, m.port_end) for m in svc2_m]
+        return (
+            self._ranges_overlap_any(src1, src2)
+            and self._ranges_overlap_any(dst1, dst2)
+            and self._services_overlap_any(svc1, svc2)
+            and self._applications_overlap(app1, policy2.application)
+        )
+
+    def _overlap_details(self, policy1: Policy, policy2: Policy) -> Dict[str, List[Tuple[Any, Any]]]:
+        """
+        두 정책 간 실제로 교집합이 발생한 (policy1 멤버, policy2 멤버) 쌍을 카테고리별로 반환합니다.
+        차단/Shadow 사유에 구체적인 겹치는 값을 표시하거나, 정책 분리 제안을 계산하는 데 사용됩니다.
+        """
+        src1_m, dst1_m, svc1_m = self._get_policy_members(policy1)
+        src2_m, dst2_m, svc2_m = self._get_policy_members(policy2)
+
+        details: Dict[str, List[Tuple[Any, Any]]] = {"src": [], "dst": [], "svc": []}
+
+        for m1 in src1_m:
+            for m2 in src2_m:
+                if self._ranges_overlap((m1.ip_start, m1.ip_end), (m2.ip_start, m2.ip_end)):
+                    details["src"].append((m1, m2))
+
+        for m1 in dst1_m:
+            for m2 in dst2_m:
+                if self._ranges_overlap((m1.ip_start, m1.ip_end), (m2.ip_start, m2.ip_end)):
+                    details["dst"].append((m1, m2))
+
+        for m1 in svc1_m:
+            for m2 in svc2_m:
+                if self._services_overlap((m1.protocol.lower(), m1.port_start, m1.port_end), (m2.protocol.lower(), m2.port_start, m2.port_end)):
+                    details["svc"].append((m1, m2))
+
+        return details
+
+    @staticmethod
+    def _format_ip_range(start: int, end: int) -> str:
+        """IP 정수 범위를 사람이 읽을 수 있는 문자열로 변환합니다 (예: '192.168.1.0~192.168.1.255')."""
+        try:
+            start_ip = str(ipaddress.IPv4Address(start))
+            end_ip = str(ipaddress.IPv4Address(end))
+        except (ValueError, ipaddress.AddressValueError):
+            return f"{start}-{end}"
+        return start_ip if start == end else f"{start_ip}~{end_ip}"
+
+    @staticmethod
+    def _format_service(member: "PolicyServiceMember") -> str:
+        """서비스 멤버를 사람이 읽을 수 있는 문자열로 변환합니다 (원본 token 우선 사용)."""
+        if getattr(member, "token", None):
+            return member.token
+        if member.protocol and member.protocol.lower() == "any":
+            return "any"
+        if member.port_start == member.port_end:
+            return f"{member.protocol}/{member.port_start}"
+        return f"{member.protocol}/{member.port_start}-{member.port_end}"
+
+    def _describe_overlap(self, details: Dict[str, List[Tuple[Any, Any]]]) -> str:
+        """
+        겹치는 구체적인 값을 사람이 읽을 수 있는 문장으로 요약합니다.
+        카테고리별로 대표 겹침 값 1건과 추가 건수를 표시합니다.
+        """
+        parts = []
+        if details["src"]:
+            m1, m2 = details["src"][0]
+            overlap_str = self._format_ip_range(max(m1.ip_start, m2.ip_start), min(m1.ip_end, m2.ip_end))
+            extra = f" 외 {len(details['src']) - 1}건" if len(details["src"]) > 1 else ""
+            parts.append(f"출발지 {overlap_str}{extra}")
+        if details["dst"]:
+            m1, m2 = details["dst"][0]
+            overlap_str = self._format_ip_range(max(m1.ip_start, m2.ip_start), min(m1.ip_end, m2.ip_end))
+            extra = f" 외 {len(details['dst']) - 1}건" if len(details["dst"]) > 1 else ""
+            parts.append(f"목적지 {overlap_str}{extra}")
+        if details["svc"]:
+            m1, m2 = details["svc"][0]
+            extra = f" 외 {len(details['svc']) - 1}건" if len(details["svc"]) > 1 else ""
+            parts.append(f"서비스 {self._format_service(m2)}{extra}")
+        if not parts:
+            return "겹치는 조건: 전체 범위(any) 포함"
+        return "겹치는 조건 — " + ", ".join(parts)
+
+    def _find_next_conflict_index(
+        self,
+        target_action: str, src: List[Tuple[int, int]], dst: List[Tuple[int, int]], svc: List[Tuple[str, int, int]], application: str,
+        scan_start: int, scan_end: int, is_moving_down: bool, new_seq: Optional[int], policies: List[Policy],
+    ) -> Optional[int]:
+        """
+        주어진 (가상의) 정책 조건으로 scan_start~scan_end 범위를 이동 방향 순서대로 스캔하여
+        가장 먼저 만나는 충돌 정책의 인덱스를 반환합니다 (없으면 None).
+        """
+        if scan_start > scan_end:
+            return None
+        indices = range(scan_start, scan_end + 1) if is_moving_down else range(scan_end, scan_start - 1, -1)
+        for i in indices:
+            policy = policies[i]
+            if not self._member_ranges_overlap(src, dst, svc, application, policy):
+                continue
+            if target_action == 'allow' and policy.action == 'deny':
+                return i
+            if target_action == 'deny' and policy.action == 'allow':
+                return i
+            if target_action == 'allow' and policy.action == 'allow':
+                policy_seq = policy.seq or 0
+                if new_seq is not None and new_seq < policy_seq:
+                    return i
+        return None
+
     async def _analyze_single_policy(self, target_policy: Policy, original_position: int, policies: List[Policy]) -> Dict[str, Any]:
         """
         단일 정책의 이동 경로에 따른 영향을 상세 분석합니다.
@@ -245,7 +382,10 @@ class ImpactAnalyzer:
             # 정책 중첩(Overlap)이 없는 경우 영향 없음
             if not self._policies_overlap(target_policy, policy):
                 continue
-            
+
+            # 겹치는 구체적인 값(출발지/목적지/서비스) 계산 — 사유 문구에 포함
+            overlap_desc = self._describe_overlap(self._overlap_details(target_policy, policy))
+
             # [CASE 1] 이동한 정책이 상위 차단 정책에 걸리는지 확인
             # 허용(Allow) 정책을 아래로 옮겼는데, 그 위에 거부(Deny) 정책이 있는 경우
             if target_policy.action == 'allow' and policy.action == 'deny':
@@ -255,14 +395,14 @@ class ImpactAnalyzer:
                     "policy": policy,
                     "current_position": policy_seq,
                     "impact_type": "차단 정책에 걸림",
-                    "reason": f"이동한 허용 정책 '{target_policy.rule_name}'이 기존 거부 정책 '{policy.rule_name}'(seq {policy_seq}) 뒤로 밀려나면서 차단됩니다.",
+                    "reason": f"이동한 허용 정책 '{target_policy.rule_name}'이 기존 거부 정책 '{policy.rule_name}'(seq {policy_seq}) 뒤로 밀려나면서 차단됩니다. ({overlap_desc})",
                     "target_policy_id": target_policy.id,
                     "target_policy_name": target_policy.rule_name,
                     "target_original_seq": original_seq,
                     "target_new_seq": new_seq,
                     "move_direction": "아래로" if is_moving_down else "위로"
                 })
-            
+
             # [CASE 2] 이동한 정책이 다른 정책을 무력화(Shadow)시키는지 확인
             # 거부(Deny) 정책을 위로 옮겼을 때, 아래에 있는 기존 허용(Allow) 정책을 가리는 경우
             if target_policy.action == 'deny' and policy.action == 'allow':
@@ -272,7 +412,7 @@ class ImpactAnalyzer:
                     "policy": policy,
                     "current_position": policy_seq,
                     "impact_type": "Shadow됨",
-                    "reason": f"이동한 거부 정책 '{target_policy.rule_name}'이 기존 허용 정책 '{policy.rule_name}'(seq {policy_seq})보다 우선순위가 높아지면서 트래픽이 차단됩니다.",
+                    "reason": f"이동한 거부 정책 '{target_policy.rule_name}'이 기존 허용 정책 '{policy.rule_name}'(seq {policy_seq})보다 우선순위가 높아지면서 트래픽이 차단됩니다. ({overlap_desc})",
                     "target_policy_id": target_policy.id,
                     "target_policy_name": target_policy.rule_name,
                     "target_original_seq": original_seq,
@@ -288,7 +428,7 @@ class ImpactAnalyzer:
                         "policy": policy,
                         "current_position": policy_seq,
                         "impact_type": "Shadow됨",
-                        "reason": f"이동한 허용 정책 '{target_policy.rule_name}'이 기존 허용 정책 '{policy.rule_name}'(seq {policy_seq})보다 먼저 평가됩니다.",
+                        "reason": f"이동한 허용 정책 '{target_policy.rule_name}'이 기존 허용 정책 '{policy.rule_name}'(seq {policy_seq})보다 먼저 평가됩니다. ({overlap_desc})",
                         "target_policy_id": target_policy.id,
                         "target_policy_name": target_policy.rule_name,
                         "target_original_seq": original_seq,
@@ -325,6 +465,68 @@ class ImpactAnalyzer:
                 f"(요청한 seq {new_seq}까지는 '{nearest_conflict_policy.rule_name}'(seq {nearest_conflict_policy.seq}) 정책에 가로막혀 불가)."
             )
 
+        # 정책 분리(split) 참고 제안: 최초 차단 정책과의 충돌이 대상 정책의 여러 항목 중
+        # 일부에서만 발생했다면, 그 항목만 분리했을 때 나머지 조건이 더 내려갈 수 있는지 계산.
+        split_suggestion = None
+        if nearest_conflict_policy is not None:
+            overlap_with_conflict = self._overlap_details(target_policy, nearest_conflict_policy)
+            src_members, dst_members, svc_members = self._get_policy_members(target_policy)
+            category_members = {"src": src_members, "dst": dst_members, "svc": svc_members}
+
+            splittable_category = None
+            for cat in ("src", "dst", "svc"):
+                members = category_members[cat]
+                overlap_pairs = overlap_with_conflict[cat]
+                if not overlap_pairs:
+                    continue
+                conflicting_ids = {m1.id for m1, _ in overlap_pairs}
+                if len(members) > 1 and len(conflicting_ids) < len(members):
+                    splittable_category = cat
+                    break
+
+            if splittable_category:
+                conflicting_ids = {m1.id for m1, _ in overlap_with_conflict[splittable_category]}
+                remaining_members = [m for m in category_members[splittable_category] if m.id not in conflicting_ids]
+
+                reduced_src = [(m.ip_start, m.ip_end) for m in (remaining_members if splittable_category == "src" else src_members)]
+                reduced_dst = [(m.ip_start, m.ip_end) for m in (remaining_members if splittable_category == "dst" else dst_members)]
+                reduced_svc = [(m.protocol.lower(), m.port_start, m.port_end) for m in (remaining_members if splittable_category == "svc" else svc_members)]
+
+                if is_moving_down:
+                    scan_start, scan_end = nearest_conflict_index + 1, affected_end
+                else:
+                    scan_start, scan_end = affected_start, nearest_conflict_index - 1
+
+                next_conflict_idx = self._find_next_conflict_index(
+                    target_policy.action, reduced_src, reduced_dst, reduced_svc, target_policy.application,
+                    scan_start, scan_end, is_moving_down, new_seq, policies,
+                )
+
+                if next_conflict_idx is None:
+                    split_max_safe_seq = new_seq
+                elif is_moving_down:
+                    safe_idx = next_conflict_idx - 1
+                    split_max_safe_seq = policies[safe_idx].seq if safe_idx > nearest_conflict_index else max_safe_seq
+                else:
+                    safe_idx = next_conflict_idx + 1
+                    split_max_safe_seq = policies[safe_idx].seq if safe_idx < nearest_conflict_index else max_safe_seq
+
+                if split_max_safe_seq != max_safe_seq:
+                    category_label = {"src": "출발지", "dst": "목적지", "svc": "서비스"}[splittable_category]
+                    m1, m2 = overlap_with_conflict[splittable_category][0]
+                    rep_value = (
+                        self._format_service(m2) if splittable_category == "svc"
+                        else self._format_ip_range(max(m1.ip_start, m2.ip_start), min(m1.ip_end, m2.ip_end))
+                    )
+                    split_suggestion = (
+                        f"참고: {category_label} 조건 중 겹치는 항목({rep_value})만 별도 정책으로 분리하면, "
+                        f"나머지 조건은 seq {split_max_safe_seq}까지 이동 가능할 것으로 보입니다 "
+                        f"(참고용 — 실제 분리는 수동 검토 필요)."
+                    )
+
+        if split_suggestion:
+            move_summary = f"{move_summary} {split_suggestion}"
+
         return {
             "target_policy_id": target_policy.id,
             "target_policy": target_policy,
@@ -341,6 +543,7 @@ class ImpactAnalyzer:
             "blocking_conflict_policy_id": nearest_conflict_policy.id if nearest_conflict_policy else None,
             "blocking_conflict_policy_name": nearest_conflict_policy.rule_name if nearest_conflict_policy else None,
             "move_summary": move_summary,
+            "split_suggestion": split_suggestion,
         }
 
     async def analyze(self) -> List[Dict[str, Any]]:
@@ -421,6 +624,7 @@ class ImpactAnalyzer:
                 "blocking_conflict_policy_id": single_result["blocking_conflict_policy_id"],
                 "blocking_conflict_policy_name": single_result["blocking_conflict_policy_name"],
                 "move_direction": single_result["move_direction"],
+                "split_suggestion": single_result["split_suggestion"],
             })
 
         logger.info(f"분석 완료: 차단 {len(all_blocking_policies)}개, Shadow {len(all_shadowed_policies)}개 발견.")
