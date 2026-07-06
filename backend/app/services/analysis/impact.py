@@ -221,7 +221,17 @@ class ImpactAnalyzer:
         # 영향받는 정책 탐색 (차단/가림 현상 분석)
         blocking_policies = []  # 상위 차단 정책에 의해 흐름이 끊기는 경우
         shadowed_policies = []  # 이 정책이 위로 올라가면서 다른 정책을 무력화시키는 경우
-        
+        nearest_conflict_index = None  # 이동 경로상 원래 위치에서 가장 가까운 충돌 정책의 인덱스
+
+        def _track_nearest(idx: int) -> None:
+            nonlocal nearest_conflict_index
+            if nearest_conflict_index is None:
+                nearest_conflict_index = idx
+            elif is_moving_down:
+                nearest_conflict_index = min(nearest_conflict_index, idx)
+            else:
+                nearest_conflict_index = max(nearest_conflict_index, idx)
+
         for i, policy in enumerate(policies):
             if policy.id == target_policy.id:
                 continue
@@ -239,6 +249,7 @@ class ImpactAnalyzer:
             # [CASE 1] 이동한 정책이 상위 차단 정책에 걸리는지 확인
             # 허용(Allow) 정책을 아래로 옮겼는데, 그 위에 거부(Deny) 정책이 있는 경우
             if target_policy.action == 'allow' and policy.action == 'deny':
+                _track_nearest(i)
                 blocking_policies.append({
                     "policy_id": policy.id,
                     "policy": policy,
@@ -255,6 +266,7 @@ class ImpactAnalyzer:
             # [CASE 2] 이동한 정책이 다른 정책을 무력화(Shadow)시키는지 확인
             # 거부(Deny) 정책을 위로 옮겼을 때, 아래에 있는 기존 허용(Allow) 정책을 가리는 경우
             if target_policy.action == 'deny' and policy.action == 'allow':
+                _track_nearest(i)
                 shadowed_policies.append({
                     "policy_id": policy.id,
                     "policy": policy,
@@ -270,6 +282,7 @@ class ImpactAnalyzer:
             # 같은 허용 정책이라도 위로 올라가면 아래 정책은 Shadow 처리됨
             elif target_policy.action == 'allow' and policy.action == 'allow':
                 if new_seq is not None and new_seq < policy_seq:
+                    _track_nearest(i)
                     shadowed_policies.append({
                         "policy_id": policy.id,
                         "policy": policy,
@@ -284,7 +297,34 @@ class ImpactAnalyzer:
                     })
         
         final_move_direction = "아래로" if is_moving_down else "위로"
-        
+
+        # 이동 경로상 가장 가까운 충돌 정책 바로 앞까지를 '최대 안전 이동 위치'로 계산.
+        # 충돌이 없으면 요청한 위치(new_seq)까지 그대로 이동 가능.
+        nearest_conflict_policy = None
+        if nearest_conflict_index is None:
+            max_safe_seq = new_seq
+        else:
+            nearest_conflict_policy = policies[nearest_conflict_index]
+            if is_moving_down:
+                safe_index = nearest_conflict_index - 1
+                max_safe_seq = policies[safe_index].seq if safe_index > original_position else original_seq
+            else:
+                safe_index = nearest_conflict_index + 1
+                max_safe_seq = policies[safe_index].seq if safe_index < original_position else original_seq
+
+        if nearest_conflict_policy is None:
+            move_summary = f"'{target_policy.rule_name}'을(를) seq {new_seq}까지 안전하게 이동할 수 있습니다 (충돌 없음)."
+        elif max_safe_seq == original_seq:
+            move_summary = (
+                f"'{target_policy.rule_name}'은(는) 바로 {'아래' if is_moving_down else '위'} 정책 "
+                f"'{nearest_conflict_policy.rule_name}'(seq {nearest_conflict_policy.seq})에 가로막혀 이동할 수 없습니다."
+            )
+        else:
+            move_summary = (
+                f"'{target_policy.rule_name}'을(를) seq {max_safe_seq}까지 이동 가능합니다 "
+                f"(요청한 seq {new_seq}까지는 '{nearest_conflict_policy.rule_name}'(seq {nearest_conflict_policy.seq}) 정책에 가로막혀 불가)."
+            )
+
         return {
             "target_policy_id": target_policy.id,
             "target_policy": target_policy,
@@ -296,7 +336,11 @@ class ImpactAnalyzer:
             "blocking_policies": blocking_policies,
             "shadowed_policies": shadowed_policies,
             "total_blocking": len(blocking_policies),
-            "total_shadowed": len(shadowed_policies)
+            "total_shadowed": len(shadowed_policies),
+            "max_safe_seq": max_safe_seq,
+            "blocking_conflict_policy_id": nearest_conflict_policy.id if nearest_conflict_policy else None,
+            "blocking_conflict_policy_name": nearest_conflict_policy.rule_name if nearest_conflict_policy else None,
+            "move_summary": move_summary,
         }
 
     async def analyze(self) -> List[Dict[str, Any]]:
@@ -340,12 +384,14 @@ class ImpactAnalyzer:
         # 개별 정책 분석 수행 및 통합 (여러 대상 정책 간 중복 제거)
         all_blocking_policies = []
         all_shadowed_policies = []
+        summary_rows = []
         seen_blocking = set()
         seen_shadowed = set()
 
         for target_info in target_policies_info:
+            target_policy = target_info["policy"]
             single_result = await self._analyze_single_policy(
-                target_info["policy"], target_info["original_position"], policies
+                target_policy, target_info["original_position"], policies
             )
 
             for bp in single_result["blocking_policies"]:
@@ -360,9 +406,27 @@ class ImpactAnalyzer:
                     seen_shadowed.add(key)
                     all_shadowed_policies.append(sp)
 
+            # 정책별 '최대 안전 이동 위치' 요약 행 (충돌 유무와 무관하게 항상 1건씩 생성)
+            summary_rows.append({
+                "policy_id": target_policy.id,
+                "policy": target_policy,
+                "current_position": single_result["max_safe_seq"],
+                "impact_type": "최대 안전 이동 위치",
+                "reason": single_result["move_summary"],
+                "target_policy_id": target_policy.id,
+                "target_policy_name": target_policy.rule_name,
+                "target_original_seq": single_result["original_seq"],
+                "target_new_seq": single_result["new_seq"],
+                "max_safe_seq": single_result["max_safe_seq"],
+                "blocking_conflict_policy_id": single_result["blocking_conflict_policy_id"],
+                "blocking_conflict_policy_name": single_result["blocking_conflict_policy_name"],
+                "move_direction": single_result["move_direction"],
+            })
+
         logger.info(f"분석 완료: 차단 {len(all_blocking_policies)}개, Shadow {len(all_shadowed_policies)}개 발견.")
 
         # 프론트엔드 그리드는 평탄한 행 배열을 기대함 (다른 분석 엔진과 동일한 반환 형태)
-        return all_blocking_policies + all_shadowed_policies
+        # 요약 행을 맨 앞에 두어 각 대상 정책의 '최대 안전 이동 위치'가 가장 먼저 보이도록 함
+        return summary_rows + all_blocking_policies + all_shadowed_policies
 
 
