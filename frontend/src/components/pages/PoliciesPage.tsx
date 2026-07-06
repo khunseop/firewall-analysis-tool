@@ -182,7 +182,7 @@ export function PoliciesPage() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // URL 파라미터로 필터 자동 세팅 (ObjectDetailModal / AnalysisPage → 정책 검색 연동)
+  // URL 파라미터로 필터 자동 세팅 (ObjectDetailModal / AnalysisDetailPage → 정책 검색 연동)
   useEffect(() => {
     const srcName  = searchParams.get('src_name')
     const dstName  = searchParams.get('dst_name')

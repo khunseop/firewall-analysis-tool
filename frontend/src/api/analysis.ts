@@ -19,10 +19,31 @@ export interface AnalysisResult {
   created_at: string
 }
 
-export interface AnalysisResultSummary {
+export interface AnalysisTaskListItem {
   id: number
-  task_id: number | null
+  device_id: number
+  device_name: string
+  device_ip: string
+  task_type: string
+  task_status: string
   created_at: string
+  started_at: string | null
+  completed_at: string | null
+  error_message: string | null
+}
+
+export interface AnalysisTaskListResponse {
+  items: AnalysisTaskListItem[]
+  total: number
+}
+
+export interface ListAnalysisTasksParams {
+  deviceId?: number
+  analysisType?: string
+  status?: string
+  search?: string
+  page?: number
+  pageSize?: number
 }
 
 export interface StartAnalysisParams {
@@ -98,12 +119,25 @@ export const getLatestAnalysisResult = async (deviceId: number, analysisType: st
   return res.data
 }
 
-export const listAnalysisResults = async (deviceId: number, analysisType: string, limit = 20): Promise<AnalysisResultSummary[]> => {
-  const res = await apiClient.get<AnalysisResultSummary[]>(`/analysis/${deviceId}/results?analysis_type=${analysisType}&limit=${limit}`)
+export const listAnalysisTasks = async (params: ListAnalysisTasksParams = {}): Promise<AnalysisTaskListResponse> => {
+  const { deviceId, analysisType, status, search, page = 1, pageSize = 20 } = params
+  const query = new URLSearchParams()
+  if (deviceId) query.set('device_id', String(deviceId))
+  if (analysisType) query.set('analysis_type', analysisType)
+  if (status) query.set('status', status)
+  if (search) query.set('search', search)
+  query.set('page', String(page))
+  query.set('page_size', String(pageSize))
+  const res = await apiClient.get<AnalysisTaskListResponse>(`/analysis/tasks?${query.toString()}`)
   return res.data
 }
 
-export const getAnalysisResultById = async (resultId: number): Promise<AnalysisResult> => {
-  const res = await apiClient.get<AnalysisResult>(`/analysis/results/${resultId}`)
+export const getAnalysisTaskDetail = async (taskId: number): Promise<AnalysisTask> => {
+  const res = await apiClient.get<AnalysisTask>(`/analysis/tasks/${taskId}`)
+  return res.data
+}
+
+export const getAnalysisTaskResult = async (taskId: number): Promise<AnalysisResult> => {
+  const res = await apiClient.get<AnalysisResult>(`/analysis/tasks/${taskId}/result`)
   return res.data
 }
