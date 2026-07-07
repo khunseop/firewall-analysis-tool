@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Plus, Search, Copy, Clock, ArrowLeftRight, Unlink, ShieldAlert, Expand, Check, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -67,7 +67,7 @@ function PolicyMultiSelect({ deviceId, value, onChange, placeholder }: {
   )
 }
 
-function CreateAnalysisDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+function CreateAnalysisDialog({ open, onClose, initialDeviceId }: { open: boolean; onClose: () => void; initialDeviceId?: number | null }) {
   const queryClient = useQueryClient()
   const [deviceId, setDeviceId] = useState<number | null>(null)
   const [analysisType, setAnalysisType] = useState('redundancy')
@@ -79,9 +79,9 @@ function CreateAnalysisDialog({ open, onClose }: { open: boolean; onClose: () =>
 
   useEffect(() => {
     if (!open) return
-    setDeviceId(null); setAnalysisType('redundancy'); setDays('90')
+    setDeviceId(initialDeviceId ?? null); setAnalysisType('redundancy'); setDays('90')
     setTargetPolicyIds([]); setReferencePolicyId(null); setMoveToEnd(false); setMoveDirection('below')
-  }, [open])
+  }, [open, initialDeviceId])
 
   const startMutation = useMutation({
     mutationFn: () => {
@@ -229,12 +229,24 @@ const PAGE_SIZE = 20
 
 export function AnalysisListPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [createOpen, setCreateOpen] = useState(false)
+  const [prefillDeviceId, setPrefillDeviceId] = useState<number | null>(null)
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    const deviceId = (location.state as { openCreateWithDeviceId?: number } | null)?.openCreateWithDeviceId
+    if (deviceId) {
+      setPrefillDeviceId(deviceId)
+      setCreateOpen(true)
+      navigate(location.pathname, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state])
 
   useEffect(() => {
     const id = setTimeout(() => setSearch(searchInput.trim()), 300)
@@ -365,7 +377,7 @@ export function AnalysisListPage() {
         </div>
       )}
 
-      <CreateAnalysisDialog open={createOpen} onClose={() => setCreateOpen(false)} />
+      <CreateAnalysisDialog open={createOpen} onClose={() => setCreateOpen(false)} initialDeviceId={prefillDeviceId} />
     </div>
   )
 }
