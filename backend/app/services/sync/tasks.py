@@ -212,7 +212,7 @@ async def sync_data_task(
                     # 2-2. 실제 주요 필드들의 변경 여부(is_dirty) 확인
                     fields_to_compare = set(update_data.keys())
                     if data_type == "policies":
-                        fields_to_compare -= {'seq', 'last_hit_date'} # 순서와 히트 정보는 주요 변경에서 제외
+                        fields_to_compare -= {'seq', 'last_hit_date', 'hit_count'} # 순서와 히트 정보는 주요 변경에서 제외
 
                     is_dirty = any(
                         normalize_value(update_data.get(k)) != normalize_value(getattr(existing_item, k))
@@ -393,8 +393,8 @@ async def _collect_last_hit_date_parallel(
         # 중복 제거 (최신 날짜 우선)
         hit_date_df = hit_date_df.sort_values('last_hit_date', ascending=False, na_position='last')
         subset = ['vsys', 'rule_name'] if 'vsys' in hit_date_df.columns else ['rule_name']
-        hit_date_df = hit_date_df.drop_duplicates(subset=subset, keep='first')
-        return hit_date_df[hit_date_df['last_hit_date'].notna()]
+        # last_hit_date가 없어도 hit_count(예: 0회)는 유효한 정보이므로 rule_name 기준으로만 필터링
+        return hit_date_df[hit_date_df['rule_name'].notna()].drop_duplicates(subset=subset, keep='first')
 
     # 케이스 C: HA Peer 데이터만 없는 경우 (메인 장비 데이터 사용)
     if ha_result is None or ha_result.empty:
@@ -403,28 +403,28 @@ async def _collect_last_hit_date_parallel(
         # 중복 제거 (최신 날짜 우선)
         hit_date_df = hit_date_df.sort_values('last_hit_date', ascending=False, na_position='last')
         subset = ['vsys', 'rule_name'] if 'vsys' in hit_date_df.columns else ['rule_name']
-        hit_date_df = hit_date_df.drop_duplicates(subset=subset, keep='first')
-        return hit_date_df[hit_date_df['last_hit_date'].notna()]
-    
+        # last_hit_date가 없어도 hit_count(예: 0회)는 유효한 정보이므로 rule_name 기준으로만 필터링
+        return hit_date_df[hit_date_df['rule_name'].notna()].drop_duplicates(subset=subset, keep='first')
+
     # 케이스 D: 둘 다 있는 경우 - 데이터 병합 및 최신 시간 추출
     main_df = main_result.copy()
     main_df['last_hit_date'] = pd.to_datetime(main_df['last_hit_date'], errors='coerce')
-    
+
     ha_df = ha_result.copy()
     ha_df['last_hit_date'] = pd.to_datetime(ha_df['last_hit_date'], errors='coerce')
-    
+
     # 두 장비의 데이터를 하나로 합침
     combined_df = pd.concat([main_df, ha_df], ignore_index=True)
-    
+
     # 정렬: 최신 날짜 순, 빈 값은 뒤로
     combined_df_sorted = combined_df.sort_values('last_hit_date', ascending=False, na_position='last')
-    
+
     # 중복 제거: 같은 정책(vsys + rule_name)에 대해 가장 먼저 나오는(즉, 가장 최신인) 레코드만 유지
     subset = ['vsys', 'rule_name'] if 'vsys' in combined_df.columns else ['rule_name']
     hit_date_df = combined_df_sorted.drop_duplicates(subset=subset, keep='first')
-    
-    # 유효한 날짜 정보가 있는 것만 반환
-    return hit_date_df[hit_date_df['last_hit_date'].notna()].copy()
+
+    # last_hit_date가 없어도 hit_count(예: 0회)는 유효한 정보이므로 rule_name 기준으로만 필터링
+    return hit_date_df[hit_date_df['rule_name'].notna()].copy()
 
 
 async def run_sync_all_orchestrator(device_id: int) -> None:
@@ -570,7 +570,13 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
 
                         merge_keys = ['vsys_normalized', 'rule_name_normalized'] if 'vsys_normalized' in policies_df.columns and 'vsys_normalized' in hit_date_df.columns else ['rule_name_normalized']
 
-                        merged_df = pd.merge(policies_df, hit_date_df[merge_keys + ['last_hit_date_new']], on=merge_keys, how="left")
+                        merge_cols = merge_keys + ['last_hit_date_new']
+                        has_hit_count = 'hit_count' in hit_date_df.columns
+                        if has_hit_count:
+                            hit_date_df = hit_date_df.rename(columns={'hit_count': 'hit_count_new'})
+                            merge_cols = merge_keys + ['last_hit_date_new', 'hit_count_new']
+
+                        merged_df = pd.merge(policies_df, hit_date_df[merge_cols], on=merge_keys, how="left")
 
                         def choose_latest(row):
                             new_val = row.get('last_hit_date_new')
@@ -579,7 +585,11 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                             return None
 
                         merged_df['last_hit_date'] = merged_df.apply(choose_latest, axis=1)
-                        policies_df = merged_df.drop(columns=['last_hit_date_new', 'rule_name_normalized', 'vsys_normalized'], errors='ignore')
+                        drop_cols = ['last_hit_date_new', 'rule_name_normalized', 'vsys_normalized']
+                        if has_hit_count:
+                            merged_df['hit_count'] = merged_df['hit_count_new'].apply(lambda v: int(v) if pd.notna(v) else None)
+                            drop_cols.append('hit_count_new')
+                        policies_df = merged_df.drop(columns=drop_cols, errors='ignore')
 
                         collected_dfs["policies"] = policies_df
                         

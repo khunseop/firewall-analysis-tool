@@ -471,6 +471,9 @@ export function PolicyDetailModal({
                     <span className="text-[11px] text-ds-on-surface-variant">{days}일 전 ({policy.last_hit_date})</span>
                   )}
                 </Section>
+                <Section label="히트 횟수">
+                  <span className="text-xs text-ds-on-surface-variant">{policy.hit_count ?? '-'}</span>
+                </Section>
               </div>
 
               {/* 객체 패널 힌트 */}

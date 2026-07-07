@@ -37,6 +37,8 @@ class Policy(Base):
     
     # 정책 사용이력의 마지막 히트 시간 (동기화 시 수집)
     last_hit_date = Column(DateTime, nullable=True)
+    # 정책 히트 횟수 (Palo Alto 전용, 동기화 시 수집)
+    hit_count = Column(Integer, nullable=True)
     
     # 논리적 삭제 및 활성 상태 관리
     is_active = Column(Boolean, default=True, nullable=False)

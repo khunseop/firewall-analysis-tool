@@ -325,11 +325,9 @@ class PaloAltoAPI(FirewallInterface):
         """
         results: list[dict] = []
 
-        no_hit_date = datetime.datetime(1900, 1, 1).strftime('%Y-%m-%d')
-
-        def _ts_to_date(ts_int: int) -> str:
+        def _ts_to_date(ts_int: int) -> str | None:
             if ts_int == 0:
-                return no_hit_date
+                return None
             return datetime.datetime.fromtimestamp(ts_int).strftime('%Y-%m-%d')
 
         def _fetch_vsys_hit(vsys_name: str) -> list[dict]:
@@ -357,7 +355,7 @@ class PaloAltoAPI(FirewallInterface):
 
                 member_texts = self._get_member_texts(rule)
                 try:
-                    hit_count = member_texts[1]
+                    hit_count = int(member_texts[1])
                     last_hit_ts = int(member_texts[2])
                     first_hit_ts = int(member_texts[4])
                 except (IndexError, ValueError) as e:
@@ -481,6 +479,7 @@ class PaloAltoAPI(FirewallInterface):
                     match = re.match(r'^([a-zA-Z0-9/._-]+)\s+(\d+)\s+([A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+\d{4}|-)', line)
                     if match:
                         rule_name = match.group(1)
+                        hit_count = int(match.group(2))
                         timestamp_str = match.group(3).strip()
 
                         last_hit_date = None
@@ -497,6 +496,7 @@ class PaloAltoAPI(FirewallInterface):
                         all_results.append({
                             "vsys": vsys_name,
                             "rule_name": rule_name,
+                            "hit_count": hit_count,
                             "last_hit_date": last_hit_date
                         })
 
