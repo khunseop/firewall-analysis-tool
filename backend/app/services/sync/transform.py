@@ -109,6 +109,8 @@ def dataframe_to_pydantic(df: pd.DataFrame, pydantic_model):
     # 5) Ensure integer columns with potential missing values are handled correctly
     if "seq" in df.columns:
         df["seq"] = df["seq"].astype("Int64")
+    if "hit_count" in df.columns:
+        df["hit_count"] = pd.to_numeric(df["hit_count"], errors="coerce").astype("Int64")
 
     # 6) Final processing: Convert all pandas missing values (NaN, NaT, NA) to None
     if not df.empty:

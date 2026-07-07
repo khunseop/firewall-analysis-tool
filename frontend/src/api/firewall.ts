@@ -18,6 +18,7 @@ export interface Policy {
   category: string | null
   description: string | null
   last_hit_date: string | null
+  hit_count: number | null
   is_active: boolean
   last_seen_at: string | null
 }

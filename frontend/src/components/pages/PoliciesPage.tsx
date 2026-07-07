@@ -401,6 +401,12 @@ export function PoliciesPage() {
       field: 'last_hit_date', headerName: '마지막 사용일', minWidth: 120,
       cellRenderer: (p: { value: string | null }) => <LastHitCell value={p.value} />,
     },
+    {
+      field: 'hit_count', headerName: '히트 횟수', width: 100,
+      cellRenderer: (p: { value: number | null }) => (
+        <span className="text-[11px] text-ds-on-surface-variant">{p.value ?? '-'}</span>
+      ),
+    },
     { field: 'vsys', headerName: 'VSYS', width: 72, hide: true },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [deviceNameMap, changeLogMap])
