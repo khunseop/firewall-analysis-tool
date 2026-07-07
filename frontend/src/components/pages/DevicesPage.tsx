@@ -946,7 +946,7 @@ export function DevicesPage() {
           quickFilterText={quickFilter}
           height="calc(100vh - 280px)"
           noRowsText="등록된 장비가 없습니다."
-          rowSelection={{ mode: 'multiRow', checkboxes: true, headerCheckbox: true, checkboxesFilteredOnly: true }}
+          rowSelection={{ mode: 'multiRow', checkboxes: true, headerCheckbox: true, selectAll: 'filtered' }}
           onSelectionChanged={(rows) => setSelectedDevices(rows)}
           defaultColDefOverride={{ resizable: true, sortable: true }}
           fitColumns
