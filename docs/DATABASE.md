@@ -33,6 +33,23 @@
 | `cached_network_groups` | `INTEGER` | `DEFAULT 0` | 네트워크 그룹 수 캐시 |
 | `cached_services` | `INTEGER` | `DEFAULT 0` | 서비스 객체 수 캐시 |
 | `cached_service_groups` | `INTEGER` | `DEFAULT 0` | 서비스 그룹 수 캐시 |
+| `serial_number` | `VARCHAR` | `NULLABLE` | 시리얼 번호 |
+| `os_name` | `VARCHAR` | `NULLABLE` | OS명 |
+| `os_version` | `VARCHAR` | `NULLABLE` | OS버전 |
+| `install_date` | `DATE` | `NULLABLE` | 도입일 |
+| `location_region` | `VARCHAR` | `NULLABLE` | 설치 지역 |
+| `location_building` | `VARCHAR` | `NULLABLE` | 설치동 |
+| `location_floor` | `VARCHAR` | `NULLABLE` | 설치 층 (B1, 3F 등 혼합 표기 대응) |
+| `location_room` | `VARCHAR` | `NULLABLE` | 설치 Room |
+| `location_x` | `VARCHAR` | `NULLABLE` | 랙 좌표 X (혼합 표기 대응) |
+| `location_y` | `VARCHAR` | `NULLABLE` | 랙 좌표 Y |
+| `location_z` | `VARCHAR` | `NULLABLE` | 랙 좌표 Z |
+| `cpu_threshold` | `INTEGER` | `NULLABLE` | CPU 임계치 (%, 수기 입력) |
+| `cpu_usage` | `INTEGER` | `NULLABLE` | CPU 사용률 (%, 수기 입력) |
+| `memory_threshold` | `INTEGER` | `NULLABLE` | 메모리 임계치 (%, 수기 입력) |
+| `memory_usage` | `INTEGER` | `NULLABLE` | 메모리 사용률 (%, 수기 입력) |
+| `session_threshold` | `INTEGER` | `NULLABLE` | 세션 임계치 (건, 수기 입력) |
+| `session_usage` | `INTEGER` | `NULLABLE` | 세션 사용량 (건, 수기 입력) |
 
 ### `change_logs` Table (변경 이력)
 동기화 과정에서 탐지된 객체 및 정책의 변경 이력을 저장합니다.

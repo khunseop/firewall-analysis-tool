@@ -12,6 +12,7 @@ import { getChangeStats } from '@/api/firewall'
 import { useSyncStatusWebSocket } from '@/hooks/useWebSocket'
 import { notify } from '@/store/notificationStore'
 import { formatNumber, formatRelativeTime } from '@/lib/utils'
+import { resourceLevel, RESOURCE_LEVEL_BAR_COLOR, RESOURCE_LEVEL_TEXT_COLOR } from '@/lib/deviceResource'
 
 const VENDOR_BADGE: Record<string, string> = {
   paloalto: 'bg-orange-50 text-orange-600 border border-orange-100',
@@ -37,6 +38,9 @@ interface DeviceRow {
   network_objects: number; network_groups: number
   services: number; service_groups: number
   sync_status: string | null; sync_step: string | null; sync_time: string | null
+  cpu_threshold: number | null; cpu_usage: number | null
+  memory_threshold: number | null; memory_usage: number | null
+  session_threshold: number | null; session_usage: number | null
 }
 
 function transformDeviceStats(d: DeviceStats): DeviceRow {
@@ -52,7 +56,26 @@ function transformDeviceStats(d: DeviceStats): DeviceRow {
     sync_status: d.sync_status,
     sync_step: d.sync_step,
     sync_time: d.sync_time,
+    cpu_threshold: d.cpu_threshold, cpu_usage: d.cpu_usage,
+    memory_threshold: d.memory_threshold, memory_usage: d.memory_usage,
+    session_threshold: d.session_threshold, session_usage: d.session_usage,
   }
+}
+
+function ResourceCell({ usage, threshold, unit }: { usage: number | null; threshold: number | null; unit: string }) {
+  if (usage == null && threshold == null) return <span className="text-[12px] text-ds-on-surface-variant/40">—</span>
+  const level = resourceLevel(usage, threshold)
+  const pct = usage != null && threshold != null && threshold > 0 ? Math.min(100, Math.round((usage / threshold) * 100)) : 0
+  return (
+    <div className="flex flex-col justify-center gap-0.5 py-1">
+      <span className={`text-[11px] font-semibold tabular-nums ${RESOURCE_LEVEL_TEXT_COLOR[level]}`}>
+        {usage != null ? `${usage}${unit}` : '—'} / {threshold != null ? `${threshold}${unit}` : '—'}
+      </span>
+      <div className="h-1 rounded-full bg-ds-outline-variant/20 overflow-hidden w-20">
+        <div className={`h-full rounded-full ${RESOURCE_LEVEL_BAR_COLOR[level]}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  )
 }
 
 const COLUMN_DEFS: ColDef<DeviceRow>[] = [
@@ -109,6 +132,18 @@ const COLUMN_DEFS: ColDef<DeviceRow>[] = [
   {
     field: 'sync_time', headerName: '마지막 동기화', filter: false,
     valueFormatter: (p) => formatRelativeTime(p.value),
+  },
+  {
+    headerName: 'CPU', minWidth: 110, sortable: false, filter: false,
+    cellRenderer: (p: { data: DeviceRow }) => <ResourceCell usage={p.data.cpu_usage} threshold={p.data.cpu_threshold} unit="%" />,
+  },
+  {
+    headerName: '메모리', minWidth: 110, sortable: false, filter: false,
+    cellRenderer: (p: { data: DeviceRow }) => <ResourceCell usage={p.data.memory_usage} threshold={p.data.memory_threshold} unit="%" />,
+  },
+  {
+    headerName: '세션', minWidth: 110, sortable: false, filter: false,
+    cellRenderer: (p: { data: DeviceRow }) => <ResourceCell usage={p.data.session_usage} threshold={p.data.session_threshold} unit="건" />,
   },
 ]
 

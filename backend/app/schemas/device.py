@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, date
 
 # Base schema for device attributes
 class DeviceBase(BaseModel):
@@ -14,6 +14,29 @@ class DeviceBase(BaseModel):
     collect_last_hit_date: Optional[bool] = True
     model: Optional[str] = None
     group: Optional[str] = None
+
+    # 상세 정보
+    serial_number: Optional[str] = None
+    os_name: Optional[str] = None
+    os_version: Optional[str] = None
+    install_date: Optional[date] = None
+
+    # 설치 위치
+    location_region: Optional[str] = None
+    location_building: Optional[str] = None
+    location_floor: Optional[str] = None
+    location_room: Optional[str] = None
+    location_x: Optional[str] = None
+    location_y: Optional[str] = None
+    location_z: Optional[str] = None
+
+    # 리소스 임계치/사용률 (수기 입력)
+    cpu_threshold: Optional[int] = None
+    cpu_usage: Optional[int] = None
+    memory_threshold: Optional[int] = None
+    memory_usage: Optional[int] = None
+    session_threshold: Optional[int] = None
+    session_usage: Optional[int] = None
 
 # Schema for creating a new device
 class DeviceCreate(DeviceBase):
@@ -34,6 +57,26 @@ class DeviceUpdate(BaseModel):
     group: Optional[str] = None
     password: Optional[str] = None
     password_confirm: Optional[str] = None
+
+    serial_number: Optional[str] = None
+    os_name: Optional[str] = None
+    os_version: Optional[str] = None
+    install_date: Optional[date] = None
+
+    location_region: Optional[str] = None
+    location_building: Optional[str] = None
+    location_floor: Optional[str] = None
+    location_room: Optional[str] = None
+    location_x: Optional[str] = None
+    location_y: Optional[str] = None
+    location_z: Optional[str] = None
+
+    cpu_threshold: Optional[int] = None
+    cpu_usage: Optional[int] = None
+    memory_threshold: Optional[int] = None
+    memory_usage: Optional[int] = None
+    session_threshold: Optional[int] = None
+    session_usage: Optional[int] = None
 
 # Schema for reading device data (from DB)
 class Device(DeviceBase):
@@ -70,6 +113,12 @@ class DeviceStats(BaseModel):
     sync_status: Optional[str] = None
     sync_step: Optional[str] = None
     sync_time: Optional[datetime] = None
+    cpu_threshold: Optional[int] = None
+    cpu_usage: Optional[int] = None
+    memory_threshold: Optional[int] = None
+    memory_usage: Optional[int] = None
+    session_threshold: Optional[int] = None
+    session_usage: Optional[int] = None
 
 
 class DashboardStatsResponse(BaseModel):

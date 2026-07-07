@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select as ShadSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
 import {
   listDevices, createDevice, updateDevice, deleteDevice,
@@ -20,6 +21,8 @@ import {
 import { useSyncStatusWebSocket, type SyncStatusMessage } from '@/hooks/useWebSocket'
 import { notify } from '@/store/notificationStore'
 import { useDeviceStore } from '@/store/deviceStore'
+import { resourceLevel } from '@/lib/deviceResource'
+import { DeviceDetailDialog } from './devices/DeviceDetailDialog'
 
 const VENDOR_OPTIONS = [
   { code: 'paloalto', label: 'Palo Alto' },
@@ -52,11 +55,21 @@ interface DeviceFormData {
   password: string; password_confirm: string; ha_peer_ip: string
   model: string; group: string; description: string; collect_last_hit_date: boolean
   use_ssh_for_last_hit_date: boolean
+  serial_number: string; os_name: string; os_version: string; install_date: string
+  location_region: string; location_building: string; location_floor: string; location_room: string
+  location_x: string; location_y: string; location_z: string
+  cpu_threshold: string; cpu_usage: string
+  memory_threshold: string; memory_usage: string
+  session_threshold: string; session_usage: string
 }
 
 const DEFAULT_FORM: DeviceFormData = {
   name: '', ip_address: '', vendor: 'paloalto', username: '', password: '', password_confirm: '',
   ha_peer_ip: '', model: '', group: '', description: '', collect_last_hit_date: true, use_ssh_for_last_hit_date: false,
+  serial_number: '', os_name: '', os_version: '', install_date: '',
+  location_region: '', location_building: '', location_floor: '', location_room: '',
+  location_x: '', location_y: '', location_z: '',
+  cpu_threshold: '', cpu_usage: '', memory_threshold: '', memory_usage: '', session_threshold: '', session_usage: '',
 }
 
 function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }: {
@@ -69,65 +82,142 @@ function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }: {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg bg-ds-surface-container-lowest">
+      <DialogContent className="max-w-2xl bg-ds-surface-container-lowest">
         <DialogHeader>
           <DialogTitle className="font-headline text-ds-on-surface">
             {initial?.name ? '장비 수정' : '장비 추가'}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={(e) => { e.preventDefault(); onSubmit(form) }} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: '장비명 *', key: 'name' as const, required: true },
-              { label: 'IP 주소 *', key: 'ip_address' as const, required: true },
-              { label: '모델', key: 'model' as const },
-              { label: '사용자명 *', key: 'username' as const, required: true },
-              { label: 'HA Peer IP', key: 'ha_peer_ip' as const },
-              { label: '그룹', key: 'group' as const },
-            ].map(({ label, key, required }) => (
-              <div key={key} className="space-y-1">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
-                <Input value={form[key] as string} onChange={(e) => set(key, e.target.value)} required={required} className="bg-white border-ds-outline-variant/30 text-sm" />
+          <Tabs defaultValue="basic">
+            <TabsList>
+              <TabsTrigger value="basic">기본정보</TabsTrigger>
+              <TabsTrigger value="detail">상세정보</TabsTrigger>
+              <TabsTrigger value="location">설치정보</TabsTrigger>
+              <TabsTrigger value="resource">리소스 임계치</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="basic" className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: '장비명 *', key: 'name' as const, required: true },
+                  { label: 'IP 주소 *', key: 'ip_address' as const, required: true },
+                  { label: '모델', key: 'model' as const },
+                  { label: '사용자명 *', key: 'username' as const, required: true },
+                  { label: 'HA Peer IP', key: 'ha_peer_ip' as const },
+                  { label: '그룹', key: 'group' as const },
+                ].map(({ label, key, required }) => (
+                  <div key={key} className="space-y-1">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
+                    <Input value={form[key] as string} onChange={(e) => set(key, e.target.value)} required={required} className="bg-white border-ds-outline-variant/30 text-sm" />
+                  </div>
+                ))}
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">벤더 *</Label>
+                  <ShadSelect value={form.vendor} onValueChange={(v) => set('vendor', v)}>
+                    <SelectTrigger className="bg-white border-ds-outline-variant/30 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VENDOR_OPTIONS.map((o) => <SelectItem key={o.code} value={o.code}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </ShadSelect>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">
+                    비밀번호 {!initial?.name && '*'}
+                  </Label>
+                  <Input type="password" value={form.password} onChange={(e) => set('password', e.target.value)} required={!initial?.name} className="bg-white border-ds-outline-variant/30 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">
+                    비밀번호 확인 {!initial?.name && '*'}
+                  </Label>
+                  <Input type="password" value={form.password_confirm} onChange={(e) => set('password_confirm', e.target.value)} required={!initial?.name} className="bg-white border-ds-outline-variant/30 text-sm" />
+                </div>
               </div>
-            ))}
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">벤더 *</Label>
-              <ShadSelect value={form.vendor} onValueChange={(v) => set('vendor', v)}>
-                <SelectTrigger className="bg-white border-ds-outline-variant/30 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {VENDOR_OPTIONS.map((o) => <SelectItem key={o.code} value={o.code}>{o.label}</SelectItem>)}
-                </SelectContent>
-              </ShadSelect>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">
-                비밀번호 {!initial?.name && '*'}
-              </Label>
-              <Input type="password" value={form.password} onChange={(e) => set('password', e.target.value)} required={!initial?.name} className="bg-white border-ds-outline-variant/30 text-sm" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">
-                비밀번호 확인 {!initial?.name && '*'}
-              </Label>
-              <Input type="password" value={form.password_confirm} onChange={(e) => set('password_confirm', e.target.value)} required={!initial?.name} className="bg-white border-ds-outline-variant/30 text-sm" />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">설명</Label>
-            <Input value={form.description} onChange={(e) => set('description', e.target.value)} className="bg-white border-ds-outline-variant/30 text-sm" />
-          </div>
-          <div className="flex gap-4 pt-1">
-            <label className="flex items-center gap-2 text-sm cursor-pointer text-ds-on-surface-variant">
-              <Checkbox checked={form.collect_last_hit_date} onCheckedChange={(v) => set('collect_last_hit_date', !!v)} />
-              최근 사용일 수집
-            </label>
-            <label className="flex items-center gap-2 text-sm cursor-pointer text-ds-on-surface-variant">
-              <Checkbox checked={form.use_ssh_for_last_hit_date} onCheckedChange={(v) => set('use_ssh_for_last_hit_date', !!v)} />
-              SSH로 최근 사용일 수집
-            </label>
-          </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">설명</Label>
+                <Input value={form.description} onChange={(e) => set('description', e.target.value)} className="bg-white border-ds-outline-variant/30 text-sm" />
+              </div>
+              <div className="flex gap-4 pt-1">
+                <label className="flex items-center gap-2 text-sm cursor-pointer text-ds-on-surface-variant">
+                  <Checkbox checked={form.collect_last_hit_date} onCheckedChange={(v) => set('collect_last_hit_date', !!v)} />
+                  최근 사용일 수집
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer text-ds-on-surface-variant">
+                  <Checkbox checked={form.use_ssh_for_last_hit_date} onCheckedChange={(v) => set('use_ssh_for_last_hit_date', !!v)} />
+                  SSH로 최근 사용일 수집
+                </label>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="detail" className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: '시리얼 번호', key: 'serial_number' as const },
+                  { label: 'OS명', key: 'os_name' as const },
+                  { label: 'OS버전', key: 'os_version' as const },
+                ].map(({ label, key }) => (
+                  <div key={key} className="space-y-1">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
+                    <Input value={form[key] as string} onChange={(e) => set(key, e.target.value)} className="bg-white border-ds-outline-variant/30 text-sm" />
+                  </div>
+                ))}
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">도입일</Label>
+                  <Input type="date" value={form.install_date} onChange={(e) => set('install_date', e.target.value)} className="bg-white border-ds-outline-variant/30 text-sm" />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="location" className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: '지역', key: 'location_region' as const },
+                  { label: '설치동', key: 'location_building' as const },
+                  { label: '층', key: 'location_floor' as const },
+                  { label: 'Room', key: 'location_room' as const },
+                ].map(({ label, key }) => (
+                  <div key={key} className="space-y-1">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
+                    <Input value={form[key] as string} onChange={(e) => set(key, e.target.value)} className="bg-white border-ds-outline-variant/30 text-sm" />
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: '좌표 X', key: 'location_x' as const },
+                  { label: '좌표 Y', key: 'location_y' as const },
+                  { label: '좌표 Z', key: 'location_z' as const },
+                ].map(({ label, key }) => (
+                  <div key={key} className="space-y-1">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
+                    <Input value={form[key] as string} onChange={(e) => set(key, e.target.value)} className="bg-white border-ds-outline-variant/30 text-sm" />
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="resource" className="space-y-3">
+              <p className="text-[11px] text-ds-on-surface-variant">임계치와 사용률은 관리자가 직접 입력·관리하는 값입니다.</p>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: 'CPU 임계치 (%)', key: 'cpu_threshold' as const },
+                  { label: 'CPU 사용률 (%)', key: 'cpu_usage' as const },
+                  { label: '메모리 임계치 (%)', key: 'memory_threshold' as const },
+                  { label: '메모리 사용률 (%)', key: 'memory_usage' as const },
+                  { label: '세션 임계치 (건)', key: 'session_threshold' as const },
+                  { label: '세션 사용량 (건)', key: 'session_usage' as const },
+                ].map(({ label, key }) => (
+                  <div key={key} className="space-y-1">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
+                    <Input type="number" min={0} value={form[key] as string} onChange={(e) => set(key, e.target.value)} className="bg-white border-ds-outline-variant/30 text-sm" />
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
           <DialogFooter>
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">취소</button>
             <button type="submit" disabled={isPending} className="px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50">
@@ -443,7 +533,7 @@ function DirectExportDialog({ open, onClose, devices }: {
   )
 }
 
-function DeviceNameCell({ data }: { data: Device }) {
+function DeviceNameCell({ data, onShowDetail }: { data: Device; onShowDetail: (device: Device) => void }) {
   const navigate = useNavigate()
   const setSelectedIds = useDeviceStore((s) => s.setSelectedIds)
   const [open, setOpen] = useState(false)
@@ -463,6 +553,7 @@ function DeviceNameCell({ data }: { data: Device }) {
   const goToPolicies = () => { setSelectedIds([data.id]); setOpen(false); navigate('/policies') }
   const goToObjects = () => { setSelectedIds([data.id]); setOpen(false); navigate('/objects') }
   const goToAnalysis = () => { setOpen(false); navigate('/analysis', { state: { openCreateWithDeviceId: data.id } }) }
+  const showDetail = () => { setOpen(false); onShowDetail(data) }
 
   return (
     <div className="relative" ref={menuRef}>
@@ -475,6 +566,10 @@ function DeviceNameCell({ data }: { data: Device }) {
       </button>
       {open && (
         <div className="absolute left-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-ds-outline-variant/15 py-1 z-50">
+          <button onClick={showDetail} className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+            <Search className="w-3.5 h-3.5 text-ds-on-surface-variant" />
+            상세보기
+          </button>
           <button onClick={goToPolicies} className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
             <ListFilter className="w-3.5 h-3.5 text-ds-on-surface-variant" />
             정책 조회
@@ -493,7 +588,26 @@ function DeviceNameCell({ data }: { data: Device }) {
   )
 }
 
-const COLUMN_DEFS: ColDef<Device>[] = [
+function ResourceWarningBadge({ data }: { data: Device }) {
+  if (!data) return null
+  const levels = [
+    resourceLevel(data.cpu_usage, data.cpu_threshold),
+    resourceLevel(data.memory_usage, data.memory_threshold),
+    resourceLevel(data.session_usage, data.session_threshold),
+  ]
+  const hasAnyThreshold = data.cpu_threshold != null || data.memory_threshold != null || data.session_threshold != null
+  if (!hasAnyThreshold) return <span className="text-[12px] text-ds-on-surface-variant/40">—</span>
+  if (levels.includes('danger')) {
+    return <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-50 text-ds-error border border-red-100">위험</span>
+  }
+  if (levels.includes('warning')) {
+    return <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-100">경고</span>
+  }
+  return <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">정상</span>
+}
+
+function buildColumnDefs(onShowDetail: (device: Device) => void): ColDef<Device>[] {
+  return [
   {
     width: 44, minWidth: 44, maxWidth: 44,
     sortable: false, resizable: false, filter: false,
@@ -516,46 +630,47 @@ const COLUMN_DEFS: ColDef<Device>[] = [
   {
     headerName: '장비명', flex: 1.4, minWidth: 140,
     valueGetter: (p) => p.data?.name ?? '',
-    cellRenderer: (p: { data: Device }) => <DeviceNameCell data={p.data as Device} />,
+    cellRenderer: (p: { data: Device }) => <DeviceNameCell data={p.data as Device} onShowDetail={onShowDetail} />,
   },
   {
-    headerName: 'IP 주소', flex: 1.4, minWidth: 170,
-    valueGetter: (p) => `${p.data?.ip_address ?? ''} ${p.data?.ha_peer_ip ?? ''}`,
+    field: 'ip_address', headerName: 'IP 주소', minWidth: 140,
     cellRenderer: (p: { data: Device }) => (
-      <div className="flex flex-col leading-tight gap-0.5">
-        <div className="flex items-center gap-1">
-          <span className="text-[11px] text-ds-on-surface-variant font-mono">{p.data?.ip_address}</span>
-          {p.data?.ip_address && (
-            <a
-              href={`https://${p.data.ip_address}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              title="웹 관리 콘솔 열기"
-              className="shrink-0 text-ds-tertiary/50 hover:text-ds-tertiary transition-colors"
-            >
-              <ExternalLink className="w-2.5 h-2.5" />
-            </a>
-          )}
-        </div>
-        {p.data?.ha_peer_ip && (
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] font-semibold text-ds-tertiary">HA</span>
-            <span className="text-[10px] text-ds-on-surface-variant/60 font-mono">{p.data.ha_peer_ip}</span>
-            <a
-              href={`https://${p.data.ha_peer_ip}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              title="HA Peer 웹 관리 콘솔 열기"
-              className="shrink-0 text-ds-tertiary/50 hover:text-ds-tertiary transition-colors"
-            >
-              <ExternalLink className="w-2.5 h-2.5" />
-            </a>
-          </div>
+      <div className="flex items-center gap-1">
+        <span className="text-[11px] text-ds-on-surface-variant font-mono">{p.data?.ip_address}</span>
+        {p.data?.ip_address && (
+          <a
+            href={`https://${p.data.ip_address}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            title="웹 관리 콘솔 열기"
+            className="shrink-0 text-ds-tertiary/50 hover:text-ds-tertiary transition-colors"
+          >
+            <ExternalLink className="w-2.5 h-2.5" />
+          </a>
         )}
       </div>
     ),
+  },
+  {
+    headerName: 'HA Peer IP', minWidth: 140,
+    valueGetter: (p) => p.data?.ha_peer_ip ?? '',
+    cellRenderer: (p: { data: Device }) => p.data?.ha_peer_ip ? (
+      <div className="flex items-center gap-1">
+        <span className="text-[10px] font-semibold text-ds-tertiary">HA</span>
+        <span className="text-[10px] text-ds-on-surface-variant/70 font-mono">{p.data.ha_peer_ip}</span>
+        <a
+          href={`https://${p.data.ha_peer_ip}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          title="HA Peer 웹 관리 콘솔 열기"
+          className="shrink-0 text-ds-tertiary/50 hover:text-ds-tertiary transition-colors"
+        >
+          <ExternalLink className="w-2.5 h-2.5" />
+        </a>
+      </div>
+    ) : <span className="text-[12px] text-ds-on-surface-variant/40">—</span>,
   },
   {
     field: 'vendor', headerName: '벤더', minWidth: 90,
@@ -597,7 +712,12 @@ const COLUMN_DEFS: ColDef<Device>[] = [
       new Date(nodeA.data?.last_sync_at ?? 0).getTime() - new Date(nodeB.data?.last_sync_at ?? 0).getTime(),
     cellRenderer: (p: { value: string }) => <span className="text-[12px] text-ds-on-surface-variant">{p.value}</span>,
   },
-]
+  {
+    headerName: '리소스', minWidth: 90, sortable: false, filter: false,
+    cellRenderer: (p: { data: Device }) => <ResourceWarningBadge data={p.data as Device} />,
+  },
+  ]
+}
 
 export function DevicesPage() {
   const queryClient = useQueryClient()
@@ -613,8 +733,11 @@ export function DevicesPage() {
   const [bulkOptionsOpen, setBulkOptionsOpen] = useState(false)
   const [bulkGroupOpen, setBulkGroupOpen] = useState(false)
   const [directExportOpen, setDirectExportOpen] = useState(false)
+  const [detailTarget, setDetailTarget] = useState<Device | null>(null)
   const addMenuRef = useRef<HTMLDivElement>(null)
   const { confirm, ConfirmDialogElement } = useConfirm()
+
+  const columnDefs = useMemo(() => buildColumnDefs(setDetailTarget), [])
 
   useEffect(() => {
     if (!addMenuOpen) return
@@ -1008,7 +1131,7 @@ export function DevicesPage() {
 
         <AgGridWrapper<Device>
           ref={gridRef}
-          columnDefs={COLUMN_DEFS}
+          columnDefs={columnDefs}
           rowData={devices}
           getRowId={(p) => String(p.data.id)}
           quickFilterText={quickFilter}
@@ -1040,14 +1163,31 @@ export function DevicesPage() {
           group: editTarget.group ?? '', description: editTarget.description ?? '',
           collect_last_hit_date: editTarget.collect_last_hit_date,
           use_ssh_for_last_hit_date: editTarget.use_ssh_for_last_hit_date,
+          serial_number: editTarget.serial_number ?? '', os_name: editTarget.os_name ?? '',
+          os_version: editTarget.os_version ?? '', install_date: editTarget.install_date ?? '',
+          location_region: editTarget.location_region ?? '', location_building: editTarget.location_building ?? '',
+          location_floor: editTarget.location_floor ?? '', location_room: editTarget.location_room ?? '',
+          location_x: editTarget.location_x ?? '', location_y: editTarget.location_y ?? '', location_z: editTarget.location_z ?? '',
+          cpu_threshold: editTarget.cpu_threshold?.toString() ?? '', cpu_usage: editTarget.cpu_usage?.toString() ?? '',
+          memory_threshold: editTarget.memory_threshold?.toString() ?? '', memory_usage: editTarget.memory_usage?.toString() ?? '',
+          session_threshold: editTarget.session_threshold?.toString() ?? '', session_usage: editTarget.session_usage?.toString() ?? '',
         } : undefined}
         onSubmit={(data) => {
+          const { cpu_threshold, cpu_usage, memory_threshold, memory_usage, session_threshold, session_usage, install_date, ...rest } = data
+          const toNum = (v: string) => v === '' ? undefined : Number(v)
+          const payload = {
+            ...rest,
+            install_date: install_date || undefined,
+            cpu_threshold: toNum(cpu_threshold), cpu_usage: toNum(cpu_usage),
+            memory_threshold: toNum(memory_threshold), memory_usage: toNum(memory_usage),
+            session_threshold: toNum(session_threshold), session_usage: toNum(session_usage),
+          }
           if (editTarget) {
-            const payload: DeviceUpdate = { ...data }
-            if (!data.password) { delete payload.password; delete payload.password_confirm }
-            updateMutation.mutate({ id: editTarget.id, data: payload })
+            const updatePayload: DeviceUpdate = { ...payload }
+            if (!data.password) { delete updatePayload.password; delete updatePayload.password_confirm }
+            updateMutation.mutate({ id: editTarget.id, data: updatePayload })
           } else {
-            createMutation.mutate(data as DeviceCreate)
+            createMutation.mutate(payload as DeviceCreate)
           }
         }}
         isPending={createMutation.isPending || updateMutation.isPending}
@@ -1080,6 +1220,13 @@ export function DevicesPage() {
         existingGroups={existingGroups}
         initial={isSingle ? (selectedDevices[0]?.group ?? '') : ''}
         onSubmit={handleBulkSetGroup}
+      />
+
+      {/* 장비 상세보기 다이얼로그 */}
+      <DeviceDetailDialog
+        device={detailTarget}
+        onClose={() => setDetailTarget(null)}
+        onEdit={(device) => { setDetailTarget(null); setEditTarget(device); setFormOpen(true) }}
       />
 
       {/* 일괄 등록 다이얼로그 */}
