@@ -1,8 +1,9 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { formatRelativeTime } from '@/lib/utils'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Plus, Upload, Download, RefreshCw, Pencil, Trash2, Wifi, Search, XCircle, ChevronDown, ExternalLink, Settings2, Tag, CheckCircle2, AlertCircle, Loader2, FileDown } from 'lucide-react'
+import { Plus, Upload, Download, RefreshCw, Pencil, Trash2, Wifi, Search, XCircle, ChevronDown, ExternalLink, Settings2, Tag, CheckCircle2, AlertCircle, Loader2, FileDown, ListFilter, Boxes, BarChart3 } from 'lucide-react'
 import type { ColDef, IRowNode } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { Input } from '@/components/ui/input'
@@ -18,6 +19,7 @@ import {
 } from '@/api/devices'
 import { useSyncStatusWebSocket, type SyncStatusMessage } from '@/hooks/useWebSocket'
 import { notify } from '@/store/notificationStore'
+import { useDeviceStore } from '@/store/deviceStore'
 
 const VENDOR_OPTIONS = [
   { code: 'paloalto', label: 'Palo Alto' },
@@ -441,6 +443,56 @@ function DirectExportDialog({ open, onClose, devices }: {
   )
 }
 
+function DeviceNameCell({ data }: { data: Device }) {
+  const navigate = useNavigate()
+  const setSelectedIds = useDeviceStore((s) => s.setSelectedIds)
+  const [open, setOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open])
+
+  if (!data) return null
+
+  const goToPolicies = () => { setSelectedIds([data.id]); setOpen(false); navigate('/policies') }
+  const goToObjects = () => { setSelectedIds([data.id]); setOpen(false); navigate('/objects') }
+  const goToAnalysis = () => { setOpen(false); navigate('/analysis', { state: { openCreateWithDeviceId: data.id } }) }
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v) }}
+        className="text-[12px] font-semibold text-ds-on-surface hover:text-ds-tertiary transition-colors truncate max-w-full text-left"
+        title={data.name}
+      >
+        {data.name}
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-ds-outline-variant/15 py-1 z-50">
+          <button onClick={goToPolicies} className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+            <ListFilter className="w-3.5 h-3.5 text-ds-on-surface-variant" />
+            정책 조회
+          </button>
+          <button onClick={goToObjects} className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+            <Boxes className="w-3.5 h-3.5 text-ds-on-surface-variant" />
+            객체 조회
+          </button>
+          <button onClick={goToAnalysis} className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+            <BarChart3 className="w-3.5 h-3.5 text-ds-on-surface-variant" />
+            분석 실행
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 const COLUMN_DEFS: ColDef<Device>[] = [
   {
     width: 44, minWidth: 44, maxWidth: 44,
@@ -462,13 +514,17 @@ const COLUMN_DEFS: ColDef<Device>[] = [
     },
   },
   {
-    headerName: '장비명', flex: 2, minWidth: 160,
-    valueGetter: (p) => `${p.data?.name ?? ''} ${p.data?.ip_address ?? ''}`,
+    headerName: '장비명', flex: 1.4, minWidth: 140,
+    valueGetter: (p) => p.data?.name ?? '',
+    cellRenderer: (p: { data: Device }) => <DeviceNameCell data={p.data as Device} />,
+  },
+  {
+    headerName: 'IP 주소', flex: 1.4, minWidth: 170,
+    valueGetter: (p) => `${p.data?.ip_address ?? ''} ${p.data?.ha_peer_ip ?? ''}`,
     cellRenderer: (p: { data: Device }) => (
-      <div className="flex flex-col leading-tight">
-        <span className="text-[12px] font-semibold text-ds-on-surface">{p.data?.name}</span>
-        <div className="flex items-center gap-1 mt-0.5">
-          <span className="text-[10px] text-ds-on-surface-variant/60 font-mono">{p.data?.ip_address}</span>
+      <div className="flex flex-col leading-tight gap-0.5">
+        <div className="flex items-center gap-1">
+          <span className="text-[11px] text-ds-on-surface-variant font-mono">{p.data?.ip_address}</span>
           {p.data?.ip_address && (
             <a
               href={`https://${p.data.ip_address}`}
@@ -482,6 +538,22 @@ const COLUMN_DEFS: ColDef<Device>[] = [
             </a>
           )}
         </div>
+        {p.data?.ha_peer_ip && (
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] font-semibold text-ds-tertiary">HA</span>
+            <span className="text-[10px] text-ds-on-surface-variant/60 font-mono">{p.data.ha_peer_ip}</span>
+            <a
+              href={`https://${p.data.ha_peer_ip}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              title="HA Peer 웹 관리 콘솔 열기"
+              className="shrink-0 text-ds-tertiary/50 hover:text-ds-tertiary transition-colors"
+            >
+              <ExternalLink className="w-2.5 h-2.5" />
+            </a>
+          </div>
+        )}
       </div>
     ),
   },
@@ -503,10 +575,6 @@ const COLUMN_DEFS: ColDef<Device>[] = [
     cellRenderer: (p: { value: string }) => p.value
       ? <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-ds-tertiary/10 text-ds-tertiary">{p.value}</span>
       : <span className="text-[12px] text-ds-on-surface-variant/40">—</span>,
-  },
-  {
-    field: 'ha_peer_ip', headerName: 'HA Peer IP', minWidth: 120,
-    cellRenderer: (p: { value: string }) => <span className="font-mono text-[11px] text-ds-on-surface-variant">{p.value ?? '—'}</span>,
   },
   {
     field: 'description', headerName: '설명', minWidth: 120, flex: 1,
