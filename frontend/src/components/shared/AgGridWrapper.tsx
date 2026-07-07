@@ -37,7 +37,7 @@ interface AgGridWrapperProps<T> {
     mode: 'singleRow' | 'multiRow'
     checkboxes?: boolean
     headerCheckbox?: boolean
-    checkboxesFilteredOnly?: boolean
+    selectAll?: 'all' | 'filtered' | 'currentPage'
     enableClickSelection?: boolean
   }
   onSelectionChanged?: (rows: T[]) => void
