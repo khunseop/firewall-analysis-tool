@@ -15,6 +15,23 @@ export interface Device {
   last_sync_at: string | null
   last_sync_status: string | null
   last_sync_step: string | null
+  serial_number: string | null
+  os_name: string | null
+  os_version: string | null
+  install_date: string | null
+  location_region: string | null
+  location_building: string | null
+  location_floor: string | null
+  location_room: string | null
+  location_x: string | null
+  location_y: string | null
+  location_z: string | null
+  cpu_threshold: number | null
+  cpu_usage: number | null
+  memory_threshold: number | null
+  memory_usage: number | null
+  session_threshold: number | null
+  session_usage: number | null
 }
 
 export interface DeviceCreate {
@@ -30,6 +47,23 @@ export interface DeviceCreate {
   collect_last_hit_date?: boolean
   model?: string
   group?: string
+  serial_number?: string
+  os_name?: string
+  os_version?: string
+  install_date?: string
+  location_region?: string
+  location_building?: string
+  location_floor?: string
+  location_room?: string
+  location_x?: string
+  location_y?: string
+  location_z?: string
+  cpu_threshold?: number
+  cpu_usage?: number
+  memory_threshold?: number
+  memory_usage?: number
+  session_threshold?: number
+  session_usage?: number
 }
 
 export interface DeviceUpdate {
@@ -45,6 +79,23 @@ export interface DeviceUpdate {
   collect_last_hit_date?: boolean
   model?: string
   group?: string
+  serial_number?: string
+  os_name?: string
+  os_version?: string
+  install_date?: string
+  location_region?: string
+  location_building?: string
+  location_floor?: string
+  location_room?: string
+  location_x?: string
+  location_y?: string
+  location_z?: string
+  cpu_threshold?: number
+  cpu_usage?: number
+  memory_threshold?: number
+  memory_usage?: number
+  session_threshold?: number
+  session_usage?: number
 }
 
 export interface DeviceStats {
@@ -62,6 +113,12 @@ export interface DeviceStats {
   network_groups: number
   services: number
   service_groups: number
+  cpu_threshold: number | null
+  cpu_usage: number | null
+  memory_threshold: number | null
+  memory_usage: number | null
+  session_threshold: number | null
+  session_usage: number | null
 }
 
 export interface DashboardStats {

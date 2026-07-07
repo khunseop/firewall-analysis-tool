@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Date
 from app.db.session import Base
 
 class Device(Base):
@@ -51,3 +51,26 @@ class Device(Base):
     cached_network_groups = Column(Integer, nullable=True, default=0)
     cached_services = Column(Integer, nullable=True, default=0)
     cached_service_groups = Column(Integer, nullable=True, default=0)
+
+    # 상세 정보
+    serial_number = Column(String, nullable=True)
+    os_name = Column(String, nullable=True)
+    os_version = Column(String, nullable=True)
+    install_date = Column(Date, nullable=True)
+
+    # 설치 위치
+    location_region = Column(String, nullable=True)
+    location_building = Column(String, nullable=True)
+    location_floor = Column(String, nullable=True)
+    location_room = Column(String, nullable=True)
+    location_x = Column(String, nullable=True)
+    location_y = Column(String, nullable=True)
+    location_z = Column(String, nullable=True)
+
+    # 리소스 임계치/사용률 (수기 입력)
+    cpu_threshold = Column(Integer, nullable=True)
+    cpu_usage = Column(Integer, nullable=True)
+    memory_threshold = Column(Integer, nullable=True)
+    memory_usage = Column(Integer, nullable=True)
+    session_threshold = Column(Integer, nullable=True)
+    session_usage = Column(Integer, nullable=True)
