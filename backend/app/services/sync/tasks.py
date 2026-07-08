@@ -427,6 +427,117 @@ async def _collect_last_hit_date_parallel(
     return hit_date_df[hit_date_df['rule_name'].notna()].copy()
 
 
+async def _update_status(device_id: int, step: str, status: str = "in_progress") -> models.Device | None:
+    """장비 동기화 상태를 갱신하고 최신 device 객체를 반환합니다 (장비가 없으면 None)."""
+    async with SessionLocal() as db:
+        device = await crud.device.get_device(db=db, device_id=device_id)
+        if device:
+            await crud.device.update_sync_status(db, device=device, status=status, step=step)
+            await db.commit()
+        return device
+
+
+def _merge_hit_dates(policies_df: pd.DataFrame, hit_date_df: pd.DataFrame) -> pd.DataFrame:
+    """수집된 히트 정보(last_hit_date/hit_count)를 정책 DataFrame에 병합합니다 (순수 pandas 연산)."""
+    def normalize_rule_name(name):
+        if pd.isna(name): return None
+        s = str(name).strip()
+        return s if s and s.lower() not in {"nan", "none", "-", ""} else None
+
+    def normalize_vsys(vsys_val):
+        if pd.isna(vsys_val): return None
+        s = str(vsys_val).strip().lower()
+        return s if s and s.lower() not in {"nan", "none", "-", ""} else None
+
+    policies_df['rule_name_normalized'] = policies_df['rule_name'].apply(normalize_rule_name)
+    hit_date_df['rule_name_normalized'] = hit_date_df['rule_name'].apply(normalize_rule_name)
+
+    if 'vsys' in policies_df.columns:
+        policies_df['vsys_normalized'] = policies_df['vsys'].apply(normalize_vsys)
+    if 'vsys' in hit_date_df.columns:
+        hit_date_df['vsys_normalized'] = hit_date_df['vsys'].apply(normalize_vsys)
+
+    # 히트 정보가 있는 레코드만 필터링 후 병합
+    hit_date_df = hit_date_df[hit_date_df['rule_name_normalized'].notna()].copy()
+
+    hit_date_df['last_hit_date_new'] = pd.to_datetime(hit_date_df['last_hit_date'], errors='coerce')
+
+    merge_keys = ['vsys_normalized', 'rule_name_normalized'] if 'vsys_normalized' in policies_df.columns and 'vsys_normalized' in hit_date_df.columns else ['rule_name_normalized']
+
+    merge_cols = merge_keys + ['last_hit_date_new']
+    has_hit_count = 'hit_count' in hit_date_df.columns
+    if has_hit_count:
+        hit_date_df = hit_date_df.rename(columns={'hit_count': 'hit_count_new'})
+        merge_cols = merge_keys + ['last_hit_date_new', 'hit_count_new']
+
+    merged_df = pd.merge(policies_df, hit_date_df[merge_cols], on=merge_keys, how="left")
+
+    def choose_latest(row):
+        new_val = row.get('last_hit_date_new')
+        if pd.notna(new_val):
+            return new_val.to_pydatetime() if hasattr(new_val, 'to_pydatetime') else new_val
+        return None
+
+    merged_df['last_hit_date'] = merged_df.apply(choose_latest, axis=1)
+    drop_cols = ['last_hit_date_new', 'rule_name_normalized', 'vsys_normalized']
+    if has_hit_count:
+        merged_df['hit_count'] = merged_df['hit_count_new'].apply(lambda v: int(v) if pd.notna(v) else None)
+        drop_cols.append('hit_count_new')
+    return merged_df.drop(columns=drop_cols, errors='ignore')
+
+
+async def _index_and_finalize(device_id: int) -> None:
+    """정책 재인덱싱, 성공 상태 반영, 동기화 이력 저장을 수행합니다."""
+    async with SessionLocal() as db:
+        device = await crud.device.get_device(db=db, device_id=device_id)
+        if not device:
+            return
+        await crud.device.update_sync_status(db, device=device, status="in_progress", step="Indexing policies...")
+        await db.commit()
+
+        # 변경되었거나 인덱싱되지 않은 정책들 재인덱싱 (Full-text search용)
+        result = await db.execute(select(models.Policy).where(models.Policy.device_id == device_id, models.Policy.is_indexed == False))
+        policies_to_index = result.scalars().all()
+        if policies_to_index:
+            await rebuild_policy_indices(db=db, device_id=device_id, policies=policies_to_index)
+            for p in policies_to_index: p.is_indexed = True
+            db.add_all(policies_to_index)
+            await db.commit()
+
+        # 최종 상태 업데이트: 성공
+        device_to_update = await crud.device.get_device(db=db, device_id=device_id)
+        if device_to_update:
+            await crud.device.update_sync_status(db=db, device=device_to_update, status="success")
+            await crud.device.update_device_stats_cache(db=db, device_id=device_id)
+
+        # 동기화 이력 저장 (정책 diff 비교용)
+        policy_count_result = await db.execute(
+            select(func.count()).select_from(models.Policy).where(models.Policy.device_id == device_id)
+        )
+        total_policies = policy_count_result.scalar_one()
+
+        sync_at = datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
+
+        db.add(models.SyncHistory(
+            device_id=device_id,
+            sync_at=sync_at,
+            total_policies=total_policies,
+            created_count=0,
+            updated_count=0,
+            deleted_count=0,
+        ))
+        await db.commit()
+        await log_activity(
+            db,
+            title="동기화 완료",
+            message=f"'{device.name}' 동기화 완료 (정책 {total_policies}건)",
+            type="success",
+            category="sync",
+            device_id=device_id,
+            device_name=device.name,
+        )
+
+
 async def run_sync_all_orchestrator(device_id: int) -> None:
     """
     특정 장비에 대한 전체 동기화 프로세스를 관리하는 오케스트레이터입니다.
@@ -476,11 +587,7 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
             await loop.run_in_executor(None, getattr(collector, 'connect', lambda: None))
             
             # 연결 성공 후 상태 업데이트
-            async with SessionLocal() as db:
-                device = await crud.device.get_device(db=db, device_id=device_id)
-                if device:
-                    await crud.device.update_sync_status(db, device=device, status="in_progress", step="Connected")
-                    await db.commit()
+            device = await _update_status(device_id, "Connected")
 
             # 4. 데이터 수집 시퀀스 정의 (종속성 관계에 따라 순차 진행)
             collection_sequence = [
@@ -491,46 +598,34 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                 ("policies", "Collecting policies...", collector.export_security_rules, schemas.PolicyCreate),
             ]
 
+            completed_msg_map = {
+                "network_objects": "Network objects collected",
+                "network_groups": "Network groups collected",
+                "services": "Services collected",
+                "service_groups": "Service groups collected",
+                "policies": "Policies collected",
+            }
+
             collected_dfs = {}
             for data_type, step_msg, export_func, schema_create in collection_sequence:
                 # 상태 업데이트: 각 단계 시작
-                async with SessionLocal() as db:
-                    device = await crud.device.get_device(db=db, device_id=device_id)
-                    if device:
-                        await crud.device.update_sync_status(db, device=device, status="in_progress", step=step_msg)
-                        await db.commit()
+                device = await _update_status(device_id, step_msg)
 
                 # 실제 데이터 수집 수행 (Network I/O가 발생하는 부분)
                 logging.info(f"[orchestrator] Starting export for {data_type}")
                 df = await loop.run_in_executor(None, export_func)
                 collected_dfs[data_type] = pd.DataFrame() if df is None else df
                 logging.info(f"[orchestrator] Export completed for {data_type}, rows: {len(collected_dfs[data_type])}")
-                
+
                 # 상태 업데이트: 각 단계 완료
-                async with SessionLocal() as db:
-                    device = await crud.device.get_device(db=db, device_id=device_id)
-                    if device:
-                        completed_msg_map = {
-                            "network_objects": "Network objects collected",
-                            "network_groups": "Network groups collected",
-                            "services": "Services collected",
-                            "service_groups": "Service groups collected",
-                            "policies": "Policies collected",
-                        }
-                        completed_msg = completed_msg_map.get(data_type, f"{data_type} collected")
-                        await crud.device.update_sync_status(db, device=device, status="in_progress", step=completed_msg)
-                        await db.commit()
+                device = await _update_status(device_id, completed_msg_map.get(data_type, f"{data_type} collected"))
 
             # 5. 후처리: 정책 히트(사용 이력) 정보 수집 (Palo Alto 전용)
             collect_hit_date = getattr(device, 'collect_last_hit_date', True) if device else True
             
             if device.vendor == 'paloalto' and collect_hit_date:
                 logging.info(f"[orchestrator] Palo Alto device detected. Starting last_hit_date collection for device_id={device_id}")
-                async with SessionLocal() as db:
-                    device = await crud.device.get_device(db=db, device_id=device_id)
-                    if device:
-                        await crud.device.update_sync_status(db, device=device, status="in_progress", step="Collecting usage history...")
-                        await db.commit()
+                device = await _update_status(device_id, "Collecting usage history...")
                 try:
                     policies_df = collected_dfs["policies"]
                     vsys_list = policies_df["vsys"].unique().tolist() if "vsys" in policies_df.columns and not policies_df["vsys"].isnull().all() else None
@@ -545,71 +640,17 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
 
                     if hit_date_df is not None and not hit_date_df.empty:
                         # 수집된 히트 정보와 정책 목록 병합 처리
-                        def normalize_rule_name(name):
-                            if pd.isna(name): return None
-                            s = str(name).strip()
-                            return s if s and s.lower() not in {"nan", "none", "-", ""} else None
-                        
-                        def normalize_vsys(vsys_val):
-                            if pd.isna(vsys_val): return None
-                            s = str(vsys_val).strip().lower()
-                            return s if s and s.lower() not in {"nan", "none", "-", ""} else None
-                        
-                        policies_df['rule_name_normalized'] = policies_df['rule_name'].apply(normalize_rule_name)
-                        hit_date_df['rule_name_normalized'] = hit_date_df['rule_name'].apply(normalize_rule_name)
-                        
-                        if 'vsys' in policies_df.columns:
-                            policies_df['vsys_normalized'] = policies_df['vsys'].apply(normalize_vsys)
-                        if 'vsys' in hit_date_df.columns:
-                            hit_date_df['vsys_normalized'] = hit_date_df['vsys'].apply(normalize_vsys)
-                        
-                        # 히트 정보가 있는 레코드만 필터링 후 병합
-                        hit_date_df = hit_date_df[hit_date_df['rule_name_normalized'].notna()].copy()
+                        collected_dfs["policies"] = _merge_hit_dates(policies_df, hit_date_df)
 
-                        hit_date_df['last_hit_date_new'] = pd.to_datetime(hit_date_df['last_hit_date'], errors='coerce')
-
-                        merge_keys = ['vsys_normalized', 'rule_name_normalized'] if 'vsys_normalized' in policies_df.columns and 'vsys_normalized' in hit_date_df.columns else ['rule_name_normalized']
-
-                        merge_cols = merge_keys + ['last_hit_date_new']
-                        has_hit_count = 'hit_count' in hit_date_df.columns
-                        if has_hit_count:
-                            hit_date_df = hit_date_df.rename(columns={'hit_count': 'hit_count_new'})
-                            merge_cols = merge_keys + ['last_hit_date_new', 'hit_count_new']
-
-                        merged_df = pd.merge(policies_df, hit_date_df[merge_cols], on=merge_keys, how="left")
-
-                        def choose_latest(row):
-                            new_val = row.get('last_hit_date_new')
-                            if pd.notna(new_val):
-                                return new_val.to_pydatetime() if hasattr(new_val, 'to_pydatetime') else new_val
-                            return None
-
-                        merged_df['last_hit_date'] = merged_df.apply(choose_latest, axis=1)
-                        drop_cols = ['last_hit_date_new', 'rule_name_normalized', 'vsys_normalized']
-                        if has_hit_count:
-                            merged_df['hit_count'] = merged_df['hit_count_new'].apply(lambda v: int(v) if pd.notna(v) else None)
-                            drop_cols.append('hit_count_new')
-                        policies_df = merged_df.drop(columns=drop_cols, errors='ignore')
-
-                        collected_dfs["policies"] = policies_df
-                        
                         # 히트 정보 수집 완료 상태 업데이트
-                        async with SessionLocal() as db:
-                            device = await crud.device.get_device(db=db, device_id=device_id)
-                            if device:
-                                await crud.device.update_sync_status(db, device=device, status="in_progress", step="Usage history collected")
-                                await db.commit()
+                        device = await _update_status(device_id, "Usage history collected")
                 except Exception as e:
                     logging.warning(f"Failed to collect hit dates for device {device_id}: {e}. Continuing sync...", exc_info=True)
 
             # 6. DB 동기화 실행 (수집된 데이터를 DB에 반영)
             for data_type, _, _, schema_create in collection_sequence:
-                async with SessionLocal() as db:
-                    device = await crud.device.get_device(db=db, device_id=device_id)
-                    if device:
-                        await crud.device.update_sync_status(db, device=device, status="in_progress", step=f"Synchronizing {data_type}...")
-                        await db.commit()
-                
+                device = await _update_status(device_id, f"Synchronizing {data_type}...")
+
                 df = collected_dfs[data_type]
                 df["device_id"] = device_id
                 # DataFrame을 Pydantic 모델로 변환하여 동기화 작업 전달
@@ -617,55 +658,7 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                 await _run_with_retry(sync_data_task, device_id, data_type, items_to_sync)
 
             # 7. 정책 인덱싱 및 마무리
-            async with SessionLocal() as db:
-                device = await crud.device.get_device(db=db, device_id=device_id)
-                if device:
-                    await crud.device.update_sync_status(db, device=device, status="in_progress", step="Indexing policies...")
-                    await db.commit()
-
-                    # 변경되었거나 인덱싱되지 않은 정책들 재인덱싱 (Full-text search용)
-                    result = await db.execute(select(models.Policy).where(models.Policy.device_id == device_id, models.Policy.is_indexed == False))
-                    policies_to_index = result.scalars().all()
-                    if policies_to_index:
-                        await rebuild_policy_indices(db=db, device_id=device_id, policies=policies_to_index)
-                        for p in policies_to_index: p.is_indexed = True
-                        db.add_all(policies_to_index)
-                        await db.commit()
-
-                    # 최종 상태 업데이트: 성공
-                    device_to_update = await crud.device.get_device(db=db, device_id=device_id)
-                    if device_to_update:
-                        await crud.device.update_sync_status(db=db, device=device_to_update, status="success")
-                        await crud.device.update_device_stats_cache(db=db, device_id=device_id)
-
-                    # 동기화 이력 저장 (정책 diff 비교용)
-                    policy_count_result = await db.execute(
-                        select(func.count()).select_from(models.Policy).where(models.Policy.device_id == device_id)
-                    )
-                    total_policies = policy_count_result.scalar_one()
-
-                    from datetime import datetime as _dt
-                    from zoneinfo import ZoneInfo as _ZoneInfo
-                    sync_at = _dt.now(_ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
-
-                    db.add(models.SyncHistory(
-                        device_id=device_id,
-                        sync_at=sync_at,
-                        total_policies=total_policies,
-                        created_count=0,
-                        updated_count=0,
-                        deleted_count=0,
-                    ))
-                    await db.commit()
-                    await log_activity(
-                        db,
-                        title="동기화 완료",
-                        message=f"'{device.name}' 동기화 완료 (정책 {total_policies}건)",
-                        type="success",
-                        category="sync",
-                        device_id=device_id,
-                        device_name=device.name,
-                    )
+            await _index_and_finalize(device_id)
 
             logging.info(f"[orchestrator] sync-all finished successfully for device_id={device_id}")
 

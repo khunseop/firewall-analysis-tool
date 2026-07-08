@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
 import logging
 
@@ -37,17 +38,15 @@ _PUBLIC_PREFIXES = (
     "/redoc",
 )
 
-# All SPA client-side routes (served by React Router)
-_SPA_ROUTES = (
-    "/",
-    "/devices",
-    "/policies",
-    "/objects",
-    "/analysis",
-    "/schedules",
-    "/notifications",
-    "/settings",
-    "/deletion-workflow",
+# SPA(index.html)로 폴백하지 않는 경로 prefix — 404 catch-all에서 사용
+_NON_SPA_PREFIXES = (
+    "/api/",
+    "/static/",
+    "/assets/",
+    "/fonts/",
+    "/favicon",
+    "/docs",
+    "/redoc",
 )
 
 
@@ -70,12 +69,23 @@ class AuthMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    sync_scheduler.start()
+    await sync_scheduler.load_schedules()
+    logger.info("Application started and scheduler initialized")
+    yield
+    sync_scheduler.stop()
+    logger.info("Application shutdown and scheduler stopped")
+
+
 app = FastAPI(
     title="Firewall Analysis Tool",
     version="0.1.0",
     docs_url=None,
     redoc_url=None,
     openapi_url="/api/v1/openapi.json",
+    lifespan=lifespan,
 )
 
 app.add_middleware(AuthMiddleware)
@@ -120,7 +130,7 @@ async def redoc_html():
 app.include_router(api_v1_router, prefix="/api/v1")
 
 
-def _serve_react(fallback_status: int = 200) -> FileResponse:
+def _serve_react() -> FileResponse:
     """Return React SPA index.html."""
     index = REACT_DIST_DIR / "index.html"
     if index.exists():
@@ -133,42 +143,14 @@ async def serve_favicon():
     return FileResponse(REACT_DIST_DIR / "favicon.svg", media_type="image/svg+xml")
 
 
-@app.get("/login", include_in_schema=False)
-def serve_login():
-    return _serve_react()
-
-
-# Explicit SPA route handlers so React Router BrowserRouter works
-for _route in _SPA_ROUTES:
-    app.add_api_route(
-        _route,
-        _serve_react,
-        methods=["GET"],
-        include_in_schema=False,
-    )
-
-
 @app.exception_handler(StarletteHTTPException)
 async def spa_fallback_handler(request: Request, exc: StarletteHTTPException):
-    """Catch-all 404 handler for any React Router path not explicitly listed."""
+    """SPA catch-all: 등록되지 않은 GET 경로의 404는 React index.html로 폴백.
+
+    클라이언트 라우트를 백엔드에 개별 등록하지 않아도 새로고침/직접 접근이 동작한다.
+    """
     if exc.status_code == 404:
         path = request.url.path
-        excluded = ("/api/", "/static/", "/assets/", "/fonts/", "/favicon", "/docs", "/redoc")
-        if not any(path.startswith(p) for p in excluded):
-            index = REACT_DIST_DIR / "index.html"
-            if index.exists():
-                return FileResponse(index)
+        if not any(path.startswith(p) for p in _NON_SPA_PREFIXES):
+            return _serve_react()
     return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
-
-
-@app.on_event("startup")
-async def startup_event():
-    sync_scheduler.start()
-    await sync_scheduler.load_schedules()
-    logger.info("Application started and scheduler initialized")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    sync_scheduler.stop()
-    logger.info("Application shutdown and scheduler stopped")
