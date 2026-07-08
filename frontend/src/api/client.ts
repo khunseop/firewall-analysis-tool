@@ -26,6 +26,18 @@ apiClient.interceptors.response.use(
   }
 )
 
+/** Blob을 브라우저 파일 다운로드로 저장 (blob → a.click 패턴 공통화) */
+export function saveBlob(blob: Blob, filename: string): void {
+  const objectUrl = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = objectUrl
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(objectUrl)
+}
+
 export async function downloadBlob(url: string, defaultFilename: string): Promise<void> {
   const token = useAuthStore.getState().token
   const res = await fetch(url, {
@@ -39,15 +51,7 @@ export async function downloadBlob(url: string, defaultFilename: string): Promis
     } catch {}
     throw new Error(detail)
   }
-  const blob = await res.blob()
-  const objectUrl = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = objectUrl
-  a.download = defaultFilename
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(objectUrl)
+  saveBlob(await res.blob(), defaultFilename)
 }
 
 export async function downloadBlobPost(
@@ -77,15 +81,7 @@ export async function downloadBlobPost(
       } catch {}
       throw new Error(detail)
     }
-    const blob = await res.blob()
-    const objectUrl = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = objectUrl
-    a.download = defaultFilename
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(objectUrl)
+    saveBlob(await res.blob(), defaultFilename)
   } finally {
     clearTimeout(timerId)
   }

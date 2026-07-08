@@ -4,6 +4,7 @@ import { CheckCircle2, Loader2, AlertTriangle, XCircle, Clock, Activity, Search,
 import { getNotifications, type NotificationCategory, type NotificationType } from '@/api/notifications'
 import { formatRelativeTime } from '@/lib/utils'
 import { TableSkeleton } from '@/components/shared/Skeleton'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { queryKeys } from '@/api/queryKeys'
 
 const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; label: string }> = {
@@ -194,13 +195,7 @@ export function NotificationsPage() {
         {isLoading ? (
           <TableSkeleton rows={8} cols={6} />
         ) : items.length === 0 ? (
-          <div className="py-16 flex flex-col items-center gap-3 text-center">
-            <div className="p-4 bg-ds-surface-container rounded-full">
-              <Activity className="w-6 h-6 text-ds-on-surface-variant" />
-            </div>
-            <p className="text-sm font-semibold text-ds-on-surface">활동 기록이 없습니다</p>
-            <p className="text-xs text-ds-on-surface-variant">동기화 또는 분석을 실행하면 여기에 기록됩니다.</p>
-          </div>
+          <EmptyState icon={Activity} title="활동 기록이 없습니다" description="동기화 또는 분석을 실행하면 여기에 기록됩니다." />
         ) : (
           <>
             {/* Table */}

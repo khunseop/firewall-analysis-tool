@@ -5,6 +5,7 @@ import { Toaster } from 'sonner'
 
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { LoginPage } from '@/components/pages/LoginPage'
 
 // 페이지는 라우트 단위로 코드 스플리팅 (초기 번들 축소)
@@ -43,8 +44,9 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Suspense fallback={<PageFallback />}>
-          <Routes>
+        <ErrorBoundary>
+          <Suspense fallback={<PageFallback />}>
+            <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
@@ -63,9 +65,10 @@ export default function App() {
                 <Route path="deletion-workflow/legacy" element={<DeletionWorkflowPage />} />
               </Route>
             </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </BrowserRouter>
       <Toaster richColors position="top-right" />
     </QueryClientProvider>

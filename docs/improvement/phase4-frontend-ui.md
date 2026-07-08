@@ -6,7 +6,7 @@
 
 ## 4-1. 공통 상태 컴포넌트 도입 (ErrorBoundary · EmptyState · 로딩 표준화)
 
-- [ ] 완료
+- [x] 완료
 
 **대상**: 신규 `frontend/src/components/shared/ErrorBoundary.tsx`, `EmptyState.tsx`,
 기존 `shared/Skeleton.tsx` vs `ui/skeleton.tsx`
@@ -32,9 +32,9 @@ API 실패/빈 결과 시 각 페이지 표시 일관성 육안 확인.
 
 ## 4-2. 1000줄+ 페이지 3개 분해
 
-- [ ] SettingsPage 완료
-- [ ] DevicesPage 완료
-- [ ] DeletionWorkflowDetailPage 완료
+- [x] SettingsPage 완료
+- [x] DevicesPage 완료
+- [x] DeletionWorkflowDetailPage 완료
 
 **대상**:
 - `frontend/src/components/pages/SettingsPage.tsx` (1275줄, 인라인 컴포넌트 9개)
@@ -60,7 +60,7 @@ API 실패/빈 결과 시 각 페이지 표시 일관성 육안 확인.
 
 ## 4-3. DeviceSelector 4중 구현 통합
 
-- [ ] 완료
+- [x] 완료
 
 **대상**: `frontend/src/components/shared/DeviceSelect.tsx`, `DeviceSelector.tsx`,
 `DeviceSelectorSingle.tsx`, `GroupedDeviceMultiSelect.tsx`
@@ -83,7 +83,7 @@ API 실패/빈 결과 시 각 페이지 표시 일관성 육안 확인.
 
 ## 4-4. 잡무 정리 (다운로드 헬퍼 · 네이밍)
 
-- [ ] 완료
+- [x] 완료
 
 **대상**: `frontend/src/api/client.ts`, `firewall.ts:276,303`, `deletionWorkflow.ts`, `devices.ts`,
 `frontend/src/store/notificationStore.ts`

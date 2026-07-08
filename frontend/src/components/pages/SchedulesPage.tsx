@@ -14,6 +14,7 @@ import {
 import { formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { queryKeys } from '@/api/queryKeys'
+import { EmptyState } from '@/components/shared/EmptyState'
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -182,9 +183,7 @@ export function SchedulesPage() {
         {isLoading ? (
           <div className="py-16 text-center text-[13px] text-ds-on-surface-variant">로딩 중…</div>
         ) : schedules.length === 0 ? (
-          <div className="py-16 text-center text-[13px] text-ds-on-surface-variant">
-            등록된 스케줄이 없습니다.
-          </div>
+          <EmptyState title="등록된 스케줄이 없습니다." />
         ) : (
           <div className="divide-y divide-ds-outline-variant/8">
             {schedules.map((s) => (
