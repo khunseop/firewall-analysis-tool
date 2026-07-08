@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
-import { DeviceSelectorSingle } from '@/components/shared/DeviceSelectorSingle'
+import { EmptyState } from '@/components/shared/EmptyState'
+import { DeviceSelectorSingle } from '@/components/shared/DeviceSelector'
 import {
   listProjects,
   createProject,
@@ -180,15 +181,17 @@ export default function DeletionWorkflowListPage() {
             로딩 중...
           </div>
         ) : projects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-2 text-ds-on-surface-variant">
-            <p className="text-sm">아직 프로젝트가 없습니다.</p>
-            <button
-              onClick={() => setCreateOpen(true)}
-              className="text-sm text-ds-tertiary hover:underline"
-            >
-              첫 프로젝트 만들기 →
-            </button>
-          </div>
+          <EmptyState
+            title="아직 프로젝트가 없습니다."
+            action={
+              <button
+                onClick={() => setCreateOpen(true)}
+                className="text-sm text-ds-tertiary hover:underline"
+              >
+                첫 프로젝트 만들기 →
+              </button>
+            }
+          />
         ) : (
           <table className="w-full text-sm border-collapse">
             <thead>

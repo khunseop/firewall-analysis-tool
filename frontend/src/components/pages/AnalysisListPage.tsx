@@ -6,7 +6,7 @@ import { Plus, Search, Copy, Clock, ArrowLeftRight, Unlink, ShieldAlert, Expand,
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select as ShadSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { DeviceSelectorSingle } from '@/components/shared/DeviceSelectorSingle'
+import { DeviceSelectorSingle } from '@/components/shared/DeviceSelector'
 import { PolicyGridPicker } from '@/components/shared/PolicyGridPicker'
 import Select from 'react-select'
 import { getPolicies } from '@/api/firewall'
@@ -14,6 +14,7 @@ import { startAnalysis, listAnalysisTasks, type StartAnalysisParams, type Analys
 import { formatDate } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
 import { queryKeys } from '@/api/queryKeys'
+import { EmptyState } from '@/components/shared/EmptyState'
 
 interface AnalysisTypeOption {
   value: string
@@ -321,7 +322,7 @@ export function AnalysisListPage() {
         {isLoading ? (
           <div className="py-16 text-center text-[13px] text-ds-on-surface-variant">로딩 중…</div>
         ) : items.length === 0 ? (
-          <div className="py-16 text-center text-[13px] text-ds-on-surface-variant">실행된 분석이 없습니다.</div>
+          <EmptyState title="실행된 분석이 없습니다." />
         ) : (
           <table className="w-full text-sm border-collapse">
             <thead>

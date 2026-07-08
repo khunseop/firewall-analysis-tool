@@ -11,10 +11,10 @@ import { rowIdFromId } from '@/lib/utils'
 import { getDashboardStats, type DeviceStats } from '@/api/devices'
 import { getChangeStats, type ChangeStatCategory } from '@/api/firewall'
 import { useSyncStatusWebSocket } from '@/hooks/useWebSocket'
-import { notify } from '@/store/notificationStore'
+import { notify } from '@/lib/notify'
 import { formatNumber, formatRelativeTime } from '@/lib/utils'
 import { capacityLevel, CAPACITY_LEVEL_BAR_COLOR, CAPACITY_LEVEL_TEXT_COLOR } from '@/lib/deviceCapacity'
-import { DeviceSelectorSingle } from '@/components/shared/DeviceSelectorSingle'
+import { DeviceSelectorSingle } from '@/components/shared/DeviceSelector'
 import { queryKeys } from '@/api/queryKeys'
 
 const CATEGORY_OPTIONS: { value: ChangeStatCategory; label: string }[] = [
