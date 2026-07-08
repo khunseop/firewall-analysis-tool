@@ -40,3 +40,17 @@
 | 백엔드 구조 | CRUD 4개 파일 중복(함수 9개 × 4), `deletion_workflow.py` 1164줄 |
 | 프론트 성능 | 코드 스플리팅 0건, `React.memo` 0건, exceljs 죽은 의존성, 상태 3중 관리 |
 | 프론트 UI | ErrorBoundary 없음, 로딩/빈/에러 처리 비일관, 1000줄+ 페이지 3개, DeviceSelector 4중 구현 |
+
+## 후속 과제 (플랜 범위 밖 — 필요 시 별도 진행)
+
+- [x] **스키마 드리프트 정리** (2026-07-08 완료): legacy `notifications` 테이블·불용
+  `ix_policies_search` 인덱스 드롭, PK 중복 인덱스 선언 제거, NOT NULL/unique 제약 정렬,
+  env.py `compare_type=False`. 이제 `alembic autogenerate`가 빈 마이그레이션을 생성한다.
+- [ ] **WebSocket 토큰 노출**: 토큰이 URL 쿼리스트링으로 전달됨 — 서버 로그 노출 우려.
+  백엔드 인증부(`websocket_manager.py`)와 함께 서브프로토콜/쿠키 방식으로 전환 필요.
+- [ ] **usePageState(localStorage) 정리**: React Query·zustand 외 세 번째 영속화 메커니즘.
+  사용처를 점검해 zustand persist로 흡수 검토.
+- [ ] **기존 lint 오류 30건**: `setState synchronously within an effect` 등 로직 수정이
+  필요한 기존 패턴. 기능 회귀 위험이 있어 개별 검토 후 수정 권장.
+- [ ] **분석 executor 포화**: 기본 스레드 풀을 sync·분석·SSH가 공유 —
+  대규모 동시 실행 시 전용 executor 분리 검토.
