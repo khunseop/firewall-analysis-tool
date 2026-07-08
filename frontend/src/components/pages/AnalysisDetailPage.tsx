@@ -151,7 +151,6 @@ function buildExcelPayload(
   }))
 
   const excelRows = rows.map((data) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const values = columnDefs.map((col): string | number | null => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let raw: unknown = typeof col.valueGetter === 'function' ? (col.valueGetter as any)({ data }) : col.field ? data[col.field] : null

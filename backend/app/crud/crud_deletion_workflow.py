@@ -49,6 +49,11 @@ async def get_project(db: AsyncSession, project_id: int) -> Optional[DeletionWor
 
 
 async def delete_project(db: AsyncSession, project_id: int) -> None:
+    # SQLite FK 강제가 꺼져 있고 Core delete는 ORM cascade를 타지 않으므로
+    # 파일을 명시적으로 먼저 삭제한다 (고아 행 방지)
+    await db.execute(
+        delete(DeletionWorkflowFile).where(DeletionWorkflowFile.project_id == project_id)
+    )
     await db.execute(
         delete(DeletionWorkflowProject).where(DeletionWorkflowProject.id == project_id)
     )

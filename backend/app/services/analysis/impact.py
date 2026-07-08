@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.executors import CPU_EXECUTOR
 from app.models import Policy, AnalysisTask, PolicyAddressMember, PolicyServiceMember
 from app.schemas.analysis import AnalysisResultCreate
 
@@ -598,7 +599,7 @@ class ImpactAnalyzer:
             target_policy = target_info["policy"]
             # CPU 바운드 비교 연산이 이벤트 루프를 점유하지 않도록 executor에서 실행
             single_result = await loop.run_in_executor(
-                None, self._analyze_single_policy,
+                CPU_EXECUTOR, self._analyze_single_policy,
                 target_policy, target_info["original_position"], policies
             )
 

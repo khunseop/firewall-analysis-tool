@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Plus, Trash2, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 
 export interface ExceptionItem { id?: string; name?: string; pattern?: string; reason: string; start?: string; until?: string }
@@ -19,7 +19,6 @@ export function ExceptionTable({
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
 
-  useEffect(() => { setPage(0) }, [search])
 
   const withIdx = items.map((item, i) => ({ item, i }))
   const filtered = search
@@ -40,7 +39,7 @@ export function ExceptionTable({
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-ds-on-surface-variant/50 pointer-events-none" />
             <input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(0) }}
               placeholder="검색"
               className="h-7 pl-6 pr-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary w-32"
             />

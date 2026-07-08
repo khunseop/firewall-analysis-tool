@@ -15,11 +15,12 @@ import { daysSinceHit } from '@/lib/utils'
 import { ObjectDetailModal } from '@/components/shared/ObjectDetailModal'
 import { PolicyHistoryModal } from '@/components/shared/PolicyHistoryModal'
 import { PolicyDetailModal } from '@/components/shared/PolicyDetailModal'
+import { QueryBuilder } from '@/components/shared/QueryBuilder'
 import {
-  QueryBuilder, buildRequestFromFilterTree, conditionsToFilterTree,
+  buildRequestFromFilterTree, conditionsToFilterTree,
   QB_FIELDS, OP_LABELS,
   type FilterTree,
-} from '@/components/shared/QueryBuilder'
+} from '@/components/shared/queryBuilderModel'
 import { DeviceSelector } from '@/components/shared/DeviceSelector'
 import { useDeviceStore } from '@/store/deviceStore'
 import { usePolicySearchStore } from '@/store/policySearchStore'
@@ -113,7 +114,7 @@ export function PoliciesPage() {
   const gridRef = useRef<AgGridWrapperHandle>(null)
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { selectedIds: deviceIds, setSelectedIds: setDeviceIds } = useDeviceStore()
+  const { selectedIds: deviceIds } = useDeviceStore()
 
   const {
     filterTree, setFilterTree,
@@ -180,6 +181,8 @@ export function PoliciesPage() {
   const [presetNameInput, setPresetNameInput] = useState('')
   const [showPresetInput, setShowPresetInput] = useState(false)
   const [presetDropdownOpen, setPresetDropdownOpen] = useState(false)
+  // 드롭다운 위치는 열 때 측정해 저장 (렌더 중 ref 접근 회피)
+  const [presetMenuPos, setPresetMenuPos] = useState<{ top: number; right: number } | null>(null)
   const presetBtnRef = useRef<HTMLButtonElement>(null)
 
   const savePreset = () => {
@@ -206,6 +209,11 @@ export function PoliciesPage() {
   }
 
   const { data: devices = [] } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices })
+
+  const deviceNameMap = useMemo(
+    () => new Map(devices.map(d => [d.id, d.name])),
+    [devices]
+  )
 
   // URL 파라미터로 필터 자동 세팅 (ObjectDetailModal / AnalysisDetailPage → 정책 검색 연동)
   useEffect(() => {
@@ -303,10 +311,6 @@ export function PoliciesPage() {
     return { total: policies.length, allow, deny, disabled, stale, noHit }
   }, [policies, searched])
 
-  const deviceNameMap = useMemo(
-    () => new Map(devices.map(d => [d.id, d.name])),
-    [devices]
-  )
 
   const handleRowClick = useCallback((event: RowClickedEvent<Policy>) => {
     if (event.data) setDetailModal(event.data)
@@ -411,7 +415,6 @@ export function PoliciesPage() {
       ),
     },
     { field: 'vsys', headerName: 'VSYS', width: 72, hide: true },
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [deviceNameMap, changeLogMap])
 
   const allConditions = filterTree.flatMap(g => g.conditions)
@@ -473,7 +476,11 @@ export function PoliciesPage() {
               <div className="relative">
                 <button
                   ref={presetBtnRef}
-                  onClick={() => setPresetDropdownOpen(o => !o)}
+                  onClick={() => {
+                    const r = presetBtnRef.current?.getBoundingClientRect()
+                    setPresetMenuPos(r ? { top: r.bottom + 4, right: window.innerWidth - r.right } : null)
+                    setPresetDropdownOpen(o => !o)
+                  }}
                   className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
                 >
                   <Bookmark className="w-3 h-3" /> 프리셋
@@ -483,10 +490,7 @@ export function PoliciesPage() {
                     <div className="fixed inset-0 z-40" onClick={() => setPresetDropdownOpen(false)} />
                     <div
                       className="fixed z-50 bg-white border border-ds-outline-variant/20 rounded-lg shadow-xl min-w-44 py-1"
-                      style={{
-                        top: (presetBtnRef.current?.getBoundingClientRect().bottom ?? 0) + 4,
-                        right: window.innerWidth - (presetBtnRef.current?.getBoundingClientRect().right ?? 0),
-                      }}
+                      style={{ top: presetMenuPos?.top ?? 0, right: presetMenuPos?.right ?? 0 }}
                     >
                       {presets.map(p => (
                         <div key={p.name} className="flex items-center justify-between px-3 py-1.5 hover:bg-ds-surface-container-low gap-2">

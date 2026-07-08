@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { PolicySearchRequest } from '@/api/firewall'
-import type { FilterTree } from '@/components/shared/QueryBuilder'
+import type { FilterTree } from '@/components/shared/queryBuilderModel'
 
 /**
  * 정책 검색 화면의 "조건" 상태만 보관합니다.

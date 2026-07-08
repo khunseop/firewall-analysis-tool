@@ -1,0 +1,16 @@
+import{r as e}from"./rolldown-runtime-Dw2cE7zH.js";import{i as t,n,o as r,r as i,t as a}from"./vendor-ag-grid-CWr8qWWE.js";import{c as o}from"./axios-CIR3hH90.js";var s=e(r(),1),c=o();t.registerModules([n,a]);function l({columnDefs:e,rowData:t,getRowId:n,onGridReady:r,getRowStyle:a,quickFilterText:o,height:l=`calc(100vh - 200px)`,domLayout:u,noRowsText:d=`데이터가 없습니다.`,defaultColDefOverride:f,onRowClicked:p,fitColumns:m=!1,rowHeight:h,rowSelection:g,onSelectionChanged:_,context:v,isExternalFilterPresent:y,doesExternalFilterPass:b},x){let S=(0,s.useRef)(null);(0,s.useImperativeHandle)(x,()=>({get gridApi(){return S.current}}));let C=(0,s.useCallback)(e=>{S.current=e.api,r?.(e)},[r]),w=(0,s.useCallback)(()=>{m?S.current?.sizeColumnsToFit():S.current?.autoSizeAllColumns(!1)},[m]);(0,s.useEffect)(()=>{if(t.length===0)return;let e=requestAnimationFrame(()=>{m?S.current?.sizeColumnsToFit():S.current?.autoSizeAllColumns(!1)});return()=>cancelAnimationFrame(e)},[t]);let T=(0,s.useCallback)(()=>{m&&S.current?.sizeColumnsToFit()},[m]),E=(0,s.useCallback)(e=>_?.(e.api.getSelectedRows()),[_]),D=(0,s.useMemo)(()=>({resizable:!0,filter:!0,sortable:!0,filterParams:{buttons:[`reset`,`apply`]},...f}),[f]),O=`ag-theme-quartz w-full relative${p?` ag-clickable-rows`:``}`,k=l===`100%`,A=u===`autoHeight`;return(0,c.jsx)(`div`,{className:k?`${O} flex-1 min-h-0`:O,style:k||A?void 0:{height:l},children:(0,c.jsx)(i,{domLayout:u,columnDefs:e,rowData:t,getRowId:n,rowHeight:h??28,headerHeight:32,onGridReady:C,onFirstDataRendered:w,onGridSizeChanged:T,getRowStyle:a,quickFilterText:o,onRowClicked:p,rowSelection:g,onSelectionChanged:_?E:void 0,context:v,isExternalFilterPresent:y,doesExternalFilterPass:b,defaultColDef:D,enableCellTextSelection:!0,overlayNoRowsTemplate:`
+          <div class="flex flex-col items-center gap-3">
+            <div class="p-3 bg-ds-surface-container rounded-full">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-ds-on-surface-variant/60"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+            </div>
+            <span class="text-ds-on-surface-variant font-medium text-sm">${d}</span>
+          </div>
+        `,overlayLoadingTemplate:`
+          <div class="flex flex-col items-center gap-3">
+            <svg class="animate-spin h-8 w-8 text-ds-tertiary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-ds-on-surface-variant font-semibold text-sm">데이터 분석 중…</span>
+          </div>
+        `})})}var u=(0,s.forwardRef)(l);export{u as t};

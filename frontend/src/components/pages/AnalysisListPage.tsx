@@ -79,11 +79,15 @@ function CreateAnalysisDialog({ open, onClose, initialDeviceId }: { open: boolea
   const [moveToEnd, setMoveToEnd] = useState(false)
   const [moveDirection, setMoveDirection] = useState('below')
 
-  useEffect(() => {
-    if (!open) return
-    setDeviceId(initialDeviceId ?? null); setAnalysisType('redundancy'); setDays('90')
-    setTargetPolicyIds([]); setReferencePolicyId(null); setMoveToEnd(false); setMoveDirection('below')
-  }, [open, initialDeviceId])
+  // 다이얼로그가 열릴 때 입력값 초기화 (렌더 중 상태 조정 패턴 — effect 내 동기 setState 회피)
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) {
+      setDeviceId(initialDeviceId ?? null); setAnalysisType('redundancy'); setDays('90')
+      setTargetPolicyIds([]); setReferencePolicyId(null); setMoveToEnd(false); setMoveDirection('below')
+    }
+  }
 
   const startMutation = useMutation({
     mutationFn: () => {

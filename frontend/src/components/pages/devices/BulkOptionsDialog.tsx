@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 
@@ -8,7 +8,12 @@ export function BulkOptionsDialog({ open, onClose, count, initial, onSubmit }: {
   onSubmit: (opts: { collect_last_hit_date: boolean; use_ssh_for_last_hit_date: boolean }) => void
 }) {
   const [form, setForm] = useState(initial)
-  useEffect(() => { if (open) setForm(initial) }, [open])  // eslint-disable-line react-hooks/exhaustive-deps
+  // 열릴 때 초기값 재설정 (렌더 중 상태 조정 패턴)
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) setForm(initial)
+  }
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-sm bg-ds-surface-container-lowest">

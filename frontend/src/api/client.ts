@@ -48,7 +48,7 @@ export async function downloadBlob(url: string, defaultFilename: string): Promis
     try {
       const data = await res.json()
       detail = data.detail || data.msg || detail
-    } catch {}
+    } catch { /* 응답 본문이 JSON이 아니면 기본 메시지 사용 */ }
     throw new Error(detail)
   }
   saveBlob(await res.blob(), defaultFilename)
@@ -78,7 +78,7 @@ export async function downloadBlobPost(
       try {
         const data = await res.json()
         detail = data.detail || data.msg || detail
-      } catch {}
+      } catch { /* 응답 본문이 JSON이 아니면 기본 메시지 사용 */ }
       throw new Error(detail)
     }
     saveBlob(await res.blob(), defaultFilename)

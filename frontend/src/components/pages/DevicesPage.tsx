@@ -57,6 +57,8 @@ export function DevicesPage() {
     const api = gridRef.current?.gridApi
     if (!api) return
     const fresh = api.getSelectedRows() as Device[]
+    // Ag-Grid는 외부 시스템이므로 effect 동기화가 적절 (렌더 파생으로 대체 불가)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (fresh.length > 0) setSelectedDevices(fresh)
   }, [devices])
 

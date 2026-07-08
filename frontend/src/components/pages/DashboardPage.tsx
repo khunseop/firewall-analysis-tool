@@ -33,13 +33,6 @@ const VENDOR_LABELS: Record<string, string> = {
   paloalto: 'PaloAlto', ngf: 'NGF', mf2: 'MF2', mock: 'Mock',
 }
 
-const STATUS_CONFIG: Record<string, { label: string; dot: string; text: string }> = {
-  success:     { label: '완료',   dot: 'bg-emerald-500',              text: 'text-emerald-700' },
-  in_progress: { label: '진행중', dot: 'bg-ds-tertiary animate-pulse', text: 'text-ds-tertiary' },
-  pending:     { label: '대기',   dot: 'bg-ds-outline',                text: 'text-ds-on-surface-variant' },
-  failure:     { label: '실패',   dot: 'bg-ds-error',                  text: 'text-ds-error' },
-  error:       { label: '오류',   dot: 'bg-ds-error',                  text: 'text-ds-error' },
-}
 
 interface DeviceRow {
   id: number; name: string; vendor: string; ip_address?: string

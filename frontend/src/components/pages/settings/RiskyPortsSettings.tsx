@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Save, Plus, Trash2 } from 'lucide-react'
@@ -17,12 +17,15 @@ export function RiskyPortsSettings() {
   const [rows, setRows] = useState<RiskyPort[]>([])
   const [dirty, setDirty] = useState(false)
 
-  useEffect(() => {
+  // 서버 설정이 갱신되면 행 재동기화 (렌더 중 상태 조정 패턴)
+  const [prevSettings, setPrevSettings] = useState(settings)
+  if (settings !== prevSettings) {
+    setPrevSettings(settings)
     const s = settings.find(s => s.key === 'risky_ports')
     if (s) {
       try { setRows(JSON.parse(s.value) as RiskyPort[]) } catch { setRows([]) }
     }
-  }, [settings])
+  }
 
   const saveMutation = useMutation({
     mutationFn: () => updateSetting('risky_ports', JSON.stringify(rows)),

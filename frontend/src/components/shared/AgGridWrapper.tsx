@@ -4,7 +4,7 @@ import {
   ModuleRegistry,
   type ColDef, type GridApi, type GridReadyEvent,
   type RowClassParams, type RowStyle, type RowClickedEvent,
-  type GridSizeChangedEvent, type IRowNode,
+  type IRowNode,
 } from '@ag-grid-community/core'
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model'
 import { CsvExportModule } from '@ag-grid-community/csv-export'
@@ -106,7 +106,7 @@ function AgGridWrapperInner<T>(
     return () => cancelAnimationFrame(id)
   }, [rowData]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleGridSizeChanged = useCallback((_e: GridSizeChangedEvent) => {
+  const handleGridSizeChanged = useCallback(() => {
     if (fitColumns) {
       gridApiRef.current?.sizeColumnsToFit()
     }

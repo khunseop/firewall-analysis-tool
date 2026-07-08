@@ -56,9 +56,14 @@ export function DeviceSearchSelect({
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
+  // 닫힐 때 검색어 초기화 (렌더 중 상태 조정 패턴), 포커스는 effect에서 처리
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (!open) setQ('')
+  }
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 0)
-    else setQ('')
   }, [open])
 
   return (
