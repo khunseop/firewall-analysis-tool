@@ -114,17 +114,18 @@ ORM Models     (app/models/)  ──►  SQLite fat.db  (via Alembic)
 | 정책 인덱서 | `app/services/policy_indexer.py` | 그룹 확장(DFS), IP/포트를 숫자 범위로 변환, bulk 인덱싱. |
 | 범위 기반 검색 | `app/crud/crud_policy.py` | `policy_address_members` / `policy_service_members` overlap SQL 쿼리. |
 | 분석 엔진 | `app/services/analysis/` | 6개 비동기 엔진. `analysistasks` 테이블로 진행률 추적. |
-| 삭제 워크플로우 | `app/services/deletion_workflow/` | Config 기반 프로세서 파이프라인 → Excel 내보내기. |
+| 삭제 워크플로우 | `app/services/deletion_workflow/` | Config 기반 프로세서 파이프라인 → Excel 내보내기 (`export_service` / `config_bridge` / `task_meta`). |
+| 전용 스레드 풀 | `app/core/executors.py` | 수집 I/O(`IO_EXECUTOR`)와 분석 CPU 연산(`CPU_EXECUTOR`)을 분리해 상호 굶김 방지. |
 | 스케줄러 | `app/services/scheduler.py` | APScheduler. 스케줄은 `sync_schedules` 테이블에 영속 저장. |
 | WebSocket 매니저 | `app/services/websocket_manager.py` | 동기화·분석 진행 상황을 모든 클라이언트에 브로드캐스트. |
 
 ### 프론트엔드
 
-- **프레임워크**: React 19 + TypeScript + Vite
-- **상태 관리**: Zustand (localStorage persist) + TanStack React Query
+- **프레임워크**: React 19 + TypeScript + Vite (페이지별 `React.lazy` 코드 스플리팅, 라우트 레벨 ErrorBoundary)
+- **상태 관리**: 서버 상태는 TanStack React Query 단일 소스 (쿼리키는 `src/api/queryKeys.ts` 팩토리) + Zustand persist (인증 토큰·장비 선택·검색 조건)
 - **UI 라이브러리**: Radix UI (shadcn 스타일) + Tailwind CSS
 - **데이터 그리드**: Ag-Grid Community
-- **실시간 통신**: WebSocket (동기화·분석 진행 상황 업데이트)
+- **실시간 통신**: WebSocket (쿠키 인증, 지수 백오프 재연결 — 동기화·분석 진행 상황 업데이트)
 - **페이지**: Dashboard, Devices, Policies, Objects, Analysis, PolicyDiff, Schedules, Settings, Notifications, DeletionWorkflow
 
 ### 상세 문서

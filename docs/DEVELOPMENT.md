@@ -154,7 +154,7 @@ uvicorn app.main:app --app-dir backend
 
 **동작**:
 - FastAPI가 `frontend/dist/`의 정적 파일을 `/assets`, `/fonts` 경로로 마운트
-- SPA 경로(`/`, `/devices`, `/policies` 등)에 `index.html` 반환
+- SPA 클라이언트 라우트는 404 catch-all 핸들러가 `index.html`로 폴백 (개별 등록 없음)
 - API 요청은 `/api/v1/*` 라우터로 처리
 
 **주소**: `http://localhost:8000`
