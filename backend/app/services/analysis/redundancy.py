@@ -1,4 +1,5 @@
 
+import asyncio
 import csv
 import io
 import logging
@@ -151,13 +152,27 @@ class RedundancyAnalyzer:
 
         policies = await self._get_policies_with_members()
 
+        logger.info("정책 중복 여부 확인 중...")
+        # CPU 바운드 키 생성/그룹화가 이벤트 루프를 점유하지 않도록 executor에서 실행
+        final_results = await asyncio.get_running_loop().run_in_executor(
+            None, self._find_duplicate_sets, policies
+        )
+
+        if not final_results:
+            logger.info("중복 정책이 발견되지 않았습니다.")
+            return []
+
+        logger.info(f"{len(final_results)}개의 중복 분석 결과를 찾았습니다.")
+        return final_results
+
+    def _find_duplicate_sets(self, policies: List[Policy]) -> List[RedundancyPolicySetCreate]:
+        """정규화 키 기반 중복 세트 그룹화 (순수 CPU 연산 — executor 스레드에서 호출)."""
         policy_map: Dict[Tuple, int] = {}
         temp_results: List[RedundancyPolicySetCreate] = []
         upper_rules: Dict[int, RedundancyPolicySetCreate] = {}
         lower_rules_count: Dict[int, int] = defaultdict(int)
         current_set_number = 1
 
-        logger.info("정책 중복 여부 확인 중...")
         for policy in policies:
             key = self._normalize_policy_key(policy)
             
@@ -184,7 +199,6 @@ class RedundancyAnalyzer:
                 upper_rules[current_set_number] = result
                 current_set_number += 1
 
-        logger.info("분석 완료. 결과 집계 중...")
         final_results = []
         # 하위 정책이 있는 상위 정책만 결과에 포함
         for set_num, upper_rule in upper_rules.items():
@@ -196,11 +210,6 @@ class RedundancyAnalyzer:
             r for r in temp_results if r.type == RedundancyPolicySetType.LOWER
         ])
 
-        if not final_results:
-            logger.info("중복 정책이 발견되지 않았습니다.")
-            return []
-
-        logger.info(f"{len(final_results)}개의 중복 분석 결과를 찾았습니다.")
         return final_results
 
     # ------------------------------------------------------------------
@@ -346,9 +355,19 @@ class RedundancyAnalyzer:
         self.vendor = device.vendor
 
         policies = await self._get_policies_with_members()
-        total = len(policies)
-        logger.info(f"논리적 포함 관계 분석 시작: {total}개 정책")
+        logger.info(f"논리적 포함 관계 분석 시작: {len(policies)}개 정책")
 
+        # O(n²) 포함 관계 비교가 이벤트 루프를 점유하지 않도록 executor에서 실행
+        results = await asyncio.get_running_loop().run_in_executor(
+            None, self._find_logical_sets, policies
+        )
+
+        logger.info(f"논리적 중복 분석 완료: {len(results)}개 결과")
+        return results
+
+    def _find_logical_sets(self, policies: List[Policy]) -> List[RedundancyPolicySetCreate]:
+        """논리적 포함 관계 O(n²) 비교 (순수 CPU 연산 — executor 스레드에서 호출)."""
+        total = len(policies)
         results: List[RedundancyPolicySetCreate] = []
         policy_map: Dict[int, int] = {}   # 정책 index → set_number
         current_set_number = 1
@@ -378,5 +397,4 @@ class RedundancyAnalyzer:
                     policy_map[i] = group_no
                     break  # 첫 번째 포함 관계가 확인되면 중단 (fpat 동일 방식)
 
-        logger.info(f"논리적 중복 분석 완료: {len(results)}개 결과")
         return results

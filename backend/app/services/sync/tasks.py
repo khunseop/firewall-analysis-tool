@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import delete, update
+from sqlalchemy import delete, update, func
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.future import select
 
@@ -640,9 +640,9 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
 
                     # 동기화 이력 저장 (정책 diff 비교용)
                     policy_count_result = await db.execute(
-                        select(models.Policy).where(models.Policy.device_id == device_id)
+                        select(func.count()).select_from(models.Policy).where(models.Policy.device_id == device_id)
                     )
-                    total_policies = len(policy_count_result.scalars().all())
+                    total_policies = policy_count_result.scalar_one()
 
                     from datetime import datetime as _dt
                     from zoneinfo import ZoneInfo as _ZoneInfo

@@ -5,7 +5,7 @@
 
 ## 진행 상태
 
-- [ ] [Phase 1 — 긴급 수정 (버그 + 최대 성능 레버리지)](phase1-critical-fixes.md)
+- [x] [Phase 1 — 긴급 수정 (버그 + 최대 성능 레버리지)](phase1-critical-fixes.md)
 - [ ] [Phase 2 — 백엔드 리팩토링 · 쿼리 효율](phase2-backend-refactor.md)
 - [ ] [Phase 3 — 프론트엔드 성능 (번들 · 렌더링 · 상태관리)](phase3-frontend-performance.md)
 - [ ] [Phase 4 — 프론트엔드 UI 일관성 · 구조 개선](phase4-frontend-ui.md)

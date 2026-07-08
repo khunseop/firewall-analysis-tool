@@ -19,6 +19,7 @@ def get_kst_now():
     return datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
 
 from app import crud
+from app.db.session import SessionLocal
 from app.schemas.analysis import AnalysisTaskCreate, AnalysisTaskUpdate, AnalysisResultCreate
 from app.models.analysis import AnalysisTaskType
 from app.services.audit_log import log_activity
@@ -34,10 +35,19 @@ logger = logging.getLogger(__name__)
 # 분석 작업이 중복 실행되지 않도록 보장하는 비동기 락
 analysis_lock = asyncio.Lock()
 
-async def run_redundancy_analysis_task(db: AsyncSession, device_id: int):
+async def run_redundancy_analysis_task(device_id: int):
+    """중복 정책 분석 백그라운드 진입점.
+
+    요청 스코프 세션은 응답 후 닫히므로 여기서 자체 세션을 연다.
+    """
+    async with SessionLocal() as db:
+        await _run_redundancy_analysis(db, device_id)
+
+
+async def _run_redundancy_analysis(db: AsyncSession, device_id: int):
     """
     중복 정책 분석 작업을 실행합니다.
-    
+
     1. 분석 작업을 생성(Pending)하고 락을 획득합니다.
     2. 상태를 'in_progress'로 변경합니다.
     3. RedundancyAnalyzer를 호출하여 중복 세트를 식별합니다.
@@ -110,7 +120,13 @@ async def run_redundancy_analysis_task(db: AsyncSession, device_id: int):
             await log_activity(db, title="중복 정책 분석 실패", message=f"Device ID {device_id} 중복 정책 분석 실패: {str(e)[:200]}", type="error", category="analysis", device_id=device_id)
 
 
-async def run_unused_analysis_task(db: AsyncSession, device_id: int, days: int = 90):
+async def run_unused_analysis_task(device_id: int, days: int = 90):
+    """미사용 정책 분석 백그라운드 진입점. 자체 세션을 연다."""
+    async with SessionLocal() as db:
+        await _run_unused_analysis(db, device_id, days)
+
+
+async def _run_unused_analysis(db: AsyncSession, device_id: int, days: int = 90):
     """
     미사용 정책 분석 작업을 실행합니다.
     장기간(기본 90일) 동안 트래픽 매칭이 발생하지 않은 정책을 찾아냅니다.
@@ -172,7 +188,13 @@ async def run_unused_analysis_task(db: AsyncSession, device_id: int, days: int =
             await log_activity(db, title="미사용 정책 분석 실패", message=f"Device ID {device_id} 미사용 정책 분석 실패: {str(e)[:200]}", type="error", category="analysis", device_id=device_id)
 
 
-async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_policy_ids: List[int], reference_policy_id: Optional[int] = None, move_direction: Optional[str] = None):
+async def run_impact_analysis_task(device_id: int, target_policy_ids: List[int], reference_policy_id: Optional[int] = None, move_direction: Optional[str] = None):
+    """정책 이동 영향도 분석 백그라운드 진입점. 자체 세션을 연다."""
+    async with SessionLocal() as db:
+        await _run_impact_analysis(db, device_id, target_policy_ids, reference_policy_id, move_direction)
+
+
+async def _run_impact_analysis(db: AsyncSession, device_id: int, target_policy_ids: List[int], reference_policy_id: Optional[int] = None, move_direction: Optional[str] = None):
     """
     정책 위치 이동 시 영향도 분석 작업을 실행합니다.
     이동 경로상에 있는 정책들과의 충돌 또는 가림(Shadowing) 현상을 미리 확인합니다.
@@ -240,7 +262,13 @@ async def run_impact_analysis_task(db: AsyncSession, device_id: int, target_poli
             await log_activity(db, title="영향도 분석 실패", message=f"Device ID {device_id} 정책 이동 영향도 분석 실패: {str(e)[:200]}", type="error", category="analysis", device_id=device_id)
 
 
-async def run_unreferenced_objects_analysis_task(db: AsyncSession, device_id: int):
+async def run_unreferenced_objects_analysis_task(device_id: int):
+    """미참조 객체 분석 백그라운드 진입점. 자체 세션을 연다."""
+    async with SessionLocal() as db:
+        await _run_unreferenced_objects_analysis(db, device_id)
+
+
+async def _run_unreferenced_objects_analysis(db: AsyncSession, device_id: int):
     """
     미참조 객체 분석 작업을 실행합니다.
     어떤 정책에서도 사용되지 않는 고립된 네트워크/서비스 객체를 탐지합니다.
@@ -302,7 +330,13 @@ async def run_unreferenced_objects_analysis_task(db: AsyncSession, device_id: in
 
 
 
-async def run_risky_ports_analysis_task(db: AsyncSession, device_id: int, target_policy_ids: Optional[List[int]] = None):
+async def run_risky_ports_analysis_task(device_id: int, target_policy_ids: Optional[List[int]] = None):
+    """위험 포트 분석 백그라운드 진입점. 자체 세션을 연다."""
+    async with SessionLocal() as db:
+        await _run_risky_ports_analysis(db, device_id, target_policy_ids)
+
+
+async def _run_risky_ports_analysis(db: AsyncSession, device_id: int, target_policy_ids: Optional[List[int]] = None):
     """
     위험 포트 정책 분석을 실행하고 결과를 저장합니다.
     target_policy_ids가 제공되면 해당 정책들만 분석하고, 없으면 모든 정책을 분석합니다.
@@ -363,7 +397,13 @@ async def run_risky_ports_analysis_task(db: AsyncSession, device_id: int, target
             await log_activity(db, title="위험 포트 분석 실패", message=f"Device ID {device_id} 위험 포트 분석 실패: {str(e)[:200]}", type="error", category="analysis", device_id=device_id)
 
 
-async def run_over_permissive_analysis_task(db: AsyncSession, device_id: int, target_policy_ids: Optional[List[int]] = None):
+async def run_over_permissive_analysis_task(device_id: int, target_policy_ids: Optional[List[int]] = None):
+    """과허용정책 분석 백그라운드 진입점. 자체 세션을 연다."""
+    async with SessionLocal() as db:
+        await _run_over_permissive_analysis(db, device_id, target_policy_ids)
+
+
+async def _run_over_permissive_analysis(db: AsyncSession, device_id: int, target_policy_ids: Optional[List[int]] = None):
     """
     과허용정책 분석을 실행하고 결과를 저장합니다.
     target_policy_ids가 제공되면 해당 정책들만 분석하고, 없으면 모든 정책을 분석합니다.
