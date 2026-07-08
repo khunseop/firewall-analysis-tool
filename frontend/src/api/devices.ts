@@ -26,12 +26,16 @@ export interface Device {
   location_x: string | null
   location_y: string | null
   location_z: string | null
-  cpu_threshold: number | null
-  cpu_usage: number | null
-  memory_threshold: number | null
-  memory_usage: number | null
-  session_threshold: number | null
-  session_usage: number | null
+  policy_threshold: number | null
+  network_object_threshold: number | null
+  service_threshold: number | null
+  cached_policies: number | null
+  cached_active_policies: number | null
+  cached_disabled_policies: number | null
+  cached_network_objects: number | null
+  cached_network_groups: number | null
+  cached_services: number | null
+  cached_service_groups: number | null
 }
 
 export interface DeviceCreate {
@@ -58,12 +62,9 @@ export interface DeviceCreate {
   location_x?: string
   location_y?: string
   location_z?: string
-  cpu_threshold?: number
-  cpu_usage?: number
-  memory_threshold?: number
-  memory_usage?: number
-  session_threshold?: number
-  session_usage?: number
+  policy_threshold?: number
+  network_object_threshold?: number
+  service_threshold?: number
 }
 
 export interface DeviceUpdate {
@@ -90,12 +91,9 @@ export interface DeviceUpdate {
   location_x?: string
   location_y?: string
   location_z?: string
-  cpu_threshold?: number
-  cpu_usage?: number
-  memory_threshold?: number
-  memory_usage?: number
-  session_threshold?: number
-  session_usage?: number
+  policy_threshold?: number
+  network_object_threshold?: number
+  service_threshold?: number
 }
 
 export interface DeviceStats {
@@ -113,12 +111,9 @@ export interface DeviceStats {
   network_groups: number
   services: number
   service_groups: number
-  cpu_threshold: number | null
-  cpu_usage: number | null
-  memory_threshold: number | null
-  memory_usage: number | null
-  session_threshold: number | null
-  session_usage: number | null
+  policy_threshold: number | null
+  network_object_threshold: number | null
+  service_threshold: number | null
 }
 
 export interface DashboardStats {

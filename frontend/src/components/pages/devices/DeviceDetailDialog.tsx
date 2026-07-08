@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Pencil } from 'lucide-react'
 import type { Device } from '@/api/devices'
-import { resourceLevel, RESOURCE_LEVEL_BAR_COLOR, RESOURCE_LEVEL_TEXT_COLOR } from '@/lib/deviceResource'
+import { capacityLevel, CAPACITY_LEVEL_BAR_COLOR, CAPACITY_LEVEL_TEXT_COLOR } from '@/lib/deviceCapacity'
 
 function Field({ label, value }: { label: string; value: string | null | undefined }) {
   return (
@@ -12,19 +12,19 @@ function Field({ label, value }: { label: string; value: string | null | undefin
   )
 }
 
-function ResourceRow({ label, usage, threshold, unit }: { label: string; usage: number | null; threshold: number | null; unit: string }) {
-  const level = resourceLevel(usage, threshold)
+function CapacityRow({ label, usage, threshold }: { label: string; usage: number | null; threshold: number | null }) {
+  const level = capacityLevel(usage, threshold)
   const pct = usage != null && threshold != null && threshold > 0 ? Math.min(100, Math.round((usage / threshold) * 100)) : 0
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-[12px]">
         <span className="font-semibold text-ds-on-surface">{label}</span>
-        <span className={`font-bold tabular-nums ${RESOURCE_LEVEL_TEXT_COLOR[level]}`}>
-          {usage != null ? `${usage}${unit}` : '—'} / {threshold != null ? `${threshold}${unit}` : '—'}
+        <span className={`font-bold tabular-nums ${CAPACITY_LEVEL_TEXT_COLOR[level]}`}>
+          {usage != null ? `${usage}개` : '—'} / {threshold != null ? `${threshold}개` : '—'}
         </span>
       </div>
       <div className="h-1.5 rounded-full bg-ds-outline-variant/20 overflow-hidden">
-        <div className={`h-full rounded-full transition-all ${RESOURCE_LEVEL_BAR_COLOR[level]}`} style={{ width: `${pct}%` }} />
+        <div className={`h-full rounded-full transition-all ${CAPACITY_LEVEL_BAR_COLOR[level]}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
@@ -79,11 +79,23 @@ export function DeviceDetailDialog({ device, onClose, onEdit }: {
             </div>
 
             <div>
-              <div className="text-[11px] font-bold text-ds-on-surface-variant/60 mb-2">리소스 현황 (수기 입력)</div>
+              <div className="text-[11px] font-bold text-ds-on-surface-variant/60 mb-2">객체 수 임계치 현황</div>
               <div className="space-y-2.5">
-                <ResourceRow label="CPU" usage={device.cpu_usage} threshold={device.cpu_threshold} unit="%" />
-                <ResourceRow label="메모리" usage={device.memory_usage} threshold={device.memory_threshold} unit="%" />
-                <ResourceRow label="세션" usage={device.session_usage} threshold={device.session_threshold} unit="건" />
+                <CapacityRow label="정책" usage={device.cached_policies} threshold={device.policy_threshold} />
+                <CapacityRow
+                  label="네트워크 객체 (객체+그룹)"
+                  usage={device.cached_network_objects != null || device.cached_network_groups != null
+                    ? (device.cached_network_objects ?? 0) + (device.cached_network_groups ?? 0)
+                    : null}
+                  threshold={device.network_object_threshold}
+                />
+                <CapacityRow
+                  label="서비스 객체 (객체+그룹)"
+                  usage={device.cached_services != null || device.cached_service_groups != null
+                    ? (device.cached_services ?? 0) + (device.cached_service_groups ?? 0)
+                    : null}
+                  threshold={device.service_threshold}
+                />
               </div>
             </div>
           </div>

@@ -67,10 +67,7 @@ class Device(Base):
     location_y = Column(String, nullable=True)
     location_z = Column(String, nullable=True)
 
-    # 리소스 임계치/사용률 (수기 입력)
-    cpu_threshold = Column(Integer, nullable=True)
-    cpu_usage = Column(Integer, nullable=True)
-    memory_threshold = Column(Integer, nullable=True)
-    memory_usage = Column(Integer, nullable=True)
-    session_threshold = Column(Integer, nullable=True)
-    session_usage = Column(Integer, nullable=True)
+    # 객체 수 임계치 (수기 입력) — 사용량은 cached_* 컬럼과 비교
+    policy_threshold = Column(Integer, nullable=True)          # cached_policies와 비교
+    network_object_threshold = Column(Integer, nullable=True)  # cached_network_objects + cached_network_groups와 비교
+    service_threshold = Column(Integer, nullable=True)         # cached_services + cached_service_groups와 비교

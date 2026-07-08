@@ -21,7 +21,7 @@ import {
 import { useSyncStatusWebSocket, type SyncStatusMessage } from '@/hooks/useWebSocket'
 import { notify } from '@/store/notificationStore'
 import { useDeviceStore } from '@/store/deviceStore'
-import { resourceLevel } from '@/lib/deviceResource'
+import { capacityLevel } from '@/lib/deviceCapacity'
 import { DeviceDetailDialog } from './devices/DeviceDetailDialog'
 
 const VENDOR_OPTIONS = [
@@ -58,9 +58,7 @@ interface DeviceFormData {
   serial_number: string; os_name: string; os_version: string; install_date: string
   location_region: string; location_building: string; location_floor: string; location_room: string
   location_x: string; location_y: string; location_z: string
-  cpu_threshold: string; cpu_usage: string
-  memory_threshold: string; memory_usage: string
-  session_threshold: string; session_usage: string
+  policy_threshold: string; network_object_threshold: string; service_threshold: string
 }
 
 const DEFAULT_FORM: DeviceFormData = {
@@ -69,7 +67,7 @@ const DEFAULT_FORM: DeviceFormData = {
   serial_number: '', os_name: '', os_version: '', install_date: '',
   location_region: '', location_building: '', location_floor: '', location_room: '',
   location_x: '', location_y: '', location_z: '',
-  cpu_threshold: '', cpu_usage: '', memory_threshold: '', memory_usage: '', session_threshold: '', session_usage: '',
+  policy_threshold: '', network_object_threshold: '', service_threshold: '',
 }
 
 function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }: {
@@ -94,7 +92,7 @@ function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }: {
               <TabsTrigger value="basic">기본정보</TabsTrigger>
               <TabsTrigger value="detail">상세정보</TabsTrigger>
               <TabsTrigger value="location">설치정보</TabsTrigger>
-              <TabsTrigger value="resource">리소스 임계치</TabsTrigger>
+              <TabsTrigger value="resource">임계치</TabsTrigger>
             </TabsList>
 
             <TabsContent value="basic" className="space-y-3">
@@ -200,15 +198,12 @@ function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }: {
             </TabsContent>
 
             <TabsContent value="resource" className="space-y-3">
-              <p className="text-[11px] text-ds-on-surface-variant">임계치와 사용률은 관리자가 직접 입력·관리하는 값입니다.</p>
-              <div className="grid grid-cols-2 gap-3">
+              <p className="text-[11px] text-ds-on-surface-variant">임계치는 관리자가 직접 입력하며, 사용량은 동기화된 정책·객체 수와 자동으로 비교됩니다.</p>
+              <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: 'CPU 임계치 (%)', key: 'cpu_threshold' as const },
-                  { label: 'CPU 사용률 (%)', key: 'cpu_usage' as const },
-                  { label: '메모리 임계치 (%)', key: 'memory_threshold' as const },
-                  { label: '메모리 사용률 (%)', key: 'memory_usage' as const },
-                  { label: '세션 임계치 (건)', key: 'session_threshold' as const },
-                  { label: '세션 사용량 (건)', key: 'session_usage' as const },
+                  { label: '정책 수 임계치', key: 'policy_threshold' as const },
+                  { label: '네트워크 객체 수 임계치', key: 'network_object_threshold' as const },
+                  { label: '서비스 객체 수 임계치', key: 'service_threshold' as const },
                 ].map(({ label, key }) => (
                   <div key={key} className="space-y-1">
                     <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
@@ -590,12 +585,14 @@ function DeviceNameCell({ data, onShowDetail }: { data: Device; onShowDetail: (d
 
 function ResourceWarningBadge({ data }: { data: Device }) {
   if (!data) return null
+  const networkObjectUsage = (data.cached_network_objects ?? 0) + (data.cached_network_groups ?? 0)
+  const serviceUsage = (data.cached_services ?? 0) + (data.cached_service_groups ?? 0)
   const levels = [
-    resourceLevel(data.cpu_usage, data.cpu_threshold),
-    resourceLevel(data.memory_usage, data.memory_threshold),
-    resourceLevel(data.session_usage, data.session_threshold),
+    capacityLevel(data.cached_policies, data.policy_threshold),
+    capacityLevel(networkObjectUsage, data.network_object_threshold),
+    capacityLevel(serviceUsage, data.service_threshold),
   ]
-  const hasAnyThreshold = data.cpu_threshold != null || data.memory_threshold != null || data.session_threshold != null
+  const hasAnyThreshold = data.policy_threshold != null || data.network_object_threshold != null || data.service_threshold != null
   if (!hasAnyThreshold) return <span className="text-[12px] text-ds-on-surface-variant/40">—</span>
   if (levels.includes('danger')) {
     return <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-50 text-ds-error border border-red-100">위험</span>
@@ -713,7 +710,7 @@ function buildColumnDefs(onShowDetail: (device: Device) => void): ColDef<Device>
     cellRenderer: (p: { value: string }) => <span className="text-[12px] text-ds-on-surface-variant">{p.value}</span>,
   },
   {
-    headerName: '리소스', minWidth: 90, sortable: false, filter: false,
+    headerName: '임계치', minWidth: 90, sortable: false, filter: false,
     cellRenderer: (p: { data: Device }) => <ResourceWarningBadge data={p.data as Device} />,
   },
   ]
@@ -1168,19 +1165,19 @@ export function DevicesPage() {
           location_region: editTarget.location_region ?? '', location_building: editTarget.location_building ?? '',
           location_floor: editTarget.location_floor ?? '', location_room: editTarget.location_room ?? '',
           location_x: editTarget.location_x ?? '', location_y: editTarget.location_y ?? '', location_z: editTarget.location_z ?? '',
-          cpu_threshold: editTarget.cpu_threshold?.toString() ?? '', cpu_usage: editTarget.cpu_usage?.toString() ?? '',
-          memory_threshold: editTarget.memory_threshold?.toString() ?? '', memory_usage: editTarget.memory_usage?.toString() ?? '',
-          session_threshold: editTarget.session_threshold?.toString() ?? '', session_usage: editTarget.session_usage?.toString() ?? '',
+          policy_threshold: editTarget.policy_threshold?.toString() ?? '',
+          network_object_threshold: editTarget.network_object_threshold?.toString() ?? '',
+          service_threshold: editTarget.service_threshold?.toString() ?? '',
         } : undefined}
         onSubmit={(data) => {
-          const { cpu_threshold, cpu_usage, memory_threshold, memory_usage, session_threshold, session_usage, install_date, ...rest } = data
+          const { policy_threshold, network_object_threshold, service_threshold, install_date, ...rest } = data
           const toNum = (v: string) => v === '' ? undefined : Number(v)
           const payload = {
             ...rest,
             install_date: install_date || undefined,
-            cpu_threshold: toNum(cpu_threshold), cpu_usage: toNum(cpu_usage),
-            memory_threshold: toNum(memory_threshold), memory_usage: toNum(memory_usage),
-            session_threshold: toNum(session_threshold), session_usage: toNum(session_usage),
+            policy_threshold: toNum(policy_threshold),
+            network_object_threshold: toNum(network_object_threshold),
+            service_threshold: toNum(service_threshold),
           }
           if (editTarget) {
             const updatePayload: DeviceUpdate = { ...payload }

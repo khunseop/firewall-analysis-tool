@@ -30,13 +30,10 @@ class DeviceBase(BaseModel):
     location_y: Optional[str] = None
     location_z: Optional[str] = None
 
-    # 리소스 임계치/사용률 (수기 입력)
-    cpu_threshold: Optional[int] = None
-    cpu_usage: Optional[int] = None
-    memory_threshold: Optional[int] = None
-    memory_usage: Optional[int] = None
-    session_threshold: Optional[int] = None
-    session_usage: Optional[int] = None
+    # 객체 수 임계치 (수기 입력, 사용량은 cached_* 컬럼과 비교)
+    policy_threshold: Optional[int] = None
+    network_object_threshold: Optional[int] = None
+    service_threshold: Optional[int] = None
 
 # Schema for creating a new device
 class DeviceCreate(DeviceBase):
@@ -71,12 +68,9 @@ class DeviceUpdate(BaseModel):
     location_y: Optional[str] = None
     location_z: Optional[str] = None
 
-    cpu_threshold: Optional[int] = None
-    cpu_usage: Optional[int] = None
-    memory_threshold: Optional[int] = None
-    memory_usage: Optional[int] = None
-    session_threshold: Optional[int] = None
-    session_usage: Optional[int] = None
+    policy_threshold: Optional[int] = None
+    network_object_threshold: Optional[int] = None
+    service_threshold: Optional[int] = None
 
 # Schema for reading device data (from DB)
 class Device(DeviceBase):
@@ -84,6 +78,15 @@ class Device(DeviceBase):
     last_sync_at: Optional[datetime] = None
     last_sync_status: Optional[str] = None
     last_sync_step: Optional[str] = None
+
+    # 대시보드 통계 캐시 (읽기 전용 — 동기화 완료 시 서버에서 갱신)
+    cached_policies: Optional[int] = None
+    cached_active_policies: Optional[int] = None
+    cached_disabled_policies: Optional[int] = None
+    cached_network_objects: Optional[int] = None
+    cached_network_groups: Optional[int] = None
+    cached_services: Optional[int] = None
+    cached_service_groups: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -113,12 +116,9 @@ class DeviceStats(BaseModel):
     sync_status: Optional[str] = None
     sync_step: Optional[str] = None
     sync_time: Optional[datetime] = None
-    cpu_threshold: Optional[int] = None
-    cpu_usage: Optional[int] = None
-    memory_threshold: Optional[int] = None
-    memory_usage: Optional[int] = None
-    session_threshold: Optional[int] = None
-    session_usage: Optional[int] = None
+    policy_threshold: Optional[int] = None
+    network_object_threshold: Optional[int] = None
+    service_threshold: Optional[int] = None
 
 
 class DashboardStatsResponse(BaseModel):
