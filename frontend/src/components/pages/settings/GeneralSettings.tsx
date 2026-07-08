@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Save } from 'lucide-react'
@@ -13,13 +13,16 @@ export function GeneralSettings() {
   const { data: settings = [], isLoading } = useQuery({ queryKey: queryKeys.settings, queryFn: getSettings })
   const [values, setValues] = useState<Record<string, string>>({})
 
-  useEffect(() => {
+  // 서버 설정이 갱신되면 편집값 재동기화 (렌더 중 상태 조정 패턴)
+  const [prevSettings, setPrevSettings] = useState(settings)
+  if (settings !== prevSettings) {
+    setPrevSettings(settings)
     if (settings.length > 0) {
       const map: Record<string, string> = {}
       settings.forEach((s) => { map[s.key] = s.value })
       setValues(map)
     }
-  }, [settings])
+  }
 
   const updateMutation = useMutation({
     mutationFn: ({ key, value }: { key: string; value: string }) => updateSetting(key, value),

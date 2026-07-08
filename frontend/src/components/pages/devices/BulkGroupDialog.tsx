@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -9,7 +9,12 @@ export function BulkGroupDialog({ open, onClose, count, existingGroups, initial,
   onSubmit: (group: string) => void
 }) {
   const [group, setGroup] = useState(initial)
-  useEffect(() => { if (open) setGroup(initial) }, [open])  // eslint-disable-line react-hooks/exhaustive-deps
+  // 열릴 때 초기값 재설정 (렌더 중 상태 조정 패턴)
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) setGroup(initial)
+  }
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-sm bg-ds-surface-container-lowest">

@@ -59,7 +59,7 @@ export function NotificationsPage() {
     : undefined
   const type: NotificationType | undefined = activeTab === 'error' ? 'error' : undefined
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, refetch } = useInfiniteQuery({
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
     queryKey: queryKeys.notifications(activeTab, appliedSearch, appliedDateFrom, appliedDateTo),
     queryFn: ({ pageParam = 0 }) =>
       getNotifications({

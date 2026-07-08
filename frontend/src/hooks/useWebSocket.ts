@@ -25,8 +25,10 @@ export function useSyncStatusWebSocket(onMessage: (msg: SyncStatusMessage) => vo
   const retryCount = useRef(0)
   const onMessageRef = useRef(onMessage)
 
-  // 항상 최신 콜백을 ref에 유지 (stale closure 방지)
-  onMessageRef.current = onMessage
+  // 항상 최신 콜백을 ref에 유지 (stale closure 방지 — 렌더 중 ref 쓰기 대신 effect 사용)
+  useEffect(() => {
+    onMessageRef.current = onMessage
+  })
 
   useEffect(() => {
     isMounted.current = true
@@ -34,9 +36,8 @@ export function useSyncStatusWebSocket(onMessage: (msg: SyncStatusMessage) => vo
     function connect() {
       if (!isMounted.current || !token) return
       const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
-      const ws = new WebSocket(
-        `${protocol}//${location.host}/api/v1/ws/sync-status?token=${encodeURIComponent(token)}`
-      )
+      // 인증은 access_token 쿠키로 처리 (쿼리스트링 토큰은 서버 로그 노출 우려로 제거)
+      const ws = new WebSocket(`${protocol}//${location.host}/api/v1/ws/sync-status`)
       wsRef.current = ws
 
       ws.onopen = () => {
@@ -52,7 +53,7 @@ export function useSyncStatusWebSocket(onMessage: (msg: SyncStatusMessage) => vo
           if (data.type === 'device_sync_status') {
             onMessageRef.current(data)
           }
-        } catch {}
+        } catch { /* JSON이 아닌 메시지는 무시 */ }
       }
 
       ws.onerror = () => {

@@ -12,6 +12,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.future import select
 
 from app import crud, models, schemas
+from app.core.executors import IO_EXECUTOR
 from app.db.session import SessionLocal
 from app.models.policy_members import PolicyAddressMember, PolicyServiceMember
 from app.services.sync.transform import (
@@ -321,13 +322,13 @@ async def _collect_last_hit_date_parallel(
             if device.use_ssh_for_last_hit_date:
                 logging.info("[orchestrator] Collecting main device last_hit_date via SSH.")
                 return await loop.run_in_executor(
-                    None, 
+                    IO_EXECUTOR, 
                     lambda: collector.export_last_hit_date_ssh(vsys=vsys_list)
                 )
             else:
                 logging.info("[orchestrator] Collecting main device last_hit_date via API.")
                 return await loop.run_in_executor(
-                    None,
+                    IO_EXECUTOR,
                     lambda: collector.export_last_hit_date(vsys=vsys_list)
                 )
         except Exception as e:
@@ -346,17 +347,17 @@ async def _collect_last_hit_date_parallel(
             ha_collector = create_collector_from_device(device, use_ha_ip=True)
             
             # 연결 수립 (동기 함수이므로 run_in_executor 사용)
-            await loop.run_in_executor(None, ha_collector.connect)
+            await loop.run_in_executor(IO_EXECUTOR, ha_collector.connect)
             
             # 히트 정보 수집
             if device.use_ssh_for_last_hit_date:
                 hit_date_df = await loop.run_in_executor(
-                    None,
+                    IO_EXECUTOR,
                     lambda: ha_collector.export_last_hit_date_ssh(vsys=vsys_list)
                 )
             else:
                 hit_date_df = await loop.run_in_executor(
-                    None,
+                    IO_EXECUTOR,
                     lambda: ha_collector.export_last_hit_date(vsys=vsys_list)
                 )
             
@@ -368,7 +369,7 @@ async def _collect_last_hit_date_parallel(
             # HA Peer 연결 종료
             if ha_collector:
                 try:
-                    await loop.run_in_executor(None, ha_collector.disconnect)
+                    await loop.run_in_executor(IO_EXECUTOR, ha_collector.disconnect)
                 except Exception:
                     pass
     
@@ -584,7 +585,7 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
 
         try:
             # 3. 장비 연결 (동기 함수이므로 run_in_executor 사용)
-            await loop.run_in_executor(None, getattr(collector, 'connect', lambda: None))
+            await loop.run_in_executor(IO_EXECUTOR, getattr(collector, 'connect', lambda: None))
             
             # 연결 성공 후 상태 업데이트
             device = await _update_status(device_id, "Connected")
@@ -613,7 +614,7 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
 
                 # 실제 데이터 수집 수행 (Network I/O가 발생하는 부분)
                 logging.info(f"[orchestrator] Starting export for {data_type}")
-                df = await loop.run_in_executor(None, export_func)
+                df = await loop.run_in_executor(IO_EXECUTOR, export_func)
                 collected_dfs[data_type] = pd.DataFrame() if df is None else df
                 logging.info(f"[orchestrator] Export completed for {data_type}, rows: {len(collected_dfs[data_type])}")
 
@@ -680,4 +681,4 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                     )
         finally:
             # 장비 연결 해제
-            await loop.run_in_executor(None, getattr(collector, 'disconnect', lambda: None))
+            await loop.run_in_executor(IO_EXECUTOR, getattr(collector, 'disconnect', lambda: None))

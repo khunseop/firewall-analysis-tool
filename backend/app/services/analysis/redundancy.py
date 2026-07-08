@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app import crud
+from app.core.executors import CPU_EXECUTOR
 from app.models import Policy, Device, AnalysisTask, PolicyAddressMember, PolicyServiceMember
 from app.schemas.analysis import RedundancyPolicySetCreate
 from app.models.analysis import RedundancyPolicySetType
@@ -155,7 +156,7 @@ class RedundancyAnalyzer:
         logger.info("정책 중복 여부 확인 중...")
         # CPU 바운드 키 생성/그룹화가 이벤트 루프를 점유하지 않도록 executor에서 실행
         final_results = await asyncio.get_running_loop().run_in_executor(
-            None, self._find_duplicate_sets, policies
+            CPU_EXECUTOR, self._find_duplicate_sets, policies
         )
 
         if not final_results:
@@ -359,7 +360,7 @@ class RedundancyAnalyzer:
 
         # O(n²) 포함 관계 비교가 이벤트 루프를 점유하지 않도록 executor에서 실행
         results = await asyncio.get_running_loop().run_in_executor(
-            None, self._find_logical_sets, policies
+            CPU_EXECUTOR, self._find_logical_sets, policies
         )
 
         logger.info(f"논리적 중복 분석 완료: {len(results)}개 결과")

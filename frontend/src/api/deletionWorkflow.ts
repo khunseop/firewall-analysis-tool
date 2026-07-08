@@ -76,7 +76,7 @@ export const extractDeviceData = async (
     try {
       const data = await res.json()
       detail = data.detail || data.msg || detail
-    } catch {}
+    } catch { /* 응답 본문이 JSON이 아니면 기본 메시지 사용 */ }
     throw new Error(detail)
   }
 
@@ -100,7 +100,7 @@ export const exportRedundancyData = async (
     try {
       const data = await res.json()
       detail = data.detail || data.msg || detail
-    } catch {}
+    } catch { /* 응답 본문이 JSON이 아니면 기본 메시지 사용 */ }
     throw new Error(detail)
   }
 
@@ -342,7 +342,7 @@ export const executeDeletionTask = async (
     try {
       const data = await res.json()
       detail = data.detail || data.msg || detail
-    } catch {}
+    } catch { /* 응답 본문이 JSON이 아니면 기본 메시지 사용 */ }
     throw new Error(detail)
   }
 

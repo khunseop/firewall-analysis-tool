@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Loader2, FileDown } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -26,7 +26,10 @@ export function DirectExportDialog({ open, onClose, devices }: {
 
   const loading = progress !== null
 
-  useEffect(() => {
+  // 열릴 때 초기값 재설정 (렌더 중 상태 조정 패턴)
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
     if (open) {
       setExportType('policies')
       setSource('live')
@@ -36,7 +39,7 @@ export function DirectExportDialog({ open, onClose, devices }: {
       setProgress(null)
       setErrors([])
     }
-  }, [open])  // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   const handleExport = async () => {
     if (devices.length === 0) return

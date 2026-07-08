@@ -52,10 +52,6 @@ function useObjectsData(deviceIds: number[], tab: TabKey) {
   return { networkObjects, networkGroups, services, serviceGroups }
 }
 
-function DeviceNameCell({ deviceId, deviceNameMap }: { deviceId: number; deviceNameMap: Map<number, string> }) {
-  const name = deviceNameMap.get(deviceId) ?? String(deviceId)
-  return <span className="text-[11px] font-semibold text-ds-tertiary font-mono">{name}</span>
-}
 
 function SearchPolicyButton({ onClick }: { onClick: () => void }) {
   return (

@@ -46,11 +46,12 @@
 - [x] **스키마 드리프트 정리** (2026-07-08 완료): legacy `notifications` 테이블·불용
   `ix_policies_search` 인덱스 드롭, PK 중복 인덱스 선언 제거, NOT NULL/unique 제약 정렬,
   env.py `compare_type=False`. 이제 `alembic autogenerate`가 빈 마이그레이션을 생성한다.
-- [ ] **WebSocket 토큰 노출**: 토큰이 URL 쿼리스트링으로 전달됨 — 서버 로그 노출 우려.
-  백엔드 인증부(`websocket_manager.py`)와 함께 서브프로토콜/쿠키 방식으로 전환 필요.
-- [ ] **usePageState(localStorage) 정리**: React Query·zustand 외 세 번째 영속화 메커니즘.
-  사용처를 점검해 zustand persist로 흡수 검토.
-- [ ] **기존 lint 오류 30건**: `setState synchronously within an effect` 등 로직 수정이
-  필요한 기존 패턴. 기능 회귀 위험이 있어 개별 검토 후 수정 권장.
-- [ ] **분석 executor 포화**: 기본 스레드 풀을 sync·분석·SSH가 공유 —
-  대규모 동시 실행 시 전용 executor 분리 검토.
+- [x] **WebSocket 토큰 노출** (2026-07-08 완료): 쿠키(access_token) 기반 인증으로 전환,
+  쿼리스트링 토큰은 구버전 호환 폴백으로만 유지.
+- [x] **usePageState 정리** (2026-07-08 완료): 사용처 0건 죽은 코드 — 삭제.
+- [x] **기존 lint 오류** (2026-07-08 완료): 30건 전부 수정 — eslint 0건.
+  (다이얼로그 리셋은 렌더 중 상태 조정 패턴으로, QueryBuilder 모델/컴포넌트 분리 등)
+- [x] **분석 executor 분리** (2026-07-08 완료): `app/core/executors.py` —
+  수집 I/O는 IO_EXECUTOR(8), 분석 CPU는 CPU_EXECUTOR(2)로 분리.
+- [x] **deletion_workflow cascade** (2026-07-08 완료): delete_project가 프로젝트 파일을
+  함께 삭제하도록 수정 (고아 행 방지).

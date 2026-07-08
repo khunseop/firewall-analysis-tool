@@ -13,10 +13,10 @@ logger = logging.getLogger(__name__)
 
 
 @router.websocket("/ws/sync-status")
-async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
+async def websocket_endpoint(websocket: WebSocket, token: str | None = Query(None)):
     """
     동기화 상태 실시간 업데이트를 위한 WebSocket 연결
-    
+
     클라이언트가 연결되면 장비 동기화 상태 변경 시 자동으로 메시지를 받습니다.
     메시지 형식:
     {
@@ -26,7 +26,10 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
         "step": "Collecting network objects..." | null
     }
     """
-    if not decode_token(token):
+    # 인증: access_token 쿠키 우선 (토큰이 서버 로그에 남는 쿼리스트링 방식은
+    # 구버전 클라이언트 호환용 폴백으로만 유지)
+    auth_token = websocket.cookies.get("access_token") or token
+    if not auth_token or not decode_token(auth_token):
         await websocket.close(code=1008)
         return
 
