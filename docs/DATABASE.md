@@ -44,12 +44,9 @@
 | `location_x` | `VARCHAR` | `NULLABLE` | 랙 좌표 X (혼합 표기 대응) |
 | `location_y` | `VARCHAR` | `NULLABLE` | 랙 좌표 Y |
 | `location_z` | `VARCHAR` | `NULLABLE` | 랙 좌표 Z |
-| `cpu_threshold` | `INTEGER` | `NULLABLE` | CPU 임계치 (%, 수기 입력) |
-| `cpu_usage` | `INTEGER` | `NULLABLE` | CPU 사용률 (%, 수기 입력) |
-| `memory_threshold` | `INTEGER` | `NULLABLE` | 메모리 임계치 (%, 수기 입력) |
-| `memory_usage` | `INTEGER` | `NULLABLE` | 메모리 사용률 (%, 수기 입력) |
-| `session_threshold` | `INTEGER` | `NULLABLE` | 세션 임계치 (건, 수기 입력) |
-| `session_usage` | `INTEGER` | `NULLABLE` | 세션 사용량 (건, 수기 입력) |
+| `policy_threshold` | `INTEGER` | `NULLABLE` | 정책 수 임계치 (수기 입력, `cached_policies`와 비교) |
+| `network_object_threshold` | `INTEGER` | `NULLABLE` | 네트워크 객체 수 임계치 (수기 입력, `cached_network_objects + cached_network_groups`와 비교) |
+| `service_threshold` | `INTEGER` | `NULLABLE` | 서비스 객체 수 임계치 (수기 입력, `cached_services + cached_service_groups`와 비교) |
 
 ### `change_logs` Table (변경 이력)
 동기화 과정에서 탐지된 객체 및 정책의 변경 이력을 저장합니다.

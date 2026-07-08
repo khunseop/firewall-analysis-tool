@@ -12,7 +12,7 @@ import { getChangeStats } from '@/api/firewall'
 import { useSyncStatusWebSocket } from '@/hooks/useWebSocket'
 import { notify } from '@/store/notificationStore'
 import { formatNumber, formatRelativeTime } from '@/lib/utils'
-import { resourceLevel, RESOURCE_LEVEL_BAR_COLOR, RESOURCE_LEVEL_TEXT_COLOR } from '@/lib/deviceResource'
+import { capacityLevel, CAPACITY_LEVEL_BAR_COLOR, CAPACITY_LEVEL_TEXT_COLOR } from '@/lib/deviceCapacity'
 
 const VENDOR_BADGE: Record<string, string> = {
   paloalto: 'bg-orange-50 text-orange-600 border border-orange-100',
@@ -38,9 +38,9 @@ interface DeviceRow {
   network_objects: number; network_groups: number
   services: number; service_groups: number
   sync_status: string | null; sync_step: string | null; sync_time: string | null
-  cpu_threshold: number | null; cpu_usage: number | null
-  memory_threshold: number | null; memory_usage: number | null
-  session_threshold: number | null; session_usage: number | null
+  policy_threshold: number | null
+  network_object_threshold: number | null
+  service_threshold: number | null
 }
 
 function transformDeviceStats(d: DeviceStats): DeviceRow {
@@ -56,23 +56,23 @@ function transformDeviceStats(d: DeviceStats): DeviceRow {
     sync_status: d.sync_status,
     sync_step: d.sync_step,
     sync_time: d.sync_time,
-    cpu_threshold: d.cpu_threshold, cpu_usage: d.cpu_usage,
-    memory_threshold: d.memory_threshold, memory_usage: d.memory_usage,
-    session_threshold: d.session_threshold, session_usage: d.session_usage,
+    policy_threshold: d.policy_threshold,
+    network_object_threshold: d.network_object_threshold,
+    service_threshold: d.service_threshold,
   }
 }
 
-function ResourceCell({ usage, threshold, unit }: { usage: number | null; threshold: number | null; unit: string }) {
+function CapacityCell({ usage, threshold }: { usage: number | null; threshold: number | null }) {
   if (usage == null && threshold == null) return <span className="text-[12px] text-ds-on-surface-variant/40">—</span>
-  const level = resourceLevel(usage, threshold)
+  const level = capacityLevel(usage, threshold)
   const pct = usage != null && threshold != null && threshold > 0 ? Math.min(100, Math.round((usage / threshold) * 100)) : 0
   return (
     <div className="flex flex-col justify-center gap-0.5 py-1">
-      <span className={`text-[11px] font-semibold tabular-nums ${RESOURCE_LEVEL_TEXT_COLOR[level]}`}>
-        {usage != null ? `${usage}${unit}` : '—'} / {threshold != null ? `${threshold}${unit}` : '—'}
+      <span className={`text-[11px] font-semibold tabular-nums ${CAPACITY_LEVEL_TEXT_COLOR[level]}`}>
+        {usage != null ? `${usage}개` : '—'} / {threshold != null ? `${threshold}개` : '—'}
       </span>
       <div className="h-1 rounded-full bg-ds-outline-variant/20 overflow-hidden w-20">
-        <div className={`h-full rounded-full ${RESOURCE_LEVEL_BAR_COLOR[level]}`} style={{ width: `${pct}%` }} />
+        <div className={`h-full rounded-full ${CAPACITY_LEVEL_BAR_COLOR[level]}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
@@ -134,16 +134,16 @@ const COLUMN_DEFS: ColDef<DeviceRow>[] = [
     valueFormatter: (p) => formatRelativeTime(p.value),
   },
   {
-    headerName: 'CPU', minWidth: 110, sortable: false, filter: false,
-    cellRenderer: (p: { data: DeviceRow }) => <ResourceCell usage={p.data.cpu_usage} threshold={p.data.cpu_threshold} unit="%" />,
+    headerName: '정책 임계치', minWidth: 110, sortable: false, filter: false,
+    cellRenderer: (p: { data: DeviceRow }) => <CapacityCell usage={p.data.policies} threshold={p.data.policy_threshold} />,
   },
   {
-    headerName: '메모리', minWidth: 110, sortable: false, filter: false,
-    cellRenderer: (p: { data: DeviceRow }) => <ResourceCell usage={p.data.memory_usage} threshold={p.data.memory_threshold} unit="%" />,
+    headerName: '네트워크 객체 임계치', minWidth: 130, sortable: false, filter: false,
+    cellRenderer: (p: { data: DeviceRow }) => <CapacityCell usage={p.data.network_objects + p.data.network_groups} threshold={p.data.network_object_threshold} />,
   },
   {
-    headerName: '세션', minWidth: 110, sortable: false, filter: false,
-    cellRenderer: (p: { data: DeviceRow }) => <ResourceCell usage={p.data.session_usage} threshold={p.data.session_threshold} unit="건" />,
+    headerName: '서비스 객체 임계치', minWidth: 130, sortable: false, filter: false,
+    cellRenderer: (p: { data: DeviceRow }) => <CapacityCell usage={p.data.services + p.data.service_groups} threshold={p.data.service_threshold} />,
   },
 ]
 

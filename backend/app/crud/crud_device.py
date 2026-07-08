@@ -173,12 +173,9 @@ async def get_dashboard_stats(db: AsyncSession) -> DashboardStatsResponse:
             sync_status=d.last_sync_status,
             sync_step=d.last_sync_step,
             sync_time=d.last_sync_at,
-            cpu_threshold=d.cpu_threshold,
-            cpu_usage=d.cpu_usage,
-            memory_threshold=d.memory_threshold,
-            memory_usage=d.memory_usage,
-            session_threshold=d.session_threshold,
-            session_usage=d.session_usage,
+            policy_threshold=d.policy_threshold,
+            network_object_threshold=d.network_object_threshold,
+            service_threshold=d.service_threshold,
         ))
 
     return DashboardStatsResponse(
