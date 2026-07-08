@@ -10,7 +10,7 @@ class NotificationLog(Base):
     """
     __tablename__ = "notification_logs"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     
     # 알림 발생 시간
     timestamp = Column(DateTime, default=lambda: datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None), nullable=False, index=True)

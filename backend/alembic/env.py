@@ -49,7 +49,9 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection):
-    context.configure(connection=connection, target_metadata=target_metadata)
+    # compare_type=False: SQLite는 타입 어피니티만 가지므로 TEXT vs String 등의
+    # 타입 차이를 autogenerate 드리프트로 감지하지 않도록 함
+    context.configure(connection=connection, target_metadata=target_metadata, compare_type=False)
 
     with context.begin_transaction():
         context.run_migrations()

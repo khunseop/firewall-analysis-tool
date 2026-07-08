@@ -16,7 +16,7 @@ class PolicyAddressMember(Base):
     """
     __tablename__ = "policy_address_members"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     device_id = Column(Integer, ForeignKey("devices.id"), nullable=False)
     policy_id = Column(Integer, ForeignKey("policies.id"), nullable=False)
     
@@ -55,7 +55,7 @@ class PolicyServiceMember(Base):
     """
     __tablename__ = "policy_service_members"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
     device_id = Column(Integer, ForeignKey("devices.id"), nullable=False)
     policy_id = Column(Integer, ForeignKey("policies.id"), nullable=False)
     
