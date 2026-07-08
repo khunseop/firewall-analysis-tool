@@ -14,6 +14,7 @@ import {
   deleteProject,
   type DeletionWorkflowProject,
 } from '@/api/deletionWorkflow'
+import { queryKeys } from '@/api/queryKeys'
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   draft:     { label: '초안',   cls: 'bg-gray-100 text-gray-600' },
@@ -40,7 +41,7 @@ function CreateProjectDialog({ open, onClose }: { open: boolean; onClose: () => 
   const mutation = useMutation({
     mutationFn: () => createProject(deviceId!, name.trim(), memo.trim() || undefined, referenceDate || undefined),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['deletion-workflow-projects'] })
+      qc.invalidateQueries({ queryKey: queryKeys.deletionWorkflowProjects })
       toast.success('프로젝트가 생성되었습니다.')
       setDeviceId(null); setName(''); setMemo(''); setReferenceDate('')
       onClose()
@@ -129,7 +130,7 @@ export default function DeletionWorkflowListPage() {
   const [createOpen, setCreateOpen] = useState(false)
 
   const { data: projects = [], isLoading } = useQuery({
-    queryKey: ['deletion-workflow-projects'],
+    queryKey: queryKeys.deletionWorkflowProjects,
     queryFn: () => listProjects(),
     staleTime: 10_000,
   })
@@ -137,7 +138,7 @@ export default function DeletionWorkflowListPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteProject(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['deletion-workflow-projects'] })
+      qc.invalidateQueries({ queryKey: queryKeys.deletionWorkflowProjects })
       toast.success('프로젝트가 삭제되었습니다.')
     },
     onError: (e: Error) => toast.error(e.message),

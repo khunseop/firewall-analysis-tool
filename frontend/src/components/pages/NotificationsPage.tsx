@@ -4,6 +4,7 @@ import { CheckCircle2, Loader2, AlertTriangle, XCircle, Clock, Activity, Search,
 import { getNotifications, type NotificationCategory, type NotificationType } from '@/api/notifications'
 import { formatRelativeTime } from '@/lib/utils'
 import { TableSkeleton } from '@/components/shared/Skeleton'
+import { queryKeys } from '@/api/queryKeys'
 
 const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; label: string }> = {
   success: { icon: CheckCircle2,  color: 'text-green-600',     label: '성공' },
@@ -58,7 +59,7 @@ export function NotificationsPage() {
   const type: NotificationType | undefined = activeTab === 'error' ? 'error' : undefined
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, refetch } = useInfiniteQuery({
-    queryKey: ['notifications', activeTab, appliedSearch, appliedDateFrom, appliedDateTo],
+    queryKey: queryKeys.notifications(activeTab, appliedSearch, appliedDateFrom, appliedDateTo),
     queryFn: ({ pageParam = 0 }) =>
       getNotifications({
         skip: pageParam as number,

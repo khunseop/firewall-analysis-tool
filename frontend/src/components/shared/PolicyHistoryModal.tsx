@@ -4,6 +4,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { Loader2 } from 'lucide-react'
+import { queryKeys } from '@/api/queryKeys'
 
 // ─── 필드 한글 레이블 ─────────────────────────────────────────────────────────
 
@@ -120,7 +121,7 @@ interface PolicyHistoryModalProps {
 
 export function PolicyHistoryModal({ deviceId, ruleName, onClose }: PolicyHistoryModalProps) {
   const { data: logs, isLoading, isError } = useQuery({
-    queryKey: ['policy-history', deviceId, ruleName],
+    queryKey: queryKeys.policyHistory(deviceId, ruleName),
     queryFn: () => getPolicyHistory(deviceId, ruleName),
     staleTime: 30_000,
   })

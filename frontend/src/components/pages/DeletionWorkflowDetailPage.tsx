@@ -22,6 +22,7 @@ import {
 } from '@/api/deletionWorkflow'
 import { getDevice, syncAll, getSyncStatus } from '@/api/devices'
 import { startAnalysis, getAnalysisStatus } from '@/api/analysis'
+import { queryKeys } from '@/api/queryKeys'
 
 // ── 태스크 메타 ──────────────────────────────────────────────────────────────
 
@@ -579,12 +580,12 @@ export default function DeletionWorkflowDetailPage() {
   const [refDateInput, setRefDateInput] = useState('')
 
   const { data: project, isLoading, error } = useQuery<DeletionWorkflowProjectDetail>({
-    queryKey: ['deletion-workflow-project', projectId],
+    queryKey: queryKeys.deletionWorkflowProject(projectId),
     queryFn: () => getProject(projectId),
     staleTime: 5_000,
   })
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ['deletion-workflow-project', projectId] })
+  const refresh = () => qc.invalidateQueries({ queryKey: queryKeys.deletionWorkflowProject(projectId) })
 
   const refDateMutation = useMutation({
     mutationFn: (date: string | null) => updateProject(projectId, { reference_date: date }),
@@ -594,7 +595,7 @@ export default function DeletionWorkflowDetailPage() {
         (old: DeletionWorkflowProjectDetail | undefined) =>
           old ? { ...old, reference_date: data.reference_date } : old,
       )
-      qc.invalidateQueries({ queryKey: ['deletion-workflow-projects'] })
+      qc.invalidateQueries({ queryKey: queryKeys.deletionWorkflowProjects })
       toast.success(data.reference_date ? `기준일이 ${data.reference_date}로 설정되었습니다.` : '기준일이 해제되었습니다.')
       setEditingRefDate(false)
     },
@@ -918,8 +919,8 @@ export default function DeletionWorkflowDetailPage() {
     try {
       const { blob, filename } = await completeProject(projectId)
       triggerDownload(blob, filename)
-      qc.invalidateQueries({ queryKey: ['deletion-workflow-project', projectId] })
-      qc.invalidateQueries({ queryKey: ['deletion-workflow-projects'] })
+      qc.invalidateQueries({ queryKey: queryKeys.deletionWorkflowProject(projectId) })
+      qc.invalidateQueries({ queryKey: queryKeys.deletionWorkflowProjects })
       toast.success('프로젝트 완료 — 결과파일이 저장되었습니다.')
     } catch (e: unknown) {
       toast.error((e as Error).message)

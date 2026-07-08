@@ -5,6 +5,7 @@ import { getObjectDetails, getNetworkObjects, getNetworkGroups, type NetworkObje
 import { ArrowRight, ChevronRight, ChevronDown } from 'lucide-react'
 import { Skeleton } from './Skeleton'
 import { useState } from 'react'
+import { queryKeys } from '@/api/queryKeys'
 
 interface Props {
   deviceId: number
@@ -113,12 +114,12 @@ function MemberNode({
 /** 멤버 트리 컨테이너 — allObjects/allGroups 로드 */
 function MemberTree({ deviceId, members }: { deviceId: number; members: string[] }) {
   const { data: allObjects = [], isLoading: loadingObj } = useQuery({
-    queryKey: ['network-objects', deviceId],
+    queryKey: queryKeys.networkObjects([deviceId]),
     queryFn: () => getNetworkObjects(deviceId),
     staleTime: 60_000,
   })
   const { data: allGroups = [], isLoading: loadingGrp } = useQuery({
-    queryKey: ['network-groups', deviceId],
+    queryKey: queryKeys.networkGroups([deviceId]),
     queryFn: () => getNetworkGroups(deviceId),
     staleTime: 60_000,
   })
@@ -144,7 +145,7 @@ export function ObjectDetailModal({ deviceId, name, onClose }: Props) {
   const navigate = useNavigate()
 
   const { data, isLoading } = useQuery({
-    queryKey: ['object-detail', deviceId, name],
+    queryKey: queryKeys.objectDetail(deviceId, name),
     queryFn: () => getObjectDetails(deviceId, name),
     staleTime: 60_000,
   })

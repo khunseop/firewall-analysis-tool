@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, ChevronRight, Plus, Minus, Edit2, AlertCircle } from 'lucide-react'
 import { listDevices } from '@/api/devices'
 import { apiClient } from '@/api/client'
+import { queryKeys } from '@/api/queryKeys'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -220,10 +221,10 @@ export function PolicyDiffPage() {
   const [filterTab, setFilterTab] = useState<FilterTab>('all')
   const [searchQuery, setSearchQuery] = useState('')
 
-  const { data: devices = [] } = useQuery({ queryKey: ['devices'], queryFn: listDevices })
+  const { data: devices = [] } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices })
 
   const { data: syncHistory = [], isLoading: historyLoading } = useQuery({
-    queryKey: ['sync-history', selectedDeviceId],
+    queryKey: queryKeys.syncHistory(selectedDeviceId),
     queryFn: () => fetchSyncHistory(selectedDeviceId!),
     enabled: selectedDeviceId != null,
   })
@@ -236,7 +237,7 @@ export function PolicyDiffPage() {
     error: diffError,
     refetch,
   } = useQuery({
-    queryKey: ['policy-diff', selectedDeviceId, fromSyncId, toSyncId],
+    queryKey: queryKeys.policyDiff(selectedDeviceId, fromSyncId, toSyncId),
     queryFn: () => fetchPolicyDiff(selectedDeviceId!, fromSyncId!, toSyncId!),
     enabled: false,
   })

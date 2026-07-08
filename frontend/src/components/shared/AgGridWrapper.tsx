@@ -112,6 +112,11 @@ function AgGridWrapperInner<T>(
     }
   }, [fitColumns])
 
+  const handleSelectionChanged = useCallback(
+    (e: { api: GridApi<T> }) => onSelectionChanged?.(e.api.getSelectedRows()),
+    [onSelectionChanged]
+  )
+
   const defaultColDef = useMemo(() => ({
     resizable: true,
     filter: true,
@@ -143,7 +148,7 @@ function AgGridWrapperInner<T>(
         quickFilterText={quickFilterText}
         onRowClicked={onRowClicked}
         rowSelection={rowSelection}
-        onSelectionChanged={onSelectionChanged ? (e) => onSelectionChanged(e.api.getSelectedRows()) : undefined}
+        onSelectionChanged={onSelectionChanged ? handleSelectionChanged : undefined}
         context={context}
         isExternalFilterPresent={isExternalFilterPresent}
         doesExternalFilterPass={doesExternalFilterPass}

@@ -10,6 +10,7 @@ import { getDevice } from '@/api/devices'
 import { exportStyledToExcel } from '@/api/firewall'
 import type { StyledExcelPayload } from '@/api/firewall'
 import { formatNumber, formatRelativeTime, formatDate } from '@/lib/utils'
+import { queryKeys } from '@/api/queryKeys'
 
 const ANALYSIS_TYPE_LABELS: Record<string, string> = {
   redundancy: '중복 정책 분석',
@@ -26,6 +27,8 @@ const STATUS_LABELS: Record<string, { label: string; dot: string; text: string }
   success:     { label: '완료',   dot: 'bg-emerald-500',               text: 'text-emerald-700' },
   failure:     { label: '실패',   dot: 'bg-ds-error',                  text: 'text-ds-error' },
 }
+
+const resultRowId = (p: { data: Record<string, unknown> }) => String(p.data.id ?? p.data.policy_id ?? JSON.stringify(p.data))
 
 // Policy fields accessed from nested policy sub-object (all analyzers wrap policy data under "policy" key)
 const pv = (key: string) => (p: { data?: Record<string, unknown> }) => (p.data?.policy as Record<string, unknown> | undefined)?.[key] ?? p.data?.[key]
@@ -249,7 +252,7 @@ export function AnalysisDetailPage() {
   const id = Number(taskId)
 
   const taskQuery = useQuery({
-    queryKey: ['analysis-task', id],
+    queryKey: queryKeys.analysisTask(id),
     queryFn: () => getAnalysisTaskDetail(id),
     enabled: !!id,
     refetchInterval: (query) => {
@@ -261,13 +264,13 @@ export function AnalysisDetailPage() {
   const task = taskQuery.data
 
   const { data: device } = useQuery({
-    queryKey: ['device', task?.device_id],
+    queryKey: queryKeys.device(task?.device_id),
     queryFn: () => getDevice(task!.device_id),
     enabled: !!task?.device_id,
   })
 
   const resultQuery = useQuery({
-    queryKey: ['analysis-task-result', id],
+    queryKey: queryKeys.analysisTaskResult(id),
     queryFn: () => getAnalysisTaskResult(id),
     enabled: !!id && task?.task_status === 'success',
     retry: false,
@@ -362,7 +365,7 @@ export function AnalysisDetailPage() {
               <AgGridWrapper
                 columnDefs={columnDefs}
                 rowData={results as Record<string, unknown>[]}
-                getRowId={(p) => String(p.data.id ?? p.data.policy_id ?? JSON.stringify(p.data))}
+                getRowId={resultRowId}
                 getRowStyle={rowStyleFn as (p: RowClassParams<Record<string, unknown>>) => RowStyle | undefined}
                 domLayout="autoHeight"
                 noRowsText="분석 결과가 없습니다."

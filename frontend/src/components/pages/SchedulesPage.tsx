@@ -13,6 +13,7 @@ import {
 } from '@/api/schedules'
 import { formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import { queryKeys } from '@/api/queryKeys'
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -30,7 +31,7 @@ function ScheduleFormDialog({ open, onClose, initial, onSubmit, isPending }: {
   onSubmit: (data: ScheduleFormData) => void; isPending: boolean
 }) {
   const [form, setForm] = useState<ScheduleFormData>(initial ?? DEFAULT_FORM)
-  const { data: devices = [] } = useQuery({ queryKey: ['devices'], queryFn: listDevices })
+  const { data: devices = [] } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices })
   const set = (key: keyof ScheduleFormData, val: unknown) => setForm((p) => ({ ...p, [key]: val }))
 
   const toggleDay = (day: number) => {
@@ -126,21 +127,21 @@ export function SchedulesPage() {
   const [editTarget, setEditTarget] = useState<SyncSchedule | null>(null)
   const { confirm, ConfirmDialogElement } = useConfirm()
 
-  const { data: schedules = [], isLoading } = useQuery({ queryKey: ['schedules'], queryFn: listSchedules })
+  const { data: schedules = [], isLoading } = useQuery({ queryKey: queryKeys.schedules, queryFn: listSchedules })
 
   const createMutation = useMutation({
     mutationFn: (data: SyncScheduleCreate) => createSchedule(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['schedules'] }); setFormOpen(false); toast.success('스케줄이 추가되었습니다.') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: queryKeys.schedules }); setFormOpen(false); toast.success('스케줄이 추가되었습니다.') },
     onError: (e: Error) => toast.error(e.message),
   })
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<SyncScheduleCreate> }) => updateSchedule(id, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['schedules'] }); setFormOpen(false); setEditTarget(null); toast.success('스케줄이 수정되었습니다.') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: queryKeys.schedules }); setFormOpen(false); setEditTarget(null); toast.success('스케줄이 수정되었습니다.') },
     onError: (e: Error) => toast.error(e.message),
   })
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteSchedule(id),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['schedules'] }); toast.success('스케줄이 삭제되었습니다.') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: queryKeys.schedules }); toast.success('스케줄이 삭제되었습니다.') },
     onError: (e: Error) => toast.error(e.message),
   })
 

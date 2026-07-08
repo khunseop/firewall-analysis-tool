@@ -7,6 +7,7 @@ import { daysSinceHit } from '@/lib/utils'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { useNavigate } from 'react-router-dom'
 import { Skeleton } from './Skeleton'
+import { queryKeys } from '@/api/queryKeys'
 
 const ACTION_BADGE: Record<string, string> = {
   allow:  'bg-green-100 text-green-700',
@@ -101,12 +102,12 @@ function MemberNode({
 
 function MemberTree({ deviceId, members }: { deviceId: number; members: string[] }) {
   const { data: allObjects = [], isLoading: loadingObj } = useQuery({
-    queryKey: ['network-objects', deviceId],
+    queryKey: queryKeys.networkObjects([deviceId]),
     queryFn: () => getNetworkObjects(deviceId),
     staleTime: 60_000,
   })
   const { data: allGroups = [], isLoading: loadingGrp } = useQuery({
-    queryKey: ['network-groups', deviceId],
+    queryKey: queryKeys.networkGroups([deviceId]),
     queryFn: () => getNetworkGroups(deviceId),
     staleTime: 60_000,
   })
@@ -131,7 +132,7 @@ function ObjectPanel({
 }) {
   const navigate = useNavigate()
   const { data, isLoading } = useQuery({
-    queryKey: ['object-detail', deviceId, name],
+    queryKey: queryKeys.objectDetail(deviceId, name),
     queryFn: () => getObjectDetails(deviceId, name),
     staleTime: 60_000,
   })

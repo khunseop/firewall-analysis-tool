@@ -13,6 +13,7 @@ import { getPolicies } from '@/api/firewall'
 import { startAnalysis, listAnalysisTasks, type StartAnalysisParams, type AnalysisTaskListItem } from '@/api/analysis'
 import { formatDate } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
+import { queryKeys } from '@/api/queryKeys'
 
 interface AnalysisTypeOption {
   value: string
@@ -48,7 +49,7 @@ function PolicyMultiSelect({ deviceId, value, onChange, placeholder }: {
   deviceId: number | null; value: number[]; onChange: (ids: number[]) => void; placeholder?: string
 }) {
   const { data: policies = [], isLoading } = useQuery({
-    queryKey: ['policies-raw', deviceId],
+    queryKey: queryKeys.policiesRaw(deviceId),
     queryFn: () => getPolicies(deviceId!),
     enabled: !!deviceId, staleTime: 60_000,
   })
@@ -98,7 +99,7 @@ function CreateAnalysisDialog({ open, onClose, initialDeviceId }: { open: boolea
     },
     onSuccess: () => {
       toast.success('분석이 시작되었습니다. 목록에서 진행 상황을 확인하세요.')
-      queryClient.invalidateQueries({ queryKey: ['analysis-tasks'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysisTasks })
       onClose()
     },
     onError: (e: Error) => toast.error(e.message),
@@ -256,7 +257,7 @@ export function AnalysisListPage() {
   useEffect(() => { setPage(1) }, [search, typeFilter, statusFilter])
 
   const { data, isLoading } = useQuery({
-    queryKey: ['analysis-tasks', search, typeFilter, statusFilter, page],
+    queryKey: queryKeys.analysisTasksList(search, typeFilter, statusFilter, page),
     queryFn: () => listAnalysisTasks({
       search: search || undefined,
       analysisType: typeFilter === 'all' ? undefined : typeFilter,
