@@ -297,8 +297,7 @@ utils/
 ```
 
 **동작**:
-- 시작: 앱 `startup_event`에서 로드
-- 종료: 앱 `shutdown_event`에서 정지
+- 시작/종료: 앱 `lifespan` 컨텍스트에서 로드·정지
 
 ---
 
