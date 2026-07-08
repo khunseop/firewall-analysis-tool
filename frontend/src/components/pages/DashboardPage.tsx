@@ -1,6 +1,6 @@
 import { useRef, useCallback, useState, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, Search, XCircle, AlertTriangle } from 'lucide-react'
+import { RefreshCw, Search, XCircle, AlertTriangle, Gauge } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { ColDef } from '@ag-grid-community/core'
 import type { GridApi } from '@ag-grid-community/core'
@@ -8,11 +8,18 @@ import ReactApexChart from 'react-apexcharts'
 import type { ApexOptions } from 'apexcharts'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { getDashboardStats, type DeviceStats } from '@/api/devices'
-import { getChangeStats } from '@/api/firewall'
+import { getChangeStats, type ChangeStatCategory } from '@/api/firewall'
 import { useSyncStatusWebSocket } from '@/hooks/useWebSocket'
 import { notify } from '@/store/notificationStore'
 import { formatNumber, formatRelativeTime } from '@/lib/utils'
 import { capacityLevel, CAPACITY_LEVEL_BAR_COLOR, CAPACITY_LEVEL_TEXT_COLOR } from '@/lib/deviceCapacity'
+import { DeviceSelectorSingle } from '@/components/shared/DeviceSelectorSingle'
+
+const CATEGORY_OPTIONS: { value: ChangeStatCategory; label: string }[] = [
+  { value: 'policies', label: '정책' },
+  { value: 'network_objects', label: '네트워크 객체' },
+  { value: 'services', label: '서비스 객체' },
+]
 
 const VENDOR_BADGE: Record<string, string> = {
   paloalto: 'bg-orange-50 text-orange-600 border border-orange-100',
@@ -65,17 +72,36 @@ function transformDeviceStats(d: DeviceStats): DeviceRow {
 function CapacityCell({ usage, threshold }: { usage: number | null; threshold: number | null }) {
   if (usage == null && threshold == null) return <span className="text-[12px] text-ds-on-surface-variant/40">—</span>
   const level = capacityLevel(usage, threshold)
-  const pct = usage != null && threshold != null && threshold > 0 ? Math.min(100, Math.round((usage / threshold) * 100)) : 0
+  const pct = usage != null && threshold != null && threshold > 0 ? Math.round((usage / threshold) * 100) : 0
+  const barPct = Math.min(100, pct)
   return (
     <div className="flex flex-col justify-center gap-0.5 py-1">
       <span className={`text-[11px] font-semibold tabular-nums ${CAPACITY_LEVEL_TEXT_COLOR[level]}`}>
         {usage != null ? `${usage}개` : '—'} / {threshold != null ? `${threshold}개` : '—'}
+        {threshold != null && usage != null && ` (${pct}%)`}
       </span>
       <div className="h-1 rounded-full bg-ds-outline-variant/20 overflow-hidden w-20">
-        <div className={`h-full rounded-full ${CAPACITY_LEVEL_BAR_COLOR[level]}`} style={{ width: `${pct}%` }} />
+        <div className={`h-full rounded-full ${CAPACITY_LEVEL_BAR_COLOR[level]}`} style={{ width: `${barPct}%` }} />
       </div>
     </div>
   )
+}
+
+interface CapacityMetric { label: string; usage: number; threshold: number; pct: number; level: 'warning' | 'danger' }
+
+function getHighCapacityMetrics(row: DeviceRow): CapacityMetric[] {
+  const candidates: { label: string; usage: number; threshold: number | null }[] = [
+    { label: '정책', usage: row.policies, threshold: row.policy_threshold },
+    { label: '네트워크 객체', usage: row.network_objects + row.network_groups, threshold: row.network_object_threshold },
+    { label: '서비스 객체', usage: row.services + row.service_groups, threshold: row.service_threshold },
+  ]
+  const metrics: CapacityMetric[] = []
+  for (const c of candidates) {
+    const level = capacityLevel(c.usage, c.threshold)
+    if (level === 'normal' || c.threshold == null) continue
+    metrics.push({ label: c.label, usage: c.usage, threshold: c.threshold, pct: Math.round((c.usage / c.threshold) * 100), level })
+  }
+  return metrics
 }
 
 const COLUMN_DEFS: ColDef<DeviceRow>[] = [
@@ -230,7 +256,48 @@ export function DashboardPage() {
     grid: { borderColor: 'rgba(0,0,0,0.05)' },
   }
 
+  const [trendDeviceId, setTrendDeviceId] = useState<number | null>(null)
+  const [trendCategory, setTrendCategory] = useState<ChangeStatCategory>('policies')
+
+  const { data: trendStats = [] } = useQuery({
+    queryKey: ['change-stats', trendDeviceId, trendCategory],
+    queryFn: () => getChangeStats([trendDeviceId as number], 12, trendCategory),
+    enabled: trendDeviceId != null,
+    staleTime: 60_000,
+  })
+
+  const trendChartData = useMemo(() => {
+    const weeks = [...new Set(trendStats.map(s => s.week))].sort()
+    const get = (week: string, action: string) => trendStats.find(s => s.week === week && s.action === action)?.count ?? 0
+    return {
+      categories: weeks.map(w => {
+        const [y, wn] = w.split('-')
+        return `${y}-W${wn}`
+      }),
+      series: [
+        { name: '신규', data: weeks.map(w => get(w, 'created')), color: '#22c55e' },
+        { name: '변경', data: weeks.map(w => get(w, 'updated')), color: '#f59e0b' },
+        { name: '삭제', data: weeks.map(w => get(w, 'deleted')), color: '#ef4444' },
+      ],
+    }
+  }, [trendStats])
+
+  const trendChartOptions: ApexOptions = {
+    chart: { type: 'bar', stacked: true, toolbar: { show: false }, background: 'transparent' },
+    plotOptions: { bar: { columnWidth: '55%', borderRadius: 2 } },
+    xaxis: { categories: trendChartData.categories, labels: { style: { fontSize: '11px' } } },
+    yaxis: { labels: { style: { fontSize: '11px' } }, min: 0 },
+    legend: { position: 'top', fontSize: '12px' },
+    dataLabels: { enabled: false },
+    tooltip: { shared: true, intersect: false },
+    grid: { borderColor: 'rgba(0,0,0,0.05)' },
+  }
+
   const errorDevices = rowData.filter(d => d.sync_status === 'failure' || d.sync_status === 'error')
+  const highCapacityDevices = rowData
+    .map(d => ({ device: d, metrics: getHighCapacityMetrics(d) }))
+    .filter(x => x.metrics.length > 0)
+  const hasDangerCapacity = highCapacityDevices.some(x => x.metrics.some(m => m.level === 'danger'))
   const totalPolicies = stats?.total_policies ?? 0
   const activePolicies = stats?.total_active_policies ?? 0
   const totalDevices = stats?.total_devices ?? 0
@@ -274,6 +341,48 @@ export function DashboardPage() {
           >
             장비 확인
           </button>
+        </div>
+      )}
+
+      {/* 임계치 80% 이상 장비 섹션 */}
+      {highCapacityDevices.length > 0 && (
+        <div className={`shrink-0 card rounded-xl border ${hasDangerCapacity ? 'border-ds-error/20' : 'border-amber-200'}`}>
+          <div className="flex items-center justify-between px-5 py-3 border-b border-ds-outline-variant/10">
+            <div className="flex items-center gap-2">
+              <Gauge className={`w-4 h-4 shrink-0 ${hasDangerCapacity ? 'text-ds-error' : 'text-amber-600'}`} />
+              <span className={`text-[13px] font-semibold ${hasDangerCapacity ? 'text-ds-error' : 'text-amber-700'}`}>
+                임계치 80% 이상 사용 중인 장비
+              </span>
+              <span className="text-[11px] text-ds-on-surface-variant/50 tabular-nums">{highCapacityDevices.length}대</span>
+            </div>
+            <button
+              onClick={() => navigate('/devices')}
+              className="px-3 py-1.5 bg-ds-surface-container-low text-ds-on-surface-variant text-[12px] font-semibold rounded-lg hover:bg-ds-surface-container-high transition-all shrink-0"
+            >
+              장비 확인
+            </button>
+          </div>
+          <div className="divide-y divide-ds-outline-variant/10">
+            {highCapacityDevices.map(({ device, metrics }) => (
+              <div key={device.id} className="flex items-center justify-between gap-3 px-5 py-2.5">
+                <span className="text-[12px] font-semibold text-ds-on-surface shrink-0">{device.name}</span>
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                  {metrics.map(m => (
+                    <span
+                      key={m.label}
+                      className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold border ${
+                        m.level === 'danger'
+                          ? 'bg-red-50 text-ds-error border-red-100'
+                          : 'bg-amber-50 text-amber-700 border-amber-100'
+                      }`}
+                    >
+                      {m.label} {m.pct}%
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -339,6 +448,50 @@ export function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* 장비별 객체 증감 추이 */}
+      <div className="card rounded-xl shrink-0">
+        <div className="flex items-center justify-between gap-3 flex-wrap px-5 py-3 border-b border-ds-outline-variant/10">
+          <div>
+            <span className="text-[13px] font-semibold text-ds-on-surface">장비별 객체 증감 추이</span>
+            <span className="text-[11px] text-ds-on-surface-variant/60 ml-2">최근 12주</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-52">
+              <DeviceSelectorSingle value={trendDeviceId} onChange={setTrendDeviceId} />
+            </div>
+            <div className="flex items-center gap-1 bg-ds-surface-container-low rounded-lg p-0.5 border border-ds-outline-variant/10">
+              {CATEGORY_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setTrendCategory(opt.value)}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+                    trendCategory === opt.value
+                      ? 'bg-white text-ds-on-surface shadow-sm'
+                      : 'text-ds-on-surface-variant hover:text-ds-on-surface'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="px-4 py-3">
+          {trendDeviceId == null ? (
+            <p className="text-[12px] text-ds-on-surface-variant/60 text-center py-10">장비를 선택하면 추이를 확인할 수 있습니다.</p>
+          ) : trendChartData.categories.length === 0 ? (
+            <p className="text-[12px] text-ds-on-surface-variant/60 text-center py-10">최근 12주간 변경 이력이 없습니다.</p>
+          ) : (
+            <ReactApexChart
+              type="bar"
+              height={200}
+              series={trendChartData.series}
+              options={trendChartOptions}
+            />
+          )}
+        </div>
+      </div>
 
       {/* 장비 현황 테이블 */}
       <div className="card rounded-xl flex flex-col overflow-hidden">

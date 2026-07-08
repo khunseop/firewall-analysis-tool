@@ -375,16 +375,25 @@ async def get_policy_history(
     ]
 
 
+CATEGORY_DATA_TYPES = {
+    "policies": ["policies"],
+    "network_objects": ["network_objects", "network_groups"],
+    "services": ["services", "service_groups"],
+}
+
+
 @router.get("/change-stats")
 async def get_change_stats(
     device_ids: List[int] = Query(..., description="장비 ID 목록"),
     weeks: int = Query(12, ge=1, le=52),
+    category: str = Query("policies", pattern="^(policies|network_objects|services)$"),
     db: AsyncSession = Depends(get_db),
 ):
-    """주차별 정책 변경 건수 통계 (최근 N주)"""
+    """주차별 객체 변경 건수 통계 (최근 N주). category로 정책/네트워크객체/서비스객체 구분 조회."""
     from sqlalchemy import func, text
 
     since = datetime.now() - timedelta(weeks=weeks)
+    data_types = CATEGORY_DATA_TYPES[category]
     result = await db.execute(
         select(
             func.strftime('%Y-%W', ChangeLog.timestamp).label('week'),
@@ -393,7 +402,7 @@ async def get_change_stats(
         )
         .where(
             ChangeLog.device_id.in_(device_ids),
-            ChangeLog.data_type == "policies",
+            ChangeLog.data_type.in_(data_types),
             ChangeLog.timestamp >= since,
         )
         .group_by(
