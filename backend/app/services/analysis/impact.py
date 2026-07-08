@@ -1,4 +1,5 @@
 
+import asyncio
 import ipaddress
 import logging
 from typing import List, Dict, Any, Set, Tuple, Optional
@@ -292,9 +293,10 @@ class ImpactAnalyzer:
                     return i
         return None
 
-    async def _analyze_single_policy(self, target_policy: Policy, original_position: int, policies: List[Policy]) -> Dict[str, Any]:
+    def _analyze_single_policy(self, target_policy: Policy, original_position: int, policies: List[Policy]) -> Dict[str, Any]:
         """
         단일 정책의 이동 경로에 따른 영향을 상세 분석합니다.
+        순수 CPU 연산(O(n²) 비교)이므로 이벤트 루프가 아닌 executor 스레드에서 호출됩니다.
 
         1. 이동 방향(위/아래)을 판단합니다.
         2. 이동 전 위치와 이동 후 위치 사이의 '영향 범위'에 속한 정책들을 추출합니다.
@@ -591,9 +593,12 @@ class ImpactAnalyzer:
         seen_blocking = set()
         seen_shadowed = set()
 
+        loop = asyncio.get_running_loop()
         for target_info in target_policies_info:
             target_policy = target_info["policy"]
-            single_result = await self._analyze_single_policy(
+            # CPU 바운드 비교 연산이 이벤트 루프를 점유하지 않도록 executor에서 실행
+            single_result = await loop.run_in_executor(
+                None, self._analyze_single_policy,
                 target_policy, target_info["original_position"], policies
             )
 

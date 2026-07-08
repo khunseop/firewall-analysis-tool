@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime, Index
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 from datetime import datetime
@@ -18,6 +18,11 @@ class Policy(Base):
         - RedundancyPolicySet (1:N): 중복 분석 결과와 연계됩니다.
     """
     __tablename__ = "policies"
+
+    # 대부분의 정책 조회가 WHERE device_id = ? AND is_active = ? 형태이므로 복합 인덱스 필수
+    __table_args__ = (
+        Index("ix_policies_device_active", "device_id", "is_active"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     device_id = Column(Integer, ForeignKey("devices.id"))

@@ -146,6 +146,8 @@
 | `last_hit_date` | `DATETIME` | `NULLABLE` | 최근 히트 일시 |
 | `is_indexed` | `BOOLEAN` | `DEFAULT False` | 인덱싱 완료 여부 |
 
+**Indexes**: `ix_policies_device_active (device_id, is_active)` — 정책 조회의 기본 필터 조합
+
 ---
 
 ## 3. 고속 검색 인덱스 테이블

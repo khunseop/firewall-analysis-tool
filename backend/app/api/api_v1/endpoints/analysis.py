@@ -34,7 +34,7 @@ async def start_redundancy_analysis(
     if running_task:
         raise HTTPException(status_code=409, detail=f"An analysis task (ID: {running_task.id}) is already in progress.")
 
-    background_tasks.add_task(run_redundancy_analysis_task, db, device_id)
+    background_tasks.add_task(run_redundancy_analysis_task, device_id)
 
     return {"msg": "Redundancy analysis has been started in the background."}
 
@@ -178,7 +178,7 @@ async def start_unused_analysis(
     if running_task:
         raise HTTPException(status_code=409, detail=f"An analysis task (ID: {running_task.id}) is already in progress.")
 
-    background_tasks.add_task(run_unused_analysis_task, db, device_id, days)
+    background_tasks.add_task(run_unused_analysis_task, device_id, days)
 
     return {"msg": f"Unused policy analysis has been started in the background (기준: {days}일)."}
 
@@ -206,7 +206,7 @@ async def start_impact_analysis(
     if running_task:
         raise HTTPException(status_code=409, detail=f"An analysis task (ID: {running_task.id}) is already in progress.")
 
-    background_tasks.add_task(run_impact_analysis_task, db, device_id, target_policy_id, reference_policy_id, move_direction)
+    background_tasks.add_task(run_impact_analysis_task, device_id, target_policy_id, reference_policy_id, move_direction)
 
     return {"msg": f"Impact analysis has been started in the background for {len(target_policy_id)} policy(ies)."}
 
@@ -227,7 +227,7 @@ async def start_unreferenced_objects_analysis(
     if running_task:
         raise HTTPException(status_code=409, detail=f"An analysis task (ID: {running_task.id}) is already in progress.")
 
-    background_tasks.add_task(run_unreferenced_objects_analysis_task, db, device_id)
+    background_tasks.add_task(run_unreferenced_objects_analysis_task, device_id)
 
     return {"msg": "Unreferenced objects analysis has been started in the background."}
 
@@ -250,7 +250,7 @@ async def start_risky_ports_analysis(
     if running_task:
         raise HTTPException(status_code=409, detail=f"An analysis task (ID: {running_task.id}) is already in progress.")
 
-    background_tasks.add_task(run_risky_ports_analysis_task, db, device_id, target_policy_id)
+    background_tasks.add_task(run_risky_ports_analysis_task, device_id, target_policy_id)
 
     return {"msg": "Risky ports analysis has been started in the background."}
 
@@ -273,6 +273,6 @@ async def start_over_permissive_analysis(
     if running_task:
         raise HTTPException(status_code=409, detail=f"An analysis task (ID: {running_task.id}) is already in progress.")
 
-    background_tasks.add_task(run_over_permissive_analysis_task, db, device_id, target_policy_id)
+    background_tasks.add_task(run_over_permissive_analysis_task, device_id, target_policy_id)
 
     return {"msg": "Over-permissive policy analysis has been started in the background."}
