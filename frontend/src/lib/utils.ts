@@ -36,3 +36,6 @@ export function daysSinceHit(dateStr: string | null | undefined): number | null 
   if (!dateStr) return null
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000)
 }
+
+/** id 필드를 Ag-Grid rowId로 쓰는 공용 getRowId — 렌더마다 새 함수가 생기지 않도록 모듈 레벨로 고정 */
+export const rowIdFromId = (p: { data: { id: number | string } }) => String(p.data.id)

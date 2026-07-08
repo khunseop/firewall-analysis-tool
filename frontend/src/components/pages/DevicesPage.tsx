@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatRelativeTime } from '@/lib/utils'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Plus, Upload, Download, RefreshCw, Pencil, Trash2, Wifi, Search, XCircle, ChevronDown, ExternalLink, Settings2, Tag, CheckCircle2, AlertCircle, Loader2, FileDown, ListFilter, Boxes, BarChart3 } from 'lucide-react'
 import type { ColDef, IRowNode } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
+import { rowIdFromId } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -23,6 +24,7 @@ import { notify } from '@/store/notificationStore'
 import { useDeviceStore } from '@/store/deviceStore'
 import { capacityLevel } from '@/lib/deviceCapacity'
 import { DeviceDetailDialog } from './devices/DeviceDetailDialog'
+import { queryKeys } from '@/api/queryKeys'
 
 const VENDOR_OPTIONS = [
   { code: 'paloalto', label: 'Palo Alto' },
@@ -528,7 +530,7 @@ function DirectExportDialog({ open, onClose, devices }: {
   )
 }
 
-function DeviceNameCell({ data, onShowDetail }: { data: Device; onShowDetail: (device: Device) => void }) {
+const DeviceNameCell = memo(function DeviceNameCell({ data, onShowDetail }: { data: Device; onShowDetail: (device: Device) => void }) {
   const navigate = useNavigate()
   const setSelectedIds = useDeviceStore((s) => s.setSelectedIds)
   const [open, setOpen] = useState(false)
@@ -581,9 +583,9 @@ function DeviceNameCell({ data, onShowDetail }: { data: Device; onShowDetail: (d
       )}
     </div>
   )
-}
+})
 
-function ResourceWarningBadge({ data }: { data: Device }) {
+const ResourceWarningBadge = memo(function ResourceWarningBadge({ data }: { data: Device }) {
   if (!data) return null
   const networkObjectUsage = (data.cached_network_objects ?? 0) + (data.cached_network_groups ?? 0)
   const serviceUsage = (data.cached_services ?? 0) + (data.cached_service_groups ?? 0)
@@ -601,7 +603,7 @@ function ResourceWarningBadge({ data }: { data: Device }) {
     return <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-100">경고</span>
   }
   return <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">정상</span>
-}
+})
 
 function buildColumnDefs(onShowDetail: (device: Device) => void): ColDef<Device>[] {
   return [
@@ -747,7 +749,7 @@ export function DevicesPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [addMenuOpen])
 
-  const { data: devices = [], isLoading } = useQuery({ queryKey: ['devices'], queryFn: listDevices })
+  const { data: devices = [], isLoading } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices })
 
   // devices 쿼리가 갱신될 때 그리드에서 최신 선택 행 데이터를 재동기화
   useEffect(() => {
@@ -793,17 +795,17 @@ export function DevicesPage() {
 
   const createMutation = useMutation({
     mutationFn: (data: DeviceCreate) => createDevice(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['devices'] }); setFormOpen(false); toast.success('장비가 추가되었습니다.') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: queryKeys.devices }); setFormOpen(false); toast.success('장비가 추가되었습니다.') },
     onError: (e: Error) => toast.error(e.message),
   })
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: DeviceUpdate }) => updateDevice(id, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['devices'] }); setFormOpen(false); setEditTarget(null); toast.success('장비가 수정되었습니다.') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: queryKeys.devices }); setFormOpen(false); setEditTarget(null); toast.success('장비가 수정되었습니다.') },
     onError: (e: Error) => toast.error(e.message),
   })
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteDevice(id),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['devices'] }); toast.success('장비가 삭제되었습니다.') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: queryKeys.devices }); toast.success('장비가 삭제되었습니다.') },
     onError: (e: Error) => toast.error(e.message),
   })
   const syncMutation = useMutation({
@@ -831,10 +833,10 @@ export function DevicesPage() {
     }
     if (msg.status === 'success') {
       notify('동기화 완료', deviceName ?? `장비 ID ${msg.device_id}`, 'success', { category: 'sync', device_id: msg.device_id, device_name: deviceName })
-      queryClient.invalidateQueries({ queryKey: ['devices'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.devices })
     } else if (msg.status === 'failure') {
       notify('동기화 실패', deviceName ?? `장비 ID ${msg.device_id}`, 'error', { category: 'sync', device_id: msg.device_id, device_name: deviceName })
-      queryClient.invalidateQueries({ queryKey: ['devices'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.devices })
     }
   }, [queryClient])
 
@@ -843,7 +845,7 @@ export function DevicesPage() {
   const bulkImportMutation = useMutation({
     mutationFn: (file: File) => bulkImportDevices(file),
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['devices'] }); setBulkOpen(false); setBulkFile(null)
+      queryClient.invalidateQueries({ queryKey: queryKeys.devices }); setBulkOpen(false); setBulkFile(null)
       toast.success(`등록 완료: ${result.success_count}/${result.total}개 성공`)
       if (result.failed_count > 0) toast.warning(`실패: ${result.failed_devices.join(', ')}`)
     },
@@ -891,7 +893,7 @@ export function DevicesPage() {
     setBulkOptionsOpen(false)
     try {
       await Promise.all(selectedDevices.map(d => updateDevice(d.id, opts)))
-      queryClient.invalidateQueries({ queryKey: ['devices'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.devices })
       toast.success(`${selectedDevices.length}개 장비 수집 옵션이 변경되었습니다.`)
     } catch (e: unknown) { toast.error((e as Error).message) }
   }, [selectedDevices, queryClient])
@@ -900,7 +902,7 @@ export function DevicesPage() {
     setBulkGroupOpen(false)
     try {
       await Promise.all(selectedDevices.map(d => updateDevice(d.id, { group })))
-      queryClient.invalidateQueries({ queryKey: ['devices'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.devices })
       toast.success(`${selectedDevices.length}개 장비 그룹이 변경되었습니다.`)
     } catch (e: unknown) { toast.error((e as Error).message) }
   }, [selectedDevices, queryClient])
@@ -923,7 +925,7 @@ export function DevicesPage() {
         <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">Devices</h1>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['devices'] })}
+            onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.devices })}
             className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-ds-on-surface-variant bg-white rounded-lg shadow-sm border border-ds-outline-variant/10 hover:text-ds-on-surface hover:bg-ds-surface-container-low transition-all"
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -1130,7 +1132,7 @@ export function DevicesPage() {
           ref={gridRef}
           columnDefs={columnDefs}
           rowData={devices}
-          getRowId={(p) => String(p.data.id)}
+          getRowId={rowIdFromId}
           quickFilterText={quickFilter}
           height="calc(100vh - 280px)"
           noRowsText="등록된 장비가 없습니다."

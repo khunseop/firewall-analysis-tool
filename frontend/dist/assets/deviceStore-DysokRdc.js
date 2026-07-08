@@ -1,0 +1,1 @@
+import{i as e,r as t}from"./axios-DnmXf8Qu.js";var n=e()(t((e,t)=>({selectedIds:[],setSelectedIds:t=>e({selectedIds:t}),toggleId:n=>{let r=t().selectedIds;e({selectedIds:r.includes(n)?r.filter(e=>e!==n):[...r,n]})},clearSelection:()=>e({selectedIds:[]}),selectAll:t=>e({selectedIds:t})}),{name:`fat-device-selection`}));export{n as t};

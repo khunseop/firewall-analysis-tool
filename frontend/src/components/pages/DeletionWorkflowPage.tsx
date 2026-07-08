@@ -11,6 +11,7 @@ import {
 } from '@/api/deletionWorkflow'
 import { listDevices, type Device } from '@/api/devices'
 import { cn } from '@/lib/utils'
+import { queryKeys } from '@/api/queryKeys'
 
 // ──────────────────────────────────────────────────────────────────
 // 타입
@@ -455,13 +456,13 @@ export function DeletionWorkflowPage() {
   const [taskStates, setTaskStates] = useState<Record<number, TaskState>>({})
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['deletion-workflow-tasks'],
+    queryKey: queryKeys.deletionWorkflowTasks,
     queryFn: fetchDeletionTasks,
     staleTime: Infinity,
   })
 
   const { data: devices = [] } = useQuery({
-    queryKey: ['devices'],
+    queryKey: queryKeys.devices,
     queryFn: listDevices,
   })
 

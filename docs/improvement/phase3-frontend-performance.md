@@ -6,7 +6,7 @@
 
 ## 3-1. 라우트 코드 스플리팅 + 번들 정리
 
-- [ ] 완료
+- [x] 완료
 
 **대상**: `frontend/src/App.tsx`, `frontend/vite.config.ts`, `frontend/package.json`
 
@@ -34,7 +34,7 @@
 
 ## 3-2. AgGridWrapper 렌더링 최적화
 
-- [ ] 완료
+- [x] 완료
 
 **대상**: `frontend/src/components/shared/AgGridWrapper.tsx` 및 호출부
 (`PoliciesPage.tsx:598`, `DashboardPage.tsx:527`, `DevicesPage.tsx:1133`, `ObjectsPage.tsx:368`, `AnalysisDetailPage.tsx:365`)
@@ -59,7 +59,7 @@ React DevTools Profiler로 rowData 갱신 시 리렌더 범위 확인.
 
 ## 3-3. 서버 상태 단일화 (React Query) + 쿼리키 팩토리
 
-- [ ] 완료
+- [x] 완료
 
 **대상**: `frontend/src/store/policySearchStore.ts`, `frontend/src/components/pages/PoliciesPage.tsx:177-186`,
 신규 `frontend/src/api/queryKeys.ts`
@@ -89,7 +89,7 @@ React DevTools Profiler로 rowData 갱신 시 리렌더 범위 확인.
 
 ## 3-4. useWebSocket 훅 안정화
 
-- [ ] 완료
+- [x] 완료
 
 **대상**: `frontend/src/hooks/useWebSocket.ts`
 

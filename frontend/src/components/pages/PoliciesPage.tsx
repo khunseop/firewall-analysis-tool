@@ -1,10 +1,11 @@
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Download, SlidersHorizontal, AlertTriangle, X, History, Search, Bookmark, BookmarkPlus } from 'lucide-react'
 import type { ColDef, RowClickedEvent } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
+import { rowIdFromId } from '@/lib/utils'
 import { listDevices } from '@/api/devices'
 import {
   searchPolicies, getChangeLogs, exportToExcel,
@@ -22,6 +23,7 @@ import {
 import { DeviceSelector } from '@/components/shared/DeviceSelector'
 import { useDeviceStore } from '@/store/deviceStore'
 import { usePolicySearchStore } from '@/store/policySearchStore'
+import { queryKeys } from '@/api/queryKeys'
 
 const ACTION_BADGE: Record<string, string> = {
   allow:  'bg-green-100 text-green-700',
@@ -109,21 +111,52 @@ const GRID_DEFAULT_COL_DEF_OVERRIDE = { filter: false }
 
 export function PoliciesPage() {
   const gridRef = useRef<AgGridWrapperHandle>(null)
+  const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const { selectedIds: deviceIds, setSelectedIds: setDeviceIds } = useDeviceStore()
 
   const {
     filterTree, setFilterTree,
-    policies, setPolicies,
-    searched, setSearched,
-    validObjectNames: validObjectNamesArr, setValidObjectNames,
-    changeLogEntries, setChangeLogEntries,
+    searchRequest, setSearchRequest,
     quickFilterText, setQuickFilterText,
     filtersOpen, setFiltersOpen,
     reset: resetStore,
   } = usePolicySearchStore()
 
-  const validObjectNames = useMemo(() => new Set(validObjectNamesArr), [validObjectNamesArr])
+  // 검색 결과는 React Query 캐시가 단일 소스 — searchRequest가 persist되므로
+  // 새로고침 시에도 쿼리가 자동으로 재실행된다.
+  const searched = searchRequest !== null
+  const searchQuery = useQuery({
+    queryKey: queryKeys.policySearch(searchRequest),
+    enabled: searched,
+    queryFn: async () => {
+      const req = searchRequest!
+      const ids = req.device_ids ?? []
+      const [policyRes, logs] = await Promise.all([
+        searchPolicies(req),
+        ids.length > 0 ? getChangeLogs(ids).catch(() => [] as ChangeLogEntry[]) : Promise.resolve([] as ChangeLogEntry[]),
+      ])
+      // 변경 이력 — 최신 로그만 (key 기준 첫 번째)
+      const seen = new Set<string>()
+      const deduped: ChangeLogEntry[] = []
+      for (const log of logs) {
+        const key = `${log.device_id}_${log.object_name}`
+        if (!seen.has(key)) { seen.add(key); deduped.push(log) }
+      }
+      return { policyRes, changeLogEntries: deduped }
+    },
+  })
+
+  useEffect(() => {
+    if (searchQuery.error) toast.error((searchQuery.error as Error).message)
+  }, [searchQuery.error])
+
+  const policies = useMemo(() => searchQuery.data?.policyRes.policies ?? [], [searchQuery.data])
+  const changeLogEntries = useMemo(() => searchQuery.data?.changeLogEntries ?? [], [searchQuery.data])
+  const validObjectNames = useMemo(
+    () => new Set(searchQuery.data?.policyRes.valid_object_names ?? []),
+    [searchQuery.data]
+  )
   const changeLogMap = useMemo(() => {
     const map = new Map<string, ChangeLogEntry>()
     for (const log of changeLogEntries) {
@@ -172,15 +205,7 @@ export function PoliciesPage() {
     localStorage.setItem(PRESET_KEY, JSON.stringify(updated))
   }
 
-  const { data: devices = [] } = useQuery({ queryKey: ['devices'], queryFn: listDevices })
-
-  // 새로고침 후 자동 재검색: searched=true지만 policies가 비어있으면 (partialize로 미저장)
-  useEffect(() => {
-    if (searched && deviceIds.length > 0 && policies.length === 0) {
-      const payload = buildRequestFromFilterTree(filterTree, deviceIds)
-      searchMutation.mutate(payload as unknown as PolicySearchRequest)
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const { data: devices = [] } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices })
 
   // URL 파라미터로 필터 자동 세팅 (ObjectDetailModal / AnalysisDetailPage → 정책 검색 연동)
   useEffect(() => {
@@ -219,35 +244,10 @@ export function PoliciesPage() {
       // 장비가 이미 선택된 상태면 자동 검색
       if (deviceIds.length > 0) {
         const payload = buildRequestFromFilterTree(newTree, deviceIds)
-        searchMutation.mutate(payload as unknown as PolicySearchRequest)
+        setSearchRequest(payload as unknown as PolicySearchRequest)
       }
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const searchMutation = useMutation({
-    mutationFn: async (req: PolicySearchRequest) => {
-      const [policyRes, logs] = await Promise.all([
-        searchPolicies(req),
-        deviceIds.length > 0 ? getChangeLogs(deviceIds).catch(() => []) : Promise.resolve([]),
-      ])
-      return { policyRes, logs }
-    },
-    onSuccess: ({ policyRes, logs }) => {
-      setPolicies(policyRes.policies)
-      setValidObjectNames(policyRes.valid_object_names)
-      setSearched(true)
-
-      // 변경 이력 — 최신 로그만 (key 기준 첫 번째)
-      const seen = new Set<string>()
-      const deduped: ChangeLogEntry[] = []
-      for (const log of logs as ChangeLogEntry[]) {
-        const key = `${log.device_id}_${log.object_name}`
-        if (!seen.has(key)) { seen.add(key); deduped.push(log) }
-      }
-      setChangeLogEntries(deduped)
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
 
   const buildRequest = (): PolicySearchRequest => {
     const payload = buildRequestFromFilterTree(filterTree, deviceIds)
@@ -256,7 +256,10 @@ export function PoliciesPage() {
 
   const handleSearch = () => {
     if (deviceIds.length === 0) { toast.warning('장비를 선택하세요.'); return }
-    searchMutation.mutate(buildRequest())
+    const req = buildRequest()
+    setSearchRequest(req)
+    // 동일 조건으로 다시 검색해도 서버를 재조회하도록 캐시를 무효화
+    queryClient.invalidateQueries({ queryKey: queryKeys.policySearch(req) })
   }
 
   const handleReset = () => {
@@ -528,10 +531,10 @@ export function PoliciesPage() {
             </button>
             <button
               onClick={handleSearch}
-              disabled={deviceIds.length === 0 || searchMutation.isPending}
+              disabled={deviceIds.length === 0 || searchQuery.isFetching}
               className="btn-primary-gradient text-ds-on-tertiary text-[12px] font-semibold px-4 py-1.5 rounded-lg shadow-sm hover:opacity-90 transition-all disabled:opacity-50"
             >
-              {searchMutation.isPending ? '검색 중…' : '검색'}
+              {searchQuery.isFetching ? '검색 중…' : '검색'}
             </button>
           </div>
         </div>
@@ -595,7 +598,7 @@ export function PoliciesPage() {
           ref={gridRef}
           columnDefs={columnDefs}
           rowData={policies}
-          getRowId={(p) => String(p.data.id)}
+          getRowId={rowIdFromId}
           height="800px"
           noRowsText="장비를 선택하고 검색 버튼을 클릭하세요."
           defaultColDefOverride={GRID_DEFAULT_COL_DEF_OVERRIDE}

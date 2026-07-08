@@ -14,6 +14,9 @@ import {
   getObjectUsageCounts,
   type NetworkObject, type NetworkGroup, type Service, type ServiceGroup,
 } from '@/api/firewall'
+import { queryKeys } from '@/api/queryKeys'
+
+const objectRowId = (p: { data: unknown }) => String((p.data as Record<string, unknown>)['id'])
 
 type TabKey = 'network_objects' | 'network_groups' | 'services' | 'service_groups'
 
@@ -27,22 +30,22 @@ const TABS: { key: TabKey; label: string }[] = [
 function useObjectsData(deviceIds: number[], tab: TabKey) {
   const enabled = deviceIds.length > 0
   const networkObjects = useQuery({
-    queryKey: ['network-objects', ...deviceIds],
+    queryKey: queryKeys.networkObjects(deviceIds),
     queryFn: async () => (await Promise.all(deviceIds.map((id) => getNetworkObjects(id)))).flat(),
     enabled: enabled && tab === 'network_objects', staleTime: 30_000,
   })
   const networkGroups = useQuery({
-    queryKey: ['network-groups', ...deviceIds],
+    queryKey: queryKeys.networkGroups(deviceIds),
     queryFn: async () => (await Promise.all(deviceIds.map((id) => getNetworkGroups(id)))).flat(),
     enabled: enabled && tab === 'network_groups', staleTime: 30_000,
   })
   const services = useQuery({
-    queryKey: ['services', ...deviceIds],
+    queryKey: queryKeys.services(deviceIds),
     queryFn: async () => (await Promise.all(deviceIds.map((id) => getServices(id)))).flat(),
     enabled: enabled && tab === 'services', staleTime: 30_000,
   })
   const serviceGroups = useQuery({
-    queryKey: ['service-groups', ...deviceIds],
+    queryKey: queryKeys.serviceGroups(deviceIds),
     queryFn: async () => (await Promise.all(deviceIds.map((id) => getServiceGroups(id)))).flat(),
     enabled: enabled && tab === 'service_groups', staleTime: 30_000,
   })
@@ -72,12 +75,12 @@ export function ObjectsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('network_objects')
   const [quickFilter, setQuickFilter] = useState('')
   const [objectModal, setObjectModal] = useState<{ deviceId: number; name: string } | null>(null)
-  const { data: devices = [] } = useQuery({ queryKey: ['devices'], queryFn: listDevices })
+  const { data: devices = [] } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices })
   const navigate = useNavigate()
   const { networkObjects, networkGroups, services, serviceGroups } = useObjectsData(deviceIds, activeTab)
 
   const { data: usageCounts = [] } = useQuery({
-    queryKey: ['object-usage-counts', ...deviceIds],
+    queryKey: queryKeys.objectUsageCounts(deviceIds),
     queryFn: () => getObjectUsageCounts(deviceIds),
     enabled: deviceIds.length > 0,
     staleTime: 60_000,
@@ -365,7 +368,7 @@ export function ObjectsPage() {
             <AgGridWrapper
               columnDefs={current.cols}
               rowData={current.data as unknown[]}
-              getRowId={(p) => String((p.data as Record<string, unknown>)['id'])}
+              getRowId={objectRowId}
               quickFilterText={quickFilter}
               height="calc(100vh - 240px)"
               noRowsText="사이드바에서 장비를 선택하세요."

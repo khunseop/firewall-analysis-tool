@@ -4,7 +4,9 @@ import { Search } from 'lucide-react'
 import type { ColDef, GridReadyEvent } from '@ag-grid-community/core'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
+import { rowIdFromId } from '@/lib/utils'
 import { getPolicies, type Policy } from '@/api/firewall'
+import { queryKeys } from '@/api/queryKeys'
 
 const COLUMN_DEFS: ColDef<Policy>[] = [
   { field: 'seq', headerName: '순번', width: 70 },
@@ -40,7 +42,7 @@ export function PolicyGridPicker(props: PolicyGridPickerProps) {
   const gridRef = useRef<AgGridWrapperHandle>(null)
 
   const { data: policies = [], isLoading } = useQuery({
-    queryKey: ['policies-raw', deviceId],
+    queryKey: queryKeys.policiesRaw(deviceId),
     queryFn: () => getPolicies(deviceId!),
     enabled: !!deviceId && open,
     staleTime: 60_000,
@@ -108,7 +110,7 @@ export function PolicyGridPicker(props: PolicyGridPickerProps) {
             ref={gridRef}
             columnDefs={COLUMN_DEFS}
             rowData={policies}
-            getRowId={(p) => String(p.data.id)}
+            getRowId={rowIdFromId}
             quickFilterText={search}
             height={420}
             rowSelection={mode === 'multi' ? { mode: 'multiRow', checkboxes: true, headerCheckbox: true } : undefined}

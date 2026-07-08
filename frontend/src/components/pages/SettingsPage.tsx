@@ -10,13 +10,14 @@ import { getSettings, updateSetting, getDeletionWorkflowConfig, updateDeletionWo
 import { getUsers, createUser, changeUserPassword, toggleUserActive, deleteUser, type User } from '@/api/users'
 import { deleteOldNotifications } from '@/api/notifications'
 import { listDevices, type Device } from '@/api/devices'
+import { queryKeys } from '@/api/queryKeys'
 
 // ──────────────────────────────────────────────────────────────────
 // 일반 설정
 // ──────────────────────────────────────────────────────────────────
 function GeneralSettings() {
   const queryClient = useQueryClient()
-  const { data: settings = [], isLoading } = useQuery({ queryKey: ['settings'], queryFn: getSettings })
+  const { data: settings = [], isLoading } = useQuery({ queryKey: queryKeys.settings, queryFn: getSettings })
   const [values, setValues] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -29,7 +30,7 @@ function GeneralSettings() {
 
   const updateMutation = useMutation({
     mutationFn: ({ key, value }: { key: string; value: string }) => updateSetting(key, value),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['settings'] }); toast.success('설정이 저장되었습니다.') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: queryKeys.settings }); toast.success('설정이 저장되었습니다.') },
     onError: (e: Error) => toast.error(e.message),
   })
 
@@ -76,7 +77,7 @@ interface RiskyPort {
 
 function RiskyPortsSettings() {
   const queryClient = useQueryClient()
-  const { data: settings = [] } = useQuery({ queryKey: ['settings'], queryFn: getSettings })
+  const { data: settings = [] } = useQuery({ queryKey: queryKeys.settings, queryFn: getSettings })
   const [rows, setRows] = useState<RiskyPort[]>([])
   const [dirty, setDirty] = useState(false)
 
@@ -90,7 +91,7 @@ function RiskyPortsSettings() {
   const saveMutation = useMutation({
     mutationFn: () => updateSetting('risky_ports', JSON.stringify(rows)),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['settings'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings })
       toast.success('위험 포트 설정이 저장되었습니다.')
       setDirty(false)
     },
@@ -196,12 +197,12 @@ function AccountSettings() {
   const [newUser, setNewUser] = useState({ username: '', password: '', is_admin: false })
   const [pwDialog, setPwDialog] = useState<{ user: User; password: string } | null>(null)
 
-  const { data: users = [], isLoading } = useQuery({ queryKey: ['users'], queryFn: getUsers })
+  const { data: users = [], isLoading } = useQuery({ queryKey: queryKeys.users, queryFn: getUsers })
 
   const createMutation = useMutation({
     mutationFn: () => createUser({ username: newUser.username, password: newUser.password, is_admin: newUser.is_admin }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.users })
       setCreateOpen(false)
       setNewUser({ username: '', password: '', is_admin: false })
       toast.success('계정이 생성되었습니다.')
@@ -217,13 +218,13 @@ function AccountSettings() {
 
   const toggleMutation = useMutation({
     mutationFn: ({ userId, is_active }: { userId: number; is_active: boolean }) => toggleUserActive(userId, is_active),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.users }),
     onError: (e: Error) => toast.error(e.message),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (userId: number) => deleteUser(userId),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['users'] }); toast.success('계정이 삭제되었습니다.') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: queryKeys.users }); toast.success('계정이 삭제되었습니다.') },
     onError: (e: Error) => toast.error(e.message),
   })
 
@@ -963,12 +964,12 @@ function DeletionWorkflowSettings() {
   const importRef = useRef<HTMLInputElement>(null)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['deletion-workflow-config'],
+    queryKey: queryKeys.deletionWorkflowConfig,
     queryFn: getDeletionWorkflowConfig,
   })
 
   const { data: devices = [] } = useQuery({
-    queryKey: ['devices'],
+    queryKey: queryKeys.devices,
     queryFn: listDevices,
   })
 
@@ -987,7 +988,7 @@ function DeletionWorkflowSettings() {
     setYamlSaving(true)
     try {
       await updateDeletionWorkflowConfigYaml(yamlText)
-      await queryClient.invalidateQueries({ queryKey: ['deletion-workflow-config'] })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.deletionWorkflowConfig })
       toast.success('YAML 설정이 저장되었습니다.')
       setYamlDirty(false)
     } catch {
@@ -1000,7 +1001,7 @@ function DeletionWorkflowSettings() {
   const saveMutation = useMutation({
     mutationFn: () => updateDeletionWorkflowConfig(config),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['deletion-workflow-config'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.deletionWorkflowConfig })
       toast.success('설정이 저장되었습니다.')
       setDirty(false)
     },
@@ -1027,7 +1028,7 @@ function DeletionWorkflowSettings() {
     setImporting(true)
     try {
       await importDeletionWorkflowConfig(file)
-      await queryClient.invalidateQueries({ queryKey: ['deletion-workflow-config'] })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.deletionWorkflowConfig })
       setDirty(false)
       toast.success('설정이 복구되었습니다.')
     } catch {

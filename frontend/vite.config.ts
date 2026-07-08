@@ -29,5 +29,16 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        // 대형 벤더 라이브러리를 별도 청크로 분리 (페이지 lazy 청크와 캐싱 분리)
+        manualChunks(id: string) {
+          if (id.includes('node_modules')) {
+            if (id.includes('@ag-grid-community')) return 'vendor-ag-grid'
+            if (id.includes('apexcharts')) return 'vendor-charts'
+          }
+        },
+      },
+    },
   },
 })

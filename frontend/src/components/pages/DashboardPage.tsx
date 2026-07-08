@@ -7,6 +7,7 @@ import type { GridApi } from '@ag-grid-community/core'
 import ReactApexChart from 'react-apexcharts'
 import type { ApexOptions } from 'apexcharts'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
+import { rowIdFromId } from '@/lib/utils'
 import { getDashboardStats, type DeviceStats } from '@/api/devices'
 import { getChangeStats, type ChangeStatCategory } from '@/api/firewall'
 import { useSyncStatusWebSocket } from '@/hooks/useWebSocket'
@@ -14,6 +15,7 @@ import { notify } from '@/store/notificationStore'
 import { formatNumber, formatRelativeTime } from '@/lib/utils'
 import { capacityLevel, CAPACITY_LEVEL_BAR_COLOR, CAPACITY_LEVEL_TEXT_COLOR } from '@/lib/deviceCapacity'
 import { DeviceSelectorSingle } from '@/components/shared/DeviceSelectorSingle'
+import { queryKeys } from '@/api/queryKeys'
 
 const CATEGORY_OPTIONS: { value: ChangeStatCategory; label: string }[] = [
   { value: 'policies', label: '정책' },
@@ -180,7 +182,7 @@ export function DashboardPage() {
   const [gridSearch, setGridSearch] = useState('')
 
   const { data: stats, isLoading } = useQuery({
-    queryKey: ['dashboard-stats'], queryFn: getDashboardStats, staleTime: 60_000,
+    queryKey: queryKeys.dashboardStats, queryFn: getDashboardStats, staleTime: 60_000,
   })
 
   const rowData: DeviceRow[] = stats?.device_stats.map(transformDeviceStats) ?? []
@@ -205,10 +207,10 @@ export function DashboardPage() {
       }
       if (msg.status === 'success') {
         notify('동기화 완료', deviceName ?? `장비 ID ${msg.device_id}`, 'success', { category: 'sync', device_id: msg.device_id, device_name: deviceName })
-        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats })
       } else if (msg.status === 'failure') {
         notify('동기화 실패', deviceName ?? `장비 ID ${msg.device_id}`, 'error', { category: 'sync', device_id: msg.device_id, device_name: deviceName })
-        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats })
       }
     },
     [queryClient]
@@ -223,7 +225,7 @@ export function DashboardPage() {
   const deviceIds = stats?.device_stats.map(d => d.id) ?? []
 
   const { data: changeStats = [] } = useQuery({
-    queryKey: ['change-stats', deviceIds],
+    queryKey: queryKeys.changeStats(deviceIds),
     queryFn: () => getChangeStats(deviceIds),
     enabled: deviceIds.length > 0,
     staleTime: 60_000,
@@ -260,7 +262,7 @@ export function DashboardPage() {
   const [trendCategory, setTrendCategory] = useState<ChangeStatCategory>('policies')
 
   const { data: trendStats = [] } = useQuery({
-    queryKey: ['change-stats', trendDeviceId, trendCategory],
+    queryKey: queryKeys.changeStats(trendDeviceId, trendCategory),
     queryFn: () => getChangeStats([trendDeviceId as number], 12, trendCategory),
     enabled: trendDeviceId != null,
     staleTime: 60_000,
@@ -313,7 +315,7 @@ export function DashboardPage() {
       <div className="flex items-center justify-between shrink-0">
         <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">Dashboard</h1>
         <button
-          onClick={() => queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })}
+          onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats })}
           className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-ds-on-surface-variant bg-white rounded-lg shadow-sm border border-ds-outline-variant/10 hover:text-ds-on-surface hover:bg-ds-surface-container-low transition-all"
         >
           <RefreshCw className="w-3.5 h-3.5" />
@@ -524,7 +526,7 @@ export function DashboardPage() {
           ref={gridRef}
           columnDefs={COLUMN_DEFS}
           rowData={rowData}
-          getRowId={(p) => String(p.data.id)}
+          getRowId={rowIdFromId}
           height={gridHeight}
           noRowsText="등록된 장비가 없습니다."
           defaultColDefOverride={{ resizable: true, sortable: true }}

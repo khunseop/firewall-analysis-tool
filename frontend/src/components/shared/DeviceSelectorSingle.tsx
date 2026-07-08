@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { listDevices, type Device } from '@/api/devices'
 import { cn } from '@/lib/utils'
 import { ChevronDown, Search, X, Monitor } from 'lucide-react'
+import { queryKeys } from '@/api/queryKeys'
 
 const VENDOR_DOT: Record<string, string> = {
   paloalto: 'bg-orange-400',
@@ -51,7 +52,7 @@ export function DeviceSelectorSingle({ value, onChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   const { data: devices = [] } = useQuery({
-    queryKey: ['devices'],
+    queryKey: queryKeys.devices,
     queryFn: listDevices,
     staleTime: 5 * 60_000,
   })
