@@ -68,6 +68,139 @@ async def count_policies_by_device(db: AsyncSession, device_id: int) -> dict:
     return {"total": total, "disabled": disabled}
 
 
+# SQLite 기본 바인딩 변수 한도(999)를 넘지 않도록 IN 절을 청킹 (policy_indexer와 동일 기준)
+_SQLITE_IN_CHUNK = 800
+
+
+def _id_in_clause(ids: set) -> ClauseElement:
+    """Policy.id IN (...) 절. ID가 많으면 청크별 IN을 OR로 결합."""
+    id_list = list(ids)
+    if len(id_list) <= _SQLITE_IN_CHUNK:
+        return Policy.id.in_(id_list)
+    chunks = [id_list[i:i + _SQLITE_IN_CHUNK] for i in range(0, len(id_list), _SQLITE_IN_CHUNK)]
+    return or_(*[Policy.id.in_(c) for c in chunks])
+
+
+def _id_notin_clause(ids: set) -> ClauseElement:
+    """Policy.id NOT IN (...) 절. ID가 많으면 청크별 NOT IN을 AND로 결합."""
+    id_list = list(ids)
+    if len(id_list) <= _SQLITE_IN_CHUNK:
+        return Policy.id.notin_(id_list)
+    chunks = [id_list[i:i + _SQLITE_IN_CHUNK] for i in range(0, len(id_list), _SQLITE_IN_CHUNK)]
+    return and_(*[Policy.id.notin_(c) for c in chunks])
+
+
+async def _addr_policy_ids(
+    db: AsyncSession, device_ids: List[int], direction: str, ip_list: list, exact: bool = False
+) -> set:
+    """IP 토큰 목록과 겹치는(exact=True면 정확 일치하는) 정책 ID 집합.
+
+    토큰별 범위 조건을 OR로 묶어 단일 쿼리로 조회한다 (토큰 수만큼 쿼리 반복 방지).
+    파싱 가능한 토큰이 하나도 없으면 빈 집합을 반환한다.
+    """
+    conds = []
+    for ip_str in ip_list:
+        _, start, end = parse_ipv4_numeric(ip_str)
+        if start is None or end is None:
+            continue
+        if exact:
+            conds.append(and_(
+                models.PolicyAddressMember.ip_start == start,
+                models.PolicyAddressMember.ip_end == end,
+            ))
+        else:
+            conds.append(and_(
+                models.PolicyAddressMember.ip_start <= end,
+                models.PolicyAddressMember.ip_end >= start,
+            ))
+    if not conds:
+        return set()
+    q = select(models.PolicyAddressMember.policy_id).where(
+        models.PolicyAddressMember.device_id.in_(device_ids),
+        models.PolicyAddressMember.direction == direction,
+        or_(*conds),
+    ).distinct()
+    r = await db.execute(q)
+    return set(r.scalars().all())
+
+
+async def _addr_only_within_ids(
+    db: AsyncSession, device_ids: List[int], direction: str, ip_list: list
+) -> set:
+    """모든 멤버가 주어진 범위 안에 있는 정책 ID 집합 (토큰별 결과의 합집합).
+
+    토큰마다 '범위 내 멤버 보유' - '범위 밖(또는 미해석) 멤버 보유' 차집합이 필요하므로
+    토큰 단위 쿼리를 유지한다.
+    """
+    ids: set = set()
+    for ip_str in ip_list:
+        _, range_start, range_end = parse_ipv4_numeric(ip_str)
+        if range_start is None or range_end is None:
+            continue
+        q_has = select(models.PolicyAddressMember.policy_id).where(
+            models.PolicyAddressMember.device_id.in_(device_ids),
+            models.PolicyAddressMember.direction == direction,
+            models.PolicyAddressMember.ip_start >= range_start,
+            models.PolicyAddressMember.ip_end <= range_end,
+        ).distinct()
+        r_has = await db.execute(q_has)
+        has_ids = set(r_has.scalars().all())
+        q_out = select(models.PolicyAddressMember.policy_id).where(
+            models.PolicyAddressMember.device_id.in_(device_ids),
+            models.PolicyAddressMember.direction == direction,
+            or_(
+                models.PolicyAddressMember.ip_start.is_(None),
+                models.PolicyAddressMember.ip_end.is_(None),
+                models.PolicyAddressMember.ip_start < range_start,
+                models.PolicyAddressMember.ip_end > range_end,
+            )
+        ).distinct()
+        r_out = await db.execute(q_out)
+        ids.update(has_ids - set(r_out.scalars().all()))
+    return ids
+
+
+async def _svc_policy_ids(db: AsyncSession, device_ids: List[int], token_list: list) -> Optional[set]:
+    """서비스 토큰 목록과 겹치는 정책 ID 집합.
+
+    포트로 파싱되는 토큰은 프로토콜/포트 범위 조건으로, 파싱 불가 토큰은 객체명 ILIKE로
+    변환한 뒤 전부 OR로 묶어 단일 쿼리로 조회한다.
+    유효 토큰이 없으면 None을 반환한다 (필터 미적용 의미 — 빈 set과 구분).
+    """
+    conds = []
+    for token in token_list:
+        token = token.strip()
+        if not token:
+            continue
+        proto = None
+        ports_str = token
+        if '/' in token:
+            p, ports_str = token.split('/', 1)
+            proto = p.strip().lower()
+            ports_str = ports_str.strip()
+        pstart, pend = parse_port_numeric(ports_str)
+        if pstart is not None and pend is not None:
+            port_cond = and_(
+                models.PolicyServiceMember.port_start <= pend,
+                models.PolicyServiceMember.port_end >= pstart,
+            )
+            if proto and proto != 'any':
+                conds.append(and_(port_cond, func.lower(models.PolicyServiceMember.protocol) == proto))
+            else:
+                conds.append(and_(port_cond, func.lower(models.PolicyServiceMember.protocol).in_(['tcp', 'udp', 'any'])))
+        else:
+            # 포트로 파싱 불가 → 서비스 객체명 ILIKE로 폴백
+            conds.append(models.PolicyServiceMember.token.ilike(f'%{token}%'))
+    if not conds:
+        return None
+    q = select(models.PolicyServiceMember.policy_id).where(
+        models.PolicyServiceMember.device_id.in_(device_ids),
+        or_(*conds),
+    ).distinct()
+    r = await db.execute(q)
+    return set(r.scalars().all())
+
+
 async def _evaluate_leaf(
     db: AsyncSession,
     device_ids: List[int],
@@ -141,98 +274,25 @@ async def _evaluate_leaf(
     if field in ('src_ip', 'dst_ip'):
         direction = 'source' if field == 'src_ip' else 'destination'
         ip_tokens = [v.strip() for v in value.split(',') if v.strip()]
-        ids: set = set()
-        for ip_str in ip_tokens:
-            _, start, end = parse_ipv4_numeric(ip_str)
-            if start is None or end is None:
-                continue
-            if op == 'only_within':
-                # 범위 내 멤버가 하나라도 있는 정책
-                q_has = select(models.PolicyAddressMember.policy_id).where(
-                    models.PolicyAddressMember.device_id.in_(device_ids),
-                    models.PolicyAddressMember.direction == direction,
-                    models.PolicyAddressMember.ip_start >= start,
-                    models.PolicyAddressMember.ip_end <= end,
-                ).distinct()
-                r_has = await db.execute(q_has)
-                has_ids = set(r_has.scalars().all())
-                # 범위 밖 멤버가 하나라도 있거나 IP가 미해석(NULL)인 정책
-                q_out = select(models.PolicyAddressMember.policy_id).where(
-                    models.PolicyAddressMember.device_id.in_(device_ids),
-                    models.PolicyAddressMember.direction == direction,
-                    or_(
-                        models.PolicyAddressMember.ip_start.is_(None),
-                        models.PolicyAddressMember.ip_end.is_(None),
-                        models.PolicyAddressMember.ip_start < start,
-                        models.PolicyAddressMember.ip_end > end,
-                    )
-                ).distinct()
-                r_out = await db.execute(q_out)
-                outside_ids = set(r_out.scalars().all())
-                ids.update(has_ids - outside_ids)
-            elif is_exact:
-                q = select(models.PolicyAddressMember.policy_id).where(
-                    models.PolicyAddressMember.device_id.in_(device_ids),
-                    models.PolicyAddressMember.direction == direction,
-                    models.PolicyAddressMember.ip_start == start,
-                    models.PolicyAddressMember.ip_end == end,
-                )
-                result = await db.execute(q)
-                ids.update(result.scalars().all())
-            else:
-                q = select(models.PolicyAddressMember.policy_id).where(
-                    models.PolicyAddressMember.device_id.in_(device_ids),
-                    models.PolicyAddressMember.direction == direction,
-                    models.PolicyAddressMember.ip_start <= end,
-                    models.PolicyAddressMember.ip_end >= start,
-                )
-                result = await db.execute(q)
-                ids.update(result.scalars().all())
         if not ip_tokens:
             return None
+        if op == 'only_within':
+            ids = await _addr_only_within_ids(db, device_ids, direction, ip_tokens)
+        else:
+            ids = await _addr_policy_ids(db, device_ids, direction, ip_tokens, exact=is_exact)
         if is_not:
-            return Policy.id.notin_(ids) if ids else None
-        return Policy.id.in_(ids)
+            return _id_notin_clause(ids) if ids else None
+        return _id_in_clause(ids)
 
     # ─── 인덱스 기반 필드 (PolicyServiceMember) ──────────────────────────────
     if field == 'service':
         svc_tokens = [v.strip() for v in value.split(',') if v.strip()]
-        svc_ids: set = set()
-        for token in svc_tokens:
-            proto = None
-            ports_str = token
-            if '/' in token:
-                parts = token.split('/', 1)
-                proto = parts[0].strip().lower()
-                ports_str = parts[1].strip()
-            pstart, pend = parse_port_numeric(ports_str)
-            if pstart is not None and pend is not None:
-                port_cond = and_(
-                    models.PolicyServiceMember.port_start <= pend,
-                    models.PolicyServiceMember.port_end >= pstart,
-                )
-                if proto and proto != 'any':
-                    final_cond = and_(port_cond, func.lower(models.PolicyServiceMember.protocol) == proto)
-                else:
-                    final_cond = and_(port_cond, func.lower(models.PolicyServiceMember.protocol).in_(['tcp', 'udp', 'any']))
-                q = select(models.PolicyServiceMember.policy_id).where(
-                    models.PolicyServiceMember.device_id.in_(device_ids),
-                    final_cond,
-                )
-                r = await db.execute(q)
-                svc_ids.update(r.scalars().all())
-            else:
-                q = select(models.PolicyServiceMember.policy_id).where(
-                    models.PolicyServiceMember.device_id.in_(device_ids),
-                    models.PolicyServiceMember.token.ilike(f'%{token}%'),
-                )
-                r = await db.execute(q)
-                svc_ids.update(r.scalars().all())
         if not svc_tokens:
             return None
+        svc_ids = await _svc_policy_ids(db, device_ids, svc_tokens) or set()
         if is_not:
-            return Policy.id.notin_(svc_ids) if svc_ids else None
-        return Policy.id.in_(svc_ids)
+            return _id_notin_clause(svc_ids) if svc_ids else None
+        return _id_in_clause(svc_ids)
 
     return None
 
@@ -343,126 +403,29 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
 
     list_of_policy_id_sets = []
 
-    # 출발지 IP 필터 — overlap (포함) 검색
+    # 출발지/목적지 IP 필터 — overlap(포함) / exact(일치): 토큰 조건을 OR로 묶은 단일 쿼리
     if req.src_ips:
-        src_policy_ids = set()
-        for ip_str in req.src_ips:
-            _, start, end = parse_ipv4_numeric(ip_str)
-            if start is not None and end is not None:
-                query = select(models.PolicyAddressMember.policy_id).where(
-                    models.PolicyAddressMember.device_id.in_(req.device_ids),
-                    models.PolicyAddressMember.direction == 'source',
-                    models.PolicyAddressMember.ip_start <= end,
-                    models.PolicyAddressMember.ip_end >= start
-                )
-                result = await db.execute(query)
-                src_policy_ids.update(result.scalars().all())
-        list_of_policy_id_sets.append(src_policy_ids)
-
-    # 출발지 IP 필터 — exact (일치) 검색
+        list_of_policy_id_sets.append(await _addr_policy_ids(db, req.device_ids, 'source', req.src_ips))
     if req.src_ips_exact:
-        src_exact_ids = set()
-        for ip_str in req.src_ips_exact:
-            _, start, end = parse_ipv4_numeric(ip_str)
-            if start is not None and end is not None:
-                query = select(models.PolicyAddressMember.policy_id).where(
-                    models.PolicyAddressMember.device_id.in_(req.device_ids),
-                    models.PolicyAddressMember.direction == 'source',
-                    models.PolicyAddressMember.ip_start == start,
-                    models.PolicyAddressMember.ip_end == end
-                )
-                result = await db.execute(query)
-                src_exact_ids.update(result.scalars().all())
-        list_of_policy_id_sets.append(src_exact_ids)
-
-    # 목적지 IP 필터 — overlap (포함) 검색
+        list_of_policy_id_sets.append(await _addr_policy_ids(db, req.device_ids, 'source', req.src_ips_exact, exact=True))
     if req.dst_ips:
-        dst_policy_ids = set()
-        for ip_str in req.dst_ips:
-            _, start, end = parse_ipv4_numeric(ip_str)
-            if start is not None and end is not None:
-                query = select(models.PolicyAddressMember.policy_id).where(
-                    models.PolicyAddressMember.device_id.in_(req.device_ids),
-                    models.PolicyAddressMember.direction == 'destination',
-                    models.PolicyAddressMember.ip_start <= end,
-                    models.PolicyAddressMember.ip_end >= start
-                )
-                result = await db.execute(query)
-                dst_policy_ids.update(result.scalars().all())
-        list_of_policy_id_sets.append(dst_policy_ids)
-
-    # 목적지 IP 필터 — exact (일치) 검색
+        list_of_policy_id_sets.append(await _addr_policy_ids(db, req.device_ids, 'destination', req.dst_ips))
     if req.dst_ips_exact:
-        dst_exact_ids = set()
-        for ip_str in req.dst_ips_exact:
-            _, start, end = parse_ipv4_numeric(ip_str)
-            if start is not None and end is not None:
-                query = select(models.PolicyAddressMember.policy_id).where(
-                    models.PolicyAddressMember.device_id.in_(req.device_ids),
-                    models.PolicyAddressMember.direction == 'destination',
-                    models.PolicyAddressMember.ip_start == start,
-                    models.PolicyAddressMember.ip_end == end
-                )
-                result = await db.execute(query)
-                dst_exact_ids.update(result.scalars().all())
-        list_of_policy_id_sets.append(dst_exact_ids)
+        list_of_policy_id_sets.append(await _addr_policy_ids(db, req.device_ids, 'destination', req.dst_ips_exact, exact=True))
 
     # 서비스 필터 (Service/Port Index 활용 + 이름 폴백)
     if req.services:
-        svc_policy_ids = set()
-        or_conditions = []
-        name_fallback_tokens = []  # 포트 파싱 실패 → 이름 검색으로 폴백
-
-        for token in req.services:
-            token = token.strip()
-            if not token:
-                continue
-
-            proto = None
-            ports_str = token
-            if '/' in token:
-                parts = token.split('/', 1)
-                proto = parts[0].strip().lower()
-                ports_str = parts[1].strip()
-
-            pstart, pend = parse_port_numeric(ports_str)
-
-            if pstart is not None and pend is not None:
-                port_condition = and_(
-                    models.PolicyServiceMember.port_start <= pend,
-                    models.PolicyServiceMember.port_end >= pstart
-                )
-                if proto and proto != 'any':
-                    final_condition = and_(port_condition, func.lower(models.PolicyServiceMember.protocol) == proto)
-                else:
-                    final_condition = and_(
-                        port_condition,
-                        func.lower(models.PolicyServiceMember.protocol).in_(['tcp', 'udp', 'any'])
-                    )
-                or_conditions.append(final_condition)
-            else:
-                # 포트로 파싱 불가 → 서비스 객체명 ILIKE로 폴백
-                name_fallback_tokens.append(token)
-
-        if or_conditions:
-            query = select(models.PolicyServiceMember.policy_id).where(
-                models.PolicyServiceMember.device_id.in_(req.device_ids),
-                or_(*or_conditions)
-            )
-            result = await db.execute(query)
-            svc_policy_ids.update(result.scalars().all())
-
-        if name_fallback_tokens:
-            name_query = select(models.PolicyServiceMember.policy_id).where(
-                models.PolicyServiceMember.device_id.in_(req.device_ids),
-                or_(*[models.PolicyServiceMember.token.ilike(f'%{n}%') for n in name_fallback_tokens])
-            )
-            result = await db.execute(name_query)
-            svc_policy_ids.update(result.scalars().all())
-
+        svc_policy_ids = await _svc_policy_ids(db, req.device_ids, req.services)
         # 실제 검색이 수행된 경우에만 교집합에 추가 (빈 set이 모든 결과를 지우는 버그 방지)
-        if or_conditions or name_fallback_tokens:
+        if svc_policy_ids is not None:
             list_of_policy_id_sets.append(svc_policy_ids)
+
+    # 출발지/목적지 IP 필터 — only_within (모든 멤버가 범위 안에 있는 정책)
+    # 주의: 과거에는 교집합 계산 이후에 수집되어 필터가 무시되는 버그가 있었음 — 교집합 이전으로 이동
+    if req.src_ips_only_within:
+        list_of_policy_id_sets.append(await _addr_only_within_ids(db, req.device_ids, 'source', req.src_ips_only_within))
+    if req.dst_ips_only_within:
+        list_of_policy_id_sets.append(await _addr_only_within_ids(db, req.device_ids, 'destination', req.dst_ips_only_within))
 
     # 출발지 객체명 필터 — Policy.source ILIKE (인덱서가 원본 객체명을 token으로 저장하지 않으므로)
     if req.src_names:
@@ -489,171 +452,34 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
         if not final_policy_ids:
             return []
 
-        stmt = stmt.where(Policy.id.in_(final_policy_ids))
+        stmt = stmt.where(_id_in_clause(final_policy_ids))
 
     # ─── 제외 필터 (NOT IN) ───────────────────────────────────────────────────
 
-    async def _collect_addr_ids(direction: str, ip_list: list) -> set:
-        ids: set = set()
-        for ip_str in ip_list:
-            _, start, end = parse_ipv4_numeric(ip_str)
-            if start is not None and end is not None:
-                q = select(models.PolicyAddressMember.policy_id).where(
-                    models.PolicyAddressMember.device_id.in_(req.device_ids),
-                    models.PolicyAddressMember.direction == direction,
-                    models.PolicyAddressMember.ip_start <= end,
-                    models.PolicyAddressMember.ip_end >= start
-                )
-                r = await db.execute(q)
-                ids.update(r.scalars().all())
-        return ids
-
-    async def _collect_svc_ids(token_list: list) -> set:
-        ids: set = set()
-        svc_or: list = []
-        name_tokens: list = []
-        for token in token_list:
-            token = token.strip()
-            if not token:
-                continue
-            proto = None
-            ports_str = token
-            if '/' in token:
-                p, ports_str = token.split('/', 1)
-                proto = p.strip().lower()
-                ports_str = ports_str.strip()
-            pstart, pend = parse_port_numeric(ports_str)
-            if pstart is not None and pend is not None:
-                pc = and_(
-                    models.PolicyServiceMember.port_start <= pend,
-                    models.PolicyServiceMember.port_end >= pstart
-                )
-                if proto and proto != 'any':
-                    svc_or.append(and_(pc, func.lower(models.PolicyServiceMember.protocol) == proto))
-                else:
-                    svc_or.append(and_(pc, func.lower(models.PolicyServiceMember.protocol).in_(['tcp', 'udp', 'any'])))
-            else:
-                name_tokens.append(token)
-        if svc_or:
-            q = select(models.PolicyServiceMember.policy_id).where(
-                models.PolicyServiceMember.device_id.in_(req.device_ids),
-                or_(*svc_or)
-            )
-            r = await db.execute(q)
-            ids.update(r.scalars().all())
-        if name_tokens:
-            q = select(models.PolicyServiceMember.policy_id).where(
-                models.PolicyServiceMember.device_id.in_(req.device_ids),
-                or_(*[models.PolicyServiceMember.token.ilike(f'%{n}%') for n in name_tokens])
-            )
-            r = await db.execute(q)
-            ids.update(r.scalars().all())
-        return ids
-
-    # 출발지 IP 필터 — only_within (모든 멤버가 범위 안에 있는 정책)
-    if req.src_ips_only_within:
-        only_ids: set = set()
-        for ip_str in req.src_ips_only_within:
-            _, range_start, range_end = parse_ipv4_numeric(ip_str)
-            if range_start is None or range_end is None:
-                continue
-            q_has = select(models.PolicyAddressMember.policy_id).where(
-                models.PolicyAddressMember.device_id.in_(req.device_ids),
-                models.PolicyAddressMember.direction == 'source',
-                models.PolicyAddressMember.ip_start >= range_start,
-                models.PolicyAddressMember.ip_end <= range_end,
-            ).distinct()
-            r_has = await db.execute(q_has)
-            has_ids = set(r_has.scalars().all())
-            q_out = select(models.PolicyAddressMember.policy_id).where(
-                models.PolicyAddressMember.device_id.in_(req.device_ids),
-                models.PolicyAddressMember.direction == 'source',
-                or_(
-                    models.PolicyAddressMember.ip_start.is_(None),
-                    models.PolicyAddressMember.ip_end.is_(None),
-                    models.PolicyAddressMember.ip_start < range_start,
-                    models.PolicyAddressMember.ip_end > range_end,
-                )
-            ).distinct()
-            r_out = await db.execute(q_out)
-            only_ids.update(has_ids - set(r_out.scalars().all()))
-        list_of_policy_id_sets.append(only_ids)
-
-    # 목적지 IP 필터 — only_within (모든 멤버가 범위 안에 있는 정책)
-    if req.dst_ips_only_within:
-        only_ids = set()
-        for ip_str in req.dst_ips_only_within:
-            _, range_start, range_end = parse_ipv4_numeric(ip_str)
-            if range_start is None or range_end is None:
-                continue
-            q_has = select(models.PolicyAddressMember.policy_id).where(
-                models.PolicyAddressMember.device_id.in_(req.device_ids),
-                models.PolicyAddressMember.direction == 'destination',
-                models.PolicyAddressMember.ip_start >= range_start,
-                models.PolicyAddressMember.ip_end <= range_end,
-            ).distinct()
-            r_has = await db.execute(q_has)
-            has_ids = set(r_has.scalars().all())
-            q_out = select(models.PolicyAddressMember.policy_id).where(
-                models.PolicyAddressMember.device_id.in_(req.device_ids),
-                models.PolicyAddressMember.direction == 'destination',
-                or_(
-                    models.PolicyAddressMember.ip_start.is_(None),
-                    models.PolicyAddressMember.ip_end.is_(None),
-                    models.PolicyAddressMember.ip_start < range_start,
-                    models.PolicyAddressMember.ip_end > range_end,
-                )
-            ).distinct()
-            r_out = await db.execute(q_out)
-            only_ids.update(has_ids - set(r_out.scalars().all()))
-        list_of_policy_id_sets.append(only_ids)
-
     if req.src_ips_exclude:
-        excluded = await _collect_addr_ids('source', req.src_ips_exclude)
+        excluded = await _addr_policy_ids(db, req.device_ids, 'source', req.src_ips_exclude)
         if excluded:
-            stmt = stmt.where(Policy.id.notin_(excluded))
+            stmt = stmt.where(_id_notin_clause(excluded))
 
     if req.src_ips_exact_exclude:
-        ids: set = set()
-        for ip_str in req.src_ips_exact_exclude:
-            _, start, end = parse_ipv4_numeric(ip_str)
-            if start is not None and end is not None:
-                q = select(models.PolicyAddressMember.policy_id).where(
-                    models.PolicyAddressMember.device_id.in_(req.device_ids),
-                    models.PolicyAddressMember.direction == 'source',
-                    models.PolicyAddressMember.ip_start == start,
-                    models.PolicyAddressMember.ip_end == end
-                )
-                r = await db.execute(q)
-                ids.update(r.scalars().all())
-        if ids:
-            stmt = stmt.where(Policy.id.notin_(ids))
+        excluded = await _addr_policy_ids(db, req.device_ids, 'source', req.src_ips_exact_exclude, exact=True)
+        if excluded:
+            stmt = stmt.where(_id_notin_clause(excluded))
 
     if req.dst_ips_exclude:
-        excluded = await _collect_addr_ids('destination', req.dst_ips_exclude)
+        excluded = await _addr_policy_ids(db, req.device_ids, 'destination', req.dst_ips_exclude)
         if excluded:
-            stmt = stmt.where(Policy.id.notin_(excluded))
+            stmt = stmt.where(_id_notin_clause(excluded))
 
     if req.dst_ips_exact_exclude:
-        ids: set = set()
-        for ip_str in req.dst_ips_exact_exclude:
-            _, start, end = parse_ipv4_numeric(ip_str)
-            if start is not None and end is not None:
-                q = select(models.PolicyAddressMember.policy_id).where(
-                    models.PolicyAddressMember.device_id.in_(req.device_ids),
-                    models.PolicyAddressMember.direction == 'destination',
-                    models.PolicyAddressMember.ip_start == start,
-                    models.PolicyAddressMember.ip_end == end
-                )
-                r = await db.execute(q)
-                ids.update(r.scalars().all())
-        if ids:
-            stmt = stmt.where(Policy.id.notin_(ids))
+        excluded = await _addr_policy_ids(db, req.device_ids, 'destination', req.dst_ips_exact_exclude, exact=True)
+        if excluded:
+            stmt = stmt.where(_id_notin_clause(excluded))
 
     if req.services_exclude:
-        excluded = await _collect_svc_ids(req.services_exclude)
+        excluded = await _svc_policy_ids(db, req.device_ids, req.services_exclude) or set()
         if excluded:
-            stmt = stmt.where(Policy.id.notin_(excluded))
+            stmt = stmt.where(_id_notin_clause(excluded))
 
     if req.src_names_exclude:
         valid = [n.strip() for n in req.src_names_exclude if n.strip()]
