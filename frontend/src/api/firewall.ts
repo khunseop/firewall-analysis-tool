@@ -241,9 +241,13 @@ export const getObjectUsageCounts = async (deviceIds: number[]): Promise<ObjectU
 
 export interface ChangeStatEntry { week: string; action: string; count: number }
 
-export const getChangeStats = async (deviceIds: number[], weeks = 12): Promise<ChangeStatEntry[]> => {
+export type ChangeStatCategory = 'policies' | 'network_objects' | 'services'
+
+export const getChangeStats = async (
+  deviceIds: number[], weeks = 12, category: ChangeStatCategory = 'policies',
+): Promise<ChangeStatEntry[]> => {
   const q = deviceIds.map(id => `device_ids=${id}`).join('&')
-  const res = await apiClient.get<ChangeStatEntry[]>(`/firewall/change-stats?${q}&weeks=${weeks}`)
+  const res = await apiClient.get<ChangeStatEntry[]>(`/firewall/change-stats?${q}&weeks=${weeks}&category=${category}`)
   return res.data
 }
 
