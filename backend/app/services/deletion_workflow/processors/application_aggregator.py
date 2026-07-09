@@ -52,17 +52,21 @@ class ApplicationAggregator(BaseProcessor):
 
                 df = df.reindex(columns=final_columns, fill_value="")
 
+                def is_valid_email(value) -> bool:
+                    return pd.notna(value) and isinstance(value, str) and '@' in value
+
                 df['WRITE_PERSON_EMAIL'] = df.apply(
-                    lambda row: f"{row['WRITE_PERSON_ID']}@{row['REQUESTER_EMAIL'].split('@')[1]}"
+                    lambda row: f"{row['WRITE_PERSON_ID']}@{row['REQUESTER_EMAIL'].strip().split('@')[1]}"
                     if row.get('WRITE_PERSON_EMAIL') == "" and pd.notna(row.get('WRITE_PERSON_ID'))
+                    and is_valid_email(row.get('REQUESTER_EMAIL'))
                     else row.get('WRITE_PERSON_EMAIL', ''),
                     axis=1
                 )
 
                 def map_approval_email(row):
-                    if not row.get('REQUESTER_EMAIL') or '@' not in row['REQUESTER_EMAIL']:
+                    if not is_valid_email(row.get('REQUESTER_EMAIL')):
                         return row.get('APPROVAL_PERSON_EMAIL', '')
-                    domain = row['REQUESTER_EMAIL'].split('@')[1]
+                    domain = row['REQUESTER_EMAIL'].strip().split('@')[1]
                     target_domain = domain_map.get(domain, domain)
                     if row.get('APPROVAL_PERSON_EMAIL') == "" and pd.notna(row.get('APPROVAL_PERSON_ID')):
                         return f"{row['APPROVAL_PERSON_ID']}@{target_domain}"
