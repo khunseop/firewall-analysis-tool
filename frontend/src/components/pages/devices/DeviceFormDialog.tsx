@@ -135,16 +135,32 @@ export function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }
             </TabsContent>
 
             <TabsContent value="resource" className="space-y-3">
-              <p className="text-[11px] text-ds-on-surface-variant">임계치는 관리자가 직접 입력하며, 사용량은 동기화된 정책·객체 수와 자동으로 비교됩니다.</p>
-              <div className="grid grid-cols-3 gap-3">
+              <p className="text-[11px] text-ds-on-surface-variant">
+                "수동등록"을 체크하면 값을 직접 입력할 수 있습니다. 체크하지 않으면 Palo Alto 동기화 시 장비의 실제 한도 값이 자동으로 채워집니다.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: '정책 수 임계치', key: 'policy_threshold' as const },
-                  { label: '네트워크 객체 수 임계치', key: 'network_object_threshold' as const },
-                  { label: '서비스 객체 수 임계치', key: 'service_threshold' as const },
-                ].map(({ label, key }) => (
+                  { label: '정책 수 임계치', key: 'policy_threshold' as const, manualKey: 'policy_threshold_manual' as const },
+                  { label: '네트워크 객체 수 임계치', key: 'network_object_threshold' as const, manualKey: 'network_object_threshold_manual' as const },
+                  { label: '네트워크 그룹 수 임계치', key: 'network_group_threshold' as const, manualKey: 'network_group_threshold_manual' as const },
+                  { label: '서비스 객체 수 임계치', key: 'service_threshold' as const, manualKey: 'service_threshold_manual' as const },
+                  { label: '서비스 그룹 수 임계치', key: 'service_group_threshold' as const, manualKey: 'service_group_threshold_manual' as const },
+                ].map(({ label, key, manualKey }) => (
                   <div key={key} className="space-y-1">
-                    <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
-                    <Input type="number" min={0} value={form[key] as string} onChange={(e) => set(key, e.target.value)} className="bg-white border-ds-outline-variant/30 text-sm" />
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
+                      <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-ds-on-surface-variant">
+                        <Checkbox checked={form[manualKey]} onCheckedChange={(v) => set(manualKey, !!v)} />
+                        수동등록
+                      </label>
+                    </div>
+                    <Input
+                      type="number" min={0}
+                      value={form[key] as string}
+                      onChange={(e) => set(key, e.target.value)}
+                      disabled={!form[manualKey]}
+                      className="bg-white border-ds-outline-variant/30 text-sm disabled:bg-ds-surface-container disabled:text-ds-on-surface-variant"
+                    />
                   </div>
                 ))}
               </div>

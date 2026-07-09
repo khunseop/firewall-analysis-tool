@@ -27,8 +27,15 @@ export interface Device {
   location_y: string | null
   location_z: string | null
   policy_threshold: number | null
+  policy_threshold_manual: boolean
   network_object_threshold: number | null
+  network_object_threshold_manual: boolean
+  network_group_threshold: number | null
+  network_group_threshold_manual: boolean
   service_threshold: number | null
+  service_threshold_manual: boolean
+  service_group_threshold: number | null
+  service_group_threshold_manual: boolean
   cached_policies: number | null
   cached_active_policies: number | null
   cached_disabled_policies: number | null
@@ -63,8 +70,15 @@ export interface DeviceCreate {
   location_y?: string
   location_z?: string
   policy_threshold?: number
+  policy_threshold_manual?: boolean
   network_object_threshold?: number
+  network_object_threshold_manual?: boolean
+  network_group_threshold?: number
+  network_group_threshold_manual?: boolean
   service_threshold?: number
+  service_threshold_manual?: boolean
+  service_group_threshold?: number
+  service_group_threshold_manual?: boolean
 }
 
 export interface DeviceUpdate {
@@ -92,8 +106,15 @@ export interface DeviceUpdate {
   location_y?: string
   location_z?: string
   policy_threshold?: number
+  policy_threshold_manual?: boolean
   network_object_threshold?: number
+  network_object_threshold_manual?: boolean
+  network_group_threshold?: number
+  network_group_threshold_manual?: boolean
   service_threshold?: number
+  service_threshold_manual?: boolean
+  service_group_threshold?: number
+  service_group_threshold_manual?: boolean
 }
 
 export interface DeviceStats {
@@ -113,7 +134,9 @@ export interface DeviceStats {
   service_groups: number
   policy_threshold: number | null
   network_object_threshold: number | null
+  network_group_threshold: number | null
   service_threshold: number | null
+  service_group_threshold: number | null
 }
 
 export interface DashboardStats {

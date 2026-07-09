@@ -213,6 +213,7 @@ marimo/_lsp/
 __marimo__/
 backend/fat.db-wal
 backend/fat.db-shm
+backend/fat.db.bak*
 .DS_Store
 *.xlsx
 *_config.json

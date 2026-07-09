@@ -157,3 +157,16 @@ class FirewallInterface(ABC):
             지원하는 벤더(예: Palo Alto)에서만 오버라이딩하여 구현합니다.
         """
         raise NotImplementedError("export_last_hit_date는 해당 벤더에서 지원하지 않습니다.")
+
+    def export_resource_limits(self) -> Dict[str, int]:
+        """장비의 리소스 한도(최대 정책/주소/서비스 개수 등)를 조회합니다.
+
+        Returns:
+            Dict[str, int]: Device의 threshold 필드명(policy_threshold, network_object_threshold,
+                network_group_threshold, service_threshold, service_group_threshold)으로 매핑된 값
+
+        Note:
+            모든 벤더가 지원하지는 않으며, 기본적으로 NotImplementedError를 발생시킵니다.
+            지원하는 벤더(예: Palo Alto)에서만 오버라이딩하여 구현합니다.
+        """
+        raise NotImplementedError("export_resource_limits는 해당 벤더에서 지원하지 않습니다.")

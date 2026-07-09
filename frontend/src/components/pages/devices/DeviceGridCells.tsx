@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, memo } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Search, ListFilter, Boxes, BarChart3 } from 'lucide-react'
 import { type Device } from '@/api/devices'
@@ -9,15 +10,25 @@ export const DeviceNameCell = memo(function DeviceNameCell({ data, onShowDetail 
   const navigate = useNavigate()
   const setSelectedIds = useDeviceStore((s) => s.setSelectedIds)
   const [open, setOpen] = useState(false)
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
+  const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
     const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false)
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        buttonRef.current && !buttonRef.current.contains(e.target as Node)
+      ) setOpen(false)
     }
+    const handleScroll = () => setOpen(false)
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    window.addEventListener('scroll', handleScroll, true)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('scroll', handleScroll, true)
+    }
   }, [open])
 
   if (!data) return null
@@ -27,17 +38,29 @@ export const DeviceNameCell = memo(function DeviceNameCell({ data, onShowDetail 
   const goToAnalysis = () => { setOpen(false); navigate('/analysis', { state: { openCreateWithDeviceId: data.id } }) }
   const showDetail = () => { setOpen(false); onShowDetail(data) }
 
+  const toggleOpen = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const rect = buttonRef.current?.getBoundingClientRect()
+    if (rect) setMenuPos({ top: rect.bottom + 4, left: rect.left })
+    setOpen((v) => !v)
+  }
+
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative">
       <button
-        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v) }}
+        ref={buttonRef}
+        onClick={toggleOpen}
         className="text-[12px] font-semibold text-ds-on-surface hover:text-ds-tertiary transition-colors truncate max-w-full text-left"
         title={data.name}
       >
         {data.name}
       </button>
-      {open && (
-        <div className="absolute left-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-ds-outline-variant/15 py-1 z-50">
+      {open && createPortal(
+        <div
+          ref={menuRef}
+          style={{ position: 'fixed', top: menuPos.top, left: menuPos.left }}
+          className="w-40 bg-white rounded-lg shadow-lg border border-ds-outline-variant/15 py-1 z-50"
+        >
           <button onClick={showDetail} className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
             <Search className="w-3.5 h-3.5 text-ds-on-surface-variant" />
             상세보기
@@ -54,7 +77,8 @@ export const DeviceNameCell = memo(function DeviceNameCell({ data, onShowDetail 
             <BarChart3 className="w-3.5 h-3.5 text-ds-on-surface-variant" />
             분석 실행
           </button>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
@@ -62,14 +86,15 @@ export const DeviceNameCell = memo(function DeviceNameCell({ data, onShowDetail 
 
 export const ResourceWarningBadge = memo(function ResourceWarningBadge({ data }: { data: Device }) {
   if (!data) return null
-  const networkObjectUsage = (data.cached_network_objects ?? 0) + (data.cached_network_groups ?? 0)
-  const serviceUsage = (data.cached_services ?? 0) + (data.cached_service_groups ?? 0)
   const levels = [
     capacityLevel(data.cached_policies, data.policy_threshold),
-    capacityLevel(networkObjectUsage, data.network_object_threshold),
-    capacityLevel(serviceUsage, data.service_threshold),
+    capacityLevel(data.cached_network_objects, data.network_object_threshold),
+    capacityLevel(data.cached_network_groups, data.network_group_threshold),
+    capacityLevel(data.cached_services, data.service_threshold),
+    capacityLevel(data.cached_service_groups, data.service_group_threshold),
   ]
-  const hasAnyThreshold = data.policy_threshold != null || data.network_object_threshold != null || data.service_threshold != null
+  const hasAnyThreshold = data.policy_threshold != null || data.network_object_threshold != null
+    || data.network_group_threshold != null || data.service_threshold != null || data.service_group_threshold != null
   if (!hasAnyThreshold) return <span className="text-[12px] text-ds-on-surface-variant/40">—</span>
   if (levels.includes('danger')) {
     return <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-50 text-ds-error border border-red-100">위험</span>

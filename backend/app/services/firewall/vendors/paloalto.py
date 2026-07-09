@@ -518,3 +518,63 @@ class PaloAltoAPI(FirewallInterface):
                 self.logger.info(f"SSH 연결 종료: {self.hostname}")
 
         return pd.DataFrame(all_results)
+
+    # PAN-OS 리소스 한도 키 → Device threshold 필드명 매핑
+    _RESOURCE_LIMIT_KEY_MAP = {
+        "max-policy-rule": "policy_threshold",
+        "max-address": "network_object_threshold",
+        "max-address-group": "network_group_threshold",
+        "max-service": "service_threshold",
+        "max-service-group": "service_group_threshold",
+    }
+
+    def export_resource_limits(self) -> dict:
+        """
+        SSH를 통해 장비의 리소스 한도(최대 정책/주소/서비스 개수 등)를 조회합니다.
+
+        `show system state filter cfg.general.max*` 명령의 출력을 파싱하여
+        Device의 threshold 필드명으로 매핑된 dict를 반환합니다.
+        """
+        self.logger.info(f"Palo Alto 리소스 한도 조회 시작: {self.hostname}")
+
+        ssh = None
+        try:
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect(
+                self.hostname, port=22,
+                username=self.username, password=self._password,
+                timeout=20, look_for_keys=False, allow_agent=False
+            )
+
+            _, stdout, _ = ssh.exec_command("show system state filter cfg.general.max*\n", timeout=30)
+            output = stdout.read().decode('utf-8', errors='ignore')
+
+            limits = {}
+            for line in output.splitlines():
+                match = re.match(r'^cfg\.general\.(max-[\w-]+):\s*(\d+)', line.strip())
+                if not match:
+                    continue
+                pan_key, value = match.group(1), match.group(2)
+                field = self._RESOURCE_LIMIT_KEY_MAP.get(pan_key)
+                if field:
+                    limits[field] = int(value)
+
+            return limits
+
+        except paramiko.AuthenticationException:
+            self.logger.error(f"SSH 인증 실패: {self.hostname}")
+            raise FirewallAuthenticationError(f"SSH 인증 실패: {self.hostname}")
+        except paramiko.SSHException as e:
+            self.logger.error(f"SSH 연결 오류: {self.hostname}, {e}")
+            raise FirewallConnectionError(f"SSH 연결 오류: {self.hostname}")
+        except TimeoutError as e:
+            self.logger.error(f"SSH 명령 타임아웃: {self.hostname}, {e}")
+            raise FirewallConnectionError(f"SSH 명령 타임아웃: {self.hostname}")
+        except Exception as e:
+            self.logger.error(f"리소스 한도 조회 중 예기치 않은 오류 발생: {self.hostname}, {e}", exc_info=True)
+            raise FirewallAPIError(f"리소스 한도 조회 중 오류: {str(e)}")
+        finally:
+            if ssh:
+                ssh.close()
+                self.logger.info(f"SSH 연결 종료: {self.hostname}")
