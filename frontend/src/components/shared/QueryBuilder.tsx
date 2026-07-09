@@ -1,6 +1,6 @@
 import { Plus, X } from 'lucide-react'
 import {
-  QB_FIELDS, OP_LABELS, generateId, getFieldDef,
+  QB_FIELDS, OP_LABELS, OP_DESCRIPTIONS, generateId, getFieldDef, findInvalidIpTokens,
   type FilterTree, type ConditionWithJoin, type OperatorKey,
 } from './queryBuilderModel'
 
@@ -63,6 +63,18 @@ export function QueryBuilder({ tree, onTreeChange }: QueryBuilderProps) {
     }))
   }
 
+  const addExactWithinCondition = (groupIdx: number, condIdx: number) => {
+    onTreeChange(tree.map((g, i) => {
+      if (i !== groupIdx) return g
+      const cond = g.conditions[condIdx]
+      const withinCond: ConditionWithJoin = { field: cond.field, operator: 'only_within', value: cond.value, joinOperator: cond.joinOperator }
+      const conditions = [...g.conditions]
+      conditions[condIdx] = { ...cond, joinOperator: 'AND' }
+      conditions.splice(condIdx + 1, 0, withinCond)
+      return { ...g, conditions }
+    }))
+  }
+
   const toggleCondJoin = (groupIdx: number, condIdx: number) => {
     const cond = tree[groupIdx].conditions[condIdx]
     updateCondition(groupIdx, condIdx, { joinOperator: cond.joinOperator === 'AND' ? 'OR' : 'AND' })
@@ -106,6 +118,9 @@ export function QueryBuilder({ tree, onTreeChange }: QueryBuilderProps) {
             <div className={`space-y-1.5 ${multiGroup ? 'pl-3 border-l-2 border-ds-tertiary/20' : ''}`}>
               {group.conditions.map((cond, condIdx) => {
                 const def = getFieldDef(cond.field)
+                const isIpField = cond.field === 'src_ip' || cond.field === 'dst_ip'
+                const invalidTokens = isIpField ? findInvalidIpTokens(cond.value) : []
+                const showExactHint = isIpField && cond.operator === 'equals' && cond.value.trim() !== ''
                 return (
                   <div key={condIdx}>
                     {/* 조건 행 */}
@@ -123,10 +138,11 @@ export function QueryBuilder({ tree, onTreeChange }: QueryBuilderProps) {
                       <select
                         value={cond.operator}
                         onChange={e => updateCondition(groupIdx, condIdx, { operator: e.target.value as OperatorKey })}
+                        title={OP_DESCRIPTIONS[cond.operator]}
                         className="shrink-0 w-24 bg-white border border-ds-outline-variant/25 rounded text-xs px-2 py-1.5 focus:outline-none focus:border-ds-tertiary focus:ring-1 focus:ring-ds-tertiary"
                       >
                         {def.operators.map(op => (
-                          <option key={op} value={op}>{OP_LABELS[op]}</option>
+                          <option key={op} value={op} title={OP_DESCRIPTIONS[op]}>{OP_LABELS[op]}</option>
                         ))}
                       </select>
 
@@ -147,8 +163,28 @@ export function QueryBuilder({ tree, onTreeChange }: QueryBuilderProps) {
                             value={cond.value}
                             onChange={e => updateCondition(groupIdx, condIdx, { value: e.target.value })}
                             placeholder={def.placeholder ?? '값 입력'}
-                            className="w-full bg-white border border-ds-outline-variant/25 rounded text-xs px-2 py-1.5 font-mono focus:outline-none focus:border-ds-tertiary focus:ring-1 focus:ring-ds-tertiary"
+                            className={`w-full bg-white border rounded text-xs px-2 py-1.5 font-mono focus:outline-none focus:ring-1 ${
+                              invalidTokens.length > 0
+                                ? 'border-ds-error focus:border-ds-error focus:ring-ds-error'
+                                : 'border-ds-outline-variant/25 focus:border-ds-tertiary focus:ring-ds-tertiary'
+                            }`}
                           />
+                        )}
+                        {invalidTokens.length > 0 && (
+                          <div className="text-[10px] text-ds-error mt-0.5">
+                            IP/CIDR 형식이 올바르지 않습니다: {invalidTokens.join(', ')}
+                          </div>
+                        )}
+                        {invalidTokens.length === 0 && showExactHint && (
+                          <div className="text-[10px] text-ds-on-surface-variant mt-0.5">
+                            다른 대역이 섞여 있어도 매칭됩니다.{' '}
+                            <button
+                              onClick={() => addExactWithinCondition(groupIdx, condIdx)}
+                              className="text-ds-tertiary hover:underline font-semibold"
+                            >
+                              정확히 이 대역만 보기
+                            </button>
+                          </div>
                         )}
                       </div>
 
