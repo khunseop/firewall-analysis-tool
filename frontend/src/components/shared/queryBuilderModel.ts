@@ -53,6 +53,44 @@ export const OP_LABELS: Record<OperatorKey, string> = {
   only_within:  '전용 (범위 내만)',
 }
 
+// 연산자 드롭다운 title 툴팁용 설명
+export const OP_DESCRIPTIONS: Partial<Record<OperatorKey, string>> = {
+  equals:      '값이 정확히 일치하는 항목이 하나라도 있으면 매칭 (다른 값이 함께 섞여 있어도 매칭됨)',
+  only_within: '지정한 범위 안에 있는 값만 매칭 (범위를 벗어나는 값이 하나라도 있으면 그 정책은 제외). "=" 조건과 함께 사용하면 정확히 그 대역만 사용하는 정책을 찾을 수 있습니다.',
+  contains:    '값의 일부라도 포함하면 매칭',
+}
+
+// ─── IP/CIDR 값 검증 (src_ip, dst_ip 필드용) ───────────────────────────────────
+
+const IPV4_OCTET = '(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d|0)'
+const IPV4_RE = new RegExp(`^${IPV4_OCTET}(\\.${IPV4_OCTET}){3}$`)
+
+function isValidIpv4(s: string): boolean {
+  return IPV4_RE.test(s.trim())
+}
+
+function isValidIpToken(token: string): boolean {
+  const t = token.trim()
+  if (!t) return true
+  if (t.toLowerCase() === 'any') return true
+  if (t.includes('/')) {
+    const [addr, prefix] = t.split('/')
+    if (!isValidIpv4(addr)) return false
+    const p = Number(prefix)
+    return Number.isInteger(p) && p >= 0 && p <= 32
+  }
+  if (t.includes('-')) {
+    const [a, b] = t.split('-')
+    return isValidIpv4(a) && isValidIpv4(b)
+  }
+  return isValidIpv4(t)
+}
+
+/** 콤마 구분 IP/CIDR 값 중 형식이 잘못된 토큰만 반환 (src_ip/dst_ip 필드 검증용) */
+export function findInvalidIpTokens(value: string): string[] {
+  return value.split(',').map(s => s.trim()).filter(Boolean).filter(t => !isValidIpToken(t))
+}
+
 // ─── 타입 ─────────────────────────────────────────────────────────────────────
 
 export interface Condition {
