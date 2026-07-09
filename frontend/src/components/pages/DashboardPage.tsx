@@ -42,7 +42,9 @@ interface DeviceRow {
   sync_status: string | null; sync_step: string | null; sync_time: string | null
   policy_threshold: number | null
   network_object_threshold: number | null
+  network_group_threshold: number | null
   service_threshold: number | null
+  service_group_threshold: number | null
 }
 
 function transformDeviceStats(d: DeviceStats): DeviceRow {
@@ -60,7 +62,9 @@ function transformDeviceStats(d: DeviceStats): DeviceRow {
     sync_time: d.sync_time,
     policy_threshold: d.policy_threshold,
     network_object_threshold: d.network_object_threshold,
+    network_group_threshold: d.network_group_threshold,
     service_threshold: d.service_threshold,
+    service_group_threshold: d.service_group_threshold,
   }
 }
 
@@ -87,8 +91,10 @@ interface CapacityMetric { label: string; usage: number; threshold: number; pct:
 function getHighCapacityMetrics(row: DeviceRow): CapacityMetric[] {
   const candidates: { label: string; usage: number; threshold: number | null }[] = [
     { label: '정책', usage: row.policies, threshold: row.policy_threshold },
-    { label: '네트워크 객체', usage: row.network_objects + row.network_groups, threshold: row.network_object_threshold },
-    { label: '서비스 객체', usage: row.services + row.service_groups, threshold: row.service_threshold },
+    { label: '네트워크 객체', usage: row.network_objects, threshold: row.network_object_threshold },
+    { label: '네트워크 그룹', usage: row.network_groups, threshold: row.network_group_threshold },
+    { label: '서비스 객체', usage: row.services, threshold: row.service_threshold },
+    { label: '서비스 그룹', usage: row.service_groups, threshold: row.service_group_threshold },
   ]
   const metrics: CapacityMetric[] = []
   for (const c of candidates) {
@@ -160,11 +166,19 @@ const COLUMN_DEFS: ColDef<DeviceRow>[] = [
   },
   {
     headerName: '네트워크 객체 임계치', minWidth: 130, sortable: false, filter: false,
-    cellRenderer: (p: { data: DeviceRow }) => <CapacityCell usage={p.data.network_objects + p.data.network_groups} threshold={p.data.network_object_threshold} />,
+    cellRenderer: (p: { data: DeviceRow }) => <CapacityCell usage={p.data.network_objects} threshold={p.data.network_object_threshold} />,
+  },
+  {
+    headerName: '네트워크 그룹 임계치', minWidth: 130, sortable: false, filter: false,
+    cellRenderer: (p: { data: DeviceRow }) => <CapacityCell usage={p.data.network_groups} threshold={p.data.network_group_threshold} />,
   },
   {
     headerName: '서비스 객체 임계치', minWidth: 130, sortable: false, filter: false,
-    cellRenderer: (p: { data: DeviceRow }) => <CapacityCell usage={p.data.services + p.data.service_groups} threshold={p.data.service_threshold} />,
+    cellRenderer: (p: { data: DeviceRow }) => <CapacityCell usage={p.data.services} threshold={p.data.service_threshold} />,
+  },
+  {
+    headerName: '서비스 그룹 임계치', minWidth: 130, sortable: false, filter: false,
+    cellRenderer: (p: { data: DeviceRow }) => <CapacityCell usage={p.data.service_groups} threshold={p.data.service_group_threshold} />,
   },
 ]
 

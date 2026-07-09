@@ -82,20 +82,10 @@ export function DeviceDetailDialog({ device, onClose, onEdit }: {
               <div className="text-[11px] font-bold text-ds-on-surface-variant/60 mb-2">객체 수 임계치 현황</div>
               <div className="space-y-2.5">
                 <CapacityRow label="정책" usage={device.cached_policies} threshold={device.policy_threshold} />
-                <CapacityRow
-                  label="네트워크 객체 (객체+그룹)"
-                  usage={device.cached_network_objects != null || device.cached_network_groups != null
-                    ? (device.cached_network_objects ?? 0) + (device.cached_network_groups ?? 0)
-                    : null}
-                  threshold={device.network_object_threshold}
-                />
-                <CapacityRow
-                  label="서비스 객체 (객체+그룹)"
-                  usage={device.cached_services != null || device.cached_service_groups != null
-                    ? (device.cached_services ?? 0) + (device.cached_service_groups ?? 0)
-                    : null}
-                  threshold={device.service_threshold}
-                />
+                <CapacityRow label="네트워크 객체" usage={device.cached_network_objects} threshold={device.network_object_threshold} />
+                <CapacityRow label="네트워크 그룹" usage={device.cached_network_groups} threshold={device.network_group_threshold} />
+                <CapacityRow label="서비스 객체" usage={device.cached_services} threshold={device.service_threshold} />
+                <CapacityRow label="서비스 그룹" usage={device.cached_service_groups} threshold={device.service_group_threshold} />
               </div>
             </div>
           </div>

@@ -67,7 +67,14 @@ class Device(Base):
     location_y = Column(String, nullable=True)
     location_z = Column(String, nullable=True)
 
-    # 객체 수 임계치 (수기 입력) — 사용량은 cached_* 컬럼과 비교
-    policy_threshold = Column(Integer, nullable=True)          # cached_policies와 비교
-    network_object_threshold = Column(Integer, nullable=True)  # cached_network_objects + cached_network_groups와 비교
-    service_threshold = Column(Integer, nullable=True)         # cached_services + cached_service_groups와 비교
+    # 객체 수 임계치 — manual=True면 수기 입력값 유지, False(기본값)면 동기화 시 자동 수집값으로 갱신 (Palo Alto)
+    policy_threshold = Column(Integer, nullable=True)                  # cached_policies와 비교
+    policy_threshold_manual = Column(Boolean, nullable=False, default=False)
+    network_object_threshold = Column(Integer, nullable=True)          # cached_network_objects와 비교
+    network_object_threshold_manual = Column(Boolean, nullable=False, default=False)
+    network_group_threshold = Column(Integer, nullable=True)           # cached_network_groups와 비교
+    network_group_threshold_manual = Column(Boolean, nullable=False, default=False)
+    service_threshold = Column(Integer, nullable=True)                 # cached_services와 비교
+    service_threshold_manual = Column(Boolean, nullable=False, default=False)
+    service_group_threshold = Column(Integer, nullable=True)           # cached_service_groups와 비교
+    service_group_threshold_manual = Column(Boolean, nullable=False, default=False)

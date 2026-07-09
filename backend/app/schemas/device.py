@@ -30,10 +30,17 @@ class DeviceBase(BaseModel):
     location_y: Optional[str] = None
     location_z: Optional[str] = None
 
-    # 객체 수 임계치 (수기 입력, 사용량은 cached_* 컬럼과 비교)
+    # 객체 수 임계치 — manual=True면 수기 입력값 유지, False(기본값)면 동기화 시 자동 수집값으로 갱신
     policy_threshold: Optional[int] = None
+    policy_threshold_manual: Optional[bool] = False
     network_object_threshold: Optional[int] = None
+    network_object_threshold_manual: Optional[bool] = False
+    network_group_threshold: Optional[int] = None
+    network_group_threshold_manual: Optional[bool] = False
     service_threshold: Optional[int] = None
+    service_threshold_manual: Optional[bool] = False
+    service_group_threshold: Optional[int] = None
+    service_group_threshold_manual: Optional[bool] = False
 
 # Schema for creating a new device
 class DeviceCreate(DeviceBase):
@@ -69,8 +76,15 @@ class DeviceUpdate(BaseModel):
     location_z: Optional[str] = None
 
     policy_threshold: Optional[int] = None
+    policy_threshold_manual: Optional[bool] = None
     network_object_threshold: Optional[int] = None
+    network_object_threshold_manual: Optional[bool] = None
+    network_group_threshold: Optional[int] = None
+    network_group_threshold_manual: Optional[bool] = None
     service_threshold: Optional[int] = None
+    service_threshold_manual: Optional[bool] = None
+    service_group_threshold: Optional[int] = None
+    service_group_threshold_manual: Optional[bool] = None
 
 # Schema for reading device data (from DB)
 class Device(DeviceBase):
@@ -118,7 +132,9 @@ class DeviceStats(BaseModel):
     sync_time: Optional[datetime] = None
     policy_threshold: Optional[int] = None
     network_object_threshold: Optional[int] = None
+    network_group_threshold: Optional[int] = None
     service_threshold: Optional[int] = None
+    service_group_threshold: Optional[int] = None
 
 
 class DashboardStatsResponse(BaseModel):

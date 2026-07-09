@@ -127,6 +127,25 @@ async def update_sync_status(
     return device
 
 
+_THRESHOLD_MANUAL_MAP = {
+    "policy_threshold": "policy_threshold_manual",
+    "network_object_threshold": "network_object_threshold_manual",
+    "network_group_threshold": "network_group_threshold_manual",
+    "service_threshold": "service_threshold_manual",
+    "service_group_threshold": "service_group_threshold_manual",
+}
+
+
+async def update_collected_thresholds(db: AsyncSession, device: Device, limits: dict) -> None:
+    """SSH 등으로 자동 수집한 리소스 한도 값을 device에 반영합니다.
+    manual 플래그가 True인 항목은 관리자가 수기 입력한 값을 유지하기 위해 건드리지 않습니다.
+    """
+    for field, manual_flag in _THRESHOLD_MANUAL_MAP.items():
+        if field in limits and not getattr(device, manual_flag, False):
+            setattr(device, field, limits[field])
+    db.add(device)
+
+
 async def get_dashboard_stats(db: AsyncSession) -> DashboardStatsResponse:
     """캐시 컬럼에서 읽어 대시보드 통계를 즉시 반환합니다."""
     devices_result = await db.execute(select(Device))
@@ -175,7 +194,9 @@ async def get_dashboard_stats(db: AsyncSession) -> DashboardStatsResponse:
             sync_time=d.last_sync_at,
             policy_threshold=d.policy_threshold,
             network_object_threshold=d.network_object_threshold,
+            network_group_threshold=d.network_group_threshold,
             service_threshold=d.service_threshold,
+            service_group_threshold=d.service_group_threshold,
         ))
 
     return DashboardStatsResponse(

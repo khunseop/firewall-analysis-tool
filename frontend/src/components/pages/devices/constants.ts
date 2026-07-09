@@ -33,7 +33,11 @@ export interface DeviceFormData {
   serial_number: string; os_name: string; os_version: string; install_date: string
   location_region: string; location_building: string; location_floor: string; location_room: string
   location_x: string; location_y: string; location_z: string
-  policy_threshold: string; network_object_threshold: string; service_threshold: string
+  policy_threshold: string; policy_threshold_manual: boolean
+  network_object_threshold: string; network_object_threshold_manual: boolean
+  network_group_threshold: string; network_group_threshold_manual: boolean
+  service_threshold: string; service_threshold_manual: boolean
+  service_group_threshold: string; service_group_threshold_manual: boolean
 }
 
 export const DEFAULT_FORM: DeviceFormData = {
@@ -42,5 +46,9 @@ export const DEFAULT_FORM: DeviceFormData = {
   serial_number: '', os_name: '', os_version: '', install_date: '',
   location_region: '', location_building: '', location_floor: '', location_room: '',
   location_x: '', location_y: '', location_z: '',
-  policy_threshold: '', network_object_threshold: '', service_threshold: '',
+  policy_threshold: '', policy_threshold_manual: false,
+  network_object_threshold: '', network_object_threshold_manual: false,
+  network_group_threshold: '', network_group_threshold_manual: false,
+  service_threshold: '', service_threshold_manual: false,
+  service_group_threshold: '', service_group_threshold_manual: false,
 }

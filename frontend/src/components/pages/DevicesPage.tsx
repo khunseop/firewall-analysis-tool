@@ -471,18 +471,27 @@ export function DevicesPage() {
           location_floor: editTarget.location_floor ?? '', location_room: editTarget.location_room ?? '',
           location_x: editTarget.location_x ?? '', location_y: editTarget.location_y ?? '', location_z: editTarget.location_z ?? '',
           policy_threshold: editTarget.policy_threshold?.toString() ?? '',
+          policy_threshold_manual: editTarget.policy_threshold_manual,
           network_object_threshold: editTarget.network_object_threshold?.toString() ?? '',
+          network_object_threshold_manual: editTarget.network_object_threshold_manual,
+          network_group_threshold: editTarget.network_group_threshold?.toString() ?? '',
+          network_group_threshold_manual: editTarget.network_group_threshold_manual,
           service_threshold: editTarget.service_threshold?.toString() ?? '',
+          service_threshold_manual: editTarget.service_threshold_manual,
+          service_group_threshold: editTarget.service_group_threshold?.toString() ?? '',
+          service_group_threshold_manual: editTarget.service_group_threshold_manual,
         } : undefined}
         onSubmit={(data) => {
-          const { policy_threshold, network_object_threshold, service_threshold, install_date, ...rest } = data
+          const { policy_threshold, network_object_threshold, network_group_threshold, service_threshold, service_group_threshold, install_date, ...rest } = data
           const toNum = (v: string) => v === '' ? undefined : Number(v)
           const payload = {
             ...rest,
             install_date: install_date || undefined,
             policy_threshold: toNum(policy_threshold),
             network_object_threshold: toNum(network_object_threshold),
+            network_group_threshold: toNum(network_group_threshold),
             service_threshold: toNum(service_threshold),
+            service_group_threshold: toNum(service_group_threshold),
           }
           if (editTarget) {
             const updatePayload: DeviceUpdate = { ...payload }

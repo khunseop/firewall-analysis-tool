@@ -590,6 +590,20 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
             # 연결 성공 후 상태 업데이트
             device = await _update_status(device_id, "Connected")
 
+            # 3-1. 리소스 한도(임계치) 자동 수집 (Palo Alto 전용, manual 플래그가 False인 항목만 갱신)
+            if device.vendor == 'paloalto':
+                device = await _update_status(device_id, "Collecting resource limits...")
+                try:
+                    limits = await loop.run_in_executor(IO_EXECUTOR, collector.export_resource_limits)
+                    if limits:
+                        async with SessionLocal() as db:
+                            device_row = await crud.device.get_device(db, device_id)
+                            if device_row:
+                                await crud.device.update_collected_thresholds(db, device_row, limits)
+                                await db.commit()
+                except Exception as e:
+                    logging.warning(f"Failed to collect resource limits for device {device_id}: {e}. Continuing sync...", exc_info=True)
+
             # 4. 데이터 수집 시퀀스 정의 (종속성 관계에 따라 순차 진행)
             collection_sequence = [
                 ("network_objects", "Collecting network objects...", collector.export_network_objects, schemas.NetworkObjectCreate),
