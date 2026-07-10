@@ -24,8 +24,15 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.drop_index('ix_policies_search', table_name='policies')
-    op.drop_table('notifications')
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+
+    existing_indexes = {ix['name'] for ix in inspector.get_indexes('policies')}
+    if 'ix_policies_search' in existing_indexes:
+        op.drop_index('ix_policies_search', table_name='policies')
+
+    if inspector.has_table('notifications'):
+        op.drop_table('notifications')
 
 
 def downgrade() -> None:
