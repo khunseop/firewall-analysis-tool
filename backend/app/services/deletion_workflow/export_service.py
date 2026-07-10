@@ -5,6 +5,7 @@
 import asyncio
 import datetime
 import io
+import logging
 from typing import Tuple
 
 import pandas as pd
@@ -18,6 +19,9 @@ from app.models.network_group import NetworkGroup
 from app.models.service import Service
 from app.models.service_group import ServiceGroup
 from app.models.analysis import AnalysisTask, AnalysisTaskType, AnalysisTaskStatus
+
+
+logger = logging.getLogger(__name__)
 
 
 class ExportDataError(ValueError):
@@ -135,11 +139,22 @@ async def build_redundancy_export(db: AsyncSession, device_id: int, device) -> T
     if not redundancy_sets:
         raise ExportDataError("중복 정책 데이터가 없습니다.")
 
+    # policy_id가 가리키는 정책이 이후 동기화로 삭제/재생성되어 고아가 된 행이 있을 수 있다
+    # (SQLite FK 미강제로 ondelete=CASCADE가 실제 동작하지 않음). 짝이 깨진 세트를 그대로
+    # 내보내면 Upper/Lower 중 한쪽만 남는 것처럼 보이므로, 고아 행이 하나라도 있는
+    # set_number는 세트 전체를 제외한다.
+    orphaned_set_numbers = {rps.set_number for rps in redundancy_sets if rps.policy is None}
+    if orphaned_set_numbers:
+        logger.warning(
+            f"Task {task.id}: 정책이 삭제/재생성되어 고아가 된 중복 세트 {len(orphaned_set_numbers)}건 "
+            f"제외 (set_number={sorted(orphaned_set_numbers)})"
+        )
+
     rows = []
     for rps in redundancy_sets:
-        p = rps.policy
-        if p is None:
+        if rps.set_number in orphaned_set_numbers:
             continue
+        p = rps.policy
         rows.append({
             "No": rps.set_number,
             "Type": rps.type.value,  # "UPPER" | "LOWER"
