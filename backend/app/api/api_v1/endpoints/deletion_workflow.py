@@ -33,7 +33,6 @@ from app.services.deletion_workflow.export_service import (
 from app.services.deletion_workflow.config_bridge import (
     load_config_dict,
     save_task15_exceptions_to_settings,
-    build_duplicate_policy_yaml,
 )
 
 logger = logging.getLogger(__name__)
@@ -438,15 +437,6 @@ async def run_project_task(
     if task_id in (10, 11):
         effective_task_id = get_vendor_task_id(vendor)
 
-    # Task 17: external_1(YAML) 없으면 Settings 예외 목록으로 자동 생성
-    if task_id == 17:
-        existing_yaml = await dwcrud.get_file(db, project_id=project_id, task_id=17, slot="external_1")
-        if existing_yaml is None:
-            yaml_bytes = await build_duplicate_policy_yaml(db, project.device_id, device, reference_date=project.reference_date)
-            if yaml_bytes:
-                await dwcrud.upsert_file(db, project_id=project_id, task_id=17, slot="external_1",
-                                         filename="duplicate_exceptions_auto.yaml", data=yaml_bytes)
-
     files_map = await dwcrud.get_project_files(db, project_id)
 
     try:
@@ -462,6 +452,8 @@ async def run_project_task(
         extra_kwargs["vendor"] = "paloalto"
     elif effective_task_id == 11:
         extra_kwargs["vendor"] = "secui"
+    elif effective_task_id == 17:
+        extra_kwargs["device_id"] = project.device_id
 
     loop = asyncio.get_event_loop()
     config_dict = await load_config_dict(db)
