@@ -31,7 +31,7 @@ export const PHASE2_TASKS: TaskMeta[] = [
   { step: 8, id: 15, name: '중복 만료셋 예외처리',   description: '전체 만료 / 차단 영향 중복 세트 예외 분류' },
   { step: 9, id: 16, name: '중복정책 상태 업데이트', description: '예외처리 결과 + 분류결과 → 중복여부 반영' },
   { step: 10, id: 17, name: '중복 예외 반영',        description: 'Settings의 중복정책 예외 목록 → 정책 파일 반영' },
-  { step: 11, id: 18, name: '통보대상 분류',          description: '정책 Excel → 유형별 공지파일 생성' },
+  { step: 11, id: 18, name: '통보대상 분류',          description: '정책 Excel → 통보대상 컬럼 추가(최종본)' },
 ]
 
 // Phase 1 + Phase 2 실행 순서 (Task 0, 1은 별도)

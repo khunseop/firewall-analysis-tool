@@ -92,17 +92,6 @@ def _default_config() -> dict:
                 "title_bracket_pattern": "",
             },
         },
-        # ── 통보대상 분류 컬럼 (notification_classifier.py) ──────────
-        # columns.all       : 공지파일에 포함할 전체 컬럼 목록
-        # columns.no_history: 신청이력 없는 정책 공지용 컬럼 목록
-        # columns.date_columns: 날짜 포맷(YYYY-MM-DD)을 적용할 컬럼 목록
-        # translated_columns : 내부 컬럼명 → 공지용 한글 이름 매핑
-        "columns": {
-            "all": [],
-            "no_history": [],
-            "date_columns": [],
-        },
-        "translated_columns": {},
         # ── 엑셀 스타일 ─────────────────────────────────────────────
         "excel_styles": {
             "header_fill_color": "E0E0E0",
