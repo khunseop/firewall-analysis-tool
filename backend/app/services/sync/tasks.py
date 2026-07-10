@@ -15,6 +15,7 @@ from app import crud, models, schemas
 from app.core.executors import IO_EXECUTOR
 from app.db.session import SessionLocal
 from app.models.policy_members import PolicyAddressMember, PolicyServiceMember
+from app.models.analysis import RedundancyPolicySet
 from app.services.sync.transform import (
     dataframe_to_pydantic,
     get_key_attribute,
@@ -268,6 +269,10 @@ async def sync_data_task(
                 if data_type == "policies":
                     await db.execute(delete(PolicyAddressMember).where(PolicyAddressMember.policy_id.in_(ids_to_delete)))
                     await db.execute(delete(PolicyServiceMember).where(PolicyServiceMember.policy_id.in_(ids_to_delete)))
+                    # SQLite는 PRAGMA foreign_keys=ON이 아니라서 ondelete="CASCADE"가 실제로
+                    # 동작하지 않는다. 명시적으로 지우지 않으면 중복분석 결과가 삭제된
+                    # policy_id를 참조하는 고아 행으로 남아 이후 export에서 조용히 누락된다.
+                    await db.execute(delete(RedundancyPolicySet).where(RedundancyPolicySet.policy_id.in_(ids_to_delete)))
                 await db.execute(delete(model).where(model.id.in_(ids_to_delete)))
 
             # 4-2. 대량 생성 (Bulk Insert)
