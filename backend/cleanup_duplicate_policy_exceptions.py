@@ -11,6 +11,7 @@ duplicate_policies에 누적된 채로 남아있을 수 있다.
 사용법:
   python backend/cleanup_duplicate_policy_exceptions.py list [--device-id ID]
   python backend/cleanup_duplicate_policy_exceptions.py remove --name RULE_NAME [--device-id ID] [--apply]
+  python backend/cleanup_duplicate_policy_exceptions.py remove --reason REASON [--device-id ID] [--apply]
   python backend/cleanup_duplicate_policy_exceptions.py remove --all [--device-id ID] [--apply]
 
 --apply 없이 실행하면 무엇이 삭제될지만 보여주고 실제로는 반영하지 않는다(dry-run 기본값).
@@ -67,7 +68,10 @@ async def list_entries(device_id: int | None) -> None:
         await db.close()
 
 
-async def remove_entries(device_id: int | None, names: list[str] | None, remove_all: bool, apply: bool) -> None:
+async def remove_entries(
+    device_id: int | None, names: list[str] | None, reasons: list[str] | None,
+    remove_all: bool, apply: bool,
+) -> None:
     db: AsyncSession = SessionLocal()
     try:
         cfg, entries = await _load(db)
@@ -79,7 +83,11 @@ async def remove_entries(device_id: int | None, names: list[str] | None, remove_
                 return False
             if remove_all:
                 return True
-            return e.get("name") in (names or [])
+            if names and e.get("name") in names:
+                return True
+            if reasons and e.get("reason") in reasons:
+                return True
+            return False
 
         to_remove = [e for e in entries if matches(e)]
         to_keep = [e for e in entries if not matches(e)]
@@ -121,6 +129,7 @@ def main():
     p_remove = sub.add_parser("remove", help="예외 항목 삭제")
     p_remove.add_argument("--device-id", type=int, default=None, help="특정 장비로 제한")
     p_remove.add_argument("--name", action="append", default=None, help="삭제할 정책명 (여러 번 지정 가능)")
+    p_remove.add_argument("--reason", action="append", default=None, help="삭제할 예외 사유(reason), 정확히 일치 (여러 번 지정 가능)")
     p_remove.add_argument("--all", action="store_true", help="조건에 맞는 항목 전체 삭제")
     p_remove.add_argument("--apply", action="store_true", help="실제로 반영 (없으면 dry-run)")
 
@@ -129,9 +138,9 @@ def main():
     if args.command == "list":
         asyncio.run(list_entries(args.device_id))
     elif args.command == "remove":
-        if not args.all and not args.name:
-            parser.error("--name 또는 --all 중 하나는 지정해야 합니다.")
-        asyncio.run(remove_entries(args.device_id, args.name, args.all, args.apply))
+        if not args.all and not args.name and not args.reason:
+            parser.error("--name, --reason, --all 중 하나는 지정해야 합니다.")
+        asyncio.run(remove_entries(args.device_id, args.name, args.reason, args.all, args.apply))
 
 
 if __name__ == "__main__":
