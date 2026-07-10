@@ -154,7 +154,7 @@ async def build_duplicate_policy_yaml(
             reg = datetime.date.fromisoformat(item["registered_at"])
         except (KeyError, ValueError):
             continue
-        if exp >= today and reg <= today:
+        if exp >= today and reg >= today:
             valid.append({
                 "name": item.get("name", ""),
                 "reason": item.get("reason", ""),
