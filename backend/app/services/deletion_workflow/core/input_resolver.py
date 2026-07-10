@@ -196,11 +196,9 @@ def resolve_inputs(
         return collect(policy, classify)
 
     if task_id == 17:
-        # 중복 예외 반영: 중복상태 업데이트 결과 + YAML (선택)
-        # YAML: 수동 업로드(external_1) 또는 Settings 자동 생성 (run_project_task에서 처리)
+        # 중복 예외 반영: 중복상태 업데이트 결과. 예외 목록은 Settings DB에서 직접 조회.
         policy = _require(project_files, 16, "output_0", "중복정책 상태 업데이트 결과")
-        yaml_f = _get(project_files, 17, "external_1")
-        return collect(policy, yaml_f)
+        return collect(policy)
 
     if task_id == 18:
         # 통보대상 분류

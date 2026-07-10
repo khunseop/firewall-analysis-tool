@@ -163,11 +163,6 @@ export function TaskCard({
                 existingFile={getExternalFile(files, task.id, inp.slot)}
                 onUploaded={onRefresh}
               />
-              {!inp.required && inp.slot === 'external_1' && !getExternalFile(files, task.id, inp.slot) && task.id === 17 && (
-                <p className="text-[11px] text-ds-on-surface-variant/70 mt-1 ml-1">
-                  ℹ️ 파일 없으면 Settings → 삭제 워크플로우의 중복정책 예외가 자동 적용됩니다.
-                </p>
-              )}
               {!inp.required && inp.slot === 'external_1' && !getExternalFile(files, task.id, inp.slot) && task.id === 12 && (
                 <p className="text-[11px] text-ds-on-surface-variant/70 mt-1 ml-1">
                   ℹ️ 파일 없으면 Task 1 출력(히트카운트 병합)을 자동 사용합니다. 별도 사용이력 파일이 있으면 업로드하세요.

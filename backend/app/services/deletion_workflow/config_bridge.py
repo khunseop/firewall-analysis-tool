@@ -1,6 +1,6 @@
 """삭제 워크플로우 설정(Settings) 연동 로직.
 
-config 로드, Task 15 예외 누적 저장, 중복 예외 YAML 생성을 담당합니다.
+config 로드, Task 15 예외 누적 저장을 담당합니다.
 """
 import datetime
 import io
@@ -131,47 +131,3 @@ async def save_task15_exceptions_to_settings(
         )
 
     logger.info(f"Task 15 예외 {len(new_entries)}건 → Settings duplicate_policies 저장 완료")
-
-
-async def build_duplicate_policy_yaml(
-    db: AsyncSession, device_id: int, device, reference_date: datetime.date = None
-) -> bytes | None:
-    """
-    Settings의 duplicate_policies에서 해당 장비 + 유효기간 예외만 추출해 YAML bytes 생성.
-    유효 항목 없으면 None 반환.
-    """
-    import yaml as _yaml
-
-    setting = await crud.settings.get_setting(db, key=SETTINGS_KEY)
-    if not setting:
-        return None
-
-    try:
-        cfg = json.loads(setting.value) if isinstance(setting.value, str) else setting.value
-        items = cfg.get("exceptions", {}).get("duplicate_policies", [])
-    except Exception:
-        return None
-
-    today = reference_date or datetime.date.today()
-    valid = []
-    for item in items:
-        if item.get("device_id") != device_id:
-            continue
-        try:
-            exp = datetime.date.fromisoformat(item["expires_at"])
-            reg = datetime.date.fromisoformat(item["registered_at"])
-        except (KeyError, ValueError):
-            continue
-        if exp >= today and reg >= today:
-            valid.append({
-                "name": item.get("name", ""),
-                "reason": item.get("reason", ""),
-                "registered_at": item["registered_at"],
-                "expires_at": item["expires_at"],
-            })
-
-    if not valid:
-        return None
-
-    fw_key = device.ip_address if device else str(device_id)
-    return _yaml.dump({fw_key: valid}, allow_unicode=True, default_flow_style=False).encode("utf-8")
