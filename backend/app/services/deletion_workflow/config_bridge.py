@@ -39,8 +39,8 @@ async def save_task15_exceptions_to_settings(
     unused_threshold_days: int,
 ) -> None:
     """
-    Task 15 출력 파일(중복정리 결과 Excel의 '예외' 시트)에서 예외 대상을 추출해
-    Settings의 duplicate_policies에 누적 저장.
+    Task 15 출력 파일(중복정리 결과 Excel의 '중복정책정리'+'예외' 시트)에서
+    '미사용예외' 컬럼이 True인 대상을 추출해 Settings의 duplicate_policies에 누적 저장.
     (device_id, name) 기준 중복 시 expires_at이 더 긴 항목으로 교체.
     """
     df_exc: Optional[pd.DataFrame] = None
@@ -48,12 +48,20 @@ async def save_task15_exceptions_to_settings(
         if not fname.endswith('.xlsx'):
             continue
         try:
-            df_exc = pd.read_excel(io.BytesIO(data), sheet_name='예외')
+            sheets = pd.read_excel(io.BytesIO(data), sheet_name=None)
         except Exception:
             continue
+        target_sheets = [df for name, df in sheets.items() if name in ('중복정책정리', '예외')]
+        if not target_sheets:
+            continue
+        df_exc = pd.concat(target_sheets, ignore_index=True)
         break
 
-    if df_exc is None or df_exc.empty or 'Rule Name' not in df_exc.columns:
+    if df_exc is None or df_exc.empty or 'Rule Name' not in df_exc.columns or '미사용예외' not in df_exc.columns:
+        return
+
+    df_exc = df_exc[df_exc['미사용예외'] == True]  # noqa: E712
+    if df_exc.empty:
         return
 
     today = reference_date or datetime.date.today()
