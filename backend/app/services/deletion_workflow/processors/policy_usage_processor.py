@@ -54,8 +54,9 @@ class PolicyUsageProcessor(BaseProcessor):
                     logger.error("미사용 정보 파일에 '미사용여부' 또는 'Unused Days' 컬럼이 없습니다.")
                     return False
                 threshold = self.config.get('analysis_criteria.unused_threshold_days', 90)
-                usage_df['미사용여부'] = usage_df['Unused Days'].apply(
-                    lambda x: '미사용' if pd.notna(x) and float(x) > threshold else '사용'
+                unused_days_numeric = pd.to_numeric(usage_df['Unused Days'], errors='coerce')
+                usage_df['미사용여부'] = unused_days_numeric.apply(
+                    lambda x: '미사용' if pd.isna(x) or x > threshold else '사용'
                 )
 
             usage_map = usage_df[['Rule Name', '미사용여부']].set_index('Rule Name').to_dict()['미사용여부']

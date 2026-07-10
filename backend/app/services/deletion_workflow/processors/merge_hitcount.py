@@ -48,8 +48,9 @@ class MergeHitcount(BaseProcessor):
             merged_df.drop(columns=drop_cols, inplace=True, errors='ignore')
 
             unused_threshold = self.config.get('analysis_criteria.unused_threshold_days', 90)
-            merged_df['미사용여부'] = merged_df['Unused Days'].apply(
-                lambda x: '미사용' if x > unused_threshold else '사용'
+            unused_days_numeric = pd.to_numeric(merged_df['Unused Days'], errors='coerce')
+            merged_df['미사용여부'] = unused_days_numeric.apply(
+                lambda x: '미사용' if pd.isna(x) or x > unused_threshold else '사용'
             )
 
             output_file = f"Merged_{first_file}"
