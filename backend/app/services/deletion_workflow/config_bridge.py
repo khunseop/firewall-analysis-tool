@@ -72,10 +72,13 @@ async def save_task15_exceptions_to_settings(
         name = row.get('Rule Name')
         if not name:
             continue
+        remark = row.get('비고', '')
+        if pd.isna(remark):
+            remark = ''
         new_entries.append({
             "device_id": device_id,
             "name": str(name),
-            "reason": f"중복정책_{row.get('비고', '')}",
+            "reason": f"중복정책_{remark}",
             "registered_at": today.strftime('%Y-%m-%d'),
             "expires_at": expires_at.strftime('%Y-%m-%d'),
         })
