@@ -36,7 +36,7 @@ class DuplicateExceptionApplier(BaseProcessor):
                 except (ValueError, KeyError) as e:
                     logger.warning(f"예외 항목 날짜 파싱 실패 ({item.get('name', '?')}): {e}")
                     continue
-                if expires_at >= current_date and registered_at >= current_date:
+                if expires_at >= current_date and registered_at < current_date:
                     valid_names.append(item['name'])
 
             if not valid_names:
