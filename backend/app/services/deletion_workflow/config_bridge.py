@@ -39,8 +39,9 @@ async def save_task15_exceptions_to_settings(
     unused_threshold_days: int,
 ) -> None:
     """
-    Task 15 출력 파일(중복정리 결과 Excel의 '중복정책정리'+'예외' 시트)에서
+    Task 15 출력 파일(중복정리 결과 Excel의 '중복정책정리' 시트)에서
     '미사용예외' 컬럼이 True인 대상을 추출해 Settings의 duplicate_policies에 누적 저장.
+    ('예외' 시트=전체만료/차단영향위험 대상은 해당 프로젝트 내 중복정리 용도로만 쓰이므로 제외)
     (device_id, name) 기준 중복 시 expires_at이 더 긴 항목으로 교체.
     """
     df_exc: Optional[pd.DataFrame] = None
@@ -51,10 +52,10 @@ async def save_task15_exceptions_to_settings(
             sheets = pd.read_excel(io.BytesIO(data), sheet_name=None)
         except Exception:
             continue
-        target_sheets = [df for name, df in sheets.items() if name in ('중복정책정리', '예외')]
-        if not target_sheets:
+        target_sheet = sheets.get('중복정책정리')
+        if target_sheet is None:
             continue
-        df_exc = pd.concat(target_sheets, ignore_index=True)
+        df_exc = target_sheet
         break
 
     if df_exc is None or df_exc.empty or 'Rule Name' not in df_exc.columns or '미사용예외' not in df_exc.columns:
@@ -72,13 +73,10 @@ async def save_task15_exceptions_to_settings(
         name = row.get('Rule Name')
         if not name:
             continue
-        remark = row.get('비고', '')
-        if pd.isna(remark):
-            remark = ''
         new_entries.append({
             "device_id": device_id,
             "name": str(name),
-            "reason": f"중복정책_{remark}",
+            "reason": "중복정책_미사용예외",
             "registered_at": today.strftime('%Y-%m-%d'),
             "expires_at": expires_at.strftime('%Y-%m-%d'),
         })
