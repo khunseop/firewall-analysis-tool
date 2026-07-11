@@ -45,6 +45,10 @@ class AnalysisTask(Base):
     completed_at = Column(DateTime)
     error_message = Column(String, nullable=True)
 
+    # 이 분석을 요청한 사용자 (표시용 스냅샷, FK 제약 없음)
+    requested_by_user_id = Column(Integer, nullable=True)
+    requested_by_username = Column(String, nullable=True)
+
     device = relationship("Device")
 
 class RedundancyPolicySet(Base):

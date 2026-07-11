@@ -13,6 +13,12 @@ class DeletionWorkflowProject(Base):
     status = Column(String, default="draft", nullable=False)  # draft/running/completed
     memo = Column(String, nullable=True)
     reference_date = Column(Date, nullable=True)  # 기준일: None이면 실행 시점 현재 날짜 사용
+
+    # 현재 실행 중인 태스크 락 (None이면 실행 중인 태스크 없음)
+    running_task_id = Column(Integer, nullable=True)
+    running_by_user_id = Column(Integer, nullable=True)
+    running_by_username = Column(String, nullable=True)
+
     created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 

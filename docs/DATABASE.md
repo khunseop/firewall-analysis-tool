@@ -26,6 +26,8 @@
 | `last_sync_at` | `DATETIME` | `NULLABLE` | 마지막 동기화 완료 시간 |
 | `last_sync_status` | `VARCHAR` | `NULLABLE` | 동기화 상태 (in_progress, success, failure) |
 | `last_sync_step` | `VARCHAR` | `NULLABLE` | 현재 진행 중인 동기화 단계 메시지 |
+| `sync_requested_by_user_id` | `INTEGER` | `NULLABLE` | 현재/마지막 동기화를 요청한 사용자 ID (FK 제약 없는 스냅샷) |
+| `sync_requested_by_username` | `VARCHAR` | `NULLABLE` | 위 사용자의 username 스냅샷 (표시용) |
 | `cached_policies` | `INTEGER` | `DEFAULT 0` | 전체 정책 수 캐시 |
 | `cached_active_policies` | `INTEGER` | `DEFAULT 0` | 활성 정책 수 캐시 |
 | `cached_disabled_policies` | `INTEGER` | `DEFAULT 0` | 비활성 정책 수 캐시 |
@@ -188,6 +190,8 @@
 | `started_at` | `DATETIME` | `NULLABLE` | 분석 시작 시간 |
 | `completed_at` | `DATETIME` | `NULLABLE` | 분석 완료 시간 |
 | `error_message` | `VARCHAR` | `NULLABLE` | 실패 시 오류 메시지 |
+| `requested_by_user_id` | `INTEGER` | `NULLABLE` | 이 분석을 요청한 사용자 ID (FK 제약 없는 스냅샷) |
+| `requested_by_username` | `VARCHAR` | `NULLABLE` | 위 사용자의 username 스냅샷 (표시용) |
 
 ### `analysis_results` Table (분석 결과)
 - 실행(`analysistasks`)마다 새 행이 쌓여 이력으로 보존된다 (device_id+analysis_type 기준으로 덮어쓰지 않음).
@@ -262,6 +266,9 @@
 | `name` | `VARCHAR` | `NOT NULL` | 프로젝트 이름 |
 | `status` | `VARCHAR` | `DEFAULT 'draft'` | 상태 (draft, running, completed) |
 | `memo` | `VARCHAR` | `NULLABLE` | 메모 |
+| `running_task_id` | `INTEGER` | `NULLABLE` | 현재 실행 중인 태스크 번호 (없으면 NULL — 동시 실행 방지 락) |
+| `running_by_user_id` | `INTEGER` | `NULLABLE` | 위 태스크를 실행 중인 사용자 ID (FK 제약 없는 스냅샷) |
+| `running_by_username` | `VARCHAR` | `NULLABLE` | 위 사용자의 username 스냅샷 (표시용) |
 | `created_at` | `DATETIME` | `NOT NULL` | 생성 시간 |
 | `updated_at` | `DATETIME` | `NOT NULL` | 마지막 수정 시간 |
 

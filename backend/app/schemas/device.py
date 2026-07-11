@@ -92,6 +92,8 @@ class Device(DeviceBase):
     last_sync_at: Optional[datetime] = None
     last_sync_status: Optional[str] = None
     last_sync_step: Optional[str] = None
+    sync_requested_by_user_id: Optional[int] = None
+    sync_requested_by_username: Optional[str] = None
 
     # 대시보드 통계 캐시 (읽기 전용 — 동기화 완료 시 서버에서 갱신)
     cached_policies: Optional[int] = None
@@ -109,6 +111,8 @@ class DeviceSyncStatus(BaseModel):
     last_sync_at: Optional[datetime] = None
     last_sync_status: Optional[str] = None
     last_sync_step: Optional[str] = None
+    sync_requested_by_user_id: Optional[int] = None
+    sync_requested_by_username: Optional[str] = None
 
     class Config:
         from_attributes = True

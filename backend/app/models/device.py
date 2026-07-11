@@ -42,6 +42,8 @@ class Device(Base):
     last_sync_at = Column(DateTime, nullable=True)
     last_sync_status = Column(String, nullable=True)  # e.g., in_progress, success, failure
     last_sync_step = Column(String, nullable=True)   # e.g., collecting policies, indexing, etc.
+    sync_requested_by_user_id = Column(Integer, nullable=True)   # 현재/마지막 동기화를 요청한 사용자 ID
+    sync_requested_by_username = Column(String, nullable=True)  # 위 사용자의 username 스냅샷 (표시용)
 
     # 대시보드 통계 캐시 — 동기화 완료 시 업데이트됩니다.
     cached_policies = Column(Integer, nullable=True, default=0)
