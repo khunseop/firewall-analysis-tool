@@ -70,6 +70,33 @@ async def update_project_status(
     return project
 
 
+async def set_project_running(
+    db: AsyncSession,
+    project: DeletionWorkflowProject,
+    task_id: int,
+    user_id: Optional[int],
+    username: Optional[str],
+) -> DeletionWorkflowProject:
+    project.running_task_id = task_id
+    project.running_by_user_id = user_id
+    project.running_by_username = username
+    project.updated_at = datetime.datetime.utcnow()
+    await db.flush()
+    return project
+
+
+async def clear_project_running(
+    db: AsyncSession,
+    project: DeletionWorkflowProject,
+) -> DeletionWorkflowProject:
+    project.running_task_id = None
+    project.running_by_user_id = None
+    project.running_by_username = None
+    project.updated_at = datetime.datetime.utcnow()
+    await db.flush()
+    return project
+
+
 _UNSET = object()
 
 

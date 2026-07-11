@@ -21,7 +21,9 @@ from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import get_current_user
 from app.db.session import get_db
+from app.models.user import User
 from app import crud
 from app.services.deletion_workflow.core.workspace_runner import WorkspaceRunner
 from app.services.deletion_workflow.task_meta import TASK_META, fpat_yaml_path
@@ -353,6 +355,7 @@ async def update_project(
 async def project_extract(
     project_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Task 0: FAT DB에서 데이터를 추출하여 프로젝트에 저장합니다.
@@ -363,20 +366,33 @@ async def project_extract(
     if not project:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
 
+    if project.running_task_id is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=f"이미 {project.running_by_username}님이 태스크 {project.running_task_id}를 실행 중입니다.",
+        )
+
     device = await crud.device.get_device(db=db, device_id=project.device_id)
     if not device:
         raise HTTPException(status_code=404, detail="장비를 찾을 수 없습니다.")
 
-    try:
-        content, filename = await build_device_export(db, device, reference_date=project.reference_date)
-    except ExportDataError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-    await dwcrud.upsert_file(db, project_id=project_id, task_id=0, slot="output_0",
-                             filename=filename, data=content)
-    await dwcrud.update_project_status(db, project, "running")
+    await dwcrud.set_project_running(db, project, task_id=0, user_id=current_user.id, username=current_user.username)
     await db.commit()
-    return {"ok": True, "filename": filename, "task_id": 0, "slot": "output_0"}
+
+    try:
+        try:
+            content, filename = await build_device_export(db, device, reference_date=project.reference_date)
+        except ExportDataError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+
+        await dwcrud.upsert_file(db, project_id=project_id, task_id=0, slot="output_0",
+                                 filename=filename, data=content)
+        await dwcrud.update_project_status(db, project, "running")
+        await db.commit()
+        return {"ok": True, "filename": filename, "task_id": 0, "slot": "output_0"}
+    finally:
+        await dwcrud.clear_project_running(db, project)
+        await db.commit()
 
 
 @router.post("/projects/{project_id}/tasks/{task_id}/upload")
@@ -409,6 +425,7 @@ async def run_project_task(
     project_id: int,
     task_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     프로젝트 내에서 태스크를 실행합니다.
@@ -422,78 +439,91 @@ async def run_project_task(
     if not project:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
 
+    if project.running_task_id is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=f"이미 {project.running_by_username}님이 태스크 {project.running_task_id}를 실행 중입니다.",
+        )
+
     device = await crud.device.get_device(db=db, device_id=project.device_id)
     vendor = device.vendor if device else ""
 
-    # ── Task 3: FAT DB 중복분석 → project file 자동 저장 ──────────────────
-    if task_id == 3:
-        return await _run_task3_from_db(project_id, project.device_id, device, db, dwcrud)
-
-    if task_id not in TASK_META:
-        raise HTTPException(status_code=400, detail=f"유효하지 않은 태스크 번호: {task_id}")
-
-    # Task 10/11 자동 선택: 벤더에 따라 실제 실행할 task_id 결정
-    effective_task_id = task_id
-    if task_id in (10, 11):
-        effective_task_id = get_vendor_task_id(vendor)
-
-    files_map = await dwcrud.get_project_files(db, project_id)
-
-    try:
-        input_files = resolve_inputs(effective_task_id, files_map, vendor)
-    except MissingInputError as e:
-        raise HTTPException(status_code=422, detail=str(e))
-
-    contents = [data for data, _ in input_files]
-    filenames = [name for _, name in input_files]
-
-    extra_kwargs = {}
-    if effective_task_id == 10:
-        extra_kwargs["vendor"] = "paloalto"
-    elif effective_task_id == 11:
-        extra_kwargs["vendor"] = "secui"
-    elif effective_task_id == 17:
-        extra_kwargs["device_id"] = project.device_id
-
-    loop = asyncio.get_event_loop()
-    config_dict = await load_config_dict(db)
-    runner = WorkspaceRunner(config_dict=config_dict, reference_date=project.reference_date)
-
-    try:
-        output_files = await loop.run_in_executor(
-            None,
-            lambda: runner.run_task(effective_task_id, contents, filenames, **extra_kwargs)
-        )
-    except (ValueError, RuntimeError) as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    except Exception as e:
-        logger.exception(f"Project {project_id} Task {effective_task_id} 실행 오류: {e}")
-        raise HTTPException(status_code=500, detail=f"태스크 실행 실패: {str(e)}")
-
-    if not output_files:
-        raise HTTPException(status_code=500, detail="태스크 실행 완료됐으나 출력 파일이 없습니다.")
-
-    # Task 15 완료 시 미사용예외를 Settings duplicate_policies에 누적 저장
-    if effective_task_id == 15:
-        unused_threshold_days = config_dict.get("analysis_criteria", {}).get("unused_threshold_days", 90)
-        await save_task15_exceptions_to_settings(
-            db, project.device_id, output_files,
-            reference_date=project.reference_date,
-            unused_threshold_days=unused_threshold_days,
-        )
-
-    # 출력 파일을 프로젝트에 저장 (output_0, output_1, ...) — .yaml은 제외
-    saved = []
-    for idx, (fname, data) in enumerate(
-        [(f, d) for f, d in output_files if not f.endswith('.yaml')]
-    ):
-        slot = f"output_{idx}"
-        await dwcrud.upsert_file(db, project_id=project_id, task_id=effective_task_id,
-                                 slot=slot, filename=fname, data=data)
-        saved.append({"slot": slot, "filename": fname})
-
+    await dwcrud.set_project_running(db, project, task_id=task_id, user_id=current_user.id, username=current_user.username)
     await db.commit()
-    return {"ok": True, "task_id": effective_task_id, "outputs": saved}
+
+    try:
+        # ── Task 3: FAT DB 중복분석 → project file 자동 저장 ──────────────────
+        if task_id == 3:
+            return await _run_task3_from_db(project_id, project.device_id, device, db, dwcrud)
+
+        if task_id not in TASK_META:
+            raise HTTPException(status_code=400, detail=f"유효하지 않은 태스크 번호: {task_id}")
+
+        # Task 10/11 자동 선택: 벤더에 따라 실제 실행할 task_id 결정
+        effective_task_id = task_id
+        if task_id in (10, 11):
+            effective_task_id = get_vendor_task_id(vendor)
+
+        files_map = await dwcrud.get_project_files(db, project_id)
+
+        try:
+            input_files = resolve_inputs(effective_task_id, files_map, vendor)
+        except MissingInputError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+
+        contents = [data for data, _ in input_files]
+        filenames = [name for _, name in input_files]
+
+        extra_kwargs = {}
+        if effective_task_id == 10:
+            extra_kwargs["vendor"] = "paloalto"
+        elif effective_task_id == 11:
+            extra_kwargs["vendor"] = "secui"
+        elif effective_task_id == 17:
+            extra_kwargs["device_id"] = project.device_id
+
+        loop = asyncio.get_event_loop()
+        config_dict = await load_config_dict(db)
+        runner = WorkspaceRunner(config_dict=config_dict, reference_date=project.reference_date)
+
+        try:
+            output_files = await loop.run_in_executor(
+                None,
+                lambda: runner.run_task(effective_task_id, contents, filenames, **extra_kwargs)
+            )
+        except (ValueError, RuntimeError) as e:
+            raise HTTPException(status_code=500, detail=str(e))
+        except Exception as e:
+            logger.exception(f"Project {project_id} Task {effective_task_id} 실행 오류: {e}")
+            raise HTTPException(status_code=500, detail=f"태스크 실행 실패: {str(e)}")
+
+        if not output_files:
+            raise HTTPException(status_code=500, detail="태스크 실행 완료됐으나 출력 파일이 없습니다.")
+
+        # Task 15 완료 시 미사용예외를 Settings duplicate_policies에 누적 저장
+        if effective_task_id == 15:
+            unused_threshold_days = config_dict.get("analysis_criteria", {}).get("unused_threshold_days", 90)
+            await save_task15_exceptions_to_settings(
+                db, project.device_id, output_files,
+                reference_date=project.reference_date,
+                unused_threshold_days=unused_threshold_days,
+            )
+
+        # 출력 파일을 프로젝트에 저장 (output_0, output_1, ...) — .yaml은 제외
+        saved = []
+        for idx, (fname, data) in enumerate(
+            [(f, d) for f, d in output_files if not f.endswith('.yaml')]
+        ):
+            slot = f"output_{idx}"
+            await dwcrud.upsert_file(db, project_id=project_id, task_id=effective_task_id,
+                                     slot=slot, filename=fname, data=data)
+            saved.append({"slot": slot, "filename": fname})
+
+        await db.commit()
+        return {"ok": True, "task_id": effective_task_id, "outputs": saved}
+    finally:
+        await dwcrud.clear_project_running(db, project)
+        await db.commit()
 
 
 async def _run_task3_from_db(project_id, device_id, device, db, dwcrud):

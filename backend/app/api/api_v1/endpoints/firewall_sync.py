@@ -5,7 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud, schemas
+from app.core.auth import get_current_user
 from app.db.session import get_db
+from app.models.user import User
 from app.services.sync.transform import dataframe_to_pydantic
 from app.services.sync.collector import build_collector
 from app.services.sync.tasks import sync_data_task, run_sync_all_orchestrator
@@ -14,11 +16,25 @@ router = APIRouter()
 
 
 @router.post("/sync/{device_id}/{data_type}", include_in_schema=False, response_model=schemas.Msg)
-async def sync_device_data(device_id: int, data_type: str, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+async def sync_device_data(
+    device_id: int,
+    data_type: str,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     device = await crud.device.get_device(db=db, device_id=device_id)
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
 
+    if device.last_sync_status in ("pending", "in_progress"):
+        raise HTTPException(
+            status_code=409,
+            detail=f"이미 {device.sync_requested_by_username or '다른 사용자'}님이 동기화를 진행 중입니다.",
+        )
+
+    device.sync_requested_by_user_id = current_user.id
+    device.sync_requested_by_username = current_user.username
     await crud.device.update_sync_status(db=db, device=device, status="in_progress")
     await db.commit()
 
@@ -99,12 +115,25 @@ async def sync_device_data(device_id: int, data_type: str, background_tasks: Bac
 
 
 @router.post("/sync-all/{device_id}", response_model=schemas.Msg)
-async def sync_all(device_id: int, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+async def sync_all(
+    device_id: int,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     device = await crud.device.get_device(db=db, device_id=device_id)
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
 
+    if device.last_sync_status in ("pending", "in_progress"):
+        raise HTTPException(
+            status_code=409,
+            detail=f"이미 {device.sync_requested_by_username or '다른 사용자'}님이 동기화를 진행 중입니다.",
+        )
+
     # 동기화 시작 전 대기중 상태로 설정
+    device.sync_requested_by_user_id = current_user.id
+    device.sync_requested_by_username = current_user.username
     await crud.device.update_sync_status(db=db, device=device, status="pending", step="대기중...")
     await db.commit()
 

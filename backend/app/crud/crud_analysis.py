@@ -31,10 +31,11 @@ async def get_latest_analysis_task_by_device(db: AsyncSession, device_id: int) -
     )
     return result.scalars().first()
 
-async def get_running_analysis_task(db: AsyncSession) -> Optional[AnalysisTask]:
-    result = await db.execute(
-        select(AnalysisTask).filter(AnalysisTask.task_status == AnalysisTaskStatus.IN_PROGRESS)
-    )
+async def get_running_analysis_task(db: AsyncSession, device_id: Optional[int] = None) -> Optional[AnalysisTask]:
+    stmt = select(AnalysisTask).filter(AnalysisTask.task_status == AnalysisTaskStatus.IN_PROGRESS)
+    if device_id is not None:
+        stmt = stmt.filter(AnalysisTask.device_id == device_id)
+    result = await db.execute(stmt)
     return result.scalars().first()
 
 async def update_analysis_task(db: AsyncSession, *, db_obj: AnalysisTask, obj_in: AnalysisTaskUpdate) -> AnalysisTask:

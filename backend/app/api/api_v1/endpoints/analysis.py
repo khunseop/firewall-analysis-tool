@@ -5,7 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud, schemas
+from app.core.auth import get_current_user
 from app.db.session import get_db
+from app.models.user import User
 from app.services.analysis.tasks import (
     run_redundancy_analysis_task,
     run_unused_analysis_task,
@@ -22,6 +24,7 @@ async def start_redundancy_analysis(
     device_id: int,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> Any:
     """
     지정된 장비에 대한 중복 정책 분석을 시작합니다.
@@ -30,11 +33,11 @@ async def start_redundancy_analysis(
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
 
-    running_task = await crud.analysis.get_running_analysis_task(db)
+    running_task = await crud.analysis.get_running_analysis_task(db, device_id=device_id)
     if running_task:
         raise HTTPException(status_code=409, detail=f"An analysis task (ID: {running_task.id}) is already in progress.")
 
-    background_tasks.add_task(run_redundancy_analysis_task, device_id)
+    background_tasks.add_task(run_redundancy_analysis_task, device_id, current_user.id, current_user.username)
 
     return {"msg": "Redundancy analysis has been started in the background."}
 
@@ -129,6 +132,7 @@ async def list_analysis_tasks(
             started_at=t.started_at,
             completed_at=t.completed_at,
             error_message=t.error_message,
+            requested_by_username=t.requested_by_username,
         )
         for t in tasks
     ]
@@ -166,6 +170,7 @@ async def start_unused_analysis(
     days: int = 90,
     background_tasks: BackgroundTasks = BackgroundTasks(),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> Any:
     """
     지정된 장비에 대한 미사용 정책 분석을 시작합니다.
@@ -174,11 +179,11 @@ async def start_unused_analysis(
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
 
-    running_task = await crud.analysis.get_running_analysis_task(db)
+    running_task = await crud.analysis.get_running_analysis_task(db, device_id=device_id)
     if running_task:
         raise HTTPException(status_code=409, detail=f"An analysis task (ID: {running_task.id}) is already in progress.")
 
-    background_tasks.add_task(run_unused_analysis_task, device_id, days)
+    background_tasks.add_task(run_unused_analysis_task, device_id, days, current_user.id, current_user.username)
 
     return {"msg": f"Unused policy analysis has been started in the background (기준: {days}일)."}
 
@@ -190,6 +195,7 @@ async def start_impact_analysis(
     move_direction: Optional[str] = Query(None, description="이동 방향 (above/below)"),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> Any:
     """
     정책 위치 이동 시정책이동 영향분석을 시작합니다.
@@ -202,11 +208,14 @@ async def start_impact_analysis(
     if not target_policy_id or len(target_policy_id) == 0:
         raise HTTPException(status_code=400, detail="At least one target policy ID is required")
 
-    running_task = await crud.analysis.get_running_analysis_task(db)
+    running_task = await crud.analysis.get_running_analysis_task(db, device_id=device_id)
     if running_task:
         raise HTTPException(status_code=409, detail=f"An analysis task (ID: {running_task.id}) is already in progress.")
 
-    background_tasks.add_task(run_impact_analysis_task, device_id, target_policy_id, reference_policy_id, move_direction)
+    background_tasks.add_task(
+        run_impact_analysis_task, device_id, target_policy_id, reference_policy_id, move_direction,
+        current_user.id, current_user.username,
+    )
 
     return {"msg": f"Impact analysis has been started in the background for {len(target_policy_id)} policy(ies)."}
 
@@ -215,6 +224,7 @@ async def start_unreferenced_objects_analysis(
     device_id: int,
     background_tasks: BackgroundTasks = BackgroundTasks(),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> Any:
     """
     지정된 장비에 대한 미참조 객체 분석을 시작합니다.
@@ -223,11 +233,11 @@ async def start_unreferenced_objects_analysis(
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
 
-    running_task = await crud.analysis.get_running_analysis_task(db)
+    running_task = await crud.analysis.get_running_analysis_task(db, device_id=device_id)
     if running_task:
         raise HTTPException(status_code=409, detail=f"An analysis task (ID: {running_task.id}) is already in progress.")
 
-    background_tasks.add_task(run_unreferenced_objects_analysis_task, device_id)
+    background_tasks.add_task(run_unreferenced_objects_analysis_task, device_id, current_user.id, current_user.username)
 
     return {"msg": "Unreferenced objects analysis has been started in the background."}
 
@@ -237,6 +247,7 @@ async def start_risky_ports_analysis(
     target_policy_id: Optional[List[int]] = Query(None),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> Any:
     """
     지정된 장비에 대한 위험 포트 정책 분석을 시작합니다.
@@ -246,11 +257,13 @@ async def start_risky_ports_analysis(
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
 
-    running_task = await crud.analysis.get_running_analysis_task(db)
+    running_task = await crud.analysis.get_running_analysis_task(db, device_id=device_id)
     if running_task:
         raise HTTPException(status_code=409, detail=f"An analysis task (ID: {running_task.id}) is already in progress.")
 
-    background_tasks.add_task(run_risky_ports_analysis_task, device_id, target_policy_id)
+    background_tasks.add_task(
+        run_risky_ports_analysis_task, device_id, target_policy_id, current_user.id, current_user.username
+    )
 
     return {"msg": "Risky ports analysis has been started in the background."}
 
@@ -260,6 +273,7 @@ async def start_over_permissive_analysis(
     target_policy_id: Optional[List[int]] = Query(None),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> Any:
     """
     지정된 장비에 대한 과허용정책 분석을 시작합니다.
@@ -269,10 +283,12 @@ async def start_over_permissive_analysis(
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
 
-    running_task = await crud.analysis.get_running_analysis_task(db)
+    running_task = await crud.analysis.get_running_analysis_task(db, device_id=device_id)
     if running_task:
         raise HTTPException(status_code=409, detail=f"An analysis task (ID: {running_task.id}) is already in progress.")
 
-    background_tasks.add_task(run_over_permissive_analysis_task, device_id, target_policy_id)
+    background_tasks.add_task(
+        run_over_permissive_analysis_task, device_id, target_policy_id, current_user.id, current_user.username
+    )
 
     return {"msg": "Over-permissive policy analysis has been started in the background."}

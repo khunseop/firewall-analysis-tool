@@ -32,19 +32,25 @@ from .over_permissive import OverPermissiveAnalyzer
 
 logger = logging.getLogger(__name__)
 
-# 분석 작업이 중복 실행되지 않도록 보장하는 비동기 락
-analysis_lock = asyncio.Lock()
+# 분석 작업이 같은 장비에서 중복 실행되지 않도록 보장하는 장비별 비동기 락.
+# 전역 단일 락이었을 때는 서로 다른 장비에 대한 분석 요청도 하나가 조용히 드롭되는 문제가 있었음.
+_device_analysis_locks: dict[int, asyncio.Lock] = {}
 
-async def run_redundancy_analysis_task(device_id: int):
+
+def _get_device_analysis_lock(device_id: int) -> asyncio.Lock:
+    return _device_analysis_locks.setdefault(device_id, asyncio.Lock())
+
+
+async def run_redundancy_analysis_task(device_id: int, requested_by_user_id: Optional[int] = None, requested_by_username: Optional[str] = None):
     """중복 정책 분석 백그라운드 진입점.
 
     요청 스코프 세션은 응답 후 닫히므로 여기서 자체 세션을 연다.
     """
     async with SessionLocal() as db:
-        await _run_redundancy_analysis(db, device_id)
+        await _run_redundancy_analysis(db, device_id, requested_by_user_id, requested_by_username)
 
 
-async def _run_redundancy_analysis(db: AsyncSession, device_id: int):
+async def _run_redundancy_analysis(db: AsyncSession, device_id: int, requested_by_user_id: Optional[int] = None, requested_by_username: Optional[str] = None):
     """
     중복 정책 분석 작업을 실행합니다.
 
@@ -54,18 +60,21 @@ async def _run_redundancy_analysis(db: AsyncSession, device_id: int):
     4. 분석 결과를 JSON으로 직렬화하여 analysis_results 테이블에 저장합니다.
     5. 작업 상태를 'success' 또는 'failure'로 업데이트합니다.
     """
-    if analysis_lock.locked():
+    device_lock = _get_device_analysis_lock(device_id)
+    if device_lock.locked():
         logger.warning(f"분석 작업이 이미 진행 중입니다. Device ID: {device_id}")
         return
 
-    async with analysis_lock:
+    async with device_lock:
         logger.info(f"중복 정책 분석 시작. Device ID: {device_id}")
 
         # [단계 1] 분석 작업 레코드 생성
         task_create = AnalysisTaskCreate(
             device_id=device_id,
             task_type=AnalysisTaskType.REDUNDANCY,
-            created_at=get_kst_now()
+            created_at=get_kst_now(),
+            requested_by_user_id=requested_by_user_id,
+            requested_by_username=requested_by_username,
         )
         task = await crud.analysis.create_analysis_task(db, obj_in=task_create)
 
@@ -120,28 +129,31 @@ async def _run_redundancy_analysis(db: AsyncSession, device_id: int):
             await log_activity(db, title="중복 정책 분석 실패", message=f"Device ID {device_id} 중복 정책 분석 실패: {str(e)[:200]}", type="error", category="analysis", device_id=device_id)
 
 
-async def run_unused_analysis_task(device_id: int, days: int = 90):
+async def run_unused_analysis_task(device_id: int, days: int = 90, requested_by_user_id: Optional[int] = None, requested_by_username: Optional[str] = None):
     """미사용 정책 분석 백그라운드 진입점. 자체 세션을 연다."""
     async with SessionLocal() as db:
-        await _run_unused_analysis(db, device_id, days)
+        await _run_unused_analysis(db, device_id, days, requested_by_user_id, requested_by_username)
 
 
-async def _run_unused_analysis(db: AsyncSession, device_id: int, days: int = 90):
+async def _run_unused_analysis(db: AsyncSession, device_id: int, days: int = 90, requested_by_user_id: Optional[int] = None, requested_by_username: Optional[str] = None):
     """
     미사용 정책 분석 작업을 실행합니다.
     장기간(기본 90일) 동안 트래픽 매칭이 발생하지 않은 정책을 찾아냅니다.
     """
-    if analysis_lock.locked():
+    device_lock = _get_device_analysis_lock(device_id)
+    if device_lock.locked():
         logger.warning(f"분석 작업이 이미 진행 중입니다. Device ID: {device_id}")
         return
 
-    async with analysis_lock:
+    async with device_lock:
         logger.info(f"미사용 정책 분석 시작. Device ID: {device_id}, 기준일: {days}일")
 
         task_create = AnalysisTaskCreate(
             device_id=device_id,
             task_type=AnalysisTaskType.UNUSED,
-            created_at=get_kst_now()
+            created_at=get_kst_now(),
+            requested_by_user_id=requested_by_user_id,
+            requested_by_username=requested_by_username,
         )
         task = await crud.analysis.create_analysis_task(db, obj_in=task_create)
 
@@ -188,29 +200,32 @@ async def _run_unused_analysis(db: AsyncSession, device_id: int, days: int = 90)
             await log_activity(db, title="미사용 정책 분석 실패", message=f"Device ID {device_id} 미사용 정책 분석 실패: {str(e)[:200]}", type="error", category="analysis", device_id=device_id)
 
 
-async def run_impact_analysis_task(device_id: int, target_policy_ids: List[int], reference_policy_id: Optional[int] = None, move_direction: Optional[str] = None):
+async def run_impact_analysis_task(device_id: int, target_policy_ids: List[int], reference_policy_id: Optional[int] = None, move_direction: Optional[str] = None, requested_by_user_id: Optional[int] = None, requested_by_username: Optional[str] = None):
     """정책 이동 영향도 분석 백그라운드 진입점. 자체 세션을 연다."""
     async with SessionLocal() as db:
-        await _run_impact_analysis(db, device_id, target_policy_ids, reference_policy_id, move_direction)
+        await _run_impact_analysis(db, device_id, target_policy_ids, reference_policy_id, move_direction, requested_by_user_id, requested_by_username)
 
 
-async def _run_impact_analysis(db: AsyncSession, device_id: int, target_policy_ids: List[int], reference_policy_id: Optional[int] = None, move_direction: Optional[str] = None):
+async def _run_impact_analysis(db: AsyncSession, device_id: int, target_policy_ids: List[int], reference_policy_id: Optional[int] = None, move_direction: Optional[str] = None, requested_by_user_id: Optional[int] = None, requested_by_username: Optional[str] = None):
     """
     정책 위치 이동 시 영향도 분석 작업을 실행합니다.
     이동 경로상에 있는 정책들과의 충돌 또는 가림(Shadowing) 현상을 미리 확인합니다.
     """
-    if analysis_lock.locked():
+    device_lock = _get_device_analysis_lock(device_id)
+    if device_lock.locked():
         logger.warning(f"분석 작업이 이미 진행 중입니다. Device ID: {device_id}")
         return
 
-    async with analysis_lock:
+    async with device_lock:
         if isinstance(target_policy_ids, int):
             target_policy_ids = [target_policy_ids]
-        
+
         task_create = AnalysisTaskCreate(
             device_id=device_id,
             task_type=AnalysisTaskType.IMPACT,
-            created_at=get_kst_now()
+            created_at=get_kst_now(),
+            requested_by_user_id=requested_by_user_id,
+            requested_by_username=requested_by_username,
         )
         task = await crud.analysis.create_analysis_task(db, obj_in=task_create)
 
@@ -262,28 +277,31 @@ async def _run_impact_analysis(db: AsyncSession, device_id: int, target_policy_i
             await log_activity(db, title="영향도 분석 실패", message=f"Device ID {device_id} 정책 이동 영향도 분석 실패: {str(e)[:200]}", type="error", category="analysis", device_id=device_id)
 
 
-async def run_unreferenced_objects_analysis_task(device_id: int):
+async def run_unreferenced_objects_analysis_task(device_id: int, requested_by_user_id: Optional[int] = None, requested_by_username: Optional[str] = None):
     """미참조 객체 분석 백그라운드 진입점. 자체 세션을 연다."""
     async with SessionLocal() as db:
-        await _run_unreferenced_objects_analysis(db, device_id)
+        await _run_unreferenced_objects_analysis(db, device_id, requested_by_user_id, requested_by_username)
 
 
-async def _run_unreferenced_objects_analysis(db: AsyncSession, device_id: int):
+async def _run_unreferenced_objects_analysis(db: AsyncSession, device_id: int, requested_by_user_id: Optional[int] = None, requested_by_username: Optional[str] = None):
     """
     미참조 객체 분석 작업을 실행합니다.
     어떤 정책에서도 사용되지 않는 고립된 네트워크/서비스 객체를 탐지합니다.
     """
-    if analysis_lock.locked():
+    device_lock = _get_device_analysis_lock(device_id)
+    if device_lock.locked():
         logger.warning(f"분석 작업이 이미 진행 중입니다. Device ID: {device_id}")
         return
 
-    async with analysis_lock:
+    async with device_lock:
         logger.info(f"미참조 객체 분석 시작. Device ID: {device_id}")
 
         task_create = AnalysisTaskCreate(
             device_id=device_id,
             task_type=AnalysisTaskType.UNREFERENCED_OBJECTS,
-            created_at=get_kst_now()
+            created_at=get_kst_now(),
+            requested_by_user_id=requested_by_user_id,
+            requested_by_username=requested_by_username,
         )
         task = await crud.analysis.create_analysis_task(db, obj_in=task_create)
 
@@ -330,28 +348,31 @@ async def _run_unreferenced_objects_analysis(db: AsyncSession, device_id: int):
 
 
 
-async def run_risky_ports_analysis_task(device_id: int, target_policy_ids: Optional[List[int]] = None):
+async def run_risky_ports_analysis_task(device_id: int, target_policy_ids: Optional[List[int]] = None, requested_by_user_id: Optional[int] = None, requested_by_username: Optional[str] = None):
     """위험 포트 분석 백그라운드 진입점. 자체 세션을 연다."""
     async with SessionLocal() as db:
-        await _run_risky_ports_analysis(db, device_id, target_policy_ids)
+        await _run_risky_ports_analysis(db, device_id, target_policy_ids, requested_by_user_id, requested_by_username)
 
 
-async def _run_risky_ports_analysis(db: AsyncSession, device_id: int, target_policy_ids: Optional[List[int]] = None):
+async def _run_risky_ports_analysis(db: AsyncSession, device_id: int, target_policy_ids: Optional[List[int]] = None, requested_by_user_id: Optional[int] = None, requested_by_username: Optional[str] = None):
     """
     위험 포트 정책 분석을 실행하고 결과를 저장합니다.
     target_policy_ids가 제공되면 해당 정책들만 분석하고, 없으면 모든 정책을 분석합니다.
     """
-    if analysis_lock.locked():
+    device_lock = _get_device_analysis_lock(device_id)
+    if device_lock.locked():
         logger.warning(f"분석 작업이 이미 진행 중입니다. Device ID: {device_id}")
         return
 
-    async with analysis_lock:
+    async with device_lock:
         logger.info(f"위험 포트 정책 분석 작업 시작. Device ID: {device_id}, Target Policy IDs: {target_policy_ids}")
 
         task_create = AnalysisTaskCreate(
             device_id=device_id,
             task_type=AnalysisTaskType.RISKY_PORTS,
-            created_at=get_kst_now()
+            created_at=get_kst_now(),
+            requested_by_user_id=requested_by_user_id,
+            requested_by_username=requested_by_username,
         )
         task = await crud.analysis.create_analysis_task(db, obj_in=task_create)
 
@@ -397,28 +418,31 @@ async def _run_risky_ports_analysis(db: AsyncSession, device_id: int, target_pol
             await log_activity(db, title="위험 포트 분석 실패", message=f"Device ID {device_id} 위험 포트 분석 실패: {str(e)[:200]}", type="error", category="analysis", device_id=device_id)
 
 
-async def run_over_permissive_analysis_task(device_id: int, target_policy_ids: Optional[List[int]] = None):
+async def run_over_permissive_analysis_task(device_id: int, target_policy_ids: Optional[List[int]] = None, requested_by_user_id: Optional[int] = None, requested_by_username: Optional[str] = None):
     """과허용정책 분석 백그라운드 진입점. 자체 세션을 연다."""
     async with SessionLocal() as db:
-        await _run_over_permissive_analysis(db, device_id, target_policy_ids)
+        await _run_over_permissive_analysis(db, device_id, target_policy_ids, requested_by_user_id, requested_by_username)
 
 
-async def _run_over_permissive_analysis(db: AsyncSession, device_id: int, target_policy_ids: Optional[List[int]] = None):
+async def _run_over_permissive_analysis(db: AsyncSession, device_id: int, target_policy_ids: Optional[List[int]] = None, requested_by_user_id: Optional[int] = None, requested_by_username: Optional[str] = None):
     """
     과허용정책 분석을 실행하고 결과를 저장합니다.
     target_policy_ids가 제공되면 해당 정책들만 분석하고, 없으면 모든 정책을 분석합니다.
     """
-    if analysis_lock.locked():
+    device_lock = _get_device_analysis_lock(device_id)
+    if device_lock.locked():
         logger.warning(f"분석 작업이 이미 진행 중입니다. Device ID: {device_id}")
         return
 
-    async with analysis_lock:
+    async with device_lock:
         logger.info(f"과허용정책 분석 작업 시작. Device ID: {device_id}, Target Policy IDs: {target_policy_ids}")
 
         task_create = AnalysisTaskCreate(
             device_id=device_id,
             task_type=AnalysisTaskType.OVER_PERMISSIVE,
-            created_at=get_kst_now()
+            created_at=get_kst_now(),
+            requested_by_user_id=requested_by_user_id,
+            requested_by_username=requested_by_username,
         )
         task = await crud.analysis.create_analysis_task(db, obj_in=task_create)
 

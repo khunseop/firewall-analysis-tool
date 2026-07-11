@@ -11,6 +11,8 @@ class AnalysisTaskBase(BaseModel):
 
 class AnalysisTaskCreate(AnalysisTaskBase):
     created_at: datetime
+    requested_by_user_id: Optional[int] = None
+    requested_by_username: Optional[str] = None
 
 class AnalysisTaskUpdate(BaseModel):
     task_status: Optional[AnalysisTaskStatus] = None
@@ -25,6 +27,8 @@ class AnalysisTask(AnalysisTaskBase):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     error_message: Optional[str] = None
+    requested_by_user_id: Optional[int] = None
+    requested_by_username: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -81,6 +85,7 @@ class AnalysisTaskListItem(BaseModel):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     error_message: Optional[str] = None
+    requested_by_username: Optional[str] = None
 
 class AnalysisTaskListResponse(BaseModel):
     items: List[AnalysisTaskListItem]
