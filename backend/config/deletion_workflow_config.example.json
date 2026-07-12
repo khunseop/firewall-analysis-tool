@@ -4,6 +4,9 @@
     "final_version_suffix": "_vf",
     "request_id_prefix": "request_id_"
   },
+  "file_management": {
+    "max_request_types": 5
+  },
   "file_extensions": {
     "excel": ".xlsx",
     "csv": ".csv"

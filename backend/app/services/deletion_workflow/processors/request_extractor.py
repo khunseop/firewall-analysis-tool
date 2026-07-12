@@ -27,7 +27,8 @@ class RequestExtractor(BaseProcessor):
             df = pd.read_excel(file_name)
 
             unique_types = df[df['Request Type'] != 'Unknown']['Request Type'].unique()
-            selected_types = unique_types[:5]
+            max_types = self.config.get('file_management.max_request_types', 5)
+            selected_types = unique_types[:max_types]
 
             if len(selected_types) == 0:
                 logger.warning("추출할 신청 유형이 없습니다.")
