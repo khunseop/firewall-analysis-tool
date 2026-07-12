@@ -30,22 +30,32 @@ class MisIdAdder(BaseProcessor):
                 return False
 
             rule_df = pd.read_excel(file)
-            mis_df = pd.read_csv(mis_file)
+            try:
+                mis_df = pd.read_csv(mis_file, encoding='utf-8-sig')
+            except UnicodeDecodeError:
+                mis_df = pd.read_csv(mis_file, encoding='cp949')
 
             mis_df_unique = mis_df.drop_duplicates(subset=['ruleset_id'], keep='first')
-            mis_id_map = mis_df_unique.set_index('ruleset_id')['mis_id']
+            mis_id_map = mis_df_unique.set_index(mis_df_unique['ruleset_id'].astype(str))['mis_id']
 
             total = len(rule_df)
             updated_count = 0
 
             for idx, row in rule_df.iterrows():
                 print(f"\rMIS ID 업데이트 중: {idx + 1}/{total}", end='', flush=True)
-                ruleset_id = row['Ruleset ID']
+                ruleset_id = str(row['Ruleset ID'])
                 current_mis_id = row['MIS ID']
                 if (pd.isna(current_mis_id) or current_mis_id == '') and ruleset_id in mis_id_map:
                     rule_df.at[idx, 'MIS ID'] = mis_id_map.get(ruleset_id)
                     updated_count += 1
             print()
+
+            def clean_illegal_chars(val):
+                if isinstance(val, str):
+                    return "".join(c for c in val if c.isprintable() or c in "\t\n\r")
+                return val
+
+            rule_df = rule_df.applymap(clean_illegal_chars)
 
             new_file_name = file_manager.update_version(file)
             rule_df.to_excel(new_file_name, index=False, engine='openpyxl')

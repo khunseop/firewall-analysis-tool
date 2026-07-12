@@ -171,22 +171,23 @@ class ConfigManager:
         for item in exceptions:
             # static_list 구 형식 (문자열) 호환
             if isinstance(item, str):
-                if value == item:
+                if item and item in value:
                     return True
                 continue
 
             match = False
             if category == 'request_ids':
-                id_prefix = item.get('id', '')
-                match = bool(id_prefix) and value.startswith(id_prefix)
+                id_val = item.get('id', '')
+                match = bool(id_val) and id_val in value
             elif category == 'policy_rules':
                 pattern = item.get('pattern', '')
                 try:
-                    match = bool(re.match(pattern, value)) if pattern else False
+                    match = bool(re.search(pattern, value)) if pattern else False
                 except re.error:
                     logger.warning(f"잘못된 정규표현식 패턴: {pattern}")
             elif category == 'static_list':
-                match = (value == item.get('name', ''))
+                name = item.get('name', '')
+                match = bool(name) and name in value
 
             if match and self._is_in_period(item):
                 return True
@@ -196,10 +197,11 @@ class ConfigManager:
             static_list = self.get('exceptions.static_list', [])
             for item in static_list:
                 if isinstance(item, str):
-                    if value == item:
+                    if item and item in value:
                         return True
                 elif isinstance(item, dict):
-                    if value == item.get('name', '') and self._is_in_period(item):
+                    name = item.get('name', '')
+                    if name and name in value and self._is_in_period(item):
                         return True
 
         return False
