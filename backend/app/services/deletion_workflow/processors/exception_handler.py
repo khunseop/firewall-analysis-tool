@@ -62,16 +62,16 @@ class ExceptionHandler(BaseProcessor):
             df['예외'] = ''
             df['REQUEST_ID'] = df['REQUEST_ID'].fillna('')
 
-            req_mask = df.apply(lambda r: self.config.is_excepted('request_ids', str(r['REQUEST_ID'])), axis=1)
-            df.loc[req_mask, '예외'] = '예외신청정책'
-
             rule_mask = df.apply(lambda r: self.config.is_excepted('policy_rules', str(r['Rule Name'])), axis=1)
             df.loc[rule_mask, '예외'] = '예외정책'
 
-            # 신규정책 (Rule Name 날짜 추출)
+            req_mask = df.apply(lambda r: self.config.is_excepted('request_ids', str(r['REQUEST_ID'])), axis=1)
+            df.loc[req_mask, '예외'] = '예외신청정책'
+
+            # 신규정책 (Rule Name 날짜 추출, 이미 예외가 없는 경우만)
             df['날짜'] = df['Rule Name'].str.extract(r'(\d{8})', expand=False)
             df['날짜'] = pd.to_datetime(df['날짜'], format='%Y%m%d', errors='coerce')
-            df.loc[(df['날짜'] >= three_months_ago) & (df['날짜'] <= current_date), '예외'] = '신규정책'
+            df.loc[(df['예외'] == '') & (df['날짜'] >= three_months_ago) & (df['날짜'] <= current_date), '예외'] = '신규정책'
 
             # 자동연장
             df.loc[df['REQUEST_STATUS'] == 99, '예외'] = '자동연장정책'
@@ -125,12 +125,12 @@ class ExceptionHandler(BaseProcessor):
             df['예외'] = ''
             df['REQUEST_ID'] = df['REQUEST_ID'].fillna('')
 
-            req_mask = df.apply(lambda r: self.config.is_excepted('request_ids', str(r['REQUEST_ID'])), axis=1)
-            df.loc[req_mask, '예외'] = '예외신청정책'
-
             name_col = 'Rule Name' if 'Rule Name' in df.columns else 'Description'
             rule_mask = df.apply(lambda r: self.config.is_excepted('policy_rules', str(r[name_col])), axis=1)
             df.loc[rule_mask, '예외'] = '예외정책'
+
+            req_mask = df.apply(lambda r: self.config.is_excepted('request_ids', str(r['REQUEST_ID'])), axis=1)
+            df.loc[req_mask, '예외'] = '예외신청정책'
 
             df.loc[df['REQUEST_STATUS'] == 99, '예외'] = '자동연장정책'
 
@@ -144,7 +144,7 @@ class ExceptionHandler(BaseProcessor):
                 logger.warning(f"기준 정책 키워드({deny_keyword})를 찾을 수 없습니다.")
 
             df['Start Date'] = pd.to_datetime(df['Start Date'], errors='coerce')
-            df.loc[(df['Start Date'] >= three_months_ago) & (df['Start Date'] <= current_date), '예외'] = '신규정책'
+            df.loc[(df['예외'] == '') & (df['Start Date'] >= three_months_ago) & (df['Start Date'] <= current_date), '예외'] = '신규정책'
 
             df.loc[df['Enable'] == 'N', '예외'] = '비활성화정책'
             df.loc[(df['Description'].str.contains('기준룰', na=False)) & (df['Enable'] == 'N'), '예외'] = '기준정책'
