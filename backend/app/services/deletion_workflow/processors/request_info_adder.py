@@ -23,9 +23,26 @@ class RequestInfoAdder(BaseProcessor):
         df.replace({'nan': None}, inplace=True)
         return df.astype(str)
 
+    def _safe_to_datetime(self, val):
+        """날짜 형식을 안전하게 변환합니다. (1900-01-01 이전/오류 데이터 처리 강화)"""
+        if pd.isna(val) or val == "" or str(val).strip() in (
+            "1900-01-01", "1900-01-01 00:00:00", "1900-01-00", "1900-01-00 00:00:00",
+            "0", "00:00:00", "1899-12-30",
+        ):
+            return pd.Timestamp("1900-01-01")
+        try:
+            if isinstance(val, (int, float)):
+                return pd.to_datetime(val, unit='D', origin='1899-12-30').normalize()
+            dt = pd.to_datetime(val).normalize()
+            if dt < pd.Timestamp("1900-01-01"):
+                return pd.Timestamp("1900-01-01")
+            return dt
+        except Exception:
+            return pd.Timestamp("1900-01-01")
+
     def match_and_update_df(self, rule_df: pd.DataFrame, info_df: pd.DataFrame):
-        rule_df['End Date'] = pd.to_datetime(rule_df['End Date']).dt.normalize()
-        info_df['REQUEST_END_DATE'] = pd.to_datetime(info_df['REQUEST_END_DATE']).dt.normalize()
+        rule_df['End Date'] = rule_df['End Date'].apply(self._safe_to_datetime)
+        info_df['REQUEST_END_DATE'] = info_df['REQUEST_END_DATE'].apply(self._safe_to_datetime)
 
         total = len(rule_df)
         for idx, row in rule_df.iterrows():
@@ -51,15 +68,16 @@ class RequestInfoAdder(BaseProcessor):
                 first = matched_row.iloc[0]
                 for col in matched_row.columns:
                     if col in ['REQUEST_START_DATE', 'REQUEST_END_DATE', 'Start Date', 'End Date']:
-                        rule_df.at[idx, col] = pd.to_datetime(first[col], errors='coerce')
+                        rule_df.at[idx, col] = self._safe_to_datetime(first[col])
                     else:
                         rule_df.at[idx, col] = first[col]
-            elif row['Request Type'] not in ('nan', 'Unknown'):
+            elif row['Request Type'] not in ('nan', 'Unknown', 'None'):
                 rule_df.at[idx, 'REQUEST_ID'] = row['Request ID']
-                rule_df.at[idx, 'REQUEST_START_DATE'] = row['Start Date']
-                rule_df.at[idx, 'REQUEST_END_DATE'] = row['End Date']
+                rule_df.at[idx, 'REQUEST_START_DATE'] = self._safe_to_datetime(row['Start Date'])
+                rule_df.at[idx, 'REQUEST_END_DATE'] = self._safe_to_datetime(row['End Date'])
                 rule_df.at[idx, 'REQUESTER_ID'] = row['Request User']
-                rule_df.at[idx, 'REQUESTER_EMAIL'] = row['Request User'] + '@samsung.com'
+                default_domain = self.config.get('policy_processing.default_email_domain', 'samsung.com')
+                rule_df.at[idx, 'REQUESTER_EMAIL'] = row['Request User'] + '@' + default_domain
         print()
 
     def find_auto_extension_id(self, info_df: pd.DataFrame) -> pd.Series:

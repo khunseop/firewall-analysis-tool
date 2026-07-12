@@ -120,6 +120,13 @@ class RequestParser(BaseProcessor):
                     df.at[index, key] = value
             print()
 
+            def clean_illegal_chars(val):
+                if isinstance(val, str):
+                    return "".join(c for c in val if c.isprintable() or c in "\t\n\r")
+                return val
+
+            df = df.applymap(clean_illegal_chars)
+
             new_file_name = file_manager.update_version(file_name)
             df.to_excel(new_file_name, index=False)
             logger.info(f"신청 정보 파싱 완료: '{new_file_name}'")
