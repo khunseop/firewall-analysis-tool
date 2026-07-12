@@ -625,7 +625,7 @@ async def complete_project(
     """프로젝트를 완료 처리하고 최종 결과파일을 ZIP으로 반환합니다.
 
     수집 파일:
-    - 마지막 정책파일: Task 18(통보대상분류) → 17 → 16 → 13 우선순위 output_0
+    - 마지막 정책파일 및 통보대상 공지파일: Task 18(통보대상분류) → 17 → 16 → 13 우선순위, 해당 태스크의 모든 output 슬롯
     - 중복정책 정리/공지/삭제: Task 15(예외처리 후) 우선, 없으면 Task 14
     """
     from app.crud import crud_deletion_workflow as dwcrud
@@ -638,11 +638,18 @@ async def complete_project(
 
     output_files: List[Tuple[str, bytes]] = []
 
-    # 마지막 정책파일 (Task 18 → 17 → 16 → 13)
+    # 마지막 정책파일 + 통보대상 공지파일 (Task 18 → 17 → 16 → 13, 해당 태스크의 모든 output 슬롯)
     for tid in (18, 17, 16, 13):
-        f = files_map.get((tid, "output_0"))
-        if f:
+        idx = 0
+        found = False
+        while True:
+            f = files_map.get((tid, f"output_{idx}"))
+            if not f:
+                break
             output_files.append((f.filename, f.file_data))
+            found = True
+            idx += 1
+        if found:
             break
 
     # 중복정책 정리/공지/삭제: Task 15(예외처리 후) 우선, 없으면 Task 14
