@@ -47,7 +47,7 @@ class DuplicatePolicyClassifier(BaseProcessor):
                 lambda x: (x == x.max()) & (~x.duplicated(keep='first'))
             )
             df['신청자검증'] = df.groupby('No')['Request User'].transform(lambda x: x.nunique() == 1)
-            target_rule_true = df[(df['Type'] == 'Upper') & (df['늦은종료일'])]['No'].unique()
+            target_rule_true = df[(df['Type'] == 'UPPER') & (df['늦은종료일'])]['No'].unique()
             df['날짜검증'] = df['No'].isin(target_rule_true)
             df['작업구분'] = df['늦은종료일'].apply(lambda x: '유지' if x else '삭제')
             df['공지여부'] = ~df['신청자검증']
