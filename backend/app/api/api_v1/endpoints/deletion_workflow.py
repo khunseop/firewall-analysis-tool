@@ -643,7 +643,7 @@ async def complete_project(
     """프로젝트를 완료 처리하고 최종 결과파일을 ZIP으로 반환합니다.
 
     수집 파일:
-    - 마지막 정책파일 및 통보대상 공지파일: Task 18(통보대상분류) → 17 → 16 → 13 우선순위, 해당 태스크의 모든 output 슬롯
+    - 마지막 정책파일 및 공지대상 공지파일: Task 18(공지대상분류) → 17 → 16 → 13 우선순위, 해당 태스크의 모든 output 슬롯
     - 중복정책 정리/공지/삭제: Task 15(예외처리 후) 우선, 없으면 Task 14
     """
     from app.crud import crud_deletion_workflow as dwcrud
@@ -656,7 +656,7 @@ async def complete_project(
 
     output_files: List[Tuple[str, bytes]] = []
 
-    # 마지막 정책파일 + 통보대상 공지파일 (Task 18 → 17 → 16 → 13, 해당 태스크의 모든 output 슬롯)
+    # 마지막 정책파일 + 공지대상 공지파일 (Task 18 → 17 → 16 → 13, 해당 태스크의 모든 output 슬롯)
     for tid in (18, 17, 16, 13):
         idx = 0
         found = False
@@ -680,7 +680,7 @@ async def complete_project(
     if not output_files:
         raise HTTPException(
             status_code=422,
-            detail="완료에 필요한 결과파일이 없습니다. Task 14(중복정책분류) 또는 Task 18(통보대상분류)를 먼저 실행하세요."
+            detail="완료에 필요한 결과파일이 없습니다. Task 14(중복정책분류) 또는 Task 18(공지대상분류)를 먼저 실행하세요."
         )
 
     today = datetime.date.today().strftime("%Y-%m-%d")
