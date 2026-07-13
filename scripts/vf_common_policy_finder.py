@@ -39,6 +39,15 @@ ID_COLUMNS = {"Rule Name", "규칙명", "Seq", "순번", "No", "No."}
 
 OUTPUT_SUFFIX = "_공통"
 
+# 콤마로 여러 객체가 나열되는 컬럼 — 객체 순서가 달라도 같은 값으로 취급
+MULTI_VALUE_COLUMNS = {
+    "Source", "출발지",
+    "User", "사용자",
+    "Destination", "목적지",
+    "Service", "서비스",
+    "Application", "애플리케이션",
+}
+
 
 def select_files_in_cwd() -> list[Path]:
     candidates = sorted(Path.cwd().glob("*.xlsx"))
@@ -61,10 +70,14 @@ def select_files_in_cwd() -> list[Path]:
     return selected
 
 
-def normalize_value(value) -> str:
+def normalize_value(value, column: str = "") -> str:
     if pd.isna(value):
         return ""
-    return str(value).strip()
+    text = str(value).strip()
+    if column in MULTI_VALUE_COLUMNS and "," in text:
+        tokens = sorted(t.strip() for t in text.split(",") if t.strip())
+        return ",".join(tokens)
+    return text
 
 
 def load_file(path: Path) -> pd.DataFrame:
@@ -109,7 +122,7 @@ def main():
     print(f"\n공통 판단 기준 컬럼 ({len(match_columns)}개): {match_columns}")
 
     def make_key(row) -> tuple:
-        return tuple(normalize_value(row[col]) for col in match_columns)
+        return tuple(normalize_value(row[col], col) for col in match_columns)
 
     key_sets: dict[str, set] = {}
     for name, df in dataframes.items():
