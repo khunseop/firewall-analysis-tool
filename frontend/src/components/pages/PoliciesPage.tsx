@@ -17,7 +17,7 @@ import { PolicyHistoryModal } from '@/components/shared/PolicyHistoryModal'
 import { PolicyDetailModal } from '@/components/shared/PolicyDetailModal'
 import { QueryBuilder } from '@/components/shared/QueryBuilder'
 import {
-  buildRequestFromFilterTree, conditionsToFilterTree,
+  buildRequestFromFilterTree, conditionsToFilterTree, generateId,
   QB_FIELDS, OP_LABELS,
   type FilterTree,
 } from '@/components/shared/queryBuilderModel'
@@ -229,7 +229,7 @@ export function PoliciesPage() {
       if (objName) {
         // src_name OR dst_name 동시 검색
         newTree = [{
-          id: crypto.randomUUID(),
+          id: generateId(),
           joinOperator: 'AND',
           conditions: [
             { field: 'src_name', operator: 'contains' as const, value: objName, joinOperator: 'OR' as const },
@@ -255,7 +255,7 @@ export function PoliciesPage() {
         setSearchRequest(payload as unknown as PolicySearchRequest)
       }
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const buildRequest = (): PolicySearchRequest => {
     const payload = buildRequestFromFilterTree(filterTree, deviceIds)
