@@ -11,12 +11,12 @@ Phase 1:
   2  → task_0.output_0              (정책파일 신청정보 파싱)
   3  → task_0.output_0              (중복정책 분석 — FAT DB 자동)
   4  → task_3.output_0              (중복결과 신청정보 파싱)
-  5  → task_2.output_0 + ext:MIS    (MIS ID 매핑)
-  6  → task_5.output_0              (신청번호 추출)
+  5  → task_2.output_0 + ext:MIS    (MIS ID 매핑, 선택 — CSV 없으면 스킵 가능)
+  6  → task_5.output_0(or task_2.output_0) (신청번호 추출)
 
 Phase 2 (위저드 순서):
   7  → ext:GSAMS                    (신청정보 가공)
-  8  → task_5.output_0 + task_7.output_0 (신청정보 매핑)
+  8  → task_5.output_0(or task_2.output_0) + task_7.output_0 (신청정보 매핑)
   9  → task_8.output_0 + task_7.output_0 (자동연장 탐지 + 날짜 업데이트)
   10/11 → task_9.output_0           (예외처리, 벤더 자동선택)
   12 → task_10or11.output_0 + task_1.output_0 (사용이력 반영)
@@ -115,8 +115,10 @@ def resolve_inputs(
         return collect(policy, mis)
 
     if task_id == 6:
-        # 신청번호 추출
-        f = _require(project_files, 5, "output_0", "MIS ID 업데이트 결과")
+        # 신청번호 추출: MIS ID 매핑 결과 우선, 없으면(Task 5 스킵) task_2 결과로 대체
+        f = _get(project_files, 5, "output_0") or _require(
+            project_files, 2, "output_0", "정책 파싱 결과"
+        )
         return collect(f)
 
     # ── Phase 2 ──────────────────────────────────────────────────────────────
@@ -126,8 +128,10 @@ def resolve_inputs(
         return collect(f)
 
     if task_id == 8:
-        # 신청정보 매핑: 정책(MIS업데이트) + GSAMS
-        policy = _require(project_files, 5, "output_0", "MIS ID 업데이트 결과")
+        # 신청정보 매핑: 정책(MIS업데이트 결과 우선, 없으면 task_2 결과) + GSAMS
+        policy = _get(project_files, 5, "output_0") or _require(
+            project_files, 2, "output_0", "정책 파싱 결과"
+        )
         gsams  = _require(project_files, 7, "output_0", "GSAMS 처리 결과")
         return collect(policy, gsams)
 

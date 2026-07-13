@@ -13,8 +13,8 @@ export const PHASE1_TASKS: TaskMeta[] = [
   { step: 1, id: 2,  name: '신청정보 파싱',       description: 'DB 추출 파일에서 신청정보 파싱' },
   { step: 2, id: 3,  name: '중복정책 분석',       description: 'FAT DB 중복분석 결과를 Excel로 자동 생성', autoFromDb: true },
   { step: 3, id: 4,  name: '중복결과 파싱',       description: '중복분석 결과 파일에서 신청정보 파싱' },
-  { step: 4, id: 5,  name: 'MIS ID 매핑',        description: '정책 파일 + MIS CSV → MIS ID 추가',
-    externalInputs: [{ slot: 'external_1', label: 'MIS CSV 파일', required: true }] },
+  { step: 4, id: 5,  name: 'MIS ID 매핑',        description: '정책 파일 + MIS CSV → MIS ID 추가 (선택)',
+    externalInputs: [{ slot: 'external_1', label: 'MIS CSV 파일 (선택)', required: false }] },
   { step: 5, id: 6,  name: '신청번호 추출',       description: '고유 신청 ID 추출' },
 ]
 
