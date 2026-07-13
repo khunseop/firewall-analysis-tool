@@ -56,6 +56,26 @@ export default function DeletionWorkflowDetailPage() {
 
   const refresh = () => qc.invalidateQueries({ queryKey: queryKeys.deletionWorkflowProject(projectId) })
 
+  // 태스크 실행 응답을 즉시 캐시에 반영 (진행률 바가 refetch를 기다리지 않고 바로 갱신되도록)
+  const applyTaskOutputs = (result: { task_id: number; outputs: { slot: string; filename: string }[] }) => {
+    qc.setQueryData(
+      queryKeys.deletionWorkflowProject(projectId),
+      (old: DeletionWorkflowProjectDetail | undefined) => {
+        if (!old) return old
+        const newFiles: ProjectFileState[] = result.outputs.map((o) => ({
+          task_id: result.task_id,
+          slot: o.slot,
+          filename: o.filename,
+          created_at: new Date().toISOString(),
+        }))
+        const existing = (old.files ?? []).filter(
+          (f) => !(f.task_id === result.task_id && newFiles.some((nf) => nf.slot === f.slot)),
+        )
+        return { ...old, files: [...existing, ...newFiles] }
+      },
+    )
+  }
+
   const refDateMutation = useMutation({
     mutationFn: (date: string | null) => updateProject(projectId, { reference_date: date }),
     onSuccess: (data) => {
@@ -301,22 +321,7 @@ export default function DeletionWorkflowDetailPage() {
         // 완료 즉시 캐시 업데이트 (다음 태스크 판정 + 체크마크 즉각 표시)
         const completedAt = Date.now()
         setTaskTimings((prev) => ({ ...prev, [taskId]: { ...prev[taskId], completedAt } }))
-        qc.setQueryData(
-          ['deletion-workflow-project', projectId],
-          (old: DeletionWorkflowProjectDetail | undefined) => {
-            if (!old) return old
-            const newFiles: ProjectFileState[] = result.outputs.map((o) => ({
-              task_id: result.task_id,
-              slot: o.slot,
-              filename: o.filename,
-              created_at: new Date().toISOString(),
-            }))
-            const existing = (old.files ?? []).filter(
-              (f) => !(f.task_id === result.task_id && newFiles.some((nf) => nf.slot === f.slot)),
-            )
-            return { ...old, files: [...existing, ...newFiles] }
-          },
-        )
+        applyTaskOutputs(result)
       } catch (e: unknown) {
         toast.error(`${taskMeta.name} 실패: ${(e as Error).message}`)
         autoRunRef.current = false
@@ -623,6 +628,7 @@ export default function DeletionWorkflowDetailPage() {
                 onRefresh={refresh}
                 onOutputReplaced={handleOutputReplaced}
                 onWillRerun={handleWillRerun}
+                onOutputSaved={applyTaskOutputs}
               />
             ))}
           </div>
@@ -642,6 +648,7 @@ export default function DeletionWorkflowDetailPage() {
                 onRefresh={refresh}
                 onOutputReplaced={handleOutputReplaced}
                 onWillRerun={handleWillRerun}
+                onOutputSaved={applyTaskOutputs}
               />
             ))}
           </div>
@@ -661,6 +668,7 @@ export default function DeletionWorkflowDetailPage() {
                 onRefresh={refresh}
                 onOutputReplaced={handleOutputReplaced}
                 onWillRerun={handleWillRerun}
+                onOutputSaved={applyTaskOutputs}
               />
             ))}
           </div>
