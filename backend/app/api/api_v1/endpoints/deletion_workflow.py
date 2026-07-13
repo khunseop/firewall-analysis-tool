@@ -433,7 +433,9 @@ async def run_project_task(
     외부 파일이 필요한 태스크는 먼저 /upload로 파일을 저장해야 합니다.
     """
     from app.crud import crud_deletion_workflow as dwcrud
-    from app.services.deletion_workflow.core.input_resolver import resolve_inputs, MissingInputError, get_vendor_task_id
+    from app.services.deletion_workflow.core.input_resolver import (
+        resolve_inputs, MissingInputError, get_vendor_task_id, get_downstream_tasks,
+    )
 
     project = await dwcrud.get_project(db, project_id)
     if not project:
@@ -519,6 +521,13 @@ async def run_project_task(
                                      slot=slot, filename=fname, data=data)
             saved.append({"slot": slot, "filename": fname})
 
+        # 재실행으로 이 태스크의 출력이 갱신되었으므로, 이를 입력으로 삼던
+        # 하위 태스크들의 기존 output은 stale해진다. 남겨두면 이후 하위 태스크가
+        # 최신이 아닌 과거 결과를 그대로 사용하게 되므로 함께 삭제해 재실행을 강제한다.
+        downstream = get_downstream_tasks(effective_task_id)
+        if downstream:
+            await dwcrud.clear_output_files(db, project_id, task_ids=downstream)
+
         await db.commit()
         return {"ok": True, "task_id": effective_task_id, "outputs": saved}
     finally:
@@ -528,6 +537,8 @@ async def run_project_task(
 
 async def _run_task3_from_db(project_id, device_id, device, db, dwcrud):
     """Task 3 (중복정책분석): FAT DB 중복분석 결과를 Excel로 변환하여 project file 저장."""
+    from app.services.deletion_workflow.core.input_resolver import get_downstream_tasks
+
     try:
         content, filename = await build_redundancy_export(db, device_id, device)
     except ExportDataError as e:
@@ -535,6 +546,11 @@ async def _run_task3_from_db(project_id, device_id, device, db, dwcrud):
 
     await dwcrud.upsert_file(db, project_id=project_id, task_id=3, slot="output_0",
                              filename=filename, data=content)
+
+    downstream = get_downstream_tasks(3)
+    if downstream:
+        await dwcrud.clear_output_files(db, project_id, task_ids=downstream)
+
     await db.commit()
     return {"ok": True, "task_id": 3, "outputs": [{"slot": "output_0", "filename": filename}]}
 
