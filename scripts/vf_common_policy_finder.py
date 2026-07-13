@@ -20,8 +20,8 @@ from pathlib import Path
 
 import pandas as pd
 
-# vf 파일에서 시트 이름 (None이면 첫 번째 시트 사용)
-SHEET_NAME = None
+# vf 파일에서 시트 이름 (0이면 첫 번째 시트 사용)
+SHEET_NAME = 0
 
 # 정책 식별에 사용할 컬럼 (Seq, Rule Name은 의도적으로 제외)
 MATCH_COLUMNS = [
