@@ -272,6 +272,11 @@ export default function DeletionWorkflowDetailPage() {
         break
       }
 
+      // Task 5(MIS ID 매핑): CSV 없으면 건너뛰고 Task 2 결과를 그대로 다음 태스크에서 사용
+      if (taskId === 5 && !getExternalFile(currentFiles, 5, 'external_1')) {
+        continue
+      }
+
       // Task 3(중복정책 분석): FAT DB에 분석 결과가 없으면 자동 실행
       if (taskId === 3) {
         const cachedProject2 = qc.getQueryData<DeletionWorkflowProjectDetail>(

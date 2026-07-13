@@ -168,6 +168,11 @@ export function TaskCard({
                   ℹ️ 파일 없으면 Task 1 출력(히트카운트 병합)을 자동 사용합니다. 별도 사용이력 파일이 있으면 업로드하세요.
                 </p>
               )}
+              {!inp.required && inp.slot === 'external_1' && !getExternalFile(files, task.id, inp.slot) && task.id === 5 && (
+                <p className="text-[11px] text-ds-on-surface-variant/70 mt-1 ml-1">
+                  ℹ️ 파일 없으면 이 단계를 건너뛰고 정책 파싱 결과를 그대로 다음 단계에서 사용합니다.
+                </p>
+              )}
             </div>
           ))}
         </div>
