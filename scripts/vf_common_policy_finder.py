@@ -31,6 +31,9 @@ import pandas as pd
 # vf/통보파일에서 시트 이름 (0이면 첫 번째 시트 사용)
 SHEET_NAME = 0
 
+# 통보파일은 1행이 제목 등 부가정보이고 헤더가 2행부터 시작 (0-indexed)
+HEADER_ROW = 1
+
 # 정책 식별용 컬럼(공통정책 판단 기준에서 제외) — 원본/번역본 컬럼명을 모두 포함
 ID_COLUMNS = {"Rule Name", "규칙명", "Seq", "순번", "No", "No."}
 
@@ -65,7 +68,7 @@ def normalize_value(value) -> str:
 
 
 def load_file(path: Path) -> pd.DataFrame:
-    df = pd.read_excel(path, sheet_name=SHEET_NAME)
+    df = pd.read_excel(path, sheet_name=SHEET_NAME, header=HEADER_ROW)
     df.attrs["source_name"] = path.name
     return df
 
