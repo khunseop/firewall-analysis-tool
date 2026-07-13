@@ -1,17 +1,15 @@
 """
-여러 방화벽에서 뽑은 동일 카테고리의 통보파일(예: 장기미사용정책(공지용).xlsx)을
-서로 비교해서, 식별용 컬럼(Rule Name/규칙명, Seq 등)만 다르고 나머지가 전부 동일한
-'공통 정책'을 찾는다.
+여러 방화벽에서 뽑은 중복정책 파일을 서로 비교해서, 식별용 컬럼(No/Type/Rule Name)과
+Description만 다르고 나머지가 전부 동일한 '공통 중복정책'을 찾는다.
 
-vf(마스터 정책) 파일 하나로 합쳐서 비교하던 이전 방식과 달리, 입력 파일 각각에 대해
-"공통 정책만 남긴 새 버전"을 개별적으로 생성한다 — 그래야 결과 파일에서 Rule Name만
-보고도 어느 장비(어느 파일)의 정책인지 바로 알 수 있다.
+입력 파일 각각에 대해 "공통 정책만 남긴 새 버전"을 개별적으로 생성한다 — 그래야 결과
+파일에서 Rule Name만 보고도 어느 장비(어느 파일)의 정책인지 바로 알 수 있다.
 
 사용법:
-    python scripts/vf_common_policy_finder.py
+    python scripts/duplicate_common_policy_finder.py
         → 현재 디렉터리에서 .xlsx 파일을 찾아 선택하게 함
 
-    python scripts/vf_common_policy_finder.py file1.xlsx file2.xlsx ...
+    python scripts/duplicate_common_policy_finder.py file1.xlsx file2.xlsx ...
         → 지정한 파일들로 바로 실행
 
 결과:
@@ -28,25 +26,19 @@ from pathlib import Path
 
 import pandas as pd
 
-# vf/통보파일에서 시트 이름 (0이면 첫 번째 시트 사용)
+# 중복정책 파일에서 시트 이름 (0이면 첫 번째 시트 사용)
 SHEET_NAME = 0
 
-# 통보파일은 1행이 제목 등 부가정보이고 헤더가 2행부터 시작 (0-indexed)
-HEADER_ROW = 1
+# 중복정책 파일은 헤더가 1행부터 시작 (0-indexed)
+HEADER_ROW = 0
 
-# 정책 식별용/비교 제외 컬럼(공통정책 판단 기준에서 제외) — 원본/번역본 컬럼명을 모두 포함
-ID_COLUMNS = {"Rule Name", "규칙명", "Seq", "순번", "No", "No.", "Description", "설명"}
+# 정책 식별용/비교 제외 컬럼(공통정책 판단 기준에서 제외)
+ID_COLUMNS = {"No", "Type", "Rule Name", "Description"}
 
 OUTPUT_SUFFIX = "_공통"
 
 # 콤마로 여러 객체가 나열되는 컬럼 — 객체 순서가 달라도 같은 값으로 취급
-MULTI_VALUE_COLUMNS = {
-    "Source", "출발지",
-    "User", "사용자",
-    "Destination", "목적지",
-    "Service", "서비스",
-    "Application", "애플리케이션",
-}
+MULTI_VALUE_COLUMNS = {"Source", "User", "Destination", "Service", "Application"}
 
 
 def select_files_in_cwd() -> list[Path]:
@@ -59,7 +51,7 @@ def select_files_in_cwd() -> list[Path]:
     for i, path in enumerate(candidates, 1):
         print(f"  [{i}] {path.name}")
 
-    raw = input("\n비교할 통보파일 번호를 쉼표로 구분해서 입력하세요 (예: 1,2,3,4,5,6): ").strip()
+    raw = input("\n비교할 중복정책 파일 번호를 쉼표로 구분해서 입력하세요 (예: 1,2,3,4,5,6): ").strip()
     indices = [int(x) for x in raw.split(",") if x.strip()]
     selected = [candidates[i - 1] for i in indices]
 
