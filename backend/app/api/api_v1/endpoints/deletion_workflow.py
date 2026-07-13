@@ -603,12 +603,14 @@ async def reset_all_project_files(
     project_id: int,
     db: AsyncSession = Depends(get_db),
 ):
-    """모든 파일 삭제 (output + external)."""
+    """모든 파일 삭제 (output + external) 및 완료 상태 해제."""
     from app.crud import crud_deletion_workflow as dwcrud
     project = await dwcrud.get_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
     deleted = await dwcrud.clear_all_files(db, project_id)
+    if project.status == "completed":
+        await dwcrud.update_project_status(db, project, "draft")
     await db.commit()
     return {"ok": True, "deleted": deleted}
 

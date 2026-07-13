@@ -14,7 +14,7 @@ export const PHASE1_TASKS: TaskMeta[] = [
   { step: 2, id: 3,  name: '중복정책 분석',       description: 'FAT DB 중복분석 결과를 Excel로 자동 생성', autoFromDb: true },
   { step: 3, id: 4,  name: '중복결과 파싱',       description: '중복분석 결과 파일에서 신청정보 파싱' },
   { step: 4, id: 5,  name: 'MIS ID 매핑',        description: '정책 파일 + MIS CSV → MIS ID 추가 (선택)',
-    externalInputs: [{ slot: 'external_1', label: 'MIS CSV 파일 (선택)', required: false }] },
+    externalInputs: [{ slot: 'external_1', label: 'MIS CSV 파일', required: false }] },
   { step: 5, id: 6,  name: '신청번호 추출',       description: '고유 신청 ID 추출' },
 ]
 
@@ -25,7 +25,7 @@ export const PHASE2_TASKS: TaskMeta[] = [
   { step: 3, id: 9,  name: '자동연장 날짜 업데이트',  description: '자동연장 정책 탐지 및 날짜 업데이트' },
   { step: 4, id: 10, name: '예외처리 (벤더별)',       description: '정책 예외 분류 — 벤더에 따라 PaloAlto(10) 또는 SECUI(11) 자동 선택' },
   { step: 5, id: 12, name: '사용이력 반영',           description: '예외처리 결과 + 히트카운트 → 사용이력 반영',
-    externalInputs: [{ slot: 'external_1', label: '사용이력 파일 (선택)', required: false }] },
+    externalInputs: [{ slot: 'external_1', label: '사용이력 파일', required: false }] },
   { step: 6, id: 13, name: '하단 최신정책 검증',     description: '동일 신청번호 내 최신 날짜 정책 위치 검증 및 분류' },
   { step: 7, id: 14, name: '중복정책 분류',           description: '중복결과(파싱) + 예외처리 결과 → 공지/삭제 분류' },
   { step: 8, id: 15, name: '중복 만료셋 예외처리',   description: '전체 만료 / 차단 영향 중복 세트 예외 분류' },
