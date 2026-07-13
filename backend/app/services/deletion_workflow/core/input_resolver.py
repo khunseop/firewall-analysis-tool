@@ -240,3 +240,47 @@ def resolve_inputs(
 
 def get_vendor_task_id(vendor: str) -> int:
     return _vendor_task_id(vendor)
+
+
+# 태스크 직접 의존 관계: {task_id: [해당 task_id 출력을 입력으로 사용하는 태스크들]}
+# resolve_inputs()의 각 분기와 1:1로 대응된다.
+_DIRECT_DEPENDENTS: Dict[int, List[int]] = {
+    0: [1, 2, 12],
+    1: [12],
+    2: [5, 6, 8],
+    3: [4],
+    4: [14],
+    5: [6, 8],
+    6: [],
+    7: [8, 9, 19],
+    8: [9],
+    9: [10, 11],
+    10: [12],
+    11: [12],
+    12: [13],
+    13: [14, 15, 16],
+    14: [15, 16, 19],
+    15: [16],
+    16: [17],
+    17: [18],
+    18: [19],
+    19: [],
+}
+
+
+def get_downstream_tasks(task_id: int) -> List[int]:
+    """
+    task_id의 출력이 갱신되었을 때, 이를 입력으로 사용해 이제는 오래된(stale)
+    결과가 되어버린 하위 태스크 전체(간접 포함)를 반환한다.
+
+    예: Task 16을 재실행하면 17 → 18 → 19가 stale해지므로 [17, 18, 19] 반환.
+    """
+    visited: List[int] = []
+    queue = list(_DIRECT_DEPENDENTS.get(task_id, []))
+    while queue:
+        t = queue.pop(0)
+        if t in visited:
+            continue
+        visited.append(t)
+        queue.extend(_DIRECT_DEPENDENTS.get(t, []))
+    return visited
