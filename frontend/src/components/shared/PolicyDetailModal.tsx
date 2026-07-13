@@ -126,9 +126,9 @@ function MemberTree({ deviceId, members }: { deviceId: number; members: string[]
 }
 
 function ObjectPanel({
-  deviceId, name, onClose,
+  deviceId, name, onClose, onCloseModal,
 }: {
-  deviceId: number; name: string; onClose: () => void
+  deviceId: number; name: string; onClose: () => void; onCloseModal: () => void
 }) {
   const navigate = useNavigate()
   const { data, isLoading } = useQuery({
@@ -153,6 +153,7 @@ function ObjectPanel({
 
   const goToPolicies = (direction: 'src' | 'dst') => {
     onClose()
+    onCloseModal()
     const param = direction === 'src' ? 'src_name' : 'dst_name'
     navigate(`/policies?${param}=${encodeURIComponent(name)}`)
   }
@@ -493,6 +494,7 @@ export function PolicyDetailModal({
                 deviceId={policy.device_id}
                 name={selectedObj!}
                 onClose={() => setSelectedObj(null)}
+                onCloseModal={onClose}
               />
             </div>
           )}
