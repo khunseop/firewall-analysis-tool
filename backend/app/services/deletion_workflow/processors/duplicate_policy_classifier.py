@@ -37,6 +37,13 @@ class DuplicatePolicyClassifier(BaseProcessor):
 
             df = pd.read_excel(selected_file)
 
+            required_columns = ['No', 'Type', 'Rule Name', 'Request Type', 'Request ID',
+                                 'Request User', 'End Date']
+            missing_columns = [c for c in required_columns if c not in df.columns]
+            if missing_columns:
+                logger.error(f"중복정책 파일에 필수 컬럼이 없습니다: {missing_columns}")
+                return False
+
             # REQUESTER_EMAIL 매핑 (info_df = task_13 policy, REQUESTER_EMAIL 포함)
             if 'Rule Name' in info_df.columns and 'REQUESTER_EMAIL' in info_df.columns:
                 email_map = info_df.set_index('Rule Name')['REQUESTER_EMAIL'].to_dict()
