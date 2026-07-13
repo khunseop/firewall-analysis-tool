@@ -34,8 +34,8 @@ SHEET_NAME = 0
 # 통보파일은 1행이 제목 등 부가정보이고 헤더가 2행부터 시작 (0-indexed)
 HEADER_ROW = 1
 
-# 정책 식별용 컬럼(공통정책 판단 기준에서 제외) — 원본/번역본 컬럼명을 모두 포함
-ID_COLUMNS = {"Rule Name", "규칙명", "Seq", "순번", "No", "No."}
+# 정책 식별용/비교 제외 컬럼(공통정책 판단 기준에서 제외) — 원본/번역본 컬럼명을 모두 포함
+ID_COLUMNS = {"Rule Name", "규칙명", "Seq", "순번", "No", "No.", "Description", "설명"}
 
 OUTPUT_SUFFIX = "_공통"
 
