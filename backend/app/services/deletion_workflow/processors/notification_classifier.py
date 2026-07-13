@@ -1,6 +1,6 @@
 # app/services/deletion_workflow/processors/notification_classifier.py
 """
-정리대상별 공지파일 분류 및 통보대상 컬럼 추가 프로세서 (Task 18).
+정리대상별 공지파일 분류 및 공지대상 컬럼 추가 프로세서 (Task 18).
 fpat/fpat/policy_deletion_processor/processors/notification_classifier.py 이식.
 """
 
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class NotificationClassifier(BaseProcessor):
-    """정리대상별 공지파일 분류 및 마스터 정책파일 통보대상 컬럼 추가 기능을 제공하는 클래스"""
+    """정리대상별 공지파일 분류 및 마스터 정책파일 공지대상 컬럼 추가 기능을 제공하는 클래스"""
 
     def __init__(self, config_manager):
         super().__init__(config_manager)
@@ -93,7 +93,7 @@ class NotificationClassifier(BaseProcessor):
                 (df['미사용여부'] == '미사용')
             )
 
-            # 마스터 정책파일(vf)에 통보대상 컬럼 추가
+            # 마스터 정책파일(vf)에 공지대상 컬럼 추가
             notice_target = pd.Series('', index=df.index, dtype=object)
             notice_target[duplicate_kept] = '유지정책'
             notice_target[duplicate_deleted] = '중복정책 삭제대상'
@@ -102,13 +102,13 @@ class NotificationClassifier(BaseProcessor):
             notice_target[long_unused] = '장기미사용'
             notice_target[no_history_unused] = '이력없음미사용'
 
-            df.insert(0, '통보대상', notice_target)
+            df.insert(0, '공지대상', notice_target)
 
             output_file = file_manager.update_version(selected_file, final_version=True)
             df.to_excel(output_file, index=False, engine='openpyxl')
-            logger.info(f"통보대상 분류 완료: '{output_file}'")
+            logger.info(f"공지대상 분류 완료: '{output_file}'")
 
-            # 통보대상별 공지파일 생성
+            # 공지대상별 공지파일 생성
             self._filter_and_save(
                 df, mask=expired_used, columns=self.columns,
                 sheet_type='만료_사용정책',

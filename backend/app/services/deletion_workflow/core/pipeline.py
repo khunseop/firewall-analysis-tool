@@ -21,7 +21,7 @@ Task 14: DuplicatePolicyClassifier(classify) — 중복정책 분류
 Task 15: DuplicateExpiredCleaner   — 중복 만료셋 예외처리
 Task 16: DuplicatePolicyClassifier(update)   — 중복정책 상태 업데이트
 Task 17: DuplicateExceptionApplier — 중복 예외 반영
-Task 18: NotificationClassifier    — 통보대상 분류
+Task 18: NotificationClassifier    — 공지대상 분류
 Task 19: AutoRenewalExceptionGenerator — 자동연장예외파일 생성
 """
 

@@ -25,7 +25,7 @@ Phase 2 (위저드 순서):
   15 → task_14.output_0 + task_13.output_0 (만료셋 예외처리)
   16 → task_13.output_0 + task_15.output_2(or task_14.output_2) (중복상태 업데이트)  ← 미사용여부 포함 정책 파일 사용
   17 → task_16.output_0 + task_15.output_3(or ext:yaml) (중복 예외 반영)
-  18 → task_17.output_0             (통보대상 분류)
+  18 → task_17.output_0             (공지대상 분류)
 
 Phase 3:
   19 → task_18.output_N(장기미사용, 파일명으로 탐색) + task_14.output_1(삭제) +
@@ -191,7 +191,7 @@ def resolve_inputs(
     if task_id == 16:
         # 중복정책 상태 업데이트
         # policy: task_13(미사용여부 포함) 사용 — task_10/11(예외처리 결과)에는 미사용여부가 없어
-        # task_16 → 17 → 18 흐름에서 통보대상 분류(Task 18)가 미사용여부를 읽지 못하는 버그 수정
+        # task_16 → 17 → 18 흐름에서 공지대상 분류(Task 18)가 미사용여부를 읽지 못하는 버그 수정
         # classify: task_15.output_2(만료셋 예외 분리된 정리 파일) 우선 사용.
         #   task_15 출력은 '중복정책정리' + '예외' 2개 시트 구조이며,
         #   pd.read_excel() 기본 동작(첫 시트만 읽기)으로 예외 행이 자동 제외된다.
@@ -209,7 +209,7 @@ def resolve_inputs(
         return collect(policy)
 
     if task_id == 18:
-        # 통보대상 분류
+        # 공지대상 분류
         f = _require(project_files, 17, "output_0", "중복 예외 반영 결과")
         return collect(f)
 

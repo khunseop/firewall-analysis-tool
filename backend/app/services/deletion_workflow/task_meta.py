@@ -29,7 +29,7 @@ TASK_META = {
     15: {"name": "중복만료셋예외처리",    "input_count": 4, "description": "정책원본 + 중복정리/공지/삭제 파일 → 만료셋 예외 분류"},
     16: {"name": "중복정책상태업데이트",  "input_count": 2, "description": "예외처리 + 분류결과 → 중복여부 반영"},
     17: {"name": "중복예외반영",          "input_count": 2, "description": "중복상태 파일 + YAML(선택) → 중복 예외 반영"},
-    18: {"name": "통보대상분류",          "input_count": 1, "description": "정책 Excel → 통보대상 컬럼 추가(최종본)"},
+    18: {"name": "공지대상분류",          "input_count": 1, "description": "정책 Excel → 공지대상 컬럼 추가(최종본)"},
     # Phase 3
     19: {"name": "자동연장예외파일생성",  "input_count": 4, "description": "장기미사용/중복삭제/중복공지 결과 + GSAMS Conv → 자동연장예외 신청번호 추출"},
 }
