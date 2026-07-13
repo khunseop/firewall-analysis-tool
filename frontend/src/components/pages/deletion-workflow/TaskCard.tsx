@@ -7,13 +7,14 @@ import { ExternalFileUpload } from './ExternalFileUpload'
 
 export function TaskCard({
   task, projectId, files, phase, autoRunCurrentTaskId,
-  timing, onRefresh, onOutputReplaced, onWillRerun,
+  timing, onRefresh, onOutputReplaced, onWillRerun, onOutputSaved,
 }: {
   task: TaskMeta; projectId: number; files: ProjectFileState[]
   phase: 1 | 2 | 3; autoRunCurrentTaskId: number | null
   timing?: { startedAt: number; completedAt?: number }
   onRefresh: () => void; onOutputReplaced: (taskId: number) => void
   onWillRerun?: (taskId: number) => Promise<void>
+  onOutputSaved?: (result: { task_id: number; outputs: { slot: string; filename: string }[] }) => void
 }) {
   const [running, setRunning] = useState(false)
   const [replacingSlot, setReplacingSlot] = useState<string | null>(null)
@@ -61,6 +62,8 @@ export function TaskCard({
       const res = await runProjectTask(projectId, task.id)
       setManualCompletedMs(Date.now() - startMs)
       toast.success(`${task.name} 완료 (출력 ${res.outputs.length}개)`)
+      // refetch를 기다리지 않고 즉시 캐시에 반영 — 진행률 바가 바로 갱신되도록
+      onOutputSaved?.(res)
       if (isRerun) {
         // 재실행 완료: 이후 태스크 자동실행 시작
         onOutputReplaced(task.id)
