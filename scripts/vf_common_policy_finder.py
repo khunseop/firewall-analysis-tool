@@ -1,18 +1,26 @@
 """
-6개 방화벽의 삭제 워크플로우 최종 정책 파일(vf)을 비교해서,
-Seq/Rule Name만 다르고 나머지는 동일한 '공통 정책'(6개 장비 모두에 존재)을 찾는다.
+여러 방화벽에서 뽑은 동일 카테고리의 통보파일(예: 장기미사용정책(공지용).xlsx)을
+서로 비교해서, 식별용 컬럼(Rule Name/규칙명, Seq 등)만 다르고 나머지가 전부 동일한
+'공통 정책'을 찾는다.
+
+vf(마스터 정책) 파일 하나로 합쳐서 비교하던 이전 방식과 달리, 입력 파일 각각에 대해
+"공통 정책만 남긴 새 버전"을 개별적으로 생성한다 — 그래야 결과 파일에서 Rule Name만
+보고도 어느 장비(어느 파일)의 정책인지 바로 알 수 있다.
 
 사용법:
     python scripts/vf_common_policy_finder.py
         → 현재 디렉터리에서 .xlsx 파일을 찾아 선택하게 함
 
-    python scripts/vf_common_policy_finder.py file1.xlsx file2.xlsx ... file6.xlsx
+    python scripts/vf_common_policy_finder.py file1.xlsx file2.xlsx ...
         → 지정한 파일들로 바로 실행
 
 결과:
-    ./vf_common_policy_result.xlsx 생성
-        - 공통정책: 6개 파일 모두에 동일 키(MATCH_COLUMNS)를 가진 row가 있는 정책들
-        - 예외정책: 일부 파일에만 존재하는 정책들 (어느 파일에 없는지 표시)
+    입력 파일마다 "{원본파일명}_공통.xlsx" 생성 (입력이 6개면 결과도 최대 6개.
+    특정 파일의 정책이 전부 공통에서 빠지면 그 파일의 공통정책 시트는 0건이 될 수 있다)
+        - 공통정책 시트: 모든 입력 파일에 동일 키(식별 컬럼 제외 전부 일치)를 가진
+          행이 존재하는 정책들 — 원본 행 데이터(Rule Name 등 포함) 그대로 유지
+        - 예외정책 시트: 이 파일에만 있거나 일부 파일에서만 공통되어 제외된 정책들.
+          "존재하는_파일" / "없는_파일" 컬럼으로 어디에 있고 없는지 표시
 """
 
 import sys
@@ -20,24 +28,13 @@ from pathlib import Path
 
 import pandas as pd
 
-# vf 파일에서 시트 이름 (0이면 첫 번째 시트 사용)
+# vf/통보파일에서 시트 이름 (0이면 첫 번째 시트 사용)
 SHEET_NAME = 0
 
-# 정책 식별에 사용할 컬럼 (Seq, Rule Name은 의도적으로 제외)
-MATCH_COLUMNS = [
-    "Source",
-    "Destination",
-    "Service",
-    "Application",
-    "REQUEST_ID",
-    "REQUEST_START_DATE",
-    "REQUEST_END_DATE",
-    "REQUESTER_ID",
-    "MIS_ID",
-    "통보대상",
-]
+# 정책 식별용 컬럼(공통정책 판단 기준에서 제외) — 원본/번역본 컬럼명을 모두 포함
+ID_COLUMNS = {"Rule Name", "규칙명", "Seq", "순번", "No", "No."}
 
-OUTPUT_PATH = Path("vf_common_policy_result.xlsx")
+OUTPUT_SUFFIX = "_공통"
 
 
 def select_files_in_cwd() -> list[Path]:
@@ -50,7 +47,7 @@ def select_files_in_cwd() -> list[Path]:
     for i, path in enumerate(candidates, 1):
         print(f"  [{i}] {path.name}")
 
-    raw = input("\n비교할 파일 번호를 쉼표로 구분해서 입력하세요 (예: 1,2,3,4,5,6): ").strip()
+    raw = input("\n비교할 통보파일 번호를 쉼표로 구분해서 입력하세요 (예: 1,2,3,4,5,6): ").strip()
     indices = [int(x) for x in raw.split(",") if x.strip()]
     selected = [candidates[i - 1] for i in indices]
 
@@ -69,17 +66,12 @@ def normalize_value(value) -> str:
 
 def load_file(path: Path) -> pd.DataFrame:
     df = pd.read_excel(path, sheet_name=SHEET_NAME)
-
-    missing = [col for col in MATCH_COLUMNS if col not in df.columns]
-    if missing:
-        raise ValueError(f"{path.name}: 다음 컬럼을 찾을 수 없습니다: {missing}")
-
-    df = df.copy()
-    df["__KEY__"] = df[MATCH_COLUMNS].apply(
-        lambda row: tuple(normalize_value(v) for v in row), axis=1
-    )
-    df["__SOURCE_FILE__"] = path.name
+    df.attrs["source_name"] = path.name
     return df
+
+
+def output_path_for(path: Path) -> Path:
+    return path.with_name(f"{path.stem}{OUTPUT_SUFFIX}{path.suffix}")
 
 
 def main():
@@ -98,40 +90,63 @@ def main():
     dataframes = {f.name: load_file(f) for f in files}
     file_names = list(dataframes.keys())
 
-    key_sets = {name: set(df["__KEY__"]) for name, df in dataframes.items()}
-    common_keys = set.intersection(*key_sets.values())
+    # 모든 파일에 공통으로 존재하는 컬럼(식별용 컬럼 제외)을 매칭 기준으로 자동 판단
+    common_columns = set.intersection(*(set(df.columns) for df in dataframes.values()))
+    match_columns = sorted(common_columns - ID_COLUMNS)
 
-    print(f"\n총 정책 키 후보: {sum(len(s) for s in key_sets.values())}건 (중복 포함)")
-    print(f"{len(file_names)}개 파일 모두에 존재하는 공통 정책 키: {len(common_keys)}건")
+    if not match_columns:
+        print("모든 파일에 공통으로 존재하는 비교 가능한 컬럼이 없습니다.")
+        sys.exit(1)
 
-    common_rows = []
+    all_columns = set.union(*(set(df.columns) for df in dataframes.values()))
+    uncommon = all_columns - common_columns - ID_COLUMNS
+    if uncommon:
+        print(f"\n⚠ 일부 파일에만 존재해 비교에서 제외된 컬럼: {sorted(uncommon)}")
+
+    print(f"\n공통 판단 기준 컬럼 ({len(match_columns)}개): {match_columns}")
+
+    def make_key(row) -> tuple:
+        return tuple(normalize_value(row[col]) for col in match_columns)
+
+    key_sets: dict[str, set] = {}
     for name, df in dataframes.items():
-        matched = df[df["__KEY__"].isin(common_keys)]
-        common_rows.append(matched)
-    common_df = pd.concat(common_rows, ignore_index=True) if common_rows else pd.DataFrame()
+        df["__KEY__"] = df.apply(make_key, axis=1)
+        key_sets[name] = set(df["__KEY__"])
 
-    all_keys = set.union(*key_sets.values())
-    exception_keys = all_keys - common_keys
+    common_keys = set.intersection(*key_sets.values())
+    print(f"\n{len(file_names)}개 파일 모두에 존재하는 공통 정책 키: {len(common_keys)}건")
 
-    exception_records = []
-    for key in exception_keys:
-        present_in = [name for name, s in key_sets.items() if key in s]
-        missing_in = [name for name in file_names if name not in present_in]
-        record = dict(zip(MATCH_COLUMNS, key))
-        record["존재하는_파일"] = ", ".join(present_in)
-        record["없는_파일"] = ", ".join(missing_in)
-        exception_records.append(record)
-    exception_df = pd.DataFrame(exception_records)
+    # 각 키가 어느 파일들에 존재하는지 미리 계산 (예외정책 시트용)
+    presence: dict[tuple, list[str]] = {}
+    for name, s in key_sets.items():
+        for key in s:
+            presence.setdefault(key, []).append(name)
 
-    with pd.ExcelWriter(OUTPUT_PATH, engine="openpyxl") as writer:
-        common_df.drop(columns=["__KEY__"], errors="ignore").to_excel(
-            writer, sheet_name="공통정책", index=False
+    for path in files:
+        name = path.name
+        df = dataframes[name]
+
+        common_df = df[df["__KEY__"].isin(common_keys)].drop(columns=["__KEY__"])
+
+        exception_df = df[~df["__KEY__"].isin(common_keys)].copy()
+        exception_df["존재하는_파일"] = exception_df["__KEY__"].map(
+            lambda k: ", ".join(presence.get(k, []))
         )
-        exception_df.to_excel(writer, sheet_name="예외정책", index=False)
+        exception_df["없는_파일"] = exception_df["__KEY__"].map(
+            lambda k: ", ".join(n for n in file_names if n not in presence.get(k, []))
+        )
+        exception_df = exception_df.drop(columns=["__KEY__"])
 
-    print(f"\n결과 저장 완료: {OUTPUT_PATH.resolve()}")
-    print(f"  - 공통정책 시트: {len(common_df)} rows")
-    print(f"  - 예외정책 시트: {len(exception_df)} rows")
+        out_path = output_path_for(path)
+        with pd.ExcelWriter(out_path, engine="openpyxl") as writer:
+            common_df.to_excel(writer, sheet_name="공통정책", index=False)
+            exception_df.to_excel(writer, sheet_name="예외정책", index=False)
+
+        print(
+            f"\n{name} → {out_path.name}"
+            f"\n  - 공통정책: {len(common_df)} rows"
+            f"\n  - 예외정책: {len(exception_df)} rows"
+        )
 
 
 if __name__ == "__main__":
