@@ -136,6 +136,8 @@ npm run lint
 
 ## 프로덕션 빌드 및 배포
 
+> **주의**: `frontend/dist/`는 git에 커밋되지 않습니다(`.gitignore` 처리). `git pull` 직후에는 `dist/`가 없거나 구버전 상태이므로, 서버를 (재)기동하기 전에 반드시 아래 Step 1(`npm run build`)을 실행해야 합니다. 이 단계를 건너뛰면 FastAPI가 구버전 정적 파일을 서빙하거나 404가 발생합니다.
+
 ### 통합 빌드 (Frontend + Backend)
 
 #### Step 1: 프론트엔드 빌드
@@ -161,7 +163,7 @@ uvicorn app.main:app --app-dir backend
 
 ### 배포 체크리스트
 
-- [ ] 프론트엔드: `npm run build` 성공
+- [ ] 프론트엔드: `npm run build` 성공 (dist가 git에 없으므로 배포 시마다 필수)
 - [ ] 백엔드: `python backend/migrate.py` 적용
 - [ ] 환경 변수 설정 (`.env` 파일)
 - [ ] DB 백업

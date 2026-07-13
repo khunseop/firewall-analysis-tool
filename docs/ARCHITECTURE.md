@@ -94,6 +94,7 @@
    └─ policies            (보안 정책)
    
    └─ 데이터는 Pandas DataFrame 형태로 메모리에 유지
+   └─ 동기 수집 호출(SSH/API)은 전용 `IO_EXECUTOR`(`app/core/executors.py`)에서 실행되어 분석 작업과 스레드 풀을 공유하지 않음
 
 4. 히트 정보 통합 (Usage History)
    ├─ Palo Alto:
@@ -171,6 +172,8 @@ IP 변환:
   [(80, 80), (443, 443), (8000, 9000)]
 ```
 
+파편화된 IP/CIDR을 숫자 범위로 변환한 뒤, 연속되거나 중첩된 범위를 병합(IP Range Merging)하여 저장 공간을 절약하고 검색 효율을 높입니다.
+
 ### 3.3. 벌크 인덱싱
 
 ```python
@@ -199,6 +202,8 @@ WHERE pam.direction = 'source'
 
 **성능**: 인덱스 활용으로 **밀리초 단위 응답**
 
+여러 검색 토큰은 OR 조건으로 묶어 단일 쿼리로 처리하며, 대량 ID 바인딩은 SQLite 변수 한도에 맞춰 800개 단위로 청킹합니다.
+
 ### 4.2. 비동기 분석 엔진
 
 **6개 병렬 엔진** (`app/services/analysis/`):
@@ -220,178 +225,10 @@ AnalysisTask (상태: pending, in_progress, success, failure)
   └─ 결과: AnalysisResult (JSON)
 ```
 
----
-
-## 5. 실시간 통신 (WebSocket)
-
-### 5.1. 클라이언트 ↔ 서버
-
-```
-WebSocket /api/v1/ws/sync-status?token=JWT_TOKEN
-  
-브로드캐스트 메시지:
-{
-  "type": "device_sync_status",
-  "device_id": 1,
-  "status": "in_progress",
-  "step": "Indexing"
-}
-```
-
-### 5.2. 프론트엔드 훅
-
-```typescript
-// src/hooks/useWebSocket.ts
-useSyncStatusWebSocket((msg) => {
-  // UI 업데이트
-  updateSyncStatus(msg)
-})
-
-// 특징:
-// - 연결 끊김 시 5초 후 자동 재연결
-// - 토큰 기반 인증
-```
+분석 백그라운드 태스크는 자체 `SessionLocal()` 세션을 열고, O(n²) 비교 등 CPU 바운드 연산은 전용 `CPU_EXECUTOR`(`app/core/executors.py`)에서 실행되어 이벤트 루프를 차단하지 않습니다.
 
 ---
 
-## 6. 삭제 워크플로우
+## 5. 이어서 보기
 
-`app/services/deletion_workflow/`
-
-프로젝트(`deletion_workflow_projects`) 단위로 관리되며, Config 기반 프로세서 파이프라인을 통해 Excel 파일을 입출력합니다.
-
-**구조**:
-```
-core/
-  ├─ config_manager.py    (파이프라인 설정 로드)
-  ├─ input_resolver.py    (입력 파일 해석)
-  ├─ pipeline.py          (태스크 실행 오케스트레이션)
-  └─ workspace_runner.py  (작업공간 관리)
-processors/
-  ├─ request_parser.py / request_extractor.py  (삭제 요청 파싱)
-  ├─ merge_hitcount.py                         (히트 카운트 병합)
-  ├─ duplicate_policy_classifier.py            (중복 정책 분류)
-  ├─ policy_usage_processor.py                 (정책 사용 여부 판단)
-  ├─ notification_classifier.py                (통보 대상 분류)
-  └─ ...
-utils/
-  ├─ excel_manager.py    (Excel 읽기/쓰기)
-  └─ file_manager.py     (파일 저장: deletion_workflow_files)
-```
-
----
-
-## 7. 스케줄링 (APScheduler)
-
-`app/services/scheduler.py`
-
-```python
-# sync_schedules 테이블에 영속 저장
-{
-  "name": "Daily Sync - Seoul",
-  "enabled": true,
-  "days_of_week": [0, 1, 2, 3, 4],  # Mon-Fri
-  "time": "02:00",
-  "device_ids": [1, 2, 3]
-}
-```
-
-**동작**:
-- 시작/종료: 앱 `lifespan` 컨텍스트에서 로드·정지
-
----
-
-## 8. 보안 및 인증
-
-### 8.1. 토큰 기반 인증
-
-```
-로그인 (/api/v1/auth/login)
-  ├─ Credentials 검증
-  ├─ JWT 토큰 생성 (8시간 유효)
-  ├─ Cookie + LocalStorage 저장
-  └─ Bearer Token으로 API 요청
-
-인증 실패 (401)
-  └─ 자동 로그아웃 + /login 리다이렉트
-```
-
-### 8.2. 비밀번호 암호화
-
-```python
-# app/core/security.py
-encrypt_password(password)  # Fernet 암호화 (장비 비밀번호용)
-decrypt_password(cipher)
-
-# 사용자 비밀번호는 bcrypt 해싱
-```
-
----
-
-## 9. 성능 최적화
-
-### 9.1. 벌크 연산
-
-```python
-# DO ✅
-session.bulk_insert_mappings(PolicyAddressMember, records)
-
-# DON'T ❌
-for record in records:
-    session.add(PolicyAddressMember(**record))
-```
-
-### 9.2. 비동기 처리
-
-```python
-# 모든 I/O는 async/await 사용
-async def fetch_device_data():
-    connector = await connect_device()
-    data = await collector.export_policies()
-    await save_to_db(data)
-```
-
-### 9.3. 캐싱 (프론트엔드)
-
-```typescript
-// TanStack React Query: staleTime = 30초
-useQuery({
-  queryKey: ['policies'],
-  queryFn: fetchPolicies,
-  staleTime: 30_000,
-})
-```
-
----
-
-## 10. 확장 포인트
-
-### 새 벤더 추가
-
-```python
-# app/services/firewall/new_vendor.py
-class NewVendorCollector(FirewallInterface):
-    async def export_network_objects(self):
-        # 구현
-        pass
-    # ... 나머지 메서드
-
-# app/services/firewall/__init__.py의 Factory에 등록
-COLLECTOR_FACTORY = {
-    'paloalto': PaloAltoCollector,
-    'new_vendor': NewVendorCollector,  # ← 추가
-}
-```
-
-### 새 분석 엔진 추가
-
-```python
-# app/services/analysis/new_analysis.py
-async def run_new_analysis(device_id: int, session):
-    task = AnalysisTask(device_id=device_id, task_type='new_analysis')
-    try:
-        result = await analyze_logic()
-        save_result(task, result)
-    except Exception as e:
-        task.task_status = 'failure'
-```
+실시간 통신(WebSocket)·삭제 워크플로우·스케줄링·보안·성능 최적화·확장 포인트(새 벤더/분석 엔진 추가)는 `docs/ARCHITECTURE_OPERATIONS.md`에서 다룹니다.

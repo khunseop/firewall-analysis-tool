@@ -125,3 +125,14 @@ ORM Models     (backend/app/models/)  ──►  SQLite fat.db (via Alembic)
 
 - **새 벤더 추가**: `app/services/firewall/` 내 `FirewallInterface`를 상속 구현 후 Factory에 등록.
 - **새 분석 엔진 추가**: `app/services/analysis/`에 추가. `AnalysisTask`로 상태를 관리하고 결과를 JSON으로 저장.
+
+## 블라스트 레이디어스 주의 (수정 파급 범위)
+
+다음 파일들은 여러 곳에서 참조되는 공유/싱글턴 모듈이므로, 수정 시 참조하는 모든 곳을 확인할 것:
+
+- `frontend/src/api/queryKeys.ts` — 거의 모든 페이지의 React Query 캐시 키가 여기서 파생됨. 키 구조 변경 시 캐시 무효화/재조회 동작이 전역적으로 바뀔 수 있음.
+- `backend/app/core/executors.py` (`IO_EXECUTOR`/`CPU_EXECUTOR`) — 동기화·분석 전 엔진이 공유. 풀 크기나 사용 executor를 바꾸면 관련 없어 보이는 다른 파이프라인의 처리량에 영향.
+- `backend/app/services/websocket_manager.py` — 동기화·분석 진행 상태 브로드캐스트를 전담. 메시지 포맷 변경 시 프론트 `useSyncStatusWebSocket` 소비 측도 함께 확인.
+- `backend/app/services/sync/tasks.py`의 `run_sync_all_orchestrator` — 전체 동기화 파이프라인의 오케스트레이터. 여기 로직 변경은 모든 벤더의 동기화 흐름에 영향.
+
+큰 이관/리팩토링 직후에는 diff를 다시 검토해 로직이 누락되지 않았는지 확인할 것(예: 과거 FPAT 이관 작업 중 예외처리·신청유형 제한 로직이 유실되었다가 나중에 복원된 사례 있음).
