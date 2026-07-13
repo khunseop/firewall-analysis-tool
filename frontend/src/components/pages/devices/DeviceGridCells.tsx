@@ -4,11 +4,16 @@ import { useNavigate } from 'react-router-dom'
 import { Search, ListFilter, Boxes, BarChart3 } from 'lucide-react'
 import { type Device } from '@/api/devices'
 import { useDeviceStore } from '@/store/deviceStore'
+import { usePolicySearchStore } from '@/store/policySearchStore'
+import { buildRequestFromFilterTree } from '@/components/shared/queryBuilderModel'
+import type { PolicySearchRequest } from '@/api/firewall'
 import { capacityLevel } from '@/lib/deviceCapacity'
 
 export const DeviceNameCell = memo(function DeviceNameCell({ data, onShowDetail }: { data: Device; onShowDetail: (device: Device) => void }) {
   const navigate = useNavigate()
   const setSelectedIds = useDeviceStore((s) => s.setSelectedIds)
+  const setSearchRequest = usePolicySearchStore((s) => s.setSearchRequest)
+  const setFilterTree = usePolicySearchStore((s) => s.setFilterTree)
   const [open, setOpen] = useState(false)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -33,7 +38,13 @@ export const DeviceNameCell = memo(function DeviceNameCell({ data, onShowDetail 
 
   if (!data) return null
 
-  const goToPolicies = () => { setSelectedIds([data.id]); setOpen(false); navigate('/policies') }
+  const goToPolicies = () => {
+    setSelectedIds([data.id])
+    setFilterTree([])
+    setSearchRequest(buildRequestFromFilterTree([], [data.id]) as unknown as PolicySearchRequest)
+    setOpen(false)
+    navigate('/policies')
+  }
   const goToObjects = () => { setSelectedIds([data.id]); setOpen(false); navigate('/objects') }
   const goToAnalysis = () => { setOpen(false); navigate('/analysis', { state: { openCreateWithDeviceId: data.id } }) }
   const showDetail = () => { setOpen(false); onShowDetail(data) }
