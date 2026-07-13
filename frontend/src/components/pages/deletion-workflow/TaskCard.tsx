@@ -10,7 +10,7 @@ export function TaskCard({
   timing, onRefresh, onOutputReplaced, onWillRerun,
 }: {
   task: TaskMeta; projectId: number; files: ProjectFileState[]
-  phase: 1 | 2; autoRunCurrentTaskId: number | null
+  phase: 1 | 2 | 3; autoRunCurrentTaskId: number | null
   timing?: { startedAt: number; completedAt?: number }
   onRefresh: () => void; onOutputReplaced: (taskId: number) => void
   onWillRerun?: (taskId: number) => Promise<void>
