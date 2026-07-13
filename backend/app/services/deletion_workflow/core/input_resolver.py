@@ -26,6 +26,10 @@ Phase 2 (위저드 순서):
   16 → task_13.output_0 + task_15.output_2(or task_14.output_2) (중복상태 업데이트)  ← 미사용여부 포함 정책 파일 사용
   17 → task_16.output_0 + task_15.output_3(or ext:yaml) (중복 예외 반영)
   18 → task_17.output_0             (통보대상 분류)
+
+Phase 3:
+  19 → task_18.output_N(장기미사용, 파일명으로 탐색) + task_14.output_1(삭제) +
+       task_14.output_0(공지) + task_7.output_0(Conv) (자동연장예외파일 생성)
 """
 
 from typing import Dict, List, Optional, Tuple
@@ -208,6 +212,28 @@ def resolve_inputs(
         # 통보대상 분류
         f = _require(project_files, 17, "output_0", "중복 예외 반영 결과")
         return collect(f)
+
+    # ── Phase 3 ──────────────────────────────────────────────────────────────
+    if task_id == 19:
+        # 자동연장예외파일 생성: 장기미사용(18) + 중복삭제(14) + 중복공지(14) + Conv(7)
+        # Task 18은 카테고리별 파일 개수가 가변적이므로 슬롯 인덱스 대신 파일명으로 탐색
+        long_unused = None
+        idx = 0
+        while True:
+            f = _get(project_files, 18, f"output_{idx}")
+            if f is None:
+                break
+            if "장기미사용" in f.filename:
+                long_unused = f
+                break
+            idx += 1
+        if long_unused is None:
+            raise MissingInputError("필수 파일 없음: Task 18 / 장기미사용정책(공지용) 파일")
+
+        duplicate_notice = _require(project_files, 14, "output_0", "중복정책 공지 파일")
+        duplicate_delete = _require(project_files, 14, "output_1", "중복정책 삭제 파일")
+        conv = _require(project_files, 7, "output_0", "GSAMS 처리 결과(Conv)")
+        return collect(long_unused, duplicate_delete, duplicate_notice, conv)
 
     return []
 

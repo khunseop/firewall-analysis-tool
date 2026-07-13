@@ -7,7 +7,7 @@ import { getProject, runProjectExtract, runProjectTask, resetAllProjectFiles, cl
 import { getDevice, syncAll, getSyncStatus } from '@/api/devices'
 import { startAnalysis, getAnalysisStatus } from '@/api/analysis'
 import { queryKeys } from '@/api/queryKeys'
-import { PHASE1_TASKS, PHASE2_TASKS, EXECUTION_ORDER, ALL_TASK_META, triggerDownload, hasOutput, getExternalFile, getDownstreamTaskIds } from './deletion-workflow/taskMeta'
+import { PHASE1_TASKS, PHASE2_TASKS, PHASE3_TASKS, EXECUTION_ORDER, ALL_TASK_META, triggerDownload, hasOutput, getExternalFile, getDownstreamTaskIds } from './deletion-workflow/taskMeta'
 import { TaskCard } from './deletion-workflow/TaskCard'
 import { Task0Section } from './deletion-workflow/Task0Section'
 
@@ -427,8 +427,9 @@ export default function DeletionWorkflowDetailPage() {
   // 진행률 계산
   const phase1Done = PHASE1_TASKS.filter((t) => hasOutput(files, t.id)).length
   const phase2Done = PHASE2_TASKS.filter((t) => hasOutput(files, t.id)).length
-  const totalDone = phase1Done + phase2Done
-  const totalTasks = PHASE1_TASKS.length + PHASE2_TASKS.length
+  const phase3Done = PHASE3_TASKS.filter((t) => hasOutput(files, t.id)).length
+  const totalDone = phase1Done + phase2Done + phase3Done
+  const totalTasks = PHASE1_TASKS.length + PHASE2_TASKS.length + PHASE3_TASKS.length
   const progressPct = Math.round((totalDone / totalTasks) * 100)
 
   // 자동실행 버튼 텍스트
@@ -574,6 +575,9 @@ export default function DeletionWorkflowDetailPage() {
             &nbsp;·&nbsp;
             Phase2 {phase2Done}/{PHASE2_TASKS.length}
             {phase2Done === PHASE2_TASKS.length && <span className="text-emerald-500 ml-1">✓</span>}
+            &nbsp;·&nbsp;
+            Phase3 {phase3Done}/{PHASE3_TASKS.length}
+            {phase3Done === PHASE3_TASKS.length && <span className="text-emerald-500 ml-1">✓</span>}
           </span>
           {autoRunning && autoRunCurrentTaskId !== null && (
             <span className="text-[11px] text-ds-tertiary flex items-center gap-1 whitespace-nowrap">
@@ -632,6 +636,25 @@ export default function DeletionWorkflowDetailPage() {
             {PHASE2_TASKS.map((t) => (
               <TaskCard
                 key={t.id} task={t} phase={2}
+                projectId={projectId} files={files}
+                autoRunCurrentTaskId={autoRunCurrentTaskId}
+                timing={taskTimings[t.id]}
+                onRefresh={refresh}
+                onOutputReplaced={handleOutputReplaced}
+                onWillRerun={handleWillRerun}
+              />
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-xs font-semibold text-ds-on-surface-variant uppercase tracking-wider mb-3">
+            Phase 3 — 자동연장예외 요청
+          </h2>
+          <div className="space-y-3">
+            {PHASE3_TASKS.map((t) => (
+              <TaskCard
+                key={t.id} task={t} phase={3}
                 projectId={projectId} files={files}
                 autoRunCurrentTaskId={autoRunCurrentTaskId}
                 timing={taskTimings[t.id]}

@@ -34,9 +34,13 @@ export const PHASE2_TASKS: TaskMeta[] = [
   { step: 11, id: 18, name: '통보대상 분류',          description: '정책 Excel → 통보대상 컬럼 추가(최종본)' },
 ]
 
-// Phase 1 + Phase 2 실행 순서 (Task 0, 1은 별도)
-export const EXECUTION_ORDER = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18]
-export const ALL_TASK_META = [...PHASE1_TASKS, ...PHASE2_TASKS]
+export const PHASE3_TASKS: TaskMeta[] = [
+  { step: 1, id: 19, name: '자동연장예외파일 생성', description: '장기미사용/중복삭제/중복공지 결과 + GSAMS Conv → 자동연장예외 신청번호 추출' },
+]
+
+// Phase 1 + Phase 2 + Phase 3 실행 순서 (Task 0, 1은 별도)
+export const EXECUTION_ORDER = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19]
+export const ALL_TASK_META = [...PHASE1_TASKS, ...PHASE2_TASKS, ...PHASE3_TASKS]
 
 // ── 유틸 ─────────────────────────────────────────────────────────────────────
 

@@ -22,6 +22,7 @@ Task 15: DuplicateExpiredCleaner   — 중복 만료셋 예외처리
 Task 16: DuplicatePolicyClassifier(update)   — 중복정책 상태 업데이트
 Task 17: DuplicateExceptionApplier — 중복 예외 반영
 Task 18: NotificationClassifier    — 통보대상 분류
+Task 19: AutoRenewalExceptionGenerator — 자동연장예외파일 생성
 """
 
 import logging
@@ -41,6 +42,7 @@ from ..processors.merge_hitcount import MergeHitcount
 from ..processors.policy_usage_processor import PolicyUsageProcessor
 from ..processors.auto_renewal_checker import AutoRenewalChecker
 from ..processors.notification_classifier import NotificationClassifier
+from ..processors.auto_renewal_exception_generator import AutoRenewalExceptionGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +70,7 @@ class TaskRegistry:
             16: {"class": DuplicatePolicyClassifier,    "kwargs": {"mode": "update"}},
             17: {"class": DuplicateExceptionApplier,    "kwargs": {}},
             18: {"class": NotificationClassifier,       "kwargs": {}},
+            19: {"class": AutoRenewalExceptionGenerator, "kwargs": {}},
         }
         return registry.get(task_id)
 
