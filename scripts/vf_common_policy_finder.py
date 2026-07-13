@@ -92,19 +92,33 @@ def output_path_for(path: Path) -> Path:
 
 def main():
     args = sys.argv[1:]
-    files = [Path(a) for a in args] if args else select_files_in_cwd()
+    raw_files = [Path(a) for a in args] if args else select_files_in_cwd()
 
-    for f in files:
+    for f in raw_files:
         if not f.exists():
             print(f"파일을 찾을 수 없습니다: {f}")
             sys.exit(1)
 
-    print(f"\n비교 대상 {len(files)}개 파일:")
-    for f in files:
-        print(f"  - {f.name}")
+    # 절대경로로 정규화 + 딕셔너리 키를 파일명(basename)이 아닌 전체경로로 사용
+    # (서로 다른 폴더에 있는 파일들이 같은 이름을 쓰면 basename 키가 충돌해
+    #  일부 파일 데이터가 다른 파일 것으로 덮어써지는 문제를 방지)
+    files = [f.resolve() for f in raw_files]
+    keys = [str(p) for p in files]
 
-    dataframes = {f.name: load_file(f) for f in files}
-    file_names = list(dataframes.keys())
+    # 사람이 보기 좋은 표시용 라벨 — basename이 겹치면 상위 폴더명을 붙여 구분
+    name_counts: dict[str, int] = {}
+    for p in files:
+        name_counts[p.name] = name_counts.get(p.name, 0) + 1
+    labels = {
+        str(p): (p.name if name_counts[p.name] == 1 else f"{p.parent.name}/{p.name}")
+        for p in files
+    }
+
+    print(f"\n비교 대상 {len(files)}개 파일:")
+    for p in files:
+        print(f"  - {labels[str(p)]}")
+
+    dataframes = {str(p): load_file(p) for p in files}
 
     # 모든 파일에 공통으로 존재하는 컬럼(식별용 컬럼 제외)을 매칭 기준으로 자동 판단
     common_columns = set.intersection(*(set(df.columns) for df in dataframes.values()))
@@ -125,31 +139,32 @@ def main():
         return tuple(normalize_value(row[col], col) for col in match_columns)
 
     key_sets: dict[str, set] = {}
-    for name, df in dataframes.items():
+    for key, df in dataframes.items():
         df["__KEY__"] = df.apply(make_key, axis=1)
-        key_sets[name] = set(df["__KEY__"])
+        key_sets[key] = set(df["__KEY__"])
 
     common_keys = set.intersection(*key_sets.values())
-    print(f"\n{len(file_names)}개 파일 모두에 존재하는 공통 정책 키: {len(common_keys)}건")
+    print(f"\n{len(keys)}개 파일 모두에 존재하는 공통 정책 키: {len(common_keys)}건")
 
     # 각 키가 어느 파일들에 존재하는지 미리 계산 (예외정책 시트용)
     presence: dict[tuple, list[str]] = {}
-    for name, s in key_sets.items():
-        for key in s:
-            presence.setdefault(key, []).append(name)
+    for key, s in key_sets.items():
+        for policy_key in s:
+            presence.setdefault(policy_key, []).append(key)
 
     for path in files:
-        name = path.name
-        df = dataframes[name]
+        key = str(path)
+        label = labels[key]
+        df = dataframes[key]
 
         common_df = df[df["__KEY__"].isin(common_keys)].drop(columns=["__KEY__"])
 
         exception_df = df[~df["__KEY__"].isin(common_keys)].copy()
         exception_df["존재하는_파일"] = exception_df["__KEY__"].map(
-            lambda k: ", ".join(presence.get(k, []))
+            lambda k: ", ".join(labels[fk] for fk in presence.get(k, []))
         )
         exception_df["없는_파일"] = exception_df["__KEY__"].map(
-            lambda k: ", ".join(n for n in file_names if n not in presence.get(k, []))
+            lambda k: ", ".join(labels[fk] for fk in keys if fk not in presence.get(k, []))
         )
         exception_df = exception_df.drop(columns=["__KEY__"])
 
@@ -159,7 +174,7 @@ def main():
             exception_df.to_excel(writer, sheet_name="예외정책", index=False)
 
         print(
-            f"\n{name} → {out_path.name}"
+            f"\n{label} → {out_path.name}"
             f"\n  - 공통정책: {len(common_df)} rows"
             f"\n  - 예외정책: {len(exception_df)} rows"
         )
