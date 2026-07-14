@@ -8,6 +8,7 @@ import {
 } from '@ag-grid-community/core'
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model'
 import { CsvExportModule } from '@ag-grid-community/csv-export'
+import { LoadingOverlay } from '@/components/shared/LoadingOverlay'
 
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-quartz.css'
@@ -28,6 +29,9 @@ interface AgGridWrapperProps<T> {
   height?: string | number
   domLayout?: 'normal' | 'autoHeight' | 'print'
   noRowsText?: string
+  /** true인 동안 그리드 위에 중앙 로딩 오버레이를 표시 (그리드는 마운트 상태 유지) */
+  loading?: boolean
+  loadingLabel?: string
   defaultColDefOverride?: Record<string, unknown>
   onRowClicked?: (event: RowClickedEvent<T>) => void
   /** 컬럼을 컨테이너 너비에 맞게 분배 (기본값: false = 내용 기반 자동 너비) */
@@ -57,6 +61,8 @@ function AgGridWrapperInner<T>(
     height = 'calc(100vh - 200px)',
     domLayout,
     noRowsText = '데이터가 없습니다.',
+    loading = false,
+    loadingLabel,
     defaultColDefOverride,
     onRowClicked,
     fitColumns = false,
@@ -172,6 +178,7 @@ function AgGridWrapperInner<T>(
           </div>
         `}
       />
+      <LoadingOverlay show={loading} label={loadingLabel} />
     </div>
   )
 }

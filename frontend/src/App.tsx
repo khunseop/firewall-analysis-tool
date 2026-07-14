@@ -6,6 +6,7 @@ import { Toaster } from 'sonner'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
+import { Spinner } from '@/components/shared/Spinner'
 import { LoginPage } from '@/components/pages/LoginPage'
 
 // 페이지는 라우트 단위로 코드 스플리팅 (초기 번들 축소)
@@ -34,8 +35,11 @@ const queryClient = new QueryClient({
 
 function PageFallback() {
   return (
-    <div className="flex h-full min-h-40 items-center justify-center text-sm text-muted-foreground">
-      로딩 중...
+    <div className="flex h-full min-h-40 items-center justify-center">
+      <div className="page-fallback-enter glass-panel ambient-shadow-md flex items-center gap-2.5 rounded-full px-4 py-2.5">
+        <Spinner size="sm" />
+        <span className="text-[12px] font-semibold text-ds-on-surface-variant">페이지를 불러오는 중…</span>
+      </div>
     </div>
   )
 }

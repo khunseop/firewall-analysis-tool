@@ -604,6 +604,8 @@ export function PoliciesPage() {
           rowData={policies}
           getRowId={rowIdFromId}
           height="800px"
+          loading={searchQuery.isFetching}
+          loadingLabel="정책 검색 중…"
           noRowsText="장비를 선택하고 검색 버튼을 클릭하세요."
           defaultColDefOverride={GRID_DEFAULT_COL_DEF_OVERRIDE}
           quickFilterText={quickFilterText}

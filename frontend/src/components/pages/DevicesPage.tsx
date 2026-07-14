@@ -438,6 +438,7 @@ export function DevicesPage() {
           getRowId={rowIdFromId}
           quickFilterText={quickFilter}
           height="calc(100vh - 280px)"
+          loading={isLoading}
           noRowsText="등록된 장비가 없습니다."
           rowSelection={{ mode: 'multiRow', checkboxes: true, headerCheckbox: true, selectAll: 'filtered' }}
           onSelectionChanged={(rows) => setSelectedDevices(rows)}

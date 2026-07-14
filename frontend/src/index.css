@@ -100,6 +100,17 @@
   .ghost-border {
     border: 1px solid rgba(169, 180, 185, 0.2);
   }
+  /* 라우트 전환 fallback — 캐시된 청크의 즉시 로드에는 깜빡이지 않도록 살짝 지연 후 페이드인 */
+  .page-fallback-enter {
+    opacity: 0;
+    animation: page-fallback-fade-in 0.2s ease-out 0.15s forwards;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .page-fallback-enter {
+      animation-duration: 0.01ms;
+      animation-delay: 0s;
+    }
+  }
   .glass-panel {
     background: rgba(255, 255, 255, 0.82);
     backdrop-filter: blur(24px) saturate(1.4);
@@ -117,6 +128,17 @@
   }
   .btn-primary-gradient:hover {
     background: linear-gradient(135deg, #004fad, #003d8a);
+  }
+}
+
+@keyframes page-fallback-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 

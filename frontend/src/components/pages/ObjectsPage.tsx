@@ -358,19 +358,16 @@ export function ObjectsPage() {
         </div>
 
         <div className="p-4">
-          {current.isFetching ? (
-            <div className="py-12 text-center text-sm text-ds-on-surface-variant">로딩 중…</div>
-          ) : (
-            <AgGridWrapper
-              columnDefs={current.cols}
-              rowData={current.data as unknown[]}
-              getRowId={objectRowId}
-              quickFilterText={quickFilter}
-              height="calc(100vh - 240px)"
-              noRowsText="사이드바에서 장비를 선택하세요."
-              rowHeight={34}
-            />
-          )}
+          <AgGridWrapper
+            columnDefs={current.cols}
+            rowData={current.data as unknown[]}
+            getRowId={objectRowId}
+            quickFilterText={quickFilter}
+            height="calc(100vh - 240px)"
+            loading={current.isFetching}
+            noRowsText="사이드바에서 장비를 선택하세요."
+            rowHeight={34}
+          />
         </div>
       </div>
 
