@@ -136,18 +136,22 @@ export function DeletionWorkflowSettings() {
           items={getExceptions('request_ids')}
           keyField="id"
           keyPlaceholder="신청번호 (예: REQ-1234)"
+          category="request_ids"
           onAdd={() => addItem('request_ids', 'id')}
           onRemove={(i) => removeItem('request_ids', i)}
           onUpdate={(i, patch) => updateItem('request_ids', i, patch)}
+          onBulkAdd={(items) => setExceptions('request_ids', [...getExceptions('request_ids'), ...items])}
         />
         <ExceptionTable
           title="고정 예외 목록 (정책명 완전일치)"
           items={getExceptions('static_list')}
           keyField="name"
           keyPlaceholder="정책명"
+          category="static_list"
           onAdd={() => addItem('static_list', 'name')}
           onRemove={(i) => removeItem('static_list', i)}
           onUpdate={(i, patch) => updateItem('static_list', i, patch)}
+          onBulkAdd={(items) => setExceptions('static_list', [...getExceptions('static_list'), ...items])}
         />
       </div>
 

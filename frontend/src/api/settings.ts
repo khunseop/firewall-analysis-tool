@@ -1,4 +1,5 @@
-import { apiClient } from './client'
+import { apiClient, downloadBlob } from './client'
+import type { ExceptionItem } from '@/components/pages/settings/ExceptionTable'
 
 export interface Setting {
   key: string
@@ -65,4 +66,19 @@ export const parseYamlToJson = async (yamlText: string): Promise<unknown> => {
     headers: { 'Content-Type': 'text/plain; charset=utf-8' },
   })
   return res.data.data
+}
+
+export type ExceptionCategory = 'request_ids' | 'static_list'
+
+export const downloadExceptionExcelTemplate = async (category: ExceptionCategory): Promise<void> => {
+  await downloadBlob(`/api/v1/settings/deletion-workflow/exceptions/${category}/excel-template`, `${category}_template.xlsx`)
+}
+
+export const importExceptionExcel = async (category: ExceptionCategory, file: File): Promise<ExceptionItem[]> => {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await apiClient.post<ExceptionItem[]>(`/settings/deletion-workflow/exceptions/${category}/excel-import`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data
 }
