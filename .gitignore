@@ -210,6 +210,8 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+/fat.db
+backend/fat.db
 backend/fat.db-wal
 backend/fat.db-shm
 backend/fat.db.bak*
