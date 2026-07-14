@@ -218,3 +218,4 @@ backend/fat.db.bak*
 *_config.json
 .playwright-mcp/
 .claude/
+fat.bundle
