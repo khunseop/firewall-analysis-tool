@@ -1,5 +1,6 @@
 @echo off
 chcp 65001 >nul
+cls
 setlocal enabledelayedexpansion
 
 echo ============================================
