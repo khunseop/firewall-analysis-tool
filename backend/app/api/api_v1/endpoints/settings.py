@@ -2,13 +2,17 @@ import datetime
 import json
 import logging
 import os
+from io import BytesIO
 from typing import Any, Dict, List
 from urllib.parse import quote
 
+import openpyxl
 import yaml
+from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.utils import get_column_letter
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -371,3 +375,167 @@ async def update_deletion_workflow_config_yaml(
 
     _write_fpat_yaml(config)
     return {"ok": True}
+
+
+# ──────────────────────────────────────────────
+# 예외 설정 — 엑셀 일괄등록
+# ──────────────────────────────────────────────
+
+_EXCEPTION_CATEGORY_META = {
+    "request_ids": {"key_field": "id", "key_label": "신청번호"},
+    "static_list": {"key_field": "name", "key_label": "정책명"},
+}
+
+
+@router.get("/deletion-workflow/exceptions/{category}/excel-template")
+async def download_exception_excel_template(category: str):
+    """예외 설정(신청번호/정책명) 일괄등록용 엑셀 서식 파일 다운로드"""
+    meta = _EXCEPTION_CATEGORY_META.get(category)
+    if meta is None:
+        raise HTTPException(status_code=404, detail="지원하지 않는 예외 카테고리입니다.")
+
+    key_label = meta["key_label"]
+    headers = [f"{key_label}*", "사유", "시작일 (YYYY-MM-DD)", "만료일 (YYYY-MM-DD)"]
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "예외 등록"
+
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_alignment = Alignment(horizontal="center", vertical="center")
+
+    for col_idx, header in enumerate(headers, start=1):
+        cell = ws.cell(row=1, column=col_idx, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+
+    example_key = "REQ-1234" if category == "request_ids" else "allow_xxx"
+    example_data = [
+        [example_key, "임시예외", "", ""],
+    ]
+    example_fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
+    example_font = Font(size=10)
+    for row_idx, row_data in enumerate(example_data, start=2):
+        for col_idx, value in enumerate(row_data, start=1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=value)
+            cell.fill = example_fill
+            cell.font = example_font
+
+    ws2 = wb.create_sheet("설명")
+    instructions = [
+        ["필드명", "설명", "필수 여부", "예시"],
+        [key_label, f"{key_label} 값", "필수", example_key],
+        ["사유", "예외 등록 사유", "선택", "임시예외"],
+        ["시작일", "예외 적용 시작일 (비우면 즉시 적용)", "선택", "2026-01-01"],
+        ["만료일", "예외 적용 만료일 (비우면 무기한)", "선택", "2026-12-31"],
+        ["", "", "", ""],
+        ["주의사항", "", "", ""],
+        ["- * 표시된 필드는 필수 입력 항목입니다.", "", "", ""],
+        ["- 예시 행은 삭제하고 실제 데이터를 입력하세요.", "", "", ""],
+    ]
+    for row_idx, row_data in enumerate(instructions, start=1):
+        for col_idx, value in enumerate(row_data, start=1):
+            cell = ws2.cell(row=row_idx, column=col_idx, value=value)
+            if row_idx == 1:
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = header_alignment
+
+    column_widths = [20, 30, 22, 22]
+    for col_idx, width in enumerate(column_widths, start=1):
+        ws.column_dimensions[get_column_letter(col_idx)].width = width
+    ws2.column_dimensions['A'].width = 25
+    ws2.column_dimensions['B'].width = 40
+    ws2.column_dimensions['C'].width = 12
+    ws2.column_dimensions['D'].width = 20
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"{category}_template.xlsx"
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/deletion-workflow/exceptions/{category}/excel-import")
+async def import_exception_excel(category: str, file: UploadFile = File(...)):
+    """엑셀 파일을 파싱해 예외 항목 리스트를 반환합니다 (DB에는 저장하지 않음 — 프론트에서 병합 후 별도 저장)."""
+    meta = _EXCEPTION_CATEGORY_META.get(category)
+    if meta is None:
+        raise HTTPException(status_code=404, detail="지원하지 않는 예외 카테고리입니다.")
+    if not file.filename or not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="엑셀 파일(.xlsx, .xls)만 업로드 가능합니다.")
+
+    key_field = meta["key_field"]
+    key_label = meta["key_label"]
+    key_header = f"{key_label}*"
+
+    try:
+        contents = await file.read()
+        wb = openpyxl.load_workbook(BytesIO(contents))
+        ws = wb.active
+
+        header_row = [cell.value for cell in ws[1]]
+        header_mapping = {
+            key_header: key_field,
+            "사유": "reason",
+            "시작일 (YYYY-MM-DD)": "start",
+            "만료일 (YYYY-MM-DD)": "until",
+        }
+
+        if key_header not in header_row:
+            raise HTTPException(status_code=400, detail=f"필수 컬럼이 없습니다: {key_header}")
+
+        items = []
+        errors = []
+        for row_idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+            if not any(row):
+                continue
+
+            item = {}
+            missing_key = False
+            for col_idx, header in enumerate(header_row):
+                if header not in header_mapping:
+                    continue
+                field_name = header_mapping[header]
+                value = row[col_idx]
+
+                if isinstance(value, str):
+                    value = value.strip()
+                    if not value:
+                        value = None
+                elif value is not None and hasattr(value, "strftime"):
+                    value = value.strftime("%Y-%m-%d")
+
+                if header == key_header and not value:
+                    errors.append(f"{row_idx}행: {key_header} 필드는 필수입니다.")
+                    missing_key = True
+                    break
+
+                if value is not None:
+                    item[field_name] = value
+
+            if missing_key:
+                continue
+            if key_field not in item:
+                continue
+            item.setdefault("reason", "")
+            items.append(item)
+
+        if errors:
+            raise HTTPException(status_code=400, detail="\n".join(errors))
+        if not items:
+            raise HTTPException(status_code=400, detail="등록할 예외 데이터가 없습니다.")
+
+        return items
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"예외 엑셀 파싱 실패: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"엑셀 파싱 실패: {str(e)}")

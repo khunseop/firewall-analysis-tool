@@ -1,23 +1,54 @@
-import { useState } from 'react'
-import { Plus, Trash2, ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { Plus, Trash2, ChevronLeft, ChevronRight, Search, Upload, Download } from 'lucide-react'
+import { downloadExceptionExcelTemplate, importExceptionExcel, type ExceptionCategory } from '@/api/settings'
 
 export interface ExceptionItem { id?: string; name?: string; pattern?: string; reason: string; start?: string; until?: string }
 
 export const EX_PAGE_SIZE = 20
 
 export function ExceptionTable({
-  title, items, keyField, keyPlaceholder, onAdd, onRemove, onUpdate
+  title, items, keyField, keyPlaceholder, category, onAdd, onRemove, onUpdate, onBulkAdd
 }: {
   title: string
   items: ExceptionItem[]
   keyField: 'id' | 'name' | 'pattern'
   keyPlaceholder: string
+  category?: ExceptionCategory
   onAdd: () => void
   onRemove: (idx: number) => void
   onUpdate: (idx: number, patch: Partial<ExceptionItem>) => void
+  onBulkAdd?: (items: ExceptionItem[]) => void
 }) {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
+  const [importing, setImporting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleTemplateDownload = async () => {
+    if (!category) return
+    try {
+      await downloadExceptionExcelTemplate(category)
+    } catch {
+      toast.error('서식 파일 다운로드에 실패했습니다.')
+    }
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !category) return
+    setImporting(true)
+    try {
+      const parsed = await importExceptionExcel(category, file)
+      onBulkAdd?.(parsed)
+      toast.success(`${parsed.length}개 항목이 추가되었습니다.`)
+    } catch (err) {
+      toast.error((err as Error).message || '엑셀 업로드에 실패했습니다.')
+    } finally {
+      setImporting(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
 
 
   const withIdx = items.map((item, i) => ({ item, i }))
@@ -44,6 +75,32 @@ export function ExceptionTable({
               className="h-7 pl-6 pr-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary w-32"
             />
           </div>
+          {category && (
+            <>
+              <button
+                onClick={handleTemplateDownload}
+                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/30 rounded-lg hover:bg-ds-surface-container-high transition-colors shrink-0"
+              >
+                <Download className="w-3 h-3" />
+                서식 다운로드
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importing}
+                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/30 rounded-lg hover:bg-ds-surface-container-high disabled:opacity-50 transition-colors shrink-0"
+              >
+                <Upload className="w-3 h-3" />
+                {importing ? '업로드 중…' : '엑셀 업로드'}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+            </>
+          )}
           <button
             onClick={onAdd}
             className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-ds-tertiary bg-ds-tertiary/8 border border-ds-tertiary/20 rounded-lg hover:bg-ds-tertiary/12 transition-colors shrink-0"
