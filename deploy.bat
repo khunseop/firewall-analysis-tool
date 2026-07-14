@@ -15,7 +15,7 @@ if errorlevel 1 (
     goto :fail
 )
 
-echo [1/5] 로컬 변경 사항 확인 중...
+echo [1/6] 로컬 변경 사항 확인 중...
 set DIRTY=
 for /f "delims=" %%i in ('git status --porcelain') do set DIRTY=1
 if defined DIRTY (
@@ -31,7 +31,7 @@ if defined DIRTY (
 )
 
 echo.
-echo [2/5] git pull 실행 중...
+echo [2/6] git pull 실행 중...
 set PULL_OK=
 for /l %%a in (1,1,3) do (
     if not defined PULL_OK (
@@ -50,14 +50,14 @@ if not defined PULL_OK (
 )
 
 echo.
-echo [3/5] frontend\dist 초기화 중...
+echo [3/6] frontend\dist 초기화 중...
 if exist "frontend\dist" (
     rmdir /s /q "frontend\dist"
 )
 echo        완료.
 
 echo.
-echo [4/5] 프론트엔드 빌드 중 (npm run build)...
+echo [4/6] 프론트엔드 빌드 중 (npm run build)...
 cd frontend
 call npm run build
 if errorlevel 1 (
@@ -68,7 +68,17 @@ if errorlevel 1 (
 cd /d "%~dp0"
 
 echo.
-echo [5/5] fat.bundle 백업 생성 중...
+echo [5/6] frontend\dist 압축 중 (dist.zip)...
+if exist "dist.zip" del /q "dist.zip"
+powershell -NoProfile -Command "Compress-Archive -Path 'frontend\dist\*' -DestinationPath 'dist.zip' -Force"
+if errorlevel 1 (
+    echo [오류] dist.zip 생성에 실패했습니다.
+    goto :fail
+)
+echo        완료.
+
+echo.
+echo [6/6] fat.bundle 백업 생성 중...
 git bundle create fat.bundle --all
 if errorlevel 1 (
     echo        [경고] fat.bundle 생성에 실패했습니다.
@@ -78,8 +88,9 @@ if errorlevel 1 (
 
 echo.
 echo ============================================
-echo  배포 완료. 서버를 재시작하세요.
-echo   uvicorn app.main:app --app-dir backend
+echo  배포 준비 완료.
+echo  fat.bundle, dist.zip을 운영망으로 옮긴 뒤
+echo  run_prod.bat을 실행하세요.
 echo ============================================
 goto :end
 
