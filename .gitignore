@@ -221,3 +221,4 @@ backend/fat.db.bak*
 .playwright-mcp/
 .claude/
 fat.bundle
+dist.zip
