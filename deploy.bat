@@ -50,23 +50,14 @@ if not defined PULL_OK (
 )
 
 echo.
-echo [3/5] fat.bundle 백업 생성 중...
-git bundle create fat.bundle --all
-if errorlevel 1 (
-    echo        [경고] fat.bundle 생성에 실패했습니다. 배포는 계속 진행합니다.
-) else (
-    echo        완료.
-)
-
-echo.
-echo [4/5] frontend\dist 초기화 중...
+echo [3/5] frontend\dist 초기화 중...
 if exist "frontend\dist" (
     rmdir /s /q "frontend\dist"
 )
 echo        완료.
 
 echo.
-echo [5/5] 프론트엔드 빌드 중 (npm run build)...
+echo [4/5] 프론트엔드 빌드 중 (npm run build)...
 cd frontend
 call npm run build
 if errorlevel 1 (
@@ -75,6 +66,15 @@ if errorlevel 1 (
     goto :fail
 )
 cd /d "%~dp0"
+
+echo.
+echo [5/5] fat.bundle 백업 생성 중...
+git bundle create fat.bundle --all
+if errorlevel 1 (
+    echo        [경고] fat.bundle 생성에 실패했습니다.
+) else (
+    echo        완료.
+)
 
 echo.
 echo ============================================
