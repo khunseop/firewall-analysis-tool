@@ -535,6 +535,7 @@ export function DashboardPage() {
           rowData={rowData}
           getRowId={rowIdFromId}
           height={gridHeight}
+          loading={isLoading}
           noRowsText="등록된 장비가 없습니다."
           defaultColDefOverride={{ resizable: true, sortable: true }}
           fitColumns
