@@ -512,6 +512,10 @@ async def import_exception_excel(category: str, file: UploadFile = File(...)):
                         value = None
                 elif value is not None and hasattr(value, "strftime"):
                     value = value.strftime("%Y-%m-%d")
+                elif field_name == key_field and isinstance(value, (int, float)):
+                    # 신청번호/정책명을 숫자로만 입력한 경우 openpyxl이 int/float로 읽어오므로
+                    # is_excepted()의 문자열 포함 비교(`id in value`)가 깨지지 않도록 문자열로 정규화
+                    value = str(int(value)) if isinstance(value, float) and value.is_integer() else str(value)
 
                 if header == key_header and not value:
                     errors.append(f"{row_idx}행: {key_header} 필드는 필수입니다.")
