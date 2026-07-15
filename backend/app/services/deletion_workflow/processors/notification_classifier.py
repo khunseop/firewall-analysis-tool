@@ -27,7 +27,7 @@ class NotificationClassifier(BaseProcessor):
         if not excel_manager:
             logger.error("NotificationClassifier는 excel_manager 인자가 필요합니다.")
             return False
-        return self.classify_notifications(file_manager, excel_manager)
+        return self.classify_notifications(file_manager, excel_manager, project_name=kwargs.get('project_name'))
 
     def _save_to_excel(self, df, sheet_type: str, file_name: str, excel_manager):
         df.to_excel(file_name, index=False, na_rep='', sheet_name=sheet_type)
@@ -52,14 +52,18 @@ class NotificationClassifier(BaseProcessor):
         self._save_to_excel(selected_df, sheet_type, filename, excel_manager)
         logger.info(f"{log_label}: '{filename}' 저장 완료")
 
-    def classify_notifications(self, file_manager, excel_manager) -> bool:
+    def classify_notifications(self, file_manager, excel_manager, project_name: str = None) -> bool:
         try:
             selected_file = file_manager.select_files()
             if not selected_file:
                 return False
 
             df = pd.read_excel(selected_file)
-            base = file_manager.remove_extension(selected_file)
+            if project_name:
+                date_str = self.config.get_reference_date().strftime('%Y-%m-%d')
+                base = f"{date_str}_{project_name}"
+            else:
+                base = file_manager.remove_extension(selected_file)
 
             duplicate_kept = df['중복여부'] == '유지'
             duplicate_deleted = df['중복여부'] == '삭제'
@@ -104,7 +108,10 @@ class NotificationClassifier(BaseProcessor):
 
             df.insert(0, '공지대상', notice_target)
 
-            output_file = file_manager.update_version(selected_file, final_version=True)
+            if project_name:
+                output_file = f"{base}_정책정리.xlsx"
+            else:
+                output_file = file_manager.update_version(selected_file, final_version=True)
             df.to_excel(output_file, index=False, engine='openpyxl')
             logger.info(f"공지대상 분류 완료: '{output_file}'")
 
@@ -112,7 +119,7 @@ class NotificationClassifier(BaseProcessor):
             self._filter_and_save(
                 df, mask=expired_used, columns=self.columns,
                 sheet_type='만료_사용정책',
-                filename=f"{base}_기간만료(공지용).xlsx",
+                filename=f"{base}_기간만료.xlsx",
                 file_manager=file_manager, excel_manager=excel_manager,
                 log_label='기간만료_사용정책',
             )
@@ -120,7 +127,7 @@ class NotificationClassifier(BaseProcessor):
             self._filter_and_save(
                 df, mask=expired_unused, columns=self.columns,
                 sheet_type='만료_미사용정책',
-                filename=f"{base}_만료_미사용정책(공지용).xlsx",
+                filename=f"{base}_만료_미사용정책.xlsx",
                 file_manager=file_manager, excel_manager=excel_manager,
                 log_label='만료_미사용정책',
             )
@@ -128,7 +135,7 @@ class NotificationClassifier(BaseProcessor):
             self._filter_and_save(
                 df, mask=long_unused, columns=self.columns,
                 sheet_type='미만료_미사용정책',
-                filename=f"{base}_장기미사용정책(공지용).xlsx",
+                filename=f"{base}_장기미사용정책.xlsx",
                 file_manager=file_manager, excel_manager=excel_manager,
                 log_label='장기미사용정책',
             )

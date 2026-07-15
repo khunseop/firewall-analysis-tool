@@ -15,7 +15,7 @@ class AutoRenewalExceptionGenerator(BaseProcessor):
     """장기미사용/중복삭제/중복공지 결과에서 자동연장예외 대상 신청번호를 추출하는 클래스"""
 
     def run(self, file_manager, **kwargs) -> bool:
-        return self.generate(file_manager)
+        return self.generate(file_manager, project_name=kwargs.get('project_name'))
 
     def _extract_f_prefixed_ids(self, df: pd.DataFrame, id_col: str) -> pd.Series:
         if id_col not in df.columns:
@@ -24,7 +24,7 @@ class AutoRenewalExceptionGenerator(BaseProcessor):
         ids = df[id_col].dropna().astype(str)
         return ids[ids.str.startswith('F')]
 
-    def generate(self, file_manager) -> bool:
+    def generate(self, file_manager, project_name: str = None) -> bool:
         try:
             long_unused_file = file_manager.select_files()
             if not long_unused_file:
@@ -79,7 +79,8 @@ class AutoRenewalExceptionGenerator(BaseProcessor):
 
             exception_df = pd.DataFrame({'신청번호': final_ids})
 
-            output_file = "자동연장예외파일.xlsx"
+            date_str = self.config.get_reference_date().strftime('%Y-%m-%d')
+            output_file = f"{date_str}_자동연장예외_{project_name}.xlsx" if project_name else "자동연장예외파일.xlsx"
             with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
                 exception_df.to_excel(writer, sheet_name='자동연장예외', index=False)
                 long_unused_df.to_excel(writer, sheet_name='장기미사용 결과내용', index=False)
