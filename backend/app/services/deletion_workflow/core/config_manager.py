@@ -178,7 +178,7 @@ class ConfigManager:
             match = False
             if category == 'request_ids':
                 id_val = item.get('id', '')
-                match = bool(id_val) and id_val in value
+                match = bool(id_val) and str(id_val) in value
             elif category == 'policy_rules':
                 pattern = item.get('pattern', '')
                 try:
@@ -187,7 +187,7 @@ class ConfigManager:
                     logger.warning(f"잘못된 정규표현식 패턴: {pattern}")
             elif category == 'static_list':
                 name = item.get('name', '')
-                match = bool(name) and name in value
+                match = bool(name) and str(name) in value
 
             if match and self._is_in_period(item):
                 return True
@@ -201,7 +201,7 @@ class ConfigManager:
                         return True
                 elif isinstance(item, dict):
                     name = item.get('name', '')
-                    if name and name in value and self._is_in_period(item):
+                    if name and str(name) in value and self._is_in_period(item):
                         return True
 
         return False
