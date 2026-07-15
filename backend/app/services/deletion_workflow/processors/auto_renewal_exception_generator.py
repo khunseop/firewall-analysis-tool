@@ -42,7 +42,9 @@ class AutoRenewalExceptionGenerator(BaseProcessor):
             if not conv_file:
                 return False
 
-            long_unused_df = pd.read_excel(long_unused_file)
+            # 장기미사용 공지파일은 ExcelManager.save_to_excel()에서 1행에 집계 수식을 삽입하여
+            # 실제 헤더가 2행부터 시작하므로 header=1로 읽어야 함
+            long_unused_df = pd.read_excel(long_unused_file, header=1)
             duplicate_delete_df = pd.read_excel(duplicate_delete_file)
             duplicate_notice_df = pd.read_excel(duplicate_notice_file)
             conv_df = pd.read_excel(conv_file)
