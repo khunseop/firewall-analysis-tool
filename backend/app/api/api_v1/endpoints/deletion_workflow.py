@@ -483,6 +483,8 @@ async def run_project_task(
             extra_kwargs["vendor"] = "secui"
         elif effective_task_id == 17:
             extra_kwargs["device_id"] = project.device_id
+        if effective_task_id in (14, 18, 19):
+            extra_kwargs["project_name"] = project.name
 
         loop = asyncio.get_event_loop()
         config_dict = await load_config_dict(db)
@@ -645,6 +647,7 @@ async def complete_project(
     수집 파일:
     - 마지막 정책파일 및 공지대상 공지파일: Task 18(공지대상분류) → 17 → 16 → 13 우선순위, 해당 태스크의 모든 output 슬롯
     - 중복정책 정리/공지/삭제: Task 15(예외처리 후) 우선, 없으면 Task 14
+    - 자동연장예외파일: Task 19 (있으면 포함)
     """
     from app.crud import crud_deletion_workflow as dwcrud
 
@@ -676,6 +679,15 @@ async def complete_project(
         f = files_map.get((dup_task, slot))
         if f:
             output_files.append((f.filename, f.file_data))
+
+    # 자동연장예외파일: Task 19 (있으면 포함)
+    idx = 0
+    while True:
+        f = files_map.get((19, f"output_{idx}"))
+        if not f:
+            break
+        output_files.append((f.filename, f.file_data))
+        idx += 1
 
     if not output_files:
         raise HTTPException(

@@ -18,10 +18,10 @@ class DuplicatePolicyClassifier(BaseProcessor):
     def run(self, file_manager, **kwargs) -> bool:
         mode = kwargs.get('mode', 'classify')
         if mode == 'classify':
-            return self.organize_redundant_file(file_manager)
+            return self.organize_redundant_file(file_manager, project_name=kwargs.get('project_name'))
         return self.add_duplicate_status(file_manager)
 
-    def organize_redundant_file(self, file_manager) -> bool:
+    def organize_redundant_file(self, file_manager, project_name: str = None) -> bool:
         """중복정책 파일을 분류하여 공지용/삭제용으로 분리합니다."""
         try:
             selected_file = file_manager.select_files()
@@ -100,10 +100,14 @@ class DuplicatePolicyClassifier(BaseProcessor):
             notice_df.drop(columns=cols_to_drop + extra_drop, inplace=True, errors='ignore')
             delete_df.drop(columns=cols_to_drop + extra_drop, inplace=True, errors='ignore')
 
-            filename = file_manager.remove_extension(selected_file)
-            output_path = f'{filename}_정리.xlsx'
-            notice_path = f'{filename}_공지.xlsx'
-            delete_path = f'{filename}_삭제.xlsx'
+            if project_name:
+                date_str = self.config.get_reference_date().strftime('%Y-%m-%d')
+                filename = f"{date_str}_{project_name}"
+            else:
+                filename = file_manager.remove_extension(selected_file)
+            output_path = f'{filename}_중복정책_정리.xlsx'
+            notice_path = f'{filename}_중복정책_공지.xlsx'
+            delete_path = f'{filename}_중복정책_삭제.xlsx'
 
             df.to_excel(output_path, index=False, engine='openpyxl')
             notice_df.to_excel(notice_path, index=False, engine='openpyxl')
