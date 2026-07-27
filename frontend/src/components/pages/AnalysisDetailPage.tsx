@@ -1,16 +1,17 @@
 import React, { useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ArrowLeft, Download } from 'lucide-react'
+import { ArrowLeft, Download, Trash2 } from 'lucide-react'
 import type { ColDef, RowStyle, RowClassParams } from '@ag-grid-community/core'
 import { AgGridWrapper } from '@/components/shared/AgGridWrapper'
-import { getAnalysisTaskDetail, getAnalysisTaskResult } from '@/api/analysis'
+import { getAnalysisTaskDetail, getAnalysisTaskResult, deleteAnalysisTask } from '@/api/analysis'
 import { getDevice } from '@/api/devices'
 import { exportStyledToExcel } from '@/api/firewall'
 import type { StyledExcelPayload } from '@/api/firewall'
 import { formatNumber, formatRelativeTime, formatDate } from '@/lib/utils'
 import { queryKeys } from '@/api/queryKeys'
+import { useConfirm } from '@/components/shared/ConfirmDialog'
 
 const ANALYSIS_TYPE_LABELS: Record<string, string> = {
   redundancy: '중복 정책 분석',
@@ -248,6 +249,8 @@ function ResultSummary({
 export function AnalysisDetailPage() {
   const { taskId } = useParams<{ taskId: string }>()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { confirm, ConfirmDialogElement } = useConfirm()
   const id = Number(taskId)
 
   const taskQuery = useQuery({
@@ -281,6 +284,26 @@ export function AnalysisDetailPage() {
     navigate(`/policies?${params.toString()}`)
   }
 
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteAnalysisTask(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysisTasks })
+      toast.success('분석 작업이 삭제되었습니다.')
+      navigate('/analysis')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: '분석 결과 삭제',
+      description: '이 분석 결과를 삭제하시겠습니까?',
+      variant: 'destructive',
+      confirmLabel: '삭제',
+    })
+    if (ok) deleteMutation.mutate()
+  }
+
   if (taskQuery.isLoading) {
     return <div className="py-16 text-center text-[13px] text-ds-on-surface-variant">로딩 중…</div>
   }
@@ -296,21 +319,32 @@ export function AnalysisDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-3 shrink-0">
-        <button
-          onClick={() => navigate('/analysis')}
-          className="p-1.5 rounded-lg text-ds-on-surface-variant hover:bg-ds-surface-container-low hover:text-ds-on-surface transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </button>
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">
-            {ANALYSIS_TYPE_LABELS[task.task_type] ?? task.task_type}
-          </h1>
-          <p className="text-[12px] text-ds-on-surface-variant mt-0.5">
-            {device ? `${device.name} (${device.ip_address})` : `장비 ID ${task.device_id}`}
-          </p>
+      {ConfirmDialogElement}
+      <div className="flex items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/analysis')}
+            className="p-1.5 rounded-lg text-ds-on-surface-variant hover:bg-ds-surface-container-low hover:text-ds-on-surface transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">
+              {ANALYSIS_TYPE_LABELS[task.task_type] ?? task.task_type}
+            </h1>
+            <p className="text-[12px] text-ds-on-surface-variant mt-0.5">
+              {device ? `${device.name} (${device.ip_address})` : `장비 ID ${task.device_id}`}
+            </p>
+          </div>
         </div>
+        <button
+          onClick={handleDelete}
+          disabled={task.task_status === 'in_progress'}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-on-surface-variant hover:text-ds-error hover:bg-ds-error/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          삭제
+        </button>
       </div>
 
       <div className="flex items-center gap-4">
@@ -366,7 +400,7 @@ export function AnalysisDetailPage() {
                 rowData={results as Record<string, unknown>[]}
                 getRowId={resultRowId}
                 getRowStyle={rowStyleFn as (p: RowClassParams<Record<string, unknown>>) => RowStyle | undefined}
-                domLayout="autoHeight"
+                height="calc(100vh - 340px)"
                 noRowsText="분석 결과가 없습니다."
               />
             </div>

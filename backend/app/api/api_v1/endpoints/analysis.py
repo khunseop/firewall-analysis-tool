@@ -164,6 +164,24 @@ async def get_analysis_task_result(
         raise HTTPException(status_code=404, detail="해당 작업에 대한 분석 결과가 없습니다.")
     return result
 
+@router.delete("/tasks/{task_id}", response_model=schemas.Msg)
+async def delete_analysis_task(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """
+    분석 작업과 연관된 결과를 삭제합니다.
+    """
+    task = await crud.analysis.get_analysis_task(db, task_id=task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="분석 작업을 찾을 수 없습니다.")
+    if task.task_status == "in_progress":
+        raise HTTPException(status_code=409, detail="진행 중인 분석 작업은 삭제할 수 없습니다.")
+
+    await crud.analysis.delete_analysis_task(db, db_obj=task)
+    return {"msg": "분석 작업이 삭제되었습니다."}
+
 @router.post("/unused/{device_id}", response_model=schemas.Msg)
 async def start_unused_analysis(
     device_id: int,

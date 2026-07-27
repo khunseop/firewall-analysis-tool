@@ -141,3 +141,8 @@ export const getAnalysisTaskResult = async (taskId: number): Promise<AnalysisRes
   const res = await apiClient.get<AnalysisResult>(`/analysis/tasks/${taskId}/result`)
   return res.data
 }
+
+export const deleteAnalysisTask = async (taskId: number): Promise<{ msg: string }> => {
+  const res = await apiClient.delete<{ msg: string }>(`/analysis/tasks/${taskId}`)
+  return res.data
+}

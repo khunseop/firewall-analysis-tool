@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type MouseEvent } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Plus, Search, Copy, Clock, ArrowLeftRight, Unlink, ShieldAlert, Expand, Check, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Search, Copy, Clock, ArrowLeftRight, Unlink, ShieldAlert, Expand, Check, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select as ShadSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -10,11 +10,12 @@ import { DeviceSelectorSingle } from '@/components/shared/DeviceSelector'
 import { PolicyGridPicker } from '@/components/shared/PolicyGridPicker'
 import Select from 'react-select'
 import { getPolicies } from '@/api/firewall'
-import { startAnalysis, listAnalysisTasks, type StartAnalysisParams, type AnalysisTaskListItem } from '@/api/analysis'
+import { startAnalysis, listAnalysisTasks, deleteAnalysisTask, type StartAnalysisParams, type AnalysisTaskListItem } from '@/api/analysis'
 import { formatDate } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
 import { queryKeys } from '@/api/queryKeys'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { useConfirm } from '@/components/shared/ConfirmDialog'
 
 interface AnalysisTypeOption {
   value: string
@@ -236,6 +237,8 @@ const PAGE_SIZE = 20
 export function AnalysisListPage() {
   const navigate = useNavigate()
   const location = useLocation()
+  const queryClient = useQueryClient()
+  const { confirm, ConfirmDialogElement } = useConfirm()
   const [createOpen, setCreateOpen] = useState(false)
   const [prefillDeviceId, setPrefillDeviceId] = useState<number | null>(null)
   const [searchInput, setSearchInput] = useState('')
@@ -276,8 +279,29 @@ export function AnalysisListPage() {
   const total = data?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
+  const deleteMutation = useMutation({
+    mutationFn: (taskId: number) => deleteAnalysisTask(taskId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysisTasks })
+      toast.success('분석 작업이 삭제되었습니다.')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+  const handleDelete = async (e: MouseEvent, task: AnalysisTaskListItem) => {
+    e.stopPropagation()
+    const ok = await confirm({
+      title: '분석 결과 삭제',
+      description: `[${ANALYSIS_TYPE_LABELS[task.task_type] ?? task.task_type}] ${task.device_name} 분석 결과를 삭제하시겠습니까?`,
+      variant: 'destructive',
+      confirmLabel: '삭제',
+    })
+    if (ok) deleteMutation.mutate(task.id)
+  }
+
   return (
     <div className="flex flex-col gap-6">
+      {ConfirmDialogElement}
       <div className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">정책 분석</h1>
@@ -337,6 +361,7 @@ export function AnalysisListPage() {
                 <th className="text-left py-2 px-4 font-medium text-ds-on-surface-variant text-xs w-24">상태</th>
                 <th className="text-left py-2 px-4 font-medium text-ds-on-surface-variant text-xs w-40">생성일</th>
                 <th className="text-left py-2 px-4 font-medium text-ds-on-surface-variant text-xs w-40">완료일</th>
+                <th className="text-left py-2 px-4 font-medium text-ds-on-surface-variant text-xs w-12"></th>
               </tr>
             </thead>
             <tbody>
@@ -355,6 +380,16 @@ export function AnalysisListPage() {
                   <td className="py-2.5 px-4"><StatusBadge status={t.task_status} /></td>
                   <td className="py-2.5 px-4 text-ds-on-surface-variant text-xs">{formatDate(t.created_at)}</td>
                   <td className="py-2.5 px-4 text-ds-on-surface-variant text-xs">{t.completed_at ? formatDate(t.completed_at) : '-'}</td>
+                  <td className="py-2.5 px-4">
+                    <button
+                      onClick={(e) => handleDelete(e, t)}
+                      disabled={t.task_status === 'in_progress'}
+                      className="p-1 rounded text-ds-on-surface-variant/60 hover:text-ds-error hover:bg-ds-error/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      title="삭제"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -1,6 +1,6 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete
 from sqlalchemy.orm import selectinload
 from typing import List, Optional, Tuple
 
@@ -46,6 +46,17 @@ async def update_analysis_task(db: AsyncSession, *, db_obj: AnalysisTask, obj_in
     await db.commit()
     await db.refresh(db_obj)
     return db_obj
+
+async def delete_analysis_task(db: AsyncSession, *, db_obj: AnalysisTask) -> None:
+    """
+    분석 작업과 연관된 결과를 삭제합니다.
+    SQLite는 기본적으로 FK 제약(ondelete="CASCADE")을 강제하지 않으므로
+    (PRAGMA foreign_keys가 꺼져 있음) 연관 레코드를 명시적으로 먼저 삭제한다.
+    """
+    await db.execute(delete(AnalysisResult).where(AnalysisResult.task_id == db_obj.id))
+    await db.execute(delete(RedundancyPolicySet).where(RedundancyPolicySet.task_id == db_obj.id))
+    await db.delete(db_obj)
+    await db.commit()
 
 # RedundancyPolicySet CRUD
 async def create_redundancy_policy_sets(db: AsyncSession, *, sets_in: List[RedundancyPolicySetCreate]) -> None:
