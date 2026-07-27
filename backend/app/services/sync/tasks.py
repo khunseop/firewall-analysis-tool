@@ -433,6 +433,18 @@ async def _collect_last_hit_date_parallel(
     return hit_date_df[hit_date_df['rule_name'].notna()].copy()
 
 
+async def _get_existing_hit_date_count(device_id: int) -> int:
+    """DB에 이미 저장된, last_hit_date가 채워진 정책 건수를 조회합니다 (수집 실패 감지용 기준값)."""
+    async with SessionLocal() as db:
+        result = await db.execute(
+            select(func.count()).select_from(models.Policy).where(
+                models.Policy.device_id == device_id,
+                models.Policy.last_hit_date.isnot(None),
+            )
+        )
+        return result.scalar_one()
+
+
 async def _update_status(device_id: int, step: str, status: str = "in_progress") -> models.Device | None:
     """장비 동기화 상태를 갱신하고 최신 device 객체를 반환합니다 (장비가 없으면 None)."""
     async with SessionLocal() as db:
@@ -646,6 +658,8 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
             if device.vendor == 'paloalto' and collect_hit_date:
                 logging.info(f"[orchestrator] Palo Alto device detected. Starting last_hit_date collection for device_id={device_id}")
                 device = await _update_status(device_id, "Collecting usage history...")
+                # 수집 실패/이상 여부를 판단하기 위해 기존에 저장돼 있던 사용이력 건수를 먼저 확인
+                previous_hit_date_count = await _get_existing_hit_date_count(device_id)
                 try:
                     policies_df = collected_dfs["policies"]
                     vsys_list = policies_df["vsys"].unique().tolist() if "vsys" in policies_df.columns and not policies_df["vsys"].isnull().all() else None
@@ -661,11 +675,56 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                     if hit_date_df is not None and not hit_date_df.empty:
                         # 수집된 히트 정보와 정책 목록 병합 처리
                         collected_dfs["policies"] = _merge_hit_dates(policies_df, hit_date_df)
+                        new_hit_date_count = int(collected_dfs["policies"]["last_hit_date"].notna().sum())
 
                         # 히트 정보 수집 완료 상태 업데이트
                         device = await _update_status(device_id, "Usage history collected")
+
+                        # 이전에는 이력이 있었는데 이번 수집 결과가 전부 비어있다면(파싱 실패 등)
+                        # 조용히 기존 값을 지우지 말고 경고를 남긴다.
+                        if previous_hit_date_count > 0 and new_hit_date_count == 0:
+                            logging.warning(
+                                f"[orchestrator] Usage history collected but all last_hit_date values are empty "
+                                f"for device {device_id} (previously {previous_hit_date_count} populated)."
+                            )
+                            async with SessionLocal() as db:
+                                await log_activity(
+                                    db,
+                                    title="사용이력 수집 이상 감지",
+                                    message=f"'{device.name}' 사용이력 수집 결과가 모두 비어 있습니다 (이전 {previous_hit_date_count}건 보유). 장비 연결/자격 증명을 확인하세요.",
+                                    type="warning",
+                                    category="sync",
+                                    device_id=device_id,
+                                    device_name=device.name,
+                                )
+                    elif previous_hit_date_count > 0:
+                        # 수집 자체가 완전히 비어 반환된 경우 (예외는 아니지만 사실상 실패)
+                        logging.warning(
+                            f"[orchestrator] No usage history collected for device {device_id}, "
+                            f"but device previously had {previous_hit_date_count} populated records."
+                        )
+                        async with SessionLocal() as db:
+                            await log_activity(
+                                db,
+                                title="사용이력 수집 실패",
+                                message=f"'{device.name}' 사용이력을 수집하지 못했습니다 (이전 {previous_hit_date_count}건 보유). 장비 연결/자격 증명을 확인하세요.",
+                                type="warning",
+                                category="sync",
+                                device_id=device_id,
+                                device_name=device.name,
+                            )
                 except Exception as e:
                     logging.warning(f"Failed to collect hit dates for device {device_id}: {e}. Continuing sync...", exc_info=True)
+                    async with SessionLocal() as db:
+                        await log_activity(
+                            db,
+                            title="사용이력 수집 실패",
+                            message=f"'{device.name}' 사용이력 수집 중 오류가 발생했습니다: {str(e)[:200]}",
+                            type="warning",
+                            category="sync",
+                            device_id=device_id,
+                            device_name=device.name,
+                        )
 
             # 6. DB 동기화 실행 (수집된 데이터를 DB에 반영)
             for data_type, _, _, schema_create in collection_sequence:
