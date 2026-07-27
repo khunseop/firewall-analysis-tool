@@ -4,10 +4,10 @@ import { Upload, CheckCircle2, Loader2 } from 'lucide-react'
 import { uploadExternalFile, type ProjectFileState } from '@/api/deletionWorkflow'
 
 export function ExternalFileUpload({
-  projectId, taskId, slot, label, required, existingFile, onUploaded,
+  projectId, taskId, slot, label, required, hint, existingFile, onUploaded,
 }: {
   projectId: number; taskId: number; slot: string; label: string
-  required: boolean; existingFile?: ProjectFileState; onUploaded: () => void
+  required: boolean; hint?: string; existingFile?: ProjectFileState; onUploaded: () => void
 }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
@@ -40,6 +40,7 @@ export function ExternalFileUpload({
       <button
         onClick={() => fileRef.current?.click()}
         disabled={uploading}
+        title={hint}
         className="flex items-center gap-1 px-2 py-0.5 rounded border border-ds-outline-variant/50 hover:bg-black/5 disabled:opacity-50"
       >
         {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
@@ -47,6 +48,9 @@ export function ExternalFileUpload({
       </button>
       <input ref={fileRef} type="file" className="hidden"
         onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+      {hint && !existingFile && (
+        <span className="w-full text-[10px] text-ds-on-surface-variant/70 ml-1">ℹ️ {hint}</span>
+      )}
     </div>
   )
 }

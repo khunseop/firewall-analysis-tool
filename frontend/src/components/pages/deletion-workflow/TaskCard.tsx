@@ -162,7 +162,7 @@ export function TaskCard({
             <div key={inp.slot}>
               <ExternalFileUpload
                 projectId={projectId} taskId={task.id}
-                slot={inp.slot} label={inp.label} required={inp.required}
+                slot={inp.slot} label={inp.label} required={inp.required} hint={inp.hint}
                 existingFile={getExternalFile(files, task.id, inp.slot)}
                 onUploaded={onRefresh}
               />

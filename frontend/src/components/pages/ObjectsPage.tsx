@@ -70,7 +70,7 @@ export function ObjectsPage() {
   const { selectedIds: deviceIds } = useDeviceStore()
   const [activeTab, setActiveTab] = useState<TabKey>('network_objects')
   const [quickFilter, setQuickFilter] = useState('')
-  const [objectModal, setObjectModal] = useState<{ deviceId: number; name: string } | null>(null)
+  const [objectModal, setObjectModal] = useState<{ deviceId: number; name: string; kind: 'address' | 'service' } | null>(null)
   const { data: devices = [] } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices })
   const navigate = useNavigate()
   const { networkObjects, networkGroups, services, serviceGroups } = useObjectsData(deviceIds, activeTab)
@@ -181,7 +181,7 @@ export function ObjectsPage() {
       cellRenderer: (p: { value: string; data: NetworkObject }) => (
         <div className="group flex items-center gap-1">
           <button
-            onClick={() => setObjectModal({ deviceId: p.data.device_id, name: p.value })}
+            onClick={() => setObjectModal({ deviceId: p.data.device_id, name: p.value, kind: 'address' })}
             className="font-mono text-xs font-semibold text-ds-tertiary hover:underline text-left truncate"
           >
             {p.value}
@@ -203,7 +203,7 @@ export function ObjectsPage() {
       cellRenderer: (p: { value: string; data: NetworkGroup }) => (
         <div className="group flex items-center gap-1">
           <button
-            onClick={() => setObjectModal({ deviceId: p.data.device_id, name: p.value })}
+            onClick={() => setObjectModal({ deviceId: p.data.device_id, name: p.value, kind: 'address' })}
             className="font-mono text-xs font-semibold text-ds-tertiary hover:underline text-left truncate"
           >
             {p.value}
@@ -241,7 +241,7 @@ export function ObjectsPage() {
       cellRenderer: (p: { value: string; data: Service }) => (
         <div className="group flex items-center gap-1">
           <button
-            onClick={() => setObjectModal({ deviceId: p.data.device_id, name: p.value })}
+            onClick={() => setObjectModal({ deviceId: p.data.device_id, name: p.value, kind: 'service' })}
             className="font-mono text-xs font-semibold text-ds-tertiary hover:underline text-left truncate"
           >
             {p.value}
@@ -263,7 +263,7 @@ export function ObjectsPage() {
       cellRenderer: (p: { value: string; data: ServiceGroup }) => (
         <div className="group flex items-center gap-1">
           <button
-            onClick={() => setObjectModal({ deviceId: p.data.device_id, name: p.value })}
+            onClick={() => setObjectModal({ deviceId: p.data.device_id, name: p.value, kind: 'service' })}
             className="font-mono text-xs font-semibold text-ds-tertiary hover:underline text-left truncate"
           >
             {p.value}
@@ -375,6 +375,7 @@ export function ObjectsPage() {
         <ObjectDetailModal
           deviceId={objectModal.deviceId}
           name={objectModal.name}
+          objectType={objectModal.kind}
           onClose={() => setObjectModal(null)}
         />
       )}

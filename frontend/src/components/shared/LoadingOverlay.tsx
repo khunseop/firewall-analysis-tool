@@ -22,7 +22,7 @@ export function LoadingOverlay({ show, label, className }: LoadingOverlayProps) 
         className
       )}
     >
-      <div className="glass-panel ambient-shadow-md flex items-center gap-2.5 rounded-full px-4 py-2.5">
+      <div className="loading-pill ambient-shadow-md flex items-center gap-2.5 rounded-full px-4 py-2.5">
         <Spinner size="sm" />
         <span className="text-[12px] font-semibold text-ds-on-surface-variant">{label ?? '불러오는 중…'}</span>
       </div>

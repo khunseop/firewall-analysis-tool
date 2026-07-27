@@ -117,6 +117,14 @@
     -webkit-backdrop-filter: blur(24px) saturate(1.4);
     border: 1px solid rgba(255, 255, 255, 0.55);
   }
+  /* 로딩 표시기 전용 — backdrop-filter 없이 불투명 배경만 사용.
+     glass-panel의 blur는 아래쪽 콘텐츠(그리드 리렌더 등)가 활발히 바뀔 때마다
+     매 프레임 재합성돼야 해서, 회전 애니메이션이 도는 동안 프레임이 밀려
+     스피너가 렉 걸린 것처럼 뚝뚝 끊여 보이는 원인이 된다. */
+  .loading-pill {
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+  }
   .card {
     background: rgba(255, 255, 255, 0.72);
     backdrop-filter: blur(16px) saturate(1.3);

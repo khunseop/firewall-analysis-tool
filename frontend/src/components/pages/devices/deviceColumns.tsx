@@ -56,8 +56,7 @@ export function buildColumnDefs(onShowDetail: (device: Device) => void): ColDef<
     valueGetter: (p) => p.data?.ha_peer_ip ?? '',
     cellRenderer: (p: { data: Device }) => p.data?.ha_peer_ip ? (
       <div className="flex items-center gap-1">
-        <span className="text-[10px] font-semibold text-ds-tertiary">HA</span>
-        <span className="text-[10px] text-ds-on-surface-variant/70 font-mono">{p.data.ha_peer_ip}</span>
+        <span className="text-[11px] text-ds-on-surface-variant font-mono">{p.data.ha_peer_ip}</span>
         <a
           href={`https://${p.data.ha_peer_ip}`}
           target="_blank"

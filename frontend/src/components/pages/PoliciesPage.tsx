@@ -301,6 +301,22 @@ export function PoliciesPage() {
     catch (e: unknown) { toast.error((e as Error).message) }
   }
 
+  // 자동 사용이력 수집이 실패했을 때, Deletion Workflow의 "사용이력 반영" 태스크가
+  // 요구하는 컬럼(Rule Name / Unused Days)에 맞춰 수동 반영용 파일을 내보낸다.
+  const handleExportUsage = async () => {
+    if (policies.length === 0) { toast.warning('내보낼 데이터가 없습니다.'); return }
+    try {
+      const exportData = policies.map(p => ({
+        'Vsys': p.vsys,
+        'Rule Name': p.rule_name,
+        'Last Hit Date': p.last_hit_date,
+        'Unused Days': daysSinceHit(p.last_hit_date),
+      }))
+      await exportToExcel(exportData, '사용이력_반영용')
+    }
+    catch (e: unknown) { toast.error((e as Error).message) }
+  }
+
   const summary = useMemo(() => {
     if (!searched || policies.length === 0) return null
     const allow    = policies.filter(p => p.action?.toLowerCase() === 'allow').length
@@ -528,6 +544,15 @@ export function PoliciesPage() {
             {policies.length > 0 && (
               <button onClick={handleExport} className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors">
                 <Download className="w-3 h-3" /> Excel
+              </button>
+            )}
+            {policies.length > 0 && (
+              <button
+                onClick={handleExportUsage}
+                title="자동 사용이력 수집이 실패했을 때, Deletion Workflow의 사용이력 반영 태스크에 그대로 업로드할 수 있는 형식(Rule Name / Unused Days)으로 내보냅니다."
+                className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
+              >
+                <Download className="w-3 h-3" /> 사용이력
               </button>
             )}
             <button onClick={handleReset} className="text-[12px] font-medium text-ds-on-surface-variant hover:text-ds-on-surface px-2.5 py-1.5 rounded-lg hover:bg-ds-surface-container-low transition-colors">

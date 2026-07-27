@@ -126,9 +126,9 @@ function MemberTree({ deviceId, members }: { deviceId: number; members: string[]
 }
 
 function ObjectPanel({
-  deviceId, name, onClose, onCloseModal,
+  deviceId, name, kind, onClose, onCloseModal,
 }: {
-  deviceId: number; name: string; onClose: () => void; onCloseModal: () => void
+  deviceId: number; name: string; kind: 'address' | 'service'; onClose: () => void; onCloseModal: () => void
 }) {
   const navigate = useNavigate()
   const { data, isLoading } = useQuery({
@@ -151,10 +151,10 @@ function ObjectPanel({
     port_start: '포트 시작', port_end: '포트 끝',
   }
 
-  const goToPolicies = (direction: 'src' | 'dst') => {
+  const goToPolicies = (direction: 'src' | 'dst' | 'svc') => {
     onClose()
     onCloseModal()
-    const param = direction === 'src' ? 'src_name' : 'dst_name'
+    const param = direction === 'src' ? 'src_name' : direction === 'dst' ? 'dst_name' : 'svc_name'
     navigate(`/policies?${param}=${encodeURIComponent(name)}`)
   }
 
@@ -207,18 +207,29 @@ function ObjectPanel({
         <div className="space-y-2 pt-1">
           <p className="text-[10px] text-ds-on-surface-variant font-medium uppercase tracking-wider">이 객체를 포함하는 정책</p>
           <div className="grid grid-cols-1 gap-1.5">
-            <button
-              onClick={() => goToPolicies('src')}
-              className="flex items-center justify-between gap-1.5 px-3 py-2 rounded-lg bg-ds-tertiary/8 text-ds-tertiary text-xs font-semibold hover:bg-ds-tertiary/15 transition-colors border border-ds-tertiary/20"
-            >
-              출발지 기준 검색 <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => goToPolicies('dst')}
-              className="flex items-center justify-between gap-1.5 px-3 py-2 rounded-lg bg-ds-tertiary/8 text-ds-tertiary text-xs font-semibold hover:bg-ds-tertiary/15 transition-colors border border-ds-tertiary/20"
-            >
-              목적지 기준 검색 <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+            {kind === 'service' ? (
+              <button
+                onClick={() => goToPolicies('svc')}
+                className="flex items-center justify-between gap-1.5 px-3 py-2 rounded-lg bg-ds-tertiary/8 text-ds-tertiary text-xs font-semibold hover:bg-ds-tertiary/15 transition-colors border border-ds-tertiary/20"
+              >
+                서비스 객체로 검색 <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => goToPolicies('src')}
+                  className="flex items-center justify-between gap-1.5 px-3 py-2 rounded-lg bg-ds-tertiary/8 text-ds-tertiary text-xs font-semibold hover:bg-ds-tertiary/15 transition-colors border border-ds-tertiary/20"
+                >
+                  출발지 기준 검색 <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => goToPolicies('dst')}
+                  className="flex items-center justify-between gap-1.5 px-3 py-2 rounded-lg bg-ds-tertiary/8 text-ds-tertiary text-xs font-semibold hover:bg-ds-tertiary/15 transition-colors border border-ds-tertiary/20"
+                >
+                  목적지 기준 검색 <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -333,7 +344,7 @@ export function PolicyDetailModal({
   onHistoryClick,
   onClose,
 }: PolicyDetailModalProps) {
-  const [selectedObj, setSelectedObj] = useState<string | null>(null)
+  const [selectedObj, setSelectedObj] = useState<{ name: string; kind: 'address' | 'service' } | null>(null)
 
   const isClickable = (name: string) => validObjectNames.has(name)
 
@@ -397,14 +408,14 @@ export function PolicyDetailModal({
                   <ChipList
                     value={policy.source}
                     isClickable={isClickable}
-                    onClickName={(name) => setSelectedObj(name === selectedObj ? null : name)}
+                    onClickName={(name) => setSelectedObj(name === selectedObj?.name ? null : { name, kind: 'address' })}
                   />
                 </Section>
                 <Section label="목적지" count={dstCount}>
                   <ChipList
                     value={policy.destination}
                     isClickable={isClickable}
-                    onClickName={(name) => setSelectedObj(name === selectedObj ? null : name)}
+                    onClickName={(name) => setSelectedObj(name === selectedObj?.name ? null : { name, kind: 'address' })}
                   />
                 </Section>
               </div>
@@ -415,7 +426,7 @@ export function PolicyDetailModal({
                   <ChipList
                     value={policy.service}
                     isClickable={isClickable}
-                    onClickName={(name) => setSelectedObj(name === selectedObj ? null : name)}
+                    onClickName={(name) => setSelectedObj(name === selectedObj?.name ? null : { name, kind: 'service' })}
                   />
                 </Section>
                 {policy.application != null && (
@@ -492,7 +503,8 @@ export function PolicyDetailModal({
             <div className="w-[280px] shrink-0 flex flex-col overflow-hidden">
               <ObjectPanel
                 deviceId={policy.device_id}
-                name={selectedObj!}
+                name={selectedObj!.name}
+                kind={selectedObj!.kind}
                 onClose={() => setSelectedObj(null)}
                 onCloseModal={onClose}
               />

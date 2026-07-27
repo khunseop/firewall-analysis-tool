@@ -10,6 +10,7 @@ import { queryKeys } from '@/api/queryKeys'
 interface Props {
   deviceId: number
   name: string
+  objectType?: 'address' | 'service'
   onClose: () => void
 }
 
@@ -141,7 +142,7 @@ function MemberTree({ deviceId, members }: { deviceId: number; members: string[]
   )
 }
 
-export function ObjectDetailModal({ deviceId, name, onClose }: Props) {
+export function ObjectDetailModal({ deviceId, name, objectType, onClose }: Props) {
   const navigate = useNavigate()
 
   const { data, isLoading } = useQuery({
@@ -155,10 +156,12 @@ export function ObjectDetailModal({ deviceId, name, onClose }: Props) {
   const members = isGroup
     ? String(obj['members'] ?? '').split(',').map(m => m.trim()).filter(Boolean)
     : []
+  // 호출자가 타입을 명시하지 않은 경우, 응답 필드로 서비스 객체 여부를 추정 (fallback)
+  const isService = objectType ? objectType === 'service' : !!(obj && ('protocol' in obj || 'port' in obj))
 
-  const handleGoToPolicies = (direction: 'src' | 'dst' = 'src') => {
+  const handleGoToPolicies = (direction: 'src' | 'dst' | 'svc') => {
     onClose()
-    const param = direction === 'src' ? 'src_name' : 'dst_name'
+    const param = direction === 'src' ? 'src_name' : direction === 'dst' ? 'dst_name' : 'svc_name'
     navigate(`/policies?${param}=${encodeURIComponent(name)}`)
   }
 
@@ -212,20 +215,29 @@ export function ObjectDetailModal({ deviceId, name, onClose }: Props) {
           {/* 정책 검색 연결 */}
           <div className="space-y-2 pt-1">
             <p className="text-[10px] text-ds-on-surface-variant font-medium uppercase tracking-wider">이 객체를 포함하는 정책</p>
-            <div className="grid grid-cols-2 gap-2">
+            {isService ? (
               <button
-                onClick={() => handleGoToPolicies('src')}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-ds-tertiary/8 text-ds-tertiary text-xs font-semibold hover:bg-ds-tertiary/15 transition-colors border border-ds-tertiary/20"
+                onClick={() => handleGoToPolicies('svc')}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-ds-tertiary/8 text-ds-tertiary text-xs font-semibold hover:bg-ds-tertiary/15 transition-colors border border-ds-tertiary/20 w-full"
               >
-                출발지 기준 검색 <ArrowRight className="w-3.5 h-3.5" />
+                서비스 객체로 검색 <ArrowRight className="w-3.5 h-3.5" />
               </button>
-              <button
-                onClick={() => handleGoToPolicies('dst')}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-ds-tertiary/8 text-ds-tertiary text-xs font-semibold hover:bg-ds-tertiary/15 transition-colors border border-ds-tertiary/20"
-              >
-                목적지 기준 검색 <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => handleGoToPolicies('src')}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-ds-tertiary/8 text-ds-tertiary text-xs font-semibold hover:bg-ds-tertiary/15 transition-colors border border-ds-tertiary/20"
+                >
+                  출발지 기준 검색 <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => handleGoToPolicies('dst')}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-ds-tertiary/8 text-ds-tertiary text-xs font-semibold hover:bg-ds-tertiary/15 transition-colors border border-ds-tertiary/20"
+                >
+                  목적지 기준 검색 <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>

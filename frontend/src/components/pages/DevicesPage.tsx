@@ -18,11 +18,12 @@ import { BulkOptionsDialog } from './devices/BulkOptionsDialog'
 import { BulkGroupDialog } from './devices/BulkGroupDialog'
 import { DirectExportDialog } from './devices/DirectExportDialog'
 import { buildColumnDefs } from './devices/deviceColumns'
+import { useDeviceSearchStore } from '@/store/deviceSearchStore'
 
 export function DevicesPage() {
   const queryClient = useQueryClient()
   const gridRef = useRef<AgGridWrapperHandle>(null)
-  const [quickFilter, setQuickFilter] = useState('')
+  const { quickFilter, setQuickFilter } = useDeviceSearchStore()
   const [groupFilter, setGroupFilter] = useState<string | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Device | null>(null)
@@ -387,7 +388,7 @@ export function DevicesPage() {
                 value={quickFilter}
                 onChange={(e) => setQuickFilter(e.target.value)}
                 placeholder="장비명, IP, 그룹, 설명 검색"
-                className="text-[12px] bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/40 w-48"
+                className="text-[12px] bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/40 w-72"
               />
               {quickFilter && (
                 <button onClick={() => setQuickFilter('')}>
