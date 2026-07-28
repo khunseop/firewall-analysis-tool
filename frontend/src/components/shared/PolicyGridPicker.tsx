@@ -41,12 +41,14 @@ export function PolicyGridPicker(props: PolicyGridPickerProps) {
   const [pendingSingle, setPendingSingle] = useState<number | null>(null)
   const gridRef = useRef<AgGridWrapperHandle>(null)
 
-  const { data: policies = [], isLoading } = useQuery({
+  const { data: rawPolicies = [], isLoading } = useQuery({
     queryKey: queryKeys.policiesRaw(deviceId),
     queryFn: () => getPolicies(deviceId!),
     enabled: !!deviceId && open,
     staleTime: 60_000,
   })
+  // 비활성화된 정책은 영향분석 기준/대상으로 사용할 수 없으므로 선택 목록에서 제외
+  const policies = useMemo(() => rawPolicies.filter((p) => p.enable), [rawPolicies])
 
   useEffect(() => {
     if (!open) return

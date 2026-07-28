@@ -66,6 +66,21 @@ class ImpactAnalyzer:
         logger.info(f"총 {len(policies)}개의 정책이 조회되었습니다.")
         return policies
 
+    async def _describe_missing_policy(self, policy_id: int) -> str:
+        """
+        분석 대상 풀(활성화된 정책)에서 policy_id를 찾지 못했을 때, 원인을 구분해 안내 메시지를 만듭니다.
+        """
+        stmt = select(Policy).where(Policy.id == policy_id)
+        result = await self.db.execute(stmt)
+        policy = result.scalar_one_or_none()
+        if policy is None:
+            return f"정책 ID {policy_id}를 찾을 수 없습니다."
+        if policy.device_id != self.device_id:
+            return f"정책 ID {policy_id}는 현재 장비의 정책이 아닙니다."
+        if not policy.enable:
+            return f"정책 ID {policy_id}({policy.rule_name})는 비활성화된 정책이라 기준/대상으로 사용할 수 없습니다."
+        return f"정책 ID {policy_id}를 찾을 수 없습니다."
+
     def _get_policy_ranges(self, policy: Policy) -> Tuple[Set[Tuple[int, int]], Set[Tuple[int, int]], Set[Tuple[str, int, int]]]:
         """
         정책에서 IP 및 서비스(포트) 범위를 추출합니다.
@@ -565,7 +580,8 @@ class ImpactAnalyzer:
         else:
             reference_position = next((i for i, p in enumerate(policies) if p.id == self.reference_policy_id), None)
             if reference_position is None:
-                raise ValueError(f"기준 정책 ID {self.reference_policy_id}를 찾을 수 없습니다.")
+                reason = await self._describe_missing_policy(self.reference_policy_id)
+                raise ValueError(f"기준 {reason}")
             self.new_position = reference_position
 
         # 대상 정책 정보 로드
@@ -580,7 +596,7 @@ class ImpactAnalyzer:
                     break
             
             if not target_policy:
-                raise ValueError(f"정책 ID {policy_id}를 찾을 수 없습니다.")
+                raise ValueError(f"이동 대상 {await self._describe_missing_policy(policy_id)}")
             
             target_policies_info.append({
                 "policy": target_policy,
