@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -10,6 +10,7 @@ import { getDevice } from '@/api/devices'
 import { exportStyledToExcel } from '@/api/firewall'
 import type { StyledExcelPayload } from '@/api/firewall'
 import { saveBlob } from '@/api/client'
+import { ImpactMovePreviewDialog } from '@/components/pages/ImpactMovePreviewDialog'
 import { formatNumber, formatRelativeTime, formatDate } from '@/lib/utils'
 import { queryKeys } from '@/api/queryKeys'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
@@ -70,7 +71,11 @@ function makePolicyCols(onRuleNameClick?: (name: string) => void): ColDef[] {
   ]
 }
 
-function getColumnDefs(analysisType: string, onRuleNameClick?: (name: string) => void): ColDef[] {
+function getColumnDefs(
+  analysisType: string,
+  onRuleNameClick?: (name: string) => void,
+  onPreviewClick?: (row: Record<string, unknown>) => void,
+): ColDef[] {
   if (analysisType === 'redundancy') {
     return [
       { field: 'set_number', headerName: '중복번호', filter: 'agNumberColumnFilter', pinned: 'left', width: 100, valueFormatter: (p) => formatNumber(p.value) },
@@ -144,6 +149,16 @@ function getColumnDefs(analysisType: string, onRuleNameClick?: (name: string) =>
         field: 'move_feasibility', headerName: '이동 가능 여부', filter: 'agTextColumnFilter', pinned: 'left', width: 120,
         valueFormatter: (p) => MOVE_FEASIBILITY_LABELS[p.value as string]?.label ?? '',
         cellStyle: (p) => MOVE_FEASIBILITY_LABELS[p.value as string]?.style ?? null,
+      },
+      {
+        headerName: '순서 미리보기', width: 110, pinned: 'left',
+        cellRenderer: (p: { data?: Record<string, unknown> }) => {
+          if (!onPreviewClick || p.data?.impact_type !== '최대 안전 이동 위치') return null
+          return React.createElement('button', {
+            className: 'text-ds-primary underline-offset-2 hover:underline text-[12px]',
+            onClick: () => onPreviewClick(p.data!),
+          }, '순서 보기')
+        },
       },
       { field: 'reason', headerName: '사유 / 이동 요약', filter: 'agTextColumnFilter', width: 420, wrapText: true, autoHeight: true, cellStyle: { lineHeight: '1.5', paddingTop: '6px', paddingBottom: '6px', whiteSpace: 'normal' } },
       ...makePolicyCols(onRuleNameClick),
@@ -326,6 +341,7 @@ export function AnalysisDetailPage() {
   const queryClient = useQueryClient()
   const { confirm, ConfirmDialogElement } = useConfirm()
   const id = Number(taskId)
+  const [previewRow, setPreviewRow] = useState<Record<string, unknown> | null>(null)
 
   const taskQuery = useQuery({
     queryKey: queryKeys.analysisTask(id),
@@ -388,7 +404,7 @@ export function AnalysisDetailPage() {
 
   const currentStatus = STATUS_LABELS[task.task_status] ?? null
   const results = Array.isArray(resultQuery.data?.result_data) ? resultQuery.data!.result_data : []
-  const columnDefs = getColumnDefs(task.task_type, onRuleNameClick)
+  const columnDefs = getColumnDefs(task.task_type, onRuleNameClick, setPreviewRow)
   const rowStyleFn = getRowStyle(task.task_type)
 
   return (
@@ -488,6 +504,15 @@ export function AnalysisDetailPage() {
             </div>
           </>
         )
+      )}
+
+      {task.task_type === 'impact' && (
+        <ImpactMovePreviewDialog
+          open={!!previewRow}
+          onOpenChange={(o) => { if (!o) setPreviewRow(null) }}
+          deviceId={task.device_id}
+          row={previewRow}
+        />
       )}
     </div>
   )
