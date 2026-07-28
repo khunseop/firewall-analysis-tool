@@ -9,6 +9,7 @@ import { getAnalysisTaskDetail, getAnalysisTaskResult, deleteAnalysisTask } from
 import { getDevice } from '@/api/devices'
 import { exportStyledToExcel } from '@/api/firewall'
 import type { StyledExcelPayload } from '@/api/firewall'
+import { saveBlob } from '@/api/client'
 import { formatNumber, formatRelativeTime, formatDate } from '@/lib/utils'
 import { queryKeys } from '@/api/queryKeys'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
@@ -20,6 +21,12 @@ const ANALYSIS_TYPE_LABELS: Record<string, string> = {
   unreferenced_objects: '미참조 오브젝트 분석',
   risky_ports: '위험 포트 분석',
   over_permissive: '과허용 정책 분석',
+}
+
+const MOVE_FEASIBILITY_LABELS: Record<string, { label: string; style: { color: string; fontWeight: string } }> = {
+  full:    { label: '가능',    style: { color: '#1f7a4d', fontWeight: '600' } },
+  partial: { label: '부분 가능', style: { color: '#b26b00', fontWeight: '600' } },
+  blocked: { label: '불가',    style: { color: '#9f403d', fontWeight: '600' } },
 }
 
 const STATUS_LABELS: Record<string, { label: string; dot: string; text: string }> = {
@@ -133,6 +140,11 @@ function getColumnDefs(analysisType: string, onRuleNameClick?: (name: string) =>
           return null
         },
       },
+      {
+        field: 'move_feasibility', headerName: '이동 가능 여부', filter: 'agTextColumnFilter', pinned: 'left', width: 120,
+        valueFormatter: (p) => MOVE_FEASIBILITY_LABELS[p.value as string]?.label ?? '',
+        cellStyle: (p) => MOVE_FEASIBILITY_LABELS[p.value as string]?.style ?? null,
+      },
       { field: 'reason', headerName: '사유 / 이동 요약', filter: 'agTextColumnFilter', width: 420, wrapText: true, autoHeight: true, cellStyle: { lineHeight: '1.5', paddingTop: '6px', paddingBottom: '6px', whiteSpace: 'normal' } },
       ...makePolicyCols(onRuleNameClick),
     ]
@@ -180,6 +192,55 @@ function buildExcelPayload(
   return { filename, columns, rows: excelRows }
 }
 
+function buildPaloAltoMoveScript(results: Record<string, unknown>[], deviceName: string): string {
+  const rows = results.filter((r) => r['impact_type'] === '최대 안전 이동 위치')
+  const groupedByVsys = new Map<string, Record<string, unknown>[]>()
+  for (const row of rows) {
+    const vsys = String((row['policy'] as Record<string, unknown> | undefined)?.['vsys'] ?? '')
+    const list = groupedByVsys.get(vsys) ?? []
+    list.push(row)
+    groupedByVsys.set(vsys, list)
+  }
+
+  const lines: string[] = [
+    `# ${deviceName} 정책이동 실행 계획 (자동 생성 — 참고용)`,
+    '# 분석 시점 스냅샷 기준입니다. 실제 룰베이스와 다를 수 있으니 반드시 검토 후 사용하세요.',
+    '# commit은 주석 처리되어 있습니다 — 변경 확인 후 직접 주석을 해제해 실행하세요.',
+    '',
+    'configure',
+  ]
+
+  for (const [vsys, vsysRows] of groupedByVsys) {
+    if (vsys) lines.push('', `edit vsys "${vsys}"`)
+    for (const row of vsysRows) {
+      const ruleName = String((row['policy'] as Record<string, unknown> | undefined)?.['rule_name'] ?? '')
+      const feasibility = row['move_feasibility']
+      if (feasibility === 'blocked') {
+        lines.push(`# '${ruleName}' 이동 불가: ${String(row['reason'] ?? '')}`)
+        continue
+      }
+      if (feasibility === 'full') {
+        const referenceName = row['reference_policy_name'] as string | null
+        if (!referenceName) {
+          lines.push(`move rulebase security rules "${ruleName}" bottom`)
+        } else {
+          const position = row['requested_move_direction'] === 'above' ? 'before' : 'after'
+          lines.push(`move rulebase security rules "${ruleName}" ${position} "${referenceName}"`)
+        }
+      } else if (feasibility === 'partial') {
+        const anchorName = row['blocking_conflict_policy_name'] as string | null
+        const position = row['move_direction'] === '아래로' ? 'before' : 'after'
+        lines.push(`# 요청한 위치까지는 이동 불가 — 아래는 최대로 안전하게 이동 가능한 위치입니다.`)
+        lines.push(`move rulebase security rules "${ruleName}" ${position} "${anchorName}"`)
+      }
+    }
+    if (vsys) lines.push('exit')
+  }
+
+  lines.push('', '# commit', 'exit')
+  return lines.join('\n')
+}
+
 function getRowStyle(analysisType: string) {
   return (p: RowClassParams<Record<string, unknown>>): RowStyle | undefined => {
     if (!p.data) return undefined
@@ -195,10 +256,10 @@ function getRowStyle(analysisType: string) {
 }
 
 function ResultSummary({
-  analysisType, results, completedAt, onExport,
+  analysisType, results, completedAt, onExport, onDownloadScript,
 }: {
   analysisType: string; results: unknown[]
-  completedAt: string | null; onExport: () => void
+  completedAt: string | null; onExport: () => void; onDownloadScript?: () => void
 }) {
   const summary = useMemo(() => {
     const r = results as Record<string, unknown>[]
@@ -217,9 +278,11 @@ function ResultSummary({
     if (analysisType === 'risky_ports') return `위험 포트 허용 정책 ${r.length}건`
     if (analysisType === 'over_permissive') return `과허용 정책 ${r.length}건`
     if (analysisType === 'impact') {
-      const summaries = r.filter((x) => x['impact_type'] === '최대 안전 이동 위치').length
-      const conflicts = r.length - summaries
-      return `이동 대상 ${summaries}건 분석 완료 (충돌 ${conflicts}건 발견)`
+      const summaryRows = r.filter((x) => x['impact_type'] === '최대 안전 이동 위치')
+      const full = summaryRows.filter((x) => x['move_feasibility'] === 'full').length
+      const partial = summaryRows.filter((x) => x['move_feasibility'] === 'partial').length
+      const blocked = summaryRows.filter((x) => x['move_feasibility'] === 'blocked').length
+      return `이동 대상 ${summaryRows.length}건 (완전 가능 ${full} / 부분 가능 ${partial} / 불가 ${blocked})`
     }
     return `${r.length}건`
   }, [analysisType, results])
@@ -235,13 +298,24 @@ function ResultSummary({
           )}
         </div>
       </div>
-      <button
-        onClick={onExport}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
-      >
-        <Download className="w-3 h-3" />
-        Excel
-      </button>
+      <div className="flex items-center gap-2">
+        {onDownloadScript && (
+          <button
+            onClick={onDownloadScript}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
+          >
+            <Download className="w-3 h-3" />
+            이동 스크립트(PaloAlto)
+          </button>
+        )}
+        <button
+          onClick={onExport}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
+        >
+          <Download className="w-3 h-3" />
+          Excel
+        </button>
+      </div>
     </div>
   )
 }
@@ -389,6 +463,14 @@ export function AnalysisDetailPage() {
                 )
                 exportStyledToExcel(payload).catch((e: Error) => toast.error(e.message))
               }}
+              onDownloadScript={
+                task.task_type === 'impact' && device?.vendor === 'paloalto'
+                  ? () => {
+                      const script = buildPaloAltoMoveScript(results as Record<string, unknown>[], device.name)
+                      saveBlob(new Blob([script], { type: 'text/plain' }), `이동계획_${device.name}_${task.id}.txt`)
+                    }
+                  : undefined
+              }
             />
             <div className="card rounded-xl">
               <div className="flex items-center justify-between px-5 py-3">

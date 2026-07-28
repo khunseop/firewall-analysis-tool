@@ -262,23 +262,37 @@ class ImpactAnalyzer:
     def _describe_overlap(self, details: Dict[str, List[Tuple[Any, Any]]]) -> str:
         """
         겹치는 구체적인 값을 사람이 읽을 수 있는 문장으로 요약합니다.
-        카테고리별로 대표 겹침 값 1건과 추가 건수를 표시합니다.
+        카테고리별로 겹치는 항목을 최대 10건까지 모두 나열합니다 (그 이상은 건수만 표시).
         """
-        parts = []
-        if details["src"]:
-            m1, m2 = details["src"][0]
-            overlap_str = self._format_ip_range(max(m1.ip_start, m2.ip_start), min(m1.ip_end, m2.ip_end))
-            extra = f" 외 {len(details['src']) - 1}건" if len(details["src"]) > 1 else ""
-            parts.append(f"출발지 {overlap_str}{extra}")
-        if details["dst"]:
-            m1, m2 = details["dst"][0]
-            overlap_str = self._format_ip_range(max(m1.ip_start, m2.ip_start), min(m1.ip_end, m2.ip_end))
-            extra = f" 외 {len(details['dst']) - 1}건" if len(details["dst"]) > 1 else ""
-            parts.append(f"목적지 {overlap_str}{extra}")
-        if details["svc"]:
-            m1, m2 = details["svc"][0]
-            extra = f" 외 {len(details['svc']) - 1}건" if len(details["svc"]) > 1 else ""
-            parts.append(f"서비스 {self._format_service(m2)}{extra}")
+        max_items = 10
+
+        def _values(category: str, formatter) -> List[str]:
+            seen = set()
+            result = []
+            for m1, m2 in details[category]:
+                v = formatter(m1, m2)
+                if v not in seen:
+                    seen.add(v)
+                    result.append(v)
+            return result
+
+        def _render(label: str, values: List[str]) -> Optional[str]:
+            if not values:
+                return None
+            shown = values[:max_items]
+            extra = f" 외 {len(values) - max_items}건" if len(values) > max_items else ""
+            return f"{label} {', '.join(shown)}{extra}"
+
+        def _ip_overlap(m1, m2) -> str:
+            return self._format_ip_range(max(m1.ip_start, m2.ip_start), min(m1.ip_end, m2.ip_end))
+
+        parts = [
+            p for p in (
+                _render("출발지", _values("src", _ip_overlap)),
+                _render("목적지", _values("dst", _ip_overlap)),
+                _render("서비스", _values("svc", lambda m1, m2: self._format_service(m2))),
+            ) if p
+        ]
         if not parts:
             return "겹치는 조건: 전체 범위(any) 포함"
         return "겹치는 조건 — " + ", ".join(parts)
@@ -545,6 +559,14 @@ class ImpactAnalyzer:
         if split_suggestion:
             move_summary = f"{move_summary} {split_suggestion}"
 
+        # 최종 이동 가능 여부 판정: 충돌 없음(full) / 일부만 가능(partial) / 전혀 불가(blocked)
+        if nearest_conflict_policy is None:
+            move_feasibility = "full"
+        elif max_safe_seq == original_seq:
+            move_feasibility = "blocked"
+        else:
+            move_feasibility = "partial"
+
         return {
             "target_policy_id": target_policy.id,
             "target_policy": target_policy,
@@ -562,6 +584,7 @@ class ImpactAnalyzer:
             "blocking_conflict_policy_name": nearest_conflict_policy.rule_name if nearest_conflict_policy else None,
             "move_summary": move_summary,
             "split_suggestion": split_suggestion,
+            "move_feasibility": move_feasibility,
         }
 
     async def analyze(self) -> List[Dict[str, Any]]:
@@ -575,6 +598,7 @@ class ImpactAnalyzer:
         policies = await self._get_policies_with_members()
 
         # 기준 정책 ID로 새 위치(배열 인덱스)를 계산. 지정하지 않으면 맨 아래로 이동.
+        self.reference_policy_name: Optional[str] = None
         if self.reference_policy_id is None:
             self.new_position = len(policies)
         else:
@@ -583,6 +607,7 @@ class ImpactAnalyzer:
                 reason = await self._describe_missing_policy(self.reference_policy_id)
                 raise ValueError(f"기준 {reason}")
             self.new_position = reference_position
+            self.reference_policy_name = policies[reference_position].rule_name
 
         # 대상 정책 정보 로드
         target_policies_info = []
@@ -647,6 +672,10 @@ class ImpactAnalyzer:
                 "blocking_conflict_policy_name": single_result["blocking_conflict_policy_name"],
                 "move_direction": single_result["move_direction"],
                 "split_suggestion": single_result["split_suggestion"],
+                "move_feasibility": single_result["move_feasibility"],
+                "reference_policy_id": self.reference_policy_id,
+                "reference_policy_name": self.reference_policy_name,
+                "requested_move_direction": self.move_direction,
             })
 
         logger.info(f"분석 완료: 차단 {len(all_blocking_policies)}개, Shadow {len(all_shadowed_policies)}개 발견.")
