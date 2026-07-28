@@ -27,10 +27,29 @@ const DialogOverlay = React.forwardRef<
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
+function containsDialogDescription(children: React.ReactNode): boolean {
+  return React.Children.toArray(children).some((child) => {
+    if (!React.isValidElement(child)) return false
+    if (child.type === DialogDescription) return true
+    const nested = (child.props as { children?: React.ReactNode })?.children
+    return nested ? containsDialogDescription(nested) : false
+  })
+}
+
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, "aria-describedby": describedBy, ...props }, ref) => {
+  // description 없이 쓰는 다이얼로그가 대부분이라 Radix가 없는 id를 참조하며 콘솔 경고를 내는 문제 방지.
+  // DialogDescription이 실제로 있으면 Radix 기본 연결(context.descriptionId)을 그대로 두고, 없으면 명시적으로 끈다.
+  const ariaProps =
+    describedBy !== undefined
+      ? { "aria-describedby": describedBy }
+      : containsDialogDescription(children)
+        ? {}
+        : { "aria-describedby": undefined }
+
+  return (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
@@ -40,6 +59,7 @@ const DialogContent = React.forwardRef<
         className
       )}
       {...props}
+      {...ariaProps}
     >
       {children}
       <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ds-tertiary focus:ring-offset-2 disabled:pointer-events-none">
@@ -48,7 +68,8 @@ const DialogContent = React.forwardRef<
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </DialogPortal>
-))
+  )
+})
 DialogContent.displayName = DialogPrimitive.Content.displayName
 
 const DialogHeader = ({

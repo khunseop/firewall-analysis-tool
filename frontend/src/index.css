@@ -241,6 +241,18 @@
   color: #3b82f6 !important;
 }
 
+/* 필터/컬럼메뉴 팝업 — 컨테이너의 --ag-background-color: transparent를 상속받아
+   투명하게 보이던 문제 수정. 팝업은 별도 배경을 명시적으로 불투명하게 지정 */
+.ag-theme-quartz .ag-menu,
+.ag-theme-quartz .ag-popup-child,
+.ag-theme-quartz .ag-filter,
+.ag-theme-quartz .ag-simple-filter-body-wrapper,
+.ag-theme-quartz .ag-set-filter-list,
+.ag-theme-quartz .ag-list {
+  --ag-background-color: #ffffff;
+  background-color: #ffffff !important;
+}
+
 /* Pinned column separator — header and body aligned */
 .ag-theme-quartz .ag-pinned-left-cols-container,
 .ag-theme-quartz .ag-pinned-left-header {
