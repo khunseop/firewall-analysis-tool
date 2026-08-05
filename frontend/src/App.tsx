@@ -16,6 +16,7 @@ const PoliciesPage = lazy(() => import('@/components/pages/PoliciesPage').then((
 const ObjectsPage = lazy(() => import('@/components/pages/ObjectsPage').then((m) => ({ default: m.ObjectsPage })))
 const AnalysisListPage = lazy(() => import('@/components/pages/AnalysisListPage').then((m) => ({ default: m.AnalysisListPage })))
 const AnalysisDetailPage = lazy(() => import('@/components/pages/AnalysisDetailPage').then((m) => ({ default: m.AnalysisDetailPage })))
+const PolicyBuilderPage = lazy(() => import('@/components/pages/PolicyBuilderPage').then((m) => ({ default: m.PolicyBuilderPage })))
 const SchedulesPage = lazy(() => import('@/components/pages/SchedulesPage').then((m) => ({ default: m.SchedulesPage })))
 const SettingsPage = lazy(() => import('@/components/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const NotificationsPage = lazy(() => import('@/components/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
@@ -60,6 +61,7 @@ export default function App() {
                 <Route path="objects" element={<ObjectsPage />} />
                 <Route path="analysis" element={<AnalysisListPage />} />
                 <Route path="analysis/:taskId" element={<AnalysisDetailPage />} />
+                <Route path="policy-builder" element={<PolicyBuilderPage />} />
                 <Route path="policy-diff" element={<PolicyDiffPage />} />
                 <Route path="schedules" element={<SchedulesPage />} />
                 <Route path="settings" element={<SettingsPage />} />

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { getPolicies, type Policy } from '@/api/firewall'
 import { queryKeys } from '@/api/queryKeys'
+import { PolicyMiniRow } from '@/components/shared/PolicyMiniRow'
 
 const CONTEXT_RADIUS = 4
 
@@ -45,21 +46,6 @@ function simulateMove(activePolicies: Policy[], row: Record<string, unknown>): S
 
   const afterArray = [...withoutTarget.slice(0, newIndex), movedPolicy, ...withoutTarget.slice(newIndex)]
   return { beforeArray: activePolicies, afterArray, originalIndex, afterIndex: newIndex, targetId }
-}
-
-function PolicyMiniRow({ policy, isMoved, newSeqLabel }: { policy: Policy; isMoved: boolean; newSeqLabel?: string }) {
-  return (
-    <div
-      className={`flex items-center gap-2 px-2.5 py-1.5 text-[12px] rounded-md ${
-        isMoved ? 'bg-ds-tertiary/15 font-semibold text-ds-on-surface' : 'text-ds-on-surface-variant'
-      }`}
-    >
-      <span className="w-12 shrink-0 tabular-nums">{newSeqLabel ?? policy.seq ?? '-'}</span>
-      <span className={`w-14 shrink-0 ${policy.action === 'deny' ? 'text-ds-error' : 'text-emerald-600'}`}>{policy.action}</span>
-      <span className="flex-1 truncate">{policy.rule_name}</span>
-      {isMoved && <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-ds-tertiary/25 text-ds-on-surface">이동 대상</span>}
-    </div>
-  )
 }
 
 export function ImpactMovePreviewDialog({
@@ -124,7 +110,7 @@ export function ImpactMovePreviewDialog({
               <p className="text-[11px] font-semibold text-ds-on-surface-variant mb-1.5 px-1">이동 전</p>
               <div className="border border-ds-outline-variant/20 rounded-lg p-1 space-y-0.5 max-h-[420px] overflow-y-auto">
                 {windows.before.map((p) => (
-                  <PolicyMiniRow key={p.id} policy={p} isMoved={p.id === simulation!.targetId} />
+                  <PolicyMiniRow key={p.id} ruleName={p.rule_name} action={p.action} seq={p.seq} isMoved={p.id === simulation!.targetId} />
                 ))}
               </div>
             </div>
@@ -136,7 +122,9 @@ export function ImpactMovePreviewDialog({
                 {windows.after.map((p) => (
                   <PolicyMiniRow
                     key={p.id}
-                    policy={p}
+                    ruleName={p.rule_name}
+                    action={p.action}
+                    seq={p.seq}
                     isMoved={p.id === simulation!.targetId}
                     newSeqLabel={p.id === simulation!.targetId ? newSeqLabel : undefined}
                   />

@@ -3,92 +3,7 @@ from typing import Iterable, Dict, Set, List, Tuple, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete
 from app import crud, models
-from app.services.normalize import parse_ipv4_numeric, parse_port_numeric
-from ipaddress import ip_network, ip_address, IPv4Address, IPv4Network
-
-# --- IP 범위 병합 유틸리티 (Step 2b용) ---
-
-def _ip_str_to_numeric_range(ip_str: str) -> Optional[Tuple[int, int]]:
-    """
-    단일 IP, CIDR 또는 범위 문자열을 숫자형 시작-끝 튜플로 변환합니다.
-    
-    Args:
-        ip_str: 변환할 IP 문자열 (예: '1.1.1.1', '1.1.1.0/24', '1.1.1.1-1.1.1.5')
-        
-    Returns:
-        (시작_IP_숫자, 끝_IP_숫자) 형태의 튜플, 변환 실패 시 None
-    """
-    try:
-        # '시작-끝' 형식의 범위 처리
-        if '-' in ip_str:
-            start_str, end_str = ip_str.split('-', 1)
-            start_addr = ip_address(start_str.strip())
-            end_addr = ip_address(end_str.strip())
-            if not (isinstance(start_addr, IPv4Address) and isinstance(end_addr, IPv4Address)):
-                return None
-            return min(int(start_addr), int(end_addr)), max(int(start_addr), int(end_addr))
-        # CIDR 형식 처리 (예: 1.1.1.0/24)
-        elif '/' in ip_str:
-            net = ip_network(ip_str, strict=False)
-            if not isinstance(net, IPv4Network):
-                return None
-            return int(net.network_address), int(net.broadcast_address)
-        # 단일 IP 주소 처리
-        else:
-            addr = ip_address(ip_str.strip())
-            if not isinstance(addr, IPv4Address):
-                return None
-            n = int(addr)
-            return n, n
-    except ValueError:
-        return None
-
-def merge_ip_ranges(ip_strings: Set[str]) -> List[Tuple[int, int]]:
-    """
-    IP 관련 문자열 집합을 최소한의 연속된 숫자 범위 리스트로 병합합니다.
-    이 알고리즘은 중복되거나 인접한 IP 범위를 하나로 합쳐 인덱스 크기를 줄입니다.
-    
-    Args:
-        ip_strings: IP 주소, CIDR, 범위 문자열 집합
-        
-    Returns:
-        병합된 (시작_IP_숫자, 끝_IP_숫자) 튜플의 리스트
-    """
-    if not ip_strings:
-        return []
-
-    # 1. 모든 문자열 표현을 숫자형 범위(start, end)로 변환
-    ranges = []
-    for s in ip_strings:
-        r = _ip_str_to_numeric_range(s)
-        if r:
-            ranges.append(r)
-
-    if not ranges:
-        return []
-
-    # 2. 시작 IP 주소를 기준으로 정렬 (Greedy 병합을 위함)
-    ranges.sort(key=lambda x: x[0])
-
-    merged = []
-    current_start, current_end = ranges[0]
-
-    for i in range(1, len(ranges)):
-        next_start, next_end = ranges[i]
-        # 현재 범위의 끝과 다음 범위의 시작이 겹치거나 인접한 경우 (next_start <= current_end + 1)
-        if next_start <= current_end + 1:
-            # 현재 범위의 끝을 확장하여 병합
-            current_end = max(current_end, next_end)
-        else:
-            # 겹치지 않으면 현재까지의 범위를 결과에 추가하고 새로운 범위 시작
-            merged.append((current_start, current_end))
-            current_start, current_end = next_start, next_end
-
-    # 마지막 처리 중인 범위를 추가
-    merged.append((current_start, current_end))
-
-    return merged
-
+from app.services.policy_builder.member_resolver import compute_policy_member_rows
 
 # --- 최적화된 리졸버 (Resolver) ---
 
@@ -228,82 +143,18 @@ async def rebuild_policy_indices(
     port_cache: Dict[str, Tuple[Optional[int], Optional[int]]] = {}
 
     for policy in policy_list:
-        # 소스 멤버 분석
-        src_members: Set[str] = set()
-        for name in [s.strip() for s in (policy.source or "").split(',') if s.strip()]:
-            src_members.update(resolved_address_map.get(name, {name}))
-
-        # 목적지 멤버 분석
-        dst_members: Set[str] = set()
-        for name in [s.strip() for s in (policy.destination or "").split(',') if s.strip()]:
-            dst_members.update(resolved_address_map.get(name, {name}))
-
-        # 서비스 멤버 분석
-        svc_members: Set[str] = set()
-        for name in [s.strip() for s in (policy.service or "").split(',') if s.strip()]:
-            svc_members.update(resolved_service_map.get(name, {name}))
-
-        # --- 데이터 압축 및 로우(Row) 생성 ---
-        
-        # 주소 멤버 (Source & Destination) 처리
-        for direction, members in [('source', src_members), ('destination', dst_members)]:
-            # 분석 가능한 IP 멤버와 빈 그룹 마커 분리
-            ip_members = {m for m in members if not m.startswith("__GROUP__:")}
-            group_markers = {m for m in members if m.startswith("__GROUP__:")}
-            
-            # IP 범위 병합 알고리즘 적용 (Greedy Merging)
-            merged_ranges = merge_ip_ranges(ip_members)
-            for start_ip, end_ip in merged_ranges:
-                 addr_rows.append({
-                    "device_id": device_id, "policy_id": policy.id, "direction": direction,
-                    "token_type": 'ipv4_range',
-                    "ip_start": start_ip, "ip_end": end_ip
-                })
-            
-            # 빈 그룹 마커 저장 (검색 가능하도록 토큰으로 기록)
-            for marker in group_markers:
-                group_name = marker.replace("__GROUP__:", "", 1)
-                addr_rows.append({
-                    "device_id": device_id, "policy_id": policy.id, "direction": direction,
-                    "token": group_name,
-                    "token_type": 'unknown',
-                    "ip_start": None, "ip_end": None
-                })
-
-        # 서비스 멤버 처리
-        for token in filter(None, svc_members):
-            # 빈 서비스 그룹 마커 처리
-            if token.startswith("__GROUP__:"):
-                group_name = token.replace("__GROUP__:", "", 1)
-                svc_rows.append({
-                    "device_id": device_id, "policy_id": policy.id, "token": group_name,
-                    "token_type": 'unknown',
-                    "protocol": None, "port_start": None, "port_end": None
-                })
-                continue
-            
-            # 프로토콜 및 포트 분석
-            token_lower = token.lower()
-            if '/' in token_lower:
-                proto, port_str = token_lower.split('/', 1)
-            else:
-                proto, port_str = ('any' if token_lower == 'any' else None), token_lower
-
-            # 포트 파싱 결과 캐싱으로 성능 향상
-            if port_str in port_cache:
-                start, end = port_cache[port_str]
-            else:
-                start, end = parse_port_numeric(port_str)
-                port_cache[port_str] = (start, end)
-
-            # 유효하지 않은 포트 정보는 인덱스에서 제외
-            if start is None or end is None:
-                continue
-
-            svc_rows.append({
-                "device_id": device_id, "policy_id": policy.id, "token": token,
-                "token_type": 'proto_port', "protocol": proto, "port_start": start, "port_end": end
-            })
+        policy_addr_rows, policy_svc_rows = compute_policy_member_rows(
+            policy.source, policy.destination, policy.service,
+            resolved_address_map, resolved_service_map, port_cache,
+        )
+        for row in policy_addr_rows:
+            row["device_id"] = device_id
+            row["policy_id"] = policy.id
+            addr_rows.append(row)
+        for row in policy_svc_rows:
+            row["device_id"] = device_id
+            row["policy_id"] = policy.id
+            svc_rows.append(row)
 
     # 4. 일괄 데이터베이스 작업 (Batch Operation)
     async with db.begin_nested():
