@@ -45,8 +45,9 @@ def main():
     except Exception as e:
         print(f"    -> [예외 발생] {type(e).__name__}: {e}")
 
-    print("\n[2] 참고: 원본 SSH 출력 직접 확인 (show system state filter cfg.general.max*)")
+    print("\n[2] 참고: 원본 SSH 출력 직접 확인 (인터랙티브 쉘 + pager off, 앱과 동일 방식)")
     try:
+        import time
         import paramiko
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -55,18 +56,32 @@ def main():
             username=args.username, password=password,
             timeout=20, look_for_keys=False, allow_agent=False,
         )
-        _, stdout, stderr = ssh.exec_command("show system state filter cfg.general.max*\n", timeout=30)
-        output = stdout.read().decode('utf-8', errors='ignore')
-        err = stderr.read().decode('utf-8', errors='ignore')
-        print("    --- stdout ---")
+        channel = ssh.invoke_shell()
+
+        def read_until_prompt(timeout: int = 10) -> str:
+            output = ""
+            start_time = time.time()
+            while True:
+                if channel.recv_ready():
+                    output += channel.recv(65535).decode('utf-8', errors='ignore')
+                    if output.strip().endswith(('>', '#')):
+                        return output
+                if time.time() - start_time > timeout:
+                    raise TimeoutError(f"쉘 프롬프트 대기 시간 초과. 현재 출력:\n{output}")
+                time.sleep(0.5)
+
+        read_until_prompt(timeout=20)
+        channel.send("set cli pager off\n")
+        read_until_prompt()
+
+        channel.send("show system state filter cfg.general.max*\n")
+        output = read_until_prompt(timeout=30)
+        print("    --- show system state filter cfg.general.max* ---")
         print(output if output.strip() else "(빈 출력)")
-        if err.strip():
-            print("    --- stderr ---")
-            print(err)
 
         print("\n[3] 참고: 필터 없는 전체 cfg.general 에서 'max' 포함 라인만 추출 (실제 키 이름 확인용)")
-        _, stdout2, _ = ssh.exec_command("show system state filter cfg.general\n", timeout=30)
-        output2 = stdout2.read().decode('utf-8', errors='ignore')
+        channel.send("show system state filter cfg.general\n")
+        output2 = read_until_prompt(timeout=30)
         found = [l.strip() for l in output2.splitlines() if 'max' in l.lower()]
         print('\n'.join(found) if found else "    (max 포함 라인 없음)")
 

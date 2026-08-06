@@ -555,8 +555,30 @@ class PaloAltoAPI(FirewallInterface):
                 timeout=20, look_for_keys=False, allow_agent=False
             )
 
-            _, stdout, _ = ssh.exec_command("show system state filter cfg.general.max*\n", timeout=30)
-            output = stdout.read().decode('utf-8', errors='ignore')
+            # exec_command는 매 호출마다 새 세션이라 pager 설정이 적용되지 않아
+            # 출력이 길면 --More-- 에서 멈춰 타임아웃남. 인터랙티브 쉘로 pager를 먼저 끈다
+            # (export_last_hit_date_ssh와 동일한 패턴).
+            channel = ssh.invoke_shell()
+
+            def read_until_prompt(timeout: int = 10) -> str:
+                output = ""
+                start_time = time.time()
+                while True:
+                    if channel.recv_ready():
+                        output += channel.recv(65535).decode('utf-8', errors='ignore')
+                        if output.strip().endswith(('>', '#')):
+                            return output
+                    if time.time() - start_time > timeout:
+                        raise TimeoutError(f"쉘 프롬프트 대기 시간 초과. 현재 출력:\n{output}")
+                    time.sleep(0.5)
+
+            read_until_prompt(timeout=20)  # 로그인 배너 및 초기 프롬프트 대기
+
+            channel.send("set cli pager off\n")
+            read_until_prompt()
+
+            channel.send("show system state filter cfg.general.max*\n")
+            output = read_until_prompt(timeout=30)
 
             limits = {}
             for line in output.splitlines():

@@ -10,7 +10,7 @@ pandas
 openpyxl
 requests
 httpx
-paramiko
+paramiko<3.0
 scp
 apscheduler
 python-multipart
