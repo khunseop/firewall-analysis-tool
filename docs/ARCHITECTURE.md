@@ -9,8 +9,8 @@
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      React Frontend (SPA)                        │
-│  Dashboard, Devices, Policies, Objects, Analysis, PolicyDiff,   │
-│  Schedules, Settings, Notifications, DeletionWorkflow           │
+│  Dashboard, Devices, Policies, Objects, Analysis, PolicyBuilder,│
+│  PolicyDiff, Schedules, Settings, Notifications, DeletionWorkflow│
 └────────────────────────┬────────────────────────────────────────┘
                          │ HTTP/WebSocket
                          ▼
@@ -24,6 +24,7 @@
 │  ├─ firewall_sync.py     (동기화 실행)                          │
 │  ├─ analysis.py          (분석 결과)                            │
 │  ├─ deletion_workflow.py (삭제 워크플로우)                      │
+│  ├─ policy_builder.py    (정책 생성·이동 CLI 생성)              │
 │  ├─ export.py            (데이터 내보내기)                      │
 │  ├─ notifications.py     (알림 로그)                            │
 │  ├─ settings.py          (앱 설정)                              │
@@ -36,6 +37,7 @@
 │  ├─ firewall/        (멀티 벤더 추상화)                         │
 │  ├─ policy_indexer.py(인덱싱 엔진)                              │
 │  ├─ analysis/        (6개 분석 엔진)                            │
+│  ├─ policy_builder/  (신규 정책 CLI 생성, 무상태)                │
 │  ├─ scheduler.py     (스케줄 관리)                              │
 │  └─ websocket_manager.py (실시간 통신)                          │
 ├─────────────────────────────────────────────────────────────────┤
@@ -226,6 +228,26 @@ AnalysisTask (상태: pending, in_progress, success, failure)
 ```
 
 분석 백그라운드 태스크는 자체 `SessionLocal()` 세션을 열고, O(n²) 비교 등 CPU 바운드 연산은 전용 `CPU_EXECUTOR`(`app/core/executors.py`)에서 실행되어 이벤트 루프를 차단하지 않습니다.
+
+### 4.3. 정책 빌더 (Policy Builder) — 무상태 CLI 생성
+
+`app/services/policy_builder/`는 위 6개 분석 엔진과 별개로 동작하는 **무상태** 파이프라인입니다. `AnalysisTask`/`AnalysisResult` 테이블을 쓰지 않고, 요청-응답 안에서 전부 계산합니다.
+
+```
+신규 정책 입력(NewPolicyRow[])
+      │
+      ├─ object_gap.py        → DB에 없는 주소/서비스 오브젝트 이름 감지
+      ├─ virtual_policy.py     → 신규 정책을 미저장 VirtualPolicy로 변환
+      │     └─ member_resolver.py (policy_indexer.Resolver 재사용, DB 존재 오브젝트 + 사용자가 입력한 신규 오브젝트 스펙을 함께 해석)
+      ├─ insertion_analyzer.py → 지정 위치(top/bottom/before/after)에 삽입 시 충돌 판정
+      │     └─ analysis/policy_overlap.py (impact.py와 공유하는 순수 오버랩 판정 함수)
+      └─ cli_generator.py      → PAN-OS `set address` / `set service` / `set rulebase security rules` / `move` 텍스트 생성
+      │
+      ▼
+BulkPolicyPlanResponse (missing_objects, *_commands, conflicts, preview_before/after)
+```
+
+DB에 아무 것도 쓰지 않고 장비에도 반영하지 않으므로, 생성된 CLI는 사용자가 검토 후 직접 실행해야 합니다. Palo Alto 전용(`device.vendor == 'paloalto'`)입니다.
 
 ---
 

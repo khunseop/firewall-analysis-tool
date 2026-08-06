@@ -91,6 +91,16 @@ API 문서: `/docs` (Swagger) · `/redoc`
 | Risky Ports | `risky_ports.py` | 위험 포트 DB와 대조하여 취약 서비스 탐지 |
 | Over-permissive | `over_permissive.py` | 과도하게 광범위한 정책 탐지 |
 
+### 3.4. 정책 생성 + 위치 이동 CLI 생성기 (Policy Builder)
+
+신규 정책을 엑셀에서 붙여넣기(탭 구분 텍스트)로 대량 입력하면:
+
+1. 참조하는 주소/서비스 오브젝트 중 장비에 없는 것을 자동 감지
+2. 오브젝트 생성·정책 생성·목표 위치(top/bottom/before/after) 이동을 위한 PAN-OS `set`/`move` CLI 텍스트를 생성
+3. 그 자리에 삽입했을 때 기존 정책과 충돌(차단/가려짐)이 있는지 검증하고, 삽입 전/후 배치를 미리보기로 제공
+
+**무상태(stateless)** 기능입니다 — DB에 아무 것도 쓰지 않고, 장비에도 직접 반영하지 않습니다. 생성된 CLI는 검토 후 사용자가 직접 실행해야 합니다. Palo Alto 장비 전용이며, `app/services/policy_builder/`에 구현되어 있습니다.
+
 ---
 
 ## 4. 아키텍처
@@ -115,6 +125,7 @@ ORM Models     (app/models/)  ──►  SQLite fat.db  (via Alembic)
 | 범위 기반 검색 | `app/crud/crud_policy.py` | `policy_address_members` / `policy_service_members` overlap SQL 쿼리. |
 | 분석 엔진 | `app/services/analysis/` | 6개 비동기 엔진. `analysistasks` 테이블로 진행률 추적. |
 | 삭제 워크플로우 | `app/services/deletion_workflow/` | Config 기반 프로세서 파이프라인 → Excel 내보내기 (`export_service` / `config_bridge` / `task_meta`). |
+| 정책 빌더 | `app/services/policy_builder/` | 신규 정책 CLI 생성(오브젝트/정책/이동) + 삽입 충돌 검증. 무상태, Palo Alto 전용. |
 | 전용 스레드 풀 | `app/core/executors.py` | 수집 I/O(`IO_EXECUTOR`)와 분석 CPU 연산(`CPU_EXECUTOR`)을 분리해 상호 굶김 방지. |
 | 스케줄러 | `app/services/scheduler.py` | APScheduler. 스케줄은 `sync_schedules` 테이블에 영속 저장. |
 | WebSocket 매니저 | `app/services/websocket_manager.py` | 동기화·분석 진행 상황을 모든 클라이언트에 브로드캐스트. |
@@ -126,7 +137,7 @@ ORM Models     (app/models/)  ──►  SQLite fat.db  (via Alembic)
 - **UI 라이브러리**: Radix UI (shadcn 스타일) + Tailwind CSS
 - **데이터 그리드**: Ag-Grid Community
 - **실시간 통신**: WebSocket (쿠키 인증, 지수 백오프 재연결 — 동기화·분석 진행 상황 업데이트)
-- **페이지**: Dashboard, Devices, Policies, Objects, Analysis, PolicyDiff, Schedules, Settings, Notifications, DeletionWorkflow
+- **페이지**: Dashboard, Devices, Policies, Objects, Analysis, PolicyBuilder, PolicyDiff, Schedules, Settings, Notifications, DeletionWorkflow
 
 ### 상세 문서
 
