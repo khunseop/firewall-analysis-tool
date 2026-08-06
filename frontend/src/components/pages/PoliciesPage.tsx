@@ -31,6 +31,7 @@ import {
   type PendingPolicyChange, type BulkPolicyPlanResponse,
 } from '@/api/policyBuilder'
 import { CreatePolicyModal } from '@/components/pages/policy-builder/CreatePolicyModal'
+import { ModifyPolicyModal } from '@/components/pages/policy-builder/ModifyPolicyModal'
 import { MoveExistingDialog } from '@/components/pages/policy-builder/MoveExistingDialog'
 import { PlanResultPanel } from '@/components/pages/policy-builder/PlanResultPanel'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -198,9 +199,15 @@ export function PoliciesPage() {
   const editDeviceId = deviceIds.length === 1 ? deviceIds[0] : null
   const [selectedPolicyIds, setSelectedPolicyIds] = useState<number[]>([])
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showModifyModal, setShowModifyModal] = useState(false)
   const [showMoveDialog, setShowMoveDialog] = useState(false)
   const [planResult, setPlanResult] = useState<BulkPolicyPlanResponse | null>(null)
   const [planLoading, setPlanLoading] = useState(false)
+
+  // 편집모드 중 장비 선택이 1개가 아니게 바뀌면(예: 다른 화면에서 다시 진입) 상태가 꼬이지 않도록 자동 종료
+  useEffect(() => {
+    if (editMode && !editDeviceId) setEditMode(false)
+  }, [editMode, editDeviceId])
 
   const pendingChangesQuery = useQuery({
     queryKey: ['policy-builder-pending-changes', editDeviceId],
@@ -265,8 +272,27 @@ export function PoliciesPage() {
   }
 
   // 대기중 변경사항을 기존 검색 결과에 오버레이 — modify는 값 재계산, delete/move는 상태 표시, create는 신규 행 추가
+  //
+  // 성능 참고: 정책이 수천 건일 때 매 편집마다 전체 배열을 새 객체로 다시 만들면(map으로 {...p} 전부 재생성)
+  // AG Grid가 getRowId로 비교해도 "모든 행의 참조가 바뀜"으로 보여 전체 그리드를 다시 그리게 되어 눈에 띄게 느려진다.
+  // 그래서 정책(policies) 배열 자체가 바뀔 때(새 검색 결과)만 안정적인 작업용 복사본 캐시를 만들고,
+  // 이후에는 실제로 대기중 변경사항이 있는 행만 그 복사본을 교체한다 — 변경 없는 행은 항상 같은 참조를 유지.
+  const workingCopiesRef = useRef<Map<number, EditablePolicyRow>>(new Map())
+  const policiesRef = useRef<Policy[] | null>(null)
+  const policiesByIdRef = useRef<Map<number, Policy>>(new Map())
+
   const mergedPolicies = useMemo<EditablePolicyRow[]>(() => {
-    if (!editMode || pendingChanges.length === 0) return policies
+    if (!editMode) return policies
+
+    if (policiesRef.current !== policies) {
+      policiesRef.current = policies
+      policiesByIdRef.current = new Map(policies.map((p) => [p.id, p]))
+      // 항상 새 복사본을 캐시에 넣는다 — AG Grid는 편집 시 rowData 객체를 직접 mutate하므로,
+      // 원본 policies(React Query 캐시) 객체를 그대로 넘기면 캐시 데이터가 오염된다.
+      workingCopiesRef.current = new Map(policies.map((p) => [p.id, { ...p } as EditablePolicyRow]))
+    }
+    const cache = workingCopiesRef.current
+    const originalById = policiesByIdRef.current
 
     const byPolicy = new Map<number, PendingPolicyChange[]>()
     const createChanges: PendingPolicyChange[] = []
@@ -278,13 +304,12 @@ export function PoliciesPage() {
       byPolicy.set(c.target_policy_id, arr)
     }
 
-    const existing: EditablePolicyRow[] = policies.map((p) => {
-      const changes = byPolicy.get(p.id)
-      // 항상 새 객체를 반환한다 — AG Grid는 편집 시 rowData의 객체를 직접 mutate하므로,
-      // 원본 policies(React Query 캐시) 객체를 그대로 넘기면 캐시 데이터가 오염된다.
-      if (!changes || changes.length === 0) return { ...p }
+    // 대기중 변경사항이 있는 정책만 "원본"에서부터 다시 계산해 캐시를 교체한다.
+    for (const [policyId, changes] of byPolicy) {
+      const original = originalById.get(policyId)
+      if (!original) continue
       let status: EditablePolicyRow['_pendingStatus']
-      const result: EditablePolicyRow = { ...p }
+      const result: EditablePolicyRow = { ...original }
       for (const c of changes) {
         if (c.change_type === 'delete') status = 'deleted'
         else if (c.change_type === 'move') status = status ?? 'moved'
@@ -301,8 +326,17 @@ export function PoliciesPage() {
         }
       }
       result._pendingStatus = status
-      return result
-    })
+      cache.set(policyId, result)
+    }
+    // 취소되어 더 이상 대기중이지 않은 변경(예: "전체 취소")은 캐시를 원본으로 되돌린다.
+    for (const [policyId, copy] of cache) {
+      if (copy._pendingStatus && !byPolicy.has(policyId)) {
+        const original = originalById.get(policyId)
+        if (original) cache.set(policyId, { ...original })
+      }
+    }
+
+    const existing: EditablePolicyRow[] = policies.map((p) => cache.get(p.id) ?? p)
 
     const created: EditablePolicyRow[] = createChanges.map((c) => {
       const payload = c.payload as Record<string, unknown>
@@ -636,6 +670,12 @@ export function PoliciesPage() {
                 <Plus className="w-3.5 h-3.5" /> 새 정책 붙여넣기
               </button>
               <button
+                onClick={() => setShowModifyModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
+              >
+                <Pencil className="w-3.5 h-3.5" /> 정책 수정(일괄)
+              </button>
+              <button
                 onClick={() => setShowMoveDialog(true)}
                 disabled={selectedPolicyIds.length === 0}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors disabled:opacity-50"
@@ -661,7 +701,7 @@ export function PoliciesPage() {
           >
             <Pencil className="w-3.5 h-3.5" /> {editMode ? '편집모드 종료' : '편집모드'}
           </button>
-          <DeviceSelector />
+          <DeviceSelector disabled={editMode} />
         </div>
       </div>
       {editMode && (
@@ -873,6 +913,7 @@ export function PoliciesPage() {
             if (status === 'moved') return { backgroundColor: 'rgba(59,130,246,0.10)', textDecoration: 'none' }
             return undefined
           } : undefined}
+          skipAutoSizeOnDataChange={editMode}
         />
       </div>
 
@@ -936,6 +977,14 @@ export function PoliciesPage() {
           deviceId={editDeviceId}
           onClose={() => setShowCreateModal(false)}
           onCreated={refetchPendingChanges}
+        />
+      )}
+
+      {showModifyModal && editDeviceId && (
+        <ModifyPolicyModal
+          deviceId={editDeviceId}
+          onClose={() => setShowModifyModal(false)}
+          onApplied={refetchPendingChanges}
         />
       )}
 

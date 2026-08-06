@@ -151,6 +151,21 @@ async def plan_bulk_policy(
 
     new_objects = [schemas.NewObjectSpec(**c.payload) for c in object_changes]
 
+    # 붙여넣은 정책명이 이미 존재하는 활성 정책과 겹치면, PAN-OS의 `set`은 신규 생성이 아니라
+    # 기존 정책에 값을 append하는 것과 동일하다 — "새 위치로 삽입"이라는 개념 자체가 성립하지 않으므로
+    # 삽입 충돌 검증/이동 명령 생성 대상에서 제외하고 경고로 알린다.
+    existing_active_policies = await crud.policy.get_all_active_policies_by_device(db, device_id)
+    existing_rule_names = {p.rule_name for p in existing_active_policies}
+    duplicate_rule_names = {row.rule_name for row in new_policies if row.rule_name in existing_rule_names}
+    for name in sorted(duplicate_rule_names):
+        warnings.append(
+            f"'{name}'은(는) 이미 존재하는 정책명입니다 — 이 이름으로 신규 생성하면 새 위치로 삽입되는 게 아니라 "
+            "기존 정책에 값이 추가(append)됩니다. 위치 이동/삽입 충돌 검증 대상에서는 제외했습니다. "
+            "정말 기존 정책을 수정하려는 것이라면 '정책 수정' 기능을, 위치를 옮기려는 것이라면 체크박스로 "
+            "기존 정책을 선택해 '선택 이동'을 사용하세요."
+        )
+    insertable_policies = [row for row in new_policies if row.rule_name not in duplicate_rule_names]
+
     all_missing_objects = await object_gap.find_missing_objects(db, device_id, new_policies)
     # modify로 추가되는 토큰들도 갭 검사 대상에 포함
     modify_gap_rows = []
@@ -202,16 +217,16 @@ async def plan_bulk_policy(
     preview_before: list = []
     preview_after: list = []
 
-    # --- 신규 생성 배치의 삽입 위치 (모든 create 행이 같은 위치를 공유) ---
+    # --- 신규 생성 배치의 삽입 위치 (모든 create 행이 같은 위치를 공유, 중복 정책명은 제외) ---
     move_commands = []
-    if create_changes:
+    if create_changes and insertable_policies:
         first_payload = create_changes[0].payload
         move_target = schemas.MoveTarget(
             position=first_payload.get("position", "bottom"),
             reference_policy_id=first_payload.get("reference_policy_id"),
         )
         try:
-            virtual_policies = await resolve_virtual_policies(db, device_id, new_policies, new_objects)
+            virtual_policies = await resolve_virtual_policies(db, device_id, insertable_policies, new_objects)
             insertion_conflicts, insertion_before, insertion_after, insertion_warnings = await analyze_insertion(
                 db, device_id, virtual_policies, move_target,
             )
@@ -223,7 +238,7 @@ async def plan_bulk_policy(
         warnings.extend(insertion_warnings)
 
         reference_rule_name = await _reference_rule_name(db, move_target.reference_policy_id)
-        for row in new_policies:
+        for row in insertable_policies:
             command, error = generate_move_command(row.rule_name, move_target, reference_rule_name, vsys)
             move_commands.append(schemas.GeneratedCommand(row_index=row.row_index, kind="move", command=command, error=error))
 
@@ -261,8 +276,9 @@ async def plan_bulk_policy(
         if not target_policy:
             warnings.append(f"수정 대상 정책(ID {c.target_policy_id})을 찾을 수 없어 건너뜁니다.")
             continue
-        command, error, counts = generate_field_append_command(target_policy.rule_name, c.payload, vsys)
-        if command or error:
+        has_added_values = any((diff or {}).get("added") for diff in (c.payload or {}).values())
+        if has_added_values:
+            command, error, counts = generate_field_append_command(target_policy.rule_name, c.payload, vsys)
             modify_commands.append(schemas.GeneratedCommand(row_index=c.id, kind="modify", command=command, error=error, counts=counts or None))
         for field, diff in (c.payload or {}).items():
             for value in diff.get("removed", []):

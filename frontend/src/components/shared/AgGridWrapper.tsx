@@ -50,6 +50,8 @@ interface AgGridWrapperProps<T> {
   doesExternalFilterPass?: (node: IRowNode<T>) => boolean
   /** 컬럼에 editable:true를 설정했을 때, 셀 편집이 커밋되면 호출됨 */
   onCellValueChanged?: (event: CellValueChangedEvent<T>) => void
+  /** true면 rowData 참조가 바뀌어도 autoSizeAllColumns를 재실행하지 않음 — 대량 데이터를 자주(예: 셀 편집마다) 갱신하는 화면에서 전체 컬럼 재계산 비용을 피하기 위함 */
+  skipAutoSizeOnDataChange?: boolean
 }
 
 function AgGridWrapperInner<T>(
@@ -75,6 +77,7 @@ function AgGridWrapperInner<T>(
     isExternalFilterPresent,
     doesExternalFilterPass,
     onCellValueChanged,
+    skipAutoSizeOnDataChange = false,
   }: AgGridWrapperProps<T>,
   ref: React.ForwardedRef<AgGridWrapperHandle>
 ) {
@@ -104,7 +107,7 @@ function AgGridWrapperInner<T>(
 
   // rowData가 실제로 교체될 때(새 검색 결과)만 autoSize — 타이핑·필터링 시 불필요한 리사이즈 방지
   useEffect(() => {
-    if (rowData.length === 0) return
+    if (skipAutoSizeOnDataChange || rowData.length === 0) return
     const id = requestAnimationFrame(() => {
       if (fitColumns) {
         gridApiRef.current?.sizeColumnsToFit()

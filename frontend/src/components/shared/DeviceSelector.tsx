@@ -56,10 +56,12 @@ interface BaseProps {
   showClearInTrigger?: boolean
   /** multi 모드에서 그룹 내 선택 장비를 앞으로 정렬 */
   sortSelectedFirst?: boolean
+  /** true면 드롭다운을 열 수 없음(선택 변경 불가) — 편집모드처럼 장비 선택이 고정돼야 하는 화면에서 사용 */
+  disabled?: boolean
 }
 
 function DeviceDropdownBase({
-  mode, selectedIds, onSelect, onClear, onSelectAll, triggerLabel, showClearInTrigger, sortSelectedFirst,
+  mode, selectedIds, onSelect, onClear, onSelectAll, triggerLabel, showClearInTrigger, sortSelectedFirst, disabled,
 }: BaseProps) {
   const single = mode === 'single'
   const [open, setOpen] = useState(false)
@@ -131,14 +133,18 @@ function DeviceDropdownBase({
   return (
     <div ref={containerRef} className="relative">
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => !disabled && setOpen((v) => !v)}
+        disabled={disabled}
+        title={disabled ? '편집모드 중에는 장비 선택을 변경할 수 없습니다 — 먼저 편집모드를 종료하세요.' : undefined}
         className={cn(
           'flex items-center gap-2 text-[13px] font-semibold rounded-xl px-3.5 py-2 transition-all border',
-          open
-            ? 'bg-ds-tertiary/10 text-ds-tertiary border-ds-tertiary/20'
-            : selectedIds.length > 0
-              ? 'bg-ds-secondary-container text-ds-tertiary border-ds-tertiary/15 hover:bg-ds-tertiary/10'
-              : 'text-ds-tertiary border-ds-tertiary/40 border-dashed bg-ds-tertiary/5 hover:bg-ds-tertiary/10 hover:border-ds-tertiary/60'
+          disabled
+            ? 'opacity-50 cursor-not-allowed text-ds-on-surface-variant border-ds-outline-variant/20 bg-ds-surface-container-low'
+            : open
+              ? 'bg-ds-tertiary/10 text-ds-tertiary border-ds-tertiary/20'
+              : selectedIds.length > 0
+                ? 'bg-ds-secondary-container text-ds-tertiary border-ds-tertiary/15 hover:bg-ds-tertiary/10'
+                : 'text-ds-tertiary border-ds-tertiary/40 border-dashed bg-ds-tertiary/5 hover:bg-ds-tertiary/10 hover:border-ds-tertiary/60'
         )}
       >
         <Monitor className="w-3.5 h-3.5 shrink-0" />
@@ -148,7 +154,7 @@ function DeviceDropdownBase({
             {selectedIds.length}
           </span>
         )}
-        {showClearInTrigger && selectedIds.length > 0 && (
+        {showClearInTrigger && selectedIds.length > 0 && !disabled && (
           <button
             onClick={(e) => { e.stopPropagation(); onClear() }}
             className="shrink-0 hover:text-ds-error transition-colors"
@@ -159,7 +165,7 @@ function DeviceDropdownBase({
         <ChevronDown className={cn('w-3.5 h-3.5 transition-transform opacity-60', open && 'rotate-180')} />
       </button>
 
-      {open && (
+      {open && !disabled && (
         <div className="absolute right-0 top-full mt-2 w-72 bg-white/90 backdrop-blur-xl rounded-xl border border-white/60 shadow-ambient-md z-50">
           <div className="px-3 pt-3 pb-1.5">
             <p className="text-[9px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60 mb-2">
@@ -225,7 +231,7 @@ function DeviceDropdownBase({
 }
 
 /** 멀티 선택 — 전역 deviceStore와 연동 */
-export function DeviceSelector() {
+export function DeviceSelector({ disabled }: { disabled?: boolean } = {}) {
   const { selectedIds, toggleId, clearSelection, selectAll } = useDeviceStore()
   return (
     <DeviceDropdownBase
@@ -236,6 +242,7 @@ export function DeviceSelector() {
       onSelectAll={selectAll}
       triggerLabel={selectedIds.length > 0 ? `장비 ${selectedIds.length}개 선택됨` : '장비 선택'}
       sortSelectedFirst
+      disabled={disabled}
     />
   )
 }
