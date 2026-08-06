@@ -53,32 +53,33 @@ export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
         onTasksStarted([task_id], exportType)
         toast.success(`${devices.length}개 장비 ${label} 통합 추출을 백그라운드에서 시작했습니다.`)
       } else {
-        const results = await Promise.allSettled(devices.map((d) => (
-          source === 'db'
-            ? bulkExportDevices([d], exportType, {
-                source: 'db',
-                use_ssh: exportType === 'hit_dates' ? useSsh : false,
-                timeout_seconds: timeout,
-              })
-            : directExport(d, exportType, {
-                use_ssh: exportType === 'hit_dates' ? useSsh : false,
-                timeout_seconds: timeout,
-              })
-        )))
-
-        const taskIds: number[] = []
+        // 장비별로 요청이 응답되는 즉시 등록 — 모든 요청이 끝나길 기다리면
+        // 먼저 완료된 장비의 WebSocket 상태 메시지가 아직 등록되지 않은 태스크를 못 찾아 유실될 수 있음
+        let startedCount = 0
         const failed: string[] = []
+        const results = await Promise.allSettled(devices.map(async (d) => {
+          const { task_id } = await (
+            source === 'db'
+              ? bulkExportDevices([d], exportType, {
+                  source: 'db',
+                  use_ssh: exportType === 'hit_dates' ? useSsh : false,
+                  timeout_seconds: timeout,
+                })
+              : directExport(d, exportType, {
+                  use_ssh: exportType === 'hit_dates' ? useSsh : false,
+                  timeout_seconds: timeout,
+                })
+          )
+          onTasksStarted([task_id], exportType)
+          startedCount += 1
+        }))
+
         results.forEach((res, i) => {
-          if (res.status === 'fulfilled') {
-            taskIds.push(res.value.task_id)
-          } else {
-            failed.push(devices[i].name)
-          }
+          if (res.status === 'rejected') failed.push(devices[i].name)
         })
 
-        if (taskIds.length > 0) {
-          onTasksStarted(taskIds, exportType)
-          toast.success(`${taskIds.length}개 장비 ${label} 추출을 백그라운드에서 시작했습니다.`)
+        if (startedCount > 0) {
+          toast.success(`${startedCount}개 장비 ${label} 추출을 백그라운드에서 시작했습니다.`)
         }
         if (failed.length > 0) {
           toast.error(`${failed.join(', ')} 추출 시작 실패`)

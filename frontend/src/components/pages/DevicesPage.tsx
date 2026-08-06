@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Plus, Upload, Download, RefreshCw, Pencil, Trash2, Wifi, Search, XCircle, ChevronDown, Settings2, Tag, CheckCircle2, AlertCircle, Loader2, FileDown } from 'lucide-react'
+import { Plus, Upload, Download, RefreshCw, Pencil, Trash2, Wifi, Search, XCircle, ChevronDown, Settings2, Tag, CheckCircle2, AlertCircle, Loader2, FileDown, X } from 'lucide-react'
 import type { IRowNode } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { rowIdFromId } from '@/lib/utils'
@@ -22,7 +22,8 @@ import { buildColumnDefs } from './devices/deviceColumns'
 import { useDeviceSearchStore } from '@/store/deviceSearchStore'
 
 interface ExportTaskInfo {
-  exportType: DirectExportType
+  // WebSocket 메시지가 onTasksStarted 등록보다 먼저 도착하면 종류를 알 수 없어 null일 수 있음
+  exportType: DirectExportType | null
   status: 'pending' | 'in_progress' | 'success' | 'failure'
   step: string | null
   progressCurrent: number
@@ -32,6 +33,7 @@ interface ExportTaskInfo {
 }
 
 const EXPORT_TYPE_LABEL: Record<DirectExportType, string> = { policies: '정책', objects: '객체', hit_dates: '사용이력' }
+const exportTypeLabel = (type: DirectExportType | null) => type ? EXPORT_TYPE_LABEL[type] : '작업'
 
 export function DevicesPage() {
   const queryClient = useQueryClient()
@@ -159,30 +161,29 @@ export function DevicesPage() {
   }, [queryClient])
 
   const handleExportTaskMessage = useCallback((msg: Extract<SyncWebSocketMessage, { type: 'export_task_status' }>) => {
-    setExportTasks((prev) => {
-      const existing = prev[msg.task_id]
-      if (!existing) return prev
-      return {
-        ...prev,
-        [msg.task_id]: {
-          ...existing,
-          status: msg.status,
-          step: msg.step,
-          progressCurrent: msg.progress_current,
-          progressTotal: msg.progress_total,
-          errorMessage: msg.error,
-        },
-      }
-    })
+    // 등록 전에 상태 메시지가 먼저 도착해도(경합) 무시하지 않고 항목을 만들어 패널에 표시 —
+    // 과거에는 등록 전 도착한 실패 메시지가 조용히 버려져 진행중 스피너가 영원히 멈춰있는 문제가 있었음
+    const existing = exportTasks[msg.task_id]
+    setExportTasks((prev) => ({
+      ...prev,
+      [msg.task_id]: {
+        exportType: prev[msg.task_id]?.exportType ?? null,
+        status: msg.status,
+        step: msg.step,
+        progressCurrent: msg.progress_current,
+        progressTotal: msg.progress_total,
+        errorMessage: msg.error,
+      },
+    }))
 
     if (msg.status === 'success') {
-      const label = EXPORT_TYPE_LABEL[exportTasks[msg.task_id]?.exportType ?? 'policies']
+      const label = exportTypeLabel(existing?.exportType ?? null)
       toast.success(`직접 추출 완료: ${label} 추출이 완료되었습니다.`, {
         action: { label: '다운로드', onClick: () => downloadExportResult(msg.task_id, `${label}_${msg.task_id}.xlsx`) },
       })
       createNotification({ title: '직접 추출 완료', message: `${label} 추출이 완료되었습니다.`, type: 'success', category: 'system' }).catch(console.error)
     } else if (msg.status === 'failure') {
-      const label = EXPORT_TYPE_LABEL[exportTasks[msg.task_id]?.exportType ?? 'policies']
+      const label = exportTypeLabel(existing?.exportType ?? null)
       const errorMessage = msg.error ?? `${label} 추출 중 오류가 발생했습니다.`
       toast.error(`직접 추출 실패: ${errorMessage}`)
       createNotification({ title: '직접 추출 실패', message: errorMessage, type: 'error', category: 'system' }).catch(console.error)
@@ -228,12 +229,22 @@ export function DevicesPage() {
     })
   }, [])
 
-  const activeExportTasks = useMemo(
+  // 진행 중/완료/실패 작업을 모두 보여줌 — 완료 후에는 사용자가 직접 닫기 전까지 다운로드 버튼이 패널에 남아있음
+  // (토스트만으로는 몇 초 뒤 자동으로 사라져 다운로드 기회를 놓치는 문제가 있었음)
+  const visibleExportTasks = useMemo(
     () => Object.entries(exportTasks)
-      .filter(([, t]) => t.status === 'pending' || t.status === 'in_progress')
-      .map(([id, t]) => ({ id: Number(id), ...t })),
+      .map(([id, t]) => ({ id: Number(id), ...t }))
+      .sort((a, b) => b.id - a.id),
     [exportTasks]
   )
+
+  const handleDismissExportTask = useCallback((taskId: number) => {
+    setExportTasks((prev) => {
+      const next = { ...prev }
+      delete next[taskId]
+      return next
+    })
+  }, [])
 
   const bulkImportMutation = useMutation({
     mutationFn: (file: File) => bulkImportDevices(file),
@@ -397,19 +408,51 @@ export function DevicesPage() {
         </div>
       </div>
 
-      {/* 직접 추출 진행 상태 */}
-      {activeExportTasks.length > 0 && (
+      {/* 직접 추출 진행/완료 상태 — 완료·실패 건은 사용자가 닫기(X) 전까지 유지됨 */}
+      {visibleExportTasks.length > 0 && (
         <div className="shrink-0 card rounded-xl px-4 py-2.5 flex flex-col gap-2">
-          {activeExportTasks.map((t) => (
-            <div key={t.id} className="flex items-center gap-2">
-              <Loader2 className="w-3.5 h-3.5 shrink-0 text-ds-tertiary animate-spin" />
-              <span className="text-[11px] text-ds-on-surface-variant shrink-0">{EXPORT_TYPE_LABEL[t.exportType]} 추출</span>
-              <span className="text-[11px] text-ds-on-surface-variant/70 truncate flex-1">{t.step ?? '대기 중...'}</span>
-              <span className="text-[11px] font-semibold tabular-nums text-ds-on-surface-variant shrink-0">
-                {t.progressCurrent} / {t.progressTotal}
-              </span>
-            </div>
-          ))}
+          {visibleExportTasks.map((t) => {
+            if (t.status === 'success') {
+              const label = exportTypeLabel(t.exportType)
+              return (
+                <div key={t.id} className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+                  <span className="text-[11px] text-ds-on-surface-variant flex-1 truncate">{label} 추출 완료</span>
+                  <button
+                    onClick={() => downloadExportResult(t.id, `${label}_${t.id}.xlsx`)}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold text-ds-primary hover:bg-ds-primary/10 transition-colors shrink-0"
+                  >
+                    <FileDown className="w-3 h-3" />다운로드
+                  </button>
+                  <button onClick={() => handleDismissExportTask(t.id)} className="shrink-0 text-ds-on-surface-variant/50 hover:text-ds-on-surface">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )
+            }
+            if (t.status === 'failure') {
+              return (
+                <div key={t.id} className="flex items-center gap-2">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 text-ds-error" />
+                  <span className="text-[11px] text-ds-on-surface-variant shrink-0">{exportTypeLabel(t.exportType)} 추출 실패</span>
+                  <span className="text-[11px] text-ds-error/80 truncate flex-1">{t.errorMessage ?? '알 수 없는 오류'}</span>
+                  <button onClick={() => handleDismissExportTask(t.id)} className="shrink-0 text-ds-on-surface-variant/50 hover:text-ds-on-surface">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )
+            }
+            return (
+              <div key={t.id} className="flex items-center gap-2">
+                <Loader2 className="w-3.5 h-3.5 shrink-0 text-ds-tertiary animate-spin" />
+                <span className="text-[11px] text-ds-on-surface-variant shrink-0">{exportTypeLabel(t.exportType)} 추출</span>
+                <span className="text-[11px] text-ds-on-surface-variant/70 truncate flex-1">{t.step ?? '대기 중...'}</span>
+                <span className="text-[11px] font-semibold tabular-nums text-ds-on-surface-variant shrink-0">
+                  {t.progressCurrent} / {t.progressTotal}
+                </span>
+              </div>
+            )
+          })}
         </div>
       )}
 
