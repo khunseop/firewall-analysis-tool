@@ -394,7 +394,7 @@ class PaloAltoAPI(FirewallInterface):
 
         return pd.DataFrame(results)
 
-    def export_last_hit_date_ssh(self, vsys: list[str] | set[str] | None = None) -> pd.DataFrame:
+    def export_last_hit_date_ssh(self, vsys: list[str] | set[str] | None = None, timeout: int = 3600) -> pd.DataFrame:
         """
         SSH 인터랙티브 쉘을 사용하여 정책 히트 정보를 정밀하게 추출합니다.
         API 응답이 부정확하거나 누락된 데이터가 있을 때 대안으로 사용됩니다.
@@ -459,8 +459,8 @@ class PaloAltoAPI(FirewallInterface):
                 self.logger.info(f"VSYS {vsys_name} 명령 실행: {command.strip()}")
                 channel.send(command)
 
-                # 대량의 정책 정보 출력을 고려하여 긴 타임아웃(3600초) 적용
-                output = read_until_prompt(timeout=3600)
+                # 대량의 정책 정보 출력을 고려하여 긴 타임아웃 적용 (호출자가 지정, 기본 3600초)
+                output = read_until_prompt(timeout=timeout)
                 self.logger.info(f"VSYS {vsys_name} 데이터 수신 완료, 파싱 시작.")
 
                 lines = output.splitlines()

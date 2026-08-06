@@ -1,19 +1,19 @@
 from typing import List, Any, Literal
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File
+from fastapi.responses import StreamingResponse, FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from io import BytesIO
+from pathlib import Path
 from urllib.parse import quote
-from datetime import date
-import asyncio
+from datetime import datetime
+from zoneinfo import ZoneInfo
 import openpyxl
-from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
-import pandas as pd
 import logging
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from starlette.background import BackgroundTask
 
 from app import crud, models, schemas
 from app.db.session import get_db
@@ -21,163 +21,13 @@ from app.services import device_service
 from app.core.auth import get_current_user
 from app.models.user import User
 from app.services.audit_log import log_activity
-from app.services.sync.collector import create_collector_from_device
-
-_HEADER_FILL = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-_HEADER_FONT = Font(bold=True, color="FFFFFF", size=11)
-_HEADER_ALIGN = Alignment(horizontal="center", vertical="center")
-
-
-def _write_df_to_ws(ws, df: pd.DataFrame) -> None:
-    ws.append(list(df.columns))
-    for cell in ws[1]:
-        cell.fill = _HEADER_FILL
-        cell.font = _HEADER_FONT
-        cell.alignment = _HEADER_ALIGN
-    ws.row_dimensions[1].height = 20
-    for row in df.itertuples(index=False):
-        ws.append(list(row))
-    for col in ws.columns:
-        max_len = max((len(str(cell.value or "")) for cell in col), default=8)
-        ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 40)
-
-
-def _single_sheet_excel(df: pd.DataFrame, sheet_name: str) -> BytesIO:
-    wb = Workbook()
-    ws = wb.active
-    ws.title = sheet_name
-    _write_df_to_ws(ws, df)
-    buf = BytesIO()
-    wb.save(buf)
-    return buf
-
-
-def _multi_sheet_excel(sheets: dict[str, pd.DataFrame]) -> BytesIO:
-    wb = Workbook()
-    wb.remove(wb.active)
-    for sheet_name, df in sheets.items():
-        ws = wb.create_sheet(title=sheet_name)
-        _write_df_to_ws(ws, df)
-    buf = BytesIO()
-    wb.save(buf)
-    return buf
-
-
-_POLICY_COL_MAP = {
-    "vsys": "VSYS",
-    "seq": "#",
-    "rule_name": "정책명",
-    "enable": "활성",
-    "action": "액션",
-    "source": "출발지",
-    "destination": "목적지",
-    "service": "서비스",
-    "user": "사용자",
-    "application": "애플리케이션",
-    "security_profile": "보안 프로파일",
-    "category": "카테고리",
-    "description": "설명",
-    "last_hit_date": "마지막 사용일",
-}
-
-def _normalize_policy_df(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
-    if "enable" in df.columns:
-        df["enable"] = df["enable"].map(lambda v: "활성" if str(v).upper() == "Y" else "비활성")
-    return df.rename(columns={k: v for k, v in _POLICY_COL_MAP.items() if k in df.columns})
-
-
-def _normalize_object_dfs(
-    net_obj: pd.DataFrame,
-    net_grp: pd.DataFrame,
-    svc_obj: pd.DataFrame,
-    svc_grp: pd.DataFrame,
-) -> dict[str, pd.DataFrame]:
-    return {
-        "주소객체": net_obj.rename(columns={"Name": "이름", "Type": "타입", "Value": "IP 주소"}),
-        "주소그룹": net_grp.rename(columns={"Group Name": "이름", "Entry": "멤버"}),
-        "서비스객체": svc_obj.rename(columns={"Name": "이름", "Protocol": "프로토콜", "Port": "포트"}),
-        "서비스그룹": svc_grp.rename(columns={"Group Name": "이름", "Entry": "멤버"}),
-    }
-
-
-async def _collect_db_policies(db: AsyncSession, device_id: int) -> pd.DataFrame:
-    """이미 동기화되어 DB에 저장된 정책 데이터로 DataFrame을 구성합니다 (실시간 접속 없음)."""
-    policies = await crud.policy.get_policies_by_device(db, device_id=device_id)
-    rows = [{
-        "vsys": p.vsys, "seq": p.seq, "rule_name": p.rule_name,
-        "enable": "Y" if p.enable else "N", "action": p.action,
-        "source": p.source, "destination": p.destination, "service": p.service,
-        "user": p.user, "application": p.application, "security_profile": p.security_profile,
-        "category": p.category, "description": p.description, "last_hit_date": p.last_hit_date,
-    } for p in policies]
-    return pd.DataFrame(rows)
-
-
-async def _collect_db_objects(db: AsyncSession, device_id: int) -> dict[str, pd.DataFrame]:
-    """이미 동기화되어 DB에 저장된 객체 데이터로 DataFrame을 구성합니다 (실시간 접속 없음)."""
-    net_objs = await crud.network_object.get_all_active_network_objects_by_device(db, device_id=device_id)
-    net_grps = await crud.network_group.get_all_active_network_groups_by_device(db, device_id=device_id)
-    svc_objs = await crud.service.get_all_active_services_by_device(db, device_id=device_id)
-    svc_grps = await crud.service_group.get_all_active_service_groups_by_device(db, device_id=device_id)
-
-    net_obj_df = pd.DataFrame([{"Name": o.name, "Type": o.type, "Value": o.ip_address} for o in net_objs])
-    net_grp_df = pd.DataFrame([{"Group Name": g.name, "Entry": g.members} for g in net_grps])
-    svc_obj_df = pd.DataFrame([{"Name": s.name, "Protocol": s.protocol, "Port": s.port} for s in svc_objs])
-    svc_grp_df = pd.DataFrame([{"Group Name": g.name, "Entry": g.members} for g in svc_grps])
-    return _normalize_object_dfs(net_obj_df, net_grp_df, svc_obj_df, svc_grp_df)
-
-
-async def _collect_db_hit_dates(db: AsyncSession, device_id: int) -> pd.DataFrame:
-    """이미 동기화되어 DB에 저장된 정책의 마지막 사용일 데이터로 DataFrame을 구성합니다."""
-    policies = await crud.policy.get_policies_by_device(db, device_id=device_id)
-    rows = [{"vsys": p.vsys, "rule_name": p.rule_name, "last_hit_date": p.last_hit_date} for p in policies]
-    return pd.DataFrame(rows)
-
-
-async def _collect_hit_dates(
-    collector,
-    device: models.Device,
-    use_ssh: bool,
-    loop: asyncio.AbstractEventLoop,
-    timeout: int,
-) -> pd.DataFrame:
-    method = collector.export_last_hit_date_ssh if use_ssh else collector.export_last_hit_date
-    main_df: pd.DataFrame = await asyncio.wait_for(
-        loop.run_in_executor(None, method), timeout=timeout
-    )
-
-    if not device.ha_peer_ip:
-        return main_df
-
-    ha_collector = create_collector_from_device(device, use_ha_ip=True)
-    ha_df: pd.DataFrame | None = None
-    try:
-        await loop.run_in_executor(None, ha_collector.connect)
-        ha_method = ha_collector.export_last_hit_date_ssh if use_ssh else ha_collector.export_last_hit_date
-        ha_df = await loop.run_in_executor(None, ha_method)
-    except Exception as e:
-        logger.warning(f"HA peer hit_date 수집 실패 ({device.ha_peer_ip}): {e}")
-    finally:
-        try:
-            await loop.run_in_executor(None, ha_collector.disconnect)
-        except Exception:
-            pass
-
-    if ha_df is None or ha_df.empty:
-        return main_df
-
-    combined = pd.concat([main_df, ha_df])
-    combined["last_hit_date"] = pd.to_datetime(combined["last_hit_date"], errors="coerce")
-    subset = ["vsys", "rule_name"] if "vsys" in combined.columns else ["rule_name"]
-    combined = combined.sort_values("last_hit_date", ascending=False, na_position="last")
-    return combined.drop_duplicates(subset=subset, keep="first")
+from app.services.export.tasks import run_export_task
 
 
 class DirectExportRequest(BaseModel):
     export_type: Literal["policies", "objects", "hit_dates"]
     use_ssh: bool = False
-    timeout_seconds: int = 600
+    timeout_seconds: int = Field(default=600, ge=30, le=7200)
 
 
 class BulkExportRequest(BaseModel):
@@ -186,7 +36,7 @@ class BulkExportRequest(BaseModel):
     source: Literal["live", "db"] = "live"
     merge: bool = False
     use_ssh: bool = False
-    timeout_seconds: int = 600
+    timeout_seconds: int = Field(default=600, ge=30, le=7200)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -598,172 +448,122 @@ async def bulk_import_devices(
         raise HTTPException(status_code=500, detail=f"엑셀 파일 처리 실패: {str(e)}")
 
 
+def _now_kst() -> datetime:
+    return datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
+
+
+async def _create_export_task(
+    db: AsyncSession,
+    current_user: User,
+    device_ids: list[int],
+    export_type: str,
+    source: str,
+    merge: bool,
+    use_ssh: bool,
+    timeout_seconds: int,
+) -> models.ExportTask:
+    task = models.ExportTask(
+        device_ids=device_ids,
+        export_type=export_type,
+        source=source,
+        merge=merge,
+        use_ssh=use_ssh,
+        timeout_seconds=timeout_seconds,
+        status="pending",
+        progress_total=len(device_ids),
+        requested_by_user_id=current_user.id,
+        requested_by_username=current_user.username,
+        created_at=_now_kst(),
+    )
+    db.add(task)
+    await db.commit()
+    await db.refresh(task)
+    return task
+
+
 @router.post("/{device_id}/direct-export")
 async def direct_export_device(
     device_id: int,
     request: DirectExportRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """장비에 직접 연결하여 정책/객체/사용이력을 즉시 Excel로 추출합니다."""
+    """장비에 직접 연결하여 정책/객체/사용이력을 백그라운드로 Excel 추출합니다. 진행 상태는 WebSocket(export_task_status)으로 브로드캐스트됩니다."""
     device = await crud.device.get_device(db, device_id=device_id)
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
 
-    loop = asyncio.get_running_loop()
-    timeout = request.timeout_seconds
-
-    try:
-        collector = create_collector_from_device(device)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Collector 초기화 실패: {e}")
-
-    try:
-        await asyncio.wait_for(loop.run_in_executor(None, collector.connect), timeout=min(timeout, 60))
-    except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail="장비 연결 타임아웃")
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"장비 연결 실패: {e}")
-
-    today = date.today().strftime("%Y%m%d")
-    try:
-        if request.export_type == "policies":
-            df = await asyncio.wait_for(
-                loop.run_in_executor(None, collector.export_security_rules),
-                timeout=timeout,
-            )
-            output = _single_sheet_excel(_normalize_policy_df(df), "정책")
-            filename = f"{device.name}_정책_{today}.xlsx"
-
-        elif request.export_type == "objects":
-            net_obj = await loop.run_in_executor(None, collector.export_network_objects)
-            net_grp = await loop.run_in_executor(None, collector.export_network_group_objects)
-            svc_obj = await loop.run_in_executor(None, collector.export_service_objects)
-            svc_grp = await loop.run_in_executor(None, collector.export_service_group_objects)
-            output = _multi_sheet_excel(_normalize_object_dfs(net_obj, net_grp, svc_obj, svc_grp))
-            filename = f"{device.name}_객체_{today}.xlsx"
-
-        elif request.export_type == "hit_dates":
-            df = await _collect_hit_dates(collector, device, request.use_ssh, loop, timeout)
-            output = _single_sheet_excel(df, "사용이력")
-            filename = f"{device.name}_사용이력_{today}.xlsx"
-
-    except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail=f"데이터 수집 타임아웃 ({timeout}초 초과)")
-    except NotImplementedError:
-        raise HTTPException(status_code=400, detail="이 장비는 해당 기능을 지원하지 않습니다.")
-    except Exception as e:
-        logger.error(f"direct-export 실패 device={device_id} type={request.export_type}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"데이터 수집 실패: {e}")
-    finally:
-        try:
-            await loop.run_in_executor(None, collector.disconnect)
-        except Exception:
-            pass
-
-    output.seek(0)
-    encoded_name = quote(filename, safe="")
-    return StreamingResponse(
-        output,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_name}"},
+    task = await _create_export_task(
+        db, current_user, [device_id], request.export_type, "live", False, request.use_ssh, request.timeout_seconds
     )
-
-
-_EXPORT_TYPE_LABEL = {"policies": "정책", "objects": "객체", "hit_dates": "사용이력"}
+    background_tasks.add_task(run_export_task, task.id)
+    return {"task_id": task.id}
 
 
 @router.post("/export")
 async def bulk_export_devices(
     request: BulkExportRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
-    여러 장비의 정책/객체/사용이력을 추출합니다.
+    여러 장비의 정책/객체/사용이력을 백그라운드로 추출합니다.
     source='db'면 실시간 접속 없이 이미 동기화된 DB 데이터를 사용하고,
-    merge=true면 장비별 결과를 하나의 엑셀 워크북으로 합쳐서 반환합니다.
+    merge=true면 장비별 결과를 하나의 엑셀 워크북으로 합쳐서 저장합니다.
+    진행 상태는 WebSocket(export_task_status)으로 브로드캐스트됩니다.
     """
     if not request.device_ids:
         raise HTTPException(status_code=400, detail="device_ids가 비어 있습니다.")
 
-    devices = []
     for device_id in request.device_ids:
-        device = await crud.device.get_device(db, device_id=device_id)
-        if not device:
+        if not await crud.device.get_device(db, device_id=device_id):
             raise HTTPException(status_code=404, detail=f"Device {device_id} not found")
-        devices.append(device)
 
-    today = date.today().strftime("%Y%m%d")
-    loop = asyncio.get_running_loop()
+    task = await _create_export_task(
+        db, current_user, request.device_ids, request.export_type,
+        request.source, request.merge, request.use_ssh, request.timeout_seconds,
+    )
+    background_tasks.add_task(run_export_task, task.id)
+    return {"task_id": task.id}
 
-    # device.id -> 단일 DataFrame(policies/hit_dates) 또는 시트명->DataFrame 딕셔너리(objects)
-    per_device_data: dict[int, Any] = {}
 
-    for device in devices:
-        if request.source == "db":
-            if request.export_type == "policies":
-                per_device_data[device.id] = _normalize_policy_df(await _collect_db_policies(db, device.id))
-            elif request.export_type == "objects":
-                per_device_data[device.id] = await _collect_db_objects(db, device.id)
-            else:
-                per_device_data[device.id] = await _collect_db_hit_dates(db, device.id)
-            continue
+@router.get("/export-tasks/active")
+async def list_active_export_tasks(db: AsyncSession = Depends(get_db)):
+    """진행 중(pending/in_progress)인 직접 추출 작업 목록을 반환합니다 (새로고침 시 상태 복구용)."""
+    result = await db.execute(
+        select(models.ExportTask).where(models.ExportTask.status.in_(["pending", "in_progress"]))
+    )
+    return result.scalars().all()
 
-        try:
-            collector = create_collector_from_device(device)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Collector 초기화 실패 ({device.name}): {e}")
 
-        try:
-            await asyncio.wait_for(loop.run_in_executor(None, collector.connect), timeout=min(request.timeout_seconds, 60))
-            if request.export_type == "policies":
-                df = await asyncio.wait_for(loop.run_in_executor(None, collector.export_security_rules), timeout=request.timeout_seconds)
-                per_device_data[device.id] = _normalize_policy_df(df)
-            elif request.export_type == "objects":
-                net_obj = await loop.run_in_executor(None, collector.export_network_objects)
-                net_grp = await loop.run_in_executor(None, collector.export_network_group_objects)
-                svc_obj = await loop.run_in_executor(None, collector.export_service_objects)
-                svc_grp = await loop.run_in_executor(None, collector.export_service_group_objects)
-                per_device_data[device.id] = _normalize_object_dfs(net_obj, net_grp, svc_obj, svc_grp)
-            else:
-                per_device_data[device.id] = await _collect_hit_dates(collector, device, request.use_ssh, loop, request.timeout_seconds)
-        except asyncio.TimeoutError:
-            raise HTTPException(status_code=504, detail=f"데이터 수집 타임아웃 ({device.name})")
-        except NotImplementedError:
-            raise HTTPException(status_code=400, detail=f"{device.name}은(는) 해당 기능을 지원하지 않습니다.")
-        except Exception as e:
-            logger.error(f"bulk-export 실패 device={device.id} type={request.export_type}: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"데이터 수집 실패 ({device.name}): {e}")
-        finally:
-            try:
-                await loop.run_in_executor(None, collector.disconnect)
-            except Exception:
-                pass
+@router.get("/export-tasks/{task_id}")
+async def get_export_task(task_id: int, db: AsyncSession = Depends(get_db)):
+    """직접 추출 작업의 현재 상태를 조회합니다 (WebSocket 유실 시 폴백용)."""
+    task = await db.get(models.ExportTask, task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Export task not found")
+    return task
 
-    label = _EXPORT_TYPE_LABEL[request.export_type]
 
-    if request.merge and len(devices) > 1:
-        merged_sheets: dict[str, pd.DataFrame] = {}
-        for device in devices:
-            data = per_device_data[device.id]
-            if isinstance(data, dict):
-                for sheet_name, df in data.items():
-                    merged_sheets[f"{sheet_name}_{device.name}"[:31]] = df
-            else:
-                merged_sheets[device.name[:31]] = data
-        output = _multi_sheet_excel(merged_sheets)
-        filename = f"통합_{label}_{today}.xlsx"
-    else:
-        device = devices[0]
-        data = per_device_data[device.id]
-        output = _multi_sheet_excel(data) if isinstance(data, dict) else _single_sheet_excel(data, label)
-        filename = f"{device.name}_{label}_{today}.xlsx"
+@router.get("/export-tasks/{task_id}/download")
+async def download_export_task_result(task_id: int, db: AsyncSession = Depends(get_db)):
+    """완료된 직접 추출 작업의 결과 파일을 다운로드하고, 다운로드 후 디스크에서 삭제합니다."""
+    task = await db.get(models.ExportTask, task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Export task not found")
+    if task.status != "success" or not task.result_file_path:
+        raise HTTPException(status_code=400, detail="아직 완료되지 않았거나 결과 파일이 없습니다.")
 
-    output.seek(0)
-    encoded_name = quote(filename, safe="")
-    return StreamingResponse(
-        output,
+    file_path = Path(task.result_file_path)
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="결과 파일을 찾을 수 없습니다 (이미 다운로드되어 삭제되었을 수 있습니다).")
+
+    encoded_name = quote(task.result_filename or file_path.name, safe="")
+    return FileResponse(
+        file_path,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_name}"},
+        background=BackgroundTask(file_path.unlink, missing_ok=True),
     )

@@ -1,4 +1,4 @@
-import { apiClient, downloadBlob, downloadBlobPost } from './client'
+import { apiClient, downloadBlob } from './client'
 import type { Device, DeviceCreate, DeviceUpdate, DashboardStats } from '@/types/device'
 
 export type { Device, DeviceCreate, DeviceUpdate, DeviceStats, DashboardStats } from '@/types/device'
@@ -72,46 +72,69 @@ export const bulkImportDevices = async (file: File): Promise<BulkImportResult> =
 
 export type DirectExportType = 'policies' | 'objects' | 'hit_dates'
 
+export type ExportTaskStatus = 'pending' | 'in_progress' | 'success' | 'failure'
+
+export interface ExportTask {
+  id: number
+  device_ids: number[]
+  export_type: DirectExportType
+  source: 'live' | 'db'
+  merge: boolean
+  use_ssh: boolean
+  timeout_seconds: number
+  status: ExportTaskStatus
+  step: string | null
+  progress_current: number
+  progress_total: number
+  error_message: string | null
+  result_file_path: string | null
+  result_filename: string | null
+  requested_by_user_id: number | null
+  requested_by_username: string | null
+  created_at: string
+  started_at: string | null
+  completed_at: string | null
+}
+
 export const directExport = async (
   device: Device,
   exportType: DirectExportType,
   options?: { use_ssh?: boolean; timeout_seconds?: number },
-): Promise<void> => {
-  const timeout = options?.timeout_seconds ?? 600
-  const labelMap: Record<DirectExportType, string> = { policies: '정책', objects: '객체', hit_dates: '사용이력' }
-  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-  const filename = `${device.name}_${labelMap[exportType]}_${today}.xlsx`
-  await downloadBlobPost(
-    `/api/v1/devices/${device.id}/direct-export`,
-    { export_type: exportType, use_ssh: options?.use_ssh ?? false, timeout_seconds: timeout },
-    filename,
-    (timeout + 60) * 1000,
-  )
+): Promise<{ task_id: number }> => {
+  const res = await apiClient.post(`/devices/${device.id}/direct-export`, {
+    export_type: exportType,
+    use_ssh: options?.use_ssh ?? false,
+    timeout_seconds: options?.timeout_seconds ?? 600,
+  })
+  return res.data
 }
 
 export const bulkExportDevices = async (
   devices: Device[],
   exportType: DirectExportType,
   options?: { source?: 'live' | 'db'; merge?: boolean; use_ssh?: boolean; timeout_seconds?: number },
-): Promise<void> => {
-  const timeout = options?.timeout_seconds ?? 600
-  const labelMap: Record<DirectExportType, string> = { policies: '정책', objects: '객체', hit_dates: '사용이력' }
-  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-  const merge = options?.merge ?? false
-  const filename = merge && devices.length > 1
-    ? `통합_${labelMap[exportType]}_${today}.xlsx`
-    : `${devices[0].name}_${labelMap[exportType]}_${today}.xlsx`
-  await downloadBlobPost(
-    '/api/v1/devices/export',
-    {
-      device_ids: devices.map((d) => d.id),
-      export_type: exportType,
-      source: options?.source ?? 'live',
-      merge,
-      use_ssh: options?.use_ssh ?? false,
-      timeout_seconds: timeout,
-    },
-    filename,
-    (timeout + 60) * 1000,
-  )
+): Promise<{ task_id: number }> => {
+  const res = await apiClient.post('/devices/export', {
+    device_ids: devices.map((d) => d.id),
+    export_type: exportType,
+    source: options?.source ?? 'live',
+    merge: options?.merge ?? false,
+    use_ssh: options?.use_ssh ?? false,
+    timeout_seconds: options?.timeout_seconds ?? 600,
+  })
+  return res.data
+}
+
+export const getActiveExportTasks = async (): Promise<ExportTask[]> => {
+  const res = await apiClient.get<ExportTask[]>('/devices/export-tasks/active')
+  return res.data
+}
+
+export const getExportTaskStatus = async (taskId: number): Promise<ExportTask> => {
+  const res = await apiClient.get<ExportTask>(`/devices/export-tasks/${taskId}`)
+  return res.data
+}
+
+export const downloadExportResult = async (taskId: number, filename: string): Promise<void> => {
+  await downloadBlob(`/api/v1/devices/export-tasks/${taskId}/download`, filename)
 }

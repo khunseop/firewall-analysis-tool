@@ -56,6 +56,41 @@ class WebSocketManager:
         
         logger.debug(f"WebSocket 브로드캐스트: 장비 {device_id}, 상태={status}, 단계={step}, 성공={success_count}/{len(self.active_connections)}")
 
+    async def broadcast_export_status(
+        self,
+        task_id: int,
+        status: str,
+        step: str | None = None,
+        progress_current: int = 0,
+        progress_total: int = 0,
+        error: str | None = None,
+    ):
+        """직접 추출(Export) 백그라운드 작업의 진행 상태를 모든 연결된 클라이언트에 브로드캐스트"""
+        message = {
+            "type": "export_task_status",
+            "task_id": task_id,
+            "status": status,
+            "step": step,
+            "progress_current": progress_current,
+            "progress_total": progress_total,
+            "error": error,
+        }
+
+        if not self.active_connections:
+            logger.debug(f"WebSocket 활성 연결이 없음. 작업 {task_id} 상태 브로드캐스트 스킵: {status} ({step})")
+            return
+
+        disconnected = set()
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except Exception as e:
+                logger.warning(f"WebSocket 메시지 전송 실패: {e}")
+                disconnected.add(connection)
+
+        for connection in disconnected:
+            self.disconnect(connection)
+
 
 # 전역 인스턴스
 websocket_manager = WebSocketManager()

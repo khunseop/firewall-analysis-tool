@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Loader2, FileDown } from 'lucide-react'
+import { FileDown } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -13,18 +13,16 @@ const EXPORT_TYPE_OPTIONS: { type: DirectExportType; label: string; desc: string
   { type: 'hit_dates', label: '사용이력', desc: 'HA Peer 포함 최신 히트 일시' },
 ]
 
-export function DirectExportDialog({ open, onClose, devices }: {
+export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
   open: boolean; onClose: () => void; devices: Device[]
+  onTasksStarted: (taskIds: number[], exportType: DirectExportType) => void
 }) {
   const [exportType, setExportType] = useState<DirectExportType>('policies')
   const [source, setSource] = useState<'live' | 'db'>('live')
   const [merge, setMerge] = useState(false)
   const [useSsh, setUseSsh] = useState(false)
   const [timeout, setTimeout_] = useState(600)
-  const [progress, setProgress] = useState<{ current: number; total: number; name: string } | null>(null)
-  const [errors, setErrors] = useState<{ name: string; msg: string }[]>([])
-
-  const loading = progress !== null
+  const [submitting, setSubmitting] = useState(false)
 
   // 열릴 때 초기값 재설정 (렌더 중 상태 조정 패턴)
   const [prevOpen, setPrevOpen] = useState(open)
@@ -36,68 +34,68 @@ export function DirectExportDialog({ open, onClose, devices }: {
       setMerge(false)
       setUseSsh(devices.length === 1 ? devices[0].use_ssh_for_last_hit_date : false)
       setTimeout_(600)
-      setProgress(null)
-      setErrors([])
+      setSubmitting(false)
     }
   }
 
   const handleExport = async () => {
     if (devices.length === 0) return
     const label = EXPORT_TYPE_OPTIONS.find(o => o.type === exportType)?.label ?? exportType
+    setSubmitting(true)
 
-    if (merge && devices.length > 1) {
-      setProgress({ current: 1, total: 1, name: `${devices.length}개 장비 병합 중` })
-      try {
-        await bulkExportDevices(devices, exportType, {
+    try {
+      if (merge && devices.length > 1) {
+        const { task_id } = await bulkExportDevices(devices, exportType, {
           source, merge: true,
           use_ssh: exportType === 'hit_dates' ? useSsh : false,
           timeout_seconds: timeout,
         })
-        setProgress(null)
-        toast.success(`${devices.length}개 장비 ${label} 통합 추출 완료`)
-        onClose()
-      } catch (e: unknown) {
-        setProgress(null)
-        setErrors([{ name: '통합 추출', msg: (e as Error).message }])
-      }
-      return
-    }
+        onTasksStarted([task_id], exportType)
+        toast.success(`${devices.length}개 장비 ${label} 통합 추출을 백그라운드에서 시작했습니다.`)
+      } else {
+        const results = await Promise.allSettled(devices.map((d) => (
+          source === 'db'
+            ? bulkExportDevices([d], exportType, {
+                source: 'db',
+                use_ssh: exportType === 'hit_dates' ? useSsh : false,
+                timeout_seconds: timeout,
+              })
+            : directExport(d, exportType, {
+                use_ssh: exportType === 'hit_dates' ? useSsh : false,
+                timeout_seconds: timeout,
+              })
+        )))
 
-    const errs: { name: string; msg: string }[] = []
-    for (let i = 0; i < devices.length; i++) {
-      const d = devices[i]
-      setProgress({ current: i + 1, total: devices.length, name: d.name })
-      try {
-        if (source === 'db') {
-          await bulkExportDevices([d], exportType, {
-            source: 'db',
-            use_ssh: exportType === 'hit_dates' ? useSsh : false,
-            timeout_seconds: timeout,
-          })
-        } else {
-          await directExport(d, exportType, {
-            use_ssh: exportType === 'hit_dates' ? useSsh : false,
-            timeout_seconds: timeout,
-          })
+        const taskIds: number[] = []
+        const failed: string[] = []
+        results.forEach((res, i) => {
+          if (res.status === 'fulfilled') {
+            taskIds.push(res.value.task_id)
+          } else {
+            failed.push(devices[i].name)
+          }
+        })
+
+        if (taskIds.length > 0) {
+          onTasksStarted(taskIds, exportType)
+          toast.success(`${taskIds.length}개 장비 ${label} 추출을 백그라운드에서 시작했습니다.`)
         }
-      } catch (e: unknown) {
-        errs.push({ name: d.name, msg: (e as Error).message })
+        if (failed.length > 0) {
+          toast.error(`${failed.join(', ')} 추출 시작 실패`)
+        }
       }
-    }
-    setProgress(null)
-    setErrors(errs)
-    if (errs.length === 0) {
-      toast.success(`${devices.length}개 장비 ${label} 추출 완료`)
       onClose()
-    } else if (errs.length < devices.length) {
-      toast.warning(`${devices.length - errs.length}개 성공, ${errs.length}개 실패`)
+    } catch (e: unknown) {
+      toast.error((e as Error).message)
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const needsTimeout = exportType !== 'objects'
 
   return (
-    <Dialog open={open} onOpenChange={loading ? undefined : onClose}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-sm bg-ds-surface-container-lowest">
         <DialogHeader>
           <DialogTitle className="font-headline text-ds-on-surface">직접 추출</DialogTitle>
@@ -108,7 +106,7 @@ export function DirectExportDialog({ open, onClose, devices }: {
                 <span className="font-semibold text-ds-on-surface">{devices[0].name}</span>
                 {devices[0].ha_peer_ip && <span className="ml-1.5 text-[10px] text-ds-tertiary font-semibold">HA</span>}
               </>
-            : <><span className="font-semibold text-ds-on-surface">{devices.length}개 장비</span>에서 순차 추출</>
+            : <><span className="font-semibold text-ds-on-surface">{devices.length}개 장비</span>에서 백그라운드로 추출</>
           }
         </p>
         <div className="space-y-2 py-1">
@@ -174,53 +172,29 @@ export function DirectExportDialog({ open, onClose, devices }: {
             <Input
               type="number"
               min={30}
-              max={3600}
+              max={7200}
               value={timeout}
               onChange={(e) => setTimeout_(Number(e.target.value))}
               className="bg-white border-ds-outline-variant/30 text-sm w-24 text-right"
             />
-            <span className="text-[11px] text-ds-on-surface-variant">초 / 장비</span>
+            <span className="text-[11px] text-ds-on-surface-variant">초 / 장비 (최대 2시간)</span>
           </div>
         )}
 
-        {progress && (
-          <div className="px-1 space-y-1">
-            <div className="flex justify-between text-[11px] text-ds-on-surface-variant">
-              <span className="truncate">{progress.name}</span>
-              <span className="shrink-0 tabular-nums">{progress.current} / {progress.total}</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-ds-outline-variant/20 overflow-hidden">
-              <div
-                className="h-full bg-ds-primary rounded-full transition-all duration-300"
-                style={{ width: `${(progress.current / progress.total) * 100}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {errors.length > 0 && !loading && (
-          <div className="px-1 space-y-1">
-            {errors.map(({ name, msg }) => (
-              <p key={name} className="text-[11px] text-ds-error">
-                <span className="font-semibold">{name}</span>: {msg}
-              </p>
-            ))}
-          </div>
-        )}
+        <p className="px-1 text-[11px] text-ds-on-surface-variant">
+          추출은 백그라운드에서 진행되며, 완료되면 알림으로 다운로드 링크가 표시됩니다.
+        </p>
 
         <DialogFooter>
-          <button type="button" onClick={onClose} disabled={loading} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors disabled:opacity-40">
-            {errors.length > 0 && !loading ? '닫기' : '취소'}
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">
+            취소
           </button>
           <button
             onClick={handleExport}
-            disabled={loading}
+            disabled={submitting}
             className="flex items-center gap-1.5 px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50"
           >
-            {loading
-              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />수집 중…</>
-              : <><FileDown className="w-3.5 h-3.5" />추출</>
-            }
+            <FileDown className="w-3.5 h-3.5" />추출 시작
           </button>
         </DialogFooter>
       </DialogContent>

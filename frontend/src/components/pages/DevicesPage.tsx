@@ -8,9 +8,10 @@ import { rowIdFromId } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
-import { listDevices, createDevice, updateDevice, deleteDevice, testConnection, syncAll, downloadDeviceTemplate, bulkImportDevices, type Device, type DeviceCreate, type DeviceUpdate } from '@/api/devices'
-import { useSyncStatusWebSocket, type SyncStatusMessage } from '@/hooks/useWebSocket'
+import { listDevices, createDevice, updateDevice, deleteDevice, testConnection, syncAll, downloadDeviceTemplate, bulkImportDevices, getActiveExportTasks, downloadExportResult, type Device, type DeviceCreate, type DeviceUpdate, type DirectExportType } from '@/api/devices'
+import { useSyncStatusWebSocket, type SyncWebSocketMessage } from '@/hooks/useWebSocket'
 import { notify } from '@/lib/notify'
+import { createNotification } from '@/api/notifications'
 import { DeviceDetailDialog } from './devices/DeviceDetailDialog'
 import { queryKeys } from '@/api/queryKeys'
 import { DeviceFormDialog } from './devices/DeviceFormDialog'
@@ -19,6 +20,18 @@ import { BulkGroupDialog } from './devices/BulkGroupDialog'
 import { DirectExportDialog } from './devices/DirectExportDialog'
 import { buildColumnDefs } from './devices/deviceColumns'
 import { useDeviceSearchStore } from '@/store/deviceSearchStore'
+
+interface ExportTaskInfo {
+  exportType: DirectExportType
+  status: 'pending' | 'in_progress' | 'success' | 'failure'
+  step: string | null
+  progressCurrent: number
+  progressTotal: number
+  errorMessage?: string | null
+  resultFilename?: string | null
+}
+
+const EXPORT_TYPE_LABEL: Record<DirectExportType, string> = { policies: '정책', objects: '객체', hit_dates: '사용이력' }
 
 export function DevicesPage() {
   const queryClient = useQueryClient()
@@ -35,6 +48,7 @@ export function DevicesPage() {
   const [bulkGroupOpen, setBulkGroupOpen] = useState(false)
   const [directExportOpen, setDirectExportOpen] = useState(false)
   const [detailTarget, setDetailTarget] = useState<Device | null>(null)
+  const [exportTasks, setExportTasks] = useState<Record<number, ExportTaskInfo>>({})
   const addMenuRef = useRef<HTMLDivElement>(null)
   const { confirm, ConfirmDialogElement } = useConfirm()
 
@@ -118,7 +132,7 @@ export function DevicesPage() {
     onError: (e: Error) => toast.error(e.message),
   })
 
-  const handleSyncMessage = useCallback((msg: SyncStatusMessage) => {
+  const handleSyncMessage = useCallback((msg: Extract<SyncWebSocketMessage, { type: 'device_sync_status' }>) => {
     const api = gridRef.current?.gridApi ?? null
     let deviceName: string | undefined
     if (api) {
@@ -144,7 +158,82 @@ export function DevicesPage() {
     }
   }, [queryClient])
 
-  useSyncStatusWebSocket(handleSyncMessage)
+  const handleExportTaskMessage = useCallback((msg: Extract<SyncWebSocketMessage, { type: 'export_task_status' }>) => {
+    setExportTasks((prev) => {
+      const existing = prev[msg.task_id]
+      if (!existing) return prev
+      return {
+        ...prev,
+        [msg.task_id]: {
+          ...existing,
+          status: msg.status,
+          step: msg.step,
+          progressCurrent: msg.progress_current,
+          progressTotal: msg.progress_total,
+          errorMessage: msg.error,
+        },
+      }
+    })
+
+    if (msg.status === 'success') {
+      const label = EXPORT_TYPE_LABEL[exportTasks[msg.task_id]?.exportType ?? 'policies']
+      toast.success(`직접 추출 완료: ${label} 추출이 완료되었습니다.`, {
+        action: { label: '다운로드', onClick: () => downloadExportResult(msg.task_id, `${label}_${msg.task_id}.xlsx`) },
+      })
+      createNotification({ title: '직접 추출 완료', message: `${label} 추출이 완료되었습니다.`, type: 'success', category: 'system' }).catch(console.error)
+    } else if (msg.status === 'failure') {
+      const label = EXPORT_TYPE_LABEL[exportTasks[msg.task_id]?.exportType ?? 'policies']
+      const errorMessage = msg.error ?? `${label} 추출 중 오류가 발생했습니다.`
+      toast.error(`직접 추출 실패: ${errorMessage}`)
+      createNotification({ title: '직접 추출 실패', message: errorMessage, type: 'error', category: 'system' }).catch(console.error)
+    }
+  }, [exportTasks])
+
+  const handleWebSocketMessage = useCallback((msg: SyncWebSocketMessage) => {
+    if (msg.type === 'device_sync_status') handleSyncMessage(msg)
+    else handleExportTaskMessage(msg)
+  }, [handleSyncMessage, handleExportTaskMessage])
+
+  useSyncStatusWebSocket(handleWebSocketMessage)
+
+  // 새로고침 시 진행 중이던 직접 추출 작업 상태 복구
+  useEffect(() => {
+    getActiveExportTasks().then((tasks) => {
+      if (tasks.length === 0) return
+      setExportTasks((prev) => {
+        const next = { ...prev }
+        for (const t of tasks) {
+          next[t.id] = {
+            exportType: t.export_type,
+            status: t.status,
+            step: t.step,
+            progressCurrent: t.progress_current,
+            progressTotal: t.progress_total,
+            errorMessage: t.error_message,
+            resultFilename: t.result_filename,
+          }
+        }
+        return next
+      })
+    }).catch(() => { /* 조회 실패는 조용히 무시 (진행상태 복구는 부가 기능) */ })
+  }, [])
+
+  const handleExportTasksStarted = useCallback((taskIds: number[], exportType: DirectExportType) => {
+    setExportTasks((prev) => {
+      const next = { ...prev }
+      for (const taskId of taskIds) {
+        next[taskId] = { exportType, status: 'pending', step: null, progressCurrent: 0, progressTotal: 1 }
+      }
+      return next
+    })
+  }, [])
+
+  const activeExportTasks = useMemo(
+    () => Object.entries(exportTasks)
+      .filter(([, t]) => t.status === 'pending' || t.status === 'in_progress')
+      .map(([id, t]) => ({ id: Number(id), ...t })),
+    [exportTasks]
+  )
 
   const bulkImportMutation = useMutation({
     mutationFn: (file: File) => bulkImportDevices(file),
@@ -307,6 +396,22 @@ export function DevicesPage() {
           <span className={`text-[13px] font-bold tabular-nums ${syncCounts.error > 0 ? 'text-ds-error' : 'text-ds-on-surface-variant/40'}`}>{isLoading ? '…' : syncCounts.error}</span>
         </div>
       </div>
+
+      {/* 직접 추출 진행 상태 */}
+      {activeExportTasks.length > 0 && (
+        <div className="shrink-0 card rounded-xl px-4 py-2.5 flex flex-col gap-2">
+          {activeExportTasks.map((t) => (
+            <div key={t.id} className="flex items-center gap-2">
+              <Loader2 className="w-3.5 h-3.5 shrink-0 text-ds-tertiary animate-spin" />
+              <span className="text-[11px] text-ds-on-surface-variant shrink-0">{EXPORT_TYPE_LABEL[t.exportType]} 추출</span>
+              <span className="text-[11px] text-ds-on-surface-variant/70 truncate flex-1">{t.step ?? '대기 중...'}</span>
+              <span className="text-[11px] font-semibold tabular-nums text-ds-on-surface-variant shrink-0">
+                {t.progressCurrent} / {t.progressTotal}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 장비 테이블 */}
       <div className="card rounded-xl flex flex-col overflow-hidden">
@@ -523,6 +628,7 @@ export function DevicesPage() {
         open={directExportOpen}
         onClose={() => setDirectExportOpen(false)}
         devices={selectedDevices}
+        onTasksStarted={handleExportTasksStarted}
       />
 
       {/* 그룹 일괄 설정 다이얼로그 */}

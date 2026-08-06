@@ -10,7 +10,7 @@ import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgG
 import { rowIdFromId } from '@/lib/utils'
 import { getDashboardStats, type DeviceStats } from '@/api/devices'
 import { getChangeStats, type ChangeStatCategory } from '@/api/firewall'
-import { useSyncStatusWebSocket } from '@/hooks/useWebSocket'
+import { useSyncStatusWebSocket, type SyncWebSocketMessage } from '@/hooks/useWebSocket'
 import { notify } from '@/lib/notify'
 import { formatNumber, formatRelativeTime } from '@/lib/utils'
 import { capacityLevel, CAPACITY_LEVEL_BAR_COLOR, CAPACITY_LEVEL_TEXT_COLOR } from '@/lib/deviceCapacity'
@@ -195,7 +195,8 @@ export function DashboardPage() {
   const rowData: DeviceRow[] = stats?.device_stats.map(transformDeviceStats) ?? []
 
   const handleSyncMessage = useCallback(
-    (msg: { device_id: number; status: string; step: string | null }) => {
+    (msg: SyncWebSocketMessage) => {
+      if (msg.type !== 'device_sync_status') return
       const api: GridApi<DeviceRow> | null = gridRef.current?.gridApi ?? null
       let deviceName: string | undefined
       if (api) {

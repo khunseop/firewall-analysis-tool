@@ -8,15 +8,27 @@ export interface SyncStatusMessage {
   step: string | null
 }
 
+export interface ExportTaskStatusMessage {
+  type: 'export_task_status'
+  task_id: number
+  status: 'pending' | 'in_progress' | 'success' | 'failure'
+  step: string | null
+  progress_current: number
+  progress_total: number
+  error: string | null
+}
+
+export type SyncWebSocketMessage = SyncStatusMessage | ExportTaskStatusMessage
+
 const RECONNECT_BASE_DELAY_MS = 1_000
 const RECONNECT_MAX_DELAY_MS = 30_000
 
 /**
- * 동기화 진행 상태 WebSocket 구독 훅.
+ * 동기화/직접추출 진행 상태 WebSocket 구독 훅.
  * 연결이 끊기면 지수 백오프(1s → 2s → … 최대 30s)로 재연결하며,
  * 현재 연결 상태(isConnected)를 반환한다.
  */
-export function useSyncStatusWebSocket(onMessage: (msg: SyncStatusMessage) => void): boolean {
+export function useSyncStatusWebSocket(onMessage: (msg: SyncWebSocketMessage) => void): boolean {
   const token = useAuthStore((s) => s.token)
   const [isConnected, setIsConnected] = useState(false)
   const isMounted = useRef(true)
@@ -49,8 +61,8 @@ export function useSyncStatusWebSocket(onMessage: (msg: SyncStatusMessage) => vo
       ws.onmessage = (e) => {
         if (!isMounted.current) return
         try {
-          const data = JSON.parse(e.data) as SyncStatusMessage
-          if (data.type === 'device_sync_status') {
+          const data = JSON.parse(e.data) as SyncWebSocketMessage
+          if (data.type === 'device_sync_status' || data.type === 'export_task_status') {
             onMessageRef.current(data)
           }
         } catch { /* JSON이 아닌 메시지는 무시 */ }

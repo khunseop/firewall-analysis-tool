@@ -8,6 +8,7 @@ export const queryKeys = {
   // 장비
   devices: ['devices'] as const,
   device: (deviceId: number | null | undefined) => ['device', deviceId] as const,
+  exportTasksActive: ['export-tasks', 'active'] as const,
 
   // 객체 (다중 장비 목록 조회)
   networkObjects: (deviceIds: number[]) => ['network-objects', ...deviceIds] as const,

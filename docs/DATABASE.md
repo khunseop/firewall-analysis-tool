@@ -237,6 +237,31 @@
 | `updated_count` | `INTEGER` | `DEFAULT 0` | 수정된 항목 수 |
 | `deleted_count` | `INTEGER` | `DEFAULT 0` | 삭제된 항목 수 |
 
+### `export_tasks` Table (Devices 직접 추출 백그라운드 작업)
+- Devices 페이지 "직접 추출"(단건/다건, 병합 포함) 요청을 백그라운드로 처리하기 위한 작업 상태 테이블. 진행 상태는 WebSocket(`export_task_status`)으로 브로드캐스트된다.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
+| `device_ids` | `JSON` | `NOT NULL` | 대상 장비 ID 목록 (`list[int]`) |
+| `export_type` | `VARCHAR` | `NOT NULL` | 추출 종류 (`policies`, `objects`, `hit_dates`) |
+| `source` | `VARCHAR` | `NOT NULL, DEFAULT 'live'` | 데이터 출처 (`live`: 실시간 접속, `db`: 동기화된 DB 데이터) |
+| `merge` | `BOOLEAN` | `NOT NULL, DEFAULT false` | 여러 장비 결과를 하나의 엑셀로 합칠지 여부 |
+| `use_ssh` | `BOOLEAN` | `NOT NULL, DEFAULT false` | hit_dates 수집 시 SSH 사용 여부 |
+| `timeout_seconds` | `INTEGER` | `NOT NULL, DEFAULT 600` | 장비당 수집 타임아웃 (최대 7200) |
+| `status` | `VARCHAR` | `NOT NULL, DEFAULT 'pending'` | 상태 (`pending`, `in_progress`, `success`, `failure`) |
+| `step` | `VARCHAR` | `NULLABLE` | 세부 진행 단계 텍스트 |
+| `progress_current` | `INTEGER` | `NOT NULL, DEFAULT 0` | 처리 완료된 장비 수 |
+| `progress_total` | `INTEGER` | `NOT NULL, DEFAULT 0` | 전체 장비 수 |
+| `error_message` | `VARCHAR` | `NULLABLE` | 실패 시 오류 메시지 |
+| `result_file_path` | `VARCHAR` | `NULLABLE` | 완료된 결과 엑셀 파일의 디스크 경로 |
+| `result_filename` | `VARCHAR` | `NULLABLE` | 다운로드 시 사용할 파일명 |
+| `requested_by_user_id` | `INTEGER` | `NULLABLE` | 요청자 ID (FK 제약 없는 스냅샷) |
+| `requested_by_username` | `VARCHAR` | `NULLABLE` | 요청자 username 스냅샷 |
+| `created_at` | `DATETIME` | `NOT NULL` | 생성 시간 |
+| `started_at` | `DATETIME` | `NULLABLE` | 작업 시작 시간 |
+| `completed_at` | `DATETIME` | `NULLABLE` | 작업 완료 시간 |
+
 ### `pending_policy_changes` Table (Policies 편집모드 대기중 변경사항)
 - Policies 페이지 편집모드에서 만든 생성/수정/삭제/이동 작업을 영속 저장한다. **실제 장비나 `policies` 테이블에는 전혀 반영되지 않으며**, CLI 텍스트 생성(`/policy-builder/{device_id}/plan`)의 입력으로만 쓰인다.
 
