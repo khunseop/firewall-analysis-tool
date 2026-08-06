@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, ChevronRight, Plus, Minus, Edit2, AlertCircle } from 'lucide-react'
-import { listDevices } from '@/api/devices'
+import { ChevronDown, ChevronRight, Plus, Minus, Edit2, AlertCircle, Search, X, Clock } from 'lucide-react'
 import { apiClient } from '@/api/client'
 import { queryKeys } from '@/api/queryKeys'
+import { DeviceSelectorSingle } from '@/components/shared/DeviceSelector'
+import { cn } from '@/lib/utils'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -210,6 +211,122 @@ function DiffRow({ entry }: { entry: DiffEntry }) {
   )
 }
 
+function SyncPointSelector({
+  label, points, value, onChange, disabledId,
+}: {
+  label: string
+  points: SyncPoint[]
+  value: number | null
+  onChange: (id: number | null) => void
+  disabledId: number | null
+}) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const q = search.trim().toLowerCase()
+  const filtered = useMemo(() => {
+    if (!q) return points
+    return points.filter((p) => fmt(p.sync_at).toLowerCase().includes(q))
+  }, [points, q])
+
+  const selected = points.find((p) => p.id === value)
+
+  const handleSelect = (id: number) => {
+    onChange(id)
+    setOpen(false)
+    setSearch('')
+  }
+
+  return (
+    <div className="space-y-1.5 flex-1 min-w-[220px]" ref={containerRef}>
+      <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">{label}</label>
+      <div className="relative">
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className={cn(
+            'w-full h-9 flex items-center gap-2 px-3 text-sm bg-ds-surface-container-low border rounded-md transition-colors text-left',
+            open ? 'border-ds-tertiary' : 'border-ds-outline-variant/30 hover:border-ds-outline-variant/50'
+          )}
+        >
+          <Clock className="w-3.5 h-3.5 shrink-0 text-ds-on-surface-variant/50" />
+          <span className={cn('flex-1 truncate', !selected && 'text-ds-on-surface-variant/50')}>
+            {selected
+              ? `${fmt(selected.sync_at)}${selected.total_policies != null ? `  (${selected.total_policies.toLocaleString()}개)` : ''}`
+              : '-- 시점 선택 --'}
+          </span>
+          <ChevronDown className={cn('w-3.5 h-3.5 shrink-0 opacity-60 transition-transform', open && 'rotate-180')} />
+        </button>
+
+        {open && (
+          <div className="absolute left-0 top-full mt-1.5 w-full min-w-[280px] bg-white/90 backdrop-blur-xl rounded-xl border border-white/60 shadow-ambient-md z-50">
+            <div className="px-3 pt-3 pb-1.5">
+              <div className="flex items-center gap-1.5 bg-ds-surface-container-low rounded-lg px-2 py-1.5">
+                <Search className="w-3 h-3 text-ds-on-surface-variant shrink-0" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="시점 검색…"
+                  className="flex-1 text-[11px] bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/50 min-w-0"
+                  autoFocus
+                />
+                {search && (
+                  <button onClick={() => setSearch('')} className="shrink-0">
+                    <X className="w-3 h-3 text-ds-on-surface-variant hover:text-ds-on-surface" />
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="max-h-[240px] overflow-y-auto px-2 pb-2">
+              {filtered.length === 0 ? (
+                <p className="text-[10px] text-ds-on-surface-variant text-center py-3 italic">검색 결과 없음</p>
+              ) : (
+                filtered.map((p) => (
+                  <button
+                    key={p.id}
+                    disabled={p.id === disabledId}
+                    onClick={() => handleSelect(p.id)}
+                    className={cn(
+                      'w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors text-[11px]',
+                      p.id === disabledId
+                        ? 'opacity-30 cursor-not-allowed'
+                        : p.id === value
+                          ? 'bg-ds-tertiary/8 text-ds-tertiary'
+                          : 'text-ds-on-surface-variant hover:bg-ds-surface-container-low hover:text-ds-on-surface'
+                    )}
+                  >
+                    <span className={cn(
+                      'w-3.5 h-3.5 rounded-full border shrink-0 flex items-center justify-center',
+                      p.id === value ? 'bg-ds-tertiary border-ds-tertiary' : 'border-ds-outline-variant/40'
+                    )}>
+                      {p.id === value && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </span>
+                    <span className="truncate font-mono leading-tight">{fmt(p.sync_at)}</span>
+                    {p.total_policies != null && (
+                      <span className="ml-auto text-[10px] text-ds-on-surface-variant/50 shrink-0">{p.total_policies.toLocaleString()}개</span>
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 type FilterTab = 'all' | 'created' | 'updated' | 'deleted'
@@ -220,8 +337,6 @@ export function PolicyDiffPage() {
   const [toSyncId, setToSyncId] = useState<number | null>(null)
   const [filterTab, setFilterTab] = useState<FilterTab>('all')
   const [searchQuery, setSearchQuery] = useState('')
-
-  const { data: devices = [] } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices })
 
   const { data: syncHistory = [], isLoading: historyLoading } = useQuery({
     queryKey: queryKeys.syncHistory(selectedDeviceId),
@@ -251,8 +366,8 @@ export function PolicyDiffPage() {
     })
   }, [diffResult, filterTab, searchQuery])
 
-  const handleDeviceChange = (id: number) => {
-    setSelectedDeviceId(id || null)
+  const handleDeviceChange = (id: number | null) => {
+    setSelectedDeviceId(id)
     setFromSyncId(null)
     setToSyncId(null)
   }
@@ -274,16 +389,7 @@ export function PolicyDiffPage() {
           {/* 장비 선택 */}
           <div className="space-y-1.5 max-w-sm">
             <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">장비</label>
-            <select
-              className="w-full h-9 px-3 text-sm bg-ds-surface-container-low border border-ds-outline-variant/30 rounded-md focus:outline-none focus:border-ds-tertiary text-ds-on-surface"
-              value={selectedDeviceId ?? ''}
-              onChange={(e) => handleDeviceChange(Number(e.target.value))}
-            >
-              <option value="">-- 장비 선택 --</option>
-              {devices.map((d) => (
-                <option key={d.id} value={d.id}>{d.name} ({d.ip_address})</option>
-              ))}
-            </select>
+            <DeviceSelectorSingle value={selectedDeviceId} onChange={handleDeviceChange} />
           </div>
 
           {/* 동기화 시점 선택 */}
@@ -297,39 +403,23 @@ export function PolicyDiffPage() {
               </div>
             ) : (
               <div className="flex flex-wrap gap-5 items-end">
-                <div className="space-y-1.5 flex-1 min-w-[220px]">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">비교 시작 (From)</label>
-                  <select
-                    className="w-full h-9 px-3 text-sm bg-ds-surface-container-low border border-ds-outline-variant/30 rounded-md focus:outline-none focus:border-ds-tertiary text-ds-on-surface"
-                    value={fromSyncId ?? ''}
-                    onChange={(e) => setFromSyncId(Number(e.target.value) || null)}
-                  >
-                    <option value="">-- 시점 선택 --</option>
-                    {syncHistory.map((p) => (
-                      <option key={p.id} value={p.id} disabled={p.id === toSyncId}>
-                        {fmt(p.sync_at)}{p.total_policies != null ? `  (${p.total_policies.toLocaleString()}개)` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <SyncPointSelector
+                  label="비교 시작 (From)"
+                  points={syncHistory}
+                  value={fromSyncId}
+                  onChange={setFromSyncId}
+                  disabledId={toSyncId}
+                />
 
                 <span className="text-ds-on-surface-variant/40 font-medium pb-2 shrink-0">→</span>
 
-                <div className="space-y-1.5 flex-1 min-w-[220px]">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">비교 종료 (To)</label>
-                  <select
-                    className="w-full h-9 px-3 text-sm bg-ds-surface-container-low border border-ds-outline-variant/30 rounded-md focus:outline-none focus:border-ds-tertiary text-ds-on-surface"
-                    value={toSyncId ?? ''}
-                    onChange={(e) => setToSyncId(Number(e.target.value) || null)}
-                  >
-                    <option value="">-- 시점 선택 --</option>
-                    {syncHistory.map((p) => (
-                      <option key={p.id} value={p.id} disabled={p.id === fromSyncId}>
-                        {fmt(p.sync_at)}{p.total_policies != null ? `  (${p.total_policies.toLocaleString()}개)` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <SyncPointSelector
+                  label="비교 종료 (To)"
+                  points={syncHistory}
+                  value={toSyncId}
+                  onChange={setToSyncId}
+                  disabledId={fromSyncId}
+                />
               </div>
             )
           )}
