@@ -39,6 +39,12 @@ class Policy(Base):
     security_profile = Column(String, nullable=True)
     category = Column(String, nullable=True)
     description = Column(String, nullable=True)
+
+    # 출발지/목적지 존, 로그 포워딩 프로파일 — 현재 Palo Alto만 수집(from/member, to/member, log-setting).
+    # 다른 벤더는 값이 없으므로 nullable로 두고 비워둔다.
+    from_zone = Column(String, nullable=True)
+    to_zone = Column(String, nullable=True)
+    log_setting = Column(String, nullable=True)
     
     # 정책 사용이력의 마지막 히트 시간 (동기화 시 수집)
     last_hit_date = Column(DateTime, nullable=True)

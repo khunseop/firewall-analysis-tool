@@ -198,7 +198,12 @@ class PaloAltoAPI(FirewallInterface):
                 destination = self.list_to_string(self._get_member_texts(rule.findall('./destination/member')))
                 service = self.list_to_string(self._get_member_texts(rule.findall('./service/member')))
                 application = self.list_to_string(self._get_member_texts(rule.findall('./application/member')))
-                
+
+                # 출발지/목적지 존, 로그 포워딩 프로파일 (Palo Alto 전용 필드)
+                from_zone = self.list_to_string(self._get_member_texts(rule.findall('./from/member')))
+                to_zone = self.list_to_string(self._get_member_texts(rule.findall('./to/member')))
+                log_setting = self.list_to_string(self._get_member_texts(rule.findall('./log-setting')))
+
                 # 보안 프로필 및 카테고리 정보 추출
                 url_filtering = self.list_to_string(self._get_member_texts(rule.findall('./profile-setting/profiles/url-filtering/member')))
                 category = self.list_to_string(self._get_member_texts(rule.findall('./category/member')))
@@ -222,6 +227,9 @@ class PaloAltoAPI(FirewallInterface):
                     "security_profile": url_filtering,
                     "category": category,
                     "description": description,
+                    "from_zone": from_zone,
+                    "to_zone": to_zone,
+                    "log_setting": log_setting,
                 }
                 security_rules.append(rule_info)
 

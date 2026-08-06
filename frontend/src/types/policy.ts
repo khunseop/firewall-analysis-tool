@@ -18,6 +18,9 @@ export interface Policy {
   hit_count: number | null
   is_active: boolean
   last_seen_at: string | null
+  from_zone: string | null
+  to_zone: string | null
+  log_setting: string | null
 }
 
 export interface FilterLeafNode {

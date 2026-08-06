@@ -35,10 +35,12 @@ import { MoveExistingDialog } from '@/components/pages/policy-builder/MoveExisti
 import { PlanResultPanel } from '@/components/pages/policy-builder/PlanResultPanel'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
-/** 편집모드에서 그리드 필드명 ↔ 백엔드(PendingPolicyChange payload) 필드명 매핑 (diff 대상 5개 필드) */
+/** 편집모드에서 그리드 필드명 ↔ 백엔드(PendingPolicyChange payload) 필드명 매핑 (diff 대상 필드).
+ *  from_zone/to_zone은 Palo Alto만 수집하는 필드라 다른 벤더 정책은 항상 빈 값으로 시작함. */
 const EDITABLE_FIELD_MAP: Record<string, string> = {
   source: 'source', destination: 'destination', service: 'service',
   application: 'application', user: 'source_user',
+  from_zone: 'from_zone', to_zone: 'to_zone',
 }
 
 interface EditablePolicyRow extends Policy {
@@ -324,6 +326,9 @@ export function PoliciesPage() {
         hit_count: null,
         is_active: true,
         last_seen_at: null,
+        from_zone: String(payload.from_zone ?? '') || null,
+        to_zone: String(payload.to_zone ?? '') || null,
+        log_setting: String(payload.log_setting ?? '') || null,
         _pendingStatus: 'new',
       }
     })
@@ -581,6 +586,9 @@ export function PoliciesPage() {
       },
     },
     { field: 'application', headerName: '애플리케이션', width: 130, hide: !editMode, editable: isRowEditable },
+    { field: 'from_zone', headerName: 'from(존)', width: 110, hide: !editMode, editable: isRowEditable },
+    { field: 'to_zone', headerName: 'to(존)', width: 110, hide: !editMode, editable: isRowEditable },
+    { field: 'log_setting', headerName: 'log-setting', width: 120, hide: !editMode },
     {
       field: 'security_profile', headerName: '보안 프로파일', width: 130,
       cellRenderer: (p: { value: string | null }) =>

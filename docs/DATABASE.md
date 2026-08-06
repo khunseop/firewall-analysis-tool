@@ -145,6 +145,9 @@
 | `source` | `VARCHAR` | `NOT NULL` | 출발지 (정규화 문자열) |
 | `destination` | `VARCHAR` | `NOT NULL` | 목적지 (정규화 문자열) |
 | `service` | `VARCHAR` | `NOT NULL` | 서비스 (정규화 문자열) |
+| `from_zone` | `VARCHAR` | `NULLABLE` | 출발지 존 (Palo Alto만 수집, 다른 벤더는 NULL) |
+| `to_zone` | `VARCHAR` | `NULLABLE` | 목적지 존 (Palo Alto만 수집, 다른 벤더는 NULL) |
+| `log_setting` | `VARCHAR` | `NULLABLE` | 로그 포워딩 프로파일 (Palo Alto만 수집, 다른 벤더는 NULL) |
 | `last_hit_date` | `DATETIME` | `NULLABLE` | 최근 히트 일시 |
 | `is_indexed` | `BOOLEAN` | `DEFAULT False` | 인덱싱 완료 여부 |
 
