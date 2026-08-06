@@ -51,6 +51,31 @@ def _map_rule_action(rule_action: str) -> str:
     return "allow" if (rule_action or "").strip().lower() == "allow" else "deny"
 
 
+def wrap_existing_policy_as_virtual(policy) -> VirtualPolicy:
+    """
+    DB에 이미 존재하는 정책(멤버 포함)을 `VirtualPolicy`로 감싼다.
+
+    "기존 정책 이동" 충돌 검증에 `insertion_analyzer.analyze_insertion`을 그대로 재사용하기 위한
+    어댑터 — 호출자가 `real_policies` 목록에서 이 정책 자신을 제외한 뒤, 이 래퍼를 목표 위치에
+    "삽입"하는 것으로 이동을 시뮬레이션한다. `ImpactAnalyzer`(정책 이동 영향분석)는 호출하지 않는다.
+    """
+    return VirtualPolicy(
+        id=policy.id,
+        row_index=-1,
+        rule_name=policy.rule_name,
+        action=_map_rule_action(policy.action),
+        application=policy.application or "",
+        address_members=[
+            VirtualAddressMember(direction=m.direction, token=m.token, token_type=m.token_type, ip_start=m.ip_start, ip_end=m.ip_end)
+            for m in policy.address_members
+        ],
+        service_members=[
+            VirtualServiceMember(token=m.token, token_type=m.token_type, protocol=m.protocol, port_start=m.port_start, port_end=m.port_end)
+            for m in policy.service_members
+        ],
+    )
+
+
 async def resolve_virtual_policies(
     db: AsyncSession,
     device_id: int,

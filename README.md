@@ -91,15 +91,16 @@ API 문서: `/docs` (Swagger) · `/redoc`
 | Risky Ports | `risky_ports.py` | 위험 포트 DB와 대조하여 취약 서비스 탐지 |
 | Over-permissive | `over_permissive.py` | 과도하게 광범위한 정책 탐지 |
 
-### 3.4. 정책 생성 + 위치 이동 CLI 생성기 (Policy Builder)
+### 3.4. Policies 편집모드 — 정책 생성/수정/삭제/이동 CLI 생성
 
-신규 정책을 엑셀에서 붙여넣기(탭 구분 텍스트)로 대량 입력하면:
+Policies 페이지의 "편집모드"에서 정책 생성·수정·삭제·이동을 CLI 텍스트로 만들 수 있습니다(별도 페이지가 아니라 정책 조회 화면 자체의 모드 전환).
 
-1. 참조하는 주소/서비스 오브젝트 중 장비에 없는 것을 자동 감지
-2. 오브젝트 생성·정책 생성·목표 위치(top/bottom/before/after) 이동을 위한 PAN-OS `set`/`move` CLI 텍스트를 생성
-3. 그 자리에 삽입했을 때 기존 정책과 충돌(차단/가려짐)이 있는지 검증하고, 삽입 전/후 배치를 미리보기로 제공
+1. **생성**: 엑셀에서 붙여넣기(탭 구분 텍스트)로 대량 입력한 모달 → 참조 오브젝트 중 장비에 없는 것 자동 감지(서비스명이 `TCP-443` 관례를 따르면 protocol/port 자동 추론) → 오브젝트/정책 생성 CLI
+2. **수정**: 그리드 셀을 직접 편집(source/destination/service/application/user) → 원본과 편집값을 diff해서 추가된 값은 `set`(append), 제거된 값은 `delete`로 자동 분리 생성
+3. **삭제**: 체크박스로 정책 선택 → `delete rulebase security rules` 생성
+4. **이동**: 체크박스로 정책 선택 + 목표 위치(top/bottom/before/after) 지정 → 삽입/재배치 시 기존 정책과 충돌(차단/가려짐) 여부 검증 후 `move` CLI 생성
 
-**무상태(stateless)** 기능입니다 — DB에 아무 것도 쓰지 않고, 장비에도 직접 반영하지 않습니다. 생성된 CLI는 검토 후 사용자가 직접 실행해야 합니다. Palo Alto 장비 전용이며, `app/services/policy_builder/`에 구현되어 있습니다.
+편집모드에서 만든 변경사항은 `pending_policy_changes` 테이블에 **영속 저장**되어 새로고침해도 유지되지만, 실제 `policies` 테이블이나 장비에는 **전혀 반영되지 않습니다** — 생성된 CLI는 검토 후 사용자가 직접 실행해야 합니다. Palo Alto 장비 전용이며, `app/services/policy_builder/`에 구현되어 있습니다. 빈 필드 기본값은 Settings > 정책 생성 기본값에서 조정 가능합니다.
 
 ---
 
@@ -125,7 +126,7 @@ ORM Models     (app/models/)  ──►  SQLite fat.db  (via Alembic)
 | 범위 기반 검색 | `app/crud/crud_policy.py` | `policy_address_members` / `policy_service_members` overlap SQL 쿼리. |
 | 분석 엔진 | `app/services/analysis/` | 6개 비동기 엔진. `analysistasks` 테이블로 진행률 추적. |
 | 삭제 워크플로우 | `app/services/deletion_workflow/` | Config 기반 프로세서 파이프라인 → Excel 내보내기 (`export_service` / `config_bridge` / `task_meta`). |
-| 정책 빌더 | `app/services/policy_builder/` | 신규 정책 CLI 생성(오브젝트/정책/이동) + 삽입 충돌 검증. 무상태, Palo Alto 전용. |
+| 정책 빌더 | `app/services/policy_builder/` | Policies 편집모드의 생성/수정/삭제/이동 CLI 생성 + 삽입·재배치 충돌 검증. 대기중 변경사항은 `pending_policy_changes`에 영속 저장되나 실제 정책/장비에는 미반영. Palo Alto 전용. |
 | 전용 스레드 풀 | `app/core/executors.py` | 수집 I/O(`IO_EXECUTOR`)와 분석 CPU 연산(`CPU_EXECUTOR`)을 분리해 상호 굶김 방지. |
 | 스케줄러 | `app/services/scheduler.py` | APScheduler. 스케줄은 `sync_schedules` 테이블에 영속 저장. |
 | WebSocket 매니저 | `app/services/websocket_manager.py` | 동기화·분석 진행 상황을 모든 클라이언트에 브로드캐스트. |
@@ -137,7 +138,7 @@ ORM Models     (app/models/)  ──►  SQLite fat.db  (via Alembic)
 - **UI 라이브러리**: Radix UI (shadcn 스타일) + Tailwind CSS
 - **데이터 그리드**: Ag-Grid Community
 - **실시간 통신**: WebSocket (쿠키 인증, 지수 백오프 재연결 — 동기화·분석 진행 상황 업데이트)
-- **페이지**: Dashboard, Devices, Policies, Objects, Analysis, PolicyBuilder, PolicyDiff, Schedules, Settings, Notifications, DeletionWorkflow
+- **페이지**: Dashboard, Devices, Policies(편집모드 포함), Objects, Analysis, PolicyDiff, Schedules, Settings, Notifications, DeletionWorkflow
 
 ### 상세 문서
 

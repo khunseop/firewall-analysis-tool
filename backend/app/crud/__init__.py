@@ -10,3 +10,4 @@ from . import crud_sync_schedule as sync_schedule
 from . import crud_settings as settings
 from . import crud_notification_log as notification_log
 from . import crud_user as user
+from . import crud_pending_policy_change as pending_policy_change

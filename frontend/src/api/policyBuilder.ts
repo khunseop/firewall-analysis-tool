@@ -67,10 +67,46 @@ export interface BulkPolicyPlanResponse {
   object_commands: GeneratedCommand[]
   policy_commands: GeneratedCommand[]
   move_commands: GeneratedCommand[]
+  modify_commands: GeneratedCommand[]
+  delete_commands: GeneratedCommand[]
   conflicts: InsertionConflict[]
   preview_before: PreviewRow[]
   preview_after: PreviewRow[]
   warnings: string[]
+}
+
+export type PendingChangeType = 'create' | 'new_object' | 'modify' | 'delete' | 'move'
+
+export interface PendingPolicyChange {
+  id: number
+  device_id: number
+  change_type: PendingChangeType
+  target_policy_id: number | null
+  client_key: string
+  payload: Record<string, unknown>
+  created_by_user_id: number | null
+  created_at: string
+}
+
+export const listPendingChanges = async (deviceId: number): Promise<PendingPolicyChange[]> => {
+  const res = await apiClient.get<PendingPolicyChange[]>(`/policy-builder/${deviceId}/pending-changes`)
+  return res.data
+}
+
+export const addPendingChange = async (
+  deviceId: number,
+  payload: { change_type: PendingChangeType; target_policy_id?: number | null; client_key: string; payload: Record<string, unknown> },
+): Promise<PendingPolicyChange> => {
+  const res = await apiClient.post<PendingPolicyChange>(`/policy-builder/${deviceId}/pending-changes`, payload)
+  return res.data
+}
+
+export const removePendingChange = async (deviceId: number, changeId: number): Promise<void> => {
+  await apiClient.delete(`/policy-builder/${deviceId}/pending-changes/${changeId}`)
+}
+
+export const clearPendingChanges = async (deviceId: number): Promise<void> => {
+  await apiClient.delete(`/policy-builder/${deviceId}/pending-changes`)
 }
 
 export const checkObjectGaps = async (deviceId: number, newPolicies: NewPolicyRow[]): Promise<ObjectGapItem[]> => {
@@ -80,7 +116,7 @@ export const checkObjectGaps = async (deviceId: number, newPolicies: NewPolicyRo
 
 export const planBulkPolicy = async (
   deviceId: number,
-  payload: { vsys?: string; new_policies: NewPolicyRow[]; new_objects: NewObjectSpec[]; move_target: MoveTarget },
+  payload: { vsys?: string } = {},
 ): Promise<BulkPolicyPlanResponse> => {
   const res = await apiClient.post<BulkPolicyPlanResponse>(`/policy-builder/${deviceId}/plan`, payload)
   return res.data

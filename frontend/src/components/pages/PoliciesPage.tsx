@@ -2,8 +2,8 @@ import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Download, SlidersHorizontal, AlertTriangle, X, History, Search, Bookmark, BookmarkPlus } from 'lucide-react'
-import type { ColDef, RowClickedEvent } from '@ag-grid-community/core'
+import { Download, SlidersHorizontal, AlertTriangle, X, History, Search, Bookmark, BookmarkPlus, Pencil, Plus, Trash2, ArrowLeftRight, RotateCcw, Terminal } from 'lucide-react'
+import type { CellValueChangedEvent, ColDef, RowClickedEvent } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { rowIdFromId } from '@/lib/utils'
 import { listDevices } from '@/api/devices'
@@ -25,6 +25,25 @@ import { DeviceSelector } from '@/components/shared/DeviceSelector'
 import { useDeviceStore } from '@/store/deviceStore'
 import { usePolicySearchStore } from '@/store/policySearchStore'
 import { queryKeys } from '@/api/queryKeys'
+import { diffMultiValueField, isFieldDiffEmpty } from '@/lib/policyDiff'
+import {
+  listPendingChanges, addPendingChange, clearPendingChanges, planBulkPolicy,
+  type PendingPolicyChange, type BulkPolicyPlanResponse,
+} from '@/api/policyBuilder'
+import { CreatePolicyModal } from '@/components/pages/policy-builder/CreatePolicyModal'
+import { MoveExistingDialog } from '@/components/pages/policy-builder/MoveExistingDialog'
+import { PlanResultPanel } from '@/components/pages/policy-builder/PlanResultPanel'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+
+/** 편집모드에서 그리드 필드명 ↔ 백엔드(PendingPolicyChange payload) 필드명 매핑 (diff 대상 5개 필드) */
+const EDITABLE_FIELD_MAP: Record<string, string> = {
+  source: 'source', destination: 'destination', service: 'service',
+  application: 'application', user: 'source_user',
+}
+
+interface EditablePolicyRow extends Policy {
+  _pendingStatus?: 'new' | 'modified' | 'deleted' | 'moved'
+}
 
 const ACTION_BADGE: Record<string, string> = {
   allow:  'bg-green-100 text-green-700',
@@ -171,6 +190,156 @@ export function PoliciesPage() {
   const [historyModal, setHistoryModal] = useState<{ deviceId: number; ruleName: string } | null>(null)
   const [detailModal, setDetailModal] = useState<Policy | null>(null)
   const [quickFilterInput, setQuickFilterInput] = useState(quickFilterText)
+
+  // 편집모드 — 단일 장비 선택 시에만 가능 (대기중 변경사항은 장비 1개 단위로 저장됨)
+  const [editMode, setEditMode] = useState(false)
+  const editDeviceId = deviceIds.length === 1 ? deviceIds[0] : null
+  const [selectedPolicyIds, setSelectedPolicyIds] = useState<number[]>([])
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showMoveDialog, setShowMoveDialog] = useState(false)
+  const [planResult, setPlanResult] = useState<BulkPolicyPlanResponse | null>(null)
+  const [planLoading, setPlanLoading] = useState(false)
+
+  const pendingChangesQuery = useQuery({
+    queryKey: ['policy-builder-pending-changes', editDeviceId],
+    queryFn: () => listPendingChanges(editDeviceId!),
+    enabled: editMode && !!editDeviceId,
+  })
+  const pendingChanges = useMemo(() => pendingChangesQuery.data ?? [], [pendingChangesQuery.data])
+
+  const refetchPendingChanges = () => queryClient.invalidateQueries({ queryKey: ['policy-builder-pending-changes', editDeviceId] })
+
+  const handleCellValueChanged = useCallback((event: CellValueChangedEvent<EditablePolicyRow>) => {
+    if (!editDeviceId || !event.data || !event.colDef.field) return
+    const gridField = event.colDef.field
+    const backendField = EDITABLE_FIELD_MAP[gridField]
+    if (!backendField) return
+    const oldValue = String(event.oldValue ?? '')
+    const newValue = String(event.newValue ?? '')
+    const diff = diffMultiValueField(oldValue, newValue)
+    if (isFieldDiffEmpty(diff)) return
+    addPendingChange(editDeviceId, {
+      change_type: 'modify', target_policy_id: event.data.id,
+      client_key: `modify-${event.data.id}-${gridField}-${Date.now()}`,
+      payload: { [backendField]: diff },
+    }).then(refetchPendingChanges).catch((e: Error) => toast.error(e.message))
+  }, [editDeviceId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleDeleteSelected = async () => {
+    if (!editDeviceId || selectedPolicyIds.length === 0) return
+    const timestamp = Date.now()
+    try {
+      for (const policyId of selectedPolicyIds) {
+        await addPendingChange(editDeviceId, {
+          change_type: 'delete', target_policy_id: policyId, client_key: `delete-${policyId}-${timestamp}`, payload: {},
+        })
+      }
+      toast.success(`정책 ${selectedPolicyIds.length}건 삭제가 대기중 변경사항으로 추가되었습니다.`)
+      setSelectedPolicyIds([])
+      refetchPendingChanges()
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
+
+  const handleGenerateCli = async () => {
+    if (!editDeviceId) return
+    setPlanLoading(true)
+    try {
+      const result = await planBulkPolicy(editDeviceId)
+      setPlanResult(result)
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setPlanLoading(false)
+    }
+  }
+
+  const handleClearPending = async () => {
+    if (!editDeviceId) return
+    await clearPendingChanges(editDeviceId)
+    toast.success('대기중 변경사항을 모두 초기화했습니다.')
+    refetchPendingChanges()
+  }
+
+  // 대기중 변경사항을 기존 검색 결과에 오버레이 — modify는 값 재계산, delete/move는 상태 표시, create는 신규 행 추가
+  const mergedPolicies = useMemo<EditablePolicyRow[]>(() => {
+    if (!editMode || pendingChanges.length === 0) return policies
+
+    const byPolicy = new Map<number, PendingPolicyChange[]>()
+    const createChanges: PendingPolicyChange[] = []
+    for (const c of pendingChanges) {
+      if (c.change_type === 'create') { createChanges.push(c); continue }
+      if (c.target_policy_id == null) continue
+      const arr = byPolicy.get(c.target_policy_id) ?? []
+      arr.push(c)
+      byPolicy.set(c.target_policy_id, arr)
+    }
+
+    const existing: EditablePolicyRow[] = policies.map((p) => {
+      const changes = byPolicy.get(p.id)
+      // 항상 새 객체를 반환한다 — AG Grid는 편집 시 rowData의 객체를 직접 mutate하므로,
+      // 원본 policies(React Query 캐시) 객체를 그대로 넘기면 캐시 데이터가 오염된다.
+      if (!changes || changes.length === 0) return { ...p }
+      let status: EditablePolicyRow['_pendingStatus']
+      const result: EditablePolicyRow = { ...p }
+      for (const c of changes) {
+        if (c.change_type === 'delete') status = 'deleted'
+        else if (c.change_type === 'move') status = status ?? 'moved'
+        else if (c.change_type === 'modify') {
+          status = status ?? 'modified'
+          for (const [field, diff] of Object.entries(c.payload as Record<string, { added?: string[]; removed?: string[] }>)) {
+            const gridField = (Object.entries(EDITABLE_FIELD_MAP).find(([, backend]) => backend === field) ?? [field])[0]
+            const current = (result as unknown as Record<string, string>)[gridField] ?? ''
+            const tokens = current.split(',').map((s) => s.trim()).filter(Boolean)
+            const afterRemove = tokens.filter((t) => !(diff.removed ?? []).includes(t))
+            const added = (diff.added ?? []).filter((t) => !afterRemove.includes(t))
+            ;(result as unknown as Record<string, string>)[gridField] = [...afterRemove, ...added].join(',')
+          }
+        }
+      }
+      result._pendingStatus = status
+      return result
+    })
+
+    const created: EditablePolicyRow[] = createChanges.map((c) => {
+      const payload = c.payload as Record<string, unknown>
+      return {
+        id: -c.id,
+        device_id: editDeviceId ?? 0,
+        rule_name: String(payload.rule_name ?? ''),
+        source: String(payload.source ?? ''),
+        destination: String(payload.destination ?? ''),
+        service: String(payload.service ?? ''),
+        action: String(payload.rule_action ?? 'allow'),
+        vsys: null,
+        seq: null,
+        enable: !(payload.disabled as boolean),
+        user: String(payload.source_user ?? '') || null,
+        application: String(payload.application ?? '') || null,
+        security_profile: null,
+        category: null,
+        description: String(payload.description ?? '') || null,
+        last_hit_date: null,
+        hit_count: null,
+        is_active: true,
+        last_seen_at: null,
+        _pendingStatus: 'new',
+      }
+    })
+
+    return [...existing, ...created]
+  }, [editMode, pendingChanges, policies, editDeviceId])
+
+  const pendingCounts = useMemo(() => {
+    const counts = { create: 0, modify: 0, delete: 0, move: 0 }
+    for (const c of pendingChanges) {
+      if (c.change_type === 'create') counts.create++
+      else if (c.change_type === 'new_object') continue
+      else if (c.change_type in counts) counts[c.change_type as keyof typeof counts]++
+    }
+    return counts
+  }, [pendingChanges])
 
   // 검색 조건 프리셋 (localStorage)
   type Preset = { name: string; tree: FilterTree }
@@ -329,8 +498,16 @@ export function PoliciesPage() {
 
 
   const handleRowClick = useCallback((event: RowClickedEvent<Policy>) => {
+    if (editMode) return // 편집모드에서는 행 클릭이 상세 모달 대신 셀 편집/체크박스 선택에 쓰임
     if (event.data) setDetailModal(event.data)
-  }, [])
+  }, [editMode])
+
+  // 편집모드에서만, 그리고 실제 기존 정책(양수 id)에서만 편집 가능 — 붙여넣기로 추가된 신규 정책 행(음수 id)은
+  // 모달에서 이미 값을 확정했으므로 그리드에서 다시 편집하지 않는다.
+  const isRowEditable = useCallback(
+    (params: { data?: EditablePolicyRow }) => editMode && (params.data?.id ?? 0) > 0,
+    [editMode]
+  )
 
   const columnDefs = useMemo<ColDef<Policy>[]>(() => [
     {
@@ -386,11 +563,11 @@ export function PoliciesPage() {
         </span>
       ),
     },
-    { field: 'source',      headerName: '출발지', minWidth: 160, cellRenderer: (p: { value: string }) => <InlineTagCell value={p.value} /> },
-    { field: 'destination', headerName: '목적지', minWidth: 160, cellRenderer: (p: { value: string }) => <InlineTagCell value={p.value} /> },
-    { field: 'service',     headerName: '서비스', minWidth: 130, cellRenderer: (p: { value: string }) => <InlineTagCell value={p.value} /> },
+    { field: 'source',      headerName: '출발지', minWidth: 160, editable: isRowEditable, cellRenderer: (p: { value: string }) => <InlineTagCell value={p.value} /> },
+    { field: 'destination', headerName: '목적지', minWidth: 160, editable: isRowEditable, cellRenderer: (p: { value: string }) => <InlineTagCell value={p.value} /> },
+    { field: 'service',     headerName: '서비스', minWidth: 130, editable: isRowEditable, cellRenderer: (p: { value: string }) => <InlineTagCell value={p.value} /> },
     {
-      field: 'user', headerName: '사용자', minWidth: 100,
+      field: 'user', headerName: '사용자', minWidth: 100, editable: isRowEditable,
       cellRenderer: (p: { value: string | null }) => {
         if (!p.value) return <span className="text-[11px] text-ds-on-surface-variant">-</span>
         const users = parseCSVTokens(p.value)
@@ -403,7 +580,7 @@ export function PoliciesPage() {
         )
       },
     },
-    { field: 'application', headerName: '애플리케이션', width: 130, hide: true },
+    { field: 'application', headerName: '애플리케이션', width: 130, hide: !editMode, editable: isRowEditable },
     {
       field: 'security_profile', headerName: '보안 프로파일', width: 130,
       cellRenderer: (p: { value: string | null }) =>
@@ -431,7 +608,7 @@ export function PoliciesPage() {
       ),
     },
     { field: 'vsys', headerName: 'VSYS', width: 72, hide: true },
-  ], [deviceNameMap, changeLogMap])
+  ], [deviceNameMap, changeLogMap, editMode, isRowEditable])
 
   const allConditions = filterTree.flatMap(g => g.conditions)
   const hasConditions = allConditions.some(c => c.value.trim())
@@ -441,8 +618,49 @@ export function PoliciesPage() {
       {/* Page header */}
       <div className="flex items-center justify-between shrink-0">
         <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">Policies</h1>
-        <DeviceSelector />
+        <div className="flex items-center gap-2">
+          {editMode && (
+            <>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold text-ds-tertiary bg-ds-tertiary/10 rounded-lg border border-ds-tertiary/20 hover:bg-ds-tertiary/15 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" /> 새 정책 붙여넣기
+              </button>
+              <button
+                onClick={() => setShowMoveDialog(true)}
+                disabled={selectedPolicyIds.length === 0}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors disabled:opacity-50"
+              >
+                <ArrowLeftRight className="w-3.5 h-3.5" /> 선택 이동 ({selectedPolicyIds.length})
+              </button>
+              <button
+                onClick={handleDeleteSelected}
+                disabled={selectedPolicyIds.length === 0}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-ds-error bg-ds-error/5 rounded-lg border border-ds-error/15 hover:bg-ds-error/10 transition-colors disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> 선택 삭제 ({selectedPolicyIds.length})
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => setEditMode((v) => !v)}
+            disabled={!editDeviceId}
+            title={editDeviceId ? undefined : '편집모드는 장비를 1개만 선택했을 때 사용할 수 있습니다.'}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold rounded-lg border transition-colors disabled:opacity-40 ${
+              editMode ? 'text-ds-tertiary bg-ds-tertiary/10 border-ds-tertiary/20' : 'text-ds-on-surface-variant bg-ds-surface-container-low border-ds-outline-variant/10 hover:text-ds-on-surface'
+            }`}
+          >
+            <Pencil className="w-3.5 h-3.5" /> {editMode ? '편집모드 종료' : '편집모드'}
+          </button>
+          <DeviceSelector />
+        </div>
       </div>
+      {editMode && (
+        <p className="text-[12px] text-amber-600 -mt-2 shrink-0">
+          편집모드에서 만든 변경사항은 CLI 텍스트로만 생성되며 실제 장비나 DB에는 반영되지 않습니다. 검토 후 직접 실행하세요.
+        </p>
+      )}
 
       {/* Filter panel */}
       <div className="card rounded-xl overflow-hidden shrink-0">
@@ -623,10 +841,10 @@ export function PoliciesPage() {
             )}
           </div>
         )}
-        <AgGridWrapper<Policy>
+        <AgGridWrapper<EditablePolicyRow>
           ref={gridRef}
           columnDefs={columnDefs}
-          rowData={policies}
+          rowData={editMode ? mergedPolicies : policies}
           getRowId={rowIdFromId}
           height="800px"
           loading={searchQuery.isFetching}
@@ -636,8 +854,41 @@ export function PoliciesPage() {
           quickFilterText={quickFilterText}
           onRowClicked={handleRowClick}
           rowHeight={34}
+          rowSelection={editMode ? { mode: 'multiRow', checkboxes: true, headerCheckbox: true } : undefined}
+          onSelectionChanged={editMode ? (rows) => setSelectedPolicyIds(rows.filter((r) => r.id > 0).map((r) => r.id)) : undefined}
+          onCellValueChanged={editMode ? handleCellValueChanged : undefined}
+          getRowStyle={editMode ? (p) => {
+            const status = p.data?._pendingStatus
+            if (status === 'new') return { backgroundColor: 'rgba(16,185,129,0.10)', textDecoration: 'none' }
+            if (status === 'modified') return { backgroundColor: 'rgba(245,158,11,0.10)', textDecoration: 'none' }
+            if (status === 'deleted') return { backgroundColor: 'rgba(239,68,68,0.10)', textDecoration: 'line-through' }
+            if (status === 'moved') return { backgroundColor: 'rgba(59,130,246,0.10)', textDecoration: 'none' }
+            return undefined
+          } : undefined}
         />
       </div>
+
+      {editMode && editDeviceId && (
+        <div className="card rounded-xl px-4 py-3 flex items-center gap-3 shrink-0 sticky bottom-4 shadow-lg">
+          <span className="text-[13px] font-semibold text-ds-on-surface">
+            대기중 변경사항: 생성 {pendingCounts.create} · 수정 {pendingCounts.modify} · 삭제 {pendingCounts.delete} · 이동 {pendingCounts.move}
+          </span>
+          <div className="flex items-center gap-2 ml-auto">
+            {pendingChanges.length > 0 && (
+              <button onClick={handleClearPending} className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-on-surface-variant hover:text-ds-error transition-colors">
+                <RotateCcw className="w-3.5 h-3.5" /> 전체 취소
+              </button>
+            )}
+            <button
+              onClick={handleGenerateCli}
+              disabled={pendingChanges.length === 0 || planLoading}
+              className="flex items-center gap-1.5 px-4 py-1.5 text-[13px] font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50"
+            >
+              <Terminal className="w-3.5 h-3.5" /> {planLoading ? 'CLI 생성 중…' : 'CLI 생성'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {objectModal && (
         <ObjectDetailModal
@@ -670,6 +921,34 @@ export function PoliciesPage() {
           }}
           onClose={() => setDetailModal(null)}
         />
+      )}
+
+      {showCreateModal && editDeviceId && (
+        <CreatePolicyModal
+          deviceId={editDeviceId}
+          onClose={() => setShowCreateModal(false)}
+          onCreated={refetchPendingChanges}
+        />
+      )}
+
+      {showMoveDialog && editDeviceId && (
+        <MoveExistingDialog
+          deviceId={editDeviceId}
+          policyIds={selectedPolicyIds}
+          onClose={() => setShowMoveDialog(false)}
+          onMoved={() => { refetchPendingChanges(); setSelectedPolicyIds([]) }}
+        />
+      )}
+
+      {planResult && (
+        <Dialog open onOpenChange={(open) => !open && setPlanResult(null)}>
+          <DialogContent className="max-w-4xl bg-ds-surface-container-lowest max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="font-headline text-ds-on-surface">생성된 CLI</DialogTitle>
+            </DialogHeader>
+            <PlanResultPanel plan={planResult} />
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   )

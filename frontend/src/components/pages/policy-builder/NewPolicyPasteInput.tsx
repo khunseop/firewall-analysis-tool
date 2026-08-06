@@ -7,6 +7,20 @@ import type { NewPolicyRow } from '@/api/policyBuilder'
 
 const SAMPLE_HEADER = '정책명\t액션\t출발지\t목적지\t서비스\t애플리케이션\t설명'
 
+function countTokens(value: string): number {
+  return value.split(',').map((s) => s.trim()).filter(Boolean).length
+}
+
+function MultiValueCell({ value }: { value: string }) {
+  const count = countTokens(value)
+  return (
+    <span className="inline-flex items-center gap-1">
+      <span className="truncate max-w-[220px] inline-block align-bottom">{value}</span>
+      {count > 1 && <span className="text-[10px] text-ds-on-surface-variant shrink-0">({count})</span>}
+    </span>
+  )
+}
+
 export function NewPolicyPasteInput({ rows, onChange }: {
   rows: NewPolicyRow[]
   onChange: (rows: NewPolicyRow[]) => void
@@ -52,7 +66,7 @@ export function NewPolicyPasteInput({ rows, onChange }: {
       </div>
 
       {rows.length > 0 && (
-        <div className="border border-ds-outline-variant/20 rounded-lg max-h-[320px] overflow-y-auto">
+        <div className="border border-ds-outline-variant/20 rounded-lg max-h-[480px] overflow-y-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -70,10 +84,10 @@ export function NewPolicyPasteInput({ rows, onChange }: {
                 <TableRow key={row.row_index}>
                   <TableCell className="font-medium">{row.rule_name}</TableCell>
                   <TableCell>{row.rule_action}</TableCell>
-                  <TableCell className="max-w-[200px] truncate">{row.source}</TableCell>
-                  <TableCell className="max-w-[200px] truncate">{row.destination}</TableCell>
-                  <TableCell className="max-w-[160px] truncate">{row.service}</TableCell>
-                  <TableCell className="max-w-[140px] truncate">{row.application}</TableCell>
+                  <TableCell><MultiValueCell value={row.source} /></TableCell>
+                  <TableCell><MultiValueCell value={row.destination} /></TableCell>
+                  <TableCell><MultiValueCell value={row.service} /></TableCell>
+                  <TableCell><MultiValueCell value={row.application} /></TableCell>
                   <TableCell>
                     <button type="button" onClick={() => handleRemoveRow(row.row_index)} className="text-ds-on-surface-variant hover:text-ds-error">
                       <Trash2 className="w-3.5 h-3.5" />

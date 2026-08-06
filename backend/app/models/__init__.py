@@ -13,3 +13,4 @@ from .settings import Settings
 from .notification_log import NotificationLog
 from .sync_history import SyncHistory
 from .deletion_workflow import DeletionWorkflowProject, DeletionWorkflowFile
+from .pending_policy_change import PendingPolicyChange

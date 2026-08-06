@@ -4,7 +4,7 @@ import {
   ModuleRegistry,
   type ColDef, type GridApi, type GridReadyEvent,
   type RowClassParams, type RowStyle, type RowClickedEvent,
-  type IRowNode,
+  type IRowNode, type CellValueChangedEvent,
 } from '@ag-grid-community/core'
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model'
 import { CsvExportModule } from '@ag-grid-community/csv-export'
@@ -48,6 +48,8 @@ interface AgGridWrapperProps<T> {
   context?: Record<string, unknown>
   isExternalFilterPresent?: () => boolean
   doesExternalFilterPass?: (node: IRowNode<T>) => boolean
+  /** 컬럼에 editable:true를 설정했을 때, 셀 편집이 커밋되면 호출됨 */
+  onCellValueChanged?: (event: CellValueChangedEvent<T>) => void
 }
 
 function AgGridWrapperInner<T>(
@@ -72,6 +74,7 @@ function AgGridWrapperInner<T>(
     context,
     isExternalFilterPresent,
     doesExternalFilterPass,
+    onCellValueChanged,
   }: AgGridWrapperProps<T>,
   ref: React.ForwardedRef<AgGridWrapperHandle>
 ) {
@@ -158,6 +161,7 @@ function AgGridWrapperInner<T>(
         context={context}
         isExternalFilterPresent={isExternalFilterPresent}
         doesExternalFilterPass={doesExternalFilterPass}
+        onCellValueChanged={onCellValueChanged}
         defaultColDef={defaultColDef}
         enableCellTextSelection
         overlayNoRowsTemplate={`

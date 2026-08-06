@@ -7,7 +7,7 @@ DB에는 아무 것도 쓰지 않습니다 — `ImpactAnalyzer`(기존 정책 �
 충돌이 있는지/없는지만 판정하면 됩니다.
 """
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -104,12 +104,18 @@ async def analyze_insertion(
     device_id: int,
     virtual_policies: List[VirtualPolicy],
     move_target: MoveTarget,
+    exclude_policy_ids: Optional[set] = None,
 ) -> Tuple[List[InsertionConflict], List[PreviewRow], List[PreviewRow], List[str]]:
     """
     삽입 지점 충돌 판정 + 삽입 전/후 미리보기(±4 컨텍스트 윈도우)를 계산합니다.
     reference_policy_id를 찾지 못하면 ValueError를 발생시킵니다(호출부에서 400으로 변환).
+
+    `exclude_policy_ids`: 기존 정책을 "이동"시킬 때, 그 정책 자신을 real_policies에서 제외하기
+    위한 용도(자기 자신과의 충돌 오탐 방지, `wrap_existing_policy_as_virtual` 참고).
     """
     real_policies = await load_active_policies_with_members(db, device_id)
+    if exclude_policy_ids:
+        real_policies = [p for p in real_policies if p.id not in exclude_policy_ids]
     insertion_index = _resolve_insertion_index(real_policies, move_target)
 
     conflicts = _find_conflicts(real_policies, virtual_policies, insertion_index)

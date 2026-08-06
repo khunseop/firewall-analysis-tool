@@ -35,12 +35,19 @@ function CommandSection({ title, commands }: { title: string; commands: Generate
             {c.error ? (
               <span>[row {c.row_index}] 오류: {c.error}</span>
             ) : (
-              <>
-                <button type="button" onClick={() => copyText(c.command!)} className="shrink-0 text-ds-on-surface-variant hover:text-ds-tertiary">
-                  <Copy className="w-3.5 h-3.5" />
-                </button>
-                <span className="flex-1 break-all">{c.command}</span>
-              </>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start gap-2">
+                  <button type="button" onClick={() => copyText(c.command!)} className="shrink-0 text-ds-on-surface-variant hover:text-ds-tertiary">
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="flex-1 break-all">{c.command}</span>
+                </div>
+                {c.counts && Object.keys(c.counts).length > 0 && (
+                  <p className="text-[10px] text-ds-on-surface-variant mt-1 ml-5">
+                    {Object.entries(c.counts).map(([field, n]) => `${field}:${n}`).join(' · ')}
+                  </p>
+                )}
+              </div>
             )}
           </div>
         ))}
@@ -79,6 +86,8 @@ export function PlanResultPanel({ plan }: { plan: BulkPolicyPlanResponse }) {
 
       <CommandSection title="오브젝트 생성 명령어" commands={plan.object_commands} />
       <CommandSection title="정책 생성 명령어" commands={plan.policy_commands} />
+      <CommandSection title="정책 수정 명령어" commands={plan.modify_commands} />
+      <CommandSection title="정책 삭제 명령어" commands={plan.delete_commands} />
       <CommandSection title="이동 명령어" commands={plan.move_commands} />
 
       <div className="grid grid-cols-2 gap-3">

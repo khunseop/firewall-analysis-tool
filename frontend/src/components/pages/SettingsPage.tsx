@@ -4,12 +4,14 @@ import { RiskyPortsSettings } from './settings/RiskyPortsSettings'
 import { AccountSettings } from './settings/AccountSettings'
 import { LogSettings } from './settings/LogSettings'
 import { DeletionWorkflowSettings } from './settings/DeletionWorkflowSettings'
+import { PolicyDefaultsSettings } from './settings/PolicyDefaultsSettings'
 
-type Tab = 'general' | 'risky_ports' | 'accounts' | 'log' | 'deletion_workflow'
+type Tab = 'general' | 'risky_ports' | 'policy_defaults' | 'accounts' | 'log' | 'deletion_workflow'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'general',            label: '일반 설정' },
   { key: 'risky_ports',        label: '위험 포트' },
+  { key: 'policy_defaults',    label: '정책 생성 기본값' },
   { key: 'accounts',           label: '계정 관리' },
   { key: 'log',                label: '로그 설정' },
   { key: 'deletion_workflow',  label: '삭제 워크플로우' },
@@ -47,6 +49,7 @@ export function SettingsPage() {
         <div className="p-6">
           {activeTab === 'general'           && <GeneralSettings />}
           {activeTab === 'risky_ports'       && <RiskyPortsSettings />}
+          {activeTab === 'policy_defaults'   && <PolicyDefaultsSettings />}
           {activeTab === 'accounts'          && <AccountSettings />}
           {activeTab === 'log'               && <LogSettings />}
           {activeTab === 'deletion_workflow' && <DeletionWorkflowSettings />}

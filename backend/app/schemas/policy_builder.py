@@ -53,15 +53,20 @@ class ObjectGapCheckResponse(BaseModel):
 
 
 class BulkPolicyPlanRequest(BaseModel):
+    """Policies 편집모드의 '대기중 변경사항'을 모두 모아 CLI를 생성할 때 쓰는 요청. vsys 외에는 DB의
+    PendingPolicyChange 레코드에서 읽어온다."""
     vsys: Optional[str] = None
-    new_policies: List[NewPolicyRow]
-    new_objects: List[NewObjectSpec] = []
-    move_target: MoveTarget
+
+
+class FieldDiff(BaseModel):
+    """그리드 셀 편집 시 원본 값과 편집된 값을 비교해 계산된, 필드 하나의 추가/삭제된 토큰."""
+    added: List[str] = []
+    removed: List[str] = []
 
 
 class GeneratedCommand(BaseModel):
     row_index: int
-    kind: Literal["object", "policy", "move"]
+    kind: Literal["object", "policy", "move", "modify", "delete"]
     command: Optional[str] = None
     error: Optional[str] = None
     counts: Optional[Dict[str, int]] = None
@@ -88,6 +93,8 @@ class BulkPolicyPlanResponse(BaseModel):
     object_commands: List[GeneratedCommand]
     policy_commands: List[GeneratedCommand]
     move_commands: List[GeneratedCommand]
+    modify_commands: List[GeneratedCommand] = []
+    delete_commands: List[GeneratedCommand] = []
     conflicts: List[InsertionConflict]
     preview_before: List[PreviewRow]
     preview_after: List[PreviewRow]

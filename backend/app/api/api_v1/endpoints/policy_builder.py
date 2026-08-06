@@ -1,4 +1,5 @@
-from typing import Any
+import json
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,15 +8,19 @@ from app import crud, schemas
 from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models.user import User
+from app.services.analysis.common import load_active_policies_with_members
 from app.services.policy_builder import object_gap
 from app.services.policy_builder.cli_generator import (
     generate_address_object_command,
+    generate_field_append_command,
+    generate_field_delete_command,
     generate_move_command,
     generate_policy_set_command,
+    generate_rule_delete_command,
     generate_service_object_command,
 )
 from app.services.policy_builder.insertion_analyzer import analyze_insertion
-from app.services.policy_builder.virtual_policy import resolve_virtual_policies
+from app.services.policy_builder.virtual_policy import resolve_virtual_policies, wrap_existing_policy_as_virtual
 
 router = APIRouter()
 
@@ -27,6 +32,57 @@ async def _get_palo_alto_device(db: AsyncSession, device_id: int):
     if (device.vendor or "").lower() != "paloalto":
         raise HTTPException(status_code=400, detail="이 기능은 Palo Alto 장비에서만 지원됩니다.")
     return device
+
+
+@router.get("/{device_id}/pending-changes", response_model=List[schemas.PendingPolicyChange])
+async def list_pending_changes(
+    device_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """Policies 편집모드에서 저장된 대기중 변경사항을 전체 조회합니다(새로고침 후 그리드 복원용)."""
+    await _get_palo_alto_device(db, device_id)
+    return await crud.pending_policy_change.get_by_device(db, device_id)
+
+
+@router.post("/{device_id}/pending-changes", response_model=schemas.PendingPolicyChange)
+async def add_pending_change(
+    device_id: int,
+    request: schemas.PendingPolicyChangeCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """편집모드에서의 생성/수정/삭제/이동 액션 1건을 대기중 변경사항으로 저장합니다."""
+    await _get_palo_alto_device(db, device_id)
+    return await crud.pending_policy_change.create(db, device_id, request, current_user.id)
+
+
+@router.delete("/{device_id}/pending-changes/{change_id}", response_model=schemas.Msg)
+async def remove_pending_change(
+    device_id: int,
+    change_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """대기중 변경사항 1건을 취소(삭제)합니다."""
+    await _get_palo_alto_device(db, device_id)
+    change = await crud.pending_policy_change.get_by_id(db, change_id)
+    if not change or change.device_id != device_id:
+        raise HTTPException(status_code=404, detail="변경사항을 찾을 수 없습니다.")
+    await crud.pending_policy_change.delete_by_id(db, change)
+    return {"msg": "삭제되었습니다."}
+
+
+@router.delete("/{device_id}/pending-changes", response_model=schemas.Msg)
+async def clear_pending_changes(
+    device_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """장비의 모든 대기중 변경사항을 초기화합니다."""
+    await _get_palo_alto_device(db, device_id)
+    await crud.pending_policy_change.clear_by_device(db, device_id)
+    return {"msg": "초기화되었습니다."}
 
 
 @router.post("/{device_id}/object-gaps", response_model=schemas.ObjectGapCheckResponse)
@@ -44,6 +100,25 @@ async def check_object_gaps(
     return schemas.ObjectGapCheckResponse(missing_objects=missing_objects)
 
 
+async def _load_defaults(db: AsyncSession) -> dict:
+    defaults_setting = await crud.settings.get_setting(db, "policy_builder_defaults")
+    if not defaults_setting:
+        return {}
+    try:
+        return json.loads(defaults_setting.value)
+    except (ValueError, TypeError):
+        return {}
+
+
+async def _reference_rule_name(db: AsyncSession, reference_policy_id: Optional[int]) -> Optional[str]:
+    if reference_policy_id is None:
+        return None
+    reference_policy = await crud.policy.get_policy(db, policy_id=reference_policy_id)
+    if not reference_policy:
+        raise HTTPException(status_code=400, detail=f"기준 정책 ID {reference_policy_id}를 찾을 수 없습니다.")
+    return reference_policy.rule_name
+
+
 @router.post("/{device_id}/plan", response_model=schemas.BulkPolicyPlanResponse)
 async def plan_bulk_policy(
     device_id: int,
@@ -52,23 +127,60 @@ async def plan_bulk_policy(
     current_user: User = Depends(get_current_user),
 ) -> Any:
     """
-    신규 정책 대량 생성 요청을 받아 (1) 부족한 오브젝트 생성 CLI, (2) 정책 생성 CLI,
-    (3) 목표 위치로 이동하는 CLI를 생성하고, 삽입 시 충돌 여부와 최종 배치 미리보기를 반환합니다.
+    Policies 편집모드에서 저장된 모든 대기중 변경사항(생성/수정/삭제/이동)을 모아
+    부족한 오브젝트 생성 CLI, 정책 생성/수정/삭제/이동 CLI를 만들고, 삽입·재배치 시
+    충돌 여부와 배치 미리보기를 반환합니다.
     """
     await _get_palo_alto_device(db, device_id)
+    vsys = request.vsys
+    warnings: list = []
 
-    all_missing_objects = await object_gap.find_missing_objects(db, device_id, request.new_policies)
-    filled_keys = {f"{obj.object_kind}:{obj.name}" for obj in request.new_objects}
-    # 사용자가 값을 입력한 신규 오브젝트는 잔여 갭에서 제외 — object_commands가 이미 그 생성 CLI를 담당
-    missing_objects = [item for item in all_missing_objects if f"{item.object_kind}:{item.name}" not in filled_keys]
+    changes = await crud.pending_policy_change.get_by_device(db, device_id)
+    create_changes = [c for c in changes if c.change_type == "create"]
+    object_changes = [c for c in changes if c.change_type == "new_object"]
+    modify_changes = [c for c in changes if c.change_type == "modify"]
+    delete_changes = [c for c in changes if c.change_type == "delete"]
+    move_changes = [c for c in changes if c.change_type == "move"]
 
-    warnings = []
+    # --- 신규 생성 (create) --- payload에는 NewPolicyRow 필드 + position/reference_policy_id가
+    # 함께 들어있으므로, 후자는 제거하고 NewPolicyRow를 재구성한다.
+    new_policies = []
+    for i, c in enumerate(create_changes):
+        row_fields = {k: v for k, v in c.payload.items() if k not in ("position", "reference_policy_id", "row_index")}
+        new_policies.append(schemas.NewPolicyRow(**row_fields, row_index=i))
+
+    new_objects = [schemas.NewObjectSpec(**c.payload) for c in object_changes]
+
+    all_missing_objects = await object_gap.find_missing_objects(db, device_id, new_policies)
+    # modify로 추가되는 토큰들도 갭 검사 대상에 포함
+    modify_gap_rows = []
+    for i, c in enumerate(modify_changes):
+        diffs = c.payload or {}
+        modify_gap_rows.append(schemas.NewPolicyRow(
+            row_index=1000 + i, rule_name=f"modify-{c.id}",
+            source=",".join(diffs.get("source", {}).get("added", [])),
+            destination=",".join(diffs.get("destination", {}).get("added", [])),
+            service=",".join(diffs.get("service", {}).get("added", [])),
+        ))
+    if modify_gap_rows:
+        all_missing_objects += await object_gap.find_missing_objects(db, device_id, modify_gap_rows)
+
+    filled_keys = {f"{obj.object_kind}:{obj.name}" for obj in new_objects}
+    seen_missing_keys: set = set()
+    missing_objects = []
+    for item in all_missing_objects:
+        key = f"{item.object_kind}:{item.name}"
+        if key in filled_keys or key in seen_missing_keys:
+            continue
+        seen_missing_keys.add(key)
+        missing_objects.append(item)
+
     object_commands = []
-    for obj in request.new_objects:
+    for obj in new_objects:
         if obj.object_kind == "address":
-            command, error = generate_address_object_command(obj, request.vsys)
+            command, error = generate_address_object_command(obj, vsys)
         else:
-            command, error = generate_service_object_command(obj, request.vsys)
+            command, error = generate_service_object_command(obj, vsys)
         object_commands.append(schemas.GeneratedCommand(row_index=0, kind="object", command=command, error=error))
 
     if missing_objects:
@@ -77,39 +189,103 @@ async def plan_bulk_policy(
             "정책 생성 CLI가 존재하지 않는 오브젝트를 참조할 수 있습니다."
         )
 
+    defaults = await _load_defaults(db)
+
     policy_commands = []
-    for row in request.new_policies:
-        command, error, counts = generate_policy_set_command(row, request.vsys)
+    for row in new_policies:
+        command, error, counts = generate_policy_set_command(row, vsys, defaults)
         policy_commands.append(schemas.GeneratedCommand(
             row_index=row.row_index, kind="policy", command=command, error=error, counts=counts or None,
         ))
 
-    try:
-        virtual_policies = await resolve_virtual_policies(db, device_id, request.new_policies, request.new_objects)
-        conflicts, preview_before, preview_after, insertion_warnings = await analyze_insertion(
-            db, device_id, virtual_policies, request.move_target,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    warnings.extend(insertion_warnings)
+    conflicts: list = []
+    preview_before: list = []
+    preview_after: list = []
 
-    reference_rule_name = None
-    if request.move_target.reference_policy_id is not None:
-        reference_policy = await crud.policy.get_policy(db, policy_id=request.move_target.reference_policy_id)
-        if not reference_policy:
-            raise HTTPException(status_code=400, detail=f"기준 정책 ID {request.move_target.reference_policy_id}를 찾을 수 없습니다.")
-        reference_rule_name = reference_policy.rule_name
-
+    # --- 신규 생성 배치의 삽입 위치 (모든 create 행이 같은 위치를 공유) ---
     move_commands = []
-    for row in request.new_policies:
-        command, error = generate_move_command(row.rule_name, request.move_target, reference_rule_name, request.vsys)
-        move_commands.append(schemas.GeneratedCommand(row_index=row.row_index, kind="move", command=command, error=error))
+    if create_changes:
+        first_payload = create_changes[0].payload
+        move_target = schemas.MoveTarget(
+            position=first_payload.get("position", "bottom"),
+            reference_policy_id=first_payload.get("reference_policy_id"),
+        )
+        try:
+            virtual_policies = await resolve_virtual_policies(db, device_id, new_policies, new_objects)
+            insertion_conflicts, insertion_before, insertion_after, insertion_warnings = await analyze_insertion(
+                db, device_id, virtual_policies, move_target,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        conflicts += insertion_conflicts
+        preview_before += insertion_before
+        preview_after += insertion_after
+        warnings.extend(insertion_warnings)
+
+        reference_rule_name = await _reference_rule_name(db, move_target.reference_policy_id)
+        for row in new_policies:
+            command, error = generate_move_command(row.rule_name, move_target, reference_rule_name, vsys)
+            move_commands.append(schemas.GeneratedCommand(row_index=row.row_index, kind="move", command=command, error=error))
+
+    # --- 기존 정책 이동 (move) ---
+    for c in move_changes:
+        real_policies = await load_active_policies_with_members(db, device_id)
+        target_policy = next((p for p in real_policies if p.id == c.target_policy_id), None)
+        if not target_policy:
+            warnings.append(f"이동 대상 정책(ID {c.target_policy_id})을 찾을 수 없어 건너뜁니다.")
+            continue
+        move_target = schemas.MoveTarget(
+            position=c.payload.get("position", "bottom"),
+            reference_policy_id=c.payload.get("reference_policy_id"),
+        )
+        try:
+            virtual = wrap_existing_policy_as_virtual(target_policy)
+            move_conflicts, move_before, move_after, move_warnings = await analyze_insertion(
+                db, device_id, [virtual], move_target, exclude_policy_ids={target_policy.id},
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        conflicts += move_conflicts
+        preview_before += move_before
+        preview_after += move_after
+        warnings.extend(move_warnings)
+
+        reference_rule_name = await _reference_rule_name(db, move_target.reference_policy_id)
+        command, error = generate_move_command(target_policy.rule_name, move_target, reference_rule_name, vsys)
+        move_commands.append(schemas.GeneratedCommand(row_index=c.id, kind="move", command=command, error=error))
+
+    # --- 기존 정책 수정 (modify: set append + delete) ---
+    modify_commands = []
+    for c in modify_changes:
+        target_policy = await crud.policy.get_policy(db, policy_id=c.target_policy_id) if c.target_policy_id else None
+        if not target_policy:
+            warnings.append(f"수정 대상 정책(ID {c.target_policy_id})을 찾을 수 없어 건너뜁니다.")
+            continue
+        command, error, counts = generate_field_append_command(target_policy.rule_name, c.payload, vsys)
+        if command or error:
+            modify_commands.append(schemas.GeneratedCommand(row_index=c.id, kind="modify", command=command, error=error, counts=counts or None))
+        for field, diff in (c.payload or {}).items():
+            for value in diff.get("removed", []):
+                del_command, del_error = generate_field_delete_command(target_policy.rule_name, field, value, vsys)
+                modify_commands.append(schemas.GeneratedCommand(row_index=c.id, kind="modify", command=del_command, error=del_error))
+
+    # --- 기존 정책 삭제 (delete) ---
+    delete_commands = []
+    for c in delete_changes:
+        target_policy = await crud.policy.get_policy(db, policy_id=c.target_policy_id) if c.target_policy_id else None
+        if not target_policy:
+            warnings.append(f"삭제 대상 정책(ID {c.target_policy_id})을 찾을 수 없어 건너뜁니다.")
+            continue
+        command, error = generate_rule_delete_command(target_policy.rule_name, vsys)
+        delete_commands.append(schemas.GeneratedCommand(row_index=c.id, kind="delete", command=command, error=error))
 
     return schemas.BulkPolicyPlanResponse(
         missing_objects=missing_objects,
         object_commands=object_commands,
         policy_commands=policy_commands,
         move_commands=move_commands,
+        modify_commands=modify_commands,
+        delete_commands=delete_commands,
         conflicts=conflicts,
         preview_before=preview_before,
         preview_after=preview_after,

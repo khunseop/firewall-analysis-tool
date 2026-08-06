@@ -234,6 +234,20 @@
 | `updated_count` | `INTEGER` | `DEFAULT 0` | 수정된 항목 수 |
 | `deleted_count` | `INTEGER` | `DEFAULT 0` | 삭제된 항목 수 |
 
+### `pending_policy_changes` Table (Policies 편집모드 대기중 변경사항)
+- Policies 페이지 편집모드에서 만든 생성/수정/삭제/이동 작업을 영속 저장한다. **실제 장비나 `policies` 테이블에는 전혀 반영되지 않으며**, CLI 텍스트 생성(`/policy-builder/{device_id}/plan`)의 입력으로만 쓰인다.
+
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
+| `device_id` | `INTEGER` | `FOREIGN KEY (devices.id), NOT NULL` | 장비 참조 |
+| `change_type` | `VARCHAR` | `NOT NULL` | 종류 (`create`, `new_object`, `modify`, `delete`, `move`) |
+| `target_policy_id` | `INTEGER` | `FOREIGN KEY (policies.id), NULLABLE` | modify/delete/move 대상 기존 정책 (create/new_object는 NULL) |
+| `client_key` | `VARCHAR` | `NOT NULL` | 프론트가 생성한 임시 식별자 |
+| `payload` | `JSON` | `NOT NULL` | 종류별 상세 내용 (create=신규 정책 필드+배치 위치, modify=필드별 added/removed 토큰, move=목표 위치, delete/new_object=해당 스펙) |
+| `created_by_user_id` | `INTEGER` | `FOREIGN KEY (users.id), NULLABLE` | 작성자 |
+| `created_at` | `DATETIME` | `NOT NULL` | 생성 시간 |
+
 ---
 
 ## 5. 설정 및 스케줄
@@ -241,7 +255,7 @@
 ### `settings` Table (애플리케이션 설정)
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
-| `key` | `VARCHAR` | `PRIMARY KEY` | 설정 키 (예: sync_parallel_limit) |
+| `key` | `VARCHAR` | `PRIMARY KEY` | 설정 키 (예: sync_parallel_limit, risky_ports, policy_builder_defaults) |
 | `value` | `VARCHAR` | `NOT NULL` | 설정 값 |
 
 ### `sync_schedules` Table (동기화 스케줄)

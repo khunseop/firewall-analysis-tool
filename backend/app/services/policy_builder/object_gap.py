@@ -23,13 +23,18 @@ def _split_tokens(raw: str) -> List[str]:
 
 
 def _is_address_literal(token: str) -> bool:
+    if token.lower() == "any":
+        return True
     return bool(_IP_LITERAL_RE.match(token))
 
 
 def _is_service_literal(token: str) -> bool:
-    if token.lower() == "any":
+    lowered = token.lower()
+    if lowered in ("any", "application-default"):
+        # application-default는 PAN-OS 예약어(애플리케이션의 표준 포트 사용)이지 실제 서비스
+        # 오브젝트가 아니므로 갭 감지 대상에서 제외한다.
         return True
-    return bool(_SERVICE_LITERAL_RE.match(token.lower()))
+    return bool(_SERVICE_LITERAL_RE.match(lowered))
 
 
 async def find_missing_objects(db: AsyncSession, device_id: int, new_policies: List[NewPolicyRow]) -> List[ObjectGapItem]:
