@@ -13,6 +13,11 @@ from typing import List, Union, Optional
 from app import models, schemas
 from app.services.normalize import parse_ipv4_numeric, parse_port_numeric
 
+def _escape_like(value: str) -> str:
+    """ILIKE 패턴에서 %, _, \\ 를 리터럴로 취급하도록 이스케이프 (SQLite에서 _ 는 단일문자 와일드카드)."""
+    return value.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+
+
 async def get_policy(db: AsyncSession, policy_id: int):
     result = await db.execute(select(Policy).filter(Policy.id == policy_id))
     return result.scalars().first()
@@ -190,7 +195,7 @@ async def _svc_policy_ids(db: AsyncSession, device_ids: List[int], token_list: l
                 conds.append(and_(port_cond, func.lower(models.PolicyServiceMember.protocol).in_(['tcp', 'udp', 'any'])))
         else:
             # 포트로 파싱 불가 → 서비스 객체명 ILIKE로 폴백
-            conds.append(models.PolicyServiceMember.token.ilike(f'%{token}%'))
+            conds.append(models.PolicyServiceMember.token.ilike(f'%{_escape_like(token)}%', escape='\\'))
     if not conds:
         return None
     q = select(models.PolicyServiceMember.policy_id).where(
@@ -238,7 +243,7 @@ async def _evaluate_leaf(
             combined = or_(*clauses) if len(clauses) > 1 else clauses[0]
             return ~combined if is_not else combined
         else:
-            clauses = [col.ilike(f'%{v}%') for v in vals]
+            clauses = [col.ilike(f'%{_escape_like(v)}%', escape='\\') for v in vals]
             combined = or_(*clauses) if len(clauses) > 1 else clauses[0]
             return ~combined if is_not else combined
 
@@ -252,7 +257,7 @@ async def _evaluate_leaf(
             combined = or_(*clauses) if len(clauses) > 1 else clauses[0]
             return ~combined if is_not else combined
         else:
-            clauses = [col.ilike(f'%{v}%') for v in vals]
+            clauses = [col.ilike(f'%{_escape_like(v)}%', escape='\\') for v in vals]
             combined = or_(*clauses) if len(clauses) > 1 else clauses[0]
             return ~combined if is_not else combined
 
@@ -345,7 +350,7 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
 
     # Text filters (ILIKE contains, with optional negation)
     def _text_filter(col, val: str, negate: bool = False):
-        cond = col.ilike(f"%{val.strip()}%")
+        cond = col.ilike(f"%{_escape_like(val.strip())}%", escape='\\')
         return ~cond if negate else cond
 
     if req.vsys:
@@ -355,17 +360,17 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
         if names:
             if req.rule_name_negate:
                 # NOT (A OR B) = NOT A AND NOT B
-                stmt = stmt.where(and_(*[~Policy.rule_name.ilike(f'%{n}%') for n in names]))
+                stmt = stmt.where(and_(*[~Policy.rule_name.ilike(f'%{_escape_like(n)}%', escape='\\') for n in names]))
             else:
-                stmt = stmt.where(or_(*[Policy.rule_name.ilike(f'%{n}%') for n in names]))
+                stmt = stmt.where(or_(*[Policy.rule_name.ilike(f'%{_escape_like(n)}%', escape='\\') for n in names]))
     if req.user:
         stmt = stmt.where(_text_filter(Policy.user, req.user, req.user_negate))
     if req.application:
         stmt = stmt.where(_text_filter(Policy.application, req.application, req.application_negate))
     if req.security_profile:
-        stmt = stmt.where(Policy.security_profile.ilike(f"%{req.security_profile.strip()}%"))
+        stmt = stmt.where(Policy.security_profile.ilike(f"%{_escape_like(req.security_profile.strip())}%", escape='\\'))
     if req.category:
-        stmt = stmt.where(Policy.category.ilike(f"%{req.category.strip()}%"))
+        stmt = stmt.where(Policy.category.ilike(f"%{_escape_like(req.category.strip())}%", escape='\\'))
     if req.description:
         stmt = stmt.where(_text_filter(Policy.description, req.description, req.description_negate))
 
@@ -431,19 +436,19 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
     if req.src_names:
         valid_src_names = [n.strip() for n in req.src_names if n.strip()]
         if valid_src_names:
-            stmt = stmt.where(or_(*[Policy.source.ilike(f'%{n}%') for n in valid_src_names]))
+            stmt = stmt.where(or_(*[Policy.source.ilike(f'%{_escape_like(n)}%', escape='\\') for n in valid_src_names]))
 
     # 목적지 객체명 필터 — Policy.destination ILIKE
     if req.dst_names:
         valid_dst_names = [n.strip() for n in req.dst_names if n.strip()]
         if valid_dst_names:
-            stmt = stmt.where(or_(*[Policy.destination.ilike(f'%{n}%') for n in valid_dst_names]))
+            stmt = stmt.where(or_(*[Policy.destination.ilike(f'%{_escape_like(n)}%', escape='\\') for n in valid_dst_names]))
 
     # 서비스 객체명 필터 — Policy.service ILIKE (인덱서가 원본 서비스 객체명을 보존하지 않으므로)
     if req.service_names:
         valid_svc_names = [n.strip() for n in req.service_names if n.strip()]
         if valid_svc_names:
-            stmt = stmt.where(or_(*[Policy.service.ilike(f'%{n}%') for n in valid_svc_names]))
+            stmt = stmt.where(or_(*[Policy.service.ilike(f'%{_escape_like(n)}%', escape='\\') for n in valid_svc_names]))
 
     # 모든 개별 인덱스 필터(IP, Service) 결과의 교집합(Intersection)을 최종 정책 ID 목록으로 확정
     if list_of_policy_id_sets:
@@ -484,17 +489,17 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
     if req.src_names_exclude:
         valid = [n.strip() for n in req.src_names_exclude if n.strip()]
         if valid:
-            stmt = stmt.where(~or_(*[Policy.source.ilike(f'%{n}%') for n in valid]))
+            stmt = stmt.where(~or_(*[Policy.source.ilike(f'%{_escape_like(n)}%', escape='\\') for n in valid]))
 
     if req.dst_names_exclude:
         valid = [n.strip() for n in req.dst_names_exclude if n.strip()]
         if valid:
-            stmt = stmt.where(~or_(*[Policy.destination.ilike(f'%{n}%') for n in valid]))
+            stmt = stmt.where(~or_(*[Policy.destination.ilike(f'%{_escape_like(n)}%', escape='\\') for n in valid]))
 
     if req.service_names_exclude:
         valid = [n.strip() for n in req.service_names_exclude if n.strip()]
         if valid:
-            stmt = stmt.where(~or_(*[Policy.service.ilike(f'%{n}%') for n in valid]))
+            stmt = stmt.where(~or_(*[Policy.service.ilike(f'%{_escape_like(n)}%', escape='\\') for n in valid]))
 
     # Ordering: device -> vsys -> seq -> rule_name
     stmt = stmt.order_by(Policy.device_id.asc(), Policy.vsys.asc(), Policy.seq.asc(), Policy.rule_name.asc())

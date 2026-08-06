@@ -552,6 +552,7 @@ export function PoliciesPage() {
     {
       headerName: '장비명',
       width: 120,
+      suppressSizeToFit: true,
       pinned: 'left',
       valueGetter: (p) => deviceNameMap.get(p.data?.device_id ?? -1) ?? String(p.data?.device_id ?? '-'),
       cellRenderer: (p: { value: string }) => (
@@ -559,13 +560,13 @@ export function PoliciesPage() {
       ),
     },
     {
-      field: 'seq', headerName: '#', width: 52,
+      field: 'seq', headerName: '#', width: 52, suppressSizeToFit: true,
       cellRenderer: (p: { value: number }) => (
         <span className="font-mono text-xs text-ds-on-surface-variant">{p.value}</span>
       ),
     },
     {
-      field: 'rule_name', headerName: '정책명', width: 200,
+      field: 'rule_name', headerName: '정책명', width: 220, maxWidth: 260, suppressSizeToFit: true,
       cellRenderer: (p: { value: string; data: Policy }) => {
         const key = `${p.data.device_id}_${p.data.rule_name}`
         const log = changeLogMap.get(key)
@@ -588,25 +589,25 @@ export function PoliciesPage() {
       },
     },
     {
-      field: 'action', headerName: '액션', width: 72,
+      field: 'action', headerName: '액션', width: 72, suppressSizeToFit: true,
       cellRenderer: (p: { value: string }) => {
         const cls = ACTION_BADGE[p.value?.toLowerCase()] ?? 'bg-ds-surface-container text-ds-on-surface-variant'
         return <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${cls}`}>{p.value}</span>
       },
     },
     {
-      field: 'enable', headerName: '활성', width: 62,
+      field: 'enable', headerName: '활성', width: 62, suppressSizeToFit: true,
       cellRenderer: (p: { value: boolean }) => (
         <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${p.value ? 'bg-green-100 text-green-700' : 'bg-ds-surface-container text-ds-on-surface-variant'}`}>
           {p.value ? '활성' : '비활성'}
         </span>
       ),
     },
-    { field: 'source',      headerName: '출발지', minWidth: 160, editable: isRowEditable, cellRenderer: (p: { value: string }) => <InlineTagCell value={p.value} /> },
-    { field: 'destination', headerName: '목적지', minWidth: 160, editable: isRowEditable, cellRenderer: (p: { value: string }) => <InlineTagCell value={p.value} /> },
-    { field: 'service',     headerName: '서비스', minWidth: 130, editable: isRowEditable, cellRenderer: (p: { value: string }) => <InlineTagCell value={p.value} /> },
+    { field: 'source',      headerName: '출발지', width: 180, minWidth: 160, maxWidth: 260, editable: isRowEditable, cellRenderer: (p: { value: string }) => <InlineTagCell value={p.value} /> },
+    { field: 'destination', headerName: '목적지', width: 180, minWidth: 160, maxWidth: 260, editable: isRowEditable, cellRenderer: (p: { value: string }) => <InlineTagCell value={p.value} /> },
+    { field: 'service',     headerName: '서비스', width: 150, minWidth: 130, maxWidth: 220, editable: isRowEditable, cellRenderer: (p: { value: string }) => <InlineTagCell value={p.value} /> },
     {
-      field: 'user', headerName: '사용자', minWidth: 100, editable: isRowEditable,
+      field: 'user', headerName: '사용자', width: 110, minWidth: 100, maxWidth: 160, suppressSizeToFit: true, editable: isRowEditable,
       cellRenderer: (p: { value: string | null }) => {
         if (!p.value) return <span className="text-[11px] text-ds-on-surface-variant">-</span>
         const users = parseCSVTokens(p.value)
@@ -619,17 +620,17 @@ export function PoliciesPage() {
         )
       },
     },
-    { field: 'application', headerName: '애플리케이션', width: 130, hide: !editMode, editable: isRowEditable },
-    { field: 'from_zone', headerName: 'from(존)', width: 110, hide: !editMode, editable: isRowEditable },
-    { field: 'to_zone', headerName: 'to(존)', width: 110, hide: !editMode, editable: isRowEditable },
-    { field: 'log_setting', headerName: 'log-setting', width: 120, hide: !editMode },
+    { field: 'application', headerName: '애플리케이션', width: 130, suppressSizeToFit: true, hide: !editMode, editable: isRowEditable },
+    { field: 'from_zone', headerName: 'from(존)', width: 110, suppressSizeToFit: true, hide: !editMode, editable: isRowEditable },
+    { field: 'to_zone', headerName: 'to(존)', width: 110, suppressSizeToFit: true, hide: !editMode, editable: isRowEditable },
+    { field: 'log_setting', headerName: 'log-setting', width: 120, suppressSizeToFit: true, hide: !editMode },
     {
-      field: 'security_profile', headerName: '보안 프로파일', width: 130,
+      field: 'security_profile', headerName: '보안 프로파일', width: 130, suppressSizeToFit: true,
       cellRenderer: (p: { value: string | null }) =>
         p.value ? <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-700">{p.value}</span> : <span className="text-[11px] text-ds-on-surface-variant">-</span>,
     },
     {
-      field: 'category', headerName: '카테고리', width: 100,
+      field: 'category', headerName: '카테고리', width: 100, suppressSizeToFit: true,
       cellRenderer: (p: { value: string | null }) =>
         p.value ? <span className="text-[11px] text-ds-on-surface-variant">{p.value}</span> : <span className="text-[11px] text-ds-on-surface-variant">-</span>,
     },
@@ -640,11 +641,11 @@ export function PoliciesPage() {
       ),
     },
     {
-      field: 'last_hit_date', headerName: '마지막 사용일', minWidth: 120,
+      field: 'last_hit_date', headerName: '마지막 사용일', width: 130, minWidth: 120, suppressSizeToFit: true,
       cellRenderer: (p: { value: string | null }) => <LastHitCell value={p.value} />,
     },
     {
-      field: 'hit_count', headerName: '히트 횟수', width: 100,
+      field: 'hit_count', headerName: '히트 횟수', width: 100, suppressSizeToFit: true,
       cellRenderer: (p: { value: number | null }) => (
         <span className="text-[11px] text-ds-on-surface-variant">{p.value ?? '-'}</span>
       ),
@@ -899,6 +900,7 @@ export function PoliciesPage() {
           loadingLabel="정책 검색 중…"
           noRowsText="장비를 선택하고 검색 버튼을 클릭하세요."
           defaultColDefOverride={GRID_DEFAULT_COL_DEF_OVERRIDE}
+          fitColumns
           quickFilterText={quickFilterText}
           onRowClicked={handleRowClick}
           rowHeight={34}
