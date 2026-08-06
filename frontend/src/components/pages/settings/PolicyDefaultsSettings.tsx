@@ -16,12 +16,13 @@ interface PolicyBuilderDefaults {
   service: string
   application: string
   log_end: string
+  log_setting: string
 }
 
 const DEFAULT_POLICY_BUILDER_DEFAULTS: PolicyBuilderDefaults = {
   from_zone: 'any', source: 'any', source_user: 'any',
   to_zone: 'any', destination: 'any', service: 'any', application: 'any',
-  log_end: 'yes',
+  log_end: 'yes', log_setting: '',
 }
 
 const FIELD_LABELS: { key: keyof PolicyBuilderDefaults; label: string }[] = [
@@ -33,6 +34,7 @@ const FIELD_LABELS: { key: keyof PolicyBuilderDefaults; label: string }[] = [
   { key: 'service', label: 'service' },
   { key: 'application', label: 'application' },
   { key: 'log_end', label: 'log-end' },
+  { key: 'log_setting', label: 'log-setting (로그 포워딩 프로파일, 비워두면 미지정)' },
 ]
 
 export function PolicyDefaultsSettings() {
@@ -69,7 +71,8 @@ export function PolicyDefaultsSettings() {
     <div className="space-y-4">
       <p className="text-sm text-ds-on-surface-variant">
         Policies 편집모드에서 신규 정책을 생성할 때, 붙여넣은 데이터에 컬럼이 없거나 값이 비어 있는 필드에
-        자동으로 채워지는 기본값입니다. PAN-OS는 값이 아예 없는 필드를 허용하지 않으므로, 비워두면 안 됩니다.
+        자동으로 채워지는 기본값입니다. PAN-OS는 값이 아예 없는 필드를 허용하지 않으므로 비워두면 안 됩니다
+        (단, log-setting은 로그 포워딩 프로파일을 지정하지 않는 것도 유효한 상태라 비워둘 수 있습니다).
       </p>
 
       <div className="grid grid-cols-2 gap-3 max-w-2xl">

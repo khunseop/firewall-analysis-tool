@@ -46,8 +46,9 @@ def generate_policy_set_command(
     신규 정책 1건에 대한 `set rulebase security rules ...` 명령을 생성합니다.
 
     PAN-OS는 값이 아예 없는 필드를 허용하지 않으므로, 붙여넣은 데이터에 값이 없는
-    다중값 필드/`log-end`는 `defaults`(Settings > 정책 생성 기본값, 없으면 빈 dict)로 채운다.
-    `log-setting`은 로그 포워딩 프로파일 미지정이 PAN-OS에서도 유효한 상태라 강제 기본값이 없다.
+    다중값 필드/`log-end`/`log-setting`은 `defaults`(Settings > 정책 생성 기본값, 없으면 빈 dict)로 채운다.
+    `log-setting`은 로그 포워딩 프로파일 미지정이 PAN-OS에서도 유효한 상태라, defaults에도 값이 없으면
+    그냥 생략한다(강제 기본값 없음).
 
     Returns: (command, error, counts) — error가 있으면 command는 None.
     """
@@ -83,8 +84,10 @@ def generate_policy_set_command(
     log_end = row.log_end.strip() or defaults.get("log_end", "").strip()
     if log_end:
         parts += ["log-end", log_end.lower()]
-    if row.log_setting.strip():
-        parts += ["log-setting", _quote_if_needed(row.log_setting.strip())]
+
+    log_setting = row.log_setting.strip() or defaults.get("log_setting", "").strip()
+    if log_setting:
+        parts += ["log-setting", _quote_if_needed(log_setting)]
 
     return " ".join(parts), None, counts
 
