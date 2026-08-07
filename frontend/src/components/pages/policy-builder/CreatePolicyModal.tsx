@@ -4,8 +4,7 @@ import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { NewPolicyPasteInput } from '@/components/pages/policy-builder/NewPolicyPasteInput'
 import { ObjectGapPanel } from '@/components/pages/policy-builder/ObjectGapPanel'
-import { MoveTargetPicker } from '@/components/pages/policy-builder/MoveTargetPicker'
-import { addPendingChange, type NewObjectSpec, type NewPolicyRow, type MoveTarget } from '@/api/policyBuilder'
+import { addPendingChange, type NewObjectSpec, type NewPolicyRow } from '@/api/policyBuilder'
 
 export function CreatePolicyModal({ deviceId, onClose, onCreated }: {
   deviceId: number
@@ -14,7 +13,6 @@ export function CreatePolicyModal({ deviceId, onClose, onCreated }: {
 }) {
   const [rows, setRows] = useState<NewPolicyRow[]>([])
   const [newObjects, setNewObjects] = useState<NewObjectSpec[]>([])
-  const [moveTarget, setMoveTarget] = useState<MoveTarget>({ position: 'bottom', reference_policy_id: null })
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -28,23 +26,27 @@ export function CreatePolicyModal({ deviceId, onClose, onCreated }: {
       for (const row of rows) {
         await addPendingChange(deviceId, {
           change_type: 'create', client_key: `draft-${row.row_index}-${timestamp}`,
-          payload: { ...row, position: moveTarget.position, reference_policy_id: moveTarget.reference_policy_id } as unknown as Record<string, unknown>,
+          payload: { ...row, position: 'bottom', reference_policy_id: null } as unknown as Record<string, unknown>,
         })
       }
     },
     onSuccess: () => {
-      toast.success(`정책 ${rows.length}건이 대기중 변경사항으로 추가되었습니다.`)
+      toast.success(`정책 ${rows.length}건이 대기중 변경사항으로 추가되었습니다. 그리드에서 선택 후 "선택 이동"으로 위치를 지정하세요.`)
       onCreated()
       onClose()
     },
     onError: (err: Error) => toast.error(err.message),
   })
 
-  const canSubmit = rows.length > 0 && (moveTarget.position === 'top' || moveTarget.position === 'bottom' || !!moveTarget.reference_policy_id)
+  const canSubmit = rows.length > 0
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-5xl bg-ds-surface-container-lowest max-h-[85vh] overflow-y-auto">
+      {/* 파싱 결과 표가 나타나면서 다이얼로그 높이가 급격히 커지는데, 기본 Dialog는 화면 중앙에
+          transform(top-50%/translate-y--50%)으로 위치를 잡기 때문에 높이가 바뀔 때마다 그 오프셋이
+          재계산되어 상자가 중심에서 사방으로 갑자기 확대되는 것처럼 보인다(파싱 시 "화면이 깨지는" 버그의 원인).
+          화면 위쪽에 고정해 높이가 바뀌어도 아래로만 자라도록 한다. */}
+      <DialogContent className="max-w-5xl bg-ds-surface-container-lowest max-h-[85vh] overflow-y-auto top-8 translate-y-0">
         <DialogHeader>
           <DialogTitle className="font-headline text-ds-on-surface">새 정책 붙여넣기</DialogTitle>
         </DialogHeader>
@@ -52,10 +54,9 @@ export function CreatePolicyModal({ deviceId, onClose, onCreated }: {
         <div className="space-y-4">
           <NewPolicyPasteInput rows={rows} onChange={setRows} />
           <ObjectGapPanel deviceId={deviceId} rows={rows} newObjects={newObjects} onChange={setNewObjects} />
-          <div>
-            <p className="text-[13px] font-semibold text-ds-on-surface-variant mb-2">목표 위치</p>
-            <MoveTargetPicker deviceId={deviceId} value={moveTarget} onChange={setMoveTarget} />
-          </div>
+          <p className="text-[12px] text-ds-on-surface-variant">
+            생성된 정책은 일단 최하단에 추가됩니다. 배치 위치는 추가 후 그리드에서 행을 선택해 "선택 이동"으로 지정하세요.
+          </p>
         </div>
 
         <DialogFooter>

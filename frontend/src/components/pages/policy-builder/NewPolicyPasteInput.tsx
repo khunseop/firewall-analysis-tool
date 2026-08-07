@@ -1,11 +1,15 @@
 import { useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Copy } from 'lucide-react'
+import { toast } from 'sonner'
 import { Textarea } from '@/components/ui/textarea'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { parsePastedPolicies } from '@/lib/policyBuilderParse'
 import type { NewPolicyRow } from '@/api/policyBuilder'
 
-const SAMPLE_HEADER = '정책명\t액션\t출발지\t목적지\t서비스\t애플리케이션\t설명'
+// 파싱 가능한(수정 가능한) 전체 컬럼 — lib/policyBuilderParse.ts의 HEADER_TO_FIELD와 동기화되어야 한다.
+const TEMPLATE_HEADER = ['정책명', '액션', '비활성화', '출발지존', '출발지', '사용자', '목적지존', '목적지', '서비스', '애플리케이션', '설명', 'log_end', 'log_setting']
+const TEMPLATE_EXAMPLE_ROW = ['ALLOW-WEB-EXAMPLE', 'allow', '', 'any', '10.0.0.0/24', '', 'any', 'any', 'tcp-443', '', '업무용 웹 접근 허용', 'yes', '']
+const TEMPLATE = [TEMPLATE_HEADER.join('\t'), TEMPLATE_EXAMPLE_ROW.join('\t')].join('\n')
 
 function countTokens(value: string): number {
   return value.split(',').map((s) => s.trim()).filter(Boolean).length
@@ -38,16 +42,34 @@ export function NewPolicyPasteInput({ rows, onChange }: {
     onChange(rows.filter((r) => r.row_index !== rowIndex).map((r, i) => ({ ...r, row_index: i })))
   }
 
+  const handleCopyTemplate = async () => {
+    try {
+      await navigator.clipboard.writeText(TEMPLATE)
+      toast.success('템플릿을 클립보드에 복사했습니다. 엑셀에 붙여넣어 작성한 뒤 다시 이 화면에 붙여넣으세요.')
+    } catch {
+      toast.error('클립보드 복사에 실패했습니다.')
+    }
+  }
+
   return (
     <div className="space-y-2">
-      <p className="text-[12px] text-ds-on-surface-variant">
-        엑셀에서 첫 줄에 헤더(정책명/액션/출발지/목적지/서비스/애플리케이션/설명 등)를 포함해 복사한 뒤 붙여넣으세요.
-        정책명이 비어 있는 행은 바로 위 정책의 연속(다중값 이어붙임)으로 처리됩니다.
-      </p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[12px] text-ds-on-surface-variant">
+          엑셀에서 첫 줄에 헤더(정책명/액션/비활성화/출발지존/출발지/사용자/목적지존/목적지/서비스/애플리케이션/설명/log_end/log_setting 등)를
+          포함해 복사한 뒤 붙여넣으세요. 정책명이 비어 있는 행은 바로 위 정책의 연속(다중값 이어붙임)으로 처리됩니다.
+        </p>
+        <button
+          type="button"
+          onClick={handleCopyTemplate}
+          className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
+        >
+          <Copy className="w-3.5 h-3.5" /> 템플릿 복사
+        </button>
+      </div>
       <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder={SAMPLE_HEADER}
+        placeholder={TEMPLATE}
         rows={8}
         className="font-mono text-[12px]"
       />

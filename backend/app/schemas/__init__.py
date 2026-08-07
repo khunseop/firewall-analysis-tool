@@ -17,10 +17,10 @@ from .sync_schedule import SyncSchedule, SyncScheduleCreate, SyncScheduleUpdate
 from .settings import Settings, SettingsCreate, SettingsUpdate
 from .notification_log import NotificationLog, NotificationLogCreate, NotificationLogListResponse
 from .sync_history import SyncHistory, SyncHistoryCreate, PolicyDiffEntry, PolicyDiffResponse
-from .pending_policy_change import PendingPolicyChange, PendingPolicyChangeCreate
+from .pending_policy_change import PendingPolicyChange, PendingPolicyChangeCreate, PendingPolicyChangeUpdate
 from .policy_builder import (
     NewObjectSpec, NewPolicyRow, MoveTarget,
     ObjectGapItem, ObjectGapCheckRequest, ObjectGapCheckResponse,
-    BulkPolicyPlanRequest, GeneratedCommand, InsertionConflict, PreviewRow,
+    BulkPolicyPlanRequest, GeneratedCommand, InsertionConflict, PreviewRow, PreviewPolicyRow,
     BulkPolicyPlanResponse,
 )

@@ -75,6 +75,32 @@ export interface BulkPolicyPlanResponse {
   warnings: string[]
 }
 
+export interface PreviewPolicyRow {
+  id: number
+  device_id: number
+  rule_name: string
+  action: string
+  seq: number | null
+  source: string
+  destination: string
+  service: string
+  application: string | null
+  from_zone: string | null
+  to_zone: string | null
+  user: string | null
+  description: string | null
+  log_setting: string | null
+  enable: boolean | null
+  security_profile: string | null
+  category: string | null
+  last_hit_date: string | null
+  hit_count: number | null
+  is_active: boolean
+  last_seen_at: string | null
+  vsys: string | null
+  pending_status: 'new' | 'modified' | 'deleted' | 'moved' | null
+}
+
 export type PendingChangeType = 'create' | 'new_object' | 'modify' | 'delete' | 'move'
 
 export interface PendingPolicyChange {
@@ -101,8 +127,22 @@ export const addPendingChange = async (
   return res.data
 }
 
+export const updatePendingChange = async (
+  deviceId: number,
+  changeId: number,
+  payload: Record<string, unknown>,
+): Promise<PendingPolicyChange> => {
+  const res = await apiClient.patch<PendingPolicyChange>(`/policy-builder/${deviceId}/pending-changes/${changeId}`, { payload })
+  return res.data
+}
+
 export const removePendingChange = async (deviceId: number, changeId: number): Promise<void> => {
   await apiClient.delete(`/policy-builder/${deviceId}/pending-changes/${changeId}`)
+}
+
+export const getPreviewOrder = async (deviceId: number): Promise<PreviewPolicyRow[]> => {
+  const res = await apiClient.get<PreviewPolicyRow[]>(`/policy-builder/${deviceId}/preview-order`)
+  return res.data
 }
 
 export const clearPendingChanges = async (deviceId: number): Promise<void> => {

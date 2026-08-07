@@ -3,11 +3,12 @@ import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { MoveTargetPicker } from '@/components/pages/policy-builder/MoveTargetPicker'
-import { addPendingChange, type MoveTarget } from '@/api/policyBuilder'
+import { addPendingChange, updatePendingChange, type MoveTarget, type PendingPolicyChange } from '@/api/policyBuilder'
 
-export function MoveExistingDialog({ deviceId, policyIds, onClose, onMoved }: {
+export function MoveExistingDialog({ deviceId, policyIds, pendingChanges, onClose, onMoved }: {
   deviceId: number
   policyIds: number[]
+  pendingChanges: PendingPolicyChange[]
   onClose: () => void
   onMoved: () => void
 }) {
@@ -17,6 +18,16 @@ export function MoveExistingDialog({ deviceId, policyIds, onClose, onMoved }: {
     mutationFn: async () => {
       const timestamp = Date.now()
       for (const policyId of policyIds) {
+        if (policyId < 0) {
+          // 신규 생성행(음수 id) — 아직 실제 정책이 아니므로 move가 아니라 create 변경사항의 배치 위치를 갱신한다.
+          const change = pendingChanges.find((c) => c.change_type === 'create' && -c.id === policyId)
+          if (change) {
+            await updatePendingChange(deviceId, change.id, {
+              position: moveTarget.position, reference_policy_id: moveTarget.reference_policy_id,
+            })
+          }
+          continue
+        }
         await addPendingChange(deviceId, {
           change_type: 'move', target_policy_id: policyId, client_key: `move-${policyId}-${timestamp}`,
           payload: { position: moveTarget.position, reference_policy_id: moveTarget.reference_policy_id },

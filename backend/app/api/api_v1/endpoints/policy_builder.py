@@ -19,7 +19,7 @@ from app.services.policy_builder.cli_generator import (
     generate_rule_delete_command,
     generate_service_object_command,
 )
-from app.services.policy_builder.insertion_analyzer import analyze_insertion
+from app.services.policy_builder.insertion_analyzer import analyze_insertion, build_full_order
 from app.services.policy_builder.virtual_policy import resolve_virtual_policies, wrap_existing_policy_as_virtual
 
 router = APIRouter()
@@ -57,6 +57,22 @@ async def add_pending_change(
     return await crud.pending_policy_change.create(db, device_id, request, current_user.id)
 
 
+@router.patch("/{device_id}/pending-changes/{change_id}", response_model=schemas.PendingPolicyChange)
+async def update_pending_change(
+    device_id: int,
+    change_id: int,
+    request: schemas.PendingPolicyChangeUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """기존 대기중 변경사항의 payload를 부분 갱신합니다(예: 신규 생성행의 배치 위치/필드값 변경)."""
+    await _get_palo_alto_device(db, device_id)
+    change = await crud.pending_policy_change.get_by_id(db, change_id)
+    if not change or change.device_id != device_id:
+        raise HTTPException(status_code=404, detail="변경사항을 찾을 수 없습니다.")
+    return await crud.pending_policy_change.update_payload(db, change, request.payload)
+
+
 @router.delete("/{device_id}/pending-changes/{change_id}", response_model=schemas.Msg)
 async def remove_pending_change(
     device_id: int,
@@ -71,6 +87,17 @@ async def remove_pending_change(
         raise HTTPException(status_code=404, detail="변경사항을 찾을 수 없습니다.")
     await crud.pending_policy_change.delete_by_id(db, change)
     return {"msg": "삭제되었습니다."}
+
+
+@router.get("/{device_id}/preview-order", response_model=List[schemas.PreviewPolicyRow])
+async def preview_order(
+    device_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """편집모드 그리드용 — 대기중 변경사항(생성/수정/삭제/이동)을 모두 적용한 최종 정책 순서를 반환합니다."""
+    await _get_palo_alto_device(db, device_id)
+    return await build_full_order(db, device_id)
 
 
 @router.delete("/{device_id}/pending-changes", response_model=schemas.Msg)
@@ -100,14 +127,24 @@ async def check_object_gaps(
     return schemas.ObjectGapCheckResponse(missing_objects=missing_objects)
 
 
+# frontend PolicyDefaultsSettings.tsx의 DEFAULT_POLICY_BUILDER_DEFAULTS와 동기화되어야 한다.
+# 사용자가 Settings에서 한 번도 저장하지 않았더라도 붙여넣기의 빈 컬럼이 채워지지 않는 일이
+# 없도록, 설정이 없거나 파싱에 실패하면 이 값으로 폴백한다.
+_FALLBACK_POLICY_BUILDER_DEFAULTS = {
+    "from_zone": "any", "source": "any", "source_user": "any",
+    "to_zone": "any", "destination": "any", "service": "any", "application": "any",
+    "log_end": "yes", "log_setting": "",
+}
+
+
 async def _load_defaults(db: AsyncSession) -> dict:
     defaults_setting = await crud.settings.get_setting(db, "policy_builder_defaults")
     if not defaults_setting:
-        return {}
+        return dict(_FALLBACK_POLICY_BUILDER_DEFAULTS)
     try:
         return json.loads(defaults_setting.value)
     except (ValueError, TypeError):
-        return {}
+        return dict(_FALLBACK_POLICY_BUILDER_DEFAULTS)
 
 
 async def _reference_rule_name(db: AsyncSession, reference_policy_id: Optional[int]) -> Optional[str]:

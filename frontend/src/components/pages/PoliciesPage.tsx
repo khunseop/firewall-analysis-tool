@@ -2,7 +2,7 @@ import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Download, SlidersHorizontal, AlertTriangle, X, History, Search, Bookmark, BookmarkPlus, Pencil, Plus, Trash2, ArrowLeftRight, RotateCcw, Terminal } from 'lucide-react'
+import { Download, SlidersHorizontal, AlertTriangle, X, History, Search, Bookmark, BookmarkPlus, Pencil, Plus, Trash2, ArrowLeftRight, RotateCcw, Terminal, Eye } from 'lucide-react'
 import type { CellValueChangedEvent, ColDef, RowClickedEvent } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { rowIdFromId } from '@/lib/utils'
@@ -27,10 +27,11 @@ import { usePolicySearchStore } from '@/store/policySearchStore'
 import { queryKeys } from '@/api/queryKeys'
 import { diffMultiValueField, isFieldDiffEmpty } from '@/lib/policyDiff'
 import {
-  listPendingChanges, addPendingChange, clearPendingChanges, planBulkPolicy,
-  type PendingPolicyChange, type BulkPolicyPlanResponse,
+  listPendingChanges, addPendingChange, updatePendingChange, removePendingChange, clearPendingChanges, planBulkPolicy, getPreviewOrder,
+  type BulkPolicyPlanResponse, type PreviewPolicyRow,
 } from '@/api/policyBuilder'
 import { CreatePolicyModal } from '@/components/pages/policy-builder/CreatePolicyModal'
+import { NewPolicyFormModal } from '@/components/pages/policy-builder/NewPolicyFormModal'
 import { ModifyPolicyModal } from '@/components/pages/policy-builder/ModifyPolicyModal'
 import { MoveExistingDialog } from '@/components/pages/policy-builder/MoveExistingDialog'
 import { PlanResultPanel } from '@/components/pages/policy-builder/PlanResultPanel'
@@ -199,6 +200,7 @@ export function PoliciesPage() {
   const editDeviceId = deviceIds.length === 1 ? deviceIds[0] : null
   const [selectedPolicyIds, setSelectedPolicyIds] = useState<number[]>([])
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showFormModal, setShowFormModal] = useState(false)
   const [showModifyModal, setShowModifyModal] = useState(false)
   const [showMoveDialog, setShowMoveDialog] = useState(false)
   const [planResult, setPlanResult] = useState<BulkPolicyPlanResponse | null>(null)
@@ -216,29 +218,59 @@ export function PoliciesPage() {
   })
   const pendingChanges = useMemo(() => pendingChangesQuery.data ?? [], [pendingChangesQuery.data])
 
-  const refetchPendingChanges = () => queryClient.invalidateQueries({ queryKey: ['policy-builder-pending-changes', editDeviceId] })
+  // 대기중 변경사항(생성/수정/삭제/이동)을 모두 적용한 실제 결과 순서 — 그리드는 이 데이터를 그대로 표시한다.
+  // CLI 생성(/plan)과 동일한 위치 계산 로직(백엔드 insertion_analyzer)을 재사용하므로 화면과
+  // 실제 CLI 결과가 어긋나지 않는다.
+  const previewOrderQuery = useQuery({
+    queryKey: queryKeys.policyBuilderPreviewOrder(editDeviceId),
+    queryFn: () => getPreviewOrder(editDeviceId!),
+    enabled: editMode && !!editDeviceId,
+  })
 
-  const handleCellValueChanged = useCallback((event: CellValueChangedEvent<EditablePolicyRow>) => {
-    if (!editDeviceId || !event.data || !event.colDef.field) return
-    const gridField = event.colDef.field
+  const refetchPendingChanges = () => {
+    queryClient.invalidateQueries({ queryKey: ['policy-builder-pending-changes', editDeviceId] })
+    queryClient.invalidateQueries({ queryKey: queryKeys.policyBuilderPreviewOrder(editDeviceId) })
+  }
+
+  // 편집모드에서 정책 1건의 필드 하나를 바꿀 때 공용으로 쓰는 로직 — 그리드 셀 편집과
+  // 상세보기(PolicyDetailModal)의 칩 추가/삭제 양쪽에서 재사용한다.
+  const applyFieldChange = useCallback((rowId: number, gridField: string, oldValue: string, newValue: string) => {
+    if (!editDeviceId || oldValue === newValue) return
     const backendField = EDITABLE_FIELD_MAP[gridField]
     if (!backendField) return
-    const oldValue = String(event.oldValue ?? '')
-    const newValue = String(event.newValue ?? '')
+    if (rowId < 0) {
+      // 신규 생성행(음수 id) — create pending change의 payload 필드를 직접 갱신
+      const change = pendingChangesQuery.data?.find((c) => c.change_type === 'create' && -c.id === rowId)
+      if (!change) return
+      updatePendingChange(editDeviceId, change.id, { [backendField]: newValue })
+        .then(refetchPendingChanges).catch((e: Error) => toast.error(e.message))
+      return
+    }
     const diff = diffMultiValueField(oldValue, newValue)
     if (isFieldDiffEmpty(diff)) return
     addPendingChange(editDeviceId, {
-      change_type: 'modify', target_policy_id: event.data.id,
-      client_key: `modify-${event.data.id}-${gridField}-${Date.now()}`,
+      change_type: 'modify', target_policy_id: rowId,
+      client_key: `modify-${rowId}-${gridField}-${Date.now()}`,
       payload: { [backendField]: diff },
     }).then(refetchPendingChanges).catch((e: Error) => toast.error(e.message))
-  }, [editDeviceId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [editDeviceId, pendingChangesQuery.data]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCellValueChanged = useCallback((event: CellValueChangedEvent<EditablePolicyRow>) => {
+    if (!event.data || !event.colDef.field) return
+    applyFieldChange(event.data.id, event.colDef.field, String(event.oldValue ?? ''), String(event.newValue ?? ''))
+  }, [applyFieldChange])
 
   const handleDeleteSelected = async () => {
     if (!editDeviceId || selectedPolicyIds.length === 0) return
     const timestamp = Date.now()
     try {
       for (const policyId of selectedPolicyIds) {
+        if (policyId < 0) {
+          // 신규 생성행(음수 id) — 아직 실제 정책이 아니므로 delete가 아니라 create 변경사항 자체를 취소한다.
+          const change = pendingChangesQuery.data?.find((c) => c.change_type === 'create' && -c.id === policyId)
+          if (change) await removePendingChange(editDeviceId, change.id)
+          continue
+        }
         await addPendingChange(editDeviceId, {
           change_type: 'delete', target_policy_id: policyId, client_key: `delete-${policyId}-${timestamp}`, payload: {},
         })
@@ -271,104 +303,41 @@ export function PoliciesPage() {
     refetchPendingChanges()
   }
 
-  // 대기중 변경사항을 기존 검색 결과에 오버레이 — modify는 값 재계산, delete/move는 상태 표시, create는 신규 행 추가
-  //
-  // 성능 참고: 정책이 수천 건일 때 매 편집마다 전체 배열을 새 객체로 다시 만들면(map으로 {...p} 전부 재생성)
-  // AG Grid가 getRowId로 비교해도 "모든 행의 참조가 바뀜"으로 보여 전체 그리드를 다시 그리게 되어 눈에 띄게 느려진다.
-  // 그래서 정책(policies) 배열 자체가 바뀔 때(새 검색 결과)만 안정적인 작업용 복사본 캐시를 만들고,
-  // 이후에는 실제로 대기중 변경사항이 있는 행만 그 복사본을 교체한다 — 변경 없는 행은 항상 같은 참조를 유지.
-  const workingCopiesRef = useRef<Map<number, EditablePolicyRow>>(new Map())
-  const policiesRef = useRef<Policy[] | null>(null)
-  const policiesByIdRef = useRef<Map<number, Policy>>(new Map())
+  // 편집모드 그리드는 백엔드가 계산한 "대기중 변경사항을 모두 적용한 최종 순서"(previewOrderQuery)를
+  // 그대로 표시한다 — 이동/생성이 실제로 그 위치에 반영된 것처럼 보이고, CLI 생성(/plan) 결과와도
+  // 항상 일치한다(같은 위치 계산 로직을 백엔드에서 공유).
+  const toEditableRow = (row: PreviewPolicyRow): EditablePolicyRow => ({
+    id: row.id,
+    device_id: row.device_id,
+    rule_name: row.rule_name,
+    source: row.source,
+    destination: row.destination,
+    service: row.service,
+    action: row.action,
+    vsys: row.vsys,
+    seq: row.seq,
+    enable: row.enable ?? true,
+    user: row.user,
+    application: row.application,
+    security_profile: row.security_profile,
+    category: row.category,
+    description: row.description,
+    last_hit_date: row.last_hit_date,
+    hit_count: row.hit_count,
+    is_active: row.is_active,
+    last_seen_at: row.last_seen_at,
+    from_zone: row.from_zone,
+    to_zone: row.to_zone,
+    log_setting: row.log_setting,
+    _pendingStatus: row.pending_status ?? undefined,
+  })
 
   const mergedPolicies = useMemo<EditablePolicyRow[]>(() => {
     if (!editMode) return policies
-
-    if (policiesRef.current !== policies) {
-      policiesRef.current = policies
-      policiesByIdRef.current = new Map(policies.map((p) => [p.id, p]))
-      // 항상 새 복사본을 캐시에 넣는다 — AG Grid는 편집 시 rowData 객체를 직접 mutate하므로,
-      // 원본 policies(React Query 캐시) 객체를 그대로 넘기면 캐시 데이터가 오염된다.
-      workingCopiesRef.current = new Map(policies.map((p) => [p.id, { ...p } as EditablePolicyRow]))
-    }
-    const cache = workingCopiesRef.current
-    const originalById = policiesByIdRef.current
-
-    const byPolicy = new Map<number, PendingPolicyChange[]>()
-    const createChanges: PendingPolicyChange[] = []
-    for (const c of pendingChanges) {
-      if (c.change_type === 'create') { createChanges.push(c); continue }
-      if (c.target_policy_id == null) continue
-      const arr = byPolicy.get(c.target_policy_id) ?? []
-      arr.push(c)
-      byPolicy.set(c.target_policy_id, arr)
-    }
-
-    // 대기중 변경사항이 있는 정책만 "원본"에서부터 다시 계산해 캐시를 교체한다.
-    for (const [policyId, changes] of byPolicy) {
-      const original = originalById.get(policyId)
-      if (!original) continue
-      let status: EditablePolicyRow['_pendingStatus']
-      const result: EditablePolicyRow = { ...original }
-      for (const c of changes) {
-        if (c.change_type === 'delete') status = 'deleted'
-        else if (c.change_type === 'move') status = status ?? 'moved'
-        else if (c.change_type === 'modify') {
-          status = status ?? 'modified'
-          for (const [field, diff] of Object.entries(c.payload as Record<string, { added?: string[]; removed?: string[] }>)) {
-            const gridField = (Object.entries(EDITABLE_FIELD_MAP).find(([, backend]) => backend === field) ?? [field])[0]
-            const current = (result as unknown as Record<string, string>)[gridField] ?? ''
-            const tokens = current.split(',').map((s) => s.trim()).filter(Boolean)
-            const afterRemove = tokens.filter((t) => !(diff.removed ?? []).includes(t))
-            const added = (diff.added ?? []).filter((t) => !afterRemove.includes(t))
-            ;(result as unknown as Record<string, string>)[gridField] = [...afterRemove, ...added].join(',')
-          }
-        }
-      }
-      result._pendingStatus = status
-      cache.set(policyId, result)
-    }
-    // 취소되어 더 이상 대기중이지 않은 변경(예: "전체 취소")은 캐시를 원본으로 되돌린다.
-    for (const [policyId, copy] of cache) {
-      if (copy._pendingStatus && !byPolicy.has(policyId)) {
-        const original = originalById.get(policyId)
-        if (original) cache.set(policyId, { ...original })
-      }
-    }
-
-    const existing: EditablePolicyRow[] = policies.map((p) => cache.get(p.id) ?? p)
-
-    const created: EditablePolicyRow[] = createChanges.map((c) => {
-      const payload = c.payload as Record<string, unknown>
-      return {
-        id: -c.id,
-        device_id: editDeviceId ?? 0,
-        rule_name: String(payload.rule_name ?? ''),
-        source: String(payload.source ?? ''),
-        destination: String(payload.destination ?? ''),
-        service: String(payload.service ?? ''),
-        action: String(payload.rule_action ?? 'allow'),
-        vsys: null,
-        seq: null,
-        enable: !(payload.disabled as boolean),
-        user: String(payload.source_user ?? '') || null,
-        application: String(payload.application ?? '') || null,
-        security_profile: null,
-        category: null,
-        description: String(payload.description ?? '') || null,
-        last_hit_date: null,
-        hit_count: null,
-        is_active: true,
-        last_seen_at: null,
-        from_zone: String(payload.from_zone ?? '') || null,
-        to_zone: String(payload.to_zone ?? '') || null,
-        log_setting: String(payload.log_setting ?? '') || null,
-        _pendingStatus: 'new',
-      }
-    })
-
-    return [...existing, ...created]
-  }, [editMode, pendingChanges, policies, editDeviceId])
+    // 최초 진입 시(아직 미조회) 검색 결과를 그대로 보여주다가, preview-order 응답이 오면 교체한다.
+    if (!previewOrderQuery.data) return policies
+    return previewOrderQuery.data.map(toEditableRow)
+  }, [editMode, policies, previewOrderQuery.data])
 
   const pendingCounts = useMemo(() => {
     const counts = { create: 0, modify: 0, delete: 0, move: 0 }
@@ -541,10 +510,9 @@ export function PoliciesPage() {
     if (event.data) setDetailModal(event.data)
   }, [editMode])
 
-  // 편집모드에서만, 그리고 실제 기존 정책(양수 id)에서만 편집 가능 — 붙여넣기로 추가된 신규 정책 행(음수 id)은
-  // 모달에서 이미 값을 확정했으므로 그리드에서 다시 편집하지 않는다.
+  // 편집모드면 기존 정책(양수 id)/신규 생성행(음수 id) 모두 그리드에서 직접 편집 가능.
   const isRowEditable = useCallback(
-    (params: { data?: EditablePolicyRow }) => editMode && (params.data?.id ?? 0) > 0,
+    (params: { data?: EditablePolicyRow }) => editMode && params.data?.id != null,
     [editMode]
   )
 
@@ -574,6 +542,16 @@ export function PoliciesPage() {
         return (
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="font-mono text-xs font-semibold text-ds-on-surface truncate">{p.value ?? '-'}</span>
+            {editMode && (
+              <button
+                type="button"
+                title="상세보기(필드 편집)"
+                onClick={(e) => { e.stopPropagation(); setDetailModal(p.data) }}
+                className="shrink-0 text-ds-on-surface-variant hover:text-ds-tertiary transition-colors"
+              >
+                <Eye className="w-3 h-3" />
+              </button>
+            )}
             {meta && (
               <button
                 title={`${meta.label} — 클릭하여 이력 보기`}
@@ -669,6 +647,12 @@ export function PoliciesPage() {
                 className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold text-ds-tertiary bg-ds-tertiary/10 rounded-lg border border-ds-tertiary/20 hover:bg-ds-tertiary/15 transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" /> 새 정책 붙여넣기
+              </button>
+              <button
+                onClick={() => setShowFormModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" /> 새 정책 추가(폼)
               </button>
               <button
                 onClick={() => setShowModifyModal(true)}
@@ -905,7 +889,7 @@ export function PoliciesPage() {
           onRowClicked={handleRowClick}
           rowHeight={34}
           rowSelection={editMode ? { mode: 'multiRow', checkboxes: true, headerCheckbox: true } : undefined}
-          onSelectionChanged={editMode ? (rows) => setSelectedPolicyIds(rows.filter((r) => r.id > 0).map((r) => r.id)) : undefined}
+          onSelectionChanged={editMode ? (rows) => setSelectedPolicyIds(rows.map((r) => r.id)) : undefined}
           onCellValueChanged={editMode ? handleCellValueChanged : undefined}
           getRowStyle={editMode ? (p) => {
             const status = p.data?._pendingStatus
@@ -962,6 +946,12 @@ export function PoliciesPage() {
           policy={detailModal}
           deviceName={deviceNameMap.get(detailModal.device_id) ?? String(detailModal.device_id)}
           validObjectNames={validObjectNames}
+          editable={editMode}
+          onFieldChange={(field, newValue) => {
+            const oldValue = String((detailModal as unknown as Record<string, string>)[field] ?? '')
+            applyFieldChange(detailModal.id, field, oldValue, newValue)
+            setDetailModal((prev) => prev ? { ...prev, [field]: newValue } : prev)
+          }}
           onObjectClick={(deviceId, name) => {
             setDetailModal(null)
             setObjectModal({ deviceId, name })
@@ -982,6 +972,14 @@ export function PoliciesPage() {
         />
       )}
 
+      {showFormModal && editDeviceId && (
+        <NewPolicyFormModal
+          deviceId={editDeviceId}
+          onClose={() => setShowFormModal(false)}
+          onCreated={refetchPendingChanges}
+        />
+      )}
+
       {showModifyModal && editDeviceId && (
         <ModifyPolicyModal
           deviceId={editDeviceId}
@@ -994,6 +992,7 @@ export function PoliciesPage() {
         <MoveExistingDialog
           deviceId={editDeviceId}
           policyIds={selectedPolicyIds}
+          pendingChanges={pendingChanges}
           onClose={() => setShowMoveDialog(false)}
           onMoved={() => { refetchPendingChanges(); setSelectedPolicyIds([]) }}
         />

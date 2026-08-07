@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, ArrowRight, ChevronDown, ChevronRight, ChevronUp, History, Search, X } from 'lucide-react'
+import { AlertTriangle, ArrowRight, ChevronDown, ChevronRight, ChevronUp, History, Plus, Search, X } from 'lucide-react'
 import type { Policy } from '@/api/firewall'
 import { getObjectDetails, getNetworkObjects, getNetworkGroups, type NetworkObject, type NetworkGroup } from '@/api/firewall'
 import { daysSinceHit } from '@/lib/utils'
@@ -239,22 +239,32 @@ function ObjectPanel({
 
 // ─── ChipList ────────────────────────────────────────────────────────────────
 
-function ChipList({ value, isClickable, onClickName }: {
+function ChipList({ value, isClickable, onClickName, onRemove, onAdd }: {
   value: string | null
   isClickable?: (name: string) => boolean
   onClickName?: (name: string) => void
+  onRemove?: (name: string) => void
+  onAdd?: (name: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [filter, setFilter] = useState('')
+  const [addValue, setAddValue] = useState('')
 
   const all = (value ?? '').split(',').map((s) => s.trim()).filter(Boolean)
-  if (all.length === 0) return <span className="text-xs text-ds-on-surface-variant">-</span>
+  if (all.length === 0 && !onAdd) return <span className="text-xs text-ds-on-surface-variant">-</span>
 
   const showFilter = all.length > FILTER_AT
   const filtered = filter ? all.filter((i) => i.toLowerCase().includes(filter.toLowerCase())) : all
   const needsCollapse = all.length > COLLAPSE_AT
   const visible = needsCollapse && !expanded ? filtered.slice(0, COLLAPSE_AT) : filtered
   const hiddenCount = filtered.length - visible.length
+
+  const submitAdd = () => {
+    const v = addValue.trim()
+    if (!v || !onAdd) return
+    onAdd(v)
+    setAddValue('')
+  }
 
   return (
     <div className="space-y-1.5">
@@ -269,20 +279,32 @@ function ChipList({ value, isClickable, onClickName }: {
           />
         </div>
       )}
+      {all.length === 0 && !showFilter && <span className="text-xs text-ds-on-surface-variant">-</span>}
       <div className="flex flex-wrap gap-1">
         {visible.map((item, i) => {
           const clickable = isClickable?.(item) && onClickName
           return (
             <span
               key={i}
-              onClick={clickable ? () => onClickName!(item) : undefined}
-              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono leading-tight ${
+              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-mono leading-tight ${
                 clickable
-                  ? 'bg-ds-secondary-container text-ds-tertiary cursor-pointer hover:bg-ds-primary-container transition-colors'
+                  ? 'bg-ds-secondary-container text-ds-tertiary'
                   : 'bg-ds-surface-container text-ds-on-surface'
               }`}
             >
-              {item}
+              <span onClick={clickable ? () => onClickName!(item) : undefined} className={clickable ? 'cursor-pointer hover:underline' : undefined}>
+                {item}
+              </span>
+              {onRemove && (
+                <button
+                  type="button"
+                  onClick={() => onRemove(item)}
+                  className="shrink-0 text-ds-on-surface-variant hover:text-ds-error"
+                  title="삭제"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              )}
             </span>
           )
         })}
@@ -296,6 +318,20 @@ function ChipList({ value, isClickable, onClickName }: {
             ? <><ChevronUp className="w-3 h-3" />접기</>
             : <><ChevronDown className="w-3 h-3" />+{hiddenCount}개 더보기</>}
         </button>
+      )}
+      {onAdd && (
+        <div className="flex items-center gap-1">
+          <input
+            value={addValue}
+            onChange={(e) => setAddValue(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submitAdd() } }}
+            placeholder="추가할 값 입력..."
+            className="flex-1 px-2 py-1 text-[11px] rounded border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface placeholder:text-ds-on-surface-variant/40 focus:outline-none focus:border-ds-primary/40"
+          />
+          <button type="button" onClick={submitAdd} className="shrink-0 p-1 rounded bg-ds-tertiary/10 text-ds-tertiary hover:bg-ds-tertiary/20">
+            <Plus className="w-3 h-3" />
+          </button>
+        </div>
       )}
     </div>
   )
@@ -328,6 +364,8 @@ function countItems(value: string | null): number {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+type EditableField = 'source' | 'destination' | 'service' | 'application'
+
 interface PolicyDetailModalProps {
   policy: Policy
   deviceName: string
@@ -335,6 +373,9 @@ interface PolicyDetailModalProps {
   onObjectClick: (deviceId: number, name: string) => void
   onHistoryClick?: (deviceId: number, ruleName: string) => void
   onClose: () => void
+  /** 편집모드에서 열렸을 때만 true — source/destination/service/application 칩 추가/삭제를 허용한다. */
+  editable?: boolean
+  onFieldChange?: (field: EditableField, newValue: string) => void
 }
 
 export function PolicyDetailModal({
@@ -343,10 +384,22 @@ export function PolicyDetailModal({
   validObjectNames,
   onHistoryClick,
   onClose,
+  editable = false,
+  onFieldChange,
 }: PolicyDetailModalProps) {
   const [selectedObj, setSelectedObj] = useState<{ name: string; kind: 'address' | 'service' } | null>(null)
 
-  const isClickable = (name: string) => validObjectNames.has(name)
+  const isClickable = (name: string) => !editable && validObjectNames.has(name)
+
+  const removeToken = (field: EditableField, token: string) => {
+    const tokens = (policy[field] ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+    onFieldChange?.(field, tokens.filter((t) => t !== token).join(','))
+  }
+  const addToken = (field: EditableField, token: string) => {
+    const tokens = (policy[field] ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+    if (tokens.includes(token)) return
+    onFieldChange?.(field, [...tokens, token].join(','))
+  }
 
   const days = daysSinceHit(policy.last_hit_date)
   const actionCls = ACTION_BADGE[policy.action?.toLowerCase()] ?? 'bg-ds-surface-container text-ds-on-surface-variant'
@@ -409,6 +462,8 @@ export function PolicyDetailModal({
                     value={policy.source}
                     isClickable={isClickable}
                     onClickName={(name) => setSelectedObj(name === selectedObj?.name ? null : { name, kind: 'address' })}
+                    onRemove={editable ? (name) => removeToken('source', name) : undefined}
+                    onAdd={editable ? (name) => addToken('source', name) : undefined}
                   />
                 </Section>
                 <Section label="목적지" count={dstCount}>
@@ -416,6 +471,8 @@ export function PolicyDetailModal({
                     value={policy.destination}
                     isClickable={isClickable}
                     onClickName={(name) => setSelectedObj(name === selectedObj?.name ? null : { name, kind: 'address' })}
+                    onRemove={editable ? (name) => removeToken('destination', name) : undefined}
+                    onAdd={editable ? (name) => addToken('destination', name) : undefined}
                   />
                 </Section>
               </div>
@@ -427,11 +484,17 @@ export function PolicyDetailModal({
                     value={policy.service}
                     isClickable={isClickable}
                     onClickName={(name) => setSelectedObj(name === selectedObj?.name ? null : { name, kind: 'service' })}
+                    onRemove={editable ? (name) => removeToken('service', name) : undefined}
+                    onAdd={editable ? (name) => addToken('service', name) : undefined}
                   />
                 </Section>
-                {policy.application != null && (
+                {(policy.application != null || editable) && (
                   <Section label="애플리케이션" count={appCount}>
-                    <ChipList value={policy.application} />
+                    <ChipList
+                      value={policy.application}
+                      onRemove={editable ? (name) => removeToken('application', name) : undefined}
+                      onAdd={editable ? (name) => addToken('application', name) : undefined}
+                    />
                   </Section>
                 )}
               </div>

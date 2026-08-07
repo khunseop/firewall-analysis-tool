@@ -40,6 +40,15 @@ async def get_by_id(db: AsyncSession, change_id: int) -> Optional[PendingPolicyC
     return result.scalars().first()
 
 
+async def update_payload(db: AsyncSession, db_obj: PendingPolicyChange, payload: dict) -> PendingPolicyChange:
+    """기존 payload에 새 값을 merge한다(부분 갱신)."""
+    db_obj.payload = {**db_obj.payload, **payload}
+    db.add(db_obj)
+    await db.commit()
+    await db.refresh(db_obj)
+    return db_obj
+
+
 async def delete_by_id(db: AsyncSession, db_obj: PendingPolicyChange) -> None:
     await db.delete(db_obj)
     await db.commit()

@@ -1,6 +1,5 @@
 import { Copy, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
-import { PolicyMiniRow } from '@/components/shared/PolicyMiniRow'
 import type { BulkPolicyPlanResponse, GeneratedCommand } from '@/api/policyBuilder'
 
 function copyText(text: string) {
@@ -89,25 +88,6 @@ export function PlanResultPanel({ plan }: { plan: BulkPolicyPlanResponse }) {
       <CommandSection title="정책 수정 명령어" commands={plan.modify_commands} />
       <CommandSection title="정책 삭제 명령어" commands={plan.delete_commands} />
       <CommandSection title="이동 명령어" commands={plan.move_commands} />
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <p className="text-[11px] font-semibold text-ds-on-surface-variant mb-1.5 px-1">이동 전 배치</p>
-          <div className="border border-ds-outline-variant/20 rounded-lg p-1 space-y-0.5 max-h-[360px] overflow-y-auto">
-            {plan.preview_before.map((r) => (
-              <PolicyMiniRow key={r.id} ruleName={r.rule_name} action={r.action} seq={r.seq} />
-            ))}
-          </div>
-        </div>
-        <div>
-          <p className="text-[11px] font-semibold text-ds-on-surface-variant mb-1.5 px-1">이동 후 배치</p>
-          <div className="border border-ds-outline-variant/20 rounded-lg p-1 space-y-0.5 max-h-[360px] overflow-y-auto">
-            {plan.preview_after.map((r) => (
-              <PolicyMiniRow key={r.id} ruleName={r.rule_name} action={r.action} seq={r.seq} isNew={r.is_new} />
-            ))}
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

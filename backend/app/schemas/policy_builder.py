@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel
@@ -86,6 +87,36 @@ class PreviewRow(BaseModel):
     action: str
     seq: Optional[int] = None
     is_new: bool = False
+
+
+class PreviewPolicyRow(BaseModel):
+    """편집모드 그리드에 표시할, 대기중 변경사항(생성/수정/삭제/이동)을 모두 적용한 뒤의 정책 1행.
+
+    신규 생성행은 `id`가 음수(-pending_change.id)이며 `seq`/`last_hit_date` 등 DB에서만
+    채워지는 필드는 비어 있다."""
+    id: int
+    device_id: int
+    rule_name: str
+    action: str = "allow"
+    seq: Optional[int] = None
+    source: str = ""
+    destination: str = ""
+    service: str = ""
+    application: Optional[str] = None
+    from_zone: Optional[str] = None
+    to_zone: Optional[str] = None
+    user: Optional[str] = None
+    description: Optional[str] = None
+    log_setting: Optional[str] = None
+    enable: Optional[bool] = None
+    security_profile: Optional[str] = None
+    category: Optional[str] = None
+    last_hit_date: Optional[datetime] = None
+    hit_count: Optional[int] = None
+    is_active: bool = True
+    last_seen_at: Optional[datetime] = None
+    vsys: Optional[str] = None
+    pending_status: Optional[Literal["new", "modified", "deleted", "moved"]] = None
 
 
 class BulkPolicyPlanResponse(BaseModel):
