@@ -5,7 +5,7 @@ setlocal enabledelayedexpansion
 
 echo ============================================
 echo  FAT 운영망 업데이트 + 실행 스크립트
-echo  (fat.bundle 반영 + dist.zip 적용 + 서버 실행)
+echo  (fat.zip = fat.bundle + frontend\dist 반영 후 서버 실행)
 echo ============================================
 echo.
 
@@ -17,13 +17,8 @@ if errorlevel 1 (
     goto :fail
 )
 
-if not exist "fat.bundle" (
-    echo [오류] fat.bundle 파일을 찾을 수 없습니다. 개발망에서 만든 fat.bundle을 이 폴더에 복사하세요.
-    goto :fail
-)
-
-if not exist "dist.zip" (
-    echo [오류] dist.zip 파일을 찾을 수 없습니다. 개발망에서 만든 dist.zip을 이 폴더에 복사하세요.
+if not exist "fat.zip" (
+    echo [오류] fat.zip 파일을 찾을 수 없습니다. 개발망에서 만든 fat.zip을 이 폴더에 복사하세요.
     goto :fail
 )
 
@@ -43,9 +38,30 @@ if defined DIRTY (
 )
 
 echo.
-echo [2/4] fat.bundle로부터 업데이트 반영 중...
+echo [2/4] fat.zip 압축 해제 중...
+if exist "_fat_extract" (
+    rmdir /s /q "_fat_extract"
+)
+mkdir "_fat_extract"
+powershell -NoProfile -Command "Expand-Archive -Path 'fat.zip' -DestinationPath '_fat_extract' -Force"
+if errorlevel 1 (
+    echo [오류] fat.zip 압축 해제에 실패했습니다.
+    goto :fail
+)
+if not exist "_fat_extract\fat.bundle" (
+    echo [오류] fat.zip 안에서 fat.bundle을 찾을 수 없습니다. deploy.bat으로 다시 생성했는지 확인하세요.
+    goto :fail
+)
+if not exist "_fat_extract\dist" (
+    echo [오류] fat.zip 안에서 dist 폴더를 찾을 수 없습니다. deploy.bat으로 다시 생성했는지 확인하세요.
+    goto :fail
+)
+echo        완료.
+
+echo.
+echo [3/4] fat.bundle로부터 업데이트 반영 중...
 for /f "delims=" %%b in ('git rev-parse --abbrev-ref HEAD') do set CURRENT_BRANCH=%%b
-git pull "%~dp0fat.bundle" %CURRENT_BRANCH%
+git pull "%~dp0_fat_extract\fat.bundle" %CURRENT_BRANCH%
 if errorlevel 1 (
     echo [오류] fat.bundle 반영에 실패했습니다. 충돌 여부를 확인한 뒤 다시 실행하세요.
     goto :fail
@@ -53,16 +69,12 @@ if errorlevel 1 (
 echo        완료. ^(브랜치: %CURRENT_BRANCH%^)
 
 echo.
-echo [3/4] frontend\dist 갱신 중 (dist.zip 압축 해제)...
+echo        frontend\dist 갱신 중...
 if exist "frontend\dist" (
     rmdir /s /q "frontend\dist"
 )
-mkdir "frontend\dist"
-powershell -NoProfile -Command "Expand-Archive -Path 'dist.zip' -DestinationPath 'frontend\dist' -Force"
-if errorlevel 1 (
-    echo [오류] dist.zip 압축 해제에 실패했습니다.
-    goto :fail
-)
+move /y "_fat_extract\dist" "frontend\dist" >nul
+rmdir /s /q "_fat_extract"
 echo        완료.
 
 echo.
@@ -73,6 +85,9 @@ uvicorn app.main:app --app-dir backend
 goto :end
 
 :fail
+if exist "_fat_extract" (
+    rmdir /s /q "_fat_extract"
+)
 echo.
 echo 업데이트/실행이 중단되었습니다.
 pause

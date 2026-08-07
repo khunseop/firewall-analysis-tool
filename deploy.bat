@@ -69,28 +69,30 @@ if errorlevel 1 (
 cd /d "%~dp0"
 
 echo.
-echo [5/6] frontend\dist 압축 중 (dist.zip)...
-if exist "dist.zip" del /q "dist.zip"
-powershell -NoProfile -Command "Compress-Archive -Path 'frontend\dist\*' -DestinationPath 'dist.zip' -Force"
+echo [5/6] fat.bundle 백업 생성 중...
+if exist "fat.bundle" del /q "fat.bundle"
+git bundle create fat.bundle --all
 if errorlevel 1 (
-    echo [오류] dist.zip 생성에 실패했습니다.
+    echo [오류] fat.bundle 생성에 실패했습니다.
     goto :fail
 )
 echo        완료.
 
 echo.
-echo [6/6] fat.bundle 백업 생성 중...
-git bundle create fat.bundle --all
+echo [6/6] fat.zip 생성 중 (fat.bundle + frontend\dist)...
+if exist "fat.zip" del /q "fat.zip"
+powershell -NoProfile -Command "Compress-Archive -Path 'fat.bundle','frontend\dist' -DestinationPath 'fat.zip' -Force"
 if errorlevel 1 (
-    echo        [경고] fat.bundle 생성에 실패했습니다.
-) else (
-    echo        완료.
+    echo [오류] fat.zip 생성에 실패했습니다.
+    goto :fail
 )
+del /q "fat.bundle"
+echo        완료.
 
 echo.
 echo ============================================
 echo  배포 준비 완료.
-echo  fat.bundle, dist.zip을 운영망으로 옮긴 뒤
+echo  fat.zip을 운영망으로 옮긴 뒤
 echo  run_prod.bat을 실행하세요.
 echo ============================================
 goto :end

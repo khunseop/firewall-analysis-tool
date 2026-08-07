@@ -222,3 +222,4 @@ backend/fat.db.bak*
 .claude/
 fat.bundle
 dist.zip
+fat.zip
