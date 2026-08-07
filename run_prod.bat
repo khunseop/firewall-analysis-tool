@@ -18,8 +18,8 @@ if errorlevel 1 (
 )
 
 if not exist "fat.zip" (
-    echo [오류] fat.zip 파일을 찾을 수 없습니다. 개발망에서 만든 fat.zip을 이 폴더에 복사하세요.
-    goto :fail
+    echo [알림] fat.zip이 없어 업데이트 없이 서버만 실행합니다.
+    goto :run_server
 )
 
 echo [1/4] 로컬 변경 사항 확인 중...
@@ -77,6 +77,7 @@ move /y "_fat_extract\dist" "frontend\dist" >nul
 rmdir /s /q "_fat_extract"
 echo        완료.
 
+:run_server
 echo.
 echo [4/4] 서버 실행 중...
 echo   uvicorn app.main:app --app-dir backend
