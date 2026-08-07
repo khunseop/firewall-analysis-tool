@@ -342,5 +342,7 @@ async def plan_bulk_policy(
         conflicts=conflicts,
         preview_before=preview_before,
         preview_after=preview_after,
-        warnings=warnings,
+        # "신규 정책끼리는 서로 충돌 여부를 검사하지 않습니다" 같은 고정 안내문이 이동/생성 건마다
+        # analyze_insertion 호출 횟수만큼 반복 추가되므로, 동일 문구는 한 번만 보이도록 중복 제거한다.
+        warnings=list(dict.fromkeys(warnings)),
     )

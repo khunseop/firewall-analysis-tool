@@ -2,14 +2,14 @@ import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Download, SlidersHorizontal, AlertTriangle, X, History, Search, Bookmark, BookmarkPlus, Pencil, Plus, Trash2, ArrowLeftRight, RotateCcw, Terminal, Eye } from 'lucide-react'
+import { Download, SlidersHorizontal, AlertTriangle, X, Search, Bookmark, BookmarkPlus, Pencil, RotateCcw, Terminal } from 'lucide-react'
 import type { CellValueChangedEvent, ColDef, RowClickedEvent } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { rowIdFromId } from '@/lib/utils'
 import { listDevices } from '@/api/devices'
 import {
-  searchPolicies, getChangeLogs, exportToExcel,
-  type Policy, type PolicySearchRequest, type ChangeLogEntry,
+  searchPolicies, exportToExcel,
+  type Policy, type PolicySearchRequest,
 } from '@/api/firewall'
 import { daysSinceHit } from '@/lib/utils'
 import { ObjectDetailModal } from '@/components/shared/ObjectDetailModal'
@@ -32,6 +32,7 @@ import {
 } from '@/api/policyBuilder'
 import { CreatePolicyModal } from '@/components/pages/policy-builder/CreatePolicyModal'
 import { NewPolicyFormModal } from '@/components/pages/policy-builder/NewPolicyFormModal'
+import { EditActionMenu } from '@/components/pages/policy-builder/EditActionMenu'
 import { ModifyPolicyModal } from '@/components/pages/policy-builder/ModifyPolicyModal'
 import { MoveExistingDialog } from '@/components/pages/policy-builder/MoveExistingDialog'
 import { PlanResultPanel } from '@/components/pages/policy-builder/PlanResultPanel'
@@ -54,13 +55,6 @@ const ACTION_BADGE: Record<string, string> = {
   deny:   'bg-red-100 text-red-700',
   drop:   'bg-red-100 text-red-700',
   reject: 'bg-orange-100 text-orange-700',
-}
-
-const CHANGE_META: Record<string, { label: string; cls: string }> = {
-  created:          { label: '추가', cls: 'bg-emerald-100 text-emerald-700' },
-  updated:          { label: '변경', cls: 'bg-amber-100  text-amber-700' },
-  deleted:          { label: '삭제', cls: 'bg-red-100    text-red-700' },
-  hit_date_updated: { label: '히트', cls: 'bg-gray-100   text-gray-500' },
 }
 
 /**
@@ -154,20 +148,8 @@ export function PoliciesPage() {
     queryKey: queryKeys.policySearch(searchRequest),
     enabled: searched,
     queryFn: async () => {
-      const req = searchRequest!
-      const ids = req.device_ids ?? []
-      const [policyRes, logs] = await Promise.all([
-        searchPolicies(req),
-        ids.length > 0 ? getChangeLogs(ids).catch(() => [] as ChangeLogEntry[]) : Promise.resolve([] as ChangeLogEntry[]),
-      ])
-      // 변경 이력 — 최신 로그만 (key 기준 첫 번째)
-      const seen = new Set<string>()
-      const deduped: ChangeLogEntry[] = []
-      for (const log of logs) {
-        const key = `${log.device_id}_${log.object_name}`
-        if (!seen.has(key)) { seen.add(key); deduped.push(log) }
-      }
-      return { policyRes, changeLogEntries: deduped }
+      const policyRes = await searchPolicies(searchRequest!)
+      return { policyRes }
     },
   })
 
@@ -176,19 +158,10 @@ export function PoliciesPage() {
   }, [searchQuery.error])
 
   const policies = useMemo(() => searchQuery.data?.policyRes.policies ?? [], [searchQuery.data])
-  const changeLogEntries = useMemo(() => searchQuery.data?.changeLogEntries ?? [], [searchQuery.data])
   const validObjectNames = useMemo(
     () => new Set(searchQuery.data?.policyRes.valid_object_names ?? []),
     [searchQuery.data]
   )
-  const changeLogMap = useMemo(() => {
-    const map = new Map<string, ChangeLogEntry>()
-    for (const log of changeLogEntries) {
-      const key = `${log.device_id}_${log.object_name}`
-      if (!map.has(key)) map.set(key, log)
-    }
-    return map
-  }, [changeLogEntries])
 
   const [objectModal, setObjectModal] = useState<{ deviceId: number; name: string } | null>(null)
   const [historyModal, setHistoryModal] = useState<{ deviceId: number; ruleName: string } | null>(null)
@@ -536,9 +509,6 @@ export function PoliciesPage() {
     {
       field: 'rule_name', headerName: '정책명', width: 220, maxWidth: 260, suppressSizeToFit: true,
       cellRenderer: (p: { value: string; data: Policy }) => {
-        const key = `${p.data.device_id}_${p.data.rule_name}`
-        const log = changeLogMap.get(key)
-        const meta = log ? (CHANGE_META[log.action] ?? { label: log.action, cls: 'bg-gray-100 text-gray-500' }) : null
         return (
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="font-mono text-xs font-semibold text-ds-on-surface truncate">{p.value ?? '-'}</span>
@@ -549,17 +519,7 @@ export function PoliciesPage() {
                 onClick={(e) => { e.stopPropagation(); setDetailModal(p.data) }}
                 className="shrink-0 text-ds-on-surface-variant hover:text-ds-tertiary transition-colors"
               >
-                <Eye className="w-3 h-3" />
-              </button>
-            )}
-            {meta && (
-              <button
-                title={`${meta.label} — 클릭하여 이력 보기`}
-                onClick={() => setHistoryModal({ deviceId: p.data.device_id, ruleName: p.data.rule_name })}
-                className={`shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold transition-opacity hover:opacity-70 ${meta.cls}`}
-              >
-                <History className="w-2.5 h-2.5" />
-                {meta.label}
+                <Pencil className="w-3 h-3" />
               </button>
             )}
           </div>
@@ -629,7 +589,7 @@ export function PoliciesPage() {
       ),
     },
     { field: 'vsys', headerName: 'VSYS', width: 72, hide: true },
-  ], [deviceNameMap, changeLogMap, editMode, isRowEditable])
+  ], [deviceNameMap, editMode, isRowEditable])
 
   const allConditions = filterTree.flatMap(g => g.conditions)
   const hasConditions = allConditions.some(c => c.value.trim())
@@ -640,42 +600,6 @@ export function PoliciesPage() {
       <div className="flex items-center justify-between shrink-0">
         <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">Policies</h1>
         <div className="flex items-center gap-2">
-          {editMode && (
-            <>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold text-ds-tertiary bg-ds-tertiary/10 rounded-lg border border-ds-tertiary/20 hover:bg-ds-tertiary/15 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" /> 새 정책 붙여넣기
-              </button>
-              <button
-                onClick={() => setShowFormModal(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" /> 새 정책 추가(폼)
-              </button>
-              <button
-                onClick={() => setShowModifyModal(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
-              >
-                <Pencil className="w-3.5 h-3.5" /> 정책 수정(일괄)
-              </button>
-              <button
-                onClick={() => setShowMoveDialog(true)}
-                disabled={selectedPolicyIds.length === 0}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors disabled:opacity-50"
-              >
-                <ArrowLeftRight className="w-3.5 h-3.5" /> 선택 이동 ({selectedPolicyIds.length})
-              </button>
-              <button
-                onClick={handleDeleteSelected}
-                disabled={selectedPolicyIds.length === 0}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-ds-error bg-ds-error/5 rounded-lg border border-ds-error/15 hover:bg-ds-error/10 transition-colors disabled:opacity-50"
-              >
-                <Trash2 className="w-3.5 h-3.5" /> 선택 삭제 ({selectedPolicyIds.length})
-              </button>
-            </>
-          )}
           <button
             onClick={() => setEditMode((v) => !v)}
             disabled={!editDeviceId}
@@ -879,7 +803,7 @@ export function PoliciesPage() {
           columnDefs={columnDefs}
           rowData={editMode ? mergedPolicies : policies}
           getRowId={rowIdFromId}
-          height="800px"
+          domLayout="autoHeight"
           loading={searchQuery.isFetching}
           loadingLabel="정책 검색 중…"
           noRowsText="장비를 선택하고 검색 버튼을 클릭하세요."
@@ -902,6 +826,17 @@ export function PoliciesPage() {
           skipAutoSizeOnDataChange={editMode}
         />
       </div>
+
+      {editMode && editDeviceId && (
+        <EditActionMenu
+          selectedCount={selectedPolicyIds.length}
+          onCreateForm={() => setShowFormModal(true)}
+          onCreatePaste={() => setShowCreateModal(true)}
+          onModify={() => setShowModifyModal(true)}
+          onMove={() => setShowMoveDialog(true)}
+          onDelete={handleDeleteSelected}
+        />
+      )}
 
       {editMode && editDeviceId && (
         <div className="card rounded-xl px-4 py-3 flex items-center gap-3 shrink-0 sticky bottom-4 shadow-lg">
