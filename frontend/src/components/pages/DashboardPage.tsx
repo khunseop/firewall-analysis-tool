@@ -9,7 +9,7 @@ import type { ApexOptions } from 'apexcharts'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { rowIdFromId } from '@/lib/utils'
 import { getDashboardStats, type DeviceStats } from '@/api/devices'
-import { getChangeStats, type ChangeStatCategory } from '@/api/firewall'
+import { getChangeStats, getObjectCountHistory, type ChangeStatCategory } from '@/api/firewall'
 import { useSyncStatusWebSocket, type SyncWebSocketMessage } from '@/hooks/useWebSocket'
 import { notify } from '@/lib/notify'
 import { formatNumber, formatRelativeTime } from '@/lib/utils'
@@ -269,35 +269,33 @@ export function DashboardPage() {
   const [trendDeviceId, setTrendDeviceId] = useState<number | null>(null)
   const [trendCategory, setTrendCategory] = useState<ChangeStatCategory>('policies')
 
-  const { data: trendStats = [] } = useQuery({
-    queryKey: queryKeys.changeStats(trendDeviceId, trendCategory),
-    queryFn: () => getChangeStats([trendDeviceId as number], 12, trendCategory),
+  const { data: trendCountHistory = [] } = useQuery({
+    queryKey: queryKeys.objectCountHistory(trendDeviceId, trendCategory),
+    queryFn: () => getObjectCountHistory(trendDeviceId as number, 12, trendCategory),
     enabled: trendDeviceId != null,
     staleTime: 60_000,
   })
 
   const trendChartData = useMemo(() => {
-    const weeks = [...new Set(trendStats.map(s => s.week))].sort()
-    const get = (week: string, action: string) => trendStats.find(s => s.week === week && s.action === action)?.count ?? 0
+    const weeks = trendCountHistory.map(s => s.week)
     return {
       categories: weeks.map(w => {
         const [y, wn] = w.split('-')
         return `${y}-W${wn}`
       }),
       series: [
-        { name: '신규', data: weeks.map(w => get(w, 'created')), color: '#22c55e' },
-        { name: '변경', data: weeks.map(w => get(w, 'updated')), color: '#f59e0b' },
-        { name: '삭제', data: weeks.map(w => get(w, 'deleted')), color: '#ef4444' },
+        { name: '실제 개수', data: trendCountHistory.map(s => s.count), color: '#3b82f6' },
       ],
     }
-  }, [trendStats])
+  }, [trendCountHistory])
 
   const trendChartOptions: ApexOptions = {
-    chart: { type: 'bar', stacked: true, toolbar: { show: false }, background: 'transparent' },
-    plotOptions: { bar: { columnWidth: '55%', borderRadius: 2 } },
+    chart: { type: 'line', toolbar: { show: false }, background: 'transparent' },
+    stroke: { curve: 'smooth', width: 2 },
+    markers: { size: 4 },
     xaxis: { categories: trendChartData.categories, labels: { style: { fontSize: '11px' } } },
     yaxis: { labels: { style: { fontSize: '11px' } }, min: 0 },
-    legend: { position: 'top', fontSize: '12px' },
+    legend: { show: false },
     dataLabels: { enabled: false },
     tooltip: { shared: true, intersect: false },
     grid: { borderColor: 'rgba(0,0,0,0.05)' },
@@ -491,10 +489,10 @@ export function DashboardPage() {
           {trendDeviceId == null ? (
             <p className="text-[12px] text-ds-on-surface-variant/60 text-center py-10">장비를 선택하면 추이를 확인할 수 있습니다.</p>
           ) : trendChartData.categories.length === 0 ? (
-            <p className="text-[12px] text-ds-on-surface-variant/60 text-center py-10">최근 12주간 변경 이력이 없습니다.</p>
+            <p className="text-[12px] text-ds-on-surface-variant/60 text-center py-10">최근 12주간 동기화 이력이 없습니다.</p>
           ) : (
             <ReactApexChart
-              type="bar"
+              type="line"
               height={200}
               series={trendChartData.series}
               options={trendChartOptions}

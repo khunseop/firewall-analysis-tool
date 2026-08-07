@@ -36,6 +36,7 @@ export const queryKeys = {
   // 대시보드 · 통계
   dashboardStats: ['dashboard-stats'] as const,
   changeStats: (...args: unknown[]) => ['change-stats', ...args] as const,
+  objectCountHistory: (...args: unknown[]) => ['object-count-history', ...args] as const,
 
   // 삭제 워크플로우
   deletionWorkflowTasks: ['deletion-workflow-tasks'] as const,

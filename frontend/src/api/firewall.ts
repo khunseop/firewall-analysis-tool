@@ -117,6 +117,17 @@ export const getChangeStats = async (
   return res.data
 }
 
+export interface ObjectCountHistoryEntry { week: string; count: number }
+
+export const getObjectCountHistory = async (
+  deviceId: number, weeks = 12, category: ChangeStatCategory = 'policies',
+): Promise<ObjectCountHistoryEntry[]> => {
+  const res = await apiClient.get<ObjectCountHistoryEntry[]>(
+    `/firewall/object-count-history?device_id=${deviceId}&weeks=${weeks}&category=${category}`
+  )
+  return res.data
+}
+
 interface ExcelColumn { header: string; width: number }
 interface ExcelRow { values: (string | number | null)[]; rowBg: string | null; cellFontColors: (string | null)[] }
 export interface StyledExcelPayload { filename: string; columns: ExcelColumn[]; rows: ExcelRow[] }

@@ -475,6 +475,44 @@ async def get_sync_history(
     ]
 
 
+@router.get("/object-count-history")
+async def get_object_count_history(
+    device_id: int = Query(..., description="장비 ID"),
+    weeks: int = Query(12, ge=1, le=52),
+    category: str = Query("policies", pattern="^(policies|network_objects|services)$"),
+    db: AsyncSession = Depends(get_db),
+):
+    """장비별 실제 객체(정책/네트워크객체/서비스) 총계 추이 (최근 N주, 주별 마지막 동기화 시점 스냅샷)"""
+    field_by_category = {
+        "policies": "total_policies",
+        "network_objects": "total_network_objects",
+        "services": "total_services",
+    }
+    field = field_by_category[category]
+
+    since = datetime.now() - timedelta(weeks=weeks)
+    result = await db.execute(
+        select(SyncHistory)
+        .where(SyncHistory.device_id == device_id, SyncHistory.sync_at >= since)
+        .order_by(SyncHistory.sync_at)
+    )
+    records = result.scalars().all()
+
+    latest_by_week: dict = {}
+    for r in records:
+        value = getattr(r, field)
+        if value is None:
+            continue
+        week = r.sync_at.strftime('%Y-%W')
+        if week not in latest_by_week or r.sync_at > latest_by_week[week][0]:
+            latest_by_week[week] = (r.sync_at, value)
+
+    return [
+        {"week": week, "count": latest_by_week[week][1]}
+        for week in sorted(latest_by_week.keys())
+    ]
+
+
 @router.get("/policy-diff")
 async def get_policy_diff(
     device_id: int = Query(..., description="장비 ID"),

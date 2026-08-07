@@ -17,6 +17,8 @@ class SyncHistory(Base):
         index=True,
     )
     total_policies = Column(Integer, nullable=True)
+    total_network_objects = Column(Integer, nullable=True)
+    total_services = Column(Integer, nullable=True)
     created_count = Column(Integer, default=0)
     updated_count = Column(Integer, default=0)
     deleted_count = Column(Integer, default=0)

@@ -534,12 +534,30 @@ async def _index_and_finalize(device_id: int) -> None:
         )
         total_policies = policy_count_result.scalar_one()
 
+        network_object_count_result = await db.execute(
+            select(func.count()).select_from(models.NetworkObject).where(models.NetworkObject.device_id == device_id)
+        )
+        network_group_count_result = await db.execute(
+            select(func.count()).select_from(models.NetworkGroup).where(models.NetworkGroup.device_id == device_id)
+        )
+        total_network_objects = network_object_count_result.scalar_one() + network_group_count_result.scalar_one()
+
+        service_count_result = await db.execute(
+            select(func.count()).select_from(models.Service).where(models.Service.device_id == device_id)
+        )
+        service_group_count_result = await db.execute(
+            select(func.count()).select_from(models.ServiceGroup).where(models.ServiceGroup.device_id == device_id)
+        )
+        total_services = service_count_result.scalar_one() + service_group_count_result.scalar_one()
+
         sync_at = datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
 
         db.add(models.SyncHistory(
             device_id=device_id,
             sync_at=sync_at,
             total_policies=total_policies,
+            total_network_objects=total_network_objects,
+            total_services=total_services,
             created_count=0,
             updated_count=0,
             deleted_count=0,
