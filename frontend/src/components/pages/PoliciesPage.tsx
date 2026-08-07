@@ -803,7 +803,7 @@ export function PoliciesPage() {
           columnDefs={columnDefs}
           rowData={editMode ? mergedPolicies : policies}
           getRowId={rowIdFromId}
-          domLayout="autoHeight"
+          height="calc(100vh - 300px)"
           loading={searchQuery.isFetching}
           loadingLabel="정책 검색 중…"
           noRowsText="장비를 선택하고 검색 버튼을 클릭하세요."
@@ -828,22 +828,19 @@ export function PoliciesPage() {
       </div>
 
       {editMode && editDeviceId && (
-        <EditActionMenu
-          selectedCount={selectedPolicyIds.length}
-          onCreateForm={() => setShowFormModal(true)}
-          onCreatePaste={() => setShowCreateModal(true)}
-          onModify={() => setShowModifyModal(true)}
-          onMove={() => setShowMoveDialog(true)}
-          onDelete={handleDeleteSelected}
-        />
-      )}
-
-      {editMode && editDeviceId && (
         <div className="card rounded-xl px-4 py-3 flex items-center gap-3 shrink-0 sticky bottom-4 shadow-lg">
           <span className="text-[13px] font-semibold text-ds-on-surface">
             대기중 변경사항: 생성 {pendingCounts.create} · 수정 {pendingCounts.modify} · 삭제 {pendingCounts.delete} · 이동 {pendingCounts.move}
           </span>
           <div className="flex items-center gap-2 ml-auto">
+            <EditActionMenu
+              selectedCount={selectedPolicyIds.length}
+              onCreateForm={() => setShowFormModal(true)}
+              onCreatePaste={() => setShowCreateModal(true)}
+              onModify={() => setShowModifyModal(true)}
+              onMove={() => setShowMoveDialog(true)}
+              onDelete={handleDeleteSelected}
+            />
             {pendingChanges.length > 0 && (
               <button onClick={handleClearPending} className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-on-surface-variant hover:text-ds-error transition-colors">
                 <RotateCcw className="w-3.5 h-3.5" /> 전체 취소

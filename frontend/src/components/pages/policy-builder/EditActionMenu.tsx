@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import { Plus, Pencil, ArrowLeftRight, Trash2, ChevronUp, ClipboardPaste, X } from 'lucide-react'
+import { Plus, Pencil, ArrowLeftRight, Trash2, ChevronUp, ClipboardPaste, SlidersHorizontal } from 'lucide-react'
 
 /**
- * 편집모드 액션 플로팅 메뉴 — 그리드를 스크롤해 내려가도 항상 화면 우하단에 떠 있어
- * 상단 툴바까지 되돌아가지 않고 정책 생성/수정/이동/삭제를 바로 실행할 수 있다.
- * 평소엔 컴팩트한 원형 버튼 하나만 보이고, 클릭하면 4개 주요 액션이 펼쳐진다.
+ * 편집모드 액션 메뉴 — "대기중 변경사항" 바(CLI 생성 버튼 왼쪽)에 인라인으로 붙어,
+ * 클릭하면 위쪽으로 정책 생성/수정/이동/삭제 4개 주요 액션이 펼쳐진다.
  * "붙여넣기로 일괄 생성"처럼 대량 처리용 변형은 정책 생성 버튼의 서브 메뉴로 둔다.
  */
 export function EditActionMenu({
@@ -33,9 +32,9 @@ export function EditActionMenu({
   }, [])
 
   return (
-    <div ref={rootRef} className="fixed bottom-24 right-6 z-40 flex flex-col items-end gap-2">
+    <div ref={rootRef} className="relative">
       {open && (
-        <div className="flex flex-col items-end gap-1.5 bg-ds-surface-container-lowest rounded-2xl shadow-2xl ambient-shadow border border-ds-outline-variant/10 p-2">
+        <div className="absolute bottom-full right-0 mb-2 flex flex-col items-end gap-1.5 bg-ds-surface-container-lowest rounded-2xl shadow-2xl ambient-shadow border border-ds-outline-variant/10 p-2 z-40">
           <div className="relative">
             <button
               type="button"
@@ -95,10 +94,12 @@ export function EditActionMenu({
       <button
         type="button"
         onClick={() => { setOpen((v) => !v); setCreateMenuOpen(false) }}
-        title="편집 액션"
-        className="w-12 h-12 rounded-full flex items-center justify-center btn-primary-gradient text-ds-on-tertiary shadow-2xl ambient-shadow transition-transform hover:scale-105"
+        className={`flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg border transition-colors ${
+          open ? 'text-ds-tertiary bg-ds-tertiary/10 border-ds-tertiary/20' : 'text-ds-on-surface-variant bg-ds-surface-container-low border-ds-outline-variant/10 hover:text-ds-on-surface'
+        }`}
       >
-        {open ? <X className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+        <SlidersHorizontal className="w-3.5 h-3.5" /> 편집 메뉴
+        <ChevronUp className={`w-3 h-3 transition-transform ${open ? '' : 'rotate-180'}`} />
       </button>
     </div>
   )
