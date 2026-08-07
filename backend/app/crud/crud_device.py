@@ -146,6 +146,28 @@ async def update_collected_thresholds(db: AsyncSession, device: Device, limits: 
     db.add(device)
 
 
+_SYSTEM_INFO_MANUAL_MAP = {
+    "hostname": "hostname_manual",
+    "model": "model_manual",
+    "serial_number": "serial_number_manual",
+    "os_version": "os_version_manual",
+    "multi_vsys": "multi_vsys_manual",
+}
+
+
+async def update_collected_system_info(db: AsyncSession, device: Device, info: dict) -> None:
+    """SSH 등으로 자동 수집한 장비 기본 정보를 device에 반영합니다.
+    manual 플래그가 True인 항목은 관리자가 수기 입력한 값을 유지하기 위해 건드리지 않습니다.
+    uptime은 항상 유동적인 값이라 manual 플래그 없이 매번 최신값으로 갱신합니다.
+    """
+    for field, manual_flag in _SYSTEM_INFO_MANUAL_MAP.items():
+        if field in info and not getattr(device, manual_flag, False):
+            setattr(device, field, info[field])
+    if "uptime" in info:
+        device.uptime = info["uptime"]
+    db.add(device)
+
+
 async def get_dashboard_stats(db: AsyncSession) -> DashboardStatsResponse:
     """캐시 컬럼에서 읽어 대시보드 통계를 즉시 반환합니다."""
     devices_result = await db.execute(select(Device))

@@ -608,3 +608,83 @@ class PaloAltoAPI(FirewallInterface):
             if ssh:
                 ssh.close()
                 self.logger.info(f"SSH 연결 종료: {self.hostname}")
+
+    # PAN-OS `show system info` 키 → Device 필드명 매핑
+    _SYSTEM_INFO_KEY_MAP = {
+        "hostname": "hostname",
+        "uptime": "uptime",
+        "model": "model",
+        "serial": "serial_number",
+        "sw-version": "os_version",
+        "multi-vsys": "multi_vsys",
+    }
+
+    def export_system_info(self) -> dict:
+        """
+        SSH를 통해 장비의 기본 정보(hostname/uptime/model/serial/sw-version/multi-vsys)를 조회합니다.
+
+        `show system info` 명령의 `key: value` 형식 출력을 파싱하여
+        Device 필드명으로 매핑된 dict를 반환합니다.
+        """
+        self.logger.info(f"Palo Alto 시스템 정보 조회 시작: {self.hostname}")
+
+        ssh = None
+        try:
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect(
+                self.hostname, port=22,
+                username=self.username, password=self._password,
+                timeout=20, look_for_keys=False, allow_agent=False
+            )
+
+            channel = ssh.invoke_shell()
+
+            def read_until_prompt(timeout: int = 10) -> str:
+                output = ""
+                start_time = time.time()
+                while True:
+                    if channel.recv_ready():
+                        output += channel.recv(65535).decode('utf-8', errors='ignore')
+                        if output.strip().endswith(('>', '#')):
+                            return output
+                    if time.time() - start_time > timeout:
+                        raise TimeoutError(f"쉘 프롬프트 대기 시간 초과. 현재 출력:\n{output}")
+                    time.sleep(0.5)
+
+            read_until_prompt(timeout=20)  # 로그인 배너 및 초기 프롬프트 대기
+
+            channel.send("set cli pager off\n")
+            read_until_prompt()
+
+            channel.send("show system info\n")
+            output = read_until_prompt(timeout=30)
+
+            info = {}
+            for line in output.splitlines():
+                match = re.match(r'^([\w-]+):\s*(.*)$', line.strip())
+                if not match:
+                    continue
+                pan_key, value = match.group(1), match.group(2).strip()
+                field = self._SYSTEM_INFO_KEY_MAP.get(pan_key)
+                if field:
+                    info[field] = value
+
+            return info
+
+        except paramiko.AuthenticationException:
+            self.logger.error(f"SSH 인증 실패: {self.hostname}")
+            raise FirewallAuthenticationError(f"SSH 인증 실패: {self.hostname}")
+        except paramiko.SSHException as e:
+            self.logger.error(f"SSH 연결 오류: {self.hostname}, {e}")
+            raise FirewallConnectionError(f"SSH 연결 오류: {self.hostname}")
+        except TimeoutError as e:
+            self.logger.error(f"SSH 명령 타임아웃: {self.hostname}, {e}")
+            raise FirewallConnectionError(f"SSH 명령 타임아웃: {self.hostname}")
+        except Exception as e:
+            self.logger.error(f"시스템 정보 조회 중 예기치 않은 오류 발생: {self.hostname}, {e}", exc_info=True)
+            raise FirewallAPIError(f"시스템 정보 조회 중 오류: {str(e)}")
+        finally:
+            if ssh:
+                ssh.close()
+                self.logger.info(f"SSH 연결 종료: {self.hostname}")

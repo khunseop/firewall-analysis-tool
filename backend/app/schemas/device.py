@@ -13,12 +13,20 @@ class DeviceBase(BaseModel):
     use_ssh_for_last_hit_date: Optional[bool] = False
     collect_last_hit_date: Optional[bool] = True
     model: Optional[str] = None
+    model_manual: Optional[bool] = False
     group: Optional[str] = None
 
-    # 상세 정보
+    # 상세 정보 — manual=True면 수기 입력값 유지, False(기본값)면 동기화 시 자동 수집값으로 갱신
+    hostname: Optional[str] = None
+    hostname_manual: Optional[bool] = False
+    uptime: Optional[str] = None
+    multi_vsys: Optional[str] = None
+    multi_vsys_manual: Optional[bool] = False
     serial_number: Optional[str] = None
+    serial_number_manual: Optional[bool] = False
     os_name: Optional[str] = None
     os_version: Optional[str] = None
+    os_version_manual: Optional[bool] = False
     install_date: Optional[date] = None
 
     # 설치 위치
@@ -58,13 +66,21 @@ class DeviceUpdate(BaseModel):
     use_ssh_for_last_hit_date: Optional[bool] = None
     collect_last_hit_date: Optional[bool] = None
     model: Optional[str] = None
+    model_manual: Optional[bool] = None
     group: Optional[str] = None
     password: Optional[str] = None
     password_confirm: Optional[str] = None
 
+    hostname: Optional[str] = None
+    hostname_manual: Optional[bool] = None
+    uptime: Optional[str] = None
+    multi_vsys: Optional[str] = None
+    multi_vsys_manual: Optional[bool] = None
     serial_number: Optional[str] = None
+    serial_number_manual: Optional[bool] = None
     os_name: Optional[str] = None
     os_version: Optional[str] = None
+    os_version_manual: Optional[bool] = None
     install_date: Optional[date] = None
 
     location_region: Optional[str] = None

@@ -28,9 +28,12 @@ export const STATUS_ORDER: Record<string, number> = {
 export interface DeviceFormData {
   name: string; ip_address: string; vendor: string; username: string
   password: string; password_confirm: string; ha_peer_ip: string
-  model: string; group: string; description: string; collect_last_hit_date: boolean
+  model: string; model_manual: boolean; group: string; description: string; collect_last_hit_date: boolean
   use_ssh_for_last_hit_date: boolean
-  serial_number: string; os_name: string; os_version: string; install_date: string
+  hostname: string; hostname_manual: boolean; uptime: string
+  multi_vsys: string; multi_vsys_manual: boolean
+  serial_number: string; serial_number_manual: boolean
+  os_name: string; os_version: string; os_version_manual: boolean; install_date: string
   location_region: string; location_building: string; location_floor: string; location_room: string
   location_x: string; location_y: string; location_z: string
   policy_threshold: string; policy_threshold_manual: boolean
@@ -42,8 +45,11 @@ export interface DeviceFormData {
 
 export const DEFAULT_FORM: DeviceFormData = {
   name: '', ip_address: '', vendor: 'paloalto', username: '', password: '', password_confirm: '',
-  ha_peer_ip: '', model: '', group: '', description: '', collect_last_hit_date: true, use_ssh_for_last_hit_date: false,
-  serial_number: '', os_name: '', os_version: '', install_date: '',
+  ha_peer_ip: '', model: '', model_manual: false, group: '', description: '', collect_last_hit_date: true, use_ssh_for_last_hit_date: false,
+  hostname: '', hostname_manual: false, uptime: '',
+  multi_vsys: '', multi_vsys_manual: false,
+  serial_number: '', serial_number_manual: false,
+  os_name: '', os_version: '', os_version_manual: false, install_date: '',
   location_region: '', location_building: '', location_floor: '', location_room: '',
   location_x: '', location_y: '', location_z: '',
   policy_threshold: '', policy_threshold_manual: false,

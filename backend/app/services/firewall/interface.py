@@ -170,3 +170,16 @@ class FirewallInterface(ABC):
             지원하는 벤더(예: Palo Alto)에서만 오버라이딩하여 구현합니다.
         """
         raise NotImplementedError("export_resource_limits는 해당 벤더에서 지원하지 않습니다.")
+
+    def export_system_info(self) -> Dict[str, str]:
+        """장비의 기본 정보(hostname/uptime/model/serial/sw-version/multi-vsys)를 조회합니다.
+
+        Returns:
+            Dict[str, str]: Device 필드명(hostname, uptime, model, serial_number,
+                os_version, multi_vsys)으로 매핑된 값
+
+        Note:
+            모든 벤더가 지원하지는 않으며, 기본적으로 NotImplementedError를 발생시킵니다.
+            지원하는 벤더(예: Palo Alto)에서만 오버라이딩하여 구현합니다.
+        """
+        raise NotImplementedError("export_system_info는 해당 벤더에서 지원하지 않습니다.")

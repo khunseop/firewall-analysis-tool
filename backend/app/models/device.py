@@ -54,10 +54,18 @@ class Device(Base):
     cached_services = Column(Integer, nullable=True, default=0)
     cached_service_groups = Column(Integer, nullable=True, default=0)
 
-    # 상세 정보
+    # 상세 정보 — manual=True면 수기 입력값 유지, False(기본값)면 동기화 시 자동 수집값으로 갱신 (Palo Alto: show system info)
+    hostname = Column(String, nullable=True)
+    hostname_manual = Column(Boolean, nullable=False, default=False)
+    uptime = Column(String, nullable=True)  # 예: "52 days, 0:10:38" — 매 동기화마다 항상 최신값으로 갱신
+    multi_vsys = Column(String, nullable=True)  # "on" / "off"
+    multi_vsys_manual = Column(Boolean, nullable=False, default=False)
+    model_manual = Column(Boolean, nullable=False, default=False)
     serial_number = Column(String, nullable=True)
+    serial_number_manual = Column(Boolean, nullable=False, default=False)
     os_name = Column(String, nullable=True)
     os_version = Column(String, nullable=True)
+    os_version_manual = Column(Boolean, nullable=False, default=False)
     install_date = Column(Date, nullable=True)
 
     # 설치 위치

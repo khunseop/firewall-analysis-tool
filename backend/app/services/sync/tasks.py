@@ -639,6 +639,20 @@ async def run_sync_all_orchestrator(device_id: int) -> None:
                 except Exception as e:
                     logging.warning(f"Failed to collect resource limits for device {device_id}: {e}. Continuing sync...", exc_info=True)
 
+                # 3-2. 시스템 기본 정보(hostname/uptime/model/serial/sw-version/multi-vsys) 자동 수집
+                # (Palo Alto 전용, manual 플래그가 False인 항목만 갱신, uptime은 항상 갱신)
+                device = await _update_status(device_id, "Collecting system info...")
+                try:
+                    info = await loop.run_in_executor(IO_EXECUTOR, collector.export_system_info)
+                    if info:
+                        async with SessionLocal() as db:
+                            device_row = await crud.device.get_device(db, device_id)
+                            if device_row:
+                                await crud.device.update_collected_system_info(db, device_row, info)
+                                await db.commit()
+                except Exception as e:
+                    logging.warning(f"Failed to collect system info for device {device_id}: {e}. Continuing sync...", exc_info=True)
+
             # 4. 데이터 수집 시퀀스 정의 (종속성 관계에 따라 순차 진행)
             collection_sequence = [
                 ("network_objects", "Collecting network objects...", collector.export_network_objects, schemas.NetworkObjectCreate),

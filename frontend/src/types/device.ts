@@ -9,13 +9,21 @@ export interface Device {
   use_ssh_for_last_hit_date: boolean
   collect_last_hit_date: boolean
   model: string | null
+  model_manual: boolean
   group: string | null
   last_sync_at: string | null
   last_sync_status: string | null
   last_sync_step: string | null
+  hostname: string | null
+  hostname_manual: boolean
+  uptime: string | null
+  multi_vsys: string | null
+  multi_vsys_manual: boolean
   serial_number: string | null
+  serial_number_manual: boolean
   os_name: string | null
   os_version: string | null
+  os_version_manual: boolean
   install_date: string | null
   location_region: string | null
   location_building: string | null
@@ -55,10 +63,18 @@ export interface DeviceCreate {
   use_ssh_for_last_hit_date?: boolean
   collect_last_hit_date?: boolean
   model?: string
+  model_manual?: boolean
   group?: string
+  hostname?: string
+  hostname_manual?: boolean
+  uptime?: string
+  multi_vsys?: string
+  multi_vsys_manual?: boolean
   serial_number?: string
+  serial_number_manual?: boolean
   os_name?: string
   os_version?: string
+  os_version_manual?: boolean
   install_date?: string
   location_region?: string
   location_building?: string
@@ -91,10 +107,18 @@ export interface DeviceUpdate {
   use_ssh_for_last_hit_date?: boolean
   collect_last_hit_date?: boolean
   model?: string
+  model_manual?: boolean
   group?: string
+  hostname?: string
+  hostname_manual?: boolean
+  uptime?: string
+  multi_vsys?: string
+  multi_vsys_manual?: boolean
   serial_number?: string
+  serial_number_manual?: boolean
   os_name?: string
   os_version?: string
+  os_version_manual?: boolean
   install_date?: string
   location_region?: string
   location_building?: string
