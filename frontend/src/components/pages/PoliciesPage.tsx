@@ -388,7 +388,14 @@ export function PoliciesPage() {
   const pendingCounts = useMemo(() => {
     const counts = { create: 0, modify: 0, delete: 0, move: 0 }
     for (const c of pendingChanges) {
-      if (c.change_type === 'create') counts.create++
+      if (c.change_type === 'create') {
+        counts.create++
+        // 신규 생성행(음수 id)의 "선택 이동"은 별도 move 변경사항을 만들지 않고 create 변경사항의
+        // 배치 위치(position/reference_policy_id)만 갱신한다 — 기본값(bottom/null)에서 바뀌었다면
+        // 이동 예약이 걸린 것이므로 "이동" 카운트에도 반영한다.
+        const { position, reference_policy_id } = c.payload as { position?: string; reference_policy_id?: number | null }
+        if (position !== 'bottom' || reference_policy_id != null) counts.move++
+      }
       else if (c.change_type === 'new_object') continue
       else if (c.change_type in counts) counts[c.change_type as keyof typeof counts]++
     }
