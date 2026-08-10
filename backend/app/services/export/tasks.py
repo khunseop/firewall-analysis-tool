@@ -275,6 +275,7 @@ async def _update_export_task(
             progress_current=task.progress_current,
             progress_total=task.progress_total,
             error=task.error_message,
+            result_filename=task.result_filename,
         )
 
 
@@ -333,7 +334,7 @@ async def run_export_task(task_id: int) -> None:
             await _update_export_task(task_id, progress_current=idx)
 
         await _update_export_task(task_id, step="엑셀 생성 중...")
-        today = date.today().strftime("%Y%m%d")
+        today = date.today().strftime("%Y-%m-%d")
 
         if merge and len(devices) > 1:
             merged_sheets: dict[str, pd.DataFrame] = {}
@@ -345,12 +346,12 @@ async def run_export_task(task_id: int) -> None:
                 else:
                     merged_sheets[device.name[:31]] = data
             output = _multi_sheet_excel(merged_sheets)
-            filename = f"통합_{label}_{today}.xlsx"
+            filename = f"{today}_통합_{label}.xlsx"
         else:
             device = devices[0]
             data = per_device_data[device.id]
             output = _multi_sheet_excel(data) if isinstance(data, dict) else _single_sheet_excel(data, label)
-            filename = f"{device.name}_{label}_{today}.xlsx"
+            filename = f"{today}_{device.name}_{label}.xlsx"
 
         EXPORT_DIR.mkdir(parents=True, exist_ok=True)
         file_path = EXPORT_DIR / f"{task_id}.xlsx"

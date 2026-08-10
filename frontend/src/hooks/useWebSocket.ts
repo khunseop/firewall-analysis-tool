@@ -16,6 +16,7 @@ export interface ExportTaskStatusMessage {
   progress_current: number
   progress_total: number
   error: string | null
+  result_filename: string | null
 }
 
 export type SyncWebSocketMessage = SyncStatusMessage | ExportTaskStatusMessage

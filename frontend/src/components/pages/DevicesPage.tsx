@@ -24,6 +24,8 @@ import { useDeviceSearchStore } from '@/store/deviceSearchStore'
 interface ExportTaskInfo {
   // WebSocket 메시지가 onTasksStarted 등록보다 먼저 도착하면 종류를 알 수 없어 null일 수 있음
   exportType: DirectExportType | null
+  deviceIds: number[]
+  createdAt: string | null
   status: 'pending' | 'in_progress' | 'success' | 'failure'
   step: string | null
   progressCurrent: number
@@ -168,18 +170,22 @@ export function DevicesPage() {
       ...prev,
       [msg.task_id]: {
         exportType: prev[msg.task_id]?.exportType ?? null,
+        deviceIds: prev[msg.task_id]?.deviceIds ?? [],
+        createdAt: prev[msg.task_id]?.createdAt ?? null,
         status: msg.status,
         step: msg.step,
         progressCurrent: msg.progress_current,
         progressTotal: msg.progress_total,
         errorMessage: msg.error,
+        resultFilename: msg.result_filename,
       },
     }))
 
     if (msg.status === 'success') {
       const label = exportTypeLabel(existing?.exportType ?? null)
+      const downloadName = msg.result_filename ?? `${label}_${msg.task_id}.xlsx`
       toast.success(`직접 추출 완료: ${label} 추출이 완료되었습니다.`, {
-        action: { label: '다운로드', onClick: () => downloadExportResult(msg.task_id, `${label}_${msg.task_id}.xlsx`) },
+        action: { label: '다운로드', onClick: () => downloadExportResult(msg.task_id, downloadName) },
       })
       createNotification({ title: '직접 추출 완료', message: `${label} 추출이 완료되었습니다.`, type: 'success', category: 'system' }).catch(console.error)
     } else if (msg.status === 'failure') {
@@ -206,6 +212,8 @@ export function DevicesPage() {
         for (const t of tasks) {
           next[t.id] = {
             exportType: t.export_type,
+            deviceIds: t.device_ids,
+            createdAt: t.created_at,
             status: t.status,
             step: t.step,
             progressCurrent: t.progress_current,
@@ -219,11 +227,14 @@ export function DevicesPage() {
     }).catch(() => { /* 조회 실패는 조용히 무시 (진행상태 복구는 부가 기능) */ })
   }, [])
 
-  const handleExportTasksStarted = useCallback((taskIds: number[], exportType: DirectExportType) => {
+  const handleExportTasksStarted = useCallback((taskIds: number[], exportType: DirectExportType, deviceIds: number[]) => {
     setExportTasks((prev) => {
       const next = { ...prev }
       for (const taskId of taskIds) {
-        next[taskId] = { exportType, status: 'pending', step: null, progressCurrent: 0, progressTotal: 1 }
+        next[taskId] = {
+          exportType, deviceIds, createdAt: new Date().toISOString(),
+          status: 'pending', step: null, progressCurrent: 0, progressTotal: 1,
+        }
       }
       return next
     })
@@ -231,11 +242,23 @@ export function DevicesPage() {
 
   // 진행 중/완료/실패 작업을 모두 보여줌 — 완료 후에는 사용자가 직접 닫기 전까지 다운로드 버튼이 패널에 남아있음
   // (토스트만으로는 몇 초 뒤 자동으로 사라져 다운로드 기회를 놓치는 문제가 있었음)
+  const deviceLabelFor = useCallback((deviceIds: number[]) => {
+    if (deviceIds.length === 0) return ''
+    if (deviceIds.length === 1) {
+      return devices.find((d) => d.id === deviceIds[0])?.name ?? `장비#${deviceIds[0]}`
+    }
+    return `${deviceIds.length}개 장비 통합`
+  }, [devices])
+
   const visibleExportTasks = useMemo(
     () => Object.entries(exportTasks)
-      .map(([id, t]) => ({ id: Number(id), ...t }))
+      .map(([id, t]) => ({
+        id: Number(id), ...t,
+        deviceLabel: deviceLabelFor(t.deviceIds),
+        timeLabel: t.createdAt ? new Date(t.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : null,
+      }))
       .sort((a, b) => b.id - a.id),
-    [exportTasks]
+    [exportTasks, deviceLabelFor]
   )
 
   const handleDismissExportTask = useCallback((taskId: number) => {
@@ -414,12 +437,16 @@ export function DevicesPage() {
           {visibleExportTasks.map((t) => {
             if (t.status === 'success') {
               const label = exportTypeLabel(t.exportType)
+              const downloadName = t.resultFilename ?? `${label}_${t.id}.xlsx`
               return (
                 <div key={t.id} className="flex items-center gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
-                  <span className="text-[11px] text-ds-on-surface-variant flex-1 truncate">{label} 추출 완료</span>
+                  <span className="text-[11px] text-ds-on-surface-variant flex-1 truncate">
+                    {t.deviceLabel && <span className="font-semibold text-ds-on-surface">{t.deviceLabel}</span>} {label} 추출 완료
+                    {t.timeLabel && <span className="ml-1 text-ds-on-surface-variant/60">({t.timeLabel})</span>}
+                  </span>
                   <button
-                    onClick={() => downloadExportResult(t.id, `${label}_${t.id}.xlsx`)}
+                    onClick={() => downloadExportResult(t.id, downloadName)}
                     className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold text-ds-primary hover:bg-ds-primary/10 transition-colors shrink-0"
                   >
                     <FileDown className="w-3 h-3" />다운로드
@@ -434,7 +461,9 @@ export function DevicesPage() {
               return (
                 <div key={t.id} className="flex items-center gap-2">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0 text-ds-error" />
-                  <span className="text-[11px] text-ds-on-surface-variant shrink-0">{exportTypeLabel(t.exportType)} 추출 실패</span>
+                  <span className="text-[11px] text-ds-on-surface-variant shrink-0">
+                    {t.deviceLabel && <span className="font-semibold">{t.deviceLabel}</span>} {exportTypeLabel(t.exportType)} 추출 실패
+                  </span>
                   <span className="text-[11px] text-ds-error/80 truncate flex-1">{t.errorMessage ?? '알 수 없는 오류'}</span>
                   <button onClick={() => handleDismissExportTask(t.id)} className="shrink-0 text-ds-on-surface-variant/50 hover:text-ds-on-surface">
                     <X className="w-3.5 h-3.5" />
@@ -445,7 +474,9 @@ export function DevicesPage() {
             return (
               <div key={t.id} className="flex items-center gap-2">
                 <Loader2 className="w-3.5 h-3.5 shrink-0 text-ds-tertiary animate-spin" />
-                <span className="text-[11px] text-ds-on-surface-variant shrink-0">{exportTypeLabel(t.exportType)} 추출</span>
+                <span className="text-[11px] text-ds-on-surface-variant shrink-0">
+                  {t.deviceLabel && <span className="font-semibold">{t.deviceLabel}</span>} {exportTypeLabel(t.exportType)} 추출
+                </span>
                 <span className="text-[11px] text-ds-on-surface-variant/70 truncate flex-1">{t.step ?? '대기 중...'}</span>
                 <span className="text-[11px] font-semibold tabular-nums text-ds-on-surface-variant shrink-0">
                   {t.progressCurrent} / {t.progressTotal}

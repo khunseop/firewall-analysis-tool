@@ -15,7 +15,7 @@ const EXPORT_TYPE_OPTIONS: { type: DirectExportType; label: string; desc: string
 
 export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
   open: boolean; onClose: () => void; devices: Device[]
-  onTasksStarted: (taskIds: number[], exportType: DirectExportType) => void
+  onTasksStarted: (taskIds: number[], exportType: DirectExportType, deviceIds: number[]) => void
 }) {
   const [exportType, setExportType] = useState<DirectExportType>('policies')
   const [source, setSource] = useState<'live' | 'db'>('live')
@@ -50,7 +50,7 @@ export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
           use_ssh: exportType === 'hit_dates' ? useSsh : false,
           timeout_seconds: timeout,
         })
-        onTasksStarted([task_id], exportType)
+        onTasksStarted([task_id], exportType, devices.map((d) => d.id))
         toast.success(`${devices.length}개 장비 ${label} 통합 추출을 백그라운드에서 시작했습니다.`)
       } else {
         // 장비별로 요청이 응답되는 즉시 등록 — 모든 요청이 끝나길 기다리면
@@ -70,7 +70,7 @@ export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
                   timeout_seconds: timeout,
                 })
           )
-          onTasksStarted([task_id], exportType)
+          onTasksStarted([task_id], exportType, [d.id])
           startedCount += 1
         }))
 

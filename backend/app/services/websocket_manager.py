@@ -64,6 +64,7 @@ class WebSocketManager:
         progress_current: int = 0,
         progress_total: int = 0,
         error: str | None = None,
+        result_filename: str | None = None,
     ):
         """직접 추출(Export) 백그라운드 작업의 진행 상태를 모든 연결된 클라이언트에 브로드캐스트"""
         message = {
@@ -74,6 +75,7 @@ class WebSocketManager:
             "progress_current": progress_current,
             "progress_total": progress_total,
             "error": error,
+            "result_filename": result_filename,
         }
 
         if not self.active_connections:
