@@ -149,6 +149,29 @@ export const clearPendingChanges = async (deviceId: number): Promise<void> => {
   await apiClient.delete(`/policy-builder/${deviceId}/pending-changes`)
 }
 
+/**
+ * 신규 정책 생성(create) 변경사항이 취소되면, 그 정책만 참조하던 신규 오브젝트(new_object)
+ * 변경사항이 고아로 남을 수 있다 — 남은 create 변경사항 중 어느 것도 이름을 참조하지 않는
+ * new_object만 골라 정리한다. `remainingChanges`는 삭제 대상을 제외한, 정리 시점의 전체 목록.
+ */
+export const cleanupOrphanNewObjects = async (deviceId: number, remainingChanges: PendingPolicyChange[]): Promise<void> => {
+  const referencedNames = new Set<string>()
+  for (const c of remainingChanges) {
+    if (c.change_type !== 'create') continue
+    for (const field of ['source', 'destination', 'service']) {
+      const raw = String(c.payload[field] ?? '')
+      for (const token of raw.split(',')) {
+        const name = token.trim().replace(/^"|"$/g, '')
+        if (name) referencedNames.add(name)
+      }
+    }
+  }
+  const orphaned = remainingChanges.filter(
+    (c) => c.change_type === 'new_object' && !referencedNames.has(String(c.payload.name ?? ''))
+  )
+  await Promise.all(orphaned.map((c) => removePendingChange(deviceId, c.id)))
+}
+
 export const checkObjectGaps = async (deviceId: number, newPolicies: NewPolicyRow[]): Promise<ObjectGapItem[]> => {
   const res = await apiClient.post(`/policy-builder/${deviceId}/object-gaps`, { new_policies: newPolicies })
   return res.data.missing_objects

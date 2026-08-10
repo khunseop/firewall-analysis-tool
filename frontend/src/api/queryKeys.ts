@@ -26,6 +26,7 @@ export const queryKeys = {
     ['policy-diff', deviceId, fromSyncId, toSyncId] as const,
   syncHistory: (deviceId: number | null) => ['sync-history', deviceId] as const,
   policyBuilderPreviewOrder: (deviceId: number | null | undefined) => ['policy-builder-preview-order', deviceId] as const,
+  policyBuilderPendingChanges: (deviceId: number | null | undefined) => ['policy-builder-pending-changes', deviceId] as const,
 
   // 분석
   analysisTasks: ['analysis-tasks'] as const,

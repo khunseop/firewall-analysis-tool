@@ -76,15 +76,15 @@ export function ModifyPolicyModal({ deviceId, onClose, onApplied }: {
   const mutation = useMutation({
     mutationFn: async () => {
       const timestamp = Date.now()
-      for (const row of validRows) {
+      await Promise.all(validRows.map((row) => {
         const backendField = BACKEND_FIELD_OVERRIDE[FIELD_LABEL_TO_BACKEND[row.fieldLabel]] ?? FIELD_LABEL_TO_BACKEND[row.fieldLabel]
         const diff = row.action === '추가' ? { added: row.values, removed: [] } : { added: [], removed: row.values }
-        await addPendingChange(deviceId, {
+        return addPendingChange(deviceId, {
           change_type: 'modify', target_policy_id: row.policyId!,
           client_key: `bulk-modify-${row.policyId}-${backendField}-${row.action}-${timestamp}-${row.row_index}`,
           payload: { [backendField]: diff },
         })
-      }
+      }))
     },
     onSuccess: () => {
       toast.success(`${validRows.length}건의 필드 변경이 대기중 변경사항으로 추가되었습니다.`)

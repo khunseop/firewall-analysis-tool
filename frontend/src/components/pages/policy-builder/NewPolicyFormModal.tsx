@@ -31,12 +31,10 @@ export function NewPolicyFormModal({ deviceId, onClose, onCreated }: {
   const mutation = useMutation({
     mutationFn: async () => {
       const timestamp = Date.now()
-      for (const obj of newObjects) {
-        await addPendingChange(deviceId, {
-          change_type: 'new_object', client_key: `obj-${obj.object_kind}-${obj.name}-${timestamp}`,
-          payload: obj as unknown as Record<string, unknown>,
-        })
-      }
+      await Promise.all(newObjects.map((obj) => addPendingChange(deviceId, {
+        change_type: 'new_object', client_key: `obj-${obj.object_kind}-${obj.name}-${timestamp}`,
+        payload: obj as unknown as Record<string, unknown>,
+      })))
       await addPendingChange(deviceId, {
         change_type: 'create', client_key: `draft-form-${timestamp}`,
         payload: { ...row, position: 'bottom', reference_policy_id: null } as unknown as Record<string, unknown>,

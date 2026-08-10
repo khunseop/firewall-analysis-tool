@@ -17,18 +17,14 @@ export function CreatePolicyModal({ deviceId, onClose, onCreated }: {
   const mutation = useMutation({
     mutationFn: async () => {
       const timestamp = Date.now()
-      for (const obj of newObjects) {
-        await addPendingChange(deviceId, {
-          change_type: 'new_object', client_key: `obj-${obj.object_kind}-${obj.name}-${timestamp}`,
-          payload: obj as unknown as Record<string, unknown>,
-        })
-      }
-      for (const row of rows) {
-        await addPendingChange(deviceId, {
-          change_type: 'create', client_key: `draft-${row.row_index}-${timestamp}`,
-          payload: { ...row, position: 'bottom', reference_policy_id: null } as unknown as Record<string, unknown>,
-        })
-      }
+      await Promise.all(newObjects.map((obj) => addPendingChange(deviceId, {
+        change_type: 'new_object', client_key: `obj-${obj.object_kind}-${obj.name}-${timestamp}`,
+        payload: obj as unknown as Record<string, unknown>,
+      })))
+      await Promise.all(rows.map((row) => addPendingChange(deviceId, {
+        change_type: 'create', client_key: `draft-${row.row_index}-${timestamp}`,
+        payload: { ...row, position: 'bottom', reference_policy_id: null } as unknown as Record<string, unknown>,
+      })))
     },
     onSuccess: () => {
       toast.success(`정책 ${rows.length}건이 대기중 변경사항으로 추가되었습니다. 그리드에서 선택 후 "선택 이동"으로 위치를 지정하세요.`)

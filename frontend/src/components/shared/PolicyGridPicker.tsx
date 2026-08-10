@@ -8,14 +8,25 @@ import { rowIdFromId } from '@/lib/utils'
 import { getPolicies, type Policy } from '@/api/firewall'
 import { queryKeys } from '@/api/queryKeys'
 
-const COLUMN_DEFS: ColDef<Policy>[] = [
-  { field: 'seq', headerName: '순번', width: 70 },
-  { field: 'rule_name', headerName: '정책명', width: 200 },
-  { field: 'action', headerName: '액션', width: 80 },
-  { field: 'source', headerName: '출발지', width: 220 },
-  { field: 'destination', headerName: '목적지', width: 220 },
-  { field: 'service', headerName: '서비스', width: 160 },
-]
+function buildColumnDefs(warnIds?: Set<number>): ColDef<Policy>[] {
+  return [
+    { field: 'seq', headerName: '순번', width: 70 },
+    {
+      field: 'rule_name', headerName: '정책명', width: 220,
+      cellRenderer: (p: { value: string; data: Policy }) =>
+        warnIds?.has(p.data.id) ? (
+          <span className="flex items-center gap-1">
+            {p.value}
+            <span className="text-[10px] font-semibold text-ds-error" title="이 정책은 삭제 대기중입니다.">삭제예정</span>
+          </span>
+        ) : p.value,
+    },
+    { field: 'action', headerName: '액션', width: 80 },
+    { field: 'source', headerName: '출발지', width: 220 },
+    { field: 'destination', headerName: '목적지', width: 220 },
+    { field: 'service', headerName: '서비스', width: 160 },
+  ]
+}
 
 interface PolicyGridPickerMultiProps {
   deviceId: number | null
@@ -23,6 +34,8 @@ interface PolicyGridPickerMultiProps {
   value: number[]
   onChange: (ids: number[]) => void
   placeholder?: string
+  /** 이미 삭제 대기중인 정책 id — 목록에 "삭제예정" 표시만 하고 선택은 막지 않는다. */
+  warnIds?: Set<number>
 }
 interface PolicyGridPickerSingleProps {
   deviceId: number | null
@@ -30,11 +43,14 @@ interface PolicyGridPickerSingleProps {
   value: number | null
   onChange: (id: number | null) => void
   placeholder?: string
+  /** 이미 삭제 대기중인 정책 id — 목록에 "삭제예정" 표시만 하고 선택은 막지 않는다. */
+  warnIds?: Set<number>
 }
 type PolicyGridPickerProps = PolicyGridPickerMultiProps | PolicyGridPickerSingleProps
 
 export function PolicyGridPicker(props: PolicyGridPickerProps) {
-  const { deviceId, mode, placeholder } = props
+  const { deviceId, mode, placeholder, warnIds } = props
+  const columnDefs = useMemo(() => buildColumnDefs(warnIds), [warnIds])
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [pendingMulti, setPendingMulti] = useState<number[]>([])
@@ -70,8 +86,9 @@ export function PolicyGridPicker(props: PolicyGridPickerProps) {
       return props.value.length > 0 ? `${props.value.length}개 정책 선택됨` : (placeholder ?? '정책 선택…')
     }
     const p = policies.find((p) => p.id === props.value)
-    return p ? `[${p.seq}] ${p.rule_name}` : (placeholder ?? '기준 정책 선택…')
-  }, [mode, props.value, policies, placeholder])
+    if (!p) return placeholder ?? '기준 정책 선택…'
+    return warnIds?.has(p.id) ? `[${p.seq}] ${p.rule_name} (삭제예정)` : `[${p.seq}] ${p.rule_name}`
+  }, [mode, props.value, policies, placeholder, warnIds])
 
   const handleConfirm = () => {
     if (mode === 'multi') props.onChange(pendingMulti)
@@ -110,7 +127,7 @@ export function PolicyGridPicker(props: PolicyGridPickerProps) {
 
           <AgGridWrapper<Policy>
             ref={gridRef}
-            columnDefs={COLUMN_DEFS}
+            columnDefs={columnDefs}
             rowData={policies}
             getRowId={rowIdFromId}
             quickFilterText={search}

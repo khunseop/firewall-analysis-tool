@@ -8,10 +8,12 @@ const POSITION_OPTIONS: { value: MoveTarget['position']; label: string }[] = [
   { value: 'after', label: '기준 정책 아래(after)' },
 ]
 
-export function MoveTargetPicker({ deviceId, value, onChange }: {
+export function MoveTargetPicker({ deviceId, value, onChange, deletedPolicyIds }: {
   deviceId: number | null
   value: MoveTarget
   onChange: (value: MoveTarget) => void
+  /** 이미 삭제 대기중인 정책 id — 기준 정책 선택 목록에 "삭제예정" 경고를 표시한다. */
+  deletedPolicyIds?: Set<number>
 }) {
   const needsReference = value.position === 'before' || value.position === 'after'
 
@@ -41,6 +43,7 @@ export function MoveTargetPicker({ deviceId, value, onChange }: {
             value={value.reference_policy_id}
             onChange={(id) => onChange({ ...value, reference_policy_id: id })}
             placeholder="기준 정책 선택…"
+            warnIds={deletedPolicyIds}
           />
         </div>
       )}

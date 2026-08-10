@@ -28,6 +28,7 @@ import { queryKeys } from '@/api/queryKeys'
 import { diffMultiValueField, isFieldDiffEmpty } from '@/lib/policyDiff'
 import {
   listPendingChanges, addPendingChange, updatePendingChange, removePendingChange, clearPendingChanges, planBulkPolicy, getPreviewOrder,
+  cleanupOrphanNewObjects,
   type BulkPolicyPlanResponse, type PreviewPolicyRow,
 } from '@/api/policyBuilder'
 import { CreatePolicyModal } from '@/components/pages/policy-builder/CreatePolicyModal'
@@ -178,6 +179,9 @@ export function PoliciesPage() {
   const [showMoveDialog, setShowMoveDialog] = useState(false)
   const [planResult, setPlanResult] = useState<BulkPolicyPlanResponse | null>(null)
   const [planLoading, setPlanLoading] = useState(false)
+  // 편집 내용(생성/수정/삭제/이동)을 대기중 변경사항에 반영하고 그리드가 최신 배치 순서를
+  // 다시 조회하는 동안 표시할 로딩 상태 — 그리드는 마운트된 채 유지하고 스피너만 오버레이한다.
+  const [applyingChanges, setApplyingChanges] = useState(false)
 
   // 편집모드 중 장비 선택이 1개가 아니게 바뀌면(예: 다른 화면에서 다시 진입) 상태가 꼬이지 않도록 자동 종료
   useEffect(() => {
@@ -185,7 +189,7 @@ export function PoliciesPage() {
   }, [editMode, editDeviceId])
 
   const pendingChangesQuery = useQuery({
-    queryKey: ['policy-builder-pending-changes', editDeviceId],
+    queryKey: queryKeys.policyBuilderPendingChanges(editDeviceId),
     queryFn: () => listPendingChanges(editDeviceId!),
     enabled: editMode && !!editDeviceId,
   })
@@ -200,9 +204,32 @@ export function PoliciesPage() {
     enabled: editMode && !!editDeviceId,
   })
 
-  const refetchPendingChanges = () => {
-    queryClient.invalidateQueries({ queryKey: ['policy-builder-pending-changes', editDeviceId] })
-    queryClient.invalidateQueries({ queryKey: queryKeys.policyBuilderPreviewOrder(editDeviceId) })
+  // invalidateQueries는 기본적으로 활성 쿼리를 즉시 다시 조회하고, 그 refetch가 끝나야 resolve되는
+  // 프라미스를 반환한다 — 호출부에서 await하면 "그리드가 최신 상태로 바뀔 때까지" 기다릴 수 있다.
+  const refetchPendingChanges = () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: queryKeys.policyBuilderPendingChanges(editDeviceId) }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.policyBuilderPreviewOrder(editDeviceId) }),
+  ])
+
+  // 편집 액션(셀 편집, 모달 제출 등) 공용 래퍼 — 액션 실행 중 + 그리드가 최신 배치 순서를
+  // 다시 받아올 때까지 로딩 오버레이를 띄운다.
+  const runEditAction = async (action: () => Promise<unknown>) => {
+    setApplyingChanges(true)
+    try {
+      await action()
+      await refetchPendingChanges()
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setApplyingChanges(false)
+    }
+  }
+
+  // 생성/수정/이동 모달은 자체적으로 pending change 추가를 이미 끝낸 뒤 이 콜백을 호출한다 —
+  // 여기서는 그리드가 최신 배치 순서를 다시 받아올 때까지만 로딩 오버레이를 띄운다.
+  const handleModalApplied = () => {
+    setApplyingChanges(true)
+    refetchPendingChanges().finally(() => setApplyingChanges(false))
   }
 
   // 편집모드에서 정책 1건의 필드 하나를 바꿀 때 공용으로 쓰는 로직 — 그리드 셀 편집과
@@ -215,17 +242,16 @@ export function PoliciesPage() {
       // 신규 생성행(음수 id) — create pending change의 payload 필드를 직접 갱신
       const change = pendingChangesQuery.data?.find((c) => c.change_type === 'create' && -c.id === rowId)
       if (!change) return
-      updatePendingChange(editDeviceId, change.id, { [backendField]: newValue })
-        .then(refetchPendingChanges).catch((e: Error) => toast.error(e.message))
+      runEditAction(() => updatePendingChange(editDeviceId, change.id, { [backendField]: newValue }))
       return
     }
     const diff = diffMultiValueField(oldValue, newValue)
     if (isFieldDiffEmpty(diff)) return
-    addPendingChange(editDeviceId, {
+    runEditAction(() => addPendingChange(editDeviceId, {
       change_type: 'modify', target_policy_id: rowId,
       client_key: `modify-${rowId}-${gridField}-${Date.now()}`,
       payload: { [backendField]: diff },
-    }).then(refetchPendingChanges).catch((e: Error) => toast.error(e.message))
+    }))
   }, [editDeviceId, pendingChangesQuery.data]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCellValueChanged = useCallback((event: CellValueChangedEvent<EditablePolicyRow>) => {
@@ -235,25 +261,59 @@ export function PoliciesPage() {
 
   const handleDeleteSelected = async () => {
     if (!editDeviceId || selectedPolicyIds.length === 0) return
+    // 이미 삭제 대기중인 행을 다시 선택해 삭제하면 delete pending change가 중복 생성되어
+    // CLI에 동일한 delete 명령이 두 번 나온다 — 대상에서 제외한다.
+    const targetIds = selectedPolicyIds.filter((id) => !deletedRowIds.has(id))
+    const skipped = selectedPolicyIds.length - targetIds.length
+    if (targetIds.length === 0) {
+      toast.warning('선택한 정책이 모두 이미 삭제 예정입니다.')
+      return
+    }
     const timestamp = Date.now()
+    setApplyingChanges(true)
     try {
-      for (const policyId of selectedPolicyIds) {
+      const removedCreateChangeIds: number[] = []
+      await Promise.all(targetIds.map(async (policyId) => {
         if (policyId < 0) {
           // 신규 생성행(음수 id) — 아직 실제 정책이 아니므로 delete가 아니라 create 변경사항 자체를 취소한다.
           const change = pendingChangesQuery.data?.find((c) => c.change_type === 'create' && -c.id === policyId)
-          if (change) await removePendingChange(editDeviceId, change.id)
-          continue
+          if (change) {
+            await removePendingChange(editDeviceId, change.id)
+            removedCreateChangeIds.push(change.id)
+          }
+          return
         }
         await addPendingChange(editDeviceId, {
           change_type: 'delete', target_policy_id: policyId, client_key: `delete-${policyId}-${timestamp}`, payload: {},
         })
+      }))
+      if (removedCreateChangeIds.length > 0) {
+        const remainingChanges = (pendingChangesQuery.data ?? []).filter((c) => !removedCreateChangeIds.includes(c.id))
+        await cleanupOrphanNewObjects(editDeviceId, remainingChanges)
       }
-      toast.success(`정책 ${selectedPolicyIds.length}건 삭제가 대기중 변경사항으로 추가되었습니다.`)
+      toast.success(`정책 ${targetIds.length}건 삭제가 대기중 변경사항으로 추가되었습니다.${skipped > 0 ? ` (이미 삭제 예정 ${skipped}건 제외)` : ''}`)
       setSelectedPolicyIds([])
-      refetchPendingChanges()
+      await refetchPendingChanges()
     } catch (e) {
       toast.error((e as Error).message)
+    } finally {
+      setApplyingChanges(false)
     }
+  }
+
+  const handleOpenMove = () => {
+    // 이미 삭제 대기중인 행은 이동 대상에서 제외 — 삭제 예정 정책의 위치를 옮기는 move
+    // pending change가 쌓이는 것을 막는다.
+    const remaining = selectedPolicyIds.filter((id) => !deletedRowIds.has(id))
+    if (remaining.length === 0) {
+      toast.warning('선택한 정책이 모두 삭제 예정이라 이동할 수 없습니다.')
+      return
+    }
+    if (remaining.length < selectedPolicyIds.length) {
+      toast.info(`삭제 예정인 정책 ${selectedPolicyIds.length - remaining.length}건은 이동 대상에서 제외했습니다.`)
+    }
+    setSelectedPolicyIds(remaining)
+    setShowMoveDialog(true)
   }
 
   const handleGenerateCli = async () => {
@@ -271,9 +331,16 @@ export function PoliciesPage() {
 
   const handleClearPending = async () => {
     if (!editDeviceId) return
-    await clearPendingChanges(editDeviceId)
-    toast.success('대기중 변경사항을 모두 초기화했습니다.')
-    refetchPendingChanges()
+    setApplyingChanges(true)
+    try {
+      await clearPendingChanges(editDeviceId)
+      toast.success('대기중 변경사항을 모두 초기화했습니다.')
+      await refetchPendingChanges()
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setApplyingChanges(false)
+    }
   }
 
   // 편집모드 그리드는 백엔드가 계산한 "대기중 변경사항을 모두 적용한 최종 순서"(previewOrderQuery)를
@@ -311,6 +378,12 @@ export function PoliciesPage() {
     if (!previewOrderQuery.data) return policies
     return previewOrderQuery.data.map(toEditableRow)
   }, [editMode, policies, previewOrderQuery.data])
+
+  // 이미 삭제 대기중으로 표시된 행(기존 정책) — 삭제/이동 재선택 시 중복 pending change 방지에 사용.
+  const deletedRowIds = useMemo(
+    () => new Set(mergedPolicies.filter((r) => r._pendingStatus === 'deleted').map((r) => r.id)),
+    [mergedPolicies]
+  )
 
   const pendingCounts = useMemo(() => {
     const counts = { create: 0, modify: 0, delete: 0, move: 0 }
@@ -804,8 +877,8 @@ export function PoliciesPage() {
           rowData={editMode ? mergedPolicies : policies}
           getRowId={rowIdFromId}
           height="calc(100vh - 300px)"
-          loading={searchQuery.isFetching}
-          loadingLabel="정책 검색 중…"
+          loading={editMode ? applyingChanges : searchQuery.isFetching}
+          loadingLabel={editMode ? '변경사항 적용 중…' : '정책 검색 중…'}
           noRowsText="장비를 선택하고 검색 버튼을 클릭하세요."
           defaultColDefOverride={GRID_DEFAULT_COL_DEF_OVERRIDE}
           fitColumns
@@ -838,7 +911,7 @@ export function PoliciesPage() {
               onCreateForm={() => setShowFormModal(true)}
               onCreatePaste={() => setShowCreateModal(true)}
               onModify={() => setShowModifyModal(true)}
-              onMove={() => setShowMoveDialog(true)}
+              onMove={handleOpenMove}
               onDelete={handleDeleteSelected}
             />
             {pendingChanges.length > 0 && (
@@ -900,7 +973,7 @@ export function PoliciesPage() {
         <CreatePolicyModal
           deviceId={editDeviceId}
           onClose={() => setShowCreateModal(false)}
-          onCreated={refetchPendingChanges}
+          onCreated={handleModalApplied}
         />
       )}
 
@@ -908,7 +981,7 @@ export function PoliciesPage() {
         <NewPolicyFormModal
           deviceId={editDeviceId}
           onClose={() => setShowFormModal(false)}
-          onCreated={refetchPendingChanges}
+          onCreated={handleModalApplied}
         />
       )}
 
@@ -916,7 +989,7 @@ export function PoliciesPage() {
         <ModifyPolicyModal
           deviceId={editDeviceId}
           onClose={() => setShowModifyModal(false)}
-          onApplied={refetchPendingChanges}
+          onApplied={handleModalApplied}
         />
       )}
 
@@ -926,7 +999,7 @@ export function PoliciesPage() {
           policyIds={selectedPolicyIds}
           pendingChanges={pendingChanges}
           onClose={() => setShowMoveDialog(false)}
-          onMoved={() => { refetchPendingChanges(); setSelectedPolicyIds([]) }}
+          onMoved={() => { handleModalApplied(); setSelectedPolicyIds([]) }}
         />
       )}
 
@@ -943,5 +1016,4 @@ export function PoliciesPage() {
     </div>
   )
 }
-// refresh
  
