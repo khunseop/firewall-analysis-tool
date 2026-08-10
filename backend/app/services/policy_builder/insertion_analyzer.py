@@ -204,8 +204,9 @@ async def build_full_order(db: AsyncSession, device_id: int) -> List[Dict[str, A
     순차 적용한다는 차이가 있다 — 같은 기준 정책을 향해 여러 건을 동시에 이동하는 드문 경우에만
     화면 표시 순서가 실제 CLI 실행 순서와 미세하게 다를 수 있다.
 
-    신규 생성(create)행은 (기존 `/plan`과 동일하게) 모든 create 변경사항이 하나의 목표 위치를
-    공유한다 — 첫 create 변경사항의 position/reference_policy_id를 사용한다.
+    신규 생성(create)행은 (기존 `/plan`과 동일하게) payload의 (position, reference_policy_id)가
+    같은 것끼리 배치로 묶어 각 배치의 목표 위치에 독립적으로 삽입한다 — 서로 다른 시점에 다른
+    기준 정책으로 생성한 배치끼리는 서로의 위치를 강제하지 않는다.
     """
     real_policies = await load_active_policies_with_members(db, device_id)
     changes = await crud.pending_policy_change.get_by_device(db, device_id)
@@ -246,17 +247,24 @@ async def build_full_order(db: AsyncSession, device_id: int) -> List[Dict[str, A
         items.insert(idx, item)
         item["pending_status"] = "moved"
 
-    if create_changes:
-        first_payload = create_changes[0].payload or {}
-        move_target = MoveTarget(
-            position=first_payload.get("position", "bottom"),
-            reference_policy_id=first_payload.get("reference_policy_id"),
-        )
+    batch_order: List[Tuple[str, Optional[int]]] = []
+    batches: Dict[Tuple[str, Optional[int]], list] = {}
+    for c in create_changes:
+        payload = c.payload or {}
+        key = (payload.get("position", "bottom"), payload.get("reference_policy_id"))
+        if key not in batches:
+            batches[key] = []
+            batch_order.append(key)
+        batches[key].append(c)
+
+    for key in batch_order:
+        position, reference_policy_id = key
+        move_target = MoveTarget(position=position, reference_policy_id=reference_policy_id)
         try:
             insert_idx = _resolve_insertion_index_dict(items, move_target)
         except ValueError:
             insert_idx = len(items)
-        new_items = [_create_payload_to_item(c, device_id) for c in create_changes]
+        new_items = [_create_payload_to_item(c, device_id) for c in batches[key]]
         items[insert_idx:insert_idx] = new_items
 
     return items

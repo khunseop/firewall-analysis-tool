@@ -254,30 +254,41 @@ async def plan_bulk_policy(
     preview_before: list = []
     preview_after: list = []
 
-    # --- 신규 생성 배치의 삽입 위치 (모든 create 행이 같은 위치를 공유, 중복 정책명은 제외) ---
+    # --- 신규 생성 배치의 삽입 위치 (같은 배치의 create 행끼리는 위치를 공유하되, 배치가 다르면
+    # (position, reference_policy_id)이 다를 수 있으므로 배치별로 그룹핑해 독립적으로 처리한다.
+    # 중복 정책명은 제외) ---
     move_commands = []
     if create_changes and insertable_policies:
-        first_payload = create_changes[0].payload
-        move_target = schemas.MoveTarget(
-            position=first_payload.get("position", "bottom"),
-            reference_policy_id=first_payload.get("reference_policy_id"),
-        )
-        try:
-            virtual_policies = await resolve_virtual_policies(db, device_id, insertable_policies, new_objects)
-            insertion_conflicts, insertion_before, insertion_after, insertion_warnings = await analyze_insertion(
-                db, device_id, virtual_policies, move_target,
-            )
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
-        conflicts += insertion_conflicts
-        preview_before += insertion_before
-        preview_after += insertion_after
-        warnings.extend(insertion_warnings)
-
-        reference_rule_name = await _reference_rule_name(db, move_target.reference_policy_id)
+        batch_order: list = []
+        batches: dict = {}
         for row in insertable_policies:
-            command, error = generate_move_command(row.rule_name, move_target, reference_rule_name, vsys)
-            move_commands.append(schemas.GeneratedCommand(row_index=row.row_index, kind="move", command=command, error=error))
+            batch_payload = create_changes[row.row_index].payload
+            key = (batch_payload.get("position", "bottom"), batch_payload.get("reference_policy_id"))
+            if key not in batches:
+                batches[key] = []
+                batch_order.append(key)
+            batches[key].append(row)
+
+        for key in batch_order:
+            position, reference_policy_id = key
+            move_target = schemas.MoveTarget(position=position, reference_policy_id=reference_policy_id)
+            batch_rows = batches[key]
+            try:
+                virtual_policies = await resolve_virtual_policies(db, device_id, batch_rows, new_objects)
+                insertion_conflicts, insertion_before, insertion_after, insertion_warnings = await analyze_insertion(
+                    db, device_id, virtual_policies, move_target,
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc))
+            conflicts += insertion_conflicts
+            preview_before += insertion_before
+            preview_after += insertion_after
+            warnings.extend(insertion_warnings)
+
+            reference_rule_name = await _reference_rule_name(db, move_target.reference_policy_id)
+            for row in batch_rows:
+                command, error = generate_move_command(row.rule_name, move_target, reference_rule_name, vsys)
+                move_commands.append(schemas.GeneratedCommand(row_index=row.row_index, kind="move", command=command, error=error))
 
     # --- 기존 정책 이동 (move) ---
     for c in move_changes:
