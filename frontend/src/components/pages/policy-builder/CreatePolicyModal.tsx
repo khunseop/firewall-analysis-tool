@@ -38,16 +38,16 @@ export function CreatePolicyModal({ deviceId, onClose, onCreated }: {
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      {/* 파싱 결과 표가 나타나면서 다이얼로그 높이가 급격히 커지는데, 기본 Dialog는 화면 중앙에
-          transform(top-50%/translate-y--50%)으로 위치를 잡기 때문에 높이가 바뀔 때마다 그 오프셋이
-          재계산되어 상자가 중심에서 사방으로 갑자기 확대되는 것처럼 보인다(파싱 시 "화면이 깨지는" 버그의 원인).
-          화면 위쪽에 고정해 높이가 바뀌어도 아래로만 자라도록 한다. */}
-      <DialogContent className="max-w-5xl bg-ds-surface-container-lowest max-h-[85vh] overflow-y-auto top-8 translate-y-0">
-        <DialogHeader>
+      {/* 붙여넣기 결과 표 + 오브젝트 갭 패널까지 한 화면에서 다뤄야 해서 내용이 금방 넘친다.
+          높이를 뷰포트 기준으로 고정하고 헤더/푸터는 그대로 둔 채 중간 영역만 스크롤되게 해서
+          (1) 매번 스크롤해서 액션 버튼을 찾을 필요가 없고 (2) 파싱 결과가 늘어나도 다이얼로그
+          박스 자체의 높이가 바뀌지 않아 화면이 갑자기 확대되는 문제도 함께 없앤다. */}
+      <DialogContent className="max-w-6xl w-[92vw] h-[88vh] bg-ds-surface-container-lowest flex flex-col">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="font-headline text-ds-on-surface">새 정책 붙여넣기</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
           <NewPolicyPasteInput rows={rows} onChange={setRows} />
           <ObjectGapPanel deviceId={deviceId} rows={rows} newObjects={newObjects} onChange={setNewObjects} />
           <p className="text-[12px] text-ds-on-surface-variant">
@@ -55,7 +55,7 @@ export function CreatePolicyModal({ deviceId, onClose, onCreated }: {
           </p>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">취소</button>
           <button
             type="button"

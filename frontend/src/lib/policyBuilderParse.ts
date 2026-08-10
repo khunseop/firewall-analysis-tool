@@ -35,14 +35,22 @@ function splitCells(line: string): string[] {
   return cells.map((c) => c.trim())
 }
 
+export interface SkippedLine {
+  /** 1-based, 헤더를 1번째 줄로 포함한 원본 텍스트 기준 줄 번호 */
+  line: number
+  raw: string
+  reason: string
+}
+
 export interface ParsePastedPoliciesResult {
   rows: NewPolicyRow[]
   unknownColumns: string[]
+  skippedLines: SkippedLine[]
 }
 
 export function parsePastedPolicies(text: string): ParsePastedPoliciesResult {
   const lines = text.split(/\r?\n/).filter((l) => l.trim() !== '')
-  if (lines.length === 0) return { rows: [], unknownColumns: [] }
+  if (lines.length === 0) return { rows: [], unknownColumns: [], skippedLines: [] }
 
   const headerCells = splitCells(lines[0])
   const unknownColumns: string[] = []
@@ -53,9 +61,13 @@ export function parsePastedPolicies(text: string): ParsePastedPoliciesResult {
   })
 
   const rows: NewPolicyRow[] = []
+  const skippedLines: SkippedLine[] = []
   let current: NewPolicyRow | null = null
 
-  for (const line of lines.slice(1)) {
+  const dataLines = lines.slice(1)
+  for (let i = 0; i < dataLines.length; i++) {
+    const line = dataLines[i]
+    const lineNumber = i + 2 // 헤더가 1번째 줄
     const cells = splitCells(line)
     const rowDict: Partial<Record<keyof NewPolicyRow, string>> = {}
     fieldByCol.forEach((field, idx) => {
@@ -74,7 +86,11 @@ export function parsePastedPolicies(text: string): ParsePastedPoliciesResult {
       continue
     }
 
-    if (!ruleName) continue // 완전히 빈 행 (첫 정책 전에 등장한 경우 포함)
+    if (!ruleName) {
+      // 정책명이 비어 있는데 위에 이어붙일 정책도 없다 — 헤더 매핑이 어긋났거나 잘못 붙여넣은 줄일 가능성이 높다.
+      skippedLines.push({ line: lineNumber, raw: line, reason: '정책명이 비어 있고, 위에 연결할 정책도 없습니다.' })
+      continue
+    }
 
     current = { ...newPolicyRowDefaults(rows.length), ...rowDict, rule_name: ruleName } as NewPolicyRow
     if (rowDict.disabled !== undefined) {
@@ -86,5 +102,5 @@ export function parsePastedPolicies(text: string): ParsePastedPoliciesResult {
 
   rows.forEach((row, idx) => { row.row_index = idx })
 
-  return { rows, unknownColumns: [...new Set(unknownColumns)] }
+  return { rows, unknownColumns: [...new Set(unknownColumns)], skippedLines }
 }

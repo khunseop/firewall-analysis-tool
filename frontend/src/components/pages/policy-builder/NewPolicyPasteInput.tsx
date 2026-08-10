@@ -1,15 +1,24 @@
 import { useState } from 'react'
-import { Trash2, Copy } from 'lucide-react'
+import { Trash2, Copy, AlertTriangle, ClipboardList } from 'lucide-react'
 import { toast } from 'sonner'
 import { Textarea } from '@/components/ui/textarea'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { parsePastedPolicies } from '@/lib/policyBuilderParse'
 import type { NewPolicyRow } from '@/api/policyBuilder'
+import type { SkippedLine } from '@/lib/policyBuilderParse'
 
 // 파싱 가능한(수정 가능한) 전체 컬럼 — lib/policyBuilderParse.ts의 HEADER_TO_FIELD와 동기화되어야 한다.
 const TEMPLATE_HEADER = ['정책명', '액션', '비활성화', '출발지존', '출발지', '사용자', '목적지존', '목적지', '서비스', '애플리케이션', '설명', 'log_end', 'log_setting']
 const TEMPLATE_EXAMPLE_ROW = ['ALLOW-WEB-EXAMPLE', 'allow', '', 'any', '10.0.0.0/24', '', 'any', 'any', 'tcp-443', '', '업무용 웹 접근 허용', 'yes', '']
 const TEMPLATE = [TEMPLATE_HEADER.join('\t'), TEMPLATE_EXAMPLE_ROW.join('\t')].join('\n')
+
+// 객체 수 복사 대상 컬럼 — [헤더 라벨, NewPolicyRow 필드]
+const COUNT_COLUMNS: { label: string; field: keyof NewPolicyRow }[] = [
+  { label: '출발지', field: 'source' },
+  { label: '목적지', field: 'destination' },
+  { label: '서비스', field: 'service' },
+  { label: '애플리케이션', field: 'application' },
+]
 
 function countTokens(value: string): number {
   return value.split(',').map((s) => s.trim()).filter(Boolean).length
@@ -31,11 +40,16 @@ export function NewPolicyPasteInput({ rows, onChange }: {
 }) {
   const [text, setText] = useState('')
   const [unknownColumns, setUnknownColumns] = useState<string[]>([])
+  const [skippedLines, setSkippedLines] = useState<SkippedLine[]>([])
 
   const handleParse = () => {
     const result = parsePastedPolicies(text)
     onChange(result.rows)
     setUnknownColumns(result.unknownColumns)
+    setSkippedLines(result.skippedLines)
+    if (result.skippedLines.length > 0) {
+      toast.warning(`파싱하지 못한 줄이 ${result.skippedLines.length}건 있습니다. 아래 목록을 확인하세요.`)
+    }
   }
 
   const handleRemoveRow = (rowIndex: number) => {
@@ -46,6 +60,20 @@ export function NewPolicyPasteInput({ rows, onChange }: {
     try {
       await navigator.clipboard.writeText(TEMPLATE)
       toast.success('템플릿을 클립보드에 복사했습니다. 엑셀에 붙여넣어 작성한 뒤 다시 이 화면에 붙여넣으세요.')
+    } catch {
+      toast.error('클립보드 복사에 실패했습니다.')
+    }
+  }
+
+  // 정책명 + 컬럼별 객체 개수를 탭 구분 텍스트로 복사 — 엑셀에 붙여넣어 요청 건수 대조용으로 쓸 수 있다.
+  const handleCopyCounts = async () => {
+    const header = ['정책명', ...COUNT_COLUMNS.map((c) => c.label)].join('\t')
+    const lines = rows.map((row) =>
+      [row.rule_name, ...COUNT_COLUMNS.map((c) => countTokens(row[c.field] as string))].join('\t')
+    )
+    try {
+      await navigator.clipboard.writeText([header, ...lines].join('\n'))
+      toast.success(`정책 ${rows.length}건의 객체 수를 클립보드에 복사했습니다.`)
     } catch {
       toast.error('클립보드 복사에 실패했습니다.')
     }
@@ -87,39 +115,64 @@ export function NewPolicyPasteInput({ rows, onChange }: {
         )}
       </div>
 
-      {rows.length > 0 && (
-        <div className="border border-ds-outline-variant/20 rounded-lg max-h-[480px] overflow-y-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>정책명</TableHead>
-                <TableHead>액션</TableHead>
-                <TableHead>출발지</TableHead>
-                <TableHead>목적지</TableHead>
-                <TableHead>서비스</TableHead>
-                <TableHead>애플리케이션</TableHead>
-                <TableHead className="w-10" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((row) => (
-                <TableRow key={row.row_index}>
-                  <TableCell className="font-medium">{row.rule_name}</TableCell>
-                  <TableCell>{row.rule_action}</TableCell>
-                  <TableCell><MultiValueCell value={row.source} /></TableCell>
-                  <TableCell><MultiValueCell value={row.destination} /></TableCell>
-                  <TableCell><MultiValueCell value={row.service} /></TableCell>
-                  <TableCell><MultiValueCell value={row.application} /></TableCell>
-                  <TableCell>
-                    <button type="button" onClick={() => handleRemoveRow(row.row_index)} className="text-ds-on-surface-variant hover:text-ds-error">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+      {skippedLines.length > 0 && (
+        <div className="rounded-lg border border-ds-error/30 bg-ds-error/5 px-3 py-2 space-y-1">
+          <p className="flex items-center gap-1.5 text-[12px] font-semibold text-ds-error">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> 파싱하지 못한 줄 {skippedLines.length}건 — 헤더 매핑이 어긋났거나 정책명 없이 단독으로 붙여넣힌 줄입니다.
+          </p>
+          <ul className="text-[11px] text-ds-error/80 font-mono space-y-0.5 max-h-24 overflow-y-auto">
+            {skippedLines.map((s) => (
+              <li key={s.line} className="truncate">#{s.line}: {s.raw || '(빈 줄)'}</li>
+            ))}
+          </ul>
         </div>
+      )}
+
+      {rows.length > 0 && (
+        <>
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-semibold text-ds-on-surface">파싱된 정책 {rows.length}건</span>
+            <button
+              type="button"
+              onClick={handleCopyCounts}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
+            >
+              <ClipboardList className="w-3.5 h-3.5" /> 객체 수 복사
+            </button>
+          </div>
+          <div className="border border-ds-outline-variant/20 rounded-lg max-h-[50vh] overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>정책명</TableHead>
+                  <TableHead>액션</TableHead>
+                  <TableHead>출발지</TableHead>
+                  <TableHead>목적지</TableHead>
+                  <TableHead>서비스</TableHead>
+                  <TableHead>애플리케이션</TableHead>
+                  <TableHead className="w-10" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((row) => (
+                  <TableRow key={row.row_index}>
+                    <TableCell className="font-medium">{row.rule_name}</TableCell>
+                    <TableCell>{row.rule_action}</TableCell>
+                    <TableCell><MultiValueCell value={row.source} /></TableCell>
+                    <TableCell><MultiValueCell value={row.destination} /></TableCell>
+                    <TableCell><MultiValueCell value={row.service} /></TableCell>
+                    <TableCell><MultiValueCell value={row.application} /></TableCell>
+                    <TableCell>
+                      <button type="button" onClick={() => handleRemoveRow(row.row_index)} className="text-ds-on-surface-variant hover:text-ds-error">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
     </div>
   )
