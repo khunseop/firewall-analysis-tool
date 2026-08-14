@@ -1,0 +1,5242 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 22,
+  "filesSkipped": [],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 22,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 22,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "results": [
+    {
+      "path": "backend/app/services/deletion_workflow/config_bridge.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 134,
+      "nonEmptyLines": 114,
+      "functions": [
+        {
+          "name": "load_config_dict",
+          "startLine": 21,
+          "endLine": 31,
+          "params": [
+            "db"
+          ]
+        },
+        {
+          "name": "save_task15_exceptions_to_settings",
+          "startLine": 34,
+          "endLine": 134,
+          "params": [
+            "db",
+            "device_id",
+            "output_files",
+            "reference_date",
+            "unused_threshold_days"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "load_config_dict",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "save_task15_exceptions_to_settings",
+          "line": 34,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "load_config_dict",
+          "callee": "crud.settings.get_setting",
+          "lineNumber": 24
+        },
+        {
+          "caller": "load_config_dict",
+          "callee": "json.loads",
+          "lineNumber": 27
+        },
+        {
+          "caller": "load_config_dict",
+          "callee": "_deep_merge",
+          "lineNumber": 28
+        },
+        {
+          "caller": "load_config_dict",
+          "callee": "_default_config",
+          "lineNumber": 28
+        },
+        {
+          "caller": "load_config_dict",
+          "callee": "_load_fpat_yaml",
+          "lineNumber": 31
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "fname.endswith",
+          "lineNumber": 49
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "pd.read_excel",
+          "lineNumber": 52
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "io.BytesIO",
+          "lineNumber": 52
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "sheets.get",
+          "lineNumber": 55
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "datetime.date.today",
+          "lineNumber": 68
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "datetime.timedelta",
+          "lineNumber": 69
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "df_exc.drop_duplicates(subset=['Rule Name']).iterrows",
+          "lineNumber": 72
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "df_exc.drop_duplicates",
+          "lineNumber": 72
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "row.get",
+          "lineNumber": 73
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "new_entries.append",
+          "lineNumber": 76
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "str",
+          "lineNumber": 78
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "today.strftime",
+          "lineNumber": 80
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "expires_at.strftime",
+          "lineNumber": 81
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "crud.settings.get_setting",
+          "lineNumber": 87
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "json.loads",
+          "lineNumber": 90
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "cfg.get(\"exceptions\", {}).get",
+          "lineNumber": 96
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "cfg.get",
+          "lineNumber": 96
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "merged[key].get",
+          "lineNumber": 104
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "entry.get",
+          "lineNumber": 105
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "list",
+          "lineNumber": 113
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "merged.values",
+          "lineNumber": 113
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "json.dumps",
+          "lineNumber": 118
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "crud.settings.update_setting",
+          "lineNumber": 120
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "schemas.SettingsUpdate",
+          "lineNumber": 122
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "crud.settings.create_setting",
+          "lineNumber": 125
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "schemas.SettingsCreate",
+          "lineNumber": 127
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "logger.info",
+          "lineNumber": 134
+        },
+        {
+          "caller": "save_task15_exceptions_to_settings",
+          "callee": "len",
+          "lineNumber": 134
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/core/config_manager.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 210,
+      "nonEmptyLines": 177,
+      "classes": [
+        {
+          "name": "ConfigManager",
+          "startLine": 23,
+          "endLine": 210,
+          "methods": [
+            "__init__",
+            "_find_config",
+            "_load_config",
+            "get",
+            "_parse_date",
+            "get_reference_date",
+            "get_reference_datetime",
+            "_is_in_period",
+            "is_excepted",
+            "all"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "ConfigManager",
+          "line": 23,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "__init__",
+          "callee": "logger.info",
+          "lineNumber": 48
+        },
+        {
+          "caller": "__init__",
+          "callee": "self._find_config",
+          "lineNumber": 50
+        },
+        {
+          "caller": "__init__",
+          "callee": "self._load_config",
+          "lineNumber": 51
+        },
+        {
+          "caller": "__init__",
+          "callee": "logger.info",
+          "lineNumber": 52
+        },
+        {
+          "caller": "_find_config",
+          "callee": "search_paths.append",
+          "lineNumber": 58
+        },
+        {
+          "caller": "_find_config",
+          "callee": "os.environ.get",
+          "lineNumber": 60
+        },
+        {
+          "caller": "_find_config",
+          "callee": "search_paths.append",
+          "lineNumber": 62
+        },
+        {
+          "caller": "_find_config",
+          "callee": "os.getcwd",
+          "lineNumber": 64
+        },
+        {
+          "caller": "_find_config",
+          "callee": "os.path.dirname",
+          "lineNumber": 66
+        },
+        {
+          "caller": "_find_config",
+          "callee": "os.path.abspath",
+          "lineNumber": 66
+        },
+        {
+          "caller": "_find_config",
+          "callee": "os.path.abspath",
+          "lineNumber": 67
+        },
+        {
+          "caller": "_find_config",
+          "callee": "os.path.join",
+          "lineNumber": 67
+        },
+        {
+          "caller": "_find_config",
+          "callee": "search_paths.append",
+          "lineNumber": 70
+        },
+        {
+          "caller": "_find_config",
+          "callee": "os.path.join",
+          "lineNumber": 70
+        },
+        {
+          "caller": "_find_config",
+          "callee": "search_paths.append",
+          "lineNumber": 71
+        },
+        {
+          "caller": "_find_config",
+          "callee": "os.path.join",
+          "lineNumber": 71
+        },
+        {
+          "caller": "_find_config",
+          "callee": "search_paths.append",
+          "lineNumber": 72
+        },
+        {
+          "caller": "_find_config",
+          "callee": "os.path.join",
+          "lineNumber": 72
+        },
+        {
+          "caller": "_find_config",
+          "callee": "os.path.exists",
+          "lineNumber": 75
+        },
+        {
+          "caller": "_find_config",
+          "callee": "os.path.isfile",
+          "lineNumber": 75
+        },
+        {
+          "caller": "_find_config",
+          "callee": "os.path.abspath",
+          "lineNumber": 76
+        },
+        {
+          "caller": "_find_config",
+          "callee": "os.path.abspath",
+          "lineNumber": 78
+        },
+        {
+          "caller": "_find_config",
+          "callee": "os.path.join",
+          "lineNumber": 78
+        },
+        {
+          "caller": "_load_config",
+          "callee": "os.path.exists",
+          "lineNumber": 81
+        },
+        {
+          "caller": "_load_config",
+          "callee": "logger.warning",
+          "lineNumber": 82
+        },
+        {
+          "caller": "_load_config",
+          "callee": "os.path.splitext",
+          "lineNumber": 86
+        },
+        {
+          "caller": "_load_config",
+          "callee": "ext.lower",
+          "lineNumber": 87
+        },
+        {
+          "caller": "_load_config",
+          "callee": "ImportError",
+          "lineNumber": 91
+        },
+        {
+          "caller": "_load_config",
+          "callee": "open",
+          "lineNumber": 92
+        },
+        {
+          "caller": "_load_config",
+          "callee": "yaml.safe_load",
+          "lineNumber": 93
+        },
+        {
+          "caller": "_load_config",
+          "callee": "open",
+          "lineNumber": 95
+        },
+        {
+          "caller": "_load_config",
+          "callee": "json.load",
+          "lineNumber": 96
+        },
+        {
+          "caller": "_load_config",
+          "callee": "logger.error",
+          "lineNumber": 98
+        },
+        {
+          "caller": "get",
+          "callee": "key.split",
+          "lineNumber": 106
+        },
+        {
+          "caller": "get",
+          "callee": "isinstance",
+          "lineNumber": 110
+        },
+        {
+          "caller": "_parse_date",
+          "callee": "datetime.strptime(date_str.strip(), '%Y-%m-%d').date",
+          "lineNumber": 123
+        },
+        {
+          "caller": "_parse_date",
+          "callee": "datetime.strptime",
+          "lineNumber": 123
+        },
+        {
+          "caller": "_parse_date",
+          "callee": "date_str.strip",
+          "lineNumber": 123
+        },
+        {
+          "caller": "_parse_date",
+          "callee": "logger.warning",
+          "lineNumber": 125
+        },
+        {
+          "caller": "get_reference_date",
+          "callee": "datetime.now().date",
+          "lineNumber": 130
+        },
+        {
+          "caller": "get_reference_date",
+          "callee": "datetime.now",
+          "lineNumber": 130
+        },
+        {
+          "caller": "get_reference_datetime",
+          "callee": "datetime",
+          "lineNumber": 135
+        },
+        {
+          "caller": "get_reference_datetime",
+          "callee": "datetime.now",
+          "lineNumber": 136
+        },
+        {
+          "caller": "_is_in_period",
+          "callee": "self.get_reference_date",
+          "lineNumber": 146
+        },
+        {
+          "caller": "_is_in_period",
+          "callee": "self._parse_date",
+          "lineNumber": 147
+        },
+        {
+          "caller": "_is_in_period",
+          "callee": "item.get",
+          "lineNumber": 147
+        },
+        {
+          "caller": "_is_in_period",
+          "callee": "self._parse_date",
+          "lineNumber": 148
+        },
+        {
+          "caller": "_is_in_period",
+          "callee": "item.get",
+          "lineNumber": 148
+        },
+        {
+          "caller": "_is_in_period",
+          "callee": "logger.debug",
+          "lineNumber": 151
+        },
+        {
+          "caller": "_is_in_period",
+          "callee": "item.get",
+          "lineNumber": 151
+        },
+        {
+          "caller": "_is_in_period",
+          "callee": "logger.debug",
+          "lineNumber": 154
+        },
+        {
+          "caller": "_is_in_period",
+          "callee": "item.get",
+          "lineNumber": 154
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "self.get",
+          "lineNumber": 169
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "isinstance",
+          "lineNumber": 173
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "item.get",
+          "lineNumber": 180
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "bool",
+          "lineNumber": 181
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "str",
+          "lineNumber": 181
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "item.get",
+          "lineNumber": 183
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "bool",
+          "lineNumber": 185
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "re.search",
+          "lineNumber": 185
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "logger.warning",
+          "lineNumber": 187
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "item.get",
+          "lineNumber": 189
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "bool",
+          "lineNumber": 190
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "str",
+          "lineNumber": 190
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "self._is_in_period",
+          "lineNumber": 192
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "self.get",
+          "lineNumber": 197
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "isinstance",
+          "lineNumber": 199
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "isinstance",
+          "lineNumber": 202
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "item.get",
+          "lineNumber": 203
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "str",
+          "lineNumber": 204
+        },
+        {
+          "caller": "is_excepted",
+          "callee": "self._is_in_period",
+          "lineNumber": 204
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/core/pipeline.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 120,
+      "nonEmptyLines": 101,
+      "classes": [
+        {
+          "name": "TaskRegistry",
+          "startLine": 50,
+          "endLine": 75,
+          "methods": [
+            "get_processor_info"
+          ],
+          "properties": []
+        },
+        {
+          "name": "Pipeline",
+          "startLine": 78,
+          "endLine": 120,
+          "methods": [
+            "__init__",
+            "add_step",
+            "run"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "TaskRegistry",
+          "line": 50,
+          "isDefault": false
+        },
+        {
+          "name": "Pipeline",
+          "line": 78,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "get_processor_info",
+          "callee": "registry.get",
+          "lineNumber": 75
+        },
+        {
+          "caller": "add_step",
+          "callee": "TaskRegistry.get_processor_info",
+          "lineNumber": 88
+        },
+        {
+          "caller": "add_step",
+          "callee": "logger.error",
+          "lineNumber": 90
+        },
+        {
+          "caller": "add_step",
+          "callee": "info[\"kwargs\"].copy",
+          "lineNumber": 94
+        },
+        {
+          "caller": "add_step",
+          "callee": "kwargs.update",
+          "lineNumber": 95
+        },
+        {
+          "caller": "add_step",
+          "callee": "self.steps.append",
+          "lineNumber": 100
+        },
+        {
+          "caller": "add_step",
+          "callee": "processor_class",
+          "lineNumber": 102
+        },
+        {
+          "caller": "run",
+          "callee": "logger.info",
+          "lineNumber": 112
+        },
+        {
+          "caller": "run",
+          "callee": "processor.run",
+          "lineNumber": 114
+        },
+        {
+          "caller": "run",
+          "callee": "logger.error",
+          "lineNumber": 115
+        },
+        {
+          "caller": "run",
+          "callee": "logger.info",
+          "lineNumber": 118
+        }
+      ],
+      "metrics": {
+        "importCount": 15,
+        "exportCount": 2,
+        "functionCount": 0,
+        "classCount": 2
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/processors/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 27,
+      "nonEmptyLines": 25,
+      "metrics": {
+        "importCount": 11,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/processors/application_aggregator.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 100,
+      "nonEmptyLines": 79,
+      "classes": [
+        {
+          "name": "ApplicationAggregator",
+          "startLine": 15,
+          "endLine": 100,
+          "methods": [
+            "run",
+            "format_date",
+            "process_applications",
+            "collect_applications"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "ApplicationAggregator",
+          "line": 15,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "run",
+          "callee": "self.collect_applications",
+          "lineNumber": 19
+        },
+        {
+          "caller": "format_date",
+          "callee": "isinstance",
+          "lineNumber": 23
+        },
+        {
+          "caller": "format_date",
+          "callee": "len",
+          "lineNumber": 23
+        },
+        {
+          "caller": "format_date",
+          "callee": "str",
+          "lineNumber": 23
+        },
+        {
+          "caller": "format_date",
+          "callee": "str",
+          "lineNumber": 24
+        },
+        {
+          "caller": "format_date",
+          "callee": "isinstance",
+          "lineNumber": 26
+        },
+        {
+          "caller": "format_date",
+          "callee": "len",
+          "lineNumber": 26
+        },
+        {
+          "caller": "format_date",
+          "callee": "logger.error",
+          "lineNumber": 30
+        },
+        {
+          "caller": "process_applications",
+          "callee": "self.config.get",
+          "lineNumber": 35
+        },
+        {
+          "caller": "process_applications",
+          "callee": "self.config.get",
+          "lineNumber": 36
+        },
+        {
+          "caller": "process_applications",
+          "callee": "self.config.get",
+          "lineNumber": 37
+        },
+        {
+          "caller": "process_applications",
+          "callee": "pd.ExcelFile",
+          "lineNumber": 41
+        },
+        {
+          "caller": "process_applications",
+          "callee": "logger.info",
+          "lineNumber": 43
+        },
+        {
+          "caller": "process_applications",
+          "callee": "pd.read_excel",
+          "lineNumber": 44
+        },
+        {
+          "caller": "process_applications",
+          "callee": "df.drop",
+          "lineNumber": 47
+        },
+        {
+          "caller": "process_applications",
+          "callee": "column_mapping.items",
+          "lineNumber": 49
+        },
+        {
+          "caller": "process_applications",
+          "callee": "df.rename",
+          "lineNumber": 51
+        },
+        {
+          "caller": "process_applications",
+          "callee": "df.reindex",
+          "lineNumber": 53
+        },
+        {
+          "caller": "is_valid_email",
+          "callee": "pd.notna",
+          "lineNumber": 56
+        },
+        {
+          "caller": "is_valid_email",
+          "callee": "isinstance",
+          "lineNumber": 56
+        },
+        {
+          "caller": "process_applications",
+          "callee": "df.apply",
+          "lineNumber": 58
+        },
+        {
+          "caller": "process_applications",
+          "callee": "row['REQUESTER_EMAIL'].strip().split",
+          "lineNumber": 59
+        },
+        {
+          "caller": "process_applications",
+          "callee": "row['REQUESTER_EMAIL'].strip",
+          "lineNumber": 59
+        },
+        {
+          "caller": "process_applications",
+          "callee": "row.get",
+          "lineNumber": 60
+        },
+        {
+          "caller": "process_applications",
+          "callee": "pd.notna",
+          "lineNumber": 60
+        },
+        {
+          "caller": "process_applications",
+          "callee": "row.get",
+          "lineNumber": 60
+        },
+        {
+          "caller": "process_applications",
+          "callee": "is_valid_email",
+          "lineNumber": 61
+        },
+        {
+          "caller": "process_applications",
+          "callee": "row.get",
+          "lineNumber": 61
+        },
+        {
+          "caller": "process_applications",
+          "callee": "row.get",
+          "lineNumber": 62
+        },
+        {
+          "caller": "map_approval_email",
+          "callee": "is_valid_email",
+          "lineNumber": 67
+        },
+        {
+          "caller": "map_approval_email",
+          "callee": "row.get",
+          "lineNumber": 67
+        },
+        {
+          "caller": "map_approval_email",
+          "callee": "row.get",
+          "lineNumber": 68
+        },
+        {
+          "caller": "map_approval_email",
+          "callee": "row['REQUESTER_EMAIL'].strip().split",
+          "lineNumber": 69
+        },
+        {
+          "caller": "map_approval_email",
+          "callee": "row['REQUESTER_EMAIL'].strip",
+          "lineNumber": 69
+        },
+        {
+          "caller": "map_approval_email",
+          "callee": "domain_map.get",
+          "lineNumber": 70
+        },
+        {
+          "caller": "map_approval_email",
+          "callee": "row.get",
+          "lineNumber": 71
+        },
+        {
+          "caller": "map_approval_email",
+          "callee": "pd.notna",
+          "lineNumber": 71
+        },
+        {
+          "caller": "map_approval_email",
+          "callee": "row.get",
+          "lineNumber": 71
+        },
+        {
+          "caller": "map_approval_email",
+          "callee": "row.get",
+          "lineNumber": 73
+        },
+        {
+          "caller": "process_applications",
+          "callee": "df.apply",
+          "lineNumber": 75
+        },
+        {
+          "caller": "process_applications",
+          "callee": "df[date_column].apply",
+          "lineNumber": 79
+        },
+        {
+          "caller": "process_applications",
+          "callee": "processed_sheets.append",
+          "lineNumber": 81
+        },
+        {
+          "caller": "process_applications",
+          "callee": "logger.info",
+          "lineNumber": 82
+        },
+        {
+          "caller": "process_applications",
+          "callee": "pd.concat",
+          "lineNumber": 84
+        },
+        {
+          "caller": "process_applications",
+          "callee": "final_df.sort_values",
+          "lineNumber": 86
+        },
+        {
+          "caller": "process_applications",
+          "callee": "final_df.to_excel",
+          "lineNumber": 88
+        },
+        {
+          "caller": "process_applications",
+          "callee": "logger.info",
+          "lineNumber": 89
+        },
+        {
+          "caller": "process_applications",
+          "callee": "len",
+          "lineNumber": 89
+        },
+        {
+          "caller": "collect_applications",
+          "callee": "file_manager.select_files",
+          "lineNumber": 93
+        },
+        {
+          "caller": "collect_applications",
+          "callee": "self.process_applications",
+          "lineNumber": 96
+        },
+        {
+          "caller": "collect_applications",
+          "callee": "logger.exception",
+          "lineNumber": 99
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/processors/auto_renewal_checker.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 163,
+      "nonEmptyLines": 133,
+      "classes": [
+        {
+          "name": "AutoRenewalChecker",
+          "startLine": 16,
+          "endLine": 163,
+          "methods": [
+            "run",
+            "renewal_check",
+            "_remove_bracket_prefix",
+            "_safe_to_datetime",
+            "_analyze_chains_precision",
+            "_update_policy_dates"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "AutoRenewalChecker",
+          "line": 16,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "run",
+          "callee": "self.renewal_check",
+          "lineNumber": 20
+        },
+        {
+          "caller": "renewal_check",
+          "callee": "file_manager.select_files",
+          "lineNumber": 24
+        },
+        {
+          "caller": "renewal_check",
+          "callee": "file_manager.select_files",
+          "lineNumber": 28
+        },
+        {
+          "caller": "renewal_check",
+          "callee": "self._analyze_chains_precision",
+          "lineNumber": 32
+        },
+        {
+          "caller": "renewal_check",
+          "callee": "pd.read_excel",
+          "lineNumber": 36
+        },
+        {
+          "caller": "renewal_check",
+          "callee": "file_manager.update_version",
+          "lineNumber": 37
+        },
+        {
+          "caller": "renewal_check",
+          "callee": "policy_df.to_excel",
+          "lineNumber": 38
+        },
+        {
+          "caller": "renewal_check",
+          "callee": "logger.info",
+          "lineNumber": 39
+        },
+        {
+          "caller": "renewal_check",
+          "callee": "self._update_policy_dates",
+          "lineNumber": 42
+        },
+        {
+          "caller": "renewal_check",
+          "callee": "logger.exception",
+          "lineNumber": 45
+        },
+        {
+          "caller": "_remove_bracket_prefix",
+          "callee": "self.config.get",
+          "lineNumber": 50
+        },
+        {
+          "caller": "_remove_bracket_prefix",
+          "callee": "isinstance",
+          "lineNumber": 54
+        },
+        {
+          "caller": "_remove_bracket_prefix",
+          "callee": "text.startswith",
+          "lineNumber": 54
+        },
+        {
+          "caller": "_remove_bracket_prefix",
+          "callee": "re.match",
+          "lineNumber": 56
+        },
+        {
+          "caller": "_remove_bracket_prefix",
+          "callee": "text[len(m.group(0)):].strip",
+          "lineNumber": 58
+        },
+        {
+          "caller": "_remove_bracket_prefix",
+          "callee": "len",
+          "lineNumber": 58
+        },
+        {
+          "caller": "_remove_bracket_prefix",
+          "callee": "m.group",
+          "lineNumber": 58
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "pd.Timestamp",
+          "lineNumber": 65
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "pd.isna",
+          "lineNumber": 66
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "str(val).strip",
+          "lineNumber": 68
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "str",
+          "lineNumber": 68
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "isinstance",
+          "lineNumber": 72
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "pd.to_datetime(val, unit='D', origin='1899-12-30').normalize",
+          "lineNumber": 73
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "pd.to_datetime",
+          "lineNumber": 73
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "pd.to_datetime(val).normalize",
+          "lineNumber": 74
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "pd.to_datetime",
+          "lineNumber": 74
+        },
+        {
+          "caller": "_analyze_chains_precision",
+          "callee": "logger.info",
+          "lineNumber": 80
+        },
+        {
+          "caller": "_analyze_chains_precision",
+          "callee": "pd.read_excel",
+          "lineNumber": 81
+        },
+        {
+          "caller": "_analyze_chains_precision",
+          "callee": "logger.error",
+          "lineNumber": 86
+        },
+        {
+          "caller": "_analyze_chains_precision",
+          "callee": "pd.DataFrame",
+          "lineNumber": 87
+        },
+        {
+          "caller": "_analyze_chains_precision",
+          "callee": "df['REQUEST_START_DATE'].apply",
+          "lineNumber": 89
+        },
+        {
+          "caller": "_analyze_chains_precision",
+          "callee": "df['REQUEST_END_DATE'].apply",
+          "lineNumber": 90
+        },
+        {
+          "caller": "_analyze_chains_precision",
+          "callee": "pd.merge",
+          "lineNumber": 93
+        },
+        {
+          "caller": "_analyze_chains_precision",
+          "callee": "pd.DataFrame",
+          "lineNumber": 100
+        },
+        {
+          "caller": "_analyze_chains_precision",
+          "callee": "merged['TITLE_prev'].apply",
+          "lineNumber": 102
+        },
+        {
+          "caller": "_analyze_chains_precision",
+          "callee": "merged['TITLE_next'].apply",
+          "lineNumber": 103
+        },
+        {
+          "caller": "_analyze_chains_precision",
+          "callee": "merged[\n            (merged['WRITE_PERSON_ID_prev'] == merged['WRITE_PERSON_ID_next']) &\n            (merged['TITLE_prev_clean'] == merged['TITLE_next_clean'])\n        ].copy",
+          "lineNumber": 105
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "logger.info",
+          "lineNumber": 114
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "pd.read_excel",
+          "lineNumber": 115
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "c.strip",
+          "lineNumber": 116
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "policy_df[col].apply",
+          "lineNumber": 120
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "renew_df['REQUEST_ID'].astype",
+          "lineNumber": 122
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "renew_df['TITLE_prev_clean'].astype",
+          "lineNumber": 122
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "renew_df.sort_values('REQUEST_END_DATE_next', ascending=False)\n                    .drop_duplicates('key_lookup', keep='first')\n                    .set_index('key_lookup')[['REQUEST_START_DATE_next', 'REQUEST_END_DATE_next']]\n                    .to_dict",
+          "lineNumber": 124
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "renew_df.sort_values('REQUEST_END_DATE_next', ascending=False)\n                    .drop_duplicates('key_lookup', keep='first')\n                    .set_index",
+          "lineNumber": 124
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "renew_df.sort_values('REQUEST_END_DATE_next', ascending=False)\n                    .drop_duplicates",
+          "lineNumber": 124
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "renew_df.sort_values",
+          "lineNumber": 124
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "len",
+          "lineNumber": 131
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "policy_df.iterrows",
+          "lineNumber": 132
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "print",
+          "lineNumber": 133
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "self._remove_bracket_prefix",
+          "lineNumber": 135
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "str",
+          "lineNumber": 135
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "row.get",
+          "lineNumber": 135
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "str",
+          "lineNumber": 136
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "row.get",
+          "lineNumber": 136
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "lookup_map.get",
+          "lineNumber": 137
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "self._safe_to_datetime",
+          "lineNumber": 141
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "self._safe_to_datetime",
+          "lineNumber": 142
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "row.get",
+          "lineNumber": 144
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "pd.Timestamp",
+          "lineNumber": 144
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "row.get",
+          "lineNumber": 145
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "pd.Timestamp",
+          "lineNumber": 145
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "row.get",
+          "lineNumber": 146
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "pd.Timestamp",
+          "lineNumber": 146
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "row.get",
+          "lineNumber": 147
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "pd.Timestamp",
+          "lineNumber": 147
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "print",
+          "lineNumber": 158
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "file_manager.update_version",
+          "lineNumber": 160
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "policy_df.to_excel",
+          "lineNumber": 161
+        },
+        {
+          "caller": "_update_policy_dates",
+          "callee": "logger.info",
+          "lineNumber": 162
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/processors/auto_renewal_exception_generator.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 94,
+      "nonEmptyLines": 74,
+      "classes": [
+        {
+          "name": "AutoRenewalExceptionGenerator",
+          "startLine": 14,
+          "endLine": 94,
+          "methods": [
+            "run",
+            "_extract_f_prefixed_ids",
+            "generate"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "AutoRenewalExceptionGenerator",
+          "line": 14,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "run",
+          "callee": "self.generate",
+          "lineNumber": 18
+        },
+        {
+          "caller": "run",
+          "callee": "kwargs.get",
+          "lineNumber": 18
+        },
+        {
+          "caller": "_extract_f_prefixed_ids",
+          "callee": "logger.error",
+          "lineNumber": 22
+        },
+        {
+          "caller": "_extract_f_prefixed_ids",
+          "callee": "pd.Series",
+          "lineNumber": 23
+        },
+        {
+          "caller": "_extract_f_prefixed_ids",
+          "callee": "df[id_col].dropna().astype",
+          "lineNumber": 24
+        },
+        {
+          "caller": "_extract_f_prefixed_ids",
+          "callee": "df[id_col].dropna",
+          "lineNumber": 24
+        },
+        {
+          "caller": "_extract_f_prefixed_ids",
+          "callee": "ids.str.startswith",
+          "lineNumber": 25
+        },
+        {
+          "caller": "generate",
+          "callee": "file_manager.select_files",
+          "lineNumber": 29
+        },
+        {
+          "caller": "generate",
+          "callee": "file_manager.select_files",
+          "lineNumber": 33
+        },
+        {
+          "caller": "generate",
+          "callee": "file_manager.select_files",
+          "lineNumber": 37
+        },
+        {
+          "caller": "generate",
+          "callee": "file_manager.select_files",
+          "lineNumber": 41
+        },
+        {
+          "caller": "generate",
+          "callee": "pd.read_excel",
+          "lineNumber": 47
+        },
+        {
+          "caller": "generate",
+          "callee": "pd.read_excel",
+          "lineNumber": 48
+        },
+        {
+          "caller": "generate",
+          "callee": "pd.read_excel",
+          "lineNumber": 49
+        },
+        {
+          "caller": "generate",
+          "callee": "pd.read_excel",
+          "lineNumber": 50
+        },
+        {
+          "caller": "generate",
+          "callee": "logger.error",
+          "lineNumber": 57
+        },
+        {
+          "caller": "generate",
+          "callee": "pd.concat",
+          "lineNumber": 60
+        },
+        {
+          "caller": "generate",
+          "callee": "self._extract_f_prefixed_ids",
+          "lineNumber": 61
+        },
+        {
+          "caller": "generate",
+          "callee": "self._extract_f_prefixed_ids",
+          "lineNumber": 62
+        },
+        {
+          "caller": "generate",
+          "callee": "self._extract_f_prefixed_ids",
+          "lineNumber": 65
+        },
+        {
+          "caller": "generate",
+          "callee": "logger.error",
+          "lineNumber": 71
+        },
+        {
+          "caller": "generate",
+          "callee": "pd.to_numeric",
+          "lineNumber": 74
+        },
+        {
+          "caller": "generate",
+          "callee": "set",
+          "lineNumber": 75
+        },
+        {
+          "caller": "generate",
+          "callee": "conv_df.loc[conv_status.isin([91, 99]), 'REQUEST_ID'].dropna().astype",
+          "lineNumber": 75
+        },
+        {
+          "caller": "generate",
+          "callee": "conv_df.loc[conv_status.isin([91, 99]), 'REQUEST_ID'].dropna",
+          "lineNumber": 75
+        },
+        {
+          "caller": "generate",
+          "callee": "conv_status.isin",
+          "lineNumber": 75
+        },
+        {
+          "caller": "generate",
+          "callee": "request_ids.isin",
+          "lineNumber": 77
+        },
+        {
+          "caller": "generate",
+          "callee": "sorted",
+          "lineNumber": 78
+        },
+        {
+          "caller": "generate",
+          "callee": "request_ids.drop_duplicates().tolist",
+          "lineNumber": 78
+        },
+        {
+          "caller": "generate",
+          "callee": "request_ids.drop_duplicates",
+          "lineNumber": 78
+        },
+        {
+          "caller": "generate",
+          "callee": "pd.DataFrame",
+          "lineNumber": 80
+        },
+        {
+          "caller": "generate",
+          "callee": "self.config.get_reference_date().strftime",
+          "lineNumber": 82
+        },
+        {
+          "caller": "generate",
+          "callee": "self.config.get_reference_date",
+          "lineNumber": 82
+        },
+        {
+          "caller": "generate",
+          "callee": "pd.ExcelWriter",
+          "lineNumber": 84
+        },
+        {
+          "caller": "generate",
+          "callee": "exception_df.to_excel",
+          "lineNumber": 85
+        },
+        {
+          "caller": "generate",
+          "callee": "long_unused_df.to_excel",
+          "lineNumber": 86
+        },
+        {
+          "caller": "generate",
+          "callee": "duplicate_delete_df.to_excel",
+          "lineNumber": 87
+        },
+        {
+          "caller": "generate",
+          "callee": "duplicate_notice_df.to_excel",
+          "lineNumber": 88
+        },
+        {
+          "caller": "generate",
+          "callee": "logger.info",
+          "lineNumber": 90
+        },
+        {
+          "caller": "generate",
+          "callee": "len",
+          "lineNumber": 90
+        },
+        {
+          "caller": "generate",
+          "callee": "logger.exception",
+          "lineNumber": 93
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/processors/base_processor.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 28,
+      "nonEmptyLines": 21,
+      "classes": [
+        {
+          "name": "BaseProcessor",
+          "startLine": 9,
+          "endLine": 28,
+          "methods": [
+            "__init__",
+            "run"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "BaseProcessor",
+          "line": 9,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "__init__",
+          "callee": "logging.getLogger",
+          "lineNumber": 14
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/processors/bottom_latest_policy_validator.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 84,
+      "nonEmptyLines": 66,
+      "classes": [
+        {
+          "name": "BottomLatestPolicyValidator",
+          "startLine": 12,
+          "endLine": 84,
+          "methods": [
+            "run",
+            "_find_seq_mismatches"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "BottomLatestPolicyValidator",
+          "line": 12,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "run",
+          "callee": "file_manager.select_files",
+          "lineNumber": 17
+        },
+        {
+          "caller": "run",
+          "callee": "pd.read_excel",
+          "lineNumber": 21
+        },
+        {
+          "caller": "run",
+          "callee": "required.issubset",
+          "lineNumber": 24
+        },
+        {
+          "caller": "run",
+          "callee": "logger.error",
+          "lineNumber": 25
+        },
+        {
+          "caller": "run",
+          "callee": "set",
+          "lineNumber": 25
+        },
+        {
+          "caller": "run",
+          "callee": "df[\n                df['신청이력'].notna() &\n                (df['신청이력'].astype(str).str.upper() != 'UNKNOWN')\n            ].copy",
+          "lineNumber": 28
+        },
+        {
+          "caller": "run",
+          "callee": "df['신청이력'].notna",
+          "lineNumber": 29
+        },
+        {
+          "caller": "run",
+          "callee": "df['신청이력'].astype(str).str.upper",
+          "lineNumber": 30
+        },
+        {
+          "caller": "run",
+          "callee": "df['신청이력'].astype",
+          "lineNumber": 30
+        },
+        {
+          "caller": "run",
+          "callee": "logger.warning",
+          "lineNumber": 34
+        },
+        {
+          "caller": "run",
+          "callee": "self._find_seq_mismatches",
+          "lineNumber": 37
+        },
+        {
+          "caller": "run",
+          "callee": "all_latest_seqs.extend",
+          "lineNumber": 44
+        },
+        {
+          "caller": "run",
+          "callee": "set",
+          "lineNumber": 46
+        },
+        {
+          "caller": "run",
+          "callee": "df['REQUEST_ID'].isin",
+          "lineNumber": 48
+        },
+        {
+          "caller": "run",
+          "callee": "df['Seq'].isin",
+          "lineNumber": 48
+        },
+        {
+          "caller": "run",
+          "callee": "file_manager.update_version",
+          "lineNumber": 52
+        },
+        {
+          "caller": "run",
+          "callee": "validation_results.copy",
+          "lineNumber": 54
+        },
+        {
+          "caller": "run",
+          "callee": "save_v['latest_seq'].astype",
+          "lineNumber": 55
+        },
+        {
+          "caller": "run",
+          "callee": "pd.ExcelWriter",
+          "lineNumber": 57
+        },
+        {
+          "caller": "run",
+          "callee": "df.to_excel",
+          "lineNumber": 58
+        },
+        {
+          "caller": "run",
+          "callee": "save_v.to_excel",
+          "lineNumber": 59
+        },
+        {
+          "caller": "run",
+          "callee": "logger.info",
+          "lineNumber": 61
+        },
+        {
+          "caller": "run",
+          "callee": "len",
+          "lineNumber": 61
+        },
+        {
+          "caller": "run",
+          "callee": "logger.exception",
+          "lineNumber": 65
+        },
+        {
+          "caller": "_find_seq_mismatches",
+          "callee": "df.copy",
+          "lineNumber": 69
+        },
+        {
+          "caller": "_find_seq_mismatches",
+          "callee": "pd.to_datetime",
+          "lineNumber": 70
+        },
+        {
+          "caller": "_find_seq_mismatches",
+          "callee": "df.groupby",
+          "lineNumber": 72
+        },
+        {
+          "caller": "_find_seq_mismatches",
+          "callee": "pd.isna",
+          "lineNumber": 73
+        },
+        {
+          "caller": "_find_seq_mismatches",
+          "callee": "group['REQUEST_START_DATE'].max",
+          "lineNumber": 75
+        },
+        {
+          "caller": "_find_seq_mismatches",
+          "callee": "pd.isna",
+          "lineNumber": 76
+        },
+        {
+          "caller": "_find_seq_mismatches",
+          "callee": "group.loc[group['REQUEST_START_DATE'] == max_date, 'Seq'].unique().tolist",
+          "lineNumber": 78
+        },
+        {
+          "caller": "_find_seq_mismatches",
+          "callee": "group.loc[group['REQUEST_START_DATE'] == max_date, 'Seq'].unique",
+          "lineNumber": 78
+        },
+        {
+          "caller": "_find_seq_mismatches",
+          "callee": "group['Seq'].min",
+          "lineNumber": 79
+        },
+        {
+          "caller": "_find_seq_mismatches",
+          "callee": "results.append",
+          "lineNumber": 81
+        },
+        {
+          "caller": "_find_seq_mismatches",
+          "callee": "pd.DataFrame",
+          "lineNumber": 83
+        },
+        {
+          "caller": "_find_seq_mismatches",
+          "callee": "pd.DataFrame",
+          "lineNumber": 84
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/processors/duplicate_exception_applier.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 62,
+      "nonEmptyLines": 49,
+      "classes": [
+        {
+          "name": "DuplicateExceptionApplier",
+          "startLine": 14,
+          "endLine": 62,
+          "methods": [
+            "run"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "DuplicateExceptionApplier",
+          "line": 14,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "run",
+          "callee": "file_manager.select_files",
+          "lineNumber": 19
+        },
+        {
+          "caller": "run",
+          "callee": "pd.read_excel",
+          "lineNumber": 23
+        },
+        {
+          "caller": "run",
+          "callee": "kwargs.get",
+          "lineNumber": 25
+        },
+        {
+          "caller": "run",
+          "callee": "self.config.get",
+          "lineNumber": 26
+        },
+        {
+          "caller": "run",
+          "callee": "self.config.get_reference_date",
+          "lineNumber": 27
+        },
+        {
+          "caller": "run",
+          "callee": "item.get",
+          "lineNumber": 31
+        },
+        {
+          "caller": "run",
+          "callee": "datetime.strptime(item['expires_at'], '%Y-%m-%d').date",
+          "lineNumber": 34
+        },
+        {
+          "caller": "run",
+          "callee": "datetime.strptime",
+          "lineNumber": 34
+        },
+        {
+          "caller": "run",
+          "callee": "datetime.strptime(item['registered_at'], '%Y-%m-%d').date",
+          "lineNumber": 35
+        },
+        {
+          "caller": "run",
+          "callee": "datetime.strptime",
+          "lineNumber": 35
+        },
+        {
+          "caller": "run",
+          "callee": "logger.warning",
+          "lineNumber": 37
+        },
+        {
+          "caller": "run",
+          "callee": "item.get",
+          "lineNumber": 37
+        },
+        {
+          "caller": "run",
+          "callee": "valid_names.append",
+          "lineNumber": 40
+        },
+        {
+          "caller": "run",
+          "callee": "logger.info",
+          "lineNumber": 43
+        },
+        {
+          "caller": "run",
+          "callee": "file_manager.update_version",
+          "lineNumber": 44
+        },
+        {
+          "caller": "run",
+          "callee": "df_policy.to_excel",
+          "lineNumber": 45
+        },
+        {
+          "caller": "run",
+          "callee": "df_policy['Rule Name'].isin",
+          "lineNumber": 51
+        },
+        {
+          "caller": "run",
+          "callee": "file_manager.update_version",
+          "lineNumber": 54
+        },
+        {
+          "caller": "run",
+          "callee": "df_policy.to_excel",
+          "lineNumber": 55
+        },
+        {
+          "caller": "run",
+          "callee": "logger.info",
+          "lineNumber": 57
+        },
+        {
+          "caller": "run",
+          "callee": "mask.sum",
+          "lineNumber": 57
+        },
+        {
+          "caller": "run",
+          "callee": "logger.exception",
+          "lineNumber": 61
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/processors/duplicate_expired_cleaner.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 87,
+      "nonEmptyLines": 70,
+      "classes": [
+        {
+          "name": "DuplicateExpiredCleaner",
+          "startLine": 13,
+          "endLine": 87,
+          "methods": [
+            "run"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "DuplicateExpiredCleaner",
+          "line": 13,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "run",
+          "callee": "logger.info",
+          "lineNumber": 19
+        },
+        {
+          "caller": "run",
+          "callee": "file_manager.select_files",
+          "lineNumber": 20
+        },
+        {
+          "caller": "run",
+          "callee": "file_manager.select_files",
+          "lineNumber": 22
+        },
+        {
+          "caller": "run",
+          "callee": "file_manager.select_files",
+          "lineNumber": 24
+        },
+        {
+          "caller": "run",
+          "callee": "file_manager.select_files",
+          "lineNumber": 26
+        },
+        {
+          "caller": "run",
+          "callee": "pd.read_excel",
+          "lineNumber": 29
+        },
+        {
+          "caller": "run",
+          "callee": "pd.read_excel",
+          "lineNumber": 30
+        },
+        {
+          "caller": "run",
+          "callee": "pd.read_excel",
+          "lineNumber": 31
+        },
+        {
+          "caller": "run",
+          "callee": "pd.read_excel",
+          "lineNumber": 32
+        },
+        {
+          "caller": "run",
+          "callee": "logger.error",
+          "lineNumber": 35
+        },
+        {
+          "caller": "run",
+          "callee": "df_policy.set_index('Rule Name')['만료여부'].to_dict",
+          "lineNumber": 38
+        },
+        {
+          "caller": "run",
+          "callee": "df_policy.set_index",
+          "lineNumber": 38
+        },
+        {
+          "caller": "run",
+          "callee": "df_summary['Rule Name'].map(expiry_map).fillna",
+          "lineNumber": 39
+        },
+        {
+          "caller": "run",
+          "callee": "df_summary['Rule Name'].map",
+          "lineNumber": 39
+        },
+        {
+          "caller": "run",
+          "callee": "df_summary.groupby('No')['만료여부'].apply",
+          "lineNumber": 42
+        },
+        {
+          "caller": "run",
+          "callee": "df_summary.groupby",
+          "lineNumber": 42
+        },
+        {
+          "caller": "run",
+          "callee": "(g == '만료').all",
+          "lineNumber": 42
+        },
+        {
+          "caller": "run",
+          "callee": "expired_series[expired_series].index.tolist",
+          "lineNumber": 43
+        },
+        {
+          "caller": "run",
+          "callee": "set",
+          "lineNumber": 46
+        },
+        {
+          "caller": "run",
+          "callee": "df_policy[df_policy.get('미사용여부', pd.Series(dtype=str)) == '하단최신정책']['REQUEST_ID'].dropna().unique",
+          "lineNumber": 47
+        },
+        {
+          "caller": "run",
+          "callee": "df_policy[df_policy.get('미사용여부', pd.Series(dtype=str)) == '하단최신정책']['REQUEST_ID'].dropna",
+          "lineNumber": 47
+        },
+        {
+          "caller": "run",
+          "callee": "df_policy.get",
+          "lineNumber": 47
+        },
+        {
+          "caller": "run",
+          "callee": "pd.Series",
+          "lineNumber": 47
+        },
+        {
+          "caller": "run",
+          "callee": "set",
+          "lineNumber": 48
+        },
+        {
+          "caller": "run",
+          "callee": "sorted",
+          "lineNumber": 49
+        },
+        {
+          "caller": "run",
+          "callee": "df_policy[df_policy['Action'].str.lower() == 'deny']['Seq'].tolist",
+          "lineNumber": 49
+        },
+        {
+          "caller": "run",
+          "callee": "df_policy['Action'].str.lower",
+          "lineNumber": 49
+        },
+        {
+          "caller": "run",
+          "callee": "df_summary[df_summary['Request ID'].isin(bottom_req_ids)]['No'].unique",
+          "lineNumber": 52
+        },
+        {
+          "caller": "run",
+          "callee": "df_summary['Request ID'].isin",
+          "lineNumber": 52
+        },
+        {
+          "caller": "run",
+          "callee": "del_seqs.min",
+          "lineNumber": 57
+        },
+        {
+          "caller": "run",
+          "callee": "keep_seqs.max",
+          "lineNumber": 57
+        },
+        {
+          "caller": "run",
+          "callee": "any",
+          "lineNumber": 58
+        },
+        {
+          "caller": "run",
+          "callee": "blocking_nos.append",
+          "lineNumber": 59
+        },
+        {
+          "caller": "run",
+          "callee": "list",
+          "lineNumber": 61
+        },
+        {
+          "caller": "run",
+          "callee": "set",
+          "lineNumber": 61
+        },
+        {
+          "caller": "run",
+          "callee": "df_summary['No'].isin",
+          "lineNumber": 63
+        },
+        {
+          "caller": "run",
+          "callee": "df_summary['No'].isin",
+          "lineNumber": 64
+        },
+        {
+          "caller": "run",
+          "callee": "df_summary[~df_summary['No'].isin(all_exc)].copy",
+          "lineNumber": 66
+        },
+        {
+          "caller": "run",
+          "callee": "df_summary['No'].isin",
+          "lineNumber": 66
+        },
+        {
+          "caller": "run",
+          "callee": "df_summary[df_summary['No'].isin(all_exc)].copy",
+          "lineNumber": 67
+        },
+        {
+          "caller": "run",
+          "callee": "df_summary['No'].isin",
+          "lineNumber": 67
+        },
+        {
+          "caller": "run",
+          "callee": "df_notice[~df_notice['No'].isin(all_exc)].copy",
+          "lineNumber": 68
+        },
+        {
+          "caller": "run",
+          "callee": "df_notice['No'].isin",
+          "lineNumber": 68
+        },
+        {
+          "caller": "run",
+          "callee": "df_delete[~df_delete['No'].isin(all_exc)].copy",
+          "lineNumber": 69
+        },
+        {
+          "caller": "run",
+          "callee": "df_delete['No'].isin",
+          "lineNumber": 69
+        },
+        {
+          "caller": "run",
+          "callee": "file_manager.update_version",
+          "lineNumber": 71
+        },
+        {
+          "caller": "run",
+          "callee": "pd.ExcelWriter",
+          "lineNumber": 72
+        },
+        {
+          "caller": "run",
+          "callee": "df_summary_main.to_excel",
+          "lineNumber": 73
+        },
+        {
+          "caller": "run",
+          "callee": "df_summary_exc.to_excel",
+          "lineNumber": 74
+        },
+        {
+          "caller": "run",
+          "callee": "file_manager.update_version",
+          "lineNumber": 76
+        },
+        {
+          "caller": "run",
+          "callee": "df_notice_new.to_excel",
+          "lineNumber": 77
+        },
+        {
+          "caller": "run",
+          "callee": "file_manager.update_version",
+          "lineNumber": 79
+        },
+        {
+          "caller": "run",
+          "callee": "df_delete_new.to_excel",
+          "lineNumber": 80
+        },
+        {
+          "caller": "run",
+          "callee": "logger.info",
+          "lineNumber": 82
+        },
+        {
+          "caller": "run",
+          "callee": "len",
+          "lineNumber": 82
+        },
+        {
+          "caller": "run",
+          "callee": "len",
+          "lineNumber": 82
+        },
+        {
+          "caller": "run",
+          "callee": "len",
+          "lineNumber": 82
+        },
+        {
+          "caller": "run",
+          "callee": "logger.exception",
+          "lineNumber": 86
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/processors/duplicate_policy_classifier.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 161,
+      "nonEmptyLines": 129,
+      "classes": [
+        {
+          "name": "DuplicatePolicyClassifier",
+          "startLine": 15,
+          "endLine": 161,
+          "methods": [
+            "run",
+            "organize_redundant_file",
+            "add_duplicate_status"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "DuplicatePolicyClassifier",
+          "line": 15,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "run",
+          "callee": "kwargs.get",
+          "lineNumber": 19
+        },
+        {
+          "caller": "run",
+          "callee": "self.organize_redundant_file",
+          "lineNumber": 21
+        },
+        {
+          "caller": "run",
+          "callee": "kwargs.get",
+          "lineNumber": 21
+        },
+        {
+          "caller": "run",
+          "callee": "self.add_duplicate_status",
+          "lineNumber": 22
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "file_manager.select_files",
+          "lineNumber": 27
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "file_manager.select_files",
+          "lineNumber": 31
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "pd.read_excel",
+          "lineNumber": 35
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "info_df[info_df['REQUEST_STATUS'] == 99]['REQUEST_ID'].drop_duplicates",
+          "lineNumber": 36
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "pd.read_excel",
+          "lineNumber": 38
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "logger.error",
+          "lineNumber": 44
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "info_df.set_index('Rule Name')['REQUESTER_EMAIL'].to_dict",
+          "lineNumber": 49
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "info_df.set_index",
+          "lineNumber": 49
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df['Rule Name'].map(email_map).fillna",
+          "lineNumber": 50
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df['Rule Name'].map",
+          "lineNumber": 50
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df['Request ID'].isin",
+          "lineNumber": 52
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df.groupby('No')['End Date'].transform",
+          "lineNumber": 53
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df.groupby",
+          "lineNumber": 53
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "x.max",
+          "lineNumber": 54
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "x.duplicated",
+          "lineNumber": 54
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df.groupby('No')['Request User'].transform",
+          "lineNumber": 56
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df.groupby",
+          "lineNumber": 56
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "x.nunique",
+          "lineNumber": 56
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df[(df['Type'] == 'UPPER') & (df['늦은종료일'])]['No'].unique",
+          "lineNumber": 57
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df['No'].isin",
+          "lineNumber": 58
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df['늦은종료일'].apply",
+          "lineNumber": 59
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df.groupby('No').filter",
+          "lineNumber": 64
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df.groupby",
+          "lineNumber": 64
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "x['자동연장'].any",
+          "lineNumber": 64
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "extensioned_group.groupby('No').filter",
+          "lineNumber": 66
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "extensioned_group.groupby",
+          "lineNumber": 66
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "len",
+          "lineNumber": 67
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "x['Request ID'].unique",
+          "lineNumber": 67
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df['No'].isin",
+          "lineNumber": 72
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df.groupby('No').filter(\n                lambda x: (x['Request Type'] != 'GROUP').any()\n                          and (x['작업구분'] == '삭제').any()\n                          and (x['자동연장']).any()\n            )['No'].unique",
+          "lineNumber": 74
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df.groupby('No').filter",
+          "lineNumber": 74
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df.groupby",
+          "lineNumber": 74
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "(x['Request Type'] != 'GROUP').any",
+          "lineNumber": 75
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "(x['작업구분'] == '삭제').any",
+          "lineNumber": 76
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "(x['자동연장']).any",
+          "lineNumber": 77
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df['No'].isin",
+          "lineNumber": 79
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df.groupby('No').filter(\n                lambda x: (x['작업구분'] != '유지').all()\n            )['No'].unique",
+          "lineNumber": 81
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df.groupby('No').filter",
+          "lineNumber": 81
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df.groupby",
+          "lineNumber": 81
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "(x['작업구분'] != '유지').all",
+          "lineNumber": 82
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df['No'].isin",
+          "lineNumber": 84
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df[df['Request Type'].isin(target_types)]['No'].drop_duplicates",
+          "lineNumber": 87
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df['Request Type'].isin",
+          "lineNumber": 87
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df['No'].isin",
+          "lineNumber": 88
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df[df['공지여부']].copy",
+          "lineNumber": 90
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df[~df['공지여부']].copy",
+          "lineNumber": 91
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "target_df.pop",
+          "lineNumber": 94
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "target_df.insert",
+          "lineNumber": 95
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "notice_df.drop",
+          "lineNumber": 100
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "delete_df.drop",
+          "lineNumber": 101
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "self.config.get_reference_date().strftime",
+          "lineNumber": 104
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "self.config.get_reference_date",
+          "lineNumber": 104
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "file_manager.remove_extension",
+          "lineNumber": 107
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "df.to_excel",
+          "lineNumber": 112
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "notice_df.to_excel",
+          "lineNumber": 113
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "delete_df.to_excel",
+          "lineNumber": 114
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "logger.info",
+          "lineNumber": 116
+        },
+        {
+          "caller": "organize_redundant_file",
+          "callee": "logger.exception",
+          "lineNumber": 119
+        },
+        {
+          "caller": "add_duplicate_status",
+          "callee": "file_manager.select_files",
+          "lineNumber": 125
+        },
+        {
+          "caller": "add_duplicate_status",
+          "callee": "file_manager.select_files",
+          "lineNumber": 129
+        },
+        {
+          "caller": "add_duplicate_status",
+          "callee": "pd.read_excel",
+          "lineNumber": 133
+        },
+        {
+          "caller": "add_duplicate_status",
+          "callee": "pd.read_excel",
+          "lineNumber": 134
+        },
+        {
+          "caller": "add_duplicate_status",
+          "callee": "logger.error",
+          "lineNumber": 140
+        },
+        {
+          "caller": "add_duplicate_status",
+          "callee": "duplicate_df.set_index('Rule Name')['작업구분'].to_dict",
+          "lineNumber": 143
+        },
+        {
+          "caller": "add_duplicate_status",
+          "callee": "duplicate_df.set_index",
+          "lineNumber": 143
+        },
+        {
+          "caller": "add_duplicate_status",
+          "callee": "policy_df.iterrows",
+          "lineNumber": 146
+        },
+        {
+          "caller": "add_duplicate_status",
+          "callee": "policy_df.columns.tolist",
+          "lineNumber": 151
+        },
+        {
+          "caller": "add_duplicate_status",
+          "callee": "cols.insert",
+          "lineNumber": 152
+        },
+        {
+          "caller": "add_duplicate_status",
+          "callee": "cols.pop",
+          "lineNumber": 152
+        },
+        {
+          "caller": "add_duplicate_status",
+          "callee": "cols.index",
+          "lineNumber": 152
+        },
+        {
+          "caller": "add_duplicate_status",
+          "callee": "file_manager.update_version",
+          "lineNumber": 155
+        },
+        {
+          "caller": "add_duplicate_status",
+          "callee": "policy_df.to_excel",
+          "lineNumber": 156
+        },
+        {
+          "caller": "add_duplicate_status",
+          "callee": "logger.info",
+          "lineNumber": 157
+        },
+        {
+          "caller": "add_duplicate_status",
+          "callee": "logger.exception",
+          "lineNumber": 160
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/processors/exception_handler.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 167,
+      "nonEmptyLines": 136,
+      "classes": [
+        {
+          "name": "ExceptionHandler",
+          "startLine": 16,
+          "endLine": 167,
+          "methods": [
+            "run",
+            "_check_date",
+            "_reorder_cols",
+            "paloalto_exception",
+            "secui_exception"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "ExceptionHandler",
+          "line": 16,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "run",
+          "callee": "kwargs.get",
+          "lineNumber": 20
+        },
+        {
+          "caller": "run",
+          "callee": "self.paloalto_exception",
+          "lineNumber": 22
+        },
+        {
+          "caller": "run",
+          "callee": "self.secui_exception",
+          "lineNumber": 23
+        },
+        {
+          "caller": "_check_date",
+          "callee": "pd.to_datetime(row['REQUEST_END_DATE']).date",
+          "lineNumber": 27
+        },
+        {
+          "caller": "_check_date",
+          "callee": "pd.to_datetime",
+          "lineNumber": 27
+        },
+        {
+          "caller": "_check_date",
+          "callee": "self.config.get_reference_date",
+          "lineNumber": 28
+        },
+        {
+          "caller": "_reorder_cols",
+          "callee": "list",
+          "lineNumber": 34
+        },
+        {
+          "caller": "_reorder_cols",
+          "callee": "cols.insert",
+          "lineNumber": 40
+        },
+        {
+          "caller": "_reorder_cols",
+          "callee": "cols.index",
+          "lineNumber": 40
+        },
+        {
+          "caller": "_reorder_cols",
+          "callee": "cols.pop",
+          "lineNumber": 40
+        },
+        {
+          "caller": "_reorder_cols",
+          "callee": "cols.index",
+          "lineNumber": 40
+        },
+        {
+          "caller": "_reorder_cols",
+          "callee": "cols.insert",
+          "lineNumber": 44
+        },
+        {
+          "caller": "_reorder_cols",
+          "callee": "cols.index",
+          "lineNumber": 44
+        },
+        {
+          "caller": "_reorder_cols",
+          "callee": "cols.pop",
+          "lineNumber": 44
+        },
+        {
+          "caller": "_reorder_cols",
+          "callee": "cols.index",
+          "lineNumber": 44
+        },
+        {
+          "caller": "_reorder_cols",
+          "callee": "cols.insert",
+          "lineNumber": 48
+        },
+        {
+          "caller": "_reorder_cols",
+          "callee": "cols.index",
+          "lineNumber": 48
+        },
+        {
+          "caller": "_reorder_cols",
+          "callee": "cols.pop",
+          "lineNumber": 48
+        },
+        {
+          "caller": "_reorder_cols",
+          "callee": "cols.index",
+          "lineNumber": 48
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "file_manager.select_files",
+          "lineNumber": 54
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "pd.read_excel",
+          "lineNumber": 58
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "self.config.get_reference_datetime",
+          "lineNumber": 59
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "timedelta",
+          "lineNumber": 60
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "self.config.get",
+          "lineNumber": 60
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "df['REQUEST_ID'].fillna",
+          "lineNumber": 63
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "df.apply",
+          "lineNumber": 65
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "self.config.is_excepted",
+          "lineNumber": 65
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "str",
+          "lineNumber": 65
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "df.apply",
+          "lineNumber": 68
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "self.config.is_excepted",
+          "lineNumber": 68
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "str",
+          "lineNumber": 68
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "df['Rule Name'].str.extract",
+          "lineNumber": 72
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "pd.to_datetime",
+          "lineNumber": 73
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "self.config.get",
+          "lineNumber": 81
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "self.config.get",
+          "lineNumber": 82
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "logger.warning",
+          "lineNumber": 87
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "tuple",
+          "lineNumber": 90
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "self.config.get",
+          "lineNumber": 90
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "self.config.get",
+          "lineNumber": 91
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "df['Rule Name'].str.startswith",
+          "lineNumber": 93
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "df['Rule Name'].str.endswith",
+          "lineNumber": 96
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "df['예외'].fillna",
+          "lineNumber": 99
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "df.apply",
+          "lineNumber": 100
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "df.rename",
+          "lineNumber": 101
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "df.drop",
+          "lineNumber": 102
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "self._reorder_cols",
+          "lineNumber": 105
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "file_manager.update_version",
+          "lineNumber": 107
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "df.to_excel",
+          "lineNumber": 108
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "logger.info",
+          "lineNumber": 109
+        },
+        {
+          "caller": "paloalto_exception",
+          "callee": "logger.exception",
+          "lineNumber": 112
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "file_manager.select_files",
+          "lineNumber": 117
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "pd.read_excel",
+          "lineNumber": 121
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "self.config.get_reference_datetime",
+          "lineNumber": 122
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "timedelta",
+          "lineNumber": 123
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "self.config.get",
+          "lineNumber": 123
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "df['REQUEST_ID'].fillna",
+          "lineNumber": 126
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "df.apply",
+          "lineNumber": 129
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "self.config.is_excepted",
+          "lineNumber": 129
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "str",
+          "lineNumber": 129
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "df.apply",
+          "lineNumber": 132
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "self.config.is_excepted",
+          "lineNumber": 132
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "str",
+          "lineNumber": 132
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "self.config.get",
+          "lineNumber": 138
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "self.config.get",
+          "lineNumber": 139
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "df['Description'].str.contains",
+          "lineNumber": 141
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "logger.warning",
+          "lineNumber": 144
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "pd.to_datetime",
+          "lineNumber": 146
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "df['Description'].str.contains",
+          "lineNumber": 150
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "df['예외'].fillna",
+          "lineNumber": 153
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "df.apply",
+          "lineNumber": 154
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "df.rename",
+          "lineNumber": 155
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "df.drop",
+          "lineNumber": 156
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "self._reorder_cols",
+          "lineNumber": 159
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "file_manager.update_version",
+          "lineNumber": 161
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "df.to_excel",
+          "lineNumber": 162
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "logger.info",
+          "lineNumber": 163
+        },
+        {
+          "caller": "secui_exception",
+          "callee": "logger.exception",
+          "lineNumber": 166
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/processors/merge_hitcount.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 62,
+      "nonEmptyLines": 48,
+      "classes": [
+        {
+          "name": "MergeHitcount",
+          "startLine": 15,
+          "endLine": 62,
+          "methods": [
+            "run",
+            "mergehitcounts"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "MergeHitcount",
+          "line": 15,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "run",
+          "callee": "self.mergehitcounts",
+          "lineNumber": 19
+        },
+        {
+          "caller": "mergehitcounts",
+          "callee": "file_manager.select_files",
+          "lineNumber": 23
+        },
+        {
+          "caller": "mergehitcounts",
+          "callee": "file_manager.select_files",
+          "lineNumber": 27
+        },
+        {
+          "caller": "mergehitcounts",
+          "callee": "pd.read_excel",
+          "lineNumber": 31
+        },
+        {
+          "caller": "mergehitcounts",
+          "callee": "pd.read_excel",
+          "lineNumber": 32
+        },
+        {
+          "caller": "mergehitcounts",
+          "callee": "pd.merge",
+          "lineNumber": 34
+        },
+        {
+          "caller": "mergehitcounts",
+          "callee": "merged_df['Hit Count_df1'].fillna",
+          "lineNumber": 37
+        },
+        {
+          "caller": "mergehitcounts",
+          "callee": "merged_df['Hit Count_df2'].fillna",
+          "lineNumber": 37
+        },
+        {
+          "caller": "mergehitcounts",
+          "callee": "merged_df[['Last Hit Date_df1', 'Last Hit Date_df2']].max",
+          "lineNumber": 38
+        },
+        {
+          "caller": "mergehitcounts",
+          "callee": "merged_df[['Unused Days_df1', 'Unused Days_df2']].min",
+          "lineNumber": 39
+        },
+        {
+          "caller": "mergehitcounts",
+          "callee": "merged_df.drop",
+          "lineNumber": 48
+        },
+        {
+          "caller": "mergehitcounts",
+          "callee": "self.config.get",
+          "lineNumber": 50
+        },
+        {
+          "caller": "mergehitcounts",
+          "callee": "pd.to_numeric",
+          "lineNumber": 51
+        },
+        {
+          "caller": "mergehitcounts",
+          "callee": "unused_days_numeric.apply",
+          "lineNumber": 52
+        },
+        {
+          "caller": "mergehitcounts",
+          "callee": "pd.isna",
+          "lineNumber": 53
+        },
+        {
+          "caller": "mergehitcounts",
+          "callee": "merged_df.to_excel",
+          "lineNumber": 57
+        },
+        {
+          "caller": "mergehitcounts",
+          "callee": "logger.info",
+          "lineNumber": 58
+        },
+        {
+          "caller": "mergehitcounts",
+          "callee": "logger.exception",
+          "lineNumber": 61
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/processors/mis_id_adder.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 66,
+      "nonEmptyLines": 51,
+      "classes": [
+        {
+          "name": "MisIdAdder",
+          "startLine": 15,
+          "endLine": 66,
+          "methods": [
+            "run",
+            "add_mis_id"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "MisIdAdder",
+          "line": 15,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "run",
+          "callee": "self.add_mis_id",
+          "lineNumber": 19
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "file_manager.select_files",
+          "lineNumber": 23
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "self.config.get",
+          "lineNumber": 27
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "file_manager.select_files",
+          "lineNumber": 28
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "pd.read_excel",
+          "lineNumber": 32
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "pd.read_csv",
+          "lineNumber": 34
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "pd.read_csv",
+          "lineNumber": 36
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "mis_df.drop_duplicates",
+          "lineNumber": 38
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "mis_df_unique.set_index",
+          "lineNumber": 39
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "mis_df_unique['ruleset_id'].astype",
+          "lineNumber": 39
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "len",
+          "lineNumber": 41
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "rule_df.iterrows",
+          "lineNumber": 44
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "print",
+          "lineNumber": 45
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "str",
+          "lineNumber": 46
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "pd.isna",
+          "lineNumber": 48
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "mis_id_map.get",
+          "lineNumber": 49
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "print",
+          "lineNumber": 51
+        },
+        {
+          "caller": "clean_illegal_chars",
+          "callee": "isinstance",
+          "lineNumber": 54
+        },
+        {
+          "caller": "clean_illegal_chars",
+          "callee": "\"\".join",
+          "lineNumber": 55
+        },
+        {
+          "caller": "clean_illegal_chars",
+          "callee": "c.isprintable",
+          "lineNumber": 55
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "rule_df.applymap",
+          "lineNumber": 58
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "file_manager.update_version",
+          "lineNumber": 60
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "rule_df.to_excel",
+          "lineNumber": 61
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "logger.info",
+          "lineNumber": 62
+        },
+        {
+          "caller": "add_mis_id",
+          "callee": "logger.exception",
+          "lineNumber": 65
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/processors/notification_classifier.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 155,
+      "nonEmptyLines": 133,
+      "classes": [
+        {
+          "name": "NotificationClassifier",
+          "startLine": 15,
+          "endLine": 155,
+          "methods": [
+            "__init__",
+            "run",
+            "_save_to_excel",
+            "_filter_and_save",
+            "classify_notifications"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "NotificationClassifier",
+          "line": 15,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "__init__",
+          "callee": "super().__init__",
+          "lineNumber": 19
+        },
+        {
+          "caller": "__init__",
+          "callee": "super",
+          "lineNumber": 19
+        },
+        {
+          "caller": "__init__",
+          "callee": "self.config.get",
+          "lineNumber": 20
+        },
+        {
+          "caller": "__init__",
+          "callee": "self.config.get",
+          "lineNumber": 21
+        },
+        {
+          "caller": "__init__",
+          "callee": "self.config.get",
+          "lineNumber": 22
+        },
+        {
+          "caller": "__init__",
+          "callee": "self.config.get",
+          "lineNumber": 23
+        },
+        {
+          "caller": "run",
+          "callee": "kwargs.get",
+          "lineNumber": 26
+        },
+        {
+          "caller": "run",
+          "callee": "logger.error",
+          "lineNumber": 28
+        },
+        {
+          "caller": "run",
+          "callee": "self.classify_notifications",
+          "lineNumber": 30
+        },
+        {
+          "caller": "run",
+          "callee": "kwargs.get",
+          "lineNumber": 30
+        },
+        {
+          "caller": "_save_to_excel",
+          "callee": "df.to_excel",
+          "lineNumber": 33
+        },
+        {
+          "caller": "_save_to_excel",
+          "callee": "excel_manager.save_to_excel",
+          "lineNumber": 34
+        },
+        {
+          "caller": "_filter_and_save",
+          "callee": "logger.info",
+          "lineNumber": 40
+        },
+        {
+          "caller": "_filter_and_save",
+          "callee": "list",
+          "lineNumber": 44
+        },
+        {
+          "caller": "_filter_and_save",
+          "callee": "filtered_df[active_cols].copy().astype",
+          "lineNumber": 45
+        },
+        {
+          "caller": "_filter_and_save",
+          "callee": "filtered_df[active_cols].copy",
+          "lineNumber": 45
+        },
+        {
+          "caller": "_filter_and_save",
+          "callee": "pd.to_datetime(selected_df[col], errors='coerce').dt.strftime",
+          "lineNumber": 48
+        },
+        {
+          "caller": "_filter_and_save",
+          "callee": "pd.to_datetime",
+          "lineNumber": 48
+        },
+        {
+          "caller": "_filter_and_save",
+          "callee": "selected_df.rename",
+          "lineNumber": 49
+        },
+        {
+          "caller": "_filter_and_save",
+          "callee": "selected_df.fillna",
+          "lineNumber": 50
+        },
+        {
+          "caller": "_filter_and_save",
+          "callee": "selected_df.replace",
+          "lineNumber": 51
+        },
+        {
+          "caller": "_filter_and_save",
+          "callee": "self._save_to_excel",
+          "lineNumber": 52
+        },
+        {
+          "caller": "_filter_and_save",
+          "callee": "logger.info",
+          "lineNumber": 53
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "file_manager.select_files",
+          "lineNumber": 57
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "pd.read_excel",
+          "lineNumber": 61
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "self.config.get_reference_date().strftime",
+          "lineNumber": 63
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "self.config.get_reference_date",
+          "lineNumber": 63
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "file_manager.remove_extension",
+          "lineNumber": 66
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "df['예외'].isna",
+          "lineNumber": 72
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "df['중복여부'].isna",
+          "lineNumber": 73
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "df['예외'].isna",
+          "lineNumber": 79
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "df['중복여부'].isna",
+          "lineNumber": 80
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "df['중복여부'].isna",
+          "lineNumber": 87
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "df['예외'].isna",
+          "lineNumber": 91
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "df['예외'].isna",
+          "lineNumber": 94
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "df['중복여부'].isna",
+          "lineNumber": 95
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "pd.Series",
+          "lineNumber": 101
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "df.insert",
+          "lineNumber": 109
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "file_manager.update_version",
+          "lineNumber": 114
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "df.to_excel",
+          "lineNumber": 115
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "logger.info",
+          "lineNumber": 116
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "self._filter_and_save",
+          "lineNumber": 119
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "self._filter_and_save",
+          "lineNumber": 127
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "self._filter_and_save",
+          "lineNumber": 135
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "self._filter_and_save",
+          "lineNumber": 143
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "logger.info",
+          "lineNumber": 151
+        },
+        {
+          "caller": "classify_notifications",
+          "callee": "logger.exception",
+          "lineNumber": 154
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/processors/policy_usage_processor.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 119,
+      "nonEmptyLines": 95,
+      "classes": [
+        {
+          "name": "PolicyUsageProcessor",
+          "startLine": 15,
+          "endLine": 119,
+          "methods": [
+            "run",
+            "add_usage_status",
+            "update_excepted_usage"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "PolicyUsageProcessor",
+          "line": 15,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "run",
+          "callee": "kwargs.get",
+          "lineNumber": 19
+        },
+        {
+          "caller": "run",
+          "callee": "self.add_usage_status",
+          "lineNumber": 21
+        },
+        {
+          "caller": "run",
+          "callee": "self.update_excepted_usage",
+          "lineNumber": 22
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "file_manager.select_files",
+          "lineNumber": 27
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "file_manager.select_files",
+          "lineNumber": 31
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "pd.read_excel",
+          "lineNumber": 35
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "pd.ExcelFile",
+          "lineNumber": 38
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "xl.parse",
+          "lineNumber": 40
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "xl.parse",
+          "lineNumber": 42
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "logger.error",
+          "lineNumber": 48
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "logger.error",
+          "lineNumber": 54
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "self.config.get",
+          "lineNumber": 56
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "pd.to_numeric",
+          "lineNumber": 57
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "unused_days_numeric.apply",
+          "lineNumber": 58
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "pd.isna",
+          "lineNumber": 59
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "usage_df[['Rule Name', '미사용여부']].set_index('Rule Name').to_dict",
+          "lineNumber": 62
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "usage_df[['Rule Name', '미사용여부']].set_index",
+          "lineNumber": 62
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "len",
+          "lineNumber": 64
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "policy_df.iterrows",
+          "lineNumber": 66
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "print",
+          "lineNumber": 67
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "print",
+          "lineNumber": 71
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "file_manager.update_version",
+          "lineNumber": 73
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "policy_df.to_excel",
+          "lineNumber": 74
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "logger.info",
+          "lineNumber": 75
+        },
+        {
+          "caller": "add_usage_status",
+          "callee": "logger.exception",
+          "lineNumber": 78
+        },
+        {
+          "caller": "update_excepted_usage",
+          "callee": "file_manager.select_files",
+          "lineNumber": 84
+        },
+        {
+          "caller": "update_excepted_usage",
+          "callee": "file_manager.select_files",
+          "lineNumber": 88
+        },
+        {
+          "caller": "update_excepted_usage",
+          "callee": "pd.read_excel",
+          "lineNumber": 92
+        },
+        {
+          "caller": "update_excepted_usage",
+          "callee": "pd.read_excel",
+          "lineNumber": 93
+        },
+        {
+          "caller": "update_excepted_usage",
+          "callee": "logger.error",
+          "lineNumber": 99
+        },
+        {
+          "caller": "update_excepted_usage",
+          "callee": "set",
+          "lineNumber": 102
+        },
+        {
+          "caller": "update_excepted_usage",
+          "callee": "len",
+          "lineNumber": 104
+        },
+        {
+          "caller": "update_excepted_usage",
+          "callee": "policy_df.iterrows",
+          "lineNumber": 106
+        },
+        {
+          "caller": "update_excepted_usage",
+          "callee": "print",
+          "lineNumber": 107
+        },
+        {
+          "caller": "update_excepted_usage",
+          "callee": "print",
+          "lineNumber": 111
+        },
+        {
+          "caller": "update_excepted_usage",
+          "callee": "file_manager.update_version",
+          "lineNumber": 113
+        },
+        {
+          "caller": "update_excepted_usage",
+          "callee": "policy_df.to_excel",
+          "lineNumber": 114
+        },
+        {
+          "caller": "update_excepted_usage",
+          "callee": "logger.info",
+          "lineNumber": 115
+        },
+        {
+          "caller": "update_excepted_usage",
+          "callee": "logger.exception",
+          "lineNumber": 118
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/processors/request_extractor.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 55,
+      "nonEmptyLines": 41,
+      "classes": [
+        {
+          "name": "RequestExtractor",
+          "startLine": 15,
+          "endLine": 55,
+          "methods": [
+            "run",
+            "extract_request_id"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "RequestExtractor",
+          "line": 15,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "run",
+          "callee": "self.extract_request_id",
+          "lineNumber": 19
+        },
+        {
+          "caller": "extract_request_id",
+          "callee": "file_manager.select_files",
+          "lineNumber": 23
+        },
+        {
+          "caller": "extract_request_id",
+          "callee": "pd.read_excel",
+          "lineNumber": 27
+        },
+        {
+          "caller": "extract_request_id",
+          "callee": "df[df['Request Type'] != 'Unknown']['Request Type'].unique",
+          "lineNumber": 29
+        },
+        {
+          "caller": "extract_request_id",
+          "callee": "self.config.get",
+          "lineNumber": 30
+        },
+        {
+          "caller": "extract_request_id",
+          "callee": "len",
+          "lineNumber": 33
+        },
+        {
+          "caller": "extract_request_id",
+          "callee": "logger.warning",
+          "lineNumber": 34
+        },
+        {
+          "caller": "extract_request_id",
+          "callee": "df['Request Type'].isin",
+          "lineNumber": 37
+        },
+        {
+          "caller": "extract_request_id",
+          "callee": "len",
+          "lineNumber": 38
+        },
+        {
+          "caller": "extract_request_id",
+          "callee": "logger.warning",
+          "lineNumber": 39
+        },
+        {
+          "caller": "extract_request_id",
+          "callee": "self.config.get",
+          "lineNumber": 42
+        },
+        {
+          "caller": "extract_request_id",
+          "callee": "pd.ExcelWriter",
+          "lineNumber": 45
+        },
+        {
+          "caller": "extract_request_id",
+          "callee": "selected_data.groupby",
+          "lineNumber": 46
+        },
+        {
+          "caller": "extract_request_id",
+          "callee": "group[['Request ID']].drop_duplicates",
+          "lineNumber": 47
+        },
+        {
+          "caller": "extract_request_id",
+          "callee": "unique_ids.to_excel",
+          "lineNumber": 48
+        },
+        {
+          "caller": "extract_request_id",
+          "callee": "logger.info",
+          "lineNumber": 49
+        },
+        {
+          "caller": "extract_request_id",
+          "callee": "len",
+          "lineNumber": 49
+        },
+        {
+          "caller": "extract_request_id",
+          "callee": "logger.info",
+          "lineNumber": 51
+        },
+        {
+          "caller": "extract_request_id",
+          "callee": "logger.exception",
+          "lineNumber": 54
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/processors/request_info_adder.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 122,
+      "nonEmptyLines": 100,
+      "classes": [
+        {
+          "name": "RequestInfoAdder",
+          "startLine": 15,
+          "endLine": 122,
+          "methods": [
+            "run",
+            "read_and_process_excel",
+            "_safe_to_datetime",
+            "match_and_update_df",
+            "find_auto_extension_id",
+            "add_request_info"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "RequestInfoAdder",
+          "line": 15,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "run",
+          "callee": "self.add_request_info",
+          "lineNumber": 19
+        },
+        {
+          "caller": "read_and_process_excel",
+          "callee": "pd.read_excel",
+          "lineNumber": 22
+        },
+        {
+          "caller": "read_and_process_excel",
+          "callee": "df.replace",
+          "lineNumber": 23
+        },
+        {
+          "caller": "read_and_process_excel",
+          "callee": "df.astype",
+          "lineNumber": 24
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "pd.isna",
+          "lineNumber": 28
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "str(val).strip",
+          "lineNumber": 28
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "str",
+          "lineNumber": 28
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "pd.Timestamp",
+          "lineNumber": 32
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "isinstance",
+          "lineNumber": 34
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "pd.to_datetime(val, unit='D', origin='1899-12-30').normalize",
+          "lineNumber": 35
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "pd.to_datetime",
+          "lineNumber": 35
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "pd.to_datetime(val).normalize",
+          "lineNumber": 36
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "pd.to_datetime",
+          "lineNumber": 36
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "pd.Timestamp",
+          "lineNumber": 37
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "pd.Timestamp",
+          "lineNumber": 38
+        },
+        {
+          "caller": "_safe_to_datetime",
+          "callee": "pd.Timestamp",
+          "lineNumber": 41
+        },
+        {
+          "caller": "match_and_update_df",
+          "callee": "rule_df['End Date'].apply",
+          "lineNumber": 44
+        },
+        {
+          "caller": "match_and_update_df",
+          "callee": "info_df['REQUEST_END_DATE'].apply",
+          "lineNumber": 45
+        },
+        {
+          "caller": "match_and_update_df",
+          "callee": "len",
+          "lineNumber": 47
+        },
+        {
+          "caller": "match_and_update_df",
+          "callee": "rule_df.iterrows",
+          "lineNumber": 48
+        },
+        {
+          "caller": "match_and_update_df",
+          "callee": "print",
+          "lineNumber": 49
+        },
+        {
+          "caller": "match_and_update_df",
+          "callee": "pd.DataFrame",
+          "lineNumber": 50
+        },
+        {
+          "caller": "match_and_update_df",
+          "callee": "subset.sort_index",
+          "lineNumber": 64
+        },
+        {
+          "caller": "match_and_update_df",
+          "callee": "self._safe_to_datetime",
+          "lineNumber": 71
+        },
+        {
+          "caller": "match_and_update_df",
+          "callee": "self._safe_to_datetime",
+          "lineNumber": 76
+        },
+        {
+          "caller": "match_and_update_df",
+          "callee": "self._safe_to_datetime",
+          "lineNumber": 77
+        },
+        {
+          "caller": "match_and_update_df",
+          "callee": "self.config.get",
+          "lineNumber": 79
+        },
+        {
+          "caller": "match_and_update_df",
+          "callee": "print",
+          "lineNumber": 81
+        },
+        {
+          "caller": "find_auto_extension_id",
+          "callee": "logger.error",
+          "lineNumber": 85
+        },
+        {
+          "caller": "find_auto_extension_id",
+          "callee": "pd.Series",
+          "lineNumber": 86
+        },
+        {
+          "caller": "find_auto_extension_id",
+          "callee": "pd.api.types.is_numeric_dtype",
+          "lineNumber": 88
+        },
+        {
+          "caller": "find_auto_extension_id",
+          "callee": "pd.to_numeric",
+          "lineNumber": 89
+        },
+        {
+          "caller": "find_auto_extension_id",
+          "callee": "info_df[info_df['REQUEST_STATUS'] == 99]['REQUEST_ID'].drop_duplicates",
+          "lineNumber": 91
+        },
+        {
+          "caller": "find_auto_extension_id",
+          "callee": "logger.info",
+          "lineNumber": 92
+        },
+        {
+          "caller": "find_auto_extension_id",
+          "callee": "len",
+          "lineNumber": 92
+        },
+        {
+          "caller": "add_request_info",
+          "callee": "file_manager.select_files",
+          "lineNumber": 97
+        },
+        {
+          "caller": "add_request_info",
+          "callee": "file_manager.select_files",
+          "lineNumber": 101
+        },
+        {
+          "caller": "add_request_info",
+          "callee": "self.read_and_process_excel",
+          "lineNumber": 105
+        },
+        {
+          "caller": "add_request_info",
+          "callee": "self.read_and_process_excel",
+          "lineNumber": 106
+        },
+        {
+          "caller": "add_request_info",
+          "callee": "info_df.sort_values",
+          "lineNumber": 107
+        },
+        {
+          "caller": "add_request_info",
+          "callee": "self.find_auto_extension_id",
+          "lineNumber": 109
+        },
+        {
+          "caller": "add_request_info",
+          "callee": "self.match_and_update_df",
+          "lineNumber": 110
+        },
+        {
+          "caller": "add_request_info",
+          "callee": "rule_df.replace",
+          "lineNumber": 111
+        },
+        {
+          "caller": "add_request_info",
+          "callee": "rule_df['REQUEST_ID'].isin",
+          "lineNumber": 114
+        },
+        {
+          "caller": "add_request_info",
+          "callee": "file_manager.update_version",
+          "lineNumber": 116
+        },
+        {
+          "caller": "add_request_info",
+          "callee": "rule_df.to_excel",
+          "lineNumber": 117
+        },
+        {
+          "caller": "add_request_info",
+          "callee": "logger.info",
+          "lineNumber": 118
+        },
+        {
+          "caller": "add_request_info",
+          "callee": "logger.exception",
+          "lineNumber": 121
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/processors/request_parser.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 136,
+      "nonEmptyLines": 113,
+      "classes": [
+        {
+          "name": "RequestParser",
+          "startLine": 17,
+          "endLine": 136,
+          "methods": [
+            "run",
+            "convert_to_date",
+            "parse_request_info",
+            "parse_request_type"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "RequestParser",
+          "line": 17,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "run",
+          "callee": "self.parse_request_type",
+          "lineNumber": 21
+        },
+        {
+          "caller": "convert_to_date",
+          "callee": "datetime.strptime(date_str, '%Y%m%d').strftime",
+          "lineNumber": 25
+        },
+        {
+          "caller": "convert_to_date",
+          "callee": "datetime.strptime",
+          "lineNumber": 25
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "self.convert_to_date",
+          "lineNumber": 36
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "self.convert_to_date",
+          "lineNumber": 37
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "pd.isnull",
+          "lineNumber": 41
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "self.config.get",
+          "lineNumber": 45
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "self.config.get",
+          "lineNumber": 46
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "self.config.get",
+          "lineNumber": 47
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "self.config.get",
+          "lineNumber": 48
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "self.config.get",
+          "lineNumber": 49
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "re.compile(p_gsams3).match",
+          "lineNumber": 52
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "re.compile",
+          "lineNumber": 52
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "re.compile(p_gsams1_rn).match",
+          "lineNumber": 53
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "re.compile",
+          "lineNumber": 53
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "str",
+          "lineNumber": 53
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "re.search",
+          "lineNumber": 54
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "re.search",
+          "lineNumber": 55
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "re.search",
+          "lineNumber": 56
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "gsams3_match.group",
+          "lineNumber": 59
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "request_id.split",
+          "lineNumber": 61
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "gsams3_match.group",
+          "lineNumber": 67
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "gsams3_match.group",
+          "lineNumber": 68
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "gsams3_match.group",
+          "lineNumber": 68
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "gsams3_match.group",
+          "lineNumber": 69
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "self.convert_to_date",
+          "lineNumber": 70
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "gsams3_match.group",
+          "lineNumber": 70
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "self.convert_to_date",
+          "lineNumber": 71
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "gsams3_match.group",
+          "lineNumber": 71
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "{\n                    \"P\": \"GROUP\", \"F\": \"GENERAL\", \"S\": \"SERVER\", \"M\": \"PAM\"\n                }.get",
+          "lineNumber": 74
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "gsams1_name_match.group",
+          "lineNumber": 80
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "gsams1_user_match.group(1).replace",
+          "lineNumber": 82
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "gsams1_user_match.group",
+          "lineNumber": 82
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "gsams1_date_match.group().split",
+          "lineNumber": 84
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "gsams1_date_match.group",
+          "lineNumber": 84
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "self.convert_to_date",
+          "lineNumber": 85
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "self.convert_to_date",
+          "lineNumber": 86
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "description.split",
+          "lineNumber": 89
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "date.split('~')[0].replace('[', '').replace",
+          "lineNumber": 90
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "date.split('~')[0].replace",
+          "lineNumber": 90
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "date.split",
+          "lineNumber": 90
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "date.split('~')[1].replace(']', '').replace",
+          "lineNumber": 91
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "date.split('~')[1].replace",
+          "lineNumber": 91
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "date.split",
+          "lineNumber": 91
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "gsams1_desc_match.group(1).split",
+          "lineNumber": 94
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "gsams1_desc_match.group",
+          "lineNumber": 94
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "gsams1_user_match.group(1).replace",
+          "lineNumber": 97
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "gsams1_user_match.group",
+          "lineNumber": 97
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "self.convert_to_date",
+          "lineNumber": 98
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "self.convert_to_date",
+          "lineNumber": 99
+        },
+        {
+          "caller": "parse_request_info",
+          "callee": "logger.warning",
+          "lineNumber": 103
+        },
+        {
+          "caller": "parse_request_type",
+          "callee": "file_manager.select_files",
+          "lineNumber": 109
+        },
+        {
+          "caller": "parse_request_type",
+          "callee": "pd.read_excel",
+          "lineNumber": 113
+        },
+        {
+          "caller": "parse_request_type",
+          "callee": "len",
+          "lineNumber": 114
+        },
+        {
+          "caller": "parse_request_type",
+          "callee": "df.iterrows",
+          "lineNumber": 116
+        },
+        {
+          "caller": "parse_request_type",
+          "callee": "print",
+          "lineNumber": 117
+        },
+        {
+          "caller": "parse_request_type",
+          "callee": "self.parse_request_info",
+          "lineNumber": 118
+        },
+        {
+          "caller": "parse_request_type",
+          "callee": "result.items",
+          "lineNumber": 119
+        },
+        {
+          "caller": "parse_request_type",
+          "callee": "print",
+          "lineNumber": 121
+        },
+        {
+          "caller": "clean_illegal_chars",
+          "callee": "isinstance",
+          "lineNumber": 124
+        },
+        {
+          "caller": "clean_illegal_chars",
+          "callee": "\"\".join",
+          "lineNumber": 125
+        },
+        {
+          "caller": "clean_illegal_chars",
+          "callee": "c.isprintable",
+          "lineNumber": 125
+        },
+        {
+          "caller": "parse_request_type",
+          "callee": "df.applymap",
+          "lineNumber": 128
+        },
+        {
+          "caller": "parse_request_type",
+          "callee": "file_manager.update_version",
+          "lineNumber": 130
+        },
+        {
+          "caller": "parse_request_type",
+          "callee": "df.to_excel",
+          "lineNumber": 131
+        },
+        {
+          "caller": "parse_request_type",
+          "callee": "logger.info",
+          "lineNumber": 132
+        },
+        {
+          "caller": "parse_request_type",
+          "callee": "logger.exception",
+          "lineNumber": 135
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/utils/file_manager.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 99,
+      "nonEmptyLines": 81,
+      "classes": [
+        {
+          "name": "FileManager",
+          "startLine": 17,
+          "endLine": 99,
+          "methods": [
+            "__init__",
+            "set_forced_files",
+            "update_version",
+            "select_files",
+            "remove_extension"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "FileManager",
+          "line": 17,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "set_forced_files",
+          "callee": "list",
+          "lineNumber": 27
+        },
+        {
+          "caller": "update_version",
+          "callee": "filename.rsplit",
+          "lineNumber": 32
+        },
+        {
+          "caller": "update_version",
+          "callee": "self.config.get",
+          "lineNumber": 34
+        },
+        {
+          "caller": "update_version",
+          "callee": "self.config.get",
+          "lineNumber": 35
+        },
+        {
+          "caller": "update_version",
+          "callee": "re.search",
+          "lineNumber": 37
+        },
+        {
+          "caller": "update_version",
+          "callee": "re.search",
+          "lineNumber": 41
+        },
+        {
+          "caller": "update_version",
+          "callee": "re.sub",
+          "lineNumber": 43
+        },
+        {
+          "caller": "update_version",
+          "callee": "int",
+          "lineNumber": 46
+        },
+        {
+          "caller": "update_version",
+          "callee": "match.group",
+          "lineNumber": 46
+        },
+        {
+          "caller": "update_version",
+          "callee": "re.sub",
+          "lineNumber": 47
+        },
+        {
+          "caller": "update_version",
+          "callee": "version_format.format",
+          "lineNumber": 47
+        },
+        {
+          "caller": "update_version",
+          "callee": "version_format.format",
+          "lineNumber": 49
+        },
+        {
+          "caller": "update_version",
+          "callee": "logger.info",
+          "lineNumber": 52
+        },
+        {
+          "caller": "select_files",
+          "callee": "self._forced_files.pop",
+          "lineNumber": 62
+        },
+        {
+          "caller": "select_files",
+          "callee": "logger.info",
+          "lineNumber": 63
+        },
+        {
+          "caller": "select_files",
+          "callee": "logger.info",
+          "lineNumber": 68
+        },
+        {
+          "caller": "select_files",
+          "callee": "self.config.get",
+          "lineNumber": 72
+        },
+        {
+          "caller": "select_files",
+          "callee": "os.listdir",
+          "lineNumber": 74
+        },
+        {
+          "caller": "select_files",
+          "callee": "f.endswith",
+          "lineNumber": 74
+        },
+        {
+          "caller": "select_files",
+          "callee": "logger.warning",
+          "lineNumber": 76
+        },
+        {
+          "caller": "select_files",
+          "callee": "enumerate",
+          "lineNumber": 79
+        },
+        {
+          "caller": "select_files",
+          "callee": "print",
+          "lineNumber": 80
+        },
+        {
+          "caller": "select_files",
+          "callee": "input",
+          "lineNumber": 84
+        },
+        {
+          "caller": "select_files",
+          "callee": "choice.isdigit",
+          "lineNumber": 85
+        },
+        {
+          "caller": "select_files",
+          "callee": "int",
+          "lineNumber": 86
+        },
+        {
+          "caller": "select_files",
+          "callee": "len",
+          "lineNumber": 89
+        },
+        {
+          "caller": "select_files",
+          "callee": "logger.info",
+          "lineNumber": 91
+        },
+        {
+          "caller": "select_files",
+          "callee": "print",
+          "lineNumber": 93
+        },
+        {
+          "caller": "remove_extension",
+          "callee": "os.path.splitext",
+          "lineNumber": 99
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/scripts/find_unknown_broad_policies.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 169,
+      "nonEmptyLines": 138,
+      "functions": [
+        {
+          "name": "merge_ranges",
+          "startLine": 33,
+          "endLine": 44,
+          "params": [
+            "ranges"
+          ]
+        },
+        {
+          "name": "range_size",
+          "startLine": 47,
+          "endLine": 49,
+          "params": [
+            "direction_ranges"
+          ]
+        },
+        {
+          "name": "row_from_policy",
+          "startLine": 58,
+          "endLine": 70,
+          "params": [
+            "policy",
+            "src_size",
+            "dst_size"
+          ]
+        },
+        {
+          "name": "main",
+          "startLine": 73,
+          "endLine": 158,
+          "params": [
+            "threshold",
+            "device_id",
+            "csv_path",
+            "batch_size"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "merge_ranges",
+          "line": 33,
+          "isDefault": false
+        },
+        {
+          "name": "range_size",
+          "line": 47,
+          "isDefault": false
+        },
+        {
+          "name": "row_from_policy",
+          "line": 58,
+          "isDefault": false
+        },
+        {
+          "name": "main",
+          "line": 73,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "merge_ranges",
+          "callee": "sorted",
+          "lineNumber": 36
+        },
+        {
+          "caller": "merge_ranges",
+          "callee": "max",
+          "lineNumber": 41
+        },
+        {
+          "caller": "merge_ranges",
+          "callee": "merged.append",
+          "lineNumber": 43
+        },
+        {
+          "caller": "range_size",
+          "callee": "merge_ranges",
+          "lineNumber": 48
+        },
+        {
+          "caller": "range_size",
+          "callee": "sum",
+          "lineNumber": 49
+        },
+        {
+          "caller": "main",
+          "callee": "SessionLocal",
+          "lineNumber": 74
+        },
+        {
+          "caller": "main",
+          "callee": "load_config_dict",
+          "lineNumber": 75
+        },
+        {
+          "caller": "main",
+          "callee": "ConfigManager",
+          "lineNumber": 76
+        },
+        {
+          "caller": "main",
+          "callee": "RequestParser",
+          "lineNumber": 77
+        },
+        {
+          "caller": "main",
+          "callee": "open",
+          "lineNumber": 82
+        },
+        {
+          "caller": "main",
+          "callee": "csv.DictWriter",
+          "lineNumber": 83
+        },
+        {
+          "caller": "main",
+          "callee": "writer.writeheader",
+          "lineNumber": 84
+        },
+        {
+          "caller": "main",
+          "callee": "select(Policy)\n                    .where(Policy.is_active == True, Policy.id > last_id)  # noqa: E712\n                    .options(\n                        selectinload(Policy.address_members),\n                        selectinload(Policy.device),\n                    )\n                    .order_by(Policy.id)\n                    .limit",
+          "lineNumber": 93
+        },
+        {
+          "caller": "main",
+          "callee": "select(Policy)\n                    .where(Policy.is_active == True, Policy.id > last_id)  # noqa: E712\n                    .options(\n                        selectinload(Policy.address_members),\n                        selectinload(Policy.device),\n                    )\n                    .order_by",
+          "lineNumber": 93
+        },
+        {
+          "caller": "main",
+          "callee": "select(Policy)\n                    .where(Policy.is_active == True, Policy.id > last_id)  # noqa: E712\n                    .options",
+          "lineNumber": 93
+        },
+        {
+          "caller": "main",
+          "callee": "select(Policy)\n                    .where",
+          "lineNumber": 93
+        },
+        {
+          "caller": "main",
+          "callee": "select",
+          "lineNumber": 93
+        },
+        {
+          "caller": "main",
+          "callee": "selectinload",
+          "lineNumber": 96
+        },
+        {
+          "caller": "main",
+          "callee": "selectinload",
+          "lineNumber": 97
+        },
+        {
+          "caller": "main",
+          "callee": "stmt.where",
+          "lineNumber": 103
+        },
+        {
+          "caller": "main",
+          "callee": "db.execute",
+          "lineNumber": 105
+        },
+        {
+          "caller": "main",
+          "callee": "result.scalars().all",
+          "lineNumber": 106
+        },
+        {
+          "caller": "main",
+          "callee": "result.scalars",
+          "lineNumber": 106
+        },
+        {
+          "caller": "main",
+          "callee": "parser.parse_request_info",
+          "lineNumber": 114
+        },
+        {
+          "caller": "main",
+          "callee": "info.get",
+          "lineNumber": 115
+        },
+        {
+          "caller": "main",
+          "callee": "range_size",
+          "lineNumber": 128
+        },
+        {
+          "caller": "main",
+          "callee": "range_size",
+          "lineNumber": 129
+        },
+        {
+          "caller": "main",
+          "callee": "max",
+          "lineNumber": 131
+        },
+        {
+          "caller": "main",
+          "callee": "row_from_policy",
+          "lineNumber": 135
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 136
+        },
+        {
+          "caller": "main",
+          "callee": "writer.writerow",
+          "lineNumber": 142
+        },
+        {
+          "caller": "main",
+          "callee": "csv_file.flush",
+          "lineNumber": 145
+        },
+        {
+          "caller": "main",
+          "callee": "db.expunge_all",
+          "lineNumber": 148
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 150
+        },
+        {
+          "caller": "main",
+          "callee": "csv_file.close",
+          "lineNumber": 153
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 155
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 156
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 158
+        }
+      ],
+      "metrics": {
+        "importCount": 5,
+        "exportCount": 4,
+        "functionCount": 4,
+        "classCount": 0
+      }
+    }
+  ]
+}

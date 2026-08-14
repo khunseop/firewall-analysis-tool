@@ -1,0 +1,3815 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 24,
+  "filesSkipped": [],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 24,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 24,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "results": [
+    {
+      "path": "backend/app/models/notification_log.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 35,
+      "nonEmptyLines": 26,
+      "classes": [
+        {
+          "name": "NotificationLog",
+          "startLine": 6,
+          "endLine": 34,
+          "methods": [],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "NotificationLog",
+          "line": 6,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/models/pending_policy_change.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 50,
+      "nonEmptyLines": 38,
+      "classes": [
+        {
+          "name": "PendingPolicyChange",
+          "startLine": 8,
+          "endLine": 50,
+          "methods": [],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "PendingPolicyChange",
+          "line": 8,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/models/policy.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 73,
+      "nonEmptyLines": 60,
+      "classes": [
+        {
+          "name": "Policy",
+          "startLine": 7,
+          "endLine": 73,
+          "methods": [],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "Policy",
+          "line": 7,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/models/policy_members.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 78,
+      "nonEmptyLines": 59,
+      "classes": [
+        {
+          "name": "PolicyAddressMember",
+          "startLine": 6,
+          "endLine": 42,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "PolicyServiceMember",
+          "startLine": 45,
+          "endLine": 78,
+          "methods": [],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "PolicyAddressMember",
+          "line": 6,
+          "isDefault": false
+        },
+        {
+          "name": "PolicyServiceMember",
+          "line": 45,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 2,
+        "functionCount": 0,
+        "classCount": 2
+      }
+    },
+    {
+      "path": "backend/app/models/service.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 37,
+      "nonEmptyLines": 29,
+      "classes": [
+        {
+          "name": "Service",
+          "startLine": 8,
+          "endLine": 37,
+          "methods": [],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "Service",
+          "line": 8,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/models/service_group.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 30,
+      "nonEmptyLines": 23,
+      "classes": [
+        {
+          "name": "ServiceGroup",
+          "startLine": 7,
+          "endLine": 30,
+          "methods": [],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "ServiceGroup",
+          "line": 7,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/models/settings.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 18,
+      "nonEmptyLines": 13,
+      "classes": [
+        {
+          "name": "Settings",
+          "startLine": 4,
+          "endLine": 17,
+          "methods": [],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "Settings",
+          "line": 4,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/models/sync_history.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 26,
+      "nonEmptyLines": 22,
+      "classes": [
+        {
+          "name": "SyncHistory",
+          "startLine": 8,
+          "endLine": 26,
+          "methods": [],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "SyncHistory",
+          "line": 8,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/models/sync_schedule.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 33,
+      "nonEmptyLines": 28,
+      "classes": [
+        {
+          "name": "SyncSchedule",
+          "startLine": 6,
+          "endLine": 32,
+          "methods": [],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "SyncSchedule",
+          "line": 6,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/schemas/change_log.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 20,
+      "nonEmptyLines": 16,
+      "classes": [
+        {
+          "name": "ChangeLogBase",
+          "startLine": 5,
+          "endLine": 10,
+          "methods": [],
+          "properties": [
+            "device_id",
+            "data_type",
+            "object_name",
+            "action",
+            "details"
+          ]
+        },
+        {
+          "name": "ChangeLogCreate",
+          "startLine": 12,
+          "endLine": 13,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "ChangeLog",
+          "startLine": 15,
+          "endLine": 20,
+          "methods": [],
+          "properties": [
+            "id",
+            "timestamp"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "ChangeLogBase",
+          "line": 5,
+          "isDefault": false
+        },
+        {
+          "name": "ChangeLogCreate",
+          "line": 12,
+          "isDefault": false
+        },
+        {
+          "name": "ChangeLog",
+          "line": 15,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 3,
+        "functionCount": 0,
+        "classCount": 3
+      }
+    },
+    {
+      "path": "backend/app/schemas/device.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 171,
+      "nonEmptyLines": 153,
+      "classes": [
+        {
+          "name": "DeviceBase",
+          "startLine": 6,
+          "endLine": 51,
+          "methods": [],
+          "properties": [
+            "name",
+            "ip_address",
+            "vendor",
+            "username",
+            "description",
+            "ha_peer_ip",
+            "use_ssh_for_last_hit_date",
+            "collect_last_hit_date",
+            "model",
+            "model_manual",
+            "group",
+            "hostname",
+            "hostname_manual",
+            "uptime",
+            "multi_vsys",
+            "multi_vsys_manual",
+            "serial_number",
+            "serial_number_manual",
+            "os_name",
+            "os_version",
+            "os_version_manual",
+            "install_date",
+            "location_region",
+            "location_building",
+            "location_floor",
+            "location_room",
+            "location_x",
+            "location_y",
+            "location_z",
+            "policy_threshold",
+            "policy_threshold_manual",
+            "network_object_threshold",
+            "network_object_threshold_manual",
+            "network_group_threshold",
+            "network_group_threshold_manual",
+            "service_threshold",
+            "service_threshold_manual",
+            "service_group_threshold",
+            "service_group_threshold_manual"
+          ]
+        },
+        {
+          "name": "DeviceCreate",
+          "startLine": 54,
+          "endLine": 56,
+          "methods": [],
+          "properties": [
+            "password",
+            "password_confirm"
+          ]
+        },
+        {
+          "name": "DeviceUpdate",
+          "startLine": 59,
+          "endLine": 103,
+          "methods": [],
+          "properties": [
+            "name",
+            "ip_address",
+            "vendor",
+            "username",
+            "description",
+            "ha_peer_ip",
+            "use_ssh_for_last_hit_date",
+            "collect_last_hit_date",
+            "model",
+            "model_manual",
+            "group",
+            "password",
+            "password_confirm",
+            "hostname",
+            "hostname_manual",
+            "uptime",
+            "multi_vsys",
+            "multi_vsys_manual",
+            "serial_number",
+            "serial_number_manual",
+            "os_name",
+            "os_version",
+            "os_version_manual",
+            "install_date",
+            "location_region",
+            "location_building",
+            "location_floor",
+            "location_room",
+            "location_x",
+            "location_y",
+            "location_z",
+            "policy_threshold",
+            "policy_threshold_manual",
+            "network_object_threshold",
+            "network_object_threshold_manual",
+            "network_group_threshold",
+            "network_group_threshold_manual",
+            "service_threshold",
+            "service_threshold_manual",
+            "service_group_threshold",
+            "service_group_threshold_manual"
+          ]
+        },
+        {
+          "name": "Device",
+          "startLine": 106,
+          "endLine": 124,
+          "methods": [],
+          "properties": [
+            "id",
+            "last_sync_at",
+            "last_sync_status",
+            "last_sync_step",
+            "sync_requested_by_user_id",
+            "sync_requested_by_username",
+            "cached_policies",
+            "cached_active_policies",
+            "cached_disabled_policies",
+            "cached_network_objects",
+            "cached_network_groups",
+            "cached_services",
+            "cached_service_groups"
+          ]
+        },
+        {
+          "name": "DeviceSyncStatus",
+          "startLine": 126,
+          "endLine": 134,
+          "methods": [],
+          "properties": [
+            "last_sync_at",
+            "last_sync_status",
+            "last_sync_step",
+            "sync_requested_by_user_id",
+            "sync_requested_by_username"
+          ]
+        },
+        {
+          "name": "DeviceStats",
+          "startLine": 137,
+          "endLine": 157,
+          "methods": [],
+          "properties": [
+            "id",
+            "name",
+            "vendor",
+            "ip_address",
+            "policies",
+            "active_policies",
+            "disabled_policies",
+            "network_objects",
+            "network_groups",
+            "services",
+            "service_groups",
+            "sync_status",
+            "sync_step",
+            "sync_time",
+            "policy_threshold",
+            "network_object_threshold",
+            "network_group_threshold",
+            "service_threshold",
+            "service_group_threshold"
+          ]
+        },
+        {
+          "name": "DashboardStatsResponse",
+          "startLine": 160,
+          "endLine": 171,
+          "methods": [],
+          "properties": [
+            "total_devices",
+            "active_devices",
+            "total_policies",
+            "total_active_policies",
+            "total_disabled_policies",
+            "total_network_objects",
+            "total_network_groups",
+            "total_services",
+            "total_service_groups",
+            "device_stats"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "DeviceBase",
+          "line": 6,
+          "isDefault": false
+        },
+        {
+          "name": "DeviceCreate",
+          "line": 54,
+          "isDefault": false
+        },
+        {
+          "name": "DeviceUpdate",
+          "line": 59,
+          "isDefault": false
+        },
+        {
+          "name": "Device",
+          "line": 106,
+          "isDefault": false
+        },
+        {
+          "name": "DeviceSyncStatus",
+          "line": 126,
+          "isDefault": false
+        },
+        {
+          "name": "DeviceStats",
+          "line": 137,
+          "isDefault": false
+        },
+        {
+          "name": "DashboardStatsResponse",
+          "line": 160,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 7,
+        "functionCount": 0,
+        "classCount": 7
+      }
+    },
+    {
+      "path": "backend/app/schemas/notification_log.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 28,
+      "nonEmptyLines": 22,
+      "classes": [
+        {
+          "name": "NotificationLogBase",
+          "startLine": 5,
+          "endLine": 13,
+          "methods": [],
+          "properties": [
+            "title",
+            "message",
+            "type",
+            "category",
+            "device_id",
+            "device_name",
+            "user_id",
+            "username"
+          ]
+        },
+        {
+          "name": "NotificationLogCreate",
+          "startLine": 15,
+          "endLine": 16,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "NotificationLog",
+          "startLine": 18,
+          "endLine": 23,
+          "methods": [],
+          "properties": [
+            "id",
+            "timestamp"
+          ]
+        },
+        {
+          "name": "NotificationLogListResponse",
+          "startLine": 25,
+          "endLine": 27,
+          "methods": [],
+          "properties": [
+            "items",
+            "total"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "NotificationLogBase",
+          "line": 5,
+          "isDefault": false
+        },
+        {
+          "name": "NotificationLogCreate",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "NotificationLog",
+          "line": 18,
+          "isDefault": false
+        },
+        {
+          "name": "NotificationLogListResponse",
+          "line": 25,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 4,
+        "functionCount": 0,
+        "classCount": 4
+      }
+    },
+    {
+      "path": "backend/app/schemas/pending_policy_change.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 35,
+      "nonEmptyLines": 24,
+      "classes": [
+        {
+          "name": "PendingPolicyChangeCreate",
+          "startLine": 10,
+          "endLine": 14,
+          "methods": [],
+          "properties": [
+            "change_type",
+            "target_policy_id",
+            "client_key",
+            "payload"
+          ]
+        },
+        {
+          "name": "PendingPolicyChangeUpdate",
+          "startLine": 17,
+          "endLine": 22,
+          "methods": [],
+          "properties": [
+            "payload"
+          ]
+        },
+        {
+          "name": "PendingPolicyChange",
+          "startLine": 25,
+          "endLine": 35,
+          "methods": [],
+          "properties": [
+            "id",
+            "device_id",
+            "change_type",
+            "target_policy_id",
+            "client_key",
+            "payload",
+            "created_by_user_id",
+            "created_at"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "PendingPolicyChangeCreate",
+          "line": 10,
+          "isDefault": false
+        },
+        {
+          "name": "PendingPolicyChangeUpdate",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "PendingPolicyChange",
+          "line": 25,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 3,
+        "functionCount": 0,
+        "classCount": 3
+      }
+    },
+    {
+      "path": "backend/app/schemas/service.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 26,
+      "nonEmptyLines": 22,
+      "classes": [
+        {
+          "name": "ServiceBase",
+          "startLine": 6,
+          "endLine": 12,
+          "methods": [],
+          "properties": [
+            "name",
+            "protocol",
+            "port",
+            "description",
+            "port_start",
+            "port_end"
+          ]
+        },
+        {
+          "name": "ServiceCreate",
+          "startLine": 15,
+          "endLine": 16,
+          "methods": [],
+          "properties": [
+            "device_id"
+          ]
+        },
+        {
+          "name": "Service",
+          "startLine": 19,
+          "endLine": 26,
+          "methods": [],
+          "properties": [
+            "id",
+            "device_id",
+            "is_active",
+            "last_seen_at"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "ServiceBase",
+          "line": 6,
+          "isDefault": false
+        },
+        {
+          "name": "ServiceCreate",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "Service",
+          "line": 19,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 3,
+        "functionCount": 0,
+        "classCount": 3
+      }
+    },
+    {
+      "path": "backend/app/schemas/service_group.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 23,
+      "nonEmptyLines": 19,
+      "classes": [
+        {
+          "name": "ServiceGroupBase",
+          "startLine": 6,
+          "endLine": 9,
+          "methods": [],
+          "properties": [
+            "name",
+            "members",
+            "description"
+          ]
+        },
+        {
+          "name": "ServiceGroupCreate",
+          "startLine": 12,
+          "endLine": 13,
+          "methods": [],
+          "properties": [
+            "device_id"
+          ]
+        },
+        {
+          "name": "ServiceGroup",
+          "startLine": 16,
+          "endLine": 23,
+          "methods": [],
+          "properties": [
+            "id",
+            "device_id",
+            "is_active",
+            "last_seen_at"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "ServiceGroupBase",
+          "line": 6,
+          "isDefault": false
+        },
+        {
+          "name": "ServiceGroupCreate",
+          "line": 12,
+          "isDefault": false
+        },
+        {
+          "name": "ServiceGroup",
+          "line": 16,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 3,
+        "functionCount": 0,
+        "classCount": 3
+      }
+    },
+    {
+      "path": "backend/app/schemas/settings.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 22,
+      "nonEmptyLines": 13,
+      "classes": [
+        {
+          "name": "SettingsBase",
+          "startLine": 4,
+          "endLine": 7,
+          "methods": [],
+          "properties": [
+            "key",
+            "value",
+            "description"
+          ]
+        },
+        {
+          "name": "SettingsCreate",
+          "startLine": 10,
+          "endLine": 11,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "SettingsUpdate",
+          "startLine": 14,
+          "endLine": 16,
+          "methods": [],
+          "properties": [
+            "value",
+            "description"
+          ]
+        },
+        {
+          "name": "Settings",
+          "startLine": 19,
+          "endLine": 21,
+          "methods": [],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "SettingsBase",
+          "line": 4,
+          "isDefault": false
+        },
+        {
+          "name": "SettingsCreate",
+          "line": 10,
+          "isDefault": false
+        },
+        {
+          "name": "SettingsUpdate",
+          "line": 14,
+          "isDefault": false
+        },
+        {
+          "name": "Settings",
+          "line": 19,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 4,
+        "functionCount": 0,
+        "classCount": 4
+      }
+    },
+    {
+      "path": "backend/app/schemas/sync_schedule.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 97,
+      "nonEmptyLines": 85,
+      "classes": [
+        {
+          "name": "SyncScheduleBase",
+          "startLine": 5,
+          "endLine": 40,
+          "methods": [
+            "validate_days_of_week",
+            "validate_time",
+            "validate_device_ids"
+          ],
+          "properties": [
+            "name",
+            "enabled",
+            "days_of_week",
+            "time",
+            "device_ids",
+            "description"
+          ]
+        },
+        {
+          "name": "SyncScheduleCreate",
+          "startLine": 42,
+          "endLine": 43,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "SyncScheduleUpdate",
+          "startLine": 45,
+          "endLine": 86,
+          "methods": [
+            "validate_days_of_week",
+            "validate_time",
+            "validate_device_ids"
+          ],
+          "properties": [
+            "name",
+            "enabled",
+            "days_of_week",
+            "time",
+            "device_ids",
+            "description"
+          ]
+        },
+        {
+          "name": "SyncSchedule",
+          "startLine": 88,
+          "endLine": 96,
+          "methods": [],
+          "properties": [
+            "id",
+            "created_at",
+            "updated_at",
+            "last_run_at",
+            "last_run_status"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "SyncScheduleBase",
+          "line": 5,
+          "isDefault": false
+        },
+        {
+          "name": "SyncScheduleCreate",
+          "line": 42,
+          "isDefault": false
+        },
+        {
+          "name": "SyncScheduleUpdate",
+          "line": 45,
+          "isDefault": false
+        },
+        {
+          "name": "SyncSchedule",
+          "line": 88,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "validate_days_of_week",
+          "callee": "isinstance",
+          "lineNumber": 16
+        },
+        {
+          "caller": "validate_days_of_week",
+          "callee": "ValueError",
+          "lineNumber": 17
+        },
+        {
+          "caller": "validate_days_of_week",
+          "callee": "all",
+          "lineNumber": 18
+        },
+        {
+          "caller": "validate_days_of_week",
+          "callee": "isinstance",
+          "lineNumber": 18
+        },
+        {
+          "caller": "validate_days_of_week",
+          "callee": "ValueError",
+          "lineNumber": 19
+        },
+        {
+          "caller": "validate_days_of_week",
+          "callee": "sorted",
+          "lineNumber": 20
+        },
+        {
+          "caller": "validate_days_of_week",
+          "callee": "set",
+          "lineNumber": 20
+        },
+        {
+          "caller": "validate_time",
+          "callee": "map",
+          "lineNumber": 26
+        },
+        {
+          "caller": "validate_time",
+          "callee": "v.split",
+          "lineNumber": 26
+        },
+        {
+          "caller": "validate_time",
+          "callee": "ValueError",
+          "lineNumber": 28
+        },
+        {
+          "caller": "validate_time",
+          "callee": "ValueError",
+          "lineNumber": 31
+        },
+        {
+          "caller": "validate_device_ids",
+          "callee": "isinstance",
+          "lineNumber": 36
+        },
+        {
+          "caller": "validate_device_ids",
+          "callee": "ValueError",
+          "lineNumber": 37
+        },
+        {
+          "caller": "validate_device_ids",
+          "callee": "all",
+          "lineNumber": 38
+        },
+        {
+          "caller": "validate_device_ids",
+          "callee": "isinstance",
+          "lineNumber": 38
+        },
+        {
+          "caller": "validate_device_ids",
+          "callee": "ValueError",
+          "lineNumber": 39
+        },
+        {
+          "caller": "validate_days_of_week",
+          "callee": "isinstance",
+          "lineNumber": 58
+        },
+        {
+          "caller": "validate_days_of_week",
+          "callee": "ValueError",
+          "lineNumber": 59
+        },
+        {
+          "caller": "validate_days_of_week",
+          "callee": "all",
+          "lineNumber": 60
+        },
+        {
+          "caller": "validate_days_of_week",
+          "callee": "isinstance",
+          "lineNumber": 60
+        },
+        {
+          "caller": "validate_days_of_week",
+          "callee": "ValueError",
+          "lineNumber": 61
+        },
+        {
+          "caller": "validate_days_of_week",
+          "callee": "sorted",
+          "lineNumber": 62
+        },
+        {
+          "caller": "validate_days_of_week",
+          "callee": "set",
+          "lineNumber": 62
+        },
+        {
+          "caller": "validate_time",
+          "callee": "map",
+          "lineNumber": 70
+        },
+        {
+          "caller": "validate_time",
+          "callee": "v.split",
+          "lineNumber": 70
+        },
+        {
+          "caller": "validate_time",
+          "callee": "ValueError",
+          "lineNumber": 72
+        },
+        {
+          "caller": "validate_time",
+          "callee": "ValueError",
+          "lineNumber": 75
+        },
+        {
+          "caller": "validate_device_ids",
+          "callee": "isinstance",
+          "lineNumber": 82
+        },
+        {
+          "caller": "validate_device_ids",
+          "callee": "ValueError",
+          "lineNumber": 83
+        },
+        {
+          "caller": "validate_device_ids",
+          "callee": "all",
+          "lineNumber": 84
+        },
+        {
+          "caller": "validate_device_ids",
+          "callee": "isinstance",
+          "lineNumber": 84
+        },
+        {
+          "caller": "validate_device_ids",
+          "callee": "ValueError",
+          "lineNumber": 85
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 4,
+        "functionCount": 0,
+        "classCount": 4
+      }
+    },
+    {
+      "path": "backend/app/services/__init__.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 2,
+      "nonEmptyLines": 2,
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/core/input_resolver.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 286,
+      "nonEmptyLines": 239,
+      "functions": [
+        {
+          "name": "_vendor_task_id",
+          "startLine": 44,
+          "endLine": 46,
+          "params": [
+            "vendor"
+          ]
+        },
+        {
+          "name": "_get",
+          "startLine": 49,
+          "endLine": 54,
+          "params": [
+            "files",
+            "task_id",
+            "slot"
+          ]
+        },
+        {
+          "name": "_require",
+          "startLine": 57,
+          "endLine": 66,
+          "params": [
+            "files",
+            "task_id",
+            "slot",
+            "label"
+          ]
+        },
+        {
+          "name": "resolve_inputs",
+          "startLine": 69,
+          "endLine": 238,
+          "params": [
+            "task_id",
+            "project_files",
+            "vendor"
+          ]
+        },
+        {
+          "name": "get_vendor_task_id",
+          "startLine": 241,
+          "endLine": 242,
+          "params": [
+            "vendor"
+          ]
+        },
+        {
+          "name": "get_downstream_tasks",
+          "startLine": 271,
+          "endLine": 286,
+          "params": [
+            "task_id"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "MissingInputError",
+          "startLine": 40,
+          "endLine": 41,
+          "methods": [],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "MissingInputError",
+          "line": 40,
+          "isDefault": false
+        },
+        {
+          "name": "_vendor_task_id",
+          "line": 44,
+          "isDefault": false
+        },
+        {
+          "name": "_get",
+          "line": 49,
+          "isDefault": false
+        },
+        {
+          "name": "_require",
+          "line": 57,
+          "isDefault": false
+        },
+        {
+          "name": "resolve_inputs",
+          "line": 69,
+          "isDefault": false
+        },
+        {
+          "name": "get_vendor_task_id",
+          "line": 241,
+          "isDefault": false
+        },
+        {
+          "name": "get_downstream_tasks",
+          "line": 271,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_vendor_task_id",
+          "callee": "vendor.lower",
+          "lineNumber": 46
+        },
+        {
+          "caller": "_get",
+          "callee": "files.get",
+          "lineNumber": 54
+        },
+        {
+          "caller": "_require",
+          "callee": "_get",
+          "lineNumber": 63
+        },
+        {
+          "caller": "_require",
+          "callee": "MissingInputError",
+          "lineNumber": 65
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_vendor_task_id",
+          "lineNumber": 88
+        },
+        {
+          "caller": "collect",
+          "callee": "result.append",
+          "lineNumber": 94
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 100
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_get",
+          "lineNumber": 101
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "collect",
+          "lineNumber": 102
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 107
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "collect",
+          "lineNumber": 108
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 112
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "collect",
+          "lineNumber": 113
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 117
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 118
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "collect",
+          "lineNumber": 119
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_get",
+          "lineNumber": 123
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 123
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "collect",
+          "lineNumber": 126
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 131
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "collect",
+          "lineNumber": 132
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_get",
+          "lineNumber": 136
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 136
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 139
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "collect",
+          "lineNumber": 140
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 144
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 145
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "collect",
+          "lineNumber": 146
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 150
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "collect",
+          "lineNumber": 151
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 156
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_get",
+          "lineNumber": 158
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_get",
+          "lineNumber": 159
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_get",
+          "lineNumber": 160
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "MissingInputError",
+          "lineNumber": 163
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "collect",
+          "lineNumber": 164
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 168
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "collect",
+          "lineNumber": 169
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 175
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 176
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "collect",
+          "lineNumber": 177
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 182
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 183
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_get",
+          "lineNumber": 184
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_get",
+          "lineNumber": 185
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "files.append",
+          "lineNumber": 187
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "files.append",
+          "lineNumber": 188
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 199
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_get",
+          "lineNumber": 201
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 202
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "collect",
+          "lineNumber": 204
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 208
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "collect",
+          "lineNumber": 209
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 213
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "collect",
+          "lineNumber": 214
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_get",
+          "lineNumber": 223
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "MissingInputError",
+          "lineNumber": 231
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 233
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 234
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "_require",
+          "lineNumber": 235
+        },
+        {
+          "caller": "resolve_inputs",
+          "callee": "collect",
+          "lineNumber": 236
+        },
+        {
+          "caller": "get_vendor_task_id",
+          "callee": "_vendor_task_id",
+          "lineNumber": 242
+        },
+        {
+          "caller": "get_downstream_tasks",
+          "callee": "list",
+          "lineNumber": 279
+        },
+        {
+          "caller": "get_downstream_tasks",
+          "callee": "_DIRECT_DEPENDENTS.get",
+          "lineNumber": 279
+        },
+        {
+          "caller": "get_downstream_tasks",
+          "callee": "queue.pop",
+          "lineNumber": 281
+        },
+        {
+          "caller": "get_downstream_tasks",
+          "callee": "visited.append",
+          "lineNumber": 284
+        },
+        {
+          "caller": "get_downstream_tasks",
+          "callee": "queue.extend",
+          "lineNumber": 285
+        },
+        {
+          "caller": "get_downstream_tasks",
+          "callee": "_DIRECT_DEPENDENTS.get",
+          "lineNumber": 285
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 7,
+        "functionCount": 6,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/deletion_workflow/export_service.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 178,
+      "nonEmptyLines": 148,
+      "functions": [
+        {
+          "name": "df_to_xlsx_bytes",
+          "startLine": 31,
+          "endLine": 38,
+          "params": [
+            "sheets"
+          ]
+        },
+        {
+          "name": "build_device_export",
+          "startLine": 41,
+          "endLine": 114,
+          "params": [
+            "db",
+            "device",
+            "reference_date"
+          ]
+        },
+        {
+          "name": "build_redundancy_export",
+          "startLine": 117,
+          "endLine": 178,
+          "params": [
+            "db",
+            "device_id",
+            "device"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "ExportDataError",
+          "startLine": 27,
+          "endLine": 28,
+          "methods": [],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "ExportDataError",
+          "line": 27,
+          "isDefault": false
+        },
+        {
+          "name": "df_to_xlsx_bytes",
+          "line": 31,
+          "isDefault": false
+        },
+        {
+          "name": "build_device_export",
+          "line": 41,
+          "isDefault": false
+        },
+        {
+          "name": "build_redundancy_export",
+          "line": 117,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "df_to_xlsx_bytes",
+          "callee": "io.BytesIO",
+          "lineNumber": 33
+        },
+        {
+          "caller": "df_to_xlsx_bytes",
+          "callee": "pd.ExcelWriter",
+          "lineNumber": 34
+        },
+        {
+          "caller": "df_to_xlsx_bytes",
+          "callee": "sheets.items",
+          "lineNumber": 35
+        },
+        {
+          "caller": "df_to_xlsx_bytes",
+          "callee": "df.to_excel",
+          "lineNumber": 37
+        },
+        {
+          "caller": "df_to_xlsx_bytes",
+          "callee": "buf.getvalue",
+          "lineNumber": 38
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "db.execute",
+          "lineNumber": 50
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "select(Policy)\n        .filter(Policy.device_id == device_id, Policy.is_active == True)\n        .order_by",
+          "lineNumber": 51
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "select(Policy)\n        .filter",
+          "lineNumber": 51
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "select",
+          "lineNumber": 51
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "policies_result.scalars().all",
+          "lineNumber": 55
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "policies_result.scalars",
+          "lineNumber": 55
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "ExportDataError",
+          "lineNumber": 57
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "datetime.date.today",
+          "lineNumber": 61
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "p.last_hit_date.strftime",
+          "lineNumber": 74
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "p.last_hit_date.date",
+          "lineNumber": 75
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "db.execute",
+          "lineNumber": 78
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "select(NetworkObject).filter",
+          "lineNumber": 79
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "select",
+          "lineNumber": 79
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "addr_result.scalars().all",
+          "lineNumber": 82
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "addr_result.scalars",
+          "lineNumber": 82
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "db.execute",
+          "lineNumber": 84
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "select(NetworkGroup).filter",
+          "lineNumber": 85
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "select",
+          "lineNumber": 85
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "ag_result.scalars().all",
+          "lineNumber": 88
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "ag_result.scalars",
+          "lineNumber": 88
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "db.execute",
+          "lineNumber": 90
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "select(Service).filter",
+          "lineNumber": 91
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "select",
+          "lineNumber": 91
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "svc_result.scalars().all",
+          "lineNumber": 94
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "svc_result.scalars",
+          "lineNumber": 94
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "db.execute",
+          "lineNumber": 96
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "select(ServiceGroup).filter",
+          "lineNumber": 97
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "select",
+          "lineNumber": 97
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "sg_result.scalars().all",
+          "lineNumber": 100
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "sg_result.scalars",
+          "lineNumber": 100
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "pd.DataFrame",
+          "lineNumber": 102
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "pd.DataFrame",
+          "lineNumber": 102
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "pd.DataFrame",
+          "lineNumber": 104
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "pd.DataFrame",
+          "lineNumber": 106
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "pd.DataFrame",
+          "lineNumber": 108
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "pd.DataFrame",
+          "lineNumber": 110
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "asyncio.get_running_loop().run_in_executor",
+          "lineNumber": 112
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "asyncio.get_running_loop",
+          "lineNumber": 112
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "df_to_xlsx_bytes",
+          "lineNumber": 112
+        },
+        {
+          "caller": "build_device_export",
+          "callee": "today.strftime",
+          "lineNumber": 113
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "db.execute",
+          "lineNumber": 122
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "select(AnalysisTask)\n        .filter(\n            AnalysisTask.device_id == device_id,\n            AnalysisTask.task_type == AnalysisTaskType.REDUNDANCY,\n            AnalysisTask.task_status == AnalysisTaskStatus.SUCCESS,\n        )\n        .order_by(AnalysisTask.completed_at.desc())\n        .limit",
+          "lineNumber": 123
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "select(AnalysisTask)\n        .filter(\n            AnalysisTask.device_id == device_id,\n            AnalysisTask.task_type == AnalysisTaskType.REDUNDANCY,\n            AnalysisTask.task_status == AnalysisTaskStatus.SUCCESS,\n        )\n        .order_by",
+          "lineNumber": 123
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "select(AnalysisTask)\n        .filter",
+          "lineNumber": 123
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "select",
+          "lineNumber": 123
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "AnalysisTask.completed_at.desc",
+          "lineNumber": 129
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "result.scalar_one_or_none",
+          "lineNumber": 132
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "ExportDataError",
+          "lineNumber": 134
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "crud.analysis.get_redundancy_policy_sets_by_task",
+          "lineNumber": 138
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "ExportDataError",
+          "lineNumber": 140
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "logger.warning",
+          "lineNumber": 148
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "len",
+          "lineNumber": 149
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "sorted",
+          "lineNumber": 150
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "rows.append",
+          "lineNumber": 158
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "ExportDataError",
+          "lineNumber": 169
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "asyncio.get_running_loop().run_in_executor",
+          "lineNumber": 171
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "asyncio.get_running_loop",
+          "lineNumber": 171
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "df_to_xlsx_bytes",
+          "lineNumber": 172
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "pd.DataFrame",
+          "lineNumber": 172
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "datetime.date.today().strftime",
+          "lineNumber": 175
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "datetime.date.today",
+          "lineNumber": 175
+        },
+        {
+          "caller": "build_redundancy_export",
+          "callee": "str",
+          "lineNumber": 176
+        }
+      ],
+      "metrics": {
+        "importCount": 8,
+        "exportCount": 4,
+        "functionCount": 3,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/device_service.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 34,
+      "nonEmptyLines": 31,
+      "functions": [
+        {
+          "name": "test_device_connection",
+          "startLine": 6,
+          "endLine": 34,
+          "params": [
+            "device"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "test_device_connection",
+          "line": 6,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "test_device_connection",
+          "callee": "decrypt",
+          "lineNumber": 11
+        },
+        {
+          "caller": "test_device_connection",
+          "callee": "(device.vendor or \"\").lower",
+          "lineNumber": 14
+        },
+        {
+          "caller": "test_device_connection",
+          "callee": "FirewallCollectorFactory.get_collector",
+          "lineNumber": 20
+        },
+        {
+          "caller": "test_device_connection",
+          "callee": "device.vendor.lower",
+          "lineNumber": 21
+        },
+        {
+          "caller": "test_device_connection",
+          "callee": "asyncio.get_running_loop",
+          "lineNumber": 27
+        },
+        {
+          "caller": "test_device_connection",
+          "callee": "loop.run_in_executor",
+          "lineNumber": 28
+        },
+        {
+          "caller": "test_device_connection",
+          "callee": "loop.run_in_executor",
+          "lineNumber": 29
+        },
+        {
+          "caller": "test_device_connection",
+          "callee": "str",
+          "lineNumber": 34
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/app/services/export/tasks.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 375,
+      "nonEmptyLines": 320,
+      "functions": [
+        {
+          "name": "_now_kst",
+          "startLine": 53,
+          "endLine": 54,
+          "params": []
+        },
+        {
+          "name": "_write_df_to_ws",
+          "startLine": 57,
+          "endLine": 68,
+          "params": [
+            "ws",
+            "df"
+          ]
+        },
+        {
+          "name": "_single_sheet_excel",
+          "startLine": 71,
+          "endLine": 78,
+          "params": [
+            "df",
+            "sheet_name"
+          ]
+        },
+        {
+          "name": "_multi_sheet_excel",
+          "startLine": 81,
+          "endLine": 89,
+          "params": [
+            "sheets"
+          ]
+        },
+        {
+          "name": "_normalize_policy_df",
+          "startLine": 92,
+          "endLine": 96,
+          "params": [
+            "df"
+          ]
+        },
+        {
+          "name": "_normalize_object_dfs",
+          "startLine": 99,
+          "endLine": 110,
+          "params": [
+            "net_obj",
+            "net_grp",
+            "svc_obj",
+            "svc_grp"
+          ]
+        },
+        {
+          "name": "_collect_db_policies",
+          "startLine": 113,
+          "endLine": 122,
+          "params": [
+            "db",
+            "device_id"
+          ]
+        },
+        {
+          "name": "_collect_db_objects",
+          "startLine": 125,
+          "endLine": 135,
+          "params": [
+            "db",
+            "device_id"
+          ]
+        },
+        {
+          "name": "_collect_db_hit_dates",
+          "startLine": 138,
+          "endLine": 141,
+          "params": [
+            "db",
+            "device_id"
+          ]
+        },
+        {
+          "name": "_collect_hit_dates",
+          "startLine": 144,
+          "endLine": 189,
+          "params": [
+            "collector",
+            "device",
+            "use_ssh",
+            "loop",
+            "timeout"
+          ]
+        },
+        {
+          "name": "_collect_live_export",
+          "startLine": 192,
+          "endLine": 229,
+          "params": [
+            "device",
+            "export_type",
+            "use_ssh",
+            "loop",
+            "timeout"
+          ]
+        },
+        {
+          "name": "_update_export_task",
+          "startLine": 232,
+          "endLine": 279,
+          "params": [
+            "task_id",
+            "status",
+            "step",
+            "progress_current",
+            "progress_total",
+            "error_message",
+            "result_file_path",
+            "result_filename"
+          ]
+        },
+        {
+          "name": "run_export_task",
+          "startLine": 282,
+          "endLine": 375,
+          "params": [
+            "task_id"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "_now_kst",
+          "line": 53,
+          "isDefault": false
+        },
+        {
+          "name": "_write_df_to_ws",
+          "line": 57,
+          "isDefault": false
+        },
+        {
+          "name": "_single_sheet_excel",
+          "line": 71,
+          "isDefault": false
+        },
+        {
+          "name": "_multi_sheet_excel",
+          "line": 81,
+          "isDefault": false
+        },
+        {
+          "name": "_normalize_policy_df",
+          "line": 92,
+          "isDefault": false
+        },
+        {
+          "name": "_normalize_object_dfs",
+          "line": 99,
+          "isDefault": false
+        },
+        {
+          "name": "_collect_db_policies",
+          "line": 113,
+          "isDefault": false
+        },
+        {
+          "name": "_collect_db_objects",
+          "line": 125,
+          "isDefault": false
+        },
+        {
+          "name": "_collect_db_hit_dates",
+          "line": 138,
+          "isDefault": false
+        },
+        {
+          "name": "_collect_hit_dates",
+          "line": 144,
+          "isDefault": false
+        },
+        {
+          "name": "_collect_live_export",
+          "line": 192,
+          "isDefault": false
+        },
+        {
+          "name": "_update_export_task",
+          "line": 232,
+          "isDefault": false
+        },
+        {
+          "name": "run_export_task",
+          "line": 282,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_now_kst",
+          "callee": "datetime.now(ZoneInfo(\"Asia/Seoul\")).replace",
+          "lineNumber": 54
+        },
+        {
+          "caller": "_now_kst",
+          "callee": "datetime.now",
+          "lineNumber": 54
+        },
+        {
+          "caller": "_now_kst",
+          "callee": "ZoneInfo",
+          "lineNumber": 54
+        },
+        {
+          "caller": "_write_df_to_ws",
+          "callee": "ws.append",
+          "lineNumber": 58
+        },
+        {
+          "caller": "_write_df_to_ws",
+          "callee": "list",
+          "lineNumber": 58
+        },
+        {
+          "caller": "_write_df_to_ws",
+          "callee": "df.itertuples",
+          "lineNumber": 64
+        },
+        {
+          "caller": "_write_df_to_ws",
+          "callee": "ws.append",
+          "lineNumber": 65
+        },
+        {
+          "caller": "_write_df_to_ws",
+          "callee": "list",
+          "lineNumber": 65
+        },
+        {
+          "caller": "_write_df_to_ws",
+          "callee": "max",
+          "lineNumber": 67
+        },
+        {
+          "caller": "_write_df_to_ws",
+          "callee": "len",
+          "lineNumber": 67
+        },
+        {
+          "caller": "_write_df_to_ws",
+          "callee": "str",
+          "lineNumber": 67
+        },
+        {
+          "caller": "_write_df_to_ws",
+          "callee": "min",
+          "lineNumber": 68
+        },
+        {
+          "caller": "_single_sheet_excel",
+          "callee": "Workbook",
+          "lineNumber": 72
+        },
+        {
+          "caller": "_single_sheet_excel",
+          "callee": "_write_df_to_ws",
+          "lineNumber": 75
+        },
+        {
+          "caller": "_single_sheet_excel",
+          "callee": "BytesIO",
+          "lineNumber": 76
+        },
+        {
+          "caller": "_single_sheet_excel",
+          "callee": "wb.save",
+          "lineNumber": 77
+        },
+        {
+          "caller": "_multi_sheet_excel",
+          "callee": "Workbook",
+          "lineNumber": 82
+        },
+        {
+          "caller": "_multi_sheet_excel",
+          "callee": "wb.remove",
+          "lineNumber": 83
+        },
+        {
+          "caller": "_multi_sheet_excel",
+          "callee": "sheets.items",
+          "lineNumber": 84
+        },
+        {
+          "caller": "_multi_sheet_excel",
+          "callee": "wb.create_sheet",
+          "lineNumber": 85
+        },
+        {
+          "caller": "_multi_sheet_excel",
+          "callee": "_write_df_to_ws",
+          "lineNumber": 86
+        },
+        {
+          "caller": "_multi_sheet_excel",
+          "callee": "BytesIO",
+          "lineNumber": 87
+        },
+        {
+          "caller": "_multi_sheet_excel",
+          "callee": "wb.save",
+          "lineNumber": 88
+        },
+        {
+          "caller": "_normalize_policy_df",
+          "callee": "df.copy",
+          "lineNumber": 93
+        },
+        {
+          "caller": "_normalize_policy_df",
+          "callee": "df[\"enable\"].map",
+          "lineNumber": 95
+        },
+        {
+          "caller": "_normalize_policy_df",
+          "callee": "str(v).upper",
+          "lineNumber": 95
+        },
+        {
+          "caller": "_normalize_policy_df",
+          "callee": "str",
+          "lineNumber": 95
+        },
+        {
+          "caller": "_normalize_policy_df",
+          "callee": "df.rename",
+          "lineNumber": 96
+        },
+        {
+          "caller": "_normalize_policy_df",
+          "callee": "_POLICY_COL_MAP.items",
+          "lineNumber": 96
+        },
+        {
+          "caller": "_normalize_object_dfs",
+          "callee": "net_obj.rename",
+          "lineNumber": 106
+        },
+        {
+          "caller": "_normalize_object_dfs",
+          "callee": "net_grp.rename",
+          "lineNumber": 107
+        },
+        {
+          "caller": "_normalize_object_dfs",
+          "callee": "svc_obj.rename",
+          "lineNumber": 108
+        },
+        {
+          "caller": "_normalize_object_dfs",
+          "callee": "svc_grp.rename",
+          "lineNumber": 109
+        },
+        {
+          "caller": "_collect_db_policies",
+          "callee": "crud.policy.get_policies_by_device",
+          "lineNumber": 114
+        },
+        {
+          "caller": "_collect_db_policies",
+          "callee": "pd.DataFrame",
+          "lineNumber": 122
+        },
+        {
+          "caller": "_collect_db_objects",
+          "callee": "crud.network_object.get_all_active_network_objects_by_device",
+          "lineNumber": 126
+        },
+        {
+          "caller": "_collect_db_objects",
+          "callee": "crud.network_group.get_all_active_network_groups_by_device",
+          "lineNumber": 127
+        },
+        {
+          "caller": "_collect_db_objects",
+          "callee": "crud.service.get_all_active_services_by_device",
+          "lineNumber": 128
+        },
+        {
+          "caller": "_collect_db_objects",
+          "callee": "crud.service_group.get_all_active_service_groups_by_device",
+          "lineNumber": 129
+        },
+        {
+          "caller": "_collect_db_objects",
+          "callee": "pd.DataFrame",
+          "lineNumber": 131
+        },
+        {
+          "caller": "_collect_db_objects",
+          "callee": "pd.DataFrame",
+          "lineNumber": 132
+        },
+        {
+          "caller": "_collect_db_objects",
+          "callee": "pd.DataFrame",
+          "lineNumber": 133
+        },
+        {
+          "caller": "_collect_db_objects",
+          "callee": "pd.DataFrame",
+          "lineNumber": 134
+        },
+        {
+          "caller": "_collect_db_objects",
+          "callee": "_normalize_object_dfs",
+          "lineNumber": 135
+        },
+        {
+          "caller": "_collect_db_hit_dates",
+          "callee": "crud.policy.get_policies_by_device",
+          "lineNumber": 139
+        },
+        {
+          "caller": "_collect_db_hit_dates",
+          "callee": "pd.DataFrame",
+          "lineNumber": 141
+        },
+        {
+          "caller": "_method",
+          "callee": "collector.export_last_hit_date_ssh",
+          "lineNumber": 153
+        },
+        {
+          "caller": "_method",
+          "callee": "collector.export_last_hit_date",
+          "lineNumber": 154
+        },
+        {
+          "caller": "_collect_hit_dates",
+          "callee": "asyncio.wait_for",
+          "lineNumber": 156
+        },
+        {
+          "caller": "_collect_hit_dates",
+          "callee": "loop.run_in_executor",
+          "lineNumber": 157
+        },
+        {
+          "caller": "_collect_hit_dates",
+          "callee": "create_collector_from_device",
+          "lineNumber": 163
+        },
+        {
+          "caller": "_collect_hit_dates",
+          "callee": "loop.run_in_executor",
+          "lineNumber": 166
+        },
+        {
+          "caller": "_ha_method",
+          "callee": "ha_collector.export_last_hit_date_ssh",
+          "lineNumber": 170
+        },
+        {
+          "caller": "_ha_method",
+          "callee": "ha_collector.export_last_hit_date",
+          "lineNumber": 171
+        },
+        {
+          "caller": "_collect_hit_dates",
+          "callee": "loop.run_in_executor",
+          "lineNumber": 173
+        },
+        {
+          "caller": "_collect_hit_dates",
+          "callee": "logger.warning",
+          "lineNumber": 175
+        },
+        {
+          "caller": "_collect_hit_dates",
+          "callee": "loop.run_in_executor",
+          "lineNumber": 178
+        },
+        {
+          "caller": "_collect_hit_dates",
+          "callee": "pd.concat",
+          "lineNumber": 185
+        },
+        {
+          "caller": "_collect_hit_dates",
+          "callee": "pd.to_datetime",
+          "lineNumber": 186
+        },
+        {
+          "caller": "_collect_hit_dates",
+          "callee": "combined.sort_values",
+          "lineNumber": 188
+        },
+        {
+          "caller": "_collect_hit_dates",
+          "callee": "combined.drop_duplicates",
+          "lineNumber": 189
+        },
+        {
+          "caller": "_collect_live_export",
+          "callee": "create_collector_from_device",
+          "lineNumber": 200
+        },
+        {
+          "caller": "_collect_live_export",
+          "callee": "RuntimeError",
+          "lineNumber": 202
+        },
+        {
+          "caller": "_collect_live_export",
+          "callee": "asyncio.wait_for",
+          "lineNumber": 205
+        },
+        {
+          "caller": "_collect_live_export",
+          "callee": "loop.run_in_executor",
+          "lineNumber": 205
+        },
+        {
+          "caller": "_collect_live_export",
+          "callee": "min",
+          "lineNumber": 205
+        },
+        {
+          "caller": "_collect_live_export",
+          "callee": "RuntimeError",
+          "lineNumber": 207
+        },
+        {
+          "caller": "_collect_live_export",
+          "callee": "RuntimeError",
+          "lineNumber": 209
+        },
+        {
+          "caller": "_collect_live_export",
+          "callee": "asyncio.wait_for",
+          "lineNumber": 213
+        },
+        {
+          "caller": "_collect_live_export",
+          "callee": "loop.run_in_executor",
+          "lineNumber": 214
+        },
+        {
+          "caller": "_collect_live_export",
+          "callee": "_normalize_policy_df",
+          "lineNumber": 216
+        },
+        {
+          "caller": "_collect_live_export",
+          "callee": "loop.run_in_executor",
+          "lineNumber": 218
+        },
+        {
+          "caller": "_collect_live_export",
+          "callee": "loop.run_in_executor",
+          "lineNumber": 219
+        },
+        {
+          "caller": "_collect_live_export",
+          "callee": "loop.run_in_executor",
+          "lineNumber": 220
+        },
+        {
+          "caller": "_collect_live_export",
+          "callee": "loop.run_in_executor",
+          "lineNumber": 221
+        },
+        {
+          "caller": "_collect_live_export",
+          "callee": "_normalize_object_dfs",
+          "lineNumber": 222
+        },
+        {
+          "caller": "_collect_live_export",
+          "callee": "_collect_hit_dates",
+          "lineNumber": 224
+        },
+        {
+          "caller": "_collect_live_export",
+          "callee": "loop.run_in_executor",
+          "lineNumber": 227
+        },
+        {
+          "caller": "_update_export_task",
+          "callee": "SessionLocal",
+          "lineNumber": 244
+        },
+        {
+          "caller": "_update_export_task",
+          "callee": "db.get",
+          "lineNumber": 245
+        },
+        {
+          "caller": "_update_export_task",
+          "callee": "_now_kst",
+          "lineNumber": 251
+        },
+        {
+          "caller": "_update_export_task",
+          "callee": "_now_kst",
+          "lineNumber": 253
+        },
+        {
+          "caller": "_update_export_task",
+          "callee": "db.add",
+          "lineNumber": 267
+        },
+        {
+          "caller": "_update_export_task",
+          "callee": "db.commit",
+          "lineNumber": 268
+        },
+        {
+          "caller": "_update_export_task",
+          "callee": "db.refresh",
+          "lineNumber": 269
+        },
+        {
+          "caller": "_update_export_task",
+          "callee": "websocket_manager.broadcast_export_status",
+          "lineNumber": 271
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "SessionLocal",
+          "lineNumber": 291
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "db.get",
+          "lineNumber": 292
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "logger.error",
+          "lineNumber": 294
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "crud.device.get_device",
+          "lineNumber": 305
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "devices.append",
+          "lineNumber": 307
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "_update_export_task",
+          "lineNumber": 310
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "_update_export_task",
+          "lineNumber": 313
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "len",
+          "lineNumber": 314
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "asyncio.get_running_loop",
+          "lineNumber": 317
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "enumerate",
+          "lineNumber": 322
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "_update_export_task",
+          "lineNumber": 323
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "len",
+          "lineNumber": 323
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "SessionLocal",
+          "lineNumber": 325
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "_normalize_policy_df",
+          "lineNumber": 327
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "_collect_db_policies",
+          "lineNumber": 327
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "_collect_db_objects",
+          "lineNumber": 329
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "_collect_db_hit_dates",
+          "lineNumber": 331
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "_collect_live_export",
+          "lineNumber": 333
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "_update_export_task",
+          "lineNumber": 334
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "_update_export_task",
+          "lineNumber": 336
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "date.today().strftime",
+          "lineNumber": 337
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "date.today",
+          "lineNumber": 337
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "len",
+          "lineNumber": 339
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "isinstance",
+          "lineNumber": 343
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "data.items",
+          "lineNumber": 344
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "_multi_sheet_excel",
+          "lineNumber": 348
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "_multi_sheet_excel",
+          "lineNumber": 353
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "isinstance",
+          "lineNumber": 353
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "_single_sheet_excel",
+          "lineNumber": 353
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "EXPORT_DIR.mkdir",
+          "lineNumber": 356
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "output.seek",
+          "lineNumber": 358
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "file_path.write_bytes",
+          "lineNumber": 359
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "output.read",
+          "lineNumber": 359
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "_update_export_task",
+          "lineNumber": 361
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "len",
+          "lineNumber": 365
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "str",
+          "lineNumber": 366
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "_update_export_task",
+          "lineNumber": 370
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "_update_export_task",
+          "lineNumber": 372
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "logger.error",
+          "lineNumber": 374
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "_update_export_task",
+          "lineNumber": 375
+        },
+        {
+          "caller": "run_export_task",
+          "callee": "str",
+          "lineNumber": 375
+        }
+      ],
+      "metrics": {
+        "importCount": 8,
+        "exportCount": 13,
+        "functionCount": 13,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/cleanup_orphaned_redundancy_sets.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 128,
+      "nonEmptyLines": 102,
+      "functions": [
+        {
+          "name": "_find_orphans",
+          "startLine": 34,
+          "endLine": 60,
+          "params": [
+            "db",
+            "device_id"
+          ]
+        },
+        {
+          "name": "_print_entries",
+          "startLine": 63,
+          "endLine": 69,
+          "params": [
+            "entries"
+          ]
+        },
+        {
+          "name": "list_orphans",
+          "startLine": 72,
+          "endLine": 79,
+          "params": [
+            "device_id"
+          ]
+        },
+        {
+          "name": "remove_orphans",
+          "startLine": 82,
+          "endLine": 105,
+          "params": [
+            "device_id",
+            "apply"
+          ]
+        },
+        {
+          "name": "main",
+          "startLine": 108,
+          "endLine": 124,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "_find_orphans",
+          "line": 34,
+          "isDefault": false
+        },
+        {
+          "name": "_print_entries",
+          "line": 63,
+          "isDefault": false
+        },
+        {
+          "name": "list_orphans",
+          "line": 72,
+          "isDefault": false
+        },
+        {
+          "name": "remove_orphans",
+          "line": 82,
+          "isDefault": false
+        },
+        {
+          "name": "main",
+          "line": 108,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_find_orphans",
+          "callee": "select(\n            RedundancyPolicySet.id,\n            RedundancyPolicySet.task_id,\n            RedundancyPolicySet.set_number,\n            RedundancyPolicySet.type,\n            RedundancyPolicySet.policy_id,\n            AnalysisTask.device_id,\n        )\n        .join(AnalysisTask, AnalysisTask.id == RedundancyPolicySet.task_id)\n        .outerjoin(Policy, Policy.id == RedundancyPolicySet.policy_id)\n        .where",
+          "lineNumber": 36
+        },
+        {
+          "caller": "_find_orphans",
+          "callee": "select(\n            RedundancyPolicySet.id,\n            RedundancyPolicySet.task_id,\n            RedundancyPolicySet.set_number,\n            RedundancyPolicySet.type,\n            RedundancyPolicySet.policy_id,\n            AnalysisTask.device_id,\n        )\n        .join(AnalysisTask, AnalysisTask.id == RedundancyPolicySet.task_id)\n        .outerjoin",
+          "lineNumber": 36
+        },
+        {
+          "caller": "_find_orphans",
+          "callee": "select(\n            RedundancyPolicySet.id,\n            RedundancyPolicySet.task_id,\n            RedundancyPolicySet.set_number,\n            RedundancyPolicySet.type,\n            RedundancyPolicySet.policy_id,\n            AnalysisTask.device_id,\n        )\n        .join",
+          "lineNumber": 36
+        },
+        {
+          "caller": "_find_orphans",
+          "callee": "select",
+          "lineNumber": 36
+        },
+        {
+          "caller": "_find_orphans",
+          "callee": "Policy.id.is_",
+          "lineNumber": 46
+        },
+        {
+          "caller": "_find_orphans",
+          "callee": "query.where",
+          "lineNumber": 49
+        },
+        {
+          "caller": "_find_orphans",
+          "callee": "db.execute",
+          "lineNumber": 51
+        },
+        {
+          "caller": "_find_orphans",
+          "callee": "result.all",
+          "lineNumber": 52
+        },
+        {
+          "caller": "_print_entries",
+          "callee": "print",
+          "lineNumber": 65
+        },
+        {
+          "caller": "_print_entries",
+          "callee": "print",
+          "lineNumber": 68
+        },
+        {
+          "caller": "list_orphans",
+          "callee": "SessionLocal",
+          "lineNumber": 73
+        },
+        {
+          "caller": "list_orphans",
+          "callee": "_find_orphans",
+          "lineNumber": 75
+        },
+        {
+          "caller": "list_orphans",
+          "callee": "print",
+          "lineNumber": 76
+        },
+        {
+          "caller": "list_orphans",
+          "callee": "len",
+          "lineNumber": 76
+        },
+        {
+          "caller": "list_orphans",
+          "callee": "_print_entries",
+          "lineNumber": 77
+        },
+        {
+          "caller": "list_orphans",
+          "callee": "db.close",
+          "lineNumber": 79
+        },
+        {
+          "caller": "remove_orphans",
+          "callee": "SessionLocal",
+          "lineNumber": 83
+        },
+        {
+          "caller": "remove_orphans",
+          "callee": "_find_orphans",
+          "lineNumber": 85
+        },
+        {
+          "caller": "remove_orphans",
+          "callee": "print",
+          "lineNumber": 86
+        },
+        {
+          "caller": "remove_orphans",
+          "callee": "len",
+          "lineNumber": 86
+        },
+        {
+          "caller": "remove_orphans",
+          "callee": "_print_entries",
+          "lineNumber": 87
+        },
+        {
+          "caller": "remove_orphans",
+          "callee": "print",
+          "lineNumber": 90
+        },
+        {
+          "caller": "remove_orphans",
+          "callee": "print",
+          "lineNumber": 94
+        },
+        {
+          "caller": "remove_orphans",
+          "callee": "db.execute",
+          "lineNumber": 98
+        },
+        {
+          "caller": "remove_orphans",
+          "callee": "delete(RedundancyPolicySet).where",
+          "lineNumber": 98
+        },
+        {
+          "caller": "remove_orphans",
+          "callee": "delete",
+          "lineNumber": 98
+        },
+        {
+          "caller": "remove_orphans",
+          "callee": "RedundancyPolicySet.id.in_",
+          "lineNumber": 98
+        },
+        {
+          "caller": "remove_orphans",
+          "callee": "db.commit",
+          "lineNumber": 99
+        },
+        {
+          "caller": "remove_orphans",
+          "callee": "print",
+          "lineNumber": 100
+        },
+        {
+          "caller": "remove_orphans",
+          "callee": "len",
+          "lineNumber": 100
+        },
+        {
+          "caller": "remove_orphans",
+          "callee": "print",
+          "lineNumber": 102
+        },
+        {
+          "caller": "remove_orphans",
+          "callee": "db.rollback",
+          "lineNumber": 103
+        },
+        {
+          "caller": "remove_orphans",
+          "callee": "db.close",
+          "lineNumber": 105
+        },
+        {
+          "caller": "main",
+          "callee": "argparse.ArgumentParser",
+          "lineNumber": 109
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_subparsers",
+          "lineNumber": 110
+        },
+        {
+          "caller": "main",
+          "callee": "sub.add_parser",
+          "lineNumber": 112
+        },
+        {
+          "caller": "main",
+          "callee": "p_list.add_argument",
+          "lineNumber": 113
+        },
+        {
+          "caller": "main",
+          "callee": "sub.add_parser",
+          "lineNumber": 115
+        },
+        {
+          "caller": "main",
+          "callee": "p_remove.add_argument",
+          "lineNumber": 116
+        },
+        {
+          "caller": "main",
+          "callee": "p_remove.add_argument",
+          "lineNumber": 117
+        },
+        {
+          "caller": "main",
+          "callee": "parser.parse_args",
+          "lineNumber": 119
+        },
+        {
+          "caller": "main",
+          "callee": "asyncio.run",
+          "lineNumber": 122
+        },
+        {
+          "caller": "main",
+          "callee": "list_orphans",
+          "lineNumber": 122
+        },
+        {
+          "caller": "main",
+          "callee": "asyncio.run",
+          "lineNumber": 124
+        },
+        {
+          "caller": "main",
+          "callee": "remove_orphans",
+          "lineNumber": 124
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 5,
+        "functionCount": 5,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/scripts/find_duplicate_values.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 188,
+      "nonEmptyLines": 155,
+      "functions": [
+        {
+          "name": "split_tokens",
+          "startLine": 29,
+          "endLine": 32,
+          "params": [
+            "value"
+          ]
+        },
+        {
+          "name": "find_device",
+          "startLine": 35,
+          "endLine": 48,
+          "params": [
+            "db",
+            "device_name"
+          ]
+        },
+        {
+          "name": "check_policy_field_duplicates",
+          "startLine": 51,
+          "endLine": 79,
+          "params": [
+            "db",
+            "device"
+          ]
+        },
+        {
+          "name": "check_network_object_duplicates",
+          "startLine": 82,
+          "endLine": 110,
+          "params": [
+            "db",
+            "device"
+          ]
+        },
+        {
+          "name": "check_service_duplicates",
+          "startLine": 113,
+          "endLine": 140,
+          "params": [
+            "db",
+            "device"
+          ]
+        },
+        {
+          "name": "write_csv",
+          "startLine": 143,
+          "endLine": 149,
+          "params": [
+            "path",
+            "rows"
+          ]
+        },
+        {
+          "name": "main",
+          "startLine": 152,
+          "endLine": 179,
+          "params": [
+            "device_name",
+            "csv_prefix"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "split_tokens",
+          "line": 29,
+          "isDefault": false
+        },
+        {
+          "name": "find_device",
+          "line": 35,
+          "isDefault": false
+        },
+        {
+          "name": "check_policy_field_duplicates",
+          "line": 51,
+          "isDefault": false
+        },
+        {
+          "name": "check_network_object_duplicates",
+          "line": 82,
+          "isDefault": false
+        },
+        {
+          "name": "check_service_duplicates",
+          "line": 113,
+          "isDefault": false
+        },
+        {
+          "name": "write_csv",
+          "line": 143,
+          "isDefault": false
+        },
+        {
+          "name": "main",
+          "line": 152,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "split_tokens",
+          "callee": "t.strip",
+          "lineNumber": 32
+        },
+        {
+          "caller": "split_tokens",
+          "callee": "value.split",
+          "lineNumber": 32
+        },
+        {
+          "caller": "split_tokens",
+          "callee": "t.strip",
+          "lineNumber": 32
+        },
+        {
+          "caller": "find_device",
+          "callee": "db.execute",
+          "lineNumber": 36
+        },
+        {
+          "caller": "find_device",
+          "callee": "select(Device).where",
+          "lineNumber": 36
+        },
+        {
+          "caller": "find_device",
+          "callee": "select",
+          "lineNumber": 36
+        },
+        {
+          "caller": "find_device",
+          "callee": "result.scalar_one_or_none",
+          "lineNumber": 37
+        },
+        {
+          "caller": "find_device",
+          "callee": "db.execute",
+          "lineNumber": 42
+        },
+        {
+          "caller": "find_device",
+          "callee": "select(Device.name).where",
+          "lineNumber": 42
+        },
+        {
+          "caller": "find_device",
+          "callee": "select",
+          "lineNumber": 42
+        },
+        {
+          "caller": "find_device",
+          "callee": "Device.name.ilike",
+          "lineNumber": 42
+        },
+        {
+          "caller": "find_device",
+          "callee": "result.all",
+          "lineNumber": 43
+        },
+        {
+          "caller": "find_device",
+          "callee": "print",
+          "lineNumber": 45
+        },
+        {
+          "caller": "find_device",
+          "callee": "print",
+          "lineNumber": 47
+        },
+        {
+          "caller": "check_policy_field_duplicates",
+          "callee": "db.execute",
+          "lineNumber": 53
+        },
+        {
+          "caller": "check_policy_field_duplicates",
+          "callee": "select(Policy).where",
+          "lineNumber": 54
+        },
+        {
+          "caller": "check_policy_field_duplicates",
+          "callee": "select",
+          "lineNumber": 54
+        },
+        {
+          "caller": "check_policy_field_duplicates",
+          "callee": "result.scalars().all",
+          "lineNumber": 56
+        },
+        {
+          "caller": "check_policy_field_duplicates",
+          "callee": "result.scalars",
+          "lineNumber": 56
+        },
+        {
+          "caller": "check_policy_field_duplicates",
+          "callee": "split_tokens",
+          "lineNumber": 65
+        },
+        {
+          "caller": "check_policy_field_duplicates",
+          "callee": "defaultdict",
+          "lineNumber": 66
+        },
+        {
+          "caller": "check_policy_field_duplicates",
+          "callee": "seen.items",
+          "lineNumber": 69
+        },
+        {
+          "caller": "check_policy_field_duplicates",
+          "callee": "rows.append",
+          "lineNumber": 71
+        },
+        {
+          "caller": "check_network_object_duplicates",
+          "callee": "db.execute",
+          "lineNumber": 84
+        },
+        {
+          "caller": "check_network_object_duplicates",
+          "callee": "select(NetworkObject).where",
+          "lineNumber": 85
+        },
+        {
+          "caller": "check_network_object_duplicates",
+          "callee": "select",
+          "lineNumber": 85
+        },
+        {
+          "caller": "check_network_object_duplicates",
+          "callee": "result.scalars().all",
+          "lineNumber": 87
+        },
+        {
+          "caller": "check_network_object_duplicates",
+          "callee": "result.scalars",
+          "lineNumber": 87
+        },
+        {
+          "caller": "check_network_object_duplicates",
+          "callee": "defaultdict",
+          "lineNumber": 89
+        },
+        {
+          "caller": "check_network_object_duplicates",
+          "callee": "(obj.type or \"\").lower",
+          "lineNumber": 95
+        },
+        {
+          "caller": "check_network_object_duplicates",
+          "callee": "(obj.ip_address or \"\").strip().lower",
+          "lineNumber": 95
+        },
+        {
+          "caller": "check_network_object_duplicates",
+          "callee": "(obj.ip_address or \"\").strip",
+          "lineNumber": 95
+        },
+        {
+          "caller": "check_network_object_duplicates",
+          "callee": "groups[key].append",
+          "lineNumber": 96
+        },
+        {
+          "caller": "check_network_object_duplicates",
+          "callee": "groups.items",
+          "lineNumber": 99
+        },
+        {
+          "caller": "check_network_object_duplicates",
+          "callee": "sorted",
+          "lineNumber": 100
+        },
+        {
+          "caller": "check_network_object_duplicates",
+          "callee": "len",
+          "lineNumber": 101
+        },
+        {
+          "caller": "check_network_object_duplicates",
+          "callee": "rows.append",
+          "lineNumber": 104
+        },
+        {
+          "caller": "check_network_object_duplicates",
+          "callee": "\", \".join",
+          "lineNumber": 108
+        },
+        {
+          "caller": "check_service_duplicates",
+          "callee": "db.execute",
+          "lineNumber": 115
+        },
+        {
+          "caller": "check_service_duplicates",
+          "callee": "select(Service).where",
+          "lineNumber": 116
+        },
+        {
+          "caller": "check_service_duplicates",
+          "callee": "select",
+          "lineNumber": 116
+        },
+        {
+          "caller": "check_service_duplicates",
+          "callee": "result.scalars().all",
+          "lineNumber": 118
+        },
+        {
+          "caller": "check_service_duplicates",
+          "callee": "result.scalars",
+          "lineNumber": 118
+        },
+        {
+          "caller": "check_service_duplicates",
+          "callee": "defaultdict",
+          "lineNumber": 120
+        },
+        {
+          "caller": "check_service_duplicates",
+          "callee": "(svc.protocol or \"\").lower",
+          "lineNumber": 123
+        },
+        {
+          "caller": "check_service_duplicates",
+          "callee": "(svc.protocol or \"\").lower",
+          "lineNumber": 125
+        },
+        {
+          "caller": "check_service_duplicates",
+          "callee": "(svc.port or \"\").strip().lower",
+          "lineNumber": 125
+        },
+        {
+          "caller": "check_service_duplicates",
+          "callee": "(svc.port or \"\").strip",
+          "lineNumber": 125
+        },
+        {
+          "caller": "check_service_duplicates",
+          "callee": "groups[key].append",
+          "lineNumber": 126
+        },
+        {
+          "caller": "check_service_duplicates",
+          "callee": "groups.items",
+          "lineNumber": 129
+        },
+        {
+          "caller": "check_service_duplicates",
+          "callee": "sorted",
+          "lineNumber": 130
+        },
+        {
+          "caller": "check_service_duplicates",
+          "callee": "len",
+          "lineNumber": 131
+        },
+        {
+          "caller": "check_service_duplicates",
+          "callee": "rows.append",
+          "lineNumber": 134
+        },
+        {
+          "caller": "check_service_duplicates",
+          "callee": "\", \".join",
+          "lineNumber": 138
+        },
+        {
+          "caller": "write_csv",
+          "callee": "open",
+          "lineNumber": 146
+        },
+        {
+          "caller": "write_csv",
+          "callee": "csv.DictWriter",
+          "lineNumber": 147
+        },
+        {
+          "caller": "write_csv",
+          "callee": "list",
+          "lineNumber": 147
+        },
+        {
+          "caller": "write_csv",
+          "callee": "rows[0].keys",
+          "lineNumber": 147
+        },
+        {
+          "caller": "write_csv",
+          "callee": "writer.writeheader",
+          "lineNumber": 148
+        },
+        {
+          "caller": "write_csv",
+          "callee": "writer.writerows",
+          "lineNumber": 149
+        },
+        {
+          "caller": "main",
+          "callee": "SessionLocal",
+          "lineNumber": 153
+        },
+        {
+          "caller": "main",
+          "callee": "find_device",
+          "lineNumber": 154
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 158
+        },
+        {
+          "caller": "main",
+          "callee": "check_policy_field_duplicates",
+          "lineNumber": 160
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 161
+        },
+        {
+          "caller": "main",
+          "callee": "len",
+          "lineNumber": 161
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 163
+        },
+        {
+          "caller": "main",
+          "callee": "check_network_object_duplicates",
+          "lineNumber": 165
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 166
+        },
+        {
+          "caller": "main",
+          "callee": "len",
+          "lineNumber": 166
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 168
+        },
+        {
+          "caller": "main",
+          "callee": "check_service_duplicates",
+          "lineNumber": 170
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 171
+        },
+        {
+          "caller": "main",
+          "callee": "len",
+          "lineNumber": 171
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 173
+        },
+        {
+          "caller": "main",
+          "callee": "write_csv",
+          "lineNumber": 176
+        },
+        {
+          "caller": "main",
+          "callee": "write_csv",
+          "lineNumber": 177
+        },
+        {
+          "caller": "main",
+          "callee": "write_csv",
+          "lineNumber": 178
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 179
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 7,
+        "functionCount": 7,
+        "classCount": 0
+      }
+    }
+  ]
+}

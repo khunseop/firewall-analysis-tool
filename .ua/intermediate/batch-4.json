@@ -1,0 +1,604 @@
+{
+  "nodes": [
+    {
+      "id": "file:backend/app/services/deletion_workflow/config_bridge.py",
+      "type": "file",
+      "name": "config_bridge.py",
+      "filePath": "backend/app/services/deletion_workflow/config_bridge.py",
+      "summary": "DB의 Settings 테이블(deletion_workflow_config 키)과 삭제 워크플로우 파이프라인 설정 딕셔너리를 연결하는 브릿지. 예외(exception) 목록 업로드 엑셀을 파싱해 만료일을 계산하고 병합한 뒤 Settings에 저장한다.",
+      "tags": ["config-bridge", "deletion-workflow", "settings-integration", "excel-parsing"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/services/deletion_workflow/config_bridge.py:load_config_dict",
+      "type": "function",
+      "name": "load_config_dict",
+      "filePath": "backend/app/services/deletion_workflow/config_bridge.py",
+      "lineRange": [21, 31],
+      "summary": "DB Settings에서 deletion_workflow_config JSON을 읽어 기본값과 병합한 뒤 딕셔너리로 반환하고, 없으면 FPAT YAML을 폴백으로 로드한다.",
+      "tags": ["config-loader", "settings"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/deletion_workflow/config_bridge.py:save_task15_exceptions_to_settings",
+      "type": "function",
+      "name": "save_task15_exceptions_to_settings",
+      "filePath": "backend/app/services/deletion_workflow/config_bridge.py",
+      "lineRange": [34, 134],
+      "summary": "Task15 산출 엑셀(예외 목록)을 파싱해 등록일/만료일을 계산하고 기존 Settings의 exceptions 설정과 병합하여 DB에 저장한다.",
+      "tags": ["excel-parsing", "settings-update", "exception-handling"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/core/config_manager.py",
+      "type": "file",
+      "name": "config_manager.py",
+      "filePath": "backend/app/services/deletion_workflow/core/config_manager.py",
+      "summary": "삭제 워크플로우 YAML/JSON 설정 파일을 탐색·로드하고, 점(dot) 표기 키 조회, 기준일 계산, 예외(exception) 목록 매칭 판정 등을 제공하는 설정 관리 클래스.",
+      "tags": ["configuration", "config-manager", "singleton", "deletion-workflow"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/core/config_manager.py:ConfigManager",
+      "type": "class",
+      "name": "ConfigManager",
+      "filePath": "backend/app/services/deletion_workflow/core/config_manager.py",
+      "lineRange": [23, 210],
+      "summary": "설정 파일 경로 탐색(_find_config), YAML/JSON 로드, dot 표기 키 조회(get), 기준일 계산(get_reference_date), 정책이 예외 목록에 해당하는지 판정(is_excepted)하는 기능을 제공.",
+      "tags": ["config-manager", "yaml", "date-handling", "rule-matching"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/core/pipeline.py",
+      "type": "file",
+      "name": "pipeline.py",
+      "filePath": "backend/app/services/deletion_workflow/core/pipeline.py",
+      "summary": "삭제 워크플로우 프로세서들을 등록·순차 실행하는 파이프라인 오케스트레이터. TaskRegistry로 태스크 이름을 프로세서 클래스에 매핑하고, Pipeline이 스텝을 추가·실행한다.",
+      "tags": ["pipeline", "orchestrator", "task-registry", "deletion-workflow"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/core/pipeline.py:TaskRegistry",
+      "type": "class",
+      "name": "TaskRegistry",
+      "filePath": "backend/app/services/deletion_workflow/core/pipeline.py",
+      "lineRange": [50, 75],
+      "summary": "태스크 이름(예: task1, task2)을 프로세서 클래스 및 기본 kwargs에 매핑하는 레지스트리.",
+      "tags": ["registry", "factory", "deletion-workflow"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/core/pipeline.py:Pipeline",
+      "type": "class",
+      "name": "Pipeline",
+      "filePath": "backend/app/services/deletion_workflow/core/pipeline.py",
+      "lineRange": [78, 120],
+      "summary": "TaskRegistry를 통해 프로세서 인스턴스를 생성해 스텝으로 추가하고(add_step), 순서대로 run()을 호출해 파이프라인을 실행한다.",
+      "tags": ["pipeline", "orchestrator"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/processors/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/app/services/deletion_workflow/processors/__init__.py",
+      "summary": "processors 패키지의 진입점으로, 각 프로세서 클래스를 재노출(re-export)하는 배럴 파일.",
+      "tags": ["barrel", "entry-point", "package-init"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/processors/application_aggregator.py",
+      "type": "file",
+      "name": "application_aggregator.py",
+      "filePath": "backend/app/services/deletion_workflow/processors/application_aggregator.py",
+      "summary": "여러 신청 엑셀 파일(시트별)을 읽어 컬럼을 표준화하고, 이메일 유효성 검사와 승인자 매핑을 수행한 뒤 하나의 통합 엑셀로 병합하는 프로세서.",
+      "tags": ["excel-processing", "data-aggregation", "deletion-workflow"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/processors/application_aggregator.py:ApplicationAggregator",
+      "type": "class",
+      "name": "ApplicationAggregator",
+      "filePath": "backend/app/services/deletion_workflow/processors/application_aggregator.py",
+      "lineRange": [15, 100],
+      "summary": "BaseProcessor를 상속해 신청 엑셀 여러 시트를 읽고 컬럼 매핑·이메일 검증·승인자 매핑 후 통합 결과 파일을 생성한다.",
+      "tags": ["processor", "excel-processing", "data-aggregation"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/processors/auto_renewal_checker.py",
+      "type": "file",
+      "name": "auto_renewal_checker.py",
+      "filePath": "backend/app/services/deletion_workflow/processors/auto_renewal_checker.py",
+      "summary": "신청 이력 체인을 분석해 동일 신청자·제목의 연쇄 갱신(auto-renewal) 여부를 정밀 판정하고, 정책 엑셀에 갱신된 시작/종료일을 업데이트하는 프로세서.",
+      "tags": ["excel-processing", "date-analysis", "deletion-workflow"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/processors/auto_renewal_checker.py:AutoRenewalChecker",
+      "type": "class",
+      "name": "AutoRenewalChecker",
+      "filePath": "backend/app/services/deletion_workflow/processors/auto_renewal_checker.py",
+      "lineRange": [16, 163],
+      "summary": "정책·신청 엑셀을 읽어 제목 접두어를 정규화하고 신청 체인을 분석(_analyze_chains_precision)한 뒤 정책의 시작/종료일을 자동 갱신 결과로 업데이트한다.",
+      "tags": ["processor", "date-analysis", "chain-analysis"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/processors/auto_renewal_exception_generator.py",
+      "type": "file",
+      "name": "auto_renewal_exception_generator.py",
+      "filePath": "backend/app/services/deletion_workflow/processors/auto_renewal_exception_generator.py",
+      "summary": "미사용/장기미사용/중복 삭제·통보 대상 엑셀들에서 'F' 접두 신청 ID를 추출·비교해, 전환신청(승인/반려) 상태에 따라 자동갱신 예외 목록을 생성하는 프로세서.",
+      "tags": ["excel-processing", "exception-generation", "deletion-workflow"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/processors/auto_renewal_exception_generator.py:AutoRenewalExceptionGenerator",
+      "type": "class",
+      "name": "AutoRenewalExceptionGenerator",
+      "filePath": "backend/app/services/deletion_workflow/processors/auto_renewal_exception_generator.py",
+      "lineRange": [14, 94],
+      "summary": "여러 엑셀에서 F 접두 신청 ID를 추출·집합 연산으로 비교해 전환 승인/반려 상태별 예외 데이터를 산출하고 결과를 엑셀로 저장한다.",
+      "tags": ["processor", "exception-generation", "set-operations"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/processors/base_processor.py",
+      "type": "file",
+      "name": "base_processor.py",
+      "filePath": "backend/app/services/deletion_workflow/processors/base_processor.py",
+      "summary": "모든 삭제 워크플로우 프로세서가 상속하는 기반 클래스. ConfigManager와 FileManager를 주입받아 로거를 초기화하고 run() 추상 메서드를 정의한다.",
+      "tags": ["base-class", "abstract-method", "deletion-workflow"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/processors/base_processor.py:BaseProcessor",
+      "type": "class",
+      "name": "BaseProcessor",
+      "filePath": "backend/app/services/deletion_workflow/processors/base_processor.py",
+      "lineRange": [9, 28],
+      "summary": "config(ConfigManager)와 file_manager(FileManager)를 받아 로거를 세팅하는 프로세서 기반 클래스. run()은 서브클래스에서 구현해야 한다.",
+      "tags": ["base-class", "processor", "template-method"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/processors/bottom_latest_policy_validator.py",
+      "type": "file",
+      "name": "bottom_latest_policy_validator.py",
+      "filePath": "backend/app/services/deletion_workflow/processors/bottom_latest_policy_validator.py",
+      "summary": "신청이력이 있는 정책들을 신청 ID로 그룹핑해 최신 시작일 기준 Seq와 실제 최상단(가장 작은) Seq가 불일치하는 '하단최신정책'을 찾아내는 검증 프로세서.",
+      "tags": ["validation", "excel-processing", "deletion-workflow"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/processors/bottom_latest_policy_validator.py:BottomLatestPolicyValidator",
+      "type": "class",
+      "name": "BottomLatestPolicyValidator",
+      "filePath": "backend/app/services/deletion_workflow/processors/bottom_latest_policy_validator.py",
+      "lineRange": [12, 84],
+      "summary": "정책을 REQUEST_ID로 그룹핑해 최신 시작일의 Seq와 최소(최상단) Seq가 다른 불일치 사례를 찾아 결과 엑셀에 표시(_find_seq_mismatches)한다.",
+      "tags": ["processor", "validation", "grouping"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/processors/duplicate_exception_applier.py",
+      "type": "file",
+      "name": "duplicate_exception_applier.py",
+      "filePath": "backend/app/services/deletion_workflow/processors/duplicate_exception_applier.py",
+      "summary": "ConfigManager에 등록된 중복정책 예외 목록의 만료일을 검사해, 아직 유효한 예외 규칙명을 정책 엑셀의 중복 상태 컬럼에서 제외 처리하는 프로세서.",
+      "tags": ["exception-handling", "excel-processing", "deletion-workflow"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/processors/duplicate_exception_applier.py:DuplicateExceptionApplier",
+      "type": "class",
+      "name": "DuplicateExceptionApplier",
+      "filePath": "backend/app/services/deletion_workflow/processors/duplicate_exception_applier.py",
+      "lineRange": [14, 62],
+      "summary": "설정에서 유효기간이 남은 중복 예외 규칙명을 수집해, 정책 엑셀의 해당 행에서 중복 상태를 제외 처리하고 저장한다.",
+      "tags": ["processor", "exception-handling"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/processors/duplicate_expired_cleaner.py",
+      "type": "file",
+      "name": "duplicate_expired_cleaner.py",
+      "filePath": "backend/app/services/deletion_workflow/processors/duplicate_expired_cleaner.py",
+      "summary": "정책·요약·통보·삭제 엑셀을 교차 대조해, 그룹 내 모든 정책이 만료된 중복 그룹과 '하단최신정책' 하단 삭제 대상을 판정해 정리된 결과 파일들을 생성하는 프로세서.",
+      "tags": ["excel-processing", "duplicate-detection", "deletion-workflow"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/processors/duplicate_expired_cleaner.py:DuplicateExpiredCleaner",
+      "type": "class",
+      "name": "DuplicateExpiredCleaner",
+      "filePath": "backend/app/services/deletion_workflow/processors/duplicate_expired_cleaner.py",
+      "lineRange": [13, 87],
+      "summary": "정책 만료 여부와 하단최신정책 Seq 관계를 분석해 삭제/통보/제외 그룹을 산출하고 각 결과를 엑셀로 저장한다.",
+      "tags": ["processor", "duplicate-detection", "excel-processing"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/processors/duplicate_policy_classifier.py",
+      "type": "file",
+      "name": "duplicate_policy_classifier.py",
+      "filePath": "backend/app/services/deletion_workflow/processors/duplicate_policy_classifier.py",
+      "summary": "중복 정책 판정 결과 엑셀을 정리하고, 정책 원본 엑셀에 중복 여부 상태 컬럼을 추가하는 프로세서.",
+      "tags": ["excel-processing", "duplicate-detection", "deletion-workflow"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/processors/duplicate_policy_classifier.py:DuplicatePolicyClassifier",
+      "type": "class",
+      "name": "DuplicatePolicyClassifier",
+      "filePath": "backend/app/services/deletion_workflow/processors/duplicate_policy_classifier.py",
+      "lineRange": [15, 161],
+      "summary": "중복(redundant) 판정 파일을 정리(organize_redundant_file)하고, 정책 엑셀에 중복 상태 컬럼을 부여(add_duplicate_status)한다.",
+      "tags": ["processor", "duplicate-detection"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/processors/exception_handler.py",
+      "type": "file",
+      "name": "exception_handler.py",
+      "filePath": "backend/app/services/deletion_workflow/processors/exception_handler.py",
+      "summary": "Palo Alto/SECUI 벤더별로 예외 규칙 판정 로직을 분기 적용해, 정책 엑셀에 삭제 예외 여부와 사유를 표시하는 프로세서.",
+      "tags": ["exception-handling", "multi-vendor", "excel-processing"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/processors/exception_handler.py:ExceptionHandler",
+      "type": "class",
+      "name": "ExceptionHandler",
+      "filePath": "backend/app/services/deletion_workflow/processors/exception_handler.py",
+      "lineRange": [16, 167],
+      "summary": "정책 데이터에 대해 벤더별 예외 판정(paloalto_exception, secui_exception)을 수행하고 날짜 유효성 검사(_check_date), 컬럼 재정렬(_reorder_cols)을 처리한다.",
+      "tags": ["processor", "exception-handling", "multi-vendor"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/processors/merge_hitcount.py",
+      "type": "file",
+      "name": "merge_hitcount.py",
+      "filePath": "backend/app/services/deletion_workflow/processors/merge_hitcount.py",
+      "summary": "히트카운트(사용 이력) 엑셀 데이터를 정책 엑셀에 병합하는 프로세서.",
+      "tags": ["excel-processing", "hitcount", "deletion-workflow"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/processors/merge_hitcount.py:MergeHitcount",
+      "type": "class",
+      "name": "MergeHitcount",
+      "filePath": "backend/app/services/deletion_workflow/processors/merge_hitcount.py",
+      "lineRange": [15, 62],
+      "summary": "히트카운트 엑셀을 읽어(mergehitcounts) 정책 엑셀에 사용 이력 정보를 병합한다.",
+      "tags": ["processor", "hitcount"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/processors/mis_id_adder.py",
+      "type": "file",
+      "name": "mis_id_adder.py",
+      "filePath": "backend/app/services/deletion_workflow/processors/mis_id_adder.py",
+      "summary": "MIS(정보시스템) ID 매핑 엑셀을 기준으로 정책 엑셀에 MIS ID 컬럼을 추가하는 프로세서.",
+      "tags": ["excel-processing", "id-mapping", "deletion-workflow"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/processors/mis_id_adder.py:MisIdAdder",
+      "type": "class",
+      "name": "MisIdAdder",
+      "filePath": "backend/app/services/deletion_workflow/processors/mis_id_adder.py",
+      "lineRange": [15, 66],
+      "summary": "MIS ID 매핑 정보를 읽어(add_mis_id) 정책 엑셀에 해당 컬럼을 부여한다.",
+      "tags": ["processor", "id-mapping"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/processors/notification_classifier.py",
+      "type": "file",
+      "name": "notification_classifier.py",
+      "filePath": "backend/app/services/deletion_workflow/processors/notification_classifier.py",
+      "summary": "삭제 대상 정책을 통보 유형별로 분류해 별도 엑셀 파일로 저장하는 프로세서.",
+      "tags": ["excel-processing", "notification", "deletion-workflow"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/processors/notification_classifier.py:NotificationClassifier",
+      "type": "class",
+      "name": "NotificationClassifier",
+      "filePath": "backend/app/services/deletion_workflow/processors/notification_classifier.py",
+      "lineRange": [15, 155],
+      "summary": "정책을 통보 유형별로 필터링(_filter_and_save)해 분류(classify_notifications)하고 결과를 엑셀로 저장(_save_to_excel)한다.",
+      "tags": ["processor", "notification", "classification"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/processors/policy_usage_processor.py",
+      "type": "file",
+      "name": "policy_usage_processor.py",
+      "filePath": "backend/app/services/deletion_workflow/processors/policy_usage_processor.py",
+      "summary": "정책의 사용/미사용 상태를 계산해 엑셀에 컬럼으로 추가하고, 예외 처리된 정책의 사용 상태를 갱신하는 프로세서.",
+      "tags": ["excel-processing", "usage-analysis", "deletion-workflow"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/processors/policy_usage_processor.py:PolicyUsageProcessor",
+      "type": "class",
+      "name": "PolicyUsageProcessor",
+      "filePath": "backend/app/services/deletion_workflow/processors/policy_usage_processor.py",
+      "lineRange": [15, 119],
+      "summary": "정책 엑셀에 미사용 여부 컬럼을 부여(add_usage_status)하고 예외 처리된 정책의 사용 상태를 업데이트(update_excepted_usage)한다.",
+      "tags": ["processor", "usage-analysis"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/processors/request_extractor.py",
+      "type": "file",
+      "name": "request_extractor.py",
+      "filePath": "backend/app/services/deletion_workflow/processors/request_extractor.py",
+      "summary": "정책 룰 이름/설명에서 신청 ID를 정규식으로 추출해 정책 엑셀에 컬럼으로 추가하는 프로세서.",
+      "tags": ["excel-processing", "regex-extraction", "deletion-workflow"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/processors/request_extractor.py:RequestExtractor",
+      "type": "class",
+      "name": "RequestExtractor",
+      "filePath": "backend/app/services/deletion_workflow/processors/request_extractor.py",
+      "lineRange": [15, 55],
+      "summary": "정책 룰 이름에서 신청 ID를 추출(extract_request_id)해 정책 엑셀에 반영한다.",
+      "tags": ["processor", "regex-extraction"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/processors/request_info_adder.py",
+      "type": "file",
+      "name": "request_info_adder.py",
+      "filePath": "backend/app/services/deletion_workflow/processors/request_info_adder.py",
+      "summary": "신청 정보 엑셀을 정책 엑셀과 매칭시켜 신청자·기간 등 신청 상세 정보를 정책 데이터에 추가하는 프로세서. 자동연장 ID 탐지 로직 포함.",
+      "tags": ["excel-processing", "data-matching", "deletion-workflow"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/processors/request_info_adder.py:RequestInfoAdder",
+      "type": "class",
+      "name": "RequestInfoAdder",
+      "filePath": "backend/app/services/deletion_workflow/processors/request_info_adder.py",
+      "lineRange": [15, 122],
+      "summary": "신청 엑셀을 읽어 정리(read_and_process_excel)하고, 정책 데이터와 매칭(match_and_update_df)해 자동연장 ID를 탐지(find_auto_extension_id)한 뒤 신청 정보를 추가(add_request_info)한다.",
+      "tags": ["processor", "data-matching", "date-handling"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/processors/request_parser.py",
+      "type": "file",
+      "name": "request_parser.py",
+      "filePath": "backend/app/services/deletion_workflow/processors/request_parser.py",
+      "summary": "정책 룰명/설명을 정규식으로 파싱해 신청 유형(Request Type)과 신청일을 판정하는 프로세서. 삭제 워크플로우 내에서 뿐 아니라 배치 스크립트(find_unknown_broad_policies.py)에서도 독립적으로 재사용된다.",
+      "tags": ["excel-processing", "regex-parsing", "request-classification"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/processors/request_parser.py:RequestParser",
+      "type": "class",
+      "name": "RequestParser",
+      "filePath": "backend/app/services/deletion_workflow/processors/request_parser.py",
+      "lineRange": [17, 136],
+      "summary": "정책의 날짜 변환(convert_to_date), 신청 정보 파싱(parse_request_info), 신청 유형 판정(parse_request_type)을 수행하며, 정규식 기반 판정 로직은 스크립트에서도 동일하게 재사용된다.",
+      "tags": ["processor", "regex-parsing", "date-conversion"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/utils/file_manager.py",
+      "type": "file",
+      "name": "file_manager.py",
+      "filePath": "backend/app/services/deletion_workflow/utils/file_manager.py",
+      "summary": "삭제 워크플로우 각 단계의 산출 엑셀 파일을 프로젝트 디렉터리에서 탐색·버전 관리(update_version)하고 선택(select_files)하는 파일 시스템 헬퍼.",
+      "tags": ["file-management", "utility", "versioning"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/utils/file_manager.py:FileManager",
+      "type": "class",
+      "name": "FileManager",
+      "filePath": "backend/app/services/deletion_workflow/utils/file_manager.py",
+      "lineRange": [17, 99],
+      "summary": "프로젝트 출력 디렉터리 내 파일을 검색(select_files)하고 새 버전 파일명을 생성(update_version)하는 유틸리티 클래스.",
+      "tags": ["utility", "file-management", "versioning"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/scripts/find_unknown_broad_policies.py",
+      "type": "file",
+      "name": "find_unknown_broad_policies.py",
+      "filePath": "backend/scripts/find_unknown_broad_policies.py",
+      "summary": "DB에 동기화된 정책 중 RequestParser와 동일한 로직으로 판정한 '이력없음(Unknown)' 정책이면서 출발지/목적지 IP 범위가 임계값(기본 65536, /16) 이상인 '광대역' 정책을 배치 조회해 CSV로 즉시 저장하는 독립 실행 스크립트. 메모리 부담을 줄이기 위해 batch-size 단위로 조회하고 결과가 나오는 대로 flush한다.",
+      "tags": ["script", "batch-processing", "policy-analysis", "csv-export"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/scripts/find_unknown_broad_policies.py:merge_ranges",
+      "type": "function",
+      "name": "merge_ranges",
+      "filePath": "backend/scripts/find_unknown_broad_policies.py",
+      "lineRange": [33, 44],
+      "summary": "겹치거나 인접한 IP/포트 범위 목록을 정렬 후 병합해 중복 없는 범위 리스트로 만든다.",
+      "tags": ["range-merging", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/scripts/find_unknown_broad_policies.py:range_size",
+      "type": "function",
+      "name": "range_size",
+      "filePath": "backend/scripts/find_unknown_broad_policies.py",
+      "lineRange": [47, 49],
+      "summary": "병합된 방향별(출발지/목적지) 범위들의 전체 크기(합)를 계산한다.",
+      "tags": ["range-calculation", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/scripts/find_unknown_broad_policies.py:row_from_policy",
+      "type": "function",
+      "name": "row_from_policy",
+      "filePath": "backend/scripts/find_unknown_broad_policies.py",
+      "lineRange": [58, 70],
+      "summary": "정책 객체와 계산된 출발지/목적지 범위 크기를 받아 CSV 출력용 행(dict)을 구성한다.",
+      "tags": ["csv-row-building", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/scripts/find_unknown_broad_policies.py:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "backend/scripts/find_unknown_broad_policies.py",
+      "lineRange": [73, 158],
+      "summary": "비동기 진입점: DB 세션을 열어 정책을 batch-size 단위로 조회하며 RequestParser로 Unknown 여부를, merge_ranges/range_size로 광대역 여부를 판정한 뒤 CSV에 즉시 append한다.",
+      "tags": ["entry-point", "async", "batch-query", "csv-export"],
+      "complexity": "complex"
+    }
+  ],
+  "edges": [
+    {"source": "file:backend/app/services/deletion_workflow/config_bridge.py", "target": "function:backend/app/services/deletion_workflow/config_bridge.py:load_config_dict", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/config_bridge.py", "target": "function:backend/app/services/deletion_workflow/config_bridge.py:save_task15_exceptions_to_settings", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/config_bridge.py", "target": "function:backend/app/services/deletion_workflow/config_bridge.py:load_config_dict", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/config_bridge.py", "target": "function:backend/app/services/deletion_workflow/config_bridge.py:save_task15_exceptions_to_settings", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/config_bridge.py", "target": "file:backend/app/__init__.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/config_bridge.py", "target": "file:backend/app/crud/__init__.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/config_bridge.py", "target": "file:backend/app/schemas/__init__.py", "type": "imports", "direction": "forward", "weight": 0.7},
+
+    {"source": "file:backend/app/services/deletion_workflow/core/config_manager.py", "target": "class:backend/app/services/deletion_workflow/core/config_manager.py:ConfigManager", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/core/config_manager.py", "target": "class:backend/app/services/deletion_workflow/core/config_manager.py:ConfigManager", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "class:backend/app/services/deletion_workflow/core/pipeline.py:TaskRegistry", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "class:backend/app/services/deletion_workflow/core/pipeline.py:Pipeline", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "class:backend/app/services/deletion_workflow/core/pipeline.py:TaskRegistry", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "class:backend/app/services/deletion_workflow/core/pipeline.py:Pipeline", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "file:backend/app/services/deletion_workflow/processors/application_aggregator.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "file:backend/app/services/deletion_workflow/processors/auto_renewal_checker.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "file:backend/app/services/deletion_workflow/processors/auto_renewal_exception_generator.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "file:backend/app/services/deletion_workflow/processors/bottom_latest_policy_validator.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "file:backend/app/services/deletion_workflow/processors/duplicate_exception_applier.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "file:backend/app/services/deletion_workflow/processors/duplicate_expired_cleaner.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "file:backend/app/services/deletion_workflow/processors/duplicate_policy_classifier.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "file:backend/app/services/deletion_workflow/processors/exception_handler.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "file:backend/app/services/deletion_workflow/processors/merge_hitcount.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "file:backend/app/services/deletion_workflow/processors/mis_id_adder.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "file:backend/app/services/deletion_workflow/processors/notification_classifier.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "file:backend/app/services/deletion_workflow/processors/policy_usage_processor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "file:backend/app/services/deletion_workflow/processors/request_extractor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "file:backend/app/services/deletion_workflow/processors/request_info_adder.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/core/pipeline.py", "target": "file:backend/app/services/deletion_workflow/processors/request_parser.py", "type": "imports", "direction": "forward", "weight": 0.7},
+
+    {"source": "file:backend/app/services/deletion_workflow/processors/__init__.py", "target": "file:backend/app/services/deletion_workflow/processors/application_aggregator.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/processors/__init__.py", "target": "file:backend/app/services/deletion_workflow/processors/auto_renewal_checker.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/processors/__init__.py", "target": "file:backend/app/services/deletion_workflow/processors/duplicate_policy_classifier.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/processors/__init__.py", "target": "file:backend/app/services/deletion_workflow/processors/exception_handler.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/processors/__init__.py", "target": "file:backend/app/services/deletion_workflow/processors/merge_hitcount.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/processors/__init__.py", "target": "file:backend/app/services/deletion_workflow/processors/mis_id_adder.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/processors/__init__.py", "target": "file:backend/app/services/deletion_workflow/processors/notification_classifier.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/processors/__init__.py", "target": "file:backend/app/services/deletion_workflow/processors/policy_usage_processor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/processors/__init__.py", "target": "file:backend/app/services/deletion_workflow/processors/request_extractor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/processors/__init__.py", "target": "file:backend/app/services/deletion_workflow/processors/request_info_adder.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/processors/__init__.py", "target": "file:backend/app/services/deletion_workflow/processors/request_parser.py", "type": "imports", "direction": "forward", "weight": 0.7},
+
+    {"source": "file:backend/app/services/deletion_workflow/processors/application_aggregator.py", "target": "class:backend/app/services/deletion_workflow/processors/application_aggregator.py:ApplicationAggregator", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/processors/application_aggregator.py", "target": "class:backend/app/services/deletion_workflow/processors/application_aggregator.py:ApplicationAggregator", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/processors/application_aggregator.py", "target": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "class:backend/app/services/deletion_workflow/processors/application_aggregator.py:ApplicationAggregator", "target": "class:backend/app/services/deletion_workflow/processors/base_processor.py:BaseProcessor", "type": "inherits", "direction": "forward", "weight": 0.9},
+
+    {"source": "file:backend/app/services/deletion_workflow/processors/auto_renewal_checker.py", "target": "class:backend/app/services/deletion_workflow/processors/auto_renewal_checker.py:AutoRenewalChecker", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/processors/auto_renewal_checker.py", "target": "class:backend/app/services/deletion_workflow/processors/auto_renewal_checker.py:AutoRenewalChecker", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/processors/auto_renewal_checker.py", "target": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "class:backend/app/services/deletion_workflow/processors/auto_renewal_checker.py:AutoRenewalChecker", "target": "class:backend/app/services/deletion_workflow/processors/base_processor.py:BaseProcessor", "type": "inherits", "direction": "forward", "weight": 0.9},
+
+    {"source": "file:backend/app/services/deletion_workflow/processors/auto_renewal_exception_generator.py", "target": "class:backend/app/services/deletion_workflow/processors/auto_renewal_exception_generator.py:AutoRenewalExceptionGenerator", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/processors/auto_renewal_exception_generator.py", "target": "class:backend/app/services/deletion_workflow/processors/auto_renewal_exception_generator.py:AutoRenewalExceptionGenerator", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/processors/auto_renewal_exception_generator.py", "target": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "class:backend/app/services/deletion_workflow/processors/auto_renewal_exception_generator.py:AutoRenewalExceptionGenerator", "target": "class:backend/app/services/deletion_workflow/processors/base_processor.py:BaseProcessor", "type": "inherits", "direction": "forward", "weight": 0.9},
+
+    {"source": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "target": "class:backend/app/services/deletion_workflow/processors/base_processor.py:BaseProcessor", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "target": "class:backend/app/services/deletion_workflow/processors/base_processor.py:BaseProcessor", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "target": "file:backend/app/services/deletion_workflow/core/config_manager.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "target": "file:backend/app/services/deletion_workflow/utils/file_manager.py", "type": "imports", "direction": "forward", "weight": 0.7},
+
+    {"source": "file:backend/app/services/deletion_workflow/processors/bottom_latest_policy_validator.py", "target": "class:backend/app/services/deletion_workflow/processors/bottom_latest_policy_validator.py:BottomLatestPolicyValidator", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/processors/bottom_latest_policy_validator.py", "target": "class:backend/app/services/deletion_workflow/processors/bottom_latest_policy_validator.py:BottomLatestPolicyValidator", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/processors/bottom_latest_policy_validator.py", "target": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "class:backend/app/services/deletion_workflow/processors/bottom_latest_policy_validator.py:BottomLatestPolicyValidator", "target": "class:backend/app/services/deletion_workflow/processors/base_processor.py:BaseProcessor", "type": "inherits", "direction": "forward", "weight": 0.9},
+
+    {"source": "file:backend/app/services/deletion_workflow/processors/duplicate_exception_applier.py", "target": "class:backend/app/services/deletion_workflow/processors/duplicate_exception_applier.py:DuplicateExceptionApplier", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/processors/duplicate_exception_applier.py", "target": "class:backend/app/services/deletion_workflow/processors/duplicate_exception_applier.py:DuplicateExceptionApplier", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/processors/duplicate_exception_applier.py", "target": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "class:backend/app/services/deletion_workflow/processors/duplicate_exception_applier.py:DuplicateExceptionApplier", "target": "class:backend/app/services/deletion_workflow/processors/base_processor.py:BaseProcessor", "type": "inherits", "direction": "forward", "weight": 0.9},
+
+    {"source": "file:backend/app/services/deletion_workflow/processors/duplicate_expired_cleaner.py", "target": "class:backend/app/services/deletion_workflow/processors/duplicate_expired_cleaner.py:DuplicateExpiredCleaner", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/processors/duplicate_expired_cleaner.py", "target": "class:backend/app/services/deletion_workflow/processors/duplicate_expired_cleaner.py:DuplicateExpiredCleaner", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/processors/duplicate_expired_cleaner.py", "target": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "class:backend/app/services/deletion_workflow/processors/duplicate_expired_cleaner.py:DuplicateExpiredCleaner", "target": "class:backend/app/services/deletion_workflow/processors/base_processor.py:BaseProcessor", "type": "inherits", "direction": "forward", "weight": 0.9},
+
+    {"source": "file:backend/app/services/deletion_workflow/processors/duplicate_policy_classifier.py", "target": "class:backend/app/services/deletion_workflow/processors/duplicate_policy_classifier.py:DuplicatePolicyClassifier", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/processors/duplicate_policy_classifier.py", "target": "class:backend/app/services/deletion_workflow/processors/duplicate_policy_classifier.py:DuplicatePolicyClassifier", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/processors/duplicate_policy_classifier.py", "target": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "class:backend/app/services/deletion_workflow/processors/duplicate_policy_classifier.py:DuplicatePolicyClassifier", "target": "class:backend/app/services/deletion_workflow/processors/base_processor.py:BaseProcessor", "type": "inherits", "direction": "forward", "weight": 0.9},
+
+    {"source": "file:backend/app/services/deletion_workflow/processors/exception_handler.py", "target": "class:backend/app/services/deletion_workflow/processors/exception_handler.py:ExceptionHandler", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/processors/exception_handler.py", "target": "class:backend/app/services/deletion_workflow/processors/exception_handler.py:ExceptionHandler", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/processors/exception_handler.py", "target": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "class:backend/app/services/deletion_workflow/processors/exception_handler.py:ExceptionHandler", "target": "class:backend/app/services/deletion_workflow/processors/base_processor.py:BaseProcessor", "type": "inherits", "direction": "forward", "weight": 0.9},
+
+    {"source": "file:backend/app/services/deletion_workflow/processors/merge_hitcount.py", "target": "class:backend/app/services/deletion_workflow/processors/merge_hitcount.py:MergeHitcount", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/processors/merge_hitcount.py", "target": "class:backend/app/services/deletion_workflow/processors/merge_hitcount.py:MergeHitcount", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/processors/merge_hitcount.py", "target": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "class:backend/app/services/deletion_workflow/processors/merge_hitcount.py:MergeHitcount", "target": "class:backend/app/services/deletion_workflow/processors/base_processor.py:BaseProcessor", "type": "inherits", "direction": "forward", "weight": 0.9},
+
+    {"source": "file:backend/app/services/deletion_workflow/processors/mis_id_adder.py", "target": "class:backend/app/services/deletion_workflow/processors/mis_id_adder.py:MisIdAdder", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/processors/mis_id_adder.py", "target": "class:backend/app/services/deletion_workflow/processors/mis_id_adder.py:MisIdAdder", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/processors/mis_id_adder.py", "target": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "class:backend/app/services/deletion_workflow/processors/mis_id_adder.py:MisIdAdder", "target": "class:backend/app/services/deletion_workflow/processors/base_processor.py:BaseProcessor", "type": "inherits", "direction": "forward", "weight": 0.9},
+
+    {"source": "file:backend/app/services/deletion_workflow/processors/notification_classifier.py", "target": "class:backend/app/services/deletion_workflow/processors/notification_classifier.py:NotificationClassifier", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/processors/notification_classifier.py", "target": "class:backend/app/services/deletion_workflow/processors/notification_classifier.py:NotificationClassifier", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/processors/notification_classifier.py", "target": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "class:backend/app/services/deletion_workflow/processors/notification_classifier.py:NotificationClassifier", "target": "class:backend/app/services/deletion_workflow/processors/base_processor.py:BaseProcessor", "type": "inherits", "direction": "forward", "weight": 0.9},
+
+    {"source": "file:backend/app/services/deletion_workflow/processors/policy_usage_processor.py", "target": "class:backend/app/services/deletion_workflow/processors/policy_usage_processor.py:PolicyUsageProcessor", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/processors/policy_usage_processor.py", "target": "class:backend/app/services/deletion_workflow/processors/policy_usage_processor.py:PolicyUsageProcessor", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/processors/policy_usage_processor.py", "target": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "class:backend/app/services/deletion_workflow/processors/policy_usage_processor.py:PolicyUsageProcessor", "target": "class:backend/app/services/deletion_workflow/processors/base_processor.py:BaseProcessor", "type": "inherits", "direction": "forward", "weight": 0.9},
+
+    {"source": "file:backend/app/services/deletion_workflow/processors/request_extractor.py", "target": "class:backend/app/services/deletion_workflow/processors/request_extractor.py:RequestExtractor", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/processors/request_extractor.py", "target": "class:backend/app/services/deletion_workflow/processors/request_extractor.py:RequestExtractor", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/processors/request_extractor.py", "target": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "class:backend/app/services/deletion_workflow/processors/request_extractor.py:RequestExtractor", "target": "class:backend/app/services/deletion_workflow/processors/base_processor.py:BaseProcessor", "type": "inherits", "direction": "forward", "weight": 0.9},
+
+    {"source": "file:backend/app/services/deletion_workflow/processors/request_info_adder.py", "target": "class:backend/app/services/deletion_workflow/processors/request_info_adder.py:RequestInfoAdder", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/processors/request_info_adder.py", "target": "class:backend/app/services/deletion_workflow/processors/request_info_adder.py:RequestInfoAdder", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/processors/request_info_adder.py", "target": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "class:backend/app/services/deletion_workflow/processors/request_info_adder.py:RequestInfoAdder", "target": "class:backend/app/services/deletion_workflow/processors/base_processor.py:BaseProcessor", "type": "inherits", "direction": "forward", "weight": 0.9},
+
+    {"source": "file:backend/app/services/deletion_workflow/processors/request_parser.py", "target": "class:backend/app/services/deletion_workflow/processors/request_parser.py:RequestParser", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/processors/request_parser.py", "target": "class:backend/app/services/deletion_workflow/processors/request_parser.py:RequestParser", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/processors/request_parser.py", "target": "file:backend/app/services/deletion_workflow/processors/base_processor.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "class:backend/app/services/deletion_workflow/processors/request_parser.py:RequestParser", "target": "class:backend/app/services/deletion_workflow/processors/base_processor.py:BaseProcessor", "type": "inherits", "direction": "forward", "weight": 0.9},
+
+    {"source": "file:backend/app/services/deletion_workflow/utils/file_manager.py", "target": "class:backend/app/services/deletion_workflow/utils/file_manager.py:FileManager", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/utils/file_manager.py", "target": "class:backend/app/services/deletion_workflow/utils/file_manager.py:FileManager", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/scripts/find_unknown_broad_policies.py", "target": "function:backend/scripts/find_unknown_broad_policies.py:merge_ranges", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/scripts/find_unknown_broad_policies.py", "target": "function:backend/scripts/find_unknown_broad_policies.py:range_size", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/scripts/find_unknown_broad_policies.py", "target": "function:backend/scripts/find_unknown_broad_policies.py:row_from_policy", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/scripts/find_unknown_broad_policies.py", "target": "function:backend/scripts/find_unknown_broad_policies.py:main", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/scripts/find_unknown_broad_policies.py", "target": "function:backend/scripts/find_unknown_broad_policies.py:merge_ranges", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/scripts/find_unknown_broad_policies.py", "target": "function:backend/scripts/find_unknown_broad_policies.py:range_size", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/scripts/find_unknown_broad_policies.py", "target": "function:backend/scripts/find_unknown_broad_policies.py:row_from_policy", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/scripts/find_unknown_broad_policies.py", "target": "function:backend/scripts/find_unknown_broad_policies.py:main", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/scripts/find_unknown_broad_policies.py", "target": "file:backend/app/db/session.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/scripts/find_unknown_broad_policies.py", "target": "file:backend/app/models/__init__.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/scripts/find_unknown_broad_policies.py", "target": "file:backend/app/services/deletion_workflow/config_bridge.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/scripts/find_unknown_broad_policies.py", "target": "file:backend/app/services/deletion_workflow/core/config_manager.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/scripts/find_unknown_broad_policies.py", "target": "file:backend/app/services/deletion_workflow/processors/request_parser.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "function:backend/scripts/find_unknown_broad_policies.py:main", "target": "class:backend/app/services/deletion_workflow/processors/request_parser.py:RequestParser", "type": "calls", "direction": "forward", "weight": 0.8}
+  ]
+}
