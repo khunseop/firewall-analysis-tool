@@ -1,0 +1,331 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/components/shared/QueryBuilder.tsx",
+      "type": "file",
+      "name": "QueryBuilder.tsx",
+      "filePath": "frontend/src/components/shared/QueryBuilder.tsx",
+      "summary": "정책 검색을 위한 조건 트리(그룹/조건) 빌더 UI. 조건 추가/삭제, AND/OR 결합 토글, IP 값 검증, 정확 매칭 조건 추가 등을 처리한다.",
+      "tags": ["query-builder", "search", "react", "filter-tree"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/shared/QueryBuilder.tsx:JoinToggle",
+      "type": "function",
+      "name": "JoinToggle",
+      "filePath": "frontend/src/components/shared/QueryBuilder.tsx",
+      "lineRange": [9, 22],
+      "summary": "AND/OR 결합 조건을 토글하는 작은 버튼 컴포넌트.",
+      "tags": ["react-component", "toggle"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/QueryBuilder.tsx:QueryBuilder",
+      "type": "function",
+      "name": "QueryBuilder",
+      "filePath": "frontend/src/components/shared/QueryBuilder.tsx",
+      "lineRange": [31, 254],
+      "summary": "조건 그룹 트리를 상태로 관리하며 조건 추가/삭제/토글, queryBuilderModel의 필드 정의·IP 검증 함수를 사용해 값을 검증하고 상위로 트리 변경을 알리는 메인 컴포넌트.",
+      "tags": ["react-component", "state-management", "validation"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/shared/Spinner.tsx",
+      "type": "file",
+      "name": "Spinner.tsx",
+      "filePath": "frontend/src/components/shared/Spinner.tsx",
+      "summary": "크기 옵션을 가진 로딩 스피너 공용 컴포넌트.",
+      "tags": ["spinner", "shared-component", "ui"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/Spinner.tsx:Spinner",
+      "type": "function",
+      "name": "Spinner",
+      "filePath": "frontend/src/components/shared/Spinner.tsx",
+      "lineRange": [12, 47],
+      "summary": "size prop에 따라 크기가 달라지는 접근성을 갖춘 로딩 스피너를 렌더링한다.",
+      "tags": ["react-component", "accessibility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/shared/StatusBadge.tsx",
+      "type": "file",
+      "name": "StatusBadge.tsx",
+      "filePath": "frontend/src/components/shared/StatusBadge.tsx",
+      "summary": "상태 값에 따라 색상과 라벨이 달라지는 배지를 렌더링하는 공용 컴포넌트.",
+      "tags": ["status-badge", "shared-component", "ui"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/StatusBadge.tsx:StatusBadge",
+      "type": "function",
+      "name": "StatusBadge",
+      "filePath": "frontend/src/components/shared/StatusBadge.tsx",
+      "lineRange": [17, 35],
+      "summary": "status prop을 받아 스타일과 라벨이 다른 배지를 렌더링한다.",
+      "tags": ["react-component", "badge"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/shared/queryBuilderModel.ts",
+      "type": "file",
+      "name": "queryBuilderModel.ts",
+      "filePath": "frontend/src/components/shared/queryBuilderModel.ts",
+      "summary": "QueryBuilder가 사용하는 필드 정의(QB_FIELDS), 연산자 라벨/설명, IP 값 검증 유틸, 조건 트리를 정책 검색 API 요청 payload로 변환하는 로직을 담은 모델 모듈.",
+      "tags": ["query-builder", "model", "validation", "request-builder", "utility"],
+      "complexity": "complex",
+      "languageNotes": "조건 트리를 재귀적으로 순회해 AND/OR 표현식 트리(ExprNode)로 변환하는 패턴을 사용한다."
+    },
+    {
+      "id": "function:frontend/src/components/shared/queryBuilderModel.ts:generateId",
+      "type": "function",
+      "name": "generateId",
+      "filePath": "frontend/src/components/shared/queryBuilderModel.ts",
+      "lineRange": [6, 9],
+      "summary": "crypto.randomUUID를 우선 사용하고, 지원되지 않으면 랜덤 문자열+타임스탬프로 폴백하여 고유 ID를 생성한다.",
+      "tags": ["utility", "id-generation"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/queryBuilderModel.ts:isValidIpToken",
+      "type": "function",
+      "name": "isValidIpToken",
+      "filePath": "frontend/src/components/shared/queryBuilderModel.ts",
+      "lineRange": [72, 87],
+      "summary": "단일 IP, IP 대역(하이픈), CIDR 표기 등 다양한 형식의 IP 토큰이 유효한지 검사한다.",
+      "tags": ["validation", "ip-address"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/shared/queryBuilderModel.ts:findInvalidIpTokens",
+      "type": "function",
+      "name": "findInvalidIpTokens",
+      "filePath": "frontend/src/components/shared/queryBuilderModel.ts",
+      "lineRange": [90, 92],
+      "summary": "콤마로 구분된 값 문자열에서 유효하지 않은 IP 토큰만 추출해 반환한다.",
+      "tags": ["validation", "ip-address"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/queryBuilderModel.ts:getFieldDef",
+      "type": "function",
+      "name": "getFieldDef",
+      "filePath": "frontend/src/components/shared/queryBuilderModel.ts",
+      "lineRange": [114, 116],
+      "summary": "필드 키로 QB_FIELDS 배열에서 해당 필드 정의를 조회한다.",
+      "tags": ["utility", "lookup"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/queryBuilderModel.ts:conditionsToFilterTree",
+      "type": "function",
+      "name": "conditionsToFilterTree",
+      "filePath": "frontend/src/components/shared/queryBuilderModel.ts",
+      "lineRange": [120, 127],
+      "summary": "평면 조건 배열을 단일 그룹으로 구성된 필터 트리 형태로 변환한다.",
+      "tags": ["data-transformation", "filter-tree"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/queryBuilderModel.ts:buildGroupExpr",
+      "type": "function",
+      "name": "buildGroupExpr",
+      "filePath": "frontend/src/components/shared/queryBuilderModel.ts",
+      "lineRange": [133, 149],
+      "summary": "그룹 내 유효한 조건들을 그룹의 결합 연산자(AND/OR)에 따라 표현식 트리 노드로 결합한다.",
+      "tags": ["expression-tree", "data-transformation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/shared/queryBuilderModel.ts:buildExprNode",
+      "type": "function",
+      "name": "buildExprNode",
+      "filePath": "frontend/src/components/shared/queryBuilderModel.ts",
+      "lineRange": [151, 161],
+      "summary": "전체 필터 트리(여러 그룹)를 재귀적으로 순회해 최상위 표현식 노드로 변환한다.",
+      "tags": ["expression-tree", "recursion"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/shared/queryBuilderModel.ts:buildRequestFromConditions",
+      "type": "function",
+      "name": "buildRequestFromConditions",
+      "filePath": "frontend/src/components/shared/queryBuilderModel.ts",
+      "lineRange": [165, 267],
+      "summary": "평면 조건 배열(필드/연산자/값)을 정책 검색 API가 요구하는 요청 payload(출발지/목적지 IP, 서비스, 이름 등)로 변환한다.",
+      "tags": ["request-builder", "data-transformation"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/shared/queryBuilderModel.ts:buildRequestFromFilterTree",
+      "type": "function",
+      "name": "buildRequestFromFilterTree",
+      "filePath": "frontend/src/components/shared/queryBuilderModel.ts",
+      "lineRange": [269, 312],
+      "summary": "필터 트리(그룹 목록)를 정책 검색 API 요청 payload로 변환하며, 단일 그룹이거나 조건이 없는 경우 단순화된 경로를 사용한다.",
+      "tags": ["request-builder", "data-transformation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/ui/alert-dialog.tsx",
+      "type": "file",
+      "name": "alert-dialog.tsx",
+      "filePath": "frontend/src/components/ui/alert-dialog.tsx",
+      "summary": "Radix UI AlertDialog를 감싼 확인/경고 다이얼로그 프리미티브 컴포넌트 모음.",
+      "tags": ["radix-ui", "alert-dialog", "ui-primitive"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/ui/alert-dialog.tsx:AlertDialogHeader",
+      "type": "function",
+      "name": "AlertDialogHeader",
+      "filePath": "frontend/src/components/ui/alert-dialog.tsx",
+      "lineRange": [46, 57],
+      "summary": "AlertDialog 상단 헤더 영역의 레이아웃을 담당하는 컴포넌트.",
+      "tags": ["ui-primitive", "layout"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/ui/alert-dialog.tsx:AlertDialogFooter",
+      "type": "function",
+      "name": "AlertDialogFooter",
+      "filePath": "frontend/src/components/ui/alert-dialog.tsx",
+      "lineRange": [60, 71],
+      "summary": "AlertDialog 하단 버튼 영역의 레이아웃을 담당하는 컴포넌트.",
+      "tags": ["ui-primitive", "layout"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/ui/badge.tsx",
+      "type": "file",
+      "name": "badge.tsx",
+      "filePath": "frontend/src/components/ui/badge.tsx",
+      "summary": "cva 기반 variant에 따라 스타일이 달라지는 공용 배지 UI 프리미티브 컴포넌트.",
+      "tags": ["ui-primitive", "badge", "cva"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/ui/badge.tsx:Badge",
+      "type": "function",
+      "name": "Badge",
+      "filePath": "frontend/src/components/ui/badge.tsx",
+      "lineRange": [30, 34],
+      "summary": "className과 variant를 badgeVariants와 조합해 배지 요소를 렌더링한다.",
+      "tags": ["react-component", "styling"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/ui/button-variants.ts",
+      "type": "file",
+      "name": "button-variants.ts",
+      "filePath": "frontend/src/components/ui/button-variants.ts",
+      "summary": "버튼 컴포넌트의 variant/size별 Tailwind 클래스를 정의하는 cva 기반 스타일 변형(buttonVariants) 정의 모듈.",
+      "tags": ["cva", "styling", "design-tokens"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/ui/button.tsx",
+      "type": "file",
+      "name": "button.tsx",
+      "filePath": "frontend/src/components/ui/button.tsx",
+      "summary": "button-variants.ts의 스타일 변형을 사용하는 공용 버튼 UI 프리미티브 컴포넌트.",
+      "tags": ["ui-primitive", "button"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/ui/card.tsx",
+      "type": "file",
+      "name": "card.tsx",
+      "filePath": "frontend/src/components/ui/card.tsx",
+      "summary": "Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent 등 카드 레이아웃을 구성하는 공용 UI 프리미티브 컴포넌트 모음.",
+      "tags": ["ui-primitive", "card", "layout"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/ui/checkbox.tsx",
+      "type": "file",
+      "name": "checkbox.tsx",
+      "filePath": "frontend/src/components/ui/checkbox.tsx",
+      "summary": "Radix UI 기반 체크박스 UI 프리미티브 컴포넌트.",
+      "tags": ["ui-primitive", "checkbox", "radix-ui"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/ui/dialog.tsx",
+      "type": "file",
+      "name": "dialog.tsx",
+      "filePath": "frontend/src/components/ui/dialog.tsx",
+      "summary": "Radix UI Dialog를 감싼 모달 다이얼로그 프리미티브 컴포넌트 모음으로, 접근성을 위해 DialogDescription 존재 여부를 검사하는 로직을 포함한다.",
+      "tags": ["radix-ui", "dialog", "ui-primitive", "accessibility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/ui/dialog.tsx:DialogHeader",
+      "type": "function",
+      "name": "DialogHeader",
+      "filePath": "frontend/src/components/ui/dialog.tsx",
+      "lineRange": [75, 86],
+      "summary": "Dialog 상단 헤더 영역의 레이아웃을 담당하는 컴포넌트.",
+      "tags": ["ui-primitive", "layout"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/ui/dialog.tsx:DialogFooter",
+      "type": "function",
+      "name": "DialogFooter",
+      "filePath": "frontend/src/components/ui/dialog.tsx",
+      "lineRange": [89, 100],
+      "summary": "Dialog 하단 버튼 영역의 레이아웃을 담당하는 컴포넌트.",
+      "tags": ["ui-primitive", "layout"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/ui/input.tsx",
+      "type": "file",
+      "name": "input.tsx",
+      "filePath": "frontend/src/components/ui/input.tsx",
+      "summary": "공용 텍스트 입력 필드 UI 프리미티브 컴포넌트.",
+      "tags": ["ui-primitive", "input", "form"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {"source": "file:frontend/src/components/shared/QueryBuilder.tsx", "target": "function:frontend/src/components/shared/QueryBuilder.tsx:JoinToggle", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/QueryBuilder.tsx", "target": "function:frontend/src/components/shared/QueryBuilder.tsx:QueryBuilder", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/QueryBuilder.tsx", "target": "function:frontend/src/components/shared/QueryBuilder.tsx:QueryBuilder", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/QueryBuilder.tsx", "target": "file:frontend/src/components/shared/queryBuilderModel.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "function:frontend/src/components/shared/QueryBuilder.tsx:QueryBuilder", "target": "function:frontend/src/components/shared/queryBuilderModel.ts:getFieldDef", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:frontend/src/components/shared/QueryBuilder.tsx:QueryBuilder", "target": "function:frontend/src/components/shared/queryBuilderModel.ts:findInvalidIpTokens", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/Spinner.tsx", "target": "function:frontend/src/components/shared/Spinner.tsx:Spinner", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/Spinner.tsx", "target": "function:frontend/src/components/shared/Spinner.tsx:Spinner", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/StatusBadge.tsx", "target": "function:frontend/src/components/shared/StatusBadge.tsx:StatusBadge", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/StatusBadge.tsx", "target": "function:frontend/src/components/shared/StatusBadge.tsx:StatusBadge", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/queryBuilderModel.ts", "target": "function:frontend/src/components/shared/queryBuilderModel.ts:generateId", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/queryBuilderModel.ts", "target": "function:frontend/src/components/shared/queryBuilderModel.ts:isValidIpToken", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/queryBuilderModel.ts", "target": "function:frontend/src/components/shared/queryBuilderModel.ts:findInvalidIpTokens", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/queryBuilderModel.ts", "target": "function:frontend/src/components/shared/queryBuilderModel.ts:getFieldDef", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/queryBuilderModel.ts", "target": "function:frontend/src/components/shared/queryBuilderModel.ts:conditionsToFilterTree", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/queryBuilderModel.ts", "target": "function:frontend/src/components/shared/queryBuilderModel.ts:buildGroupExpr", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/queryBuilderModel.ts", "target": "function:frontend/src/components/shared/queryBuilderModel.ts:buildExprNode", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/queryBuilderModel.ts", "target": "function:frontend/src/components/shared/queryBuilderModel.ts:buildRequestFromConditions", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/queryBuilderModel.ts", "target": "function:frontend/src/components/shared/queryBuilderModel.ts:buildRequestFromFilterTree", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/queryBuilderModel.ts", "target": "function:frontend/src/components/shared/queryBuilderModel.ts:generateId", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/queryBuilderModel.ts", "target": "function:frontend/src/components/shared/queryBuilderModel.ts:findInvalidIpTokens", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/queryBuilderModel.ts", "target": "function:frontend/src/components/shared/queryBuilderModel.ts:getFieldDef", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/queryBuilderModel.ts", "target": "function:frontend/src/components/shared/queryBuilderModel.ts:conditionsToFilterTree", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/queryBuilderModel.ts", "target": "function:frontend/src/components/shared/queryBuilderModel.ts:buildRequestFromConditions", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/queryBuilderModel.ts", "target": "function:frontend/src/components/shared/queryBuilderModel.ts:buildRequestFromFilterTree", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/ui/alert-dialog.tsx", "target": "function:frontend/src/components/ui/alert-dialog.tsx:AlertDialogHeader", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/ui/alert-dialog.tsx", "target": "function:frontend/src/components/ui/alert-dialog.tsx:AlertDialogFooter", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/ui/alert-dialog.tsx", "target": "function:frontend/src/components/ui/alert-dialog.tsx:AlertDialogHeader", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/ui/alert-dialog.tsx", "target": "function:frontend/src/components/ui/alert-dialog.tsx:AlertDialogFooter", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/ui/badge.tsx", "target": "function:frontend/src/components/ui/badge.tsx:Badge", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/ui/badge.tsx", "target": "function:frontend/src/components/ui/badge.tsx:Badge", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/ui/button.tsx", "target": "file:frontend/src/components/ui/button-variants.ts", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/components/ui/dialog.tsx", "target": "function:frontend/src/components/ui/dialog.tsx:DialogHeader", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/ui/dialog.tsx", "target": "function:frontend/src/components/ui/dialog.tsx:DialogFooter", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/ui/dialog.tsx", "target": "function:frontend/src/components/ui/dialog.tsx:DialogHeader", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/ui/dialog.tsx", "target": "function:frontend/src/components/ui/dialog.tsx:DialogFooter", "type": "exports", "direction": "forward", "weight": 0.8}
+  ]
+}
