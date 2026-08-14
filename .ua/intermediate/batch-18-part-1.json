@@ -1,0 +1,350 @@
+{
+  "nodes": [
+    {
+      "id": "file:.ua/.understandignore",
+      "type": "file",
+      "name": ".understandignore",
+      "filePath": ".ua/.understandignore",
+      "summary": "Understand-Anything 분석 도구가 코드베이스를 스캔할 때 제외할 파일/디렉터리 패턴을 정의하는 gitignore 스타일의 설정 파일. 대부분의 항목이 주석 처리된 예시로 제공됨.",
+      "tags": ["configuration", "tooling", "ignore-rules"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:.ua/config.json",
+      "type": "config",
+      "name": "config.json",
+      "filePath": ".ua/config.json",
+      "summary": "Understand-Anything 분석 도구의 출력 언어(outputLanguage) 설정을 담은 최소 구성 파일.",
+      "tags": ["configuration", "tooling"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/README",
+      "type": "file",
+      "name": "README",
+      "filePath": "backend/alembic/README",
+      "summary": "Alembic이 기본 생성하는 단일 데이터베이스 구성임을 알리는 한 줄짜리 설명 파일.",
+      "tags": ["documentation", "alembic", "boilerplate"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/script.py.mako",
+      "type": "file",
+      "name": "script.py.mako",
+      "filePath": "backend/alembic/script.py.mako",
+      "summary": "새 Alembic 마이그레이션 파일을 생성할 때 사용되는 Mako 템플릿으로, revision 메타데이터와 upgrade/downgrade 함수 골격을 정의한다.",
+      "tags": ["template", "alembic", "migration", "boilerplate"],
+      "complexity": "simple",
+      "languageNotes": "Mako 템플릿 문법(${...})으로 revision 식별자와 import 구문을 동적으로 채워 넣는다."
+    },
+    {
+      "id": "file:backend/alembic/versions/021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py",
+      "type": "file",
+      "name": "021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py",
+      "filePath": "backend/alembic/versions/021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py",
+      "summary": "장비 테이블에 HA(고가용성) 피어 IP와 마지막 히트 조회 시 SSH 사용 여부 컬럼을 추가하는 Alembic 마이그레이션.",
+      "tags": ["database", "migration", "alembic", "schema-change"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py:upgrade",
+      "type": "function",
+      "name": "upgrade",
+      "filePath": "backend/alembic/versions/021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py",
+      "lineRange": [21, 25],
+      "summary": "devices 테이블에 ha_peer_ip, use_ssh_for_last_hit 컬럼을 batch_alter_table로 추가한다.",
+      "tags": ["migration", "schema-change"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py:downgrade",
+      "type": "function",
+      "name": "downgrade",
+      "filePath": "backend/alembic/versions/021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py",
+      "lineRange": [28, 32],
+      "summary": "upgrade에서 추가한 컬럼들을 제거하여 이전 스키마 상태로 되돌린다.",
+      "tags": ["migration", "rollback"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/03b8541df858_add_full_text_search_index_to_policies.py",
+      "type": "file",
+      "name": "03b8541df858_add_full_text_search_index_to_policies.py",
+      "filePath": "backend/alembic/versions/03b8541df858_add_full_text_search_index_to_policies.py",
+      "summary": "policies 테이블에 전문 검색(full-text search)용 인덱스를 추가하는 Alembic 마이그레이션.",
+      "tags": ["database", "migration", "alembic", "search"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/03b8541df858_add_full_text_search_index_to_policies.py:upgrade",
+      "type": "function",
+      "name": "upgrade",
+      "filePath": "backend/alembic/versions/03b8541df858_add_full_text_search_index_to_policies.py",
+      "lineRange": [21, 24],
+      "summary": "policies 테이블에 전문 검색 인덱스를 생성한다.",
+      "tags": ["migration", "search"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/03b8541df858_add_full_text_search_index_to_policies.py:downgrade",
+      "type": "function",
+      "name": "downgrade",
+      "filePath": "backend/alembic/versions/03b8541df858_add_full_text_search_index_to_policies.py",
+      "lineRange": [27, 30],
+      "summary": "생성된 전문 검색 인덱스를 삭제하여 이전 상태로 되돌린다.",
+      "tags": ["migration", "rollback"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/05af03b5b5a7_add_is_indexed_to_policies.py",
+      "type": "file",
+      "name": "05af03b5b5a7_add_is_indexed_to_policies.py",
+      "filePath": "backend/alembic/versions/05af03b5b5a7_add_is_indexed_to_policies.py",
+      "summary": "policies 테이블에 정책 인덱싱 완료 여부를 나타내는 is_indexed 불리언 컬럼을 추가하는 마이그레이션.",
+      "tags": ["database", "migration", "alembic", "schema-change"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/05af03b5b5a7_add_is_indexed_to_policies.py:upgrade",
+      "type": "function",
+      "name": "upgrade",
+      "filePath": "backend/alembic/versions/05af03b5b5a7_add_is_indexed_to_policies.py",
+      "lineRange": [21, 24],
+      "summary": "policies 테이블에 기본값 false인 is_indexed 컬럼을 추가한다.",
+      "tags": ["migration", "schema-change"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/05af03b5b5a7_add_is_indexed_to_policies.py:downgrade",
+      "type": "function",
+      "name": "downgrade",
+      "filePath": "backend/alembic/versions/05af03b5b5a7_add_is_indexed_to_policies.py",
+      "lineRange": [27, 30],
+      "summary": "is_indexed 컬럼을 제거하여 이전 스키마로 되돌린다.",
+      "tags": ["migration", "rollback"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/09dd00061f54_sync_history_total_network_objects_.py",
+      "type": "file",
+      "name": "09dd00061f54_sync_history_total_network_objects_.py",
+      "filePath": "backend/alembic/versions/09dd00061f54_sync_history_total_network_objects_.py",
+      "summary": "sync_histories 테이블에 총 네트워크 오브젝트 관련 집계 컬럼을 추가하는 Alembic 마이그레이션.",
+      "tags": ["database", "migration", "alembic", "sync"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/09dd00061f54_sync_history_total_network_objects_.py:upgrade",
+      "type": "function",
+      "name": "upgrade",
+      "filePath": "backend/alembic/versions/09dd00061f54_sync_history_total_network_objects_.py",
+      "lineRange": [21, 26],
+      "summary": "sync_histories 테이블에 정수형 집계 컬럼 2개를 추가한다.",
+      "tags": ["migration", "sync"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/09dd00061f54_sync_history_total_network_objects_.py:downgrade",
+      "type": "function",
+      "name": "downgrade",
+      "filePath": "backend/alembic/versions/09dd00061f54_sync_history_total_network_objects_.py",
+      "lineRange": [29, 34],
+      "summary": "추가된 집계 컬럼들을 제거하여 이전 스키마로 되돌린다.",
+      "tags": ["migration", "rollback"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/0c2bcf544f00_split_group_thresholds_and_add_manual_.py",
+      "type": "file",
+      "name": "0c2bcf544f00_split_group_thresholds_and_add_manual_.py",
+      "filePath": "backend/alembic/versions/0c2bcf544f00_split_group_thresholds_and_add_manual_.py",
+      "summary": "장비의 단일 policy_threshold 등 임계값 컬럼을 정책/네트워크오브젝트/서비스별 개별 임계값과 수동 지정 플래그로 분리하고, 기존 값을 데이터 마이그레이션으로 이전하는 Alembic 마이그레이션.",
+      "tags": ["database", "migration", "alembic", "data-migration"],
+      "complexity": "moderate",
+      "languageNotes": "sa.table/sa.column으로 임시 테이블 구조를 정의해 op.execute로 기존 값을 새 개별 임계값 컬럼에 복사하는 데이터 마이그레이션 패턴을 사용한다."
+    },
+    {
+      "id": "function:backend/alembic/versions/0c2bcf544f00_split_group_thresholds_and_add_manual_.py:upgrade",
+      "type": "function",
+      "name": "upgrade",
+      "filePath": "backend/alembic/versions/0c2bcf544f00_split_group_thresholds_and_add_manual_.py",
+      "lineRange": [30, 53],
+      "summary": "정책/네트워크오브젝트/서비스별 임계값 및 수동 플래그 컬럼을 추가하고, 기존 policy_threshold 등의 값을 새 컬럼으로 복사한다.",
+      "tags": ["migration", "data-migration"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/alembic/versions/0c2bcf544f00_split_group_thresholds_and_add_manual_.py:downgrade",
+      "type": "function",
+      "name": "downgrade",
+      "filePath": "backend/alembic/versions/0c2bcf544f00_split_group_thresholds_and_add_manual_.py",
+      "lineRange": [56, 65],
+      "summary": "추가된 개별 임계값 및 수동 플래그 컬럼들을 모두 제거하여 이전 스키마로 되돌린다.",
+      "tags": ["migration", "rollback"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/0d3443650046_add_analysis_task_and_redundancy_policy_.py",
+      "type": "file",
+      "name": "0d3443650046_add_analysis_task_and_redundancy_policy_.py",
+      "filePath": "backend/alembic/versions/0d3443650046_add_analysis_task_and_redundancy_policy_.py",
+      "summary": "analysistasks 테이블과 redundancy_policy 관련 결과 테이블을 새로 생성하는 Alembic 마이그레이션으로, 분석 엔진의 진행 상태 및 중복 정책 탐지 결과 저장을 위한 스키마를 도입한다.",
+      "tags": ["database", "migration", "alembic", "analysis"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/alembic/versions/0d3443650046_add_analysis_task_and_redundancy_policy_.py:upgrade",
+      "type": "function",
+      "name": "upgrade",
+      "filePath": "backend/alembic/versions/0d3443650046_add_analysis_task_and_redundancy_policy_.py",
+      "lineRange": [21, 48],
+      "summary": "analysistasks 테이블과 연관 결과 테이블을 생성하고 외래키·인덱스를 설정한다.",
+      "tags": ["migration", "analysis", "schema-change"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/alembic/versions/0d3443650046_add_analysis_task_and_redundancy_policy_.py:downgrade",
+      "type": "function",
+      "name": "downgrade",
+      "filePath": "backend/alembic/versions/0d3443650046_add_analysis_task_and_redundancy_policy_.py",
+      "lineRange": [51, 59],
+      "summary": "생성된 인덱스와 테이블들을 삭제하여 이전 스키마로 되돌린다.",
+      "tags": ["migration", "rollback"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/13da5d437d69_add_from_zone_to_zone_log_setting_to_.py",
+      "type": "file",
+      "name": "13da5d437d69_add_from_zone_to_zone_log_setting_to_.py",
+      "filePath": "backend/alembic/versions/13da5d437d69_add_from_zone_to_zone_log_setting_to_.py",
+      "summary": "정책 테이블에 from_zone, to_zone, log_setting 문자열 컬럼을 추가하는 Alembic 마이그레이션.",
+      "tags": ["database", "migration", "alembic", "schema-change"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/13da5d437d69_add_from_zone_to_zone_log_setting_to_.py:upgrade",
+      "type": "function",
+      "name": "upgrade",
+      "filePath": "backend/alembic/versions/13da5d437d69_add_from_zone_to_zone_log_setting_to_.py",
+      "lineRange": [21, 27],
+      "summary": "정책 테이블에 from_zone, to_zone, log_setting 컬럼 3개를 추가한다.",
+      "tags": ["migration", "schema-change"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/13da5d437d69_add_from_zone_to_zone_log_setting_to_.py:downgrade",
+      "type": "function",
+      "name": "downgrade",
+      "filePath": "backend/alembic/versions/13da5d437d69_add_from_zone_to_zone_log_setting_to_.py",
+      "lineRange": [30, 36],
+      "summary": "추가된 3개 컬럼을 제거하여 이전 스키마로 되돌린다.",
+      "tags": ["migration", "rollback"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/1bc65d6e069d_add_user_fields_to_notification_log.py",
+      "type": "file",
+      "name": "1bc65d6e069d_add_user_fields_to_notification_log.py",
+      "filePath": "backend/alembic/versions/1bc65d6e069d_add_user_fields_to_notification_log.py",
+      "summary": "notification_log 테이블에 사용자 관련 컬럼과 인덱스를 추가하는 Alembic 마이그레이션.",
+      "tags": ["database", "migration", "alembic", "notification"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/1bc65d6e069d_add_user_fields_to_notification_log.py:upgrade",
+      "type": "function",
+      "name": "upgrade",
+      "filePath": "backend/alembic/versions/1bc65d6e069d_add_user_fields_to_notification_log.py",
+      "lineRange": [21, 24],
+      "summary": "notification_log 테이블에 사용자 ID/이름 컬럼과 조회용 인덱스를 추가한다.",
+      "tags": ["migration", "notification"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/1bc65d6e069d_add_user_fields_to_notification_log.py:downgrade",
+      "type": "function",
+      "name": "downgrade",
+      "filePath": "backend/alembic/versions/1bc65d6e069d_add_user_fields_to_notification_log.py",
+      "lineRange": [27, 30],
+      "summary": "추가된 인덱스와 컬럼들을 제거하여 이전 스키마로 되돌린다.",
+      "tags": ["migration", "rollback"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/250479d68b62_add_group_to_device.py",
+      "type": "file",
+      "name": "250479d68b62_add_group_to_device.py",
+      "filePath": "backend/alembic/versions/250479d68b62_add_group_to_device.py",
+      "summary": "devices 테이블에 그룹 분류용 컬럼을 추가하는 간단한 Alembic 마이그레이션.",
+      "tags": ["database", "migration", "alembic", "schema-change"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/250479d68b62_add_group_to_device.py:upgrade",
+      "type": "function",
+      "name": "upgrade",
+      "filePath": "backend/alembic/versions/250479d68b62_add_group_to_device.py",
+      "lineRange": [21, 22],
+      "summary": "devices 테이블에 group 문자열 컬럼을 추가한다.",
+      "tags": ["migration", "schema-change"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/250479d68b62_add_group_to_device.py:downgrade",
+      "type": "function",
+      "name": "downgrade",
+      "filePath": "backend/alembic/versions/250479d68b62_add_group_to_device.py",
+      "lineRange": [25, 26],
+      "summary": "추가된 group 컬럼을 제거하여 이전 스키마로 되돌린다.",
+      "tags": ["migration", "rollback"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {"source": "file:backend/alembic/script.py.mako", "target": "file:backend/alembic/versions/021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py", "type": "related", "direction": "forward", "weight": 0.5},
+    {"source": "file:backend/alembic/versions/021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py", "target": "function:backend/alembic/versions/021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py:upgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py", "target": "function:backend/alembic/versions/021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py:downgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py", "target": "function:backend/alembic/versions/021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py:upgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/alembic/versions/021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py", "target": "function:backend/alembic/versions/021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py:downgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/alembic/versions/03b8541df858_add_full_text_search_index_to_policies.py", "target": "function:backend/alembic/versions/03b8541df858_add_full_text_search_index_to_policies.py:upgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/03b8541df858_add_full_text_search_index_to_policies.py", "target": "function:backend/alembic/versions/03b8541df858_add_full_text_search_index_to_policies.py:downgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/03b8541df858_add_full_text_search_index_to_policies.py", "target": "function:backend/alembic/versions/03b8541df858_add_full_text_search_index_to_policies.py:upgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/alembic/versions/03b8541df858_add_full_text_search_index_to_policies.py", "target": "function:backend/alembic/versions/03b8541df858_add_full_text_search_index_to_policies.py:downgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/alembic/versions/05af03b5b5a7_add_is_indexed_to_policies.py", "target": "function:backend/alembic/versions/05af03b5b5a7_add_is_indexed_to_policies.py:upgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/05af03b5b5a7_add_is_indexed_to_policies.py", "target": "function:backend/alembic/versions/05af03b5b5a7_add_is_indexed_to_policies.py:downgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/05af03b5b5a7_add_is_indexed_to_policies.py", "target": "function:backend/alembic/versions/05af03b5b5a7_add_is_indexed_to_policies.py:upgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/alembic/versions/05af03b5b5a7_add_is_indexed_to_policies.py", "target": "function:backend/alembic/versions/05af03b5b5a7_add_is_indexed_to_policies.py:downgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/alembic/versions/09dd00061f54_sync_history_total_network_objects_.py", "target": "function:backend/alembic/versions/09dd00061f54_sync_history_total_network_objects_.py:upgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/09dd00061f54_sync_history_total_network_objects_.py", "target": "function:backend/alembic/versions/09dd00061f54_sync_history_total_network_objects_.py:downgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/09dd00061f54_sync_history_total_network_objects_.py", "target": "function:backend/alembic/versions/09dd00061f54_sync_history_total_network_objects_.py:upgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/alembic/versions/09dd00061f54_sync_history_total_network_objects_.py", "target": "function:backend/alembic/versions/09dd00061f54_sync_history_total_network_objects_.py:downgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/alembic/versions/0c2bcf544f00_split_group_thresholds_and_add_manual_.py", "target": "function:backend/alembic/versions/0c2bcf544f00_split_group_thresholds_and_add_manual_.py:upgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/0c2bcf544f00_split_group_thresholds_and_add_manual_.py", "target": "function:backend/alembic/versions/0c2bcf544f00_split_group_thresholds_and_add_manual_.py:downgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/0c2bcf544f00_split_group_thresholds_and_add_manual_.py", "target": "function:backend/alembic/versions/0c2bcf544f00_split_group_thresholds_and_add_manual_.py:upgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/alembic/versions/0c2bcf544f00_split_group_thresholds_and_add_manual_.py", "target": "function:backend/alembic/versions/0c2bcf544f00_split_group_thresholds_and_add_manual_.py:downgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/alembic/versions/0d3443650046_add_analysis_task_and_redundancy_policy_.py", "target": "function:backend/alembic/versions/0d3443650046_add_analysis_task_and_redundancy_policy_.py:upgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/0d3443650046_add_analysis_task_and_redundancy_policy_.py", "target": "function:backend/alembic/versions/0d3443650046_add_analysis_task_and_redundancy_policy_.py:downgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/0d3443650046_add_analysis_task_and_redundancy_policy_.py", "target": "function:backend/alembic/versions/0d3443650046_add_analysis_task_and_redundancy_policy_.py:upgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/alembic/versions/0d3443650046_add_analysis_task_and_redundancy_policy_.py", "target": "function:backend/alembic/versions/0d3443650046_add_analysis_task_and_redundancy_policy_.py:downgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/alembic/versions/13da5d437d69_add_from_zone_to_zone_log_setting_to_.py", "target": "function:backend/alembic/versions/13da5d437d69_add_from_zone_to_zone_log_setting_to_.py:upgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/13da5d437d69_add_from_zone_to_zone_log_setting_to_.py", "target": "function:backend/alembic/versions/13da5d437d69_add_from_zone_to_zone_log_setting_to_.py:downgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/13da5d437d69_add_from_zone_to_zone_log_setting_to_.py", "target": "function:backend/alembic/versions/13da5d437d69_add_from_zone_to_zone_log_setting_to_.py:upgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/alembic/versions/13da5d437d69_add_from_zone_to_zone_log_setting_to_.py", "target": "function:backend/alembic/versions/13da5d437d69_add_from_zone_to_zone_log_setting_to_.py:downgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/alembic/versions/1bc65d6e069d_add_user_fields_to_notification_log.py", "target": "function:backend/alembic/versions/1bc65d6e069d_add_user_fields_to_notification_log.py:upgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/1bc65d6e069d_add_user_fields_to_notification_log.py", "target": "function:backend/alembic/versions/1bc65d6e069d_add_user_fields_to_notification_log.py:downgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/1bc65d6e069d_add_user_fields_to_notification_log.py", "target": "function:backend/alembic/versions/1bc65d6e069d_add_user_fields_to_notification_log.py:upgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/alembic/versions/1bc65d6e069d_add_user_fields_to_notification_log.py", "target": "function:backend/alembic/versions/1bc65d6e069d_add_user_fields_to_notification_log.py:downgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/alembic/versions/250479d68b62_add_group_to_device.py", "target": "function:backend/alembic/versions/250479d68b62_add_group_to_device.py:upgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/250479d68b62_add_group_to_device.py", "target": "function:backend/alembic/versions/250479d68b62_add_group_to_device.py:downgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/250479d68b62_add_group_to_device.py", "target": "function:backend/alembic/versions/250479d68b62_add_group_to_device.py:upgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/alembic/versions/250479d68b62_add_group_to_device.py", "target": "function:backend/alembic/versions/250479d68b62_add_group_to_device.py:downgrade", "type": "exports", "direction": "forward", "weight": 0.8}
+  ]
+}
