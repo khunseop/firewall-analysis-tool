@@ -1,0 +1,124 @@
+[
+  {
+    "order": 1,
+    "title": "프로젝트 개요",
+    "description": "FAT(Firewall Analysis Tool)는 Palo Alto, SECUI MF2, SECUI NGF 등 여러 벤더의 방화벽 정책을 하나의 웹 화면에서 통합 조회·분석하는 도구입니다. README는 백엔드(FastAPI + SQLAlchemy + SQLite)와 프론트엔드(React 19 + TypeScript + Vite) 구성, 그리고 동기화·정책 검색·분석 엔진·삭제 워크플로우·정책 빌더라는 핵심 기능 다섯 가지를 소개합니다. 이 투어는 여기서 언급된 개념들을 실제 코드로 하나씩 따라가며 확인합니다.",
+    "nodeIds": [
+      "document:README.md"
+    ]
+  },
+  {
+    "order": 2,
+    "title": "애플리케이션 진입점",
+    "description": "backend/app/main.py는 FastAPI 서버가 시작되는 지점으로, 인증 미들웨어를 등록하고 API 라우터를 연결하며 빌드된 React 정적 파일을 서빙합니다. 특히 SPA 클라이언트 라우트는 개별 등록 없이 404 catch-all 핸들러가 index.html로 폴백하도록 설계되어 있어, 프론트엔드에 라우트를 추가해도 백엔드를 수정할 필요가 없습니다. 이 파일을 시작으로 스케줄러 기동/종료도 lifespan 컨텍스트에서 함께 처리됩니다.",
+    "nodeIds": [
+      "file:backend/app/main.py"
+    ]
+  },
+  {
+    "order": 3,
+    "title": "설정과 DB 세션",
+    "description": "core/config.py는 .env로부터 환경변수를 로드하고 암호화 키를 자동 생성하는 전역 Settings를 정의하며, db/session.py는 SQLAlchemy 비동기 엔진과 세션 팩토리, 요청 스코프 세션 의존성(get_db)을 제공합니다. main.py가 시작되자마자 의존하는 두 기반 모듈로, 이후 모든 API 엔드포인트와 서비스 계층이 이 위에서 동작합니다. SQLite PRAGMA 설정도 이곳에서 조정되어 동시성 문제를 완화합니다.",
+    "nodeIds": [
+      "file:backend/app/core/config.py",
+      "file:backend/app/db/session.py"
+    ]
+  },
+  {
+    "order": 4,
+    "title": "API 라우터 취합",
+    "description": "api_v1/api.py는 devices, firewall_sync, analysis, deletion_workflow, policy_builder 등 각 엔드포인트 모듈의 APIRouter를 하나로 모아 FastAPI 앱에 등록하는 허브 역할을 합니다. 이 파일을 보면 프로젝트가 어떤 API 영역들로 나뉘어 있는지 한눈에 파악할 수 있어, 이후 단계에서 다룰 서비스들의 지도를 미리 그려볼 수 있습니다.",
+    "nodeIds": [
+      "file:backend/app/api/api_v1/api.py"
+    ]
+  },
+  {
+    "order": 5,
+    "title": "멀티 벤더 추상화",
+    "description": "FirewallInterface는 모든 벤더별 수집기가 구현해야 하는 공통 메서드(연결, 정책·오브젝트 export, 시스템정보 조회 등)를 정의한 추상 인터페이스입니다. PaloAltoAPI(XML API + SSH, HA 지원), NGFCollector(REST API), MF2Collector(SSH/SCP 설정 파일 파싱), MockCollector(테스트용 무작위 데이터 생성) 네 가지 구현체가 이 인터페이스를 따르며, 런타임에 Factory가 장비의 벤더 정보에 맞는 구현체를 선택합니다. 이 Interface-Factory-Vendor 패턴 덕분에 새 벤더를 추가해도 나머지 파이프라인 코드는 전혀 건드리지 않습니다.",
+    "nodeIds": [
+      "file:backend/app/services/firewall/interface.py",
+      "file:backend/app/services/firewall/vendors/paloalto.py",
+      "file:backend/app/services/firewall/vendors/ngf.py",
+      "file:backend/app/services/firewall/vendors/mf2.py",
+      "file:backend/app/services/firewall/vendors/mock.py"
+    ],
+    "languageLesson": "Python의 추상 베이스 클래스(ABC)로 인터페이스를 정의하면, 각 벤더 구현체가 동일한 메서드 시그니처를 강제로 따르게 되어 Factory 패턴과 결합했을 때 다형성(polymorphism)을 통해 호출부 코드를 벤더 무관하게 유지할 수 있습니다."
+  },
+  {
+    "order": 6,
+    "title": "동기화 파이프라인",
+    "description": "sync/tasks.py의 run_sync_all_orchestrator는 connect→collect→transform→DB upsert→index→broadcast로 이어지는 전체 동기화 흐름을 지휘합니다. collector.py가 Step 5의 FirewallCollectorFactory를 통해 벤더별 컬렉터를 생성하고, transform.py가 수집된 원본 DataFrame을 Pydantic 스키마 객체로 정규화합니다. 세마포어로 동시 동기화 수를 제한하고 진행 상태를 WebSocket으로 브로드캐스트하는 이 오케스트레이터는 모든 벤더의 동기화 흐름에 영향을 주는 핵심 모듈입니다.",
+    "nodeIds": [
+      "file:backend/app/services/sync/tasks.py",
+      "file:backend/app/services/sync/collector.py",
+      "file:backend/app/services/sync/transform.py"
+    ]
+  },
+  {
+    "order": 7,
+    "title": "정책 인덱싱과 범위 검색",
+    "description": "policy_indexer.py는 동기화 시 정책의 주소/서비스 그룹을 DFS 기반으로 재귀 확장하고, IP와 포트를 숫자 범위로 변환해 policy_address_members/policy_service_members 테이블에 벌크 인덱싱합니다. crud_policy.py는 이렇게 만들어진 숫자 범위 테이블에 대해 overlap SQL 쿼리를 수행해, 특정 출발지·목적지·서비스 조건과 겹치는 정책을 빠르게 검색합니다. Step 6에서 저장된 원본 정책 데이터가 이 단계를 거쳐야 비로소 실용적인 검색 속도를 얻게 됩니다.",
+    "nodeIds": [
+      "file:backend/app/services/policy_indexer.py",
+      "file:backend/app/crud/crud_policy.py"
+    ]
+  },
+  {
+    "order": 8,
+    "title": "정책 분석 엔진",
+    "description": "analysis/tasks.py는 redundancy(중복), unused(미사용), impact(영향도), unreferenced_objects(미참조 오브젝트), risky_ports(위험 포트), over_permissive(과다 허용) 6개의 비동기 분석 엔진을 백그라운드 태스크로 실행하고 진행률과 결과를 관리합니다. Step 7의 오버랩 검색 로직을 재사용해 정책 간 조건이 겹치는지 판정하며, 장비별 동시 실행을 막기 위해 asyncio.Lock을 사용합니다. 각 엔진은 CPU 비교 연산을 전용 CPU_EXECUTOR에서 실행해 이벤트 루프를 막지 않습니다.",
+    "nodeIds": [
+      "file:backend/app/services/analysis/tasks.py",
+      "document:backend/app/services/analysis/README.md"
+    ]
+  },
+  {
+    "order": 9,
+    "title": "삭제 워크플로우",
+    "description": "삭제 워크플로우는 신청정보 파싱부터 최종 Excel 결과 생성까지 이어지는 별도의 파이프라인으로, core/pipeline.py가 등록된 프로세서들을 TaskRegistry를 통해 순차 실행합니다. 이 구조는 레거시 fpat CLI의 프로세서 로직을 Config 기반 파이프라인으로 이식한 것으로, Step 6의 동기화 파이프라인과는 독립적으로 동작하지만 같은 Policy 데이터를 소비합니다.",
+    "nodeIds": [
+      "file:backend/app/services/deletion_workflow/core/pipeline.py",
+      "document:backend/DELETION_WORKFLOW.md"
+    ]
+  },
+  {
+    "order": 10,
+    "title": "정책 빌더 (CLI 생성)",
+    "description": "cli_generator.py는 Policies 페이지의 편집모드에서 만들어진 정책/오브젝트 변경사항을 PAN-OS의 set/delete/move CLI 텍스트로 변환하는 순수 함수 모음입니다. 이 편집모드는 별도 페이지가 아니라 pending_policy_changes 테이블에 변경사항을 영속 저장할 뿐, 실제 policies 테이블이나 장비에는 전혀 반영하지 않는다는 점이 특징입니다. Step 7의 오버랩 판정 로직을 공유하는 insertion_analyzer.py가 가상 정책 삽입 시 기존 정책과의 충돌을 검증합니다.",
+    "nodeIds": [
+      "file:backend/app/services/policy_builder/cli_generator.py"
+    ]
+  },
+  {
+    "order": 11,
+    "title": "동시성과 실시간 브로드캐스트",
+    "description": "core/executors.py는 수집 I/O용 IO_EXECUTOR(8)와 분석 연산용 CPU_EXECUTOR(2)를 분리 정의해, 기본 스레드 풀 공유로 인한 상호 굶김을 방지합니다. websocket_manager.py는 Step 6의 동기화·Step 8의 분석 진행 상태를 모든 접속 클라이언트에 브로드캐스트하며, scheduler.py는 APScheduler로 sync_schedules 테이블에 저장된 예약 동기화를 앱 기동 시 로드하고 실시간으로 등록/해제합니다. 세 모듈 모두 여러 서브시스템이 공유하는 인프라 계층입니다.",
+    "nodeIds": [
+      "file:backend/app/core/executors.py",
+      "file:backend/app/services/websocket_manager.py",
+      "file:backend/app/services/scheduler.py"
+    ]
+  },
+  {
+    "order": 12,
+    "title": "프론트엔드 아키텍처",
+    "description": "main.tsx가 React 앱을 DOM에 마운트하면 App.tsx가 React Router로 전체 라우팅을 구성하고, 각 페이지를 React.lazy로 코드 스플리팅하며 라우트별 ErrorBoundary와 ProtectedRoute로 감쌉니다. api/client.ts는 axios 인스턴스에 Bearer 토큰 주입과 401 자동 로그아웃을 담당하고, api/queryKeys.ts는 React Query 캐시 키를 하드코딩 없이 생성하는 팩토리로 거의 모든 페이지가 이를 통해 서버 상태를 조회합니다. useWebSocket.ts는 Step 11의 websocket_manager.py가 보내는 브로드캐스트를 쿠키 기반 인증과 지수 백오프 재연결로 수신합니다.",
+    "nodeIds": [
+      "file:frontend/src/main.tsx",
+      "file:frontend/src/App.tsx",
+      "file:frontend/src/api/client.ts",
+      "file:frontend/src/api/queryKeys.ts",
+      "file:frontend/src/hooks/useWebSocket.ts"
+    ],
+    "languageLesson": "React.lazy와 Suspense를 조합하면 라우트 단위로 번들을 분리해 초기 로딩 시간을 줄일 수 있습니다. TanStack React Query의 쿼리키 팩토리 패턴은 캐시 무효화 대상을 타입 안전하게 지정할 수 있게 해, 문자열 오타로 인한 캐시 불일치를 방지합니다."
+  },
+  {
+    "order": 13,
+    "title": "데이터베이스 스키마",
+    "description": "DATABASE.md는 장비/사용자/이력 테이블부터 Step 7에서 다룬 고속 검색 인덱스 테이블(policy_address_members, policy_service_members), 분석 결과 테이블, 삭제 워크플로우 테이블까지 전체 20여 개 테이블의 스키마를 정리한 문서입니다. 코드에서 본 각 서비스(동기화, 인덱싱, 분석, 삭제 워크플로우)가 실제로 어떤 테이블에 데이터를 쓰고 읽는지 이 문서를 통해 마지막으로 확인하며 투어를 마무리합니다. DB 스키마를 변경할 때는 이 문서를 반드시 Alembic 마이그레이션과 함께 갱신해야 합니다.",
+    "nodeIds": [
+      "document:docs/DATABASE.md"
+    ]
+  }
+]
