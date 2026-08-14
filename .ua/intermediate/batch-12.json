@@ -1,0 +1,197 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/components/shared/ObjectDetailModal.tsx",
+      "type": "file",
+      "name": "ObjectDetailModal.tsx",
+      "filePath": "frontend/src/components/shared/ObjectDetailModal.tsx",
+      "summary": "네트워크/서비스 오브젝트의 상세 정보를 보여주는 모달 컴포넌트. 그룹 멤버를 재귀 트리로 펼쳐 보여주고, 해당 오브젝트를 사용하는 정책 목록으로 이동하는 기능을 제공한다.",
+      "tags": ["component", "modal", "object-detail", "react-query", "shared"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/shared/ObjectDetailModal.tsx:ObjectFields",
+      "type": "function",
+      "name": "ObjectFields",
+      "filePath": "frontend/src/components/shared/ObjectDetailModal.tsx",
+      "lineRange": [27, 44],
+      "summary": "오브젝트의 IP 주소, 타입, 설명 필드를 필터링하여 라벨-값 쌍으로 렌더링하는 소형 표시 컴포넌트.",
+      "tags": ["component", "display", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/ObjectDetailModal.tsx:MemberNode",
+      "type": "function",
+      "name": "MemberNode",
+      "filePath": "frontend/src/components/shared/ObjectDetailModal.tsx",
+      "lineRange": [47, 113],
+      "summary": "그룹/객체 멤버 트리의 단일 노드를 렌더링하며, 하위 그룹 멤버를 재귀적으로 펼치고 접는 상태를 관리한다.",
+      "tags": ["component", "recursive", "tree-node", "state"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/shared/ObjectDetailModal.tsx:MemberTree",
+      "type": "function",
+      "name": "MemberTree",
+      "filePath": "frontend/src/components/shared/ObjectDetailModal.tsx",
+      "lineRange": [116, 143],
+      "summary": "장비의 전체 네트워크 오브젝트/그룹 목록을 React Query로 조회한 뒤 멤버 목록을 트리 형태로 렌더링한다.",
+      "tags": ["component", "react-query", "tree", "data-fetching"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/shared/ObjectDetailModal.tsx:ObjectDetailModal",
+      "type": "function",
+      "name": "ObjectDetailModal",
+      "filePath": "frontend/src/components/shared/ObjectDetailModal.tsx",
+      "lineRange": [145, 246],
+      "summary": "오브젝트 상세 정보를 React Query로 조회해 모달로 표시하고, 관련 정책 페이지로 이동하는 핸들러를 제공하는 최상위 컴포넌트.",
+      "tags": ["component", "modal", "entry-point", "react-query"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/shared/PolicyDetailModal.tsx",
+      "type": "file",
+      "name": "PolicyDetailModal.tsx",
+      "filePath": "frontend/src/components/shared/PolicyDetailModal.tsx",
+      "summary": "방화벽 정책의 상세 정보를 보여주고, 편집 모드에서는 출발지/목적지/서비스 등의 토큰을 추가·삭제할 수 있는 모달 컴포넌트. 정책 내 오브젝트를 클릭하면 오브젝트 상세 패널로 드릴다운한다.",
+      "tags": ["component", "modal", "policy-detail", "policy-builder", "editable"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/shared/PolicyDetailModal.tsx:ObjectFields",
+      "type": "function",
+      "name": "ObjectFields",
+      "filePath": "frontend/src/components/shared/PolicyDetailModal.tsx",
+      "lineRange": [24, 41],
+      "summary": "오브젝트의 IP 주소, 타입, 설명 필드를 필터링하여 표시하는 소형 컴포넌트.",
+      "tags": ["component", "display", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/PolicyDetailModal.tsx:MemberNode",
+      "type": "function",
+      "name": "MemberNode",
+      "filePath": "frontend/src/components/shared/PolicyDetailModal.tsx",
+      "lineRange": [43, 101],
+      "summary": "그룹/객체 멤버 트리의 단일 노드를 렌더링하며 재귀적으로 하위 멤버의 펼침/접힘 상태를 관리한다.",
+      "tags": ["component", "recursive", "tree-node", "state"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/shared/PolicyDetailModal.tsx:MemberTree",
+      "type": "function",
+      "name": "MemberTree",
+      "filePath": "frontend/src/components/shared/PolicyDetailModal.tsx",
+      "lineRange": [103, 126],
+      "summary": "네트워크 오브젝트/그룹 목록을 React Query로 조회해 멤버 트리를 렌더링한다.",
+      "tags": ["component", "react-query", "tree", "data-fetching"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/shared/PolicyDetailModal.tsx:ObjectPanel",
+      "type": "function",
+      "name": "ObjectPanel",
+      "filePath": "frontend/src/components/shared/PolicyDetailModal.tsx",
+      "lineRange": [128, 238],
+      "summary": "정책 상세 모달 내에서 클릭된 오브젝트의 상세 정보를 조회해 사이드 패널로 표시하고, 관련 정책으로 이동하는 기능을 제공한다.",
+      "tags": ["component", "panel", "react-query", "drill-down"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/shared/PolicyDetailModal.tsx:ChipList",
+      "type": "function",
+      "name": "ChipList",
+      "filePath": "frontend/src/components/shared/PolicyDetailModal.tsx",
+      "lineRange": [242, 338],
+      "summary": "쉼표로 구분된 값을 칩(chip) 형태로 표시하고, 편집 모드에서 항목 추가/삭제 및 자동완성 필터링을 지원하는 컴포넌트.",
+      "tags": ["component", "editable", "autocomplete", "policy-builder"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/shared/PolicyDetailModal.tsx:Section",
+      "type": "function",
+      "name": "Section",
+      "filePath": "frontend/src/components/shared/PolicyDetailModal.tsx",
+      "lineRange": [342, 358],
+      "summary": "라벨과 항목 개수를 헤더로 표시하는 섹션 레이아웃 컴포넌트.",
+      "tags": ["component", "layout", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/PolicyDetailModal.tsx:PolicyDetailModal",
+      "type": "function",
+      "name": "PolicyDetailModal",
+      "filePath": "frontend/src/components/shared/PolicyDetailModal.tsx",
+      "lineRange": [381, 580],
+      "summary": "정책의 모든 필드(출발지, 목적지, 서비스, 액션 등)를 표시하고 편집 가능 시 토큰 추가/삭제 콜백을 통해 상위 컴포넌트의 정책 데이터를 갱신하는 최상위 모달 컴포넌트.",
+      "tags": ["component", "modal", "entry-point", "policy-builder", "editable"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/shared/Skeleton.tsx",
+      "type": "file",
+      "name": "Skeleton.tsx",
+      "filePath": "frontend/src/components/shared/Skeleton.tsx",
+      "summary": "로딩 상태를 표시하는 스켈레톤 UI 컴포넌트 모음(기본 스켈레톤, 테이블 스켈레톤, 카드 스켈레톤)을 제공한다.",
+      "tags": ["component", "skeleton", "loading-state", "shared", "ui"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/Skeleton.tsx:Skeleton",
+      "type": "function",
+      "name": "Skeleton",
+      "filePath": "frontend/src/components/shared/Skeleton.tsx",
+      "lineRange": [3, 7],
+      "summary": "펄스 애니메이션이 적용된 기본 회색 블록을 렌더링하는 스켈레톤 프리미티브 컴포넌트.",
+      "tags": ["component", "skeleton", "loading-state"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/Skeleton.tsx:TableSkeleton",
+      "type": "function",
+      "name": "TableSkeleton",
+      "filePath": "frontend/src/components/shared/Skeleton.tsx",
+      "lineRange": [9, 28],
+      "summary": "지정한 행/열 개수만큼 스켈레톤 블록을 배치해 테이블 로딩 상태를 표시하는 컴포넌트.",
+      "tags": ["component", "skeleton", "table", "loading-state"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/Skeleton.tsx:CardSkeleton",
+      "type": "function",
+      "name": "CardSkeleton",
+      "filePath": "frontend/src/components/shared/Skeleton.tsx",
+      "lineRange": [30, 38],
+      "summary": "카드 형태 UI의 로딩 상태를 표시하는 스켈레톤 컴포넌트.",
+      "tags": ["component", "skeleton", "card", "loading-state"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    { "source": "file:frontend/src/components/shared/ObjectDetailModal.tsx", "target": "file:frontend/src/components/shared/Skeleton.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/shared/PolicyDetailModal.tsx", "target": "file:frontend/src/components/shared/Skeleton.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "file:frontend/src/components/shared/ObjectDetailModal.tsx", "target": "function:frontend/src/components/shared/ObjectDetailModal.tsx:ObjectFields", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/shared/ObjectDetailModal.tsx", "target": "function:frontend/src/components/shared/ObjectDetailModal.tsx:MemberNode", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/shared/ObjectDetailModal.tsx", "target": "function:frontend/src/components/shared/ObjectDetailModal.tsx:MemberTree", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/shared/ObjectDetailModal.tsx", "target": "function:frontend/src/components/shared/ObjectDetailModal.tsx:ObjectDetailModal", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/shared/ObjectDetailModal.tsx", "target": "function:frontend/src/components/shared/ObjectDetailModal.tsx:ObjectDetailModal", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/components/shared/PolicyDetailModal.tsx", "target": "function:frontend/src/components/shared/PolicyDetailModal.tsx:ObjectFields", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/shared/PolicyDetailModal.tsx", "target": "function:frontend/src/components/shared/PolicyDetailModal.tsx:MemberNode", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/shared/PolicyDetailModal.tsx", "target": "function:frontend/src/components/shared/PolicyDetailModal.tsx:MemberTree", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/shared/PolicyDetailModal.tsx", "target": "function:frontend/src/components/shared/PolicyDetailModal.tsx:ObjectPanel", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/shared/PolicyDetailModal.tsx", "target": "function:frontend/src/components/shared/PolicyDetailModal.tsx:ChipList", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/shared/PolicyDetailModal.tsx", "target": "function:frontend/src/components/shared/PolicyDetailModal.tsx:Section", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/shared/PolicyDetailModal.tsx", "target": "function:frontend/src/components/shared/PolicyDetailModal.tsx:PolicyDetailModal", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/shared/PolicyDetailModal.tsx", "target": "function:frontend/src/components/shared/PolicyDetailModal.tsx:PolicyDetailModal", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/components/shared/Skeleton.tsx", "target": "function:frontend/src/components/shared/Skeleton.tsx:Skeleton", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/shared/Skeleton.tsx", "target": "function:frontend/src/components/shared/Skeleton.tsx:TableSkeleton", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/shared/Skeleton.tsx", "target": "function:frontend/src/components/shared/Skeleton.tsx:CardSkeleton", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/shared/Skeleton.tsx", "target": "function:frontend/src/components/shared/Skeleton.tsx:Skeleton", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/shared/Skeleton.tsx", "target": "function:frontend/src/components/shared/Skeleton.tsx:TableSkeleton", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/shared/Skeleton.tsx", "target": "function:frontend/src/components/shared/Skeleton.tsx:CardSkeleton", "type": "exports", "direction": "forward", "weight": 0.8 }
+  ]
+}
