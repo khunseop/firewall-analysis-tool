@@ -1,0 +1,506 @@
+{
+  "nodes": [
+    {
+      "id": "file:backend/alembic/versions/p1q2r3s4t5u6_add_task_id_to_analysis_results.py",
+      "type": "file",
+      "name": "p1q2r3s4t5u6_add_task_id_to_analysis_results.py",
+      "filePath": "backend/alembic/versions/p1q2r3s4t5u6_add_task_id_to_analysis_results.py",
+      "summary": "analysis_results 테이블에 task_id 컬럼(외래키)을 추가해 각 분석 결과를 생성한 실행(AnalysisTask)과 연결하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "schema-change"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/p1q2r3s4t5u6_add_task_id_to_analysis_results.py:upgrade",
+      "type": "function",
+      "name": "upgrade",
+      "filePath": "backend/alembic/versions/p1q2r3s4t5u6_add_task_id_to_analysis_results.py",
+      "lineRange": [21, 28],
+      "summary": "analysis_results 테이블에 task_id 컬럼, 인덱스, analysistasks에 대한 CASCADE 외래키를 추가한다.",
+      "tags": ["migration", "database"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/versions/p1q2r3s4t5u6_add_task_id_to_analysis_results.py:downgrade",
+      "type": "function",
+      "name": "downgrade",
+      "filePath": "backend/alembic/versions/p1q2r3s4t5u6_add_task_id_to_analysis_results.py",
+      "lineRange": [31, 36],
+      "summary": "upgrade에서 추가한 외래키·인덱스·task_id 컬럼을 역순으로 제거해 이전 스키마로 되돌린다.",
+      "tags": ["migration", "database"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/api/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/app/api/__init__.py",
+      "summary": "app.api 패키지를 선언하는 빈 초기화 파일.",
+      "tags": ["package-marker", "empty"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/api/api_v1/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/app/api/api_v1/__init__.py",
+      "summary": "app.api.api_v1 패키지를 선언하는 빈 초기화 파일.",
+      "tags": ["package-marker", "empty"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/api/api_v1/endpoints/export.py",
+      "type": "file",
+      "name": "export.py",
+      "filePath": "backend/app/api/api_v1/endpoints/export.py",
+      "summary": "프론트엔드 그리드 데이터를 스타일이 적용된 Excel 파일로 변환해 다운로드시키는 `/export/excel` API 엔드포인트. 신규 구조화 포맷(columns/rows)과 기존 평면(flat) 포맷을 모두 지원한다.",
+      "tags": ["api-handler", "excel-export", "fastapi", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/export.py:_build_styled_excel",
+      "type": "function",
+      "name": "_build_styled_excel",
+      "filePath": "backend/app/api/api_v1/endpoints/export.py",
+      "lineRange": [22, 65],
+      "summary": "columns/rows 구조를 받아 헤더 스타일, 행 배경색, 셀별 폰트색이 적용된 openpyxl Workbook을 생성한다.",
+      "tags": ["excel-export", "utility", "styling"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/export.py:_build_flat_excel",
+      "type": "function",
+      "name": "_build_flat_excel",
+      "filePath": "backend/app/api/api_v1/endpoints/export.py",
+      "lineRange": [68, 90],
+      "summary": "Policies/Objects 페이지 하위호환을 위한 평면 데이터(data 배열)를 pandas DataFrame으로 변환해 Excel로 저장하는 헬퍼.",
+      "tags": ["excel-export", "utility", "backwards-compat"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/export.py:export_to_excel",
+      "type": "function",
+      "name": "export_to_excel",
+      "filePath": "backend/app/api/api_v1/endpoints/export.py",
+      "lineRange": [93, 114],
+      "summary": "POST /export/excel 라우트 핸들러. 요청 데이터 포맷을 판별해 스타일 Excel 또는 평면 Excel을 생성하고 스트리밍 응답으로 다운로드시킨다.",
+      "tags": ["api-handler", "endpoint", "excel-export"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:backend/app/crud/README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "backend/app/crud/README.md",
+      "summary": "CRUD(DAO) 계층 개요 문서. SQLAlchemy 비동기 세션 기반 데이터 접근, 정책/장비/분석 CRUD 모듈 구성과 멤버 인덱싱을 통한 대용량 검색 최적화 전략을 설명한다.",
+      "tags": ["documentation", "database", "architecture"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:backend/app/services/README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "backend/app/services/README.md",
+      "summary": "정책 인덱서(Policy Indexer) 서비스 개요 문서. 그룹 리졸빙, 인메모리 처리, 멱등적 재인덱싱 등 소스/목적지/서비스를 검색 가능한 인덱스로 변환하는 데이터 흐름을 설명한다.",
+      "tags": ["documentation", "architecture", "indexing"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:backend/app/services/analysis/README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "backend/app/services/analysis/README.md",
+      "summary": "분석 서비스 모듈 개요 문서. Redundancy/Unused/Impact/Unreferenced 등 비동기 분석 엔진 구성과 IP·포트 범위 중첩 분석 알고리즘을 설명한다.",
+      "tags": ["documentation", "architecture", "analysis-engine"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/analysis/policy_overlap.py",
+      "type": "file",
+      "name": "policy_overlap.py",
+      "filePath": "backend/app/services/analysis/policy_overlap.py",
+      "summary": "정책 간 출발지/목적지/서비스/애플리케이션 조건의 중첩 여부를 판정하는 순수 함수 모음. Impact 분석(정책 이동 영향도)과 Policy Builder의 삽입 검증 로직이 공유하는 핵심 공용 모듈이다.",
+      "tags": ["utility", "analysis-engine", "pure-functions", "shared-module"],
+      "complexity": "complex",
+      "languageNotes": "DB 세션이나 인스턴스 상태에 의존하지 않는 순수 함수로 설계되어, 실제 Policy 객체와 가상(virtual) 정책 객체 모두에 재사용 가능하다."
+    },
+    {
+      "id": "function:backend/app/services/analysis/policy_overlap.py:get_policy_ranges",
+      "type": "function",
+      "name": "get_policy_ranges",
+      "filePath": "backend/app/services/analysis/policy_overlap.py",
+      "lineRange": [13, 35],
+      "summary": "정책의 address_members/service_members에서 출발지·목적지 IP 범위와 서비스(프로토콜, 포트 범위) 집합을 추출한다.",
+      "tags": ["analysis-engine", "utility"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/services/analysis/policy_overlap.py:services_overlap",
+      "type": "function",
+      "name": "services_overlap",
+      "filePath": "backend/app/services/analysis/policy_overlap.py",
+      "lineRange": [43, 50],
+      "summary": "두 서비스 항목이 프로토콜 일치(또는 any) 및 포트 범위 중첩 조건을 만족하는지 판정한다.",
+      "tags": ["analysis-engine", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/analysis/policy_overlap.py:applications_overlap",
+      "type": "function",
+      "name": "applications_overlap",
+      "filePath": "backend/app/services/analysis/policy_overlap.py",
+      "lineRange": [53, 63],
+      "summary": "두 정책의 애플리케이션 목록(콤마 구분 문자열)이 겹치는지 판정하며, any 또는 빈 값은 항상 겹치는 것으로 간주한다.",
+      "tags": ["analysis-engine", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/analysis/policy_overlap.py:policies_overlap",
+      "type": "function",
+      "name": "policies_overlap",
+      "filePath": "backend/app/services/analysis/policy_overlap.py",
+      "lineRange": [66, 93],
+      "summary": "출발지·목적지·서비스·애플리케이션 조건이 모두 중첩될 때에만 True를 반환해 두 정책 간 Shadowing 등 영향 가능성을 판정한다.",
+      "tags": ["analysis-engine", "shadowing"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/services/analysis/policy_overlap.py:get_policy_members",
+      "type": "function",
+      "name": "get_policy_members",
+      "filePath": "backend/app/services/analysis/policy_overlap.py",
+      "lineRange": [96, 101],
+      "summary": "정책의 출발지/목적지/서비스 멤버 레코드를 원본 객체 형태로 방향별 분류하여 반환한다.",
+      "tags": ["analysis-engine", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/analysis/policy_overlap.py:member_ranges_overlap",
+      "type": "function",
+      "name": "member_ranges_overlap",
+      "filePath": "backend/app/services/analysis/policy_overlap.py",
+      "lineRange": [118, 132],
+      "summary": "가상 정책(신규 삽입 후보)의 출발지/목적지/서비스/애플리케이션 조건이 기존 정책과 겹치는지 판정한다. Policy Builder의 삽입 검증에 사용된다.",
+      "tags": ["analysis-engine", "policy-builder"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/services/analysis/policy_overlap.py:overlap_details",
+      "type": "function",
+      "name": "overlap_details",
+      "filePath": "backend/app/services/analysis/policy_overlap.py",
+      "lineRange": [135, 160],
+      "summary": "두 정책 간 실제로 교집합이 발생한 멤버 쌍을 src/dst/svc 카테고리별로 수집해 반환한다.",
+      "tags": ["analysis-engine", "diagnostics"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/services/analysis/policy_overlap.py:format_ip_range",
+      "type": "function",
+      "name": "format_ip_range",
+      "filePath": "backend/app/services/analysis/policy_overlap.py",
+      "lineRange": [163, 170],
+      "summary": "정수형 IP 범위를 사람이 읽을 수 있는 IPv4 문자열 표현으로 변환한다.",
+      "tags": ["formatting", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/analysis/policy_overlap.py:format_service",
+      "type": "function",
+      "name": "format_service",
+      "filePath": "backend/app/services/analysis/policy_overlap.py",
+      "lineRange": [173, 181],
+      "summary": "서비스 멤버를 사람이 읽을 수 있는 문자열(원본 token 우선)로 변환한다.",
+      "tags": ["formatting", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/analysis/policy_overlap.py:describe_overlap",
+      "type": "function",
+      "name": "describe_overlap",
+      "filePath": "backend/app/services/analysis/policy_overlap.py",
+      "lineRange": [184, 220],
+      "summary": "overlap_details 결과를 카테고리별 최대 10건까지 나열한 사람이 읽을 수 있는 설명 문장으로 요약한다.",
+      "tags": ["formatting", "diagnostics"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:backend/app/services/deletion_workflow/README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "backend/app/services/deletion_workflow/README.md",
+      "summary": "삭제 워크플로우 모듈 개요 문서. 레거시 fpat CLI 프로세서 로직을 이식한 Config 기반 파이프라인 구조와 core/(엔진)·utils/ 하위 구성을 설명한다.",
+      "tags": ["documentation", "architecture", "deletion-workflow"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/app/services/deletion_workflow/__init__.py",
+      "summary": "deletion_workflow 패키지를 선언하는 초기화 파일.",
+      "tags": ["package-marker", "entry-point"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/core/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/app/services/deletion_workflow/core/__init__.py",
+      "summary": "deletion_workflow.core 패키지(파이프라인 엔진)를 선언하는 초기화 파일.",
+      "tags": ["package-marker"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/utils/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/app/services/deletion_workflow/utils/__init__.py",
+      "summary": "deletion_workflow.utils 패키지를 선언하는 초기화 파일.",
+      "tags": ["package-marker"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/utils/excel_manager.py",
+      "type": "file",
+      "name": "excel_manager.py",
+      "filePath": "backend/app/services/deletion_workflow/utils/excel_manager.py",
+      "summary": "레거시 fpat 도구에서 이식된 Excel 스타일 적용 유틸리티. 기존 Excel 파일의 특정 시트에 DataFrame을 삽입하고 헤더·이력 셀 배경색을 적용한다.",
+      "tags": ["excel-export", "utility", "deletion-workflow"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/utils/excel_manager.py:ExcelManager",
+      "type": "class",
+      "name": "ExcelManager",
+      "filePath": "backend/app/services/deletion_workflow/utils/excel_manager.py",
+      "lineRange": [14, 54],
+      "summary": "Excel 파일에 삭제 워크플로우 결과를 시트 단위로 저장하며 헤더/이력 컬럼에 배경색·정렬 스타일을 적용하는 클래스.",
+      "tags": ["excel-export", "deletion-workflow", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/export/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/app/services/export/__init__.py",
+      "summary": "app.services.export 패키지를 선언하는 빈 초기화 파일.",
+      "tags": ["package-marker", "empty"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:backend/app/services/firewall/README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "backend/app/services/firewall/README.md",
+      "summary": "방화벽 서비스 모듈 개요 문서. Palo Alto/SECUI MF2/SECUI NGF 등 멀티 벤더를 표준 인터페이스로 추상화하는 Interface-Factory-Vendor 패턴을 설명한다.",
+      "tags": ["documentation", "architecture", "multi-vendor"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:backend/app/services/sync/README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "backend/app/services/sync/README.md",
+      "summary": "동기화 모듈 개요 문서. 오케스트레이터·벌크 DB 동기화·HA 히트정보 병합 등 방화벽 설정 데이터 수집·동기화 파이프라인을 설명한다.",
+      "tags": ["documentation", "architecture", "sync-pipeline"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/sync/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/app/services/sync/__init__.py",
+      "summary": "app.services.sync 패키지를 선언하는 빈 초기화 파일.",
+      "tags": ["package-marker", "empty"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/static/redoc.standalone.js",
+      "type": "file",
+      "name": "redoc.standalone.js",
+      "filePath": "backend/app/static/redoc.standalone.js",
+      "summary": "API 문서 페이지(/redoc)를 렌더링하기 위해 번들된 서드파티 ReDoc 라이브러리 전체(minified/standalone) 스크립트.",
+      "tags": ["vendored", "third-party", "api-docs", "static-asset"],
+      "complexity": "complex",
+      "languageNotes": "직접 작성된 코드가 아닌 외부 ReDoc 라이브러리를 그대로 정적 서빙하기 위해 포함한 번들 파일이다."
+    },
+    {
+      "id": "file:backend/app/static/swagger-ui-bundle.js",
+      "type": "file",
+      "name": "swagger-ui-bundle.js",
+      "filePath": "backend/app/static/swagger-ui-bundle.js",
+      "summary": "API 문서 페이지(/docs)의 Swagger UI를 렌더링하기 위해 번들된 서드파티 swagger-ui-bundle 라이브러리(단일 압축 라인) 스크립트.",
+      "tags": ["vendored", "third-party", "api-docs", "static-asset"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/static/swagger-ui.css",
+      "type": "file",
+      "name": "swagger-ui.css",
+      "filePath": "backend/app/static/swagger-ui.css",
+      "summary": "Swagger UI(/docs) 렌더링에 사용되는 서드파티 스타일시트(압축된 리셋/유틸리티 CSS 번들).",
+      "tags": ["vendored", "third-party", "api-docs", "static-asset"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:backend/config/deletion_workflow_config.example.json",
+      "type": "config",
+      "name": "deletion_workflow_config.example.json",
+      "filePath": "backend/config/deletion_workflow_config.example.json",
+      "summary": "삭제 워크플로우 파이프라인의 예시 설정 파일. 파일 네이밍 규칙, 최대 신청유형 수, Excel 컬럼 정의, 헤더/이력 셀 색상 등 프로세서가 참조하는 설정값을 정의한다.",
+      "tags": ["configuration", "deletion-workflow", "excel-export"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/create_admin.py",
+      "type": "file",
+      "name": "create_admin.py",
+      "filePath": "backend/create_admin.py",
+      "summary": "초기 관리자 계정을 생성하는 CLI 스크립트. 사용자명/비밀번호를 인자 또는 프롬프트로 입력받아 bcrypt 해시로 저장된 관리자 사용자를 DB에 생성한다.",
+      "tags": ["cli", "admin", "database", "authentication"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/create_admin.py:create_admin",
+      "type": "function",
+      "name": "create_admin",
+      "filePath": "backend/create_admin.py",
+      "lineRange": [40, 56],
+      "summary": "사용자명 중복을 확인한 뒤 비밀번호를 해시하여 is_admin=True인 신규 User를 DB에 커밋한다.",
+      "tags": ["admin", "database", "async"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/create_admin.py:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "backend/create_admin.py",
+      "lineRange": [59, 82],
+      "summary": "CLI 인자를 파싱하고 비밀번호 미입력 시 프롬프트·확인 절차를 거친 뒤 create_admin을 비동기로 실행하는 진입점.",
+      "tags": ["cli", "entry-point"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/migrate.py",
+      "type": "file",
+      "name": "migrate.py",
+      "filePath": "backend/migrate.py",
+      "summary": "프로젝트 루트에서 Alembic 마이그레이션을 올바른 경로 설정으로 실행하기 위한 CLI 헬퍼 스크립트(upgrade/downgrade/current/history/stamp/heads 서브커맨드 지원).",
+      "tags": ["cli", "migration", "database", "alembic"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/migrate.py:build_alembic_config",
+      "type": "function",
+      "name": "build_alembic_config",
+      "filePath": "backend/migrate.py",
+      "lineRange": [25, 34],
+      "summary": "프로젝트의 alembic.ini와 alembic/ 스크립트 경로를 절대경로로 고정한 AlembicConfig 객체를 생성한다.",
+      "tags": ["migration", "configuration"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/migrate.py:parse_args",
+      "type": "function",
+      "name": "parse_args",
+      "filePath": "backend/migrate.py",
+      "lineRange": [44, 74],
+      "summary": "upgrade/downgrade/current/history/stamp/heads 서브커맨드와 각 인자를 정의하는 argparse 파서를 구성한다.",
+      "tags": ["cli", "argument-parsing"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/migrate.py:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "backend/migrate.py",
+      "lineRange": [77, 106],
+      "summary": "인자를 파싱해 해당 Alembic 명령(upgrade/downgrade/current/history/stamp/heads)을 실행하고 예외 발생 시 종료 코드 1을 반환하는 CLI 진입점.",
+      "tags": ["cli", "entry-point", "migration"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/eslint.config.js",
+      "type": "file",
+      "name": "eslint.config.js",
+      "filePath": "frontend/eslint.config.js",
+      "summary": "프론트엔드 ESLint 플랫 설정. dist 디렉토리를 제외하고 TS/TSX 파일에 recommended JS/TS 규칙, React Hooks, React Refresh(Vite) 플러그인 규칙을 적용한다.",
+      "tags": ["configuration", "linting", "eslint", "typescript"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/postcss.config.js",
+      "type": "file",
+      "name": "postcss.config.js",
+      "filePath": "frontend/postcss.config.js",
+      "summary": "PostCSS 설정. Tailwind CSS와 Autoprefixer 플러그인을 활성화해 프론트엔드 빌드 시 CSS를 처리한다.",
+      "tags": ["configuration", "build-system", "css", "tailwindcss"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {"source": "file:backend/alembic/versions/p1q2r3s4t5u6_add_task_id_to_analysis_results.py", "target": "function:backend/alembic/versions/p1q2r3s4t5u6_add_task_id_to_analysis_results.py:upgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/p1q2r3s4t5u6_add_task_id_to_analysis_results.py", "target": "function:backend/alembic/versions/p1q2r3s4t5u6_add_task_id_to_analysis_results.py:downgrade", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/alembic/versions/p1q2r3s4t5u6_add_task_id_to_analysis_results.py", "target": "function:backend/alembic/versions/p1q2r3s4t5u6_add_task_id_to_analysis_results.py:upgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/alembic/versions/p1q2r3s4t5u6_add_task_id_to_analysis_results.py", "target": "function:backend/alembic/versions/p1q2r3s4t5u6_add_task_id_to_analysis_results.py:downgrade", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/app/api/api_v1/endpoints/export.py", "target": "function:backend/app/api/api_v1/endpoints/export.py:_build_styled_excel", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/api/api_v1/endpoints/export.py", "target": "function:backend/app/api/api_v1/endpoints/export.py:_build_flat_excel", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/api/api_v1/endpoints/export.py", "target": "function:backend/app/api/api_v1/endpoints/export.py:export_to_excel", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/api/api_v1/endpoints/export.py", "target": "function:backend/app/api/api_v1/endpoints/export.py:export_to_excel", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/app/api/api_v1/endpoints/export.py:export_to_excel", "target": "function:backend/app/api/api_v1/endpoints/export.py:_build_styled_excel", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/app/api/api_v1/endpoints/export.py:export_to_excel", "target": "function:backend/app/api/api_v1/endpoints/export.py:_build_flat_excel", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "document:backend/app/crud/README.md", "target": "file:backend/app/crud/crud_policy.py", "type": "documents", "direction": "forward", "weight": 0.5},
+
+    {"source": "document:backend/app/services/README.md", "target": "file:backend/app/services/policy_indexer.py", "type": "documents", "direction": "forward", "weight": 0.5},
+
+    {"source": "document:backend/app/services/analysis/README.md", "target": "file:backend/app/services/analysis/redundancy.py", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:backend/app/services/analysis/README.md", "target": "file:backend/app/services/analysis/policy_overlap.py", "type": "documents", "direction": "forward", "weight": 0.5},
+
+    {"source": "file:backend/app/services/analysis/policy_overlap.py", "target": "function:backend/app/services/analysis/policy_overlap.py:get_policy_ranges", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/analysis/policy_overlap.py", "target": "function:backend/app/services/analysis/policy_overlap.py:services_overlap", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/analysis/policy_overlap.py", "target": "function:backend/app/services/analysis/policy_overlap.py:applications_overlap", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/analysis/policy_overlap.py", "target": "function:backend/app/services/analysis/policy_overlap.py:policies_overlap", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/analysis/policy_overlap.py", "target": "function:backend/app/services/analysis/policy_overlap.py:get_policy_members", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/analysis/policy_overlap.py", "target": "function:backend/app/services/analysis/policy_overlap.py:member_ranges_overlap", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/analysis/policy_overlap.py", "target": "function:backend/app/services/analysis/policy_overlap.py:overlap_details", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/analysis/policy_overlap.py", "target": "function:backend/app/services/analysis/policy_overlap.py:format_ip_range", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/analysis/policy_overlap.py", "target": "function:backend/app/services/analysis/policy_overlap.py:format_service", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/analysis/policy_overlap.py", "target": "function:backend/app/services/analysis/policy_overlap.py:describe_overlap", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/analysis/policy_overlap.py", "target": "function:backend/app/services/analysis/policy_overlap.py:get_policy_ranges", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/analysis/policy_overlap.py", "target": "function:backend/app/services/analysis/policy_overlap.py:policies_overlap", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/analysis/policy_overlap.py", "target": "function:backend/app/services/analysis/policy_overlap.py:member_ranges_overlap", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/analysis/policy_overlap.py", "target": "function:backend/app/services/analysis/policy_overlap.py:overlap_details", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/analysis/policy_overlap.py", "target": "function:backend/app/services/analysis/policy_overlap.py:describe_overlap", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/app/services/analysis/policy_overlap.py:policies_overlap", "target": "function:backend/app/services/analysis/policy_overlap.py:get_policy_ranges", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/app/services/analysis/policy_overlap.py:policies_overlap", "target": "function:backend/app/services/analysis/policy_overlap.py:applications_overlap", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/app/services/analysis/policy_overlap.py:member_ranges_overlap", "target": "function:backend/app/services/analysis/policy_overlap.py:get_policy_members", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/app/services/analysis/policy_overlap.py:overlap_details", "target": "function:backend/app/services/analysis/policy_overlap.py:get_policy_members", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/app/services/analysis/policy_overlap.py:describe_overlap", "target": "function:backend/app/services/analysis/policy_overlap.py:format_ip_range", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/app/services/analysis/policy_overlap.py:describe_overlap", "target": "function:backend/app/services/analysis/policy_overlap.py:format_service", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "document:backend/app/services/deletion_workflow/README.md", "target": "file:backend/app/services/deletion_workflow/core/__init__.py", "type": "documents", "direction": "forward", "weight": 0.5},
+    {"source": "document:backend/app/services/deletion_workflow/README.md", "target": "file:backend/app/services/deletion_workflow/utils/excel_manager.py", "type": "documents", "direction": "forward", "weight": 0.5},
+
+    {"source": "file:backend/app/services/deletion_workflow/utils/excel_manager.py", "target": "class:backend/app/services/deletion_workflow/utils/excel_manager.py:ExcelManager", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/utils/excel_manager.py", "target": "class:backend/app/services/deletion_workflow/utils/excel_manager.py:ExcelManager", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "config:backend/config/deletion_workflow_config.example.json", "target": "class:backend/app/services/deletion_workflow/utils/excel_manager.py:ExcelManager", "type": "configures", "direction": "forward", "weight": 0.6},
+
+    {"source": "document:backend/app/services/firewall/README.md", "target": "file:backend/app/services/firewall/interface.py", "type": "documents", "direction": "forward", "weight": 0.5},
+
+    {"source": "document:backend/app/services/sync/README.md", "target": "file:backend/app/services/sync/tasks.py", "type": "documents", "direction": "forward", "weight": 0.5},
+
+    {"source": "config:backend/config/deletion_workflow_config.example.json", "target": "file:backend/app/services/deletion_workflow/__init__.py", "type": "configures", "direction": "forward", "weight": 0.6},
+
+    {"source": "file:backend/create_admin.py", "target": "function:backend/create_admin.py:create_admin", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/create_admin.py", "target": "function:backend/create_admin.py:main", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "function:backend/create_admin.py:main", "target": "function:backend/create_admin.py:create_admin", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/migrate.py", "target": "function:backend/migrate.py:build_alembic_config", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/migrate.py", "target": "function:backend/migrate.py:parse_args", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/migrate.py", "target": "function:backend/migrate.py:main", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "function:backend/migrate.py:main", "target": "function:backend/migrate.py:build_alembic_config", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/migrate.py:main", "target": "function:backend/migrate.py:parse_args", "type": "calls", "direction": "forward", "weight": 0.8}
+  ]
+}
