@@ -1,0 +1,1005 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/App.css",
+      "type": "file",
+      "name": "App.css",
+      "filePath": "frontend/src/App.css",
+      "summary": "전역 CSS 스타일 시트로 앱 레이아웃과 컴포넌트 전반의 커스텀 스타일을 정의한다.",
+      "tags": [
+        "css",
+        "styling",
+        "global-styles",
+        "layout"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/App.tsx",
+      "type": "file",
+      "name": "App.tsx",
+      "filePath": "frontend/src/App.tsx",
+      "summary": "React Router 기반 최상위 App 컴포넌트로, 모든 페이지를 React.lazy로 코드 스플리팅하고 라우트별 ErrorBoundary와 ProtectedRoute로 감싸 전체 라우팅 구조를 정의한다.",
+      "tags": [
+        "entry-point",
+        "routing",
+        "code-splitting",
+        "lazy-loading"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/App.tsx:PageFallback",
+      "type": "function",
+      "name": "PageFallback",
+      "filePath": "frontend/src/App.tsx",
+      "lineRange": [
+        36,
+        45
+      ],
+      "summary": "페이지 지연 로딩 중 표시되는 로딩 폴백 UI 컴포넌트.",
+      "tags": [
+        "loading",
+        "fallback",
+        "component"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/App.tsx:App",
+      "type": "function",
+      "name": "App",
+      "filePath": "frontend/src/App.tsx",
+      "lineRange": [
+        47,
+        80
+      ],
+      "summary": "애플리케이션 전체 라우트를 정의하는 최상위 컴포넌트.",
+      "tags": [
+        "entry-point",
+        "routing",
+        "component"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/api/auth.ts",
+      "type": "file",
+      "name": "auth.ts",
+      "filePath": "frontend/src/api/auth.ts",
+      "summary": "로그인 API 호출 함수로, 사용자명/비밀번호를 폼 데이터로 인코딩해 인증 엔드포인트에 POST 요청을 보낸다.",
+      "tags": [
+        "api",
+        "authentication",
+        "http-client"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/api/auth.ts:login",
+      "type": "function",
+      "name": "login",
+      "filePath": "frontend/src/api/auth.ts",
+      "lineRange": [
+        8,
+        17
+      ],
+      "summary": "사용자명과 비밀번호를 URLSearchParams로 인코딩해 로그인 API를 호출하고 토큰을 반환한다.",
+      "tags": [
+        "api-handler",
+        "authentication"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/api/queryKeys.ts",
+      "type": "file",
+      "name": "queryKeys.ts",
+      "filePath": "frontend/src/api/queryKeys.ts",
+      "summary": "React Query 캐시 키를 생성하는 중앙 팩토리 객체로, 프로젝트 전역에서 쿼리 키 하드코딩을 방지한다.",
+      "tags": [
+        "query-keys",
+        "react-query",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/layout/AppLayout.tsx",
+      "type": "file",
+      "name": "AppLayout.tsx",
+      "filePath": "frontend/src/components/layout/AppLayout.tsx",
+      "summary": "Navbar와 페이지 콘텐츠 영역을 포함하는 공통 레이아웃 컴포넌트로 Outlet을 렌더링한다.",
+      "tags": [
+        "layout",
+        "component"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/layout/AppLayout.tsx:AppLayout",
+      "type": "function",
+      "name": "AppLayout",
+      "filePath": "frontend/src/components/layout/AppLayout.tsx",
+      "lineRange": [
+        4,
+        17
+      ],
+      "summary": "상단 Navbar와 라우트 Outlet을 렌더링하는 공용 레이아웃 컴포넌트.",
+      "tags": [
+        "layout",
+        "component"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/layout/Navbar.tsx",
+      "type": "file",
+      "name": "Navbar.tsx",
+      "filePath": "frontend/src/components/layout/Navbar.tsx",
+      "summary": "상단 내비게이션 바 컴포넌트로 메뉴 항목, 로그인 사용자 정보, 로그아웃 기능을 제공한다.",
+      "tags": [
+        "navigation",
+        "component",
+        "layout"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/layout/Navbar.tsx:Navbar",
+      "type": "function",
+      "name": "Navbar",
+      "filePath": "frontend/src/components/layout/Navbar.tsx",
+      "lineRange": [
+        16,
+        93
+      ],
+      "summary": "네비게이션 메뉴, 활성 라우트 하이라이트, 로그아웃 처리를 담당하는 상단 바 컴포넌트.",
+      "tags": [
+        "navigation",
+        "component",
+        "event-handler"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/layout/ProtectedRoute.tsx",
+      "type": "file",
+      "name": "ProtectedRoute.tsx",
+      "filePath": "frontend/src/components/layout/ProtectedRoute.tsx",
+      "summary": "인증 상태를 확인해 미인증 사용자를 로그인 페이지로 리다이렉트하는 라우트 가드 컴포넌트.",
+      "tags": [
+        "authentication",
+        "routing",
+        "guard"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/layout/ProtectedRoute.tsx:ProtectedRoute",
+      "type": "function",
+      "name": "ProtectedRoute",
+      "filePath": "frontend/src/components/layout/ProtectedRoute.tsx",
+      "lineRange": [
+        4,
+        7
+      ],
+      "summary": "useAuthStore의 인증 상태를 확인하여 미인증 시 로그인 페이지로 리다이렉트하고, 인증된 경우 자식 라우트를 렌더링한다.",
+      "tags": [
+        "auth-guard",
+        "routing"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/pages/AnalysisDetailPage.tsx",
+      "type": "file",
+      "name": "AnalysisDetailPage.tsx",
+      "filePath": "frontend/src/components/pages/AnalysisDetailPage.tsx",
+      "summary": "특정 분석 작업의 상세 결과를 조회, 그리드로 표시하고 Excel/PAN-OS 이동 스크립트로 내보내는 페이지.",
+      "tags": [
+        "analysis",
+        "data-grid",
+        "export",
+        "page"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pages/AnalysisDetailPage.tsx:makePolicyCols",
+      "type": "function",
+      "name": "makePolicyCols",
+      "filePath": "frontend/src/components/pages/AnalysisDetailPage.tsx",
+      "lineRange": [
+        45,
+        72
+      ],
+      "summary": "정책 관련 컬럼 정의를 생성하는 헬퍼 함수로 룰 이름 클릭 핸들러를 연결한다.",
+      "tags": [
+        "utility",
+        "ag-grid",
+        "column-definition"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/AnalysisDetailPage.tsx:getColumnDefs",
+      "type": "function",
+      "name": "getColumnDefs",
+      "filePath": "frontend/src/components/pages/AnalysisDetailPage.tsx",
+      "lineRange": [
+        74,
+        168
+      ],
+      "summary": "분석 유형(redundancy/unused/impact 등)별로 Ag-Grid 컬럼 정의를 동적으로 구성한다.",
+      "tags": [
+        "ag-grid",
+        "column-definition",
+        "analysis"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/AnalysisDetailPage.tsx:buildExcelPayload",
+      "type": "function",
+      "name": "buildExcelPayload",
+      "filePath": "frontend/src/components/pages/AnalysisDetailPage.tsx",
+      "lineRange": [
+        170,
+        208
+      ],
+      "summary": "그리드 행/컬럼 데이터를 스타일 정보를 포함한 Excel 내보내기 페이로드로 변환한다.",
+      "tags": [
+        "export",
+        "excel",
+        "utility"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/AnalysisDetailPage.tsx:buildPaloAltoMoveScript",
+      "type": "function",
+      "name": "buildPaloAltoMoveScript",
+      "filePath": "frontend/src/components/pages/AnalysisDetailPage.tsx",
+      "lineRange": [
+        210,
+        257
+      ],
+      "summary": "이동(impact) 분석 결과를 기반으로 Palo Alto CLI 이동(move) 스크립트 텍스트를 생성한다.",
+      "tags": [
+        "script-generation",
+        "palo-alto",
+        "export"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/AnalysisDetailPage.tsx:getRowStyle",
+      "type": "function",
+      "name": "getRowStyle",
+      "filePath": "frontend/src/components/pages/AnalysisDetailPage.tsx",
+      "lineRange": [
+        259,
+        271
+      ],
+      "summary": "분석 유형에 따라 그리드 행 스타일(강조색 등)을 결정한다.",
+      "tags": [
+        "ag-grid",
+        "styling"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/AnalysisDetailPage.tsx:ResultSummary",
+      "type": "function",
+      "name": "ResultSummary",
+      "filePath": "frontend/src/components/pages/AnalysisDetailPage.tsx",
+      "lineRange": [
+        273,
+        336
+      ],
+      "summary": "분석 결과 요약 통계(오브젝트/서비스 개수 등)를 카드 형태로 표시하는 컴포넌트.",
+      "tags": [
+        "component",
+        "summary",
+        "statistics"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/AnalysisDetailPage.tsx:AnalysisDetailPage",
+      "type": "function",
+      "name": "AnalysisDetailPage",
+      "filePath": "frontend/src/components/pages/AnalysisDetailPage.tsx",
+      "lineRange": [
+        338,
+        519
+      ],
+      "summary": "분석 작업 상세/장비 정보/결과를 조회하고 그리드 표시, 삭제, Excel/스크립트 내보내기를 처리하는 메인 페이지 컴포넌트.",
+      "tags": [
+        "page",
+        "analysis",
+        "data-grid",
+        "export"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/pages/AnalysisListPage.tsx",
+      "type": "file",
+      "name": "AnalysisListPage.tsx",
+      "filePath": "frontend/src/components/pages/AnalysisListPage.tsx",
+      "summary": "분석 작업 목록을 조회, 검색/필터링하고 신규 분석 생성 다이얼로그를 제공하는 페이지.",
+      "tags": [
+        "analysis",
+        "list",
+        "page",
+        "pagination"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pages/AnalysisListPage.tsx:PolicyMultiSelect",
+      "type": "function",
+      "name": "PolicyMultiSelect",
+      "filePath": "frontend/src/components/pages/AnalysisListPage.tsx",
+      "lineRange": [
+        50,
+        71
+      ],
+      "summary": "장비의 정책 목록을 조회해 다중 선택 가능한 정책 선택 UI를 제공하는 컴포넌트.",
+      "tags": [
+        "component",
+        "multi-select",
+        "policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/AnalysisListPage.tsx:CreateAnalysisDialog",
+      "type": "function",
+      "name": "CreateAnalysisDialog",
+      "filePath": "frontend/src/components/pages/AnalysisListPage.tsx",
+      "lineRange": [
+        73,
+        233
+      ],
+      "summary": "분석 유형, 대상 정책, 옵션을 입력받아 신규 분석 작업을 생성하는 다이얼로그 컴포넌트.",
+      "tags": [
+        "dialog",
+        "form",
+        "analysis-creation"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pages/AnalysisListPage.tsx:AnalysisListPage",
+      "type": "function",
+      "name": "AnalysisListPage",
+      "filePath": "frontend/src/components/pages/AnalysisListPage.tsx",
+      "lineRange": [
+        237,
+        424
+      ],
+      "summary": "분석 작업 목록을 페이지네이션/검색과 함께 표시하고 생성·삭제를 처리하는 메인 페이지.",
+      "tags": [
+        "page",
+        "list",
+        "pagination"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/pages/DashboardPage.tsx",
+      "type": "file",
+      "name": "DashboardPage.tsx",
+      "filePath": "frontend/src/components/pages/DashboardPage.tsx",
+      "summary": "장비별 통계, 변경 이력, 오브젝트 수 추이, 용량 경고 등을 한눈에 보여주는 대시보드 페이지.",
+      "tags": [
+        "dashboard",
+        "statistics",
+        "page",
+        "charts"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pages/DashboardPage.tsx:transformDeviceStats",
+      "type": "function",
+      "name": "transformDeviceStats",
+      "filePath": "frontend/src/components/pages/DashboardPage.tsx",
+      "lineRange": [
+        50,
+        69
+      ],
+      "summary": "API로부터 받은 장비 통계 원본 데이터를 그리드 표시용 행 데이터로 변환한다.",
+      "tags": [
+        "utility",
+        "data-transform"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/DashboardPage.tsx:CapacityCell",
+      "type": "function",
+      "name": "CapacityCell",
+      "filePath": "frontend/src/components/pages/DashboardPage.tsx",
+      "lineRange": [
+        71,
+        87
+      ],
+      "summary": "정책/오브젝트 용량 사용률을 임계치와 비교해 색상으로 표시하는 그리드 셀 컴포넌트.",
+      "tags": [
+        "component",
+        "ag-grid",
+        "capacity"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/DashboardPage.tsx:getHighCapacityMetrics",
+      "type": "function",
+      "name": "getHighCapacityMetrics",
+      "filePath": "frontend/src/components/pages/DashboardPage.tsx",
+      "lineRange": [
+        91,
+        106
+      ],
+      "summary": "임계치를 초과한 용량 지표 목록을 계산해 경고 대상 메트릭을 반환한다.",
+      "tags": [
+        "utility",
+        "capacity",
+        "warning"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/DashboardPage.tsx:DashboardPage",
+      "type": "function",
+      "name": "DashboardPage",
+      "filePath": "frontend/src/components/pages/DashboardPage.tsx",
+      "lineRange": [
+        185,
+        545
+      ],
+      "summary": "동기화 상태 웹소켓 구독, 장비 통계 그리드, 변경 추이 차트, 용량 경고 카드를 통합 제공하는 대시보드 메인 컴포넌트.",
+      "tags": [
+        "page",
+        "dashboard",
+        "websocket",
+        "charts"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/pages/DeletionWorkflowListPage.tsx",
+      "type": "file",
+      "name": "DeletionWorkflowListPage.tsx",
+      "filePath": "frontend/src/components/pages/DeletionWorkflowListPage.tsx",
+      "summary": "삭제 워크플로우 프로젝트 목록을 조회하고 신규 프로젝트 생성 다이얼로그를 제공하는 페이지.",
+      "tags": [
+        "deletion-workflow",
+        "list",
+        "page"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pages/DeletionWorkflowListPage.tsx:CreateProjectDialog",
+      "type": "function",
+      "name": "CreateProjectDialog",
+      "filePath": "frontend/src/components/pages/DeletionWorkflowListPage.tsx",
+      "lineRange": [
+        35,
+        125
+      ],
+      "summary": "장비 선택, 프로젝트명, 기준일 등을 입력받아 신규 삭제 워크플로우 프로젝트를 생성하는 다이얼로그.",
+      "tags": [
+        "dialog",
+        "form",
+        "deletion-workflow"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/DeletionWorkflowListPage.tsx:DeletionWorkflowListPage",
+      "type": "function",
+      "name": "DeletionWorkflowListPage",
+      "filePath": "frontend/src/components/pages/DeletionWorkflowListPage.tsx",
+      "lineRange": [
+        127,
+        258
+      ],
+      "summary": "삭제 워크플로우 프로젝트 목록 조회, 생성, 삭제를 처리하는 메인 페이지.",
+      "tags": [
+        "page",
+        "list",
+        "deletion-workflow"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/pages/DeletionWorkflowPage.tsx",
+      "type": "file",
+      "name": "DeletionWorkflowPage.tsx",
+      "filePath": "frontend/src/components/pages/DeletionWorkflowPage.tsx",
+      "summary": "선택된 삭제 워크플로우 프로젝트의 추출→파일 업로드→단계별 태스크 처리를 진행하는 단계(phase)별 파이프라인 페이지.",
+      "tags": [
+        "deletion-workflow",
+        "pipeline",
+        "page",
+        "file-upload"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pages/DeletionWorkflowPage.tsx:ExtractionPanel",
+      "type": "function",
+      "name": "ExtractionPanel",
+      "filePath": "frontend/src/components/pages/DeletionWorkflowPage.tsx",
+      "lineRange": [
+        48,
+        144
+      ],
+      "summary": "장비별 정책/객체 데이터를 직접 추출하는 패널 컴포넌트.",
+      "tags": [
+        "component",
+        "extraction",
+        "deletion-workflow"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/DeletionWorkflowPage.tsx:PhaseStepper",
+      "type": "function",
+      "name": "PhaseStepper",
+      "filePath": "frontend/src/components/pages/DeletionWorkflowPage.tsx",
+      "lineRange": [
+        149,
+        192
+      ],
+      "summary": "삭제 워크플로우의 현재 단계(phase)를 시각적으로 표시하는 스테퍼 컴포넌트.",
+      "tags": [
+        "component",
+        "stepper",
+        "ui"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/DeletionWorkflowPage.tsx:FileDropzone",
+      "type": "function",
+      "name": "FileDropzone",
+      "filePath": "frontend/src/components/pages/DeletionWorkflowPage.tsx",
+      "lineRange": [
+        205,
+        261
+      ],
+      "summary": "엑셀/CSV 파일을 드래그앤드롭 또는 클릭으로 업로드할 수 있는 드롭존 컴포넌트.",
+      "tags": [
+        "component",
+        "file-upload",
+        "drag-and-drop"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/DeletionWorkflowPage.tsx:TaskCard",
+      "type": "function",
+      "name": "TaskCard",
+      "filePath": "frontend/src/components/pages/DeletionWorkflowPage.tsx",
+      "lineRange": [
+        275,
+        400
+      ],
+      "summary": "삭제 워크플로우 개별 태스크의 파일 업로드, 실행, 결과 다운로드를 처리하는 카드 컴포넌트.",
+      "tags": [
+        "component",
+        "task",
+        "deletion-workflow"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pages/DeletionWorkflowPage.tsx:GsamsCheckpoint",
+      "type": "function",
+      "name": "GsamsCheckpoint",
+      "filePath": "frontend/src/components/pages/DeletionWorkflowPage.tsx",
+      "lineRange": [
+        405,
+        427
+      ],
+      "summary": "GSAMS 연동 체크포인트를 확인하고 다음 단계 진행 여부를 결정하는 컴포넌트.",
+      "tags": [
+        "component",
+        "checkpoint",
+        "deletion-workflow"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/DeletionWorkflowPage.tsx:SectionHeader",
+      "type": "function",
+      "name": "SectionHeader",
+      "filePath": "frontend/src/components/pages/DeletionWorkflowPage.tsx",
+      "lineRange": [
+        432,
+        449
+      ],
+      "summary": "워크플로우 섹션(phase)의 제목과 완료 상태를 표시하는 헤더 컴포넌트.",
+      "tags": [
+        "component",
+        "header",
+        "ui"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/DeletionWorkflowPage.tsx:DeletionWorkflowPage",
+      "type": "function",
+      "name": "DeletionWorkflowPage",
+      "filePath": "frontend/src/components/pages/DeletionWorkflowPage.tsx",
+      "lineRange": [
+        454,
+        622
+      ],
+      "summary": "삭제 워크플로우 전체 단계(추출→처리→GSAMS 체크→완료)를 오케스트레이션하는 메인 페이지 컴포넌트.",
+      "tags": [
+        "page",
+        "pipeline",
+        "deletion-workflow"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/pages/ImpactMovePreviewDialog.tsx",
+      "type": "file",
+      "name": "ImpactMovePreviewDialog.tsx",
+      "filePath": "frontend/src/components/pages/ImpactMovePreviewDialog.tsx",
+      "summary": "정책 이동(impact) 영향 분석 시뮬레이션 결과를 미리보기로 표시하는 다이얼로그.",
+      "tags": [
+        "dialog",
+        "impact-analysis",
+        "preview"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/ImpactMovePreviewDialog.tsx:simulateMove",
+      "type": "function",
+      "name": "simulateMove",
+      "filePath": "frontend/src/components/pages/ImpactMovePreviewDialog.tsx",
+      "lineRange": [
+        18,
+        49
+      ],
+      "summary": "이동 대상 정책과 오버랩 대상을 계산해 이동 시뮬레이션 결과를 산출하는 함수.",
+      "tags": [
+        "utility",
+        "simulation",
+        "policy-overlap"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/ImpactMovePreviewDialog.tsx:ImpactMovePreviewDialog",
+      "type": "function",
+      "name": "ImpactMovePreviewDialog",
+      "filePath": "frontend/src/components/pages/ImpactMovePreviewDialog.tsx",
+      "lineRange": [
+        51,
+        139
+      ],
+      "summary": "정책 이동 시뮬레이션 결과를 표 형태로 보여주는 미리보기 다이얼로그 컴포넌트.",
+      "tags": [
+        "dialog",
+        "component",
+        "impact-analysis"
+      ],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:frontend/src/App.tsx",
+      "target": "function:frontend/src/App.tsx:PageFallback",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/App.tsx",
+      "target": "function:frontend/src/App.tsx:App",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/App.tsx",
+      "target": "function:frontend/src/App.tsx:App",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/api/auth.ts",
+      "target": "function:frontend/src/api/auth.ts:login",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/api/auth.ts",
+      "target": "function:frontend/src/api/auth.ts:login",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/layout/AppLayout.tsx",
+      "target": "function:frontend/src/components/layout/AppLayout.tsx:AppLayout",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/layout/AppLayout.tsx",
+      "target": "function:frontend/src/components/layout/AppLayout.tsx:AppLayout",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/layout/AppLayout.tsx",
+      "target": "file:frontend/src/components/layout/Navbar.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/layout/Navbar.tsx",
+      "target": "function:frontend/src/components/layout/Navbar.tsx:Navbar",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/layout/Navbar.tsx",
+      "target": "function:frontend/src/components/layout/Navbar.tsx:Navbar",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/layout/ProtectedRoute.tsx",
+      "target": "function:frontend/src/components/layout/ProtectedRoute.tsx:ProtectedRoute",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/layout/ProtectedRoute.tsx",
+      "target": "function:frontend/src/components/layout/ProtectedRoute.tsx:ProtectedRoute",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/pages/AnalysisDetailPage.tsx",
+      "target": "function:frontend/src/components/pages/AnalysisDetailPage.tsx:makePolicyCols",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/AnalysisDetailPage.tsx",
+      "target": "function:frontend/src/components/pages/AnalysisDetailPage.tsx:getColumnDefs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/AnalysisDetailPage.tsx",
+      "target": "function:frontend/src/components/pages/AnalysisDetailPage.tsx:buildExcelPayload",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/AnalysisDetailPage.tsx",
+      "target": "function:frontend/src/components/pages/AnalysisDetailPage.tsx:buildPaloAltoMoveScript",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/AnalysisDetailPage.tsx",
+      "target": "function:frontend/src/components/pages/AnalysisDetailPage.tsx:getRowStyle",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/AnalysisDetailPage.tsx",
+      "target": "function:frontend/src/components/pages/AnalysisDetailPage.tsx:ResultSummary",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/AnalysisDetailPage.tsx",
+      "target": "function:frontend/src/components/pages/AnalysisDetailPage.tsx:AnalysisDetailPage",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/AnalysisDetailPage.tsx",
+      "target": "function:frontend/src/components/pages/AnalysisDetailPage.tsx:AnalysisDetailPage",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/pages/AnalysisListPage.tsx",
+      "target": "function:frontend/src/components/pages/AnalysisListPage.tsx:PolicyMultiSelect",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/AnalysisListPage.tsx",
+      "target": "function:frontend/src/components/pages/AnalysisListPage.tsx:CreateAnalysisDialog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/AnalysisListPage.tsx",
+      "target": "function:frontend/src/components/pages/AnalysisListPage.tsx:AnalysisListPage",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/AnalysisListPage.tsx",
+      "target": "function:frontend/src/components/pages/AnalysisListPage.tsx:AnalysisListPage",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/pages/DashboardPage.tsx",
+      "target": "function:frontend/src/components/pages/DashboardPage.tsx:transformDeviceStats",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/DashboardPage.tsx",
+      "target": "function:frontend/src/components/pages/DashboardPage.tsx:CapacityCell",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/DashboardPage.tsx",
+      "target": "function:frontend/src/components/pages/DashboardPage.tsx:getHighCapacityMetrics",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/DashboardPage.tsx",
+      "target": "function:frontend/src/components/pages/DashboardPage.tsx:DashboardPage",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/DashboardPage.tsx",
+      "target": "function:frontend/src/components/pages/DashboardPage.tsx:DashboardPage",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/pages/DeletionWorkflowListPage.tsx",
+      "target": "function:frontend/src/components/pages/DeletionWorkflowListPage.tsx:CreateProjectDialog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/DeletionWorkflowListPage.tsx",
+      "target": "function:frontend/src/components/pages/DeletionWorkflowListPage.tsx:DeletionWorkflowListPage",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/DeletionWorkflowListPage.tsx",
+      "target": "function:frontend/src/components/pages/DeletionWorkflowListPage.tsx:DeletionWorkflowListPage",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/pages/DeletionWorkflowPage.tsx",
+      "target": "function:frontend/src/components/pages/DeletionWorkflowPage.tsx:ExtractionPanel",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/DeletionWorkflowPage.tsx",
+      "target": "function:frontend/src/components/pages/DeletionWorkflowPage.tsx:PhaseStepper",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/DeletionWorkflowPage.tsx",
+      "target": "function:frontend/src/components/pages/DeletionWorkflowPage.tsx:FileDropzone",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/DeletionWorkflowPage.tsx",
+      "target": "function:frontend/src/components/pages/DeletionWorkflowPage.tsx:TaskCard",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/DeletionWorkflowPage.tsx",
+      "target": "function:frontend/src/components/pages/DeletionWorkflowPage.tsx:GsamsCheckpoint",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/DeletionWorkflowPage.tsx",
+      "target": "function:frontend/src/components/pages/DeletionWorkflowPage.tsx:SectionHeader",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/DeletionWorkflowPage.tsx",
+      "target": "function:frontend/src/components/pages/DeletionWorkflowPage.tsx:DeletionWorkflowPage",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/DeletionWorkflowPage.tsx",
+      "target": "function:frontend/src/components/pages/DeletionWorkflowPage.tsx:DeletionWorkflowPage",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/pages/ImpactMovePreviewDialog.tsx",
+      "target": "function:frontend/src/components/pages/ImpactMovePreviewDialog.tsx:simulateMove",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/ImpactMovePreviewDialog.tsx",
+      "target": "function:frontend/src/components/pages/ImpactMovePreviewDialog.tsx:ImpactMovePreviewDialog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/ImpactMovePreviewDialog.tsx",
+      "target": "function:frontend/src/components/pages/ImpactMovePreviewDialog.tsx:ImpactMovePreviewDialog",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}

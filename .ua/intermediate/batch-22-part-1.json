@@ -1,0 +1,357 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/components/pages/policy-builder/NewPolicyPasteInput.tsx",
+      "type": "file",
+      "name": "NewPolicyPasteInput.tsx",
+      "filePath": "frontend/src/components/pages/policy-builder/NewPolicyPasteInput.tsx",
+      "summary": "정책빌더에서 신규 정책을 붙여넣기로 입력하는 컴포넌트. 클립보드 텍스트를 파싱해 정책 행 목록으로 변환하고, 템플릿 복사와 카운트(값 개수) 복사 기능을 제공한다.",
+      "tags": ["component", "policy-builder", "clipboard", "paste-parsing", "react"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/policy-builder/NewPolicyPasteInput.tsx:NewPolicyPasteInput",
+      "type": "function",
+      "name": "NewPolicyPasteInput",
+      "filePath": "frontend/src/components/pages/policy-builder/NewPolicyPasteInput.tsx",
+      "lineRange": [37, 179],
+      "summary": "붙여넣은 텍스트를 파싱해 정책 행 상태를 관리하고, 오류가 있는 열/행을 알려주며 결과를 상위로 전달하는 메인 컴포넌트.",
+      "tags": ["react-component", "state-management", "parsing"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/pages/policy-builder/ObjectGapPanel.tsx",
+      "type": "file",
+      "name": "ObjectGapPanel.tsx",
+      "filePath": "frontend/src/components/pages/policy-builder/ObjectGapPanel.tsx",
+      "summary": "정책빌더에서 신규 정책이 참조하지만 장비에 없는 오브젝트(주소/서비스)를 감지하고 사용자가 값을 지정하도록 하는 패널.",
+      "tags": ["policy-builder", "object-gap", "react", "form"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/policy-builder/ObjectGapPanel.tsx:ObjectGapPanel",
+      "type": "function",
+      "name": "ObjectGapPanel",
+      "filePath": "frontend/src/components/pages/policy-builder/ObjectGapPanel.tsx",
+      "lineRange": [16, 123],
+      "summary": "장비의 기존 오브젝트와 신규 정책이 참조하는 오브젝트를 비교해 부족한 오브젝트 목록을 계산하고, 사용자가 입력한 스펙을 상위로 전달하는 컴포넌트.",
+      "tags": ["react-component", "diffing", "form-handling"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/pages/policy-builder/PlanResultPanel.tsx",
+      "type": "file",
+      "name": "PlanResultPanel.tsx",
+      "filePath": "frontend/src/components/pages/policy-builder/PlanResultPanel.tsx",
+      "summary": "정책빌더 실행계획(plan) 결과로 생성된 CLI 명령어, 경고, 충돌 목록을 보여주고 클립보드 복사 기능을 제공하는 패널.",
+      "tags": ["policy-builder", "cli-output", "react", "clipboard"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/policy-builder/PlanResultPanel.tsx:CommandSection",
+      "type": "function",
+      "name": "CommandSection",
+      "filePath": "frontend/src/components/pages/policy-builder/PlanResultPanel.tsx",
+      "lineRange": [10, 57],
+      "summary": "성공/실패로 구분된 CLI 명령어 목록을 렌더링하고 전체 복사 버튼을 제공하는 하위 컴포넌트.",
+      "tags": ["react-component", "clipboard"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/policy-builder/PlanResultPanel.tsx:PlanResultPanel",
+      "type": "function",
+      "name": "PlanResultPanel",
+      "filePath": "frontend/src/components/pages/policy-builder/PlanResultPanel.tsx",
+      "lineRange": [59, 93],
+      "summary": "정책빌더 plan 결과의 경고, 충돌, CommandSection들을 조합해 렌더링하는 최상위 패널 컴포넌트.",
+      "tags": ["react-component", "policy-builder"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/shared/AgGridWrapper.tsx",
+      "type": "file",
+      "name": "AgGridWrapper.tsx",
+      "filePath": "frontend/src/components/shared/AgGridWrapper.tsx",
+      "summary": "Ag-Grid Community Edition을 감싸 로딩 오버레이, 행 스타일, 컬럼 자동 크기 조정 등 공통 옵션을 표준화한 재사용 그리드 래퍼 컴포넌트.",
+      "tags": ["ag-grid", "wrapper", "component", "forwardref"],
+      "complexity": "moderate",
+      "languageNotes": "forwardRef와 useImperativeHandle을 사용해 그리드 API(sizeColumnsToFit 등)를 상위 컴포넌트에 노출한다."
+    },
+    {
+      "id": "function:frontend/src/components/shared/AgGridWrapper.tsx:AgGridWrapperInner",
+      "type": "function",
+      "name": "AgGridWrapperInner",
+      "filePath": "frontend/src/components/shared/AgGridWrapper.tsx",
+      "lineRange": [57, 191],
+      "summary": "forwardRef로 감싸지는 실제 Ag-Grid 렌더링 로직으로, 컬럼 자동 맞춤, 로딩 상태 표시, 선택/셀 변경 이벤트 처리를 담당한다.",
+      "tags": ["ag-grid", "ref-forwarding", "react-component"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/shared/ConfirmDialog.tsx",
+      "type": "file",
+      "name": "ConfirmDialog.tsx",
+      "filePath": "frontend/src/components/shared/ConfirmDialog.tsx",
+      "summary": "Promise 기반으로 확인 다이얼로그를 호출할 수 있게 해주는 useConfirm 커스텀 훅과 다이얼로그 UI를 제공.",
+      "tags": ["hook", "confirm-dialog", "react", "promise"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/ConfirmDialog.tsx:useConfirm",
+      "type": "function",
+      "name": "useConfirm",
+      "filePath": "frontend/src/components/shared/ConfirmDialog.tsx",
+      "lineRange": [25, 69],
+      "summary": "confirm() 호출 시 Promise를 반환하고, 사용자가 확인/취소를 선택하면 resolve하는 확인 다이얼로그 훅.",
+      "tags": ["custom-hook", "promise-based", "ui"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/shared/DeviceSelector.tsx",
+      "type": "file",
+      "name": "DeviceSelector.tsx",
+      "filePath": "frontend/src/components/shared/DeviceSelector.tsx",
+      "summary": "장비 선택 드롭다운 UI 컴포넌트 모음. 다중 선택, 단일 선택, 검색, 벤더/그룹별 그룹핑을 지원한다.",
+      "tags": ["device-selector", "dropdown", "react", "zustand"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/shared/DeviceSelector.tsx:DeviceItem",
+      "type": "function",
+      "name": "DeviceItem",
+      "filePath": "frontend/src/components/shared/DeviceSelector.tsx",
+      "lineRange": [16, 47],
+      "summary": "드롭다운 내 개별 장비 항목을 렌더링하며 선택 상태와 벤더에 따라 스타일을 다르게 표시한다.",
+      "tags": ["react-component", "list-item"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/shared/DeviceSelector.tsx:DeviceDropdownBase",
+      "type": "function",
+      "name": "DeviceDropdownBase",
+      "filePath": "frontend/src/components/shared/DeviceSelector.tsx",
+      "lineRange": [63, 231],
+      "summary": "검색, 그룹핑, 전체선택 등 장비 드롭다운의 핵심 로직을 담당하는 공통 베이스 컴포넌트.",
+      "tags": ["react-component", "dropdown", "search", "grouping"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/shared/DeviceSelector.tsx:DeviceSelector",
+      "type": "function",
+      "name": "DeviceSelector",
+      "filePath": "frontend/src/components/shared/DeviceSelector.tsx",
+      "lineRange": [234, 248],
+      "summary": "useDeviceStore와 연동되는 다중 장비 선택 드롭다운의 공개 컴포넌트.",
+      "tags": ["react-component", "multi-select", "zustand"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/DeviceSelector.tsx:DeviceSelectorSingle",
+      "type": "function",
+      "name": "DeviceSelectorSingle",
+      "filePath": "frontend/src/components/shared/DeviceSelector.tsx",
+      "lineRange": [251, 271],
+      "summary": "useQuery로 장비 목록을 조회해 단일 장비를 선택하는 드롭다운 컴포넌트.",
+      "tags": ["react-component", "single-select", "react-query"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/shared/EmptyState.tsx",
+      "type": "file",
+      "name": "EmptyState.tsx",
+      "filePath": "frontend/src/components/shared/EmptyState.tsx",
+      "summary": "데이터가 없을 때 아이콘, 제목, 설명, 액션 버튼을 보여주는 공용 빈 상태(Empty State) 컴포넌트.",
+      "tags": ["empty-state", "shared-component", "ui"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/EmptyState.tsx:EmptyState",
+      "type": "function",
+      "name": "EmptyState",
+      "filePath": "frontend/src/components/shared/EmptyState.tsx",
+      "lineRange": [4, 27],
+      "summary": "아이콘, 제목, 설명, 선택적 액션 버튼으로 구성된 빈 상태 UI를 렌더링하는 공용 컴포넌트.",
+      "tags": ["react-component", "placeholder"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/shared/ErrorBoundary.tsx",
+      "type": "file",
+      "name": "ErrorBoundary.tsx",
+      "filePath": "frontend/src/components/shared/ErrorBoundary.tsx",
+      "summary": "렌더링 에러를 포착해 재시도 가능한 폴백 UI를 표시하는 React 클래스 컴포넌트 기반 에러 바운더리.",
+      "tags": ["error-boundary", "react-class-component", "fallback-ui"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:frontend/src/components/shared/ErrorBoundary.tsx:ErrorBoundary",
+      "type": "class",
+      "name": "ErrorBoundary",
+      "filePath": "frontend/src/components/shared/ErrorBoundary.tsx",
+      "lineRange": [16, 55],
+      "summary": "getDerivedStateFromError와 componentDidCatch로 하위 트리 렌더 에러를 잡아 콘솔에 기록하고, 새로고침 가능한 폴백 UI를 표시하는 에러 바운더리 클래스.",
+      "tags": ["class-component", "error-handling"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/shared/GroupedDeviceMultiSelect.tsx",
+      "type": "file",
+      "name": "GroupedDeviceMultiSelect.tsx",
+      "filePath": "frontend/src/components/shared/GroupedDeviceMultiSelect.tsx",
+      "summary": "장비를 그룹별로 묶어 체크박스로 다중 선택할 수 있게 해주는 선택기 컴포넌트.",
+      "tags": ["device-selector", "multi-select", "grouping", "checkbox"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/shared/GroupedDeviceMultiSelect.tsx:GroupedDeviceMultiSelect",
+      "type": "function",
+      "name": "GroupedDeviceMultiSelect",
+      "filePath": "frontend/src/components/shared/GroupedDeviceMultiSelect.tsx",
+      "lineRange": [19, 141],
+      "summary": "장비 목록을 그룹별로 묶고 검색, 그룹 단위 토글, 개별 토글 기능을 제공하는 다중 선택 컴포넌트.",
+      "tags": ["react-component", "grouping", "search"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/shared/LoadingOverlay.tsx",
+      "type": "file",
+      "name": "LoadingOverlay.tsx",
+      "filePath": "frontend/src/components/shared/LoadingOverlay.tsx",
+      "summary": "로딩 중임을 표시하는 오버레이 스피너 공용 컴포넌트.",
+      "tags": ["loading", "overlay", "shared-component"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/LoadingOverlay.tsx:LoadingOverlay",
+      "type": "function",
+      "name": "LoadingOverlay",
+      "filePath": "frontend/src/components/shared/LoadingOverlay.tsx",
+      "lineRange": [15, 31],
+      "summary": "show 플래그에 따라 스피너와 라벨을 화면 위에 오버레이로 표시하는 컴포넌트.",
+      "tags": ["react-component", "spinner"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/shared/PolicyGridPicker.tsx",
+      "type": "file",
+      "name": "PolicyGridPicker.tsx",
+      "filePath": "frontend/src/components/shared/PolicyGridPicker.tsx",
+      "summary": "정책 목록을 Ag-Grid로 보여주며 단일/다중 선택 모드로 정책을 고르는 팝업 선택기 컴포넌트.",
+      "tags": ["policy-picker", "ag-grid", "react", "selection"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/shared/PolicyGridPicker.tsx:buildColumnDefs",
+      "type": "function",
+      "name": "buildColumnDefs",
+      "filePath": "frontend/src/components/shared/PolicyGridPicker.tsx",
+      "lineRange": [11, 29],
+      "summary": "경고 대상 정책 ID 집합(warnIds)을 반영해 정책 그리드의 컬럼 정의를 생성한다.",
+      "tags": ["ag-grid", "column-config"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/PolicyGridPicker.tsx:PolicyGridPicker",
+      "type": "function",
+      "name": "PolicyGridPicker",
+      "filePath": "frontend/src/components/shared/PolicyGridPicker.tsx",
+      "lineRange": [51, 153],
+      "summary": "정책 목록을 조회해 그리드로 표시하고, 사용자가 선택한 정책(단일/다중)을 상위 컴포넌트로 전달하는 팝업 선택기.",
+      "tags": ["react-component", "react-query", "ag-grid"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/shared/PolicyHistoryModal.tsx",
+      "type": "file",
+      "name": "PolicyHistoryModal.tsx",
+      "filePath": "frontend/src/components/shared/PolicyHistoryModal.tsx",
+      "summary": "특정 정책의 변경 이력(신청 이력)을 조회해 변경 전/후 필드 diff를 테이블로 보여주는 모달 컴포넌트.",
+      "tags": ["policy-history", "diff", "modal", "react"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/shared/PolicyHistoryModal.tsx:parseDetails",
+      "type": "function",
+      "name": "parseDetails",
+      "filePath": "frontend/src/components/shared/PolicyHistoryModal.tsx",
+      "lineRange": [30, 42],
+      "summary": "이력 로그의 JSON 문자열(details)을 안전하게 파싱해 객체로 반환한다.",
+      "tags": ["json-parsing", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/PolicyHistoryModal.tsx:DiffTable",
+      "type": "function",
+      "name": "DiffTable",
+      "filePath": "frontend/src/components/shared/PolicyHistoryModal.tsx",
+      "lineRange": [46, 112],
+      "summary": "이력 항목의 변경 전/후 필드를 비교해 추가/삭제/변경된 필드를 diff 테이블 행으로 렌더링한다.",
+      "tags": ["react-component", "diff-table"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/shared/PolicyHistoryModal.tsx:PolicyHistoryModal",
+      "type": "function",
+      "name": "PolicyHistoryModal",
+      "filePath": "frontend/src/components/shared/PolicyHistoryModal.tsx",
+      "lineRange": [122, 182],
+      "summary": "정책 이력을 조회하고 각 이력 항목에 대해 DiffTable을 렌더링하는 모달 컴포넌트.",
+      "tags": ["react-component", "modal", "react-query"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/shared/PolicyMiniRow.tsx",
+      "type": "file",
+      "name": "PolicyMiniRow.tsx",
+      "filePath": "frontend/src/components/shared/PolicyMiniRow.tsx",
+      "summary": "정책 이름, 액션, 순번, 이동/신규 여부를 배지 형태로 간략히 표시하는 작은 정책 요약 행 컴포넌트.",
+      "tags": ["shared-component", "policy-summary", "ui"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/shared/PolicyMiniRow.tsx:PolicyMiniRow",
+      "type": "function",
+      "name": "PolicyMiniRow",
+      "filePath": "frontend/src/components/shared/PolicyMiniRow.tsx",
+      "lineRange": [1, 28],
+      "summary": "정책 규칙명, 액션, 순번과 이동/신규 상태를 배지 형태로 표시하는 미니 행 컴포넌트.",
+      "tags": ["react-component", "badge"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {"source": "file:frontend/src/components/pages/policy-builder/NewPolicyPasteInput.tsx", "target": "function:frontend/src/components/pages/policy-builder/NewPolicyPasteInput.tsx:NewPolicyPasteInput", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/pages/policy-builder/NewPolicyPasteInput.tsx", "target": "function:frontend/src/components/pages/policy-builder/NewPolicyPasteInput.tsx:NewPolicyPasteInput", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/pages/policy-builder/ObjectGapPanel.tsx", "target": "function:frontend/src/components/pages/policy-builder/ObjectGapPanel.tsx:ObjectGapPanel", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/pages/policy-builder/ObjectGapPanel.tsx", "target": "function:frontend/src/components/pages/policy-builder/ObjectGapPanel.tsx:ObjectGapPanel", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/pages/policy-builder/PlanResultPanel.tsx", "target": "function:frontend/src/components/pages/policy-builder/PlanResultPanel.tsx:CommandSection", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/pages/policy-builder/PlanResultPanel.tsx", "target": "function:frontend/src/components/pages/policy-builder/PlanResultPanel.tsx:PlanResultPanel", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/pages/policy-builder/PlanResultPanel.tsx", "target": "function:frontend/src/components/pages/policy-builder/PlanResultPanel.tsx:PlanResultPanel", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/AgGridWrapper.tsx", "target": "function:frontend/src/components/shared/AgGridWrapper.tsx:AgGridWrapperInner", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/ConfirmDialog.tsx", "target": "function:frontend/src/components/shared/ConfirmDialog.tsx:useConfirm", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/ConfirmDialog.tsx", "target": "function:frontend/src/components/shared/ConfirmDialog.tsx:useConfirm", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/DeviceSelector.tsx", "target": "function:frontend/src/components/shared/DeviceSelector.tsx:DeviceItem", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/DeviceSelector.tsx", "target": "function:frontend/src/components/shared/DeviceSelector.tsx:DeviceDropdownBase", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/DeviceSelector.tsx", "target": "function:frontend/src/components/shared/DeviceSelector.tsx:DeviceSelector", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/DeviceSelector.tsx", "target": "function:frontend/src/components/shared/DeviceSelector.tsx:DeviceSelectorSingle", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/DeviceSelector.tsx", "target": "function:frontend/src/components/shared/DeviceSelector.tsx:DeviceSelector", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/DeviceSelector.tsx", "target": "function:frontend/src/components/shared/DeviceSelector.tsx:DeviceSelectorSingle", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/EmptyState.tsx", "target": "function:frontend/src/components/shared/EmptyState.tsx:EmptyState", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/EmptyState.tsx", "target": "function:frontend/src/components/shared/EmptyState.tsx:EmptyState", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/ErrorBoundary.tsx", "target": "class:frontend/src/components/shared/ErrorBoundary.tsx:ErrorBoundary", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/ErrorBoundary.tsx", "target": "class:frontend/src/components/shared/ErrorBoundary.tsx:ErrorBoundary", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/GroupedDeviceMultiSelect.tsx", "target": "function:frontend/src/components/shared/GroupedDeviceMultiSelect.tsx:GroupedDeviceMultiSelect", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/GroupedDeviceMultiSelect.tsx", "target": "function:frontend/src/components/shared/GroupedDeviceMultiSelect.tsx:GroupedDeviceMultiSelect", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/LoadingOverlay.tsx", "target": "function:frontend/src/components/shared/LoadingOverlay.tsx:LoadingOverlay", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/LoadingOverlay.tsx", "target": "function:frontend/src/components/shared/LoadingOverlay.tsx:LoadingOverlay", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/PolicyGridPicker.tsx", "target": "function:frontend/src/components/shared/PolicyGridPicker.tsx:buildColumnDefs", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/PolicyGridPicker.tsx", "target": "function:frontend/src/components/shared/PolicyGridPicker.tsx:PolicyGridPicker", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/PolicyGridPicker.tsx", "target": "function:frontend/src/components/shared/PolicyGridPicker.tsx:PolicyGridPicker", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/PolicyHistoryModal.tsx", "target": "function:frontend/src/components/shared/PolicyHistoryModal.tsx:parseDetails", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/PolicyHistoryModal.tsx", "target": "function:frontend/src/components/shared/PolicyHistoryModal.tsx:DiffTable", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/PolicyHistoryModal.tsx", "target": "function:frontend/src/components/shared/PolicyHistoryModal.tsx:PolicyHistoryModal", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/PolicyHistoryModal.tsx", "target": "function:frontend/src/components/shared/PolicyHistoryModal.tsx:PolicyHistoryModal", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/shared/PolicyMiniRow.tsx", "target": "function:frontend/src/components/shared/PolicyMiniRow.tsx:PolicyMiniRow", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/shared/PolicyMiniRow.tsx", "target": "function:frontend/src/components/shared/PolicyMiniRow.tsx:PolicyMiniRow", "type": "exports", "direction": "forward", "weight": 0.8}
+  ]
+}
