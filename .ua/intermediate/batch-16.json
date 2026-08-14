@@ -1,0 +1,172 @@
+{
+  "nodes": [
+    {
+      "id": "document:docs/improvement/README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "docs/improvement/README.md",
+      "summary": "성능·리팩토링·UI 개선 플랜의 인덱스 문서. 진행 상태, 우선순위 원칙, 공통 규칙, 조사 근거, 플랜 범위 밖 후속 과제를 정리하고 phase1~4 문서로 연결한다.",
+      "tags": ["documentation", "entry-point", "planning", "improvement-plan"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:docs/improvement/deletion-workflow-auto-run.md",
+      "type": "document",
+      "name": "deletion-workflow-auto-run.md",
+      "filePath": "docs/improvement/deletion-workflow-auto-run.md",
+      "summary": "삭제 워크플로우를 서버 사이드에서 자동 진행시키기 위한 설계 제안 문서. DB 모델 변경, 백엔드 엔드포인트 리팩터링, 동시성 처리, WebSocket 브로드캐스트 확장, 프론트 변경, 마이그레이션 항목과 미결정 사항을 다룬다.",
+      "tags": ["documentation", "design-proposal", "deletion-workflow", "planning"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/improvement/phase1-critical-fixes.md",
+      "type": "document",
+      "name": "phase1-critical-fixes.md",
+      "filePath": "docs/improvement/phase1-critical-fixes.md",
+      "summary": "긴급 수정 단계(Phase 1) 문서. BackgroundTasks에 닫힌 DB 세션이 전달되는 버그, Policy 복합 인덱스 부재, 분석 엔진의 O(n²) 이벤트 루프 블로킹, sync 카운트 쿼리 비효율 등 우선순위 높은 버그·성능 이슈와 완료 기준을 정리한다.",
+      "tags": ["documentation", "bugfix", "performance", "planning"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/improvement/phase2-backend-refactor.md",
+      "type": "document",
+      "name": "phase2-backend-refactor.md",
+      "filePath": "docs/improvement/phase2-backend-refactor.md",
+      "summary": "백엔드 리팩토링 단계(Phase 2) 문서. search_policies 쿼리 폭증 해소, CRUD 제네릭 베이스 통합, 1164줄짜리 deletion_workflow.py 분해, sync/tasks.py 상태 업데이트 보일러플레이트 정리, main.py의 lifespan·SPA 라우팅 일원화 계획과 완료 기준을 담고 있다.",
+      "tags": ["documentation", "refactoring", "backend", "planning"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/improvement/phase3-frontend-performance.md",
+      "type": "document",
+      "name": "phase3-frontend-performance.md",
+      "filePath": "docs/improvement/phase3-frontend-performance.md",
+      "summary": "프론트엔드 성능 개선 단계(Phase 3) 문서. 라우트 코드 스플리팅과 번들 정리, AgGridWrapper 렌더링 최적화, React Query 기반 서버 상태 단일화와 쿼리키 팩토리화, useWebSocket 훅 안정화 계획과 완료 기준을 정리한다.",
+      "tags": ["documentation", "performance", "frontend", "planning"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/improvement/phase4-frontend-ui.md",
+      "type": "document",
+      "name": "phase4-frontend-ui.md",
+      "filePath": "docs/improvement/phase4-frontend-ui.md",
+      "summary": "프론트엔드 UI 일관성·구조 개선 단계(Phase 4) 문서. 공통 상태 컴포넌트(ErrorBoundary·EmptyState·로딩) 도입, 1000줄 이상 대형 페이지 3개 분해, DeviceSelector 4중 구현 통합, 다운로드 헬퍼·네이밍 잡무 정리 계획과 완료 기준을 담고 있다.",
+      "tags": ["documentation", "ui-consistency", "frontend", "planning"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "document:docs/improvement/README.md",
+      "target": "document:docs/improvement/deletion-workflow-auto-run.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/improvement/README.md",
+      "target": "document:docs/improvement/phase1-critical-fixes.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/improvement/README.md",
+      "target": "document:docs/improvement/phase2-backend-refactor.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/improvement/README.md",
+      "target": "document:docs/improvement/phase3-frontend-performance.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/improvement/README.md",
+      "target": "document:docs/improvement/phase4-frontend-ui.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/improvement/deletion-workflow-auto-run.md",
+      "target": "file:backend/app/models/deletion_workflow.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/improvement/deletion-workflow-auto-run.md",
+      "target": "file:backend/app/api/api_v1/endpoints/deletion_workflow.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/improvement/deletion-workflow-auto-run.md",
+      "target": "file:backend/app/services/websocket_manager.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/improvement/phase2-backend-refactor.md",
+      "target": "file:backend/app/crud/crud_policy.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/improvement/phase2-backend-refactor.md",
+      "target": "file:backend/app/crud/base.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/improvement/phase2-backend-refactor.md",
+      "target": "file:backend/app/services/sync/tasks.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/improvement/phase2-backend-refactor.md",
+      "target": "file:backend/app/main.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/improvement/phase3-frontend-performance.md",
+      "target": "file:frontend/src/components/shared/AgGridWrapper.tsx",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/improvement/phase3-frontend-performance.md",
+      "target": "file:frontend/src/hooks/useWebSocket.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/improvement/phase3-frontend-performance.md",
+      "target": "file:frontend/src/api/queryKeys.ts",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/improvement/phase4-frontend-ui.md",
+      "target": "file:frontend/src/components/shared/DeviceSelector.tsx",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}
