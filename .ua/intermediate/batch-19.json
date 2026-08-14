@@ -1,0 +1,230 @@
+{
+  "nodes": [
+    {
+      "id": "file:backend/alembic/versions/96102c4e15f4_refactor_sync_status_and_remove_ip_.py",
+      "type": "file",
+      "name": "96102c4e15f4_refactor_sync_status_and_remove_ip_.py",
+      "filePath": "backend/alembic/versions/96102c4e15f4_refactor_sync_status_and_remove_ip_.py",
+      "summary": "동기화 상태(sync_status) 컬럼을 문자열 타입으로 리팩토링하고, 더 이상 사용하지 않는 IP 관련 컬럼을 제거하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "schema-change"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/98af10f9d74d_add_export_tasks_table.py",
+      "type": "file",
+      "name": "98af10f9d74d_add_export_tasks_table.py",
+      "filePath": "backend/alembic/versions/98af10f9d74d_add_export_tasks_table.py",
+      "summary": "내보내기(export) 작업의 상태와 결과를 추적하기 위한 export_tasks 테이블을 생성하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "schema-change"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/999999999999_add_last_hit_date_to_policies.py",
+      "type": "file",
+      "name": "999999999999_add_last_hit_date_to_policies.py",
+      "filePath": "backend/alembic/versions/999999999999_add_last_hit_date_to_policies.py",
+      "summary": "policies 테이블에 정책의 마지막 히트 일자(last_hit_date) 컬럼을 추가하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "policy"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/9f3d51c8e2a7_align_not_null_and_unique_constraints.py",
+      "type": "file",
+      "name": "9f3d51c8e2a7_align_not_null_and_unique_constraints.py",
+      "filePath": "backend/alembic/versions/9f3d51c8e2a7_align_not_null_and_unique_constraints.py",
+      "summary": "여러 컬럼의 NOT NULL 및 UNIQUE 제약조건을 정렬(정합화)하는 Alembic 마이그레이션. 재사용 가능한 _set_nullable 헬퍼 함수를 포함한다.",
+      "tags": ["migration", "database", "alembic", "constraint"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/a1b2c3d4e5f6_add_numeric_and_flatten_columns.py",
+      "type": "file",
+      "name": "a1b2c3d4e5f6_add_numeric_and_flatten_columns.py",
+      "filePath": "backend/alembic/versions/a1b2c3d4e5f6_add_numeric_and_flatten_columns.py",
+      "summary": "정책 관련 테이블에 숫자형(Integer/BigInteger) 컬럼과 평탄화된 문자열(flatten) 컬럼을 추가하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "schema-change"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/alembic/versions/a3f7c9d1e246_add_concurrent_task_lock_and_requester_.py",
+      "type": "file",
+      "name": "a3f7c9d1e246_add_concurrent_task_lock_and_requester_.py",
+      "filePath": "backend/alembic/versions/a3f7c9d1e246_add_concurrent_task_lock_and_requester_.py",
+      "summary": "동시 실행 방지를 위한 태스크 락(lock) 관련 컬럼과 요청자(requester) 정보 컬럼을 추가하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "concurrency"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/ac6ed09caa16_add_reference_date_to_deletion_workflow_.py",
+      "type": "file",
+      "name": "ac6ed09caa16_add_reference_date_to_deletion_workflow_.py",
+      "filePath": "backend/alembic/versions/ac6ed09caa16_add_reference_date_to_deletion_workflow_.py",
+      "summary": "삭제 워크플로우(deletion workflow) 테이블에 기준일(reference_date) 컬럼을 추가하는 간단한 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "deletion-workflow"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/b2bcdf268319_add_hit_count_to_policies.py",
+      "type": "file",
+      "name": "b2bcdf268319_add_hit_count_to_policies.py",
+      "filePath": "backend/alembic/versions/b2bcdf268319_add_hit_count_to_policies.py",
+      "summary": "policies 테이블에 hit_count 컬럼을 추가하고 op.execute로 기본값을 초기화하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "policy"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/b2c3d4e5f6a7_add_policy_member_indexes.py",
+      "type": "file",
+      "name": "b2c3d4e5f6a7_add_policy_member_indexes.py",
+      "filePath": "backend/alembic/versions/b2c3d4e5f6a7_add_policy_member_indexes.py",
+      "summary": "policy_address_members, policy_service_members 두 테이블과 조회 성능을 위한 인덱스를 생성하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "index", "policy"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/b66eeb2bdb5d_optimize_policy_address_members.py",
+      "type": "file",
+      "name": "b66eeb2bdb5d_optimize_policy_address_members.py",
+      "filePath": "backend/alembic/versions/b66eeb2bdb5d_optimize_policy_address_members.py",
+      "summary": "policy_address_members 테이블에서 불필요한 컬럼을 제거해 구조를 최적화하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "optimization"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/be31ff864885_add_deletion_workflow_projects_and_files.py",
+      "type": "file",
+      "name": "be31ff864885_add_deletion_workflow_projects_and_files.py",
+      "filePath": "backend/alembic/versions/be31ff864885_add_deletion_workflow_projects_and_files.py",
+      "summary": "삭제 워크플로우의 프로젝트와 첨부 파일을 관리하기 위한 deletion_workflow_projects, deletion_workflow_files 테이블을 생성하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "deletion-workflow"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/c3d4e5f6a7b8_deprecate_flattened_strings_comment.py",
+      "type": "file",
+      "name": "c3d4e5f6a7b8_deprecate_flattened_strings_comment.py",
+      "filePath": "backend/alembic/versions/c3d4e5f6a7b8_deprecate_flattened_strings_comment.py",
+      "summary": "평탄화된(flatten) 문자열 컬럼들을 더 이상 사용하지 않음(deprecated)으로 표시하는 주석성 Alembic 마이그레이션으로, 실제 스키마 변경 없이 코멘트만 갱신한다.",
+      "tags": ["migration", "database", "alembic", "deprecation"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/cea930c349cb_add_bidirectional_relationship_between_.py",
+      "type": "file",
+      "name": "cea930c349cb_add_bidirectional_relationship_between_.py",
+      "filePath": "backend/alembic/versions/cea930c349cb_add_bidirectional_relationship_between_.py",
+      "summary": "두 엔티티 간 양방향 관계(bidirectional relationship)를 반영하는 Alembic 마이그레이션. ORM 레벨 변경 위주로 스키마 조작 호출이 거의 없다.",
+      "tags": ["migration", "database", "alembic", "relationship"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/d4e5f6a7b8c9_drop_policies_flattened_columns.py",
+      "type": "file",
+      "name": "d4e5f6a7b8c9_drop_policies_flattened_columns.py",
+      "filePath": "backend/alembic/versions/d4e5f6a7b8c9_drop_policies_flattened_columns.py",
+      "summary": "policies 테이블에서 더 이상 사용하지 않는 평탄화된(flatten) 문자열 컬럼들을 제거하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "policy"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/ed78465f7817_add_pending_policy_changes_table.py",
+      "type": "file",
+      "name": "ed78465f7817_add_pending_policy_changes_table.py",
+      "filePath": "backend/alembic/versions/ed78465f7817_add_pending_policy_changes_table.py",
+      "summary": "정책 빌더(PolicyBuilder) 편집모드에서 발생한 대기중 변경사항을 영속 저장하기 위한 pending_policy_changes 테이블을 생성하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "policy-builder"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/f1a2b3c4d5e6_add_sync_schedules_table.py",
+      "type": "file",
+      "name": "f1a2b3c4d5e6_add_sync_schedules_table.py",
+      "filePath": "backend/alembic/versions/f1a2b3c4d5e6_add_sync_schedules_table.py",
+      "summary": "장비 동기화 스케줄 설정을 영속 저장하기 위한 sync_schedules 테이블을 생성하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "scheduler"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/g2d3e4f5a6b7_add_settings_table.py",
+      "type": "file",
+      "name": "g2d3e4f5a6b7_add_settings_table.py",
+      "filePath": "backend/alembic/versions/g2d3e4f5a6b7_add_settings_table.py",
+      "summary": "애플리케이션 전역 설정 값을 키-값 형태로 저장하는 settings 테이블을 생성하고 초기 데이터를 채우는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "settings"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/h1i2j3k4l5m6_add_token_to_policy_address_members.py",
+      "type": "file",
+      "name": "h1i2j3k4l5m6_add_token_to_policy_address_members.py",
+      "filePath": "backend/alembic/versions/h1i2j3k4l5m6_add_token_to_policy_address_members.py",
+      "summary": "policy_address_members 테이블에 검색·매칭용 token 컬럼을 추가하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "policy"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/i2j3k4l5m6n7_add_model_to_devices.py",
+      "type": "file",
+      "name": "i2j3k4l5m6n7_add_model_to_devices.py",
+      "filePath": "backend/alembic/versions/i2j3k4l5m6n7_add_model_to_devices.py",
+      "summary": "devices 테이블에 장비 모델(model) 정보를 저장하는 컬럼을 추가하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "device"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/j3k4l5m6n7o8_add_notification_logs_table.py",
+      "type": "file",
+      "name": "j3k4l5m6n7o8_add_notification_logs_table.py",
+      "filePath": "backend/alembic/versions/j3k4l5m6n7o8_add_notification_logs_table.py",
+      "summary": "시스템 알림 이력을 저장하기 위한 notification_logs 테이블과 조회용 인덱스를 생성하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "notification"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/k4l5m6n7o8p9_remove_read_from_notification_logs.py",
+      "type": "file",
+      "name": "k4l5m6n7o8p9_remove_read_from_notification_logs.py",
+      "filePath": "backend/alembic/versions/k4l5m6n7o8p9_remove_read_from_notification_logs.py",
+      "summary": "notification_logs 테이블에서 read(읽음 여부) 컬럼을 제거하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "notification"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/l5m6n7o8p9q0_add_deletion_workflows_table.py",
+      "type": "file",
+      "name": "l5m6n7o8p9q0_add_deletion_workflows_table.py",
+      "filePath": "backend/alembic/versions/l5m6n7o8p9q0_add_deletion_workflows_table.py",
+      "summary": "삭제 워크플로우 태스크의 메타데이터를 저장하는 deletion_workflows 테이블과 인덱스를 생성하는 Alembic 마이그레이션(이후 o9p0q1r2s3t4에서 제거됨).",
+      "tags": ["migration", "database", "alembic", "deletion-workflow"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/m7n8o9p0q1r2_add_collect_last_hit_date_to_devices.py",
+      "type": "file",
+      "name": "m7n8o9p0q1r2_add_collect_last_hit_date_to_devices.py",
+      "filePath": "backend/alembic/versions/m7n8o9p0q1r2_add_collect_last_hit_date_to_devices.py",
+      "summary": "devices 테이블에 히트 일자 수집 여부를 나타내는 collect_last_hit_date(Boolean) 컬럼을 추가하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "device"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/n8o9p0q1r2s3_add_users_table.py",
+      "type": "file",
+      "name": "n8o9p0q1r2s3_add_users_table.py",
+      "filePath": "backend/alembic/versions/n8o9p0q1r2s3_add_users_table.py",
+      "summary": "사용자 인증 정보를 저장하기 위한 users 테이블(계정, 활성 여부, 생성/수정 시각 포함)과 인덱스를 생성하는 Alembic 마이그레이션.",
+      "tags": ["migration", "database", "alembic", "authentication"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/alembic/versions/o9p0q1r2s3t4_drop_deletion_workflows_table.py",
+      "type": "file",
+      "name": "o9p0q1r2s3t4_drop_deletion_workflows_table.py",
+      "filePath": "backend/alembic/versions/o9p0q1r2s3t4_drop_deletion_workflows_table.py",
+      "summary": "이전에 생성된 deletion_workflows 테이블과 관련 인덱스를 제거하는 Alembic 마이그레이션(l5m6n7o8p9q0의 롤백 성격).",
+      "tags": ["migration", "database", "alembic", "deletion-workflow"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": []
+}
