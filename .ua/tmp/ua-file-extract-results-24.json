@@ -1,0 +1,1070 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 3,
+  "filesSkipped": [],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 3,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 3,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "results": [
+    {
+      "path": "frontend/vite.config.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 44,
+      "nonEmptyLines": 42,
+      "callGraph": [
+        {
+          "caller": "manualChunks",
+          "callee": "id.includes",
+          "lineNumber": 36
+        },
+        {
+          "caller": "manualChunks",
+          "callee": "id.includes",
+          "lineNumber": 37
+        },
+        {
+          "caller": "manualChunks",
+          "callee": "id.includes",
+          "lineNumber": 38
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "scripts/duplicate_common_policy_finder.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 176,
+      "nonEmptyLines": 131,
+      "functions": [
+        {
+          "name": "select_files_in_cwd",
+          "startLine": 44,
+          "endLine": 62,
+          "params": []
+        },
+        {
+          "name": "normalize_value",
+          "startLine": 65,
+          "endLine": 72,
+          "params": [
+            "value",
+            "column"
+          ]
+        },
+        {
+          "name": "load_file",
+          "startLine": 75,
+          "endLine": 78,
+          "params": [
+            "path"
+          ]
+        },
+        {
+          "name": "output_path_for",
+          "startLine": 81,
+          "endLine": 82,
+          "params": [
+            "path"
+          ]
+        },
+        {
+          "name": "main",
+          "startLine": 85,
+          "endLine": 172,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "select_files_in_cwd",
+          "line": 44,
+          "isDefault": false
+        },
+        {
+          "name": "normalize_value",
+          "line": 65,
+          "isDefault": false
+        },
+        {
+          "name": "load_file",
+          "line": 75,
+          "isDefault": false
+        },
+        {
+          "name": "output_path_for",
+          "line": 81,
+          "isDefault": false
+        },
+        {
+          "name": "main",
+          "line": 85,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "sorted",
+          "lineNumber": 45
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "Path.cwd().glob",
+          "lineNumber": 45
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "Path.cwd",
+          "lineNumber": 45
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "print",
+          "lineNumber": 47
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "sys.exit",
+          "lineNumber": 48
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "print",
+          "lineNumber": 50
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "enumerate",
+          "lineNumber": 51
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "print",
+          "lineNumber": 52
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "input(\"\\n비교할 중복정책 파일 번호를 쉼표로 구분해서 입력하세요 (예: 1,2,3,4,5,6): \").strip",
+          "lineNumber": 54
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "input",
+          "lineNumber": 54
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "int",
+          "lineNumber": 55
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "raw.split",
+          "lineNumber": 55
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "x.strip",
+          "lineNumber": 55
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "len",
+          "lineNumber": 58
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "print",
+          "lineNumber": 59
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "sys.exit",
+          "lineNumber": 60
+        },
+        {
+          "caller": "normalize_value",
+          "callee": "pd.isna",
+          "lineNumber": 66
+        },
+        {
+          "caller": "normalize_value",
+          "callee": "str(value).strip",
+          "lineNumber": 68
+        },
+        {
+          "caller": "normalize_value",
+          "callee": "str",
+          "lineNumber": 68
+        },
+        {
+          "caller": "normalize_value",
+          "callee": "sorted",
+          "lineNumber": 70
+        },
+        {
+          "caller": "normalize_value",
+          "callee": "t.strip",
+          "lineNumber": 70
+        },
+        {
+          "caller": "normalize_value",
+          "callee": "text.split",
+          "lineNumber": 70
+        },
+        {
+          "caller": "normalize_value",
+          "callee": "t.strip",
+          "lineNumber": 70
+        },
+        {
+          "caller": "normalize_value",
+          "callee": "\",\".join",
+          "lineNumber": 71
+        },
+        {
+          "caller": "load_file",
+          "callee": "pd.read_excel",
+          "lineNumber": 76
+        },
+        {
+          "caller": "output_path_for",
+          "callee": "path.with_name",
+          "lineNumber": 82
+        },
+        {
+          "caller": "main",
+          "callee": "Path",
+          "lineNumber": 87
+        },
+        {
+          "caller": "main",
+          "callee": "select_files_in_cwd",
+          "lineNumber": 87
+        },
+        {
+          "caller": "main",
+          "callee": "f.exists",
+          "lineNumber": 90
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 91
+        },
+        {
+          "caller": "main",
+          "callee": "sys.exit",
+          "lineNumber": 92
+        },
+        {
+          "caller": "main",
+          "callee": "f.resolve",
+          "lineNumber": 97
+        },
+        {
+          "caller": "main",
+          "callee": "str",
+          "lineNumber": 98
+        },
+        {
+          "caller": "main",
+          "callee": "name_counts.get",
+          "lineNumber": 103
+        },
+        {
+          "caller": "main",
+          "callee": "str",
+          "lineNumber": 105
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 109
+        },
+        {
+          "caller": "main",
+          "callee": "len",
+          "lineNumber": 109
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 111
+        },
+        {
+          "caller": "main",
+          "callee": "str",
+          "lineNumber": 111
+        },
+        {
+          "caller": "main",
+          "callee": "str",
+          "lineNumber": 113
+        },
+        {
+          "caller": "main",
+          "callee": "load_file",
+          "lineNumber": 113
+        },
+        {
+          "caller": "main",
+          "callee": "set.intersection",
+          "lineNumber": 116
+        },
+        {
+          "caller": "main",
+          "callee": "set",
+          "lineNumber": 116
+        },
+        {
+          "caller": "main",
+          "callee": "dataframes.values",
+          "lineNumber": 116
+        },
+        {
+          "caller": "main",
+          "callee": "sorted",
+          "lineNumber": 117
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 120
+        },
+        {
+          "caller": "main",
+          "callee": "sys.exit",
+          "lineNumber": 121
+        },
+        {
+          "caller": "main",
+          "callee": "set.union",
+          "lineNumber": 123
+        },
+        {
+          "caller": "main",
+          "callee": "set",
+          "lineNumber": 123
+        },
+        {
+          "caller": "main",
+          "callee": "dataframes.values",
+          "lineNumber": 123
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 126
+        },
+        {
+          "caller": "main",
+          "callee": "sorted",
+          "lineNumber": 126
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 128
+        },
+        {
+          "caller": "main",
+          "callee": "len",
+          "lineNumber": 128
+        },
+        {
+          "caller": "make_key",
+          "callee": "tuple",
+          "lineNumber": 131
+        },
+        {
+          "caller": "make_key",
+          "callee": "normalize_value",
+          "lineNumber": 131
+        },
+        {
+          "caller": "main",
+          "callee": "dataframes.items",
+          "lineNumber": 134
+        },
+        {
+          "caller": "main",
+          "callee": "df.apply",
+          "lineNumber": 135
+        },
+        {
+          "caller": "main",
+          "callee": "set",
+          "lineNumber": 136
+        },
+        {
+          "caller": "main",
+          "callee": "set.intersection",
+          "lineNumber": 138
+        },
+        {
+          "caller": "main",
+          "callee": "key_sets.values",
+          "lineNumber": 138
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 139
+        },
+        {
+          "caller": "main",
+          "callee": "len",
+          "lineNumber": 139
+        },
+        {
+          "caller": "main",
+          "callee": "len",
+          "lineNumber": 139
+        },
+        {
+          "caller": "main",
+          "callee": "key_sets.items",
+          "lineNumber": 143
+        },
+        {
+          "caller": "main",
+          "callee": "presence.setdefault(policy_key, []).append",
+          "lineNumber": 145
+        },
+        {
+          "caller": "main",
+          "callee": "presence.setdefault",
+          "lineNumber": 145
+        },
+        {
+          "caller": "main",
+          "callee": "str",
+          "lineNumber": 148
+        },
+        {
+          "caller": "main",
+          "callee": "df[df[\"__KEY__\"].isin(common_keys)].drop",
+          "lineNumber": 152
+        },
+        {
+          "caller": "main",
+          "callee": "df[\"__KEY__\"].isin",
+          "lineNumber": 152
+        },
+        {
+          "caller": "main",
+          "callee": "df[~df[\"__KEY__\"].isin(common_keys)].copy",
+          "lineNumber": 154
+        },
+        {
+          "caller": "main",
+          "callee": "df[\"__KEY__\"].isin",
+          "lineNumber": 154
+        },
+        {
+          "caller": "main",
+          "callee": "exception_df[\"__KEY__\"].map",
+          "lineNumber": 155
+        },
+        {
+          "caller": "main",
+          "callee": "\", \".join",
+          "lineNumber": 156
+        },
+        {
+          "caller": "main",
+          "callee": "presence.get",
+          "lineNumber": 156
+        },
+        {
+          "caller": "main",
+          "callee": "exception_df[\"__KEY__\"].map",
+          "lineNumber": 158
+        },
+        {
+          "caller": "main",
+          "callee": "\", \".join",
+          "lineNumber": 159
+        },
+        {
+          "caller": "main",
+          "callee": "presence.get",
+          "lineNumber": 159
+        },
+        {
+          "caller": "main",
+          "callee": "exception_df.drop",
+          "lineNumber": 161
+        },
+        {
+          "caller": "main",
+          "callee": "output_path_for",
+          "lineNumber": 163
+        },
+        {
+          "caller": "main",
+          "callee": "pd.ExcelWriter",
+          "lineNumber": 164
+        },
+        {
+          "caller": "main",
+          "callee": "common_df.to_excel",
+          "lineNumber": 165
+        },
+        {
+          "caller": "main",
+          "callee": "exception_df.to_excel",
+          "lineNumber": 166
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 168
+        },
+        {
+          "caller": "main",
+          "callee": "len",
+          "lineNumber": 170
+        },
+        {
+          "caller": "main",
+          "callee": "len",
+          "lineNumber": 171
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 5,
+        "functionCount": 5,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "scripts/vf_common_policy_finder.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 184,
+      "nonEmptyLines": 139,
+      "functions": [
+        {
+          "name": "select_files_in_cwd",
+          "startLine": 52,
+          "endLine": 70,
+          "params": []
+        },
+        {
+          "name": "normalize_value",
+          "startLine": 73,
+          "endLine": 80,
+          "params": [
+            "value",
+            "column"
+          ]
+        },
+        {
+          "name": "load_file",
+          "startLine": 83,
+          "endLine": 86,
+          "params": [
+            "path"
+          ]
+        },
+        {
+          "name": "output_path_for",
+          "startLine": 89,
+          "endLine": 90,
+          "params": [
+            "path"
+          ]
+        },
+        {
+          "name": "main",
+          "startLine": 93,
+          "endLine": 180,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "select_files_in_cwd",
+          "line": 52,
+          "isDefault": false
+        },
+        {
+          "name": "normalize_value",
+          "line": 73,
+          "isDefault": false
+        },
+        {
+          "name": "load_file",
+          "line": 83,
+          "isDefault": false
+        },
+        {
+          "name": "output_path_for",
+          "line": 89,
+          "isDefault": false
+        },
+        {
+          "name": "main",
+          "line": 93,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "sorted",
+          "lineNumber": 53
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "Path.cwd().glob",
+          "lineNumber": 53
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "Path.cwd",
+          "lineNumber": 53
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "print",
+          "lineNumber": 55
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "sys.exit",
+          "lineNumber": 56
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "print",
+          "lineNumber": 58
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "enumerate",
+          "lineNumber": 59
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "print",
+          "lineNumber": 60
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "input(\"\\n비교할 통보파일 번호를 쉼표로 구분해서 입력하세요 (예: 1,2,3,4,5,6): \").strip",
+          "lineNumber": 62
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "input",
+          "lineNumber": 62
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "int",
+          "lineNumber": 63
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "raw.split",
+          "lineNumber": 63
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "x.strip",
+          "lineNumber": 63
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "len",
+          "lineNumber": 66
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "print",
+          "lineNumber": 67
+        },
+        {
+          "caller": "select_files_in_cwd",
+          "callee": "sys.exit",
+          "lineNumber": 68
+        },
+        {
+          "caller": "normalize_value",
+          "callee": "pd.isna",
+          "lineNumber": 74
+        },
+        {
+          "caller": "normalize_value",
+          "callee": "str(value).strip",
+          "lineNumber": 76
+        },
+        {
+          "caller": "normalize_value",
+          "callee": "str",
+          "lineNumber": 76
+        },
+        {
+          "caller": "normalize_value",
+          "callee": "sorted",
+          "lineNumber": 78
+        },
+        {
+          "caller": "normalize_value",
+          "callee": "t.strip",
+          "lineNumber": 78
+        },
+        {
+          "caller": "normalize_value",
+          "callee": "text.split",
+          "lineNumber": 78
+        },
+        {
+          "caller": "normalize_value",
+          "callee": "t.strip",
+          "lineNumber": 78
+        },
+        {
+          "caller": "normalize_value",
+          "callee": "\",\".join",
+          "lineNumber": 79
+        },
+        {
+          "caller": "load_file",
+          "callee": "pd.read_excel",
+          "lineNumber": 84
+        },
+        {
+          "caller": "output_path_for",
+          "callee": "path.with_name",
+          "lineNumber": 90
+        },
+        {
+          "caller": "main",
+          "callee": "Path",
+          "lineNumber": 95
+        },
+        {
+          "caller": "main",
+          "callee": "select_files_in_cwd",
+          "lineNumber": 95
+        },
+        {
+          "caller": "main",
+          "callee": "f.exists",
+          "lineNumber": 98
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 99
+        },
+        {
+          "caller": "main",
+          "callee": "sys.exit",
+          "lineNumber": 100
+        },
+        {
+          "caller": "main",
+          "callee": "f.resolve",
+          "lineNumber": 105
+        },
+        {
+          "caller": "main",
+          "callee": "str",
+          "lineNumber": 106
+        },
+        {
+          "caller": "main",
+          "callee": "name_counts.get",
+          "lineNumber": 111
+        },
+        {
+          "caller": "main",
+          "callee": "str",
+          "lineNumber": 113
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 117
+        },
+        {
+          "caller": "main",
+          "callee": "len",
+          "lineNumber": 117
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 119
+        },
+        {
+          "caller": "main",
+          "callee": "str",
+          "lineNumber": 119
+        },
+        {
+          "caller": "main",
+          "callee": "str",
+          "lineNumber": 121
+        },
+        {
+          "caller": "main",
+          "callee": "load_file",
+          "lineNumber": 121
+        },
+        {
+          "caller": "main",
+          "callee": "set.intersection",
+          "lineNumber": 124
+        },
+        {
+          "caller": "main",
+          "callee": "set",
+          "lineNumber": 124
+        },
+        {
+          "caller": "main",
+          "callee": "dataframes.values",
+          "lineNumber": 124
+        },
+        {
+          "caller": "main",
+          "callee": "sorted",
+          "lineNumber": 125
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 128
+        },
+        {
+          "caller": "main",
+          "callee": "sys.exit",
+          "lineNumber": 129
+        },
+        {
+          "caller": "main",
+          "callee": "set.union",
+          "lineNumber": 131
+        },
+        {
+          "caller": "main",
+          "callee": "set",
+          "lineNumber": 131
+        },
+        {
+          "caller": "main",
+          "callee": "dataframes.values",
+          "lineNumber": 131
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 134
+        },
+        {
+          "caller": "main",
+          "callee": "sorted",
+          "lineNumber": 134
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 136
+        },
+        {
+          "caller": "main",
+          "callee": "len",
+          "lineNumber": 136
+        },
+        {
+          "caller": "make_key",
+          "callee": "tuple",
+          "lineNumber": 139
+        },
+        {
+          "caller": "make_key",
+          "callee": "normalize_value",
+          "lineNumber": 139
+        },
+        {
+          "caller": "main",
+          "callee": "dataframes.items",
+          "lineNumber": 142
+        },
+        {
+          "caller": "main",
+          "callee": "df.apply",
+          "lineNumber": 143
+        },
+        {
+          "caller": "main",
+          "callee": "set",
+          "lineNumber": 144
+        },
+        {
+          "caller": "main",
+          "callee": "set.intersection",
+          "lineNumber": 146
+        },
+        {
+          "caller": "main",
+          "callee": "key_sets.values",
+          "lineNumber": 146
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 147
+        },
+        {
+          "caller": "main",
+          "callee": "len",
+          "lineNumber": 147
+        },
+        {
+          "caller": "main",
+          "callee": "len",
+          "lineNumber": 147
+        },
+        {
+          "caller": "main",
+          "callee": "key_sets.items",
+          "lineNumber": 151
+        },
+        {
+          "caller": "main",
+          "callee": "presence.setdefault(policy_key, []).append",
+          "lineNumber": 153
+        },
+        {
+          "caller": "main",
+          "callee": "presence.setdefault",
+          "lineNumber": 153
+        },
+        {
+          "caller": "main",
+          "callee": "str",
+          "lineNumber": 156
+        },
+        {
+          "caller": "main",
+          "callee": "df[df[\"__KEY__\"].isin(common_keys)].drop",
+          "lineNumber": 160
+        },
+        {
+          "caller": "main",
+          "callee": "df[\"__KEY__\"].isin",
+          "lineNumber": 160
+        },
+        {
+          "caller": "main",
+          "callee": "df[~df[\"__KEY__\"].isin(common_keys)].copy",
+          "lineNumber": 162
+        },
+        {
+          "caller": "main",
+          "callee": "df[\"__KEY__\"].isin",
+          "lineNumber": 162
+        },
+        {
+          "caller": "main",
+          "callee": "exception_df[\"__KEY__\"].map",
+          "lineNumber": 163
+        },
+        {
+          "caller": "main",
+          "callee": "\", \".join",
+          "lineNumber": 164
+        },
+        {
+          "caller": "main",
+          "callee": "presence.get",
+          "lineNumber": 164
+        },
+        {
+          "caller": "main",
+          "callee": "exception_df[\"__KEY__\"].map",
+          "lineNumber": 166
+        },
+        {
+          "caller": "main",
+          "callee": "\", \".join",
+          "lineNumber": 167
+        },
+        {
+          "caller": "main",
+          "callee": "presence.get",
+          "lineNumber": 167
+        },
+        {
+          "caller": "main",
+          "callee": "exception_df.drop",
+          "lineNumber": 169
+        },
+        {
+          "caller": "main",
+          "callee": "output_path_for",
+          "lineNumber": 171
+        },
+        {
+          "caller": "main",
+          "callee": "pd.ExcelWriter",
+          "lineNumber": 172
+        },
+        {
+          "caller": "main",
+          "callee": "common_df.to_excel",
+          "lineNumber": 173
+        },
+        {
+          "caller": "main",
+          "callee": "exception_df.to_excel",
+          "lineNumber": 174
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 176
+        },
+        {
+          "caller": "main",
+          "callee": "len",
+          "lineNumber": 178
+        },
+        {
+          "caller": "main",
+          "callee": "len",
+          "lineNumber": 179
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 5,
+        "functionCount": 5,
+        "classCount": 0
+      }
+    }
+  ]
+}

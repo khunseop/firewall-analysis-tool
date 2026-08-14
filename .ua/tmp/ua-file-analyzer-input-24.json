@@ -1,0 +1,9 @@
+{
+  "projectRoot": "/Users/hoon/Code/firewall-analysis-tool",
+  "batchFiles": [
+    {"path": "frontend/vite.config.ts", "language": "typescript", "sizeLines": 44, "fileCategory": "code"},
+    {"path": "scripts/duplicate_common_policy_finder.py", "language": "python", "sizeLines": 176, "fileCategory": "code"},
+    {"path": "scripts/vf_common_policy_finder.py", "language": "python", "sizeLines": 184, "fileCategory": "code"}
+  ],
+  "batchImportData": {"frontend/vite.config.ts": [], "scripts/duplicate_common_policy_finder.py": [], "scripts/vf_common_policy_finder.py": []}
+}

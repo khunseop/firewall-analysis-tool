@@ -1,0 +1,31 @@
+{
+  "projectRoot": "/Users/hoon/Code/firewall-analysis-tool",
+  "batchFiles": [
+    {"path": "frontend/src/App.css", "language": "css", "sizeLines": 184, "fileCategory": "markup"},
+    {"path": "frontend/src/App.tsx", "language": "typescript", "sizeLines": 80, "fileCategory": "code"},
+    {"path": "frontend/src/api/auth.ts", "language": "typescript", "sizeLines": 17, "fileCategory": "code"},
+    {"path": "frontend/src/api/queryKeys.ts", "language": "typescript", "sizeLines": 56, "fileCategory": "code"},
+    {"path": "frontend/src/components/layout/AppLayout.tsx", "language": "typescript", "sizeLines": 19, "fileCategory": "code"},
+    {"path": "frontend/src/components/layout/Navbar.tsx", "language": "typescript", "sizeLines": 93, "fileCategory": "code"},
+    {"path": "frontend/src/components/layout/ProtectedRoute.tsx", "language": "typescript", "sizeLines": 7, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/AnalysisDetailPage.tsx", "language": "typescript", "sizeLines": 519, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/AnalysisListPage.tsx", "language": "typescript", "sizeLines": 424, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/DashboardPage.tsx", "language": "typescript", "sizeLines": 545, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/DeletionWorkflowListPage.tsx", "language": "typescript", "sizeLines": 258, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/DeletionWorkflowPage.tsx", "language": "typescript", "sizeLines": 622, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/ImpactMovePreviewDialog.tsx", "language": "typescript", "sizeLines": 139, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/LoginPage.tsx", "language": "typescript", "sizeLines": 72, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/NotificationsPage.tsx", "language": "typescript", "sizeLines": 279, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/ObjectsPage.tsx", "language": "typescript", "sizeLines": 384, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/PoliciesPage.tsx", "language": "typescript", "sizeLines": 1026, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/PolicyDiffPage.tsx", "language": "typescript", "sizeLines": 559, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/SchedulesPage.tsx", "language": "typescript", "sizeLines": 249, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/policy-builder/CreatePolicyModal.tsx", "language": "typescript", "sizeLines": 72, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/policy-builder/EditActionMenu.tsx", "language": "typescript", "sizeLines": 106, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/policy-builder/ModifyPolicyModal.tsx", "language": "typescript", "sizeLines": 177, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/policy-builder/MoveExistingDialog.tsx", "language": "typescript", "sizeLines": 83, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/policy-builder/MoveTargetPicker.tsx", "language": "typescript", "sizeLines": 52, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/policy-builder/NewPolicyFormModal.tsx", "language": "typescript", "sizeLines": 115, "fileCategory": "code"}
+  ],
+  "batchImportData": {"frontend/src/App.css": [], "frontend/src/App.tsx": [], "frontend/src/api/auth.ts": [], "frontend/src/api/queryKeys.ts": [], "frontend/src/components/layout/AppLayout.tsx": ["frontend/src/components/layout/Navbar.tsx"], "frontend/src/components/layout/Navbar.tsx": [], "frontend/src/components/layout/ProtectedRoute.tsx": [], "frontend/src/components/pages/AnalysisDetailPage.tsx": [], "frontend/src/components/pages/AnalysisListPage.tsx": [], "frontend/src/components/pages/DashboardPage.tsx": [], "frontend/src/components/pages/DeletionWorkflowListPage.tsx": [], "frontend/src/components/pages/DeletionWorkflowPage.tsx": [], "frontend/src/components/pages/ImpactMovePreviewDialog.tsx": [], "frontend/src/components/pages/LoginPage.tsx": [], "frontend/src/components/pages/NotificationsPage.tsx": [], "frontend/src/components/pages/ObjectsPage.tsx": [], "frontend/src/components/pages/PoliciesPage.tsx": [], "frontend/src/components/pages/PolicyDiffPage.tsx": [], "frontend/src/components/pages/SchedulesPage.tsx": [], "frontend/src/components/pages/policy-builder/CreatePolicyModal.tsx": [], "frontend/src/components/pages/policy-builder/EditActionMenu.tsx": [], "frontend/src/components/pages/policy-builder/ModifyPolicyModal.tsx": [], "frontend/src/components/pages/policy-builder/MoveExistingDialog.tsx": [], "frontend/src/components/pages/policy-builder/MoveTargetPicker.tsx": [], "frontend/src/components/pages/policy-builder/NewPolicyFormModal.tsx": []}
+}
