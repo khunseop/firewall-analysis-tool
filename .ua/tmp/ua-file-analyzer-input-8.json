@@ -1,0 +1,15 @@
+{
+  "projectRoot": "/Users/hoon/Code/firewall-analysis-tool",
+  "batchFiles": [
+    {"path": "backend/app/services/firewall/exceptions.py", "language": "python", "sizeLines": 35, "fileCategory": "code"},
+    {"path": "backend/app/services/firewall/factory.py", "language": "python", "sizeLines": 103, "fileCategory": "code"},
+    {"path": "backend/app/services/firewall/interface.py", "language": "python", "sizeLines": 185, "fileCategory": "code"},
+    {"path": "backend/app/services/firewall/vendors/mf2.py", "language": "python", "sizeLines": 536, "fileCategory": "code"},
+    {"path": "backend/app/services/firewall/vendors/mock.py", "language": "python", "sizeLines": 238, "fileCategory": "code"},
+    {"path": "backend/app/services/firewall/vendors/ngf.py", "language": "python", "sizeLines": 395, "fileCategory": "code"},
+    {"path": "backend/app/services/firewall/vendors/paloalto.py", "language": "python", "sizeLines": 690, "fileCategory": "code"},
+    {"path": "backend/debug_hit_dates.py", "language": "python", "sizeLines": 85, "fileCategory": "code"},
+    {"path": "backend/debug_threshold.py", "language": "python", "sizeLines": 96, "fileCategory": "code"}
+  ],
+  "batchImportData": {"backend/app/services/firewall/exceptions.py": [], "backend/app/services/firewall/factory.py": ["backend/app/services/firewall/exceptions.py", "backend/app/services/firewall/interface.py", "backend/app/services/firewall/vendors/mf2.py", "backend/app/services/firewall/vendors/mock.py", "backend/app/services/firewall/vendors/ngf.py", "backend/app/services/firewall/vendors/paloalto.py"], "backend/app/services/firewall/interface.py": [], "backend/app/services/firewall/vendors/mf2.py": ["backend/app/services/firewall/exceptions.py", "backend/app/services/firewall/interface.py"], "backend/app/services/firewall/vendors/mock.py": ["backend/app/services/firewall/interface.py"], "backend/app/services/firewall/vendors/ngf.py": ["backend/app/services/firewall/exceptions.py", "backend/app/services/firewall/interface.py"], "backend/app/services/firewall/vendors/paloalto.py": ["backend/app/services/firewall/exceptions.py", "backend/app/services/firewall/interface.py"], "backend/debug_hit_dates.py": ["backend/app/services/firewall/vendors/paloalto.py"], "backend/debug_threshold.py": ["backend/app/services/firewall/vendors/paloalto.py"]}
+}

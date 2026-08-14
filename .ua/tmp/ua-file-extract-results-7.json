@@ -1,0 +1,3688 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 9,
+  "filesSkipped": [],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 9,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 9,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "results": [
+    {
+      "path": "backend/app/core/executors.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 14,
+      "nonEmptyLines": 11,
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/app/crud/crud_analysis.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 149,
+      "nonEmptyLines": 127,
+      "functions": [
+        {
+          "name": "create_analysis_task",
+          "startLine": 15,
+          "endLine": 20,
+          "params": [
+            "db",
+            "obj_in"
+          ]
+        },
+        {
+          "name": "get_analysis_task",
+          "startLine": 22,
+          "endLine": 24,
+          "params": [
+            "db",
+            "task_id"
+          ]
+        },
+        {
+          "name": "get_latest_analysis_task_by_device",
+          "startLine": 26,
+          "endLine": 32,
+          "params": [
+            "db",
+            "device_id"
+          ]
+        },
+        {
+          "name": "get_running_analysis_task",
+          "startLine": 34,
+          "endLine": 39,
+          "params": [
+            "db",
+            "device_id"
+          ]
+        },
+        {
+          "name": "update_analysis_task",
+          "startLine": 41,
+          "endLine": 48,
+          "params": [
+            "db",
+            "db_obj",
+            "obj_in"
+          ]
+        },
+        {
+          "name": "delete_analysis_task",
+          "startLine": 50,
+          "endLine": 59,
+          "params": [
+            "db",
+            "db_obj"
+          ]
+        },
+        {
+          "name": "create_redundancy_policy_sets",
+          "startLine": 62,
+          "endLine": 65,
+          "params": [
+            "db",
+            "sets_in"
+          ]
+        },
+        {
+          "name": "get_redundancy_policy_sets_by_task",
+          "startLine": 67,
+          "endLine": 74,
+          "params": [
+            "db",
+            "task_id"
+          ]
+        },
+        {
+          "name": "delete_redundancy_policy_sets_by_task",
+          "startLine": 76,
+          "endLine": 79,
+          "params": [
+            "db",
+            "task_id"
+          ]
+        },
+        {
+          "name": "get_analysis_result",
+          "startLine": 82,
+          "endLine": 85,
+          "params": [
+            "db",
+            "result_id"
+          ]
+        },
+        {
+          "name": "get_analysis_result_by_device_and_type",
+          "startLine": 87,
+          "endLine": 94,
+          "params": [
+            "db",
+            "device_id",
+            "analysis_type"
+          ]
+        },
+        {
+          "name": "create_or_update_analysis_result",
+          "startLine": 96,
+          "endLine": 106,
+          "params": [
+            "db",
+            "obj_in"
+          ]
+        },
+        {
+          "name": "get_analysis_result_by_task_id",
+          "startLine": 108,
+          "endLine": 111,
+          "params": [
+            "db",
+            "task_id"
+          ]
+        },
+        {
+          "name": "list_analysis_tasks_paginated",
+          "startLine": 113,
+          "endLine": 149,
+          "params": [
+            "db",
+            "device_id",
+            "task_type",
+            "task_status",
+            "search",
+            "page",
+            "page_size"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "create_analysis_task",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "get_analysis_task",
+          "line": 22,
+          "isDefault": false
+        },
+        {
+          "name": "get_latest_analysis_task_by_device",
+          "line": 26,
+          "isDefault": false
+        },
+        {
+          "name": "get_running_analysis_task",
+          "line": 34,
+          "isDefault": false
+        },
+        {
+          "name": "update_analysis_task",
+          "line": 41,
+          "isDefault": false
+        },
+        {
+          "name": "delete_analysis_task",
+          "line": 50,
+          "isDefault": false
+        },
+        {
+          "name": "create_redundancy_policy_sets",
+          "line": 62,
+          "isDefault": false
+        },
+        {
+          "name": "get_redundancy_policy_sets_by_task",
+          "line": 67,
+          "isDefault": false
+        },
+        {
+          "name": "delete_redundancy_policy_sets_by_task",
+          "line": 76,
+          "isDefault": false
+        },
+        {
+          "name": "get_analysis_result",
+          "line": 82,
+          "isDefault": false
+        },
+        {
+          "name": "get_analysis_result_by_device_and_type",
+          "line": 87,
+          "isDefault": false
+        },
+        {
+          "name": "create_or_update_analysis_result",
+          "line": 96,
+          "isDefault": false
+        },
+        {
+          "name": "get_analysis_result_by_task_id",
+          "line": 108,
+          "isDefault": false
+        },
+        {
+          "name": "list_analysis_tasks_paginated",
+          "line": 113,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "create_analysis_task",
+          "callee": "AnalysisTask",
+          "lineNumber": 16
+        },
+        {
+          "caller": "create_analysis_task",
+          "callee": "obj_in.model_dump",
+          "lineNumber": 16
+        },
+        {
+          "caller": "create_analysis_task",
+          "callee": "db.add",
+          "lineNumber": 17
+        },
+        {
+          "caller": "create_analysis_task",
+          "callee": "db.commit",
+          "lineNumber": 18
+        },
+        {
+          "caller": "create_analysis_task",
+          "callee": "db.refresh",
+          "lineNumber": 19
+        },
+        {
+          "caller": "get_analysis_task",
+          "callee": "db.execute",
+          "lineNumber": 23
+        },
+        {
+          "caller": "get_analysis_task",
+          "callee": "select(AnalysisTask).filter",
+          "lineNumber": 23
+        },
+        {
+          "caller": "get_analysis_task",
+          "callee": "select",
+          "lineNumber": 23
+        },
+        {
+          "caller": "get_analysis_task",
+          "callee": "result.scalars().first",
+          "lineNumber": 24
+        },
+        {
+          "caller": "get_analysis_task",
+          "callee": "result.scalars",
+          "lineNumber": 24
+        },
+        {
+          "caller": "get_latest_analysis_task_by_device",
+          "callee": "db.execute",
+          "lineNumber": 27
+        },
+        {
+          "caller": "get_latest_analysis_task_by_device",
+          "callee": "select(AnalysisTask)\n        .filter(AnalysisTask.device_id == device_id)\n        .order_by",
+          "lineNumber": 28
+        },
+        {
+          "caller": "get_latest_analysis_task_by_device",
+          "callee": "select(AnalysisTask)\n        .filter",
+          "lineNumber": 28
+        },
+        {
+          "caller": "get_latest_analysis_task_by_device",
+          "callee": "select",
+          "lineNumber": 28
+        },
+        {
+          "caller": "get_latest_analysis_task_by_device",
+          "callee": "AnalysisTask.created_at.desc",
+          "lineNumber": 30
+        },
+        {
+          "caller": "get_latest_analysis_task_by_device",
+          "callee": "result.scalars().first",
+          "lineNumber": 32
+        },
+        {
+          "caller": "get_latest_analysis_task_by_device",
+          "callee": "result.scalars",
+          "lineNumber": 32
+        },
+        {
+          "caller": "get_running_analysis_task",
+          "callee": "select(AnalysisTask).filter",
+          "lineNumber": 35
+        },
+        {
+          "caller": "get_running_analysis_task",
+          "callee": "select",
+          "lineNumber": 35
+        },
+        {
+          "caller": "get_running_analysis_task",
+          "callee": "stmt.filter",
+          "lineNumber": 37
+        },
+        {
+          "caller": "get_running_analysis_task",
+          "callee": "db.execute",
+          "lineNumber": 38
+        },
+        {
+          "caller": "get_running_analysis_task",
+          "callee": "result.scalars().first",
+          "lineNumber": 39
+        },
+        {
+          "caller": "get_running_analysis_task",
+          "callee": "result.scalars",
+          "lineNumber": 39
+        },
+        {
+          "caller": "update_analysis_task",
+          "callee": "obj_in.model_dump",
+          "lineNumber": 42
+        },
+        {
+          "caller": "update_analysis_task",
+          "callee": "setattr",
+          "lineNumber": 44
+        },
+        {
+          "caller": "update_analysis_task",
+          "callee": "db.add",
+          "lineNumber": 45
+        },
+        {
+          "caller": "update_analysis_task",
+          "callee": "db.commit",
+          "lineNumber": 46
+        },
+        {
+          "caller": "update_analysis_task",
+          "callee": "db.refresh",
+          "lineNumber": 47
+        },
+        {
+          "caller": "delete_analysis_task",
+          "callee": "db.execute",
+          "lineNumber": 56
+        },
+        {
+          "caller": "delete_analysis_task",
+          "callee": "delete(AnalysisResult).where",
+          "lineNumber": 56
+        },
+        {
+          "caller": "delete_analysis_task",
+          "callee": "delete",
+          "lineNumber": 56
+        },
+        {
+          "caller": "delete_analysis_task",
+          "callee": "db.execute",
+          "lineNumber": 57
+        },
+        {
+          "caller": "delete_analysis_task",
+          "callee": "delete(RedundancyPolicySet).where",
+          "lineNumber": 57
+        },
+        {
+          "caller": "delete_analysis_task",
+          "callee": "delete",
+          "lineNumber": 57
+        },
+        {
+          "caller": "delete_analysis_task",
+          "callee": "db.delete",
+          "lineNumber": 58
+        },
+        {
+          "caller": "delete_analysis_task",
+          "callee": "db.commit",
+          "lineNumber": 59
+        },
+        {
+          "caller": "create_redundancy_policy_sets",
+          "callee": "RedundancyPolicySet",
+          "lineNumber": 63
+        },
+        {
+          "caller": "create_redundancy_policy_sets",
+          "callee": "s.model_dump",
+          "lineNumber": 63
+        },
+        {
+          "caller": "create_redundancy_policy_sets",
+          "callee": "db.add_all",
+          "lineNumber": 64
+        },
+        {
+          "caller": "create_redundancy_policy_sets",
+          "callee": "db.commit",
+          "lineNumber": 65
+        },
+        {
+          "caller": "get_redundancy_policy_sets_by_task",
+          "callee": "db.execute",
+          "lineNumber": 68
+        },
+        {
+          "caller": "get_redundancy_policy_sets_by_task",
+          "callee": "select(RedundancyPolicySet)\n        .options(selectinload(RedundancyPolicySet.policy))\n        .filter(RedundancyPolicySet.task_id == task_id)\n        .order_by",
+          "lineNumber": 69
+        },
+        {
+          "caller": "get_redundancy_policy_sets_by_task",
+          "callee": "select(RedundancyPolicySet)\n        .options(selectinload(RedundancyPolicySet.policy))\n        .filter",
+          "lineNumber": 69
+        },
+        {
+          "caller": "get_redundancy_policy_sets_by_task",
+          "callee": "select(RedundancyPolicySet)\n        .options",
+          "lineNumber": 69
+        },
+        {
+          "caller": "get_redundancy_policy_sets_by_task",
+          "callee": "select",
+          "lineNumber": 69
+        },
+        {
+          "caller": "get_redundancy_policy_sets_by_task",
+          "callee": "selectinload",
+          "lineNumber": 70
+        },
+        {
+          "caller": "get_redundancy_policy_sets_by_task",
+          "callee": "RedundancyPolicySet.type.desc",
+          "lineNumber": 72
+        },
+        {
+          "caller": "get_redundancy_policy_sets_by_task",
+          "callee": "result.scalars().all",
+          "lineNumber": 74
+        },
+        {
+          "caller": "get_redundancy_policy_sets_by_task",
+          "callee": "result.scalars",
+          "lineNumber": 74
+        },
+        {
+          "caller": "get_analysis_result",
+          "callee": "db.execute",
+          "lineNumber": 84
+        },
+        {
+          "caller": "get_analysis_result",
+          "callee": "select(AnalysisResult).filter",
+          "lineNumber": 84
+        },
+        {
+          "caller": "get_analysis_result",
+          "callee": "select",
+          "lineNumber": 84
+        },
+        {
+          "caller": "get_analysis_result",
+          "callee": "result.scalar_one_or_none",
+          "lineNumber": 85
+        },
+        {
+          "caller": "get_analysis_result_by_device_and_type",
+          "callee": "db.execute",
+          "lineNumber": 89
+        },
+        {
+          "caller": "get_analysis_result_by_device_and_type",
+          "callee": "select(AnalysisResult)\n        .filter(AnalysisResult.device_id == device_id, AnalysisResult.analysis_type == analysis_type)\n        .order_by",
+          "lineNumber": 90
+        },
+        {
+          "caller": "get_analysis_result_by_device_and_type",
+          "callee": "select(AnalysisResult)\n        .filter",
+          "lineNumber": 90
+        },
+        {
+          "caller": "get_analysis_result_by_device_and_type",
+          "callee": "select",
+          "lineNumber": 90
+        },
+        {
+          "caller": "get_analysis_result_by_device_and_type",
+          "callee": "AnalysisResult.created_at.desc",
+          "lineNumber": 92
+        },
+        {
+          "caller": "get_analysis_result_by_device_and_type",
+          "callee": "result.scalars().first",
+          "lineNumber": 94
+        },
+        {
+          "caller": "get_analysis_result_by_device_and_type",
+          "callee": "result.scalars",
+          "lineNumber": 94
+        },
+        {
+          "caller": "create_or_update_analysis_result",
+          "callee": "AnalysisResult",
+          "lineNumber": 102
+        },
+        {
+          "caller": "create_or_update_analysis_result",
+          "callee": "obj_in.model_dump",
+          "lineNumber": 102
+        },
+        {
+          "caller": "create_or_update_analysis_result",
+          "callee": "db.add",
+          "lineNumber": 103
+        },
+        {
+          "caller": "create_or_update_analysis_result",
+          "callee": "db.commit",
+          "lineNumber": 104
+        },
+        {
+          "caller": "create_or_update_analysis_result",
+          "callee": "db.refresh",
+          "lineNumber": 105
+        },
+        {
+          "caller": "get_analysis_result_by_task_id",
+          "callee": "db.execute",
+          "lineNumber": 110
+        },
+        {
+          "caller": "get_analysis_result_by_task_id",
+          "callee": "select(AnalysisResult).filter",
+          "lineNumber": 110
+        },
+        {
+          "caller": "get_analysis_result_by_task_id",
+          "callee": "select",
+          "lineNumber": 110
+        },
+        {
+          "caller": "get_analysis_result_by_task_id",
+          "callee": "result.scalars().first",
+          "lineNumber": 111
+        },
+        {
+          "caller": "get_analysis_result_by_task_id",
+          "callee": "result.scalars",
+          "lineNumber": 111
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "select(AnalysisTask).options",
+          "lineNumber": 123
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "select",
+          "lineNumber": 123
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "selectinload",
+          "lineNumber": 123
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "select(func.count()).select_from",
+          "lineNumber": 124
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "select",
+          "lineNumber": 124
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "func.count",
+          "lineNumber": 124
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "stmt.join",
+          "lineNumber": 127
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "count_stmt.join",
+          "lineNumber": 128
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "conditions.append",
+          "lineNumber": 132
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "conditions.append",
+          "lineNumber": 134
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "conditions.append",
+          "lineNumber": 136
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "conditions.append",
+          "lineNumber": 138
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "Device.name.ilike",
+          "lineNumber": 138
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "stmt.where",
+          "lineNumber": 141
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "count_stmt.where",
+          "lineNumber": 142
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "(await db.execute(count_stmt)).scalar_one",
+          "lineNumber": 144
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "db.execute",
+          "lineNumber": 144
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "stmt.order_by(AnalysisTask.created_at.desc()).offset((page - 1) * page_size).limit",
+          "lineNumber": 146
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "stmt.order_by(AnalysisTask.created_at.desc()).offset",
+          "lineNumber": 146
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "stmt.order_by",
+          "lineNumber": 146
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "AnalysisTask.created_at.desc",
+          "lineNumber": 146
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "(await db.execute(stmt)).scalars().all",
+          "lineNumber": 147
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "(await db.execute(stmt)).scalars",
+          "lineNumber": 147
+        },
+        {
+          "caller": "list_analysis_tasks_paginated",
+          "callee": "db.execute",
+          "lineNumber": 147
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 14,
+        "functionCount": 14,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/app/models/analysis.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 105,
+      "nonEmptyLines": 83,
+      "classes": [
+        {
+          "name": "AnalysisTaskType",
+          "startLine": 8,
+          "endLine": 15,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "AnalysisTaskStatus",
+          "startLine": 17,
+          "endLine": 22,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "RedundancyPolicySetType",
+          "startLine": 24,
+          "endLine": 27,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "AnalysisTask",
+          "startLine": 29,
+          "endLine": 52,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "RedundancyPolicySet",
+          "startLine": 54,
+          "endLine": 75,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "AnalysisResult",
+          "startLine": 77,
+          "endLine": 105,
+          "methods": [],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "AnalysisTaskType",
+          "line": 8,
+          "isDefault": false
+        },
+        {
+          "name": "AnalysisTaskStatus",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "RedundancyPolicySetType",
+          "line": 24,
+          "isDefault": false
+        },
+        {
+          "name": "AnalysisTask",
+          "line": 29,
+          "isDefault": false
+        },
+        {
+          "name": "RedundancyPolicySet",
+          "line": 54,
+          "isDefault": false
+        },
+        {
+          "name": "AnalysisResult",
+          "line": 77,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 6,
+        "functionCount": 0,
+        "classCount": 6
+      }
+    },
+    {
+      "path": "backend/app/schemas/analysis.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 92,
+      "nonEmptyLines": 74,
+      "classes": [
+        {
+          "name": "AnalysisTaskBase",
+          "startLine": 8,
+          "endLine": 10,
+          "methods": [],
+          "properties": [
+            "device_id",
+            "task_type"
+          ]
+        },
+        {
+          "name": "AnalysisTaskCreate",
+          "startLine": 12,
+          "endLine": 15,
+          "methods": [],
+          "properties": [
+            "created_at",
+            "requested_by_user_id",
+            "requested_by_username"
+          ]
+        },
+        {
+          "name": "AnalysisTaskUpdate",
+          "startLine": 17,
+          "endLine": 21,
+          "methods": [],
+          "properties": [
+            "task_status",
+            "started_at",
+            "completed_at",
+            "error_message"
+          ]
+        },
+        {
+          "name": "AnalysisTask",
+          "startLine": 23,
+          "endLine": 34,
+          "methods": [],
+          "properties": [
+            "id",
+            "task_status",
+            "created_at",
+            "started_at",
+            "completed_at",
+            "error_message",
+            "requested_by_user_id",
+            "requested_by_username"
+          ]
+        },
+        {
+          "name": "RedundancyPolicySetBase",
+          "startLine": 36,
+          "endLine": 40,
+          "methods": [],
+          "properties": [
+            "task_id",
+            "set_number",
+            "type",
+            "policy_id"
+          ]
+        },
+        {
+          "name": "RedundancyPolicySetCreate",
+          "startLine": 42,
+          "endLine": 43,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "RedundancyPolicySet",
+          "startLine": 45,
+          "endLine": 50,
+          "methods": [],
+          "properties": [
+            "id",
+            "policy"
+          ]
+        },
+        {
+          "name": "AnalysisResultBase",
+          "startLine": 53,
+          "endLine": 57,
+          "methods": [],
+          "properties": [
+            "device_id",
+            "analysis_type",
+            "result_data",
+            "task_id"
+          ]
+        },
+        {
+          "name": "AnalysisResultCreate",
+          "startLine": 59,
+          "endLine": 60,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "AnalysisResultUpdate",
+          "startLine": 62,
+          "endLine": 63,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "AnalysisResultInDBBase",
+          "startLine": 65,
+          "endLine": 70,
+          "methods": [],
+          "properties": [
+            "id",
+            "created_at"
+          ]
+        },
+        {
+          "name": "AnalysisResult",
+          "startLine": 72,
+          "endLine": 73,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "AnalysisTaskListItem",
+          "startLine": 76,
+          "endLine": 88,
+          "methods": [],
+          "properties": [
+            "id",
+            "device_id",
+            "device_name",
+            "device_ip",
+            "task_type",
+            "task_status",
+            "created_at",
+            "started_at",
+            "completed_at",
+            "error_message",
+            "requested_by_username"
+          ]
+        },
+        {
+          "name": "AnalysisTaskListResponse",
+          "startLine": 90,
+          "endLine": 92,
+          "methods": [],
+          "properties": [
+            "items",
+            "total"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "AnalysisTaskBase",
+          "line": 8,
+          "isDefault": false
+        },
+        {
+          "name": "AnalysisTaskCreate",
+          "line": 12,
+          "isDefault": false
+        },
+        {
+          "name": "AnalysisTaskUpdate",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "AnalysisTask",
+          "line": 23,
+          "isDefault": false
+        },
+        {
+          "name": "RedundancyPolicySetBase",
+          "line": 36,
+          "isDefault": false
+        },
+        {
+          "name": "RedundancyPolicySetCreate",
+          "line": 42,
+          "isDefault": false
+        },
+        {
+          "name": "RedundancyPolicySet",
+          "line": 45,
+          "isDefault": false
+        },
+        {
+          "name": "AnalysisResultBase",
+          "line": 53,
+          "isDefault": false
+        },
+        {
+          "name": "AnalysisResultCreate",
+          "line": 59,
+          "isDefault": false
+        },
+        {
+          "name": "AnalysisResultUpdate",
+          "line": 62,
+          "isDefault": false
+        },
+        {
+          "name": "AnalysisResultInDBBase",
+          "line": 65,
+          "isDefault": false
+        },
+        {
+          "name": "AnalysisResult",
+          "line": 72,
+          "isDefault": false
+        },
+        {
+          "name": "AnalysisTaskListItem",
+          "line": 76,
+          "isDefault": false
+        },
+        {
+          "name": "AnalysisTaskListResponse",
+          "line": 90,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 14,
+        "functionCount": 0,
+        "classCount": 14
+      }
+    },
+    {
+      "path": "backend/app/services/analysis/impact.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 513,
+      "nonEmptyLines": 443,
+      "classes": [
+        {
+          "name": "ImpactAnalyzer",
+          "startLine": 17,
+          "endLine": 511,
+          "methods": [
+            "__init__",
+            "_get_policies_with_members",
+            "_describe_missing_policy",
+            "_get_policy_ranges",
+            "_ranges_overlap",
+            "_services_overlap",
+            "_policies_overlap",
+            "_applications_overlap",
+            "_get_policy_members",
+            "_ranges_overlap_any",
+            "_services_overlap_any",
+            "_member_ranges_overlap",
+            "_overlap_details",
+            "_format_ip_range",
+            "_format_service",
+            "_describe_overlap",
+            "_find_next_conflict_index",
+            "_analyze_single_policy",
+            "analyze"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "ImpactAnalyzer",
+          "line": 17,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "__init__",
+          "callee": "isinstance",
+          "lineNumber": 39
+        },
+        {
+          "caller": "_get_policies_with_members",
+          "callee": "logger.info",
+          "lineNumber": 48
+        },
+        {
+          "caller": "_get_policies_with_members",
+          "callee": "load_active_policies_with_members",
+          "lineNumber": 49
+        },
+        {
+          "caller": "_get_policies_with_members",
+          "callee": "logger.info",
+          "lineNumber": 50
+        },
+        {
+          "caller": "_get_policies_with_members",
+          "callee": "len",
+          "lineNumber": 50
+        },
+        {
+          "caller": "_describe_missing_policy",
+          "callee": "select(Policy).where",
+          "lineNumber": 57
+        },
+        {
+          "caller": "_describe_missing_policy",
+          "callee": "select",
+          "lineNumber": 57
+        },
+        {
+          "caller": "_describe_missing_policy",
+          "callee": "self.db.execute",
+          "lineNumber": 58
+        },
+        {
+          "caller": "_describe_missing_policy",
+          "callee": "result.scalar_one_or_none",
+          "lineNumber": 59
+        },
+        {
+          "caller": "_get_policy_ranges",
+          "callee": "policy_overlap.get_policy_ranges",
+          "lineNumber": 70
+        },
+        {
+          "caller": "_ranges_overlap",
+          "callee": "policy_overlap.ranges_overlap",
+          "lineNumber": 74
+        },
+        {
+          "caller": "_services_overlap",
+          "callee": "policy_overlap.services_overlap",
+          "lineNumber": 78
+        },
+        {
+          "caller": "_policies_overlap",
+          "callee": "policy_overlap.policies_overlap",
+          "lineNumber": 82
+        },
+        {
+          "caller": "_applications_overlap",
+          "callee": "policy_overlap.applications_overlap",
+          "lineNumber": 86
+        },
+        {
+          "caller": "_get_policy_members",
+          "callee": "policy_overlap.get_policy_members",
+          "lineNumber": 90
+        },
+        {
+          "caller": "_ranges_overlap_any",
+          "callee": "policy_overlap.ranges_overlap_any",
+          "lineNumber": 94
+        },
+        {
+          "caller": "_services_overlap_any",
+          "callee": "policy_overlap.services_overlap_any",
+          "lineNumber": 98
+        },
+        {
+          "caller": "_member_ranges_overlap",
+          "callee": "policy_overlap.member_ranges_overlap",
+          "lineNumber": 106
+        },
+        {
+          "caller": "_overlap_details",
+          "callee": "policy_overlap.overlap_details",
+          "lineNumber": 110
+        },
+        {
+          "caller": "_format_ip_range",
+          "callee": "policy_overlap.format_ip_range",
+          "lineNumber": 115
+        },
+        {
+          "caller": "_format_service",
+          "callee": "policy_overlap.format_service",
+          "lineNumber": 120
+        },
+        {
+          "caller": "_describe_overlap",
+          "callee": "policy_overlap.describe_overlap",
+          "lineNumber": 124
+        },
+        {
+          "caller": "_find_next_conflict_index",
+          "callee": "range",
+          "lineNumber": 137
+        },
+        {
+          "caller": "_find_next_conflict_index",
+          "callee": "range",
+          "lineNumber": 137
+        },
+        {
+          "caller": "_find_next_conflict_index",
+          "callee": "self._member_ranges_overlap",
+          "lineNumber": 140
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "ValueError",
+          "lineNumber": 165
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "len",
+          "lineNumber": 166
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "len",
+          "lineNumber": 168
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "len",
+          "lineNumber": 181
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "max",
+          "lineNumber": 192
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "max",
+          "lineNumber": 194
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "len",
+          "lineNumber": 196
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "len",
+          "lineNumber": 214
+        },
+        {
+          "caller": "_track_nearest",
+          "callee": "min",
+          "lineNumber": 226
+        },
+        {
+          "caller": "_track_nearest",
+          "callee": "max",
+          "lineNumber": 228
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "enumerate",
+          "lineNumber": 230
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "self._policies_overlap",
+          "lineNumber": 241
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "self._describe_overlap",
+          "lineNumber": 245
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "self._overlap_details",
+          "lineNumber": 245
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "_track_nearest",
+          "lineNumber": 250
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "blocking_policies.append",
+          "lineNumber": 251
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "_track_nearest",
+          "lineNumber": 267
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "shadowed_policies.append",
+          "lineNumber": 268
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "_track_nearest",
+          "lineNumber": 283
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "shadowed_policies.append",
+          "lineNumber": 284
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "self._overlap_details",
+          "lineNumber": 330
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "self._get_policy_members",
+          "lineNumber": 331
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "len",
+          "lineNumber": 341
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "len",
+          "lineNumber": 341
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "len",
+          "lineNumber": 341
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "m.protocol.lower",
+          "lineNumber": 351
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "self._find_next_conflict_index",
+          "lineNumber": 358
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "self._format_service",
+          "lineNumber": 376
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "self._format_ip_range",
+          "lineNumber": 377
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "max",
+          "lineNumber": 377
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "min",
+          "lineNumber": 377
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "len",
+          "lineNumber": 406
+        },
+        {
+          "caller": "_analyze_single_policy",
+          "callee": "len",
+          "lineNumber": 407
+        },
+        {
+          "caller": "analyze",
+          "callee": "logger.info",
+          "lineNumber": 422
+        },
+        {
+          "caller": "analyze",
+          "callee": "self._get_policies_with_members",
+          "lineNumber": 424
+        },
+        {
+          "caller": "analyze",
+          "callee": "len",
+          "lineNumber": 429
+        },
+        {
+          "caller": "analyze",
+          "callee": "next",
+          "lineNumber": 431
+        },
+        {
+          "caller": "analyze",
+          "callee": "enumerate",
+          "lineNumber": 431
+        },
+        {
+          "caller": "analyze",
+          "callee": "self._describe_missing_policy",
+          "lineNumber": 433
+        },
+        {
+          "caller": "analyze",
+          "callee": "ValueError",
+          "lineNumber": 434
+        },
+        {
+          "caller": "analyze",
+          "callee": "enumerate",
+          "lineNumber": 443
+        },
+        {
+          "caller": "analyze",
+          "callee": "ValueError",
+          "lineNumber": 450
+        },
+        {
+          "caller": "analyze",
+          "callee": "self._describe_missing_policy",
+          "lineNumber": 450
+        },
+        {
+          "caller": "analyze",
+          "callee": "target_policies_info.append",
+          "lineNumber": 452
+        },
+        {
+          "caller": "analyze",
+          "callee": "set",
+          "lineNumber": 461
+        },
+        {
+          "caller": "analyze",
+          "callee": "set",
+          "lineNumber": 462
+        },
+        {
+          "caller": "analyze",
+          "callee": "asyncio.get_running_loop",
+          "lineNumber": 464
+        },
+        {
+          "caller": "analyze",
+          "callee": "loop.run_in_executor",
+          "lineNumber": 468
+        },
+        {
+          "caller": "analyze",
+          "callee": "seen_blocking.add",
+          "lineNumber": 476
+        },
+        {
+          "caller": "analyze",
+          "callee": "all_blocking_policies.append",
+          "lineNumber": 477
+        },
+        {
+          "caller": "analyze",
+          "callee": "seen_shadowed.add",
+          "lineNumber": 482
+        },
+        {
+          "caller": "analyze",
+          "callee": "all_shadowed_policies.append",
+          "lineNumber": 483
+        },
+        {
+          "caller": "analyze",
+          "callee": "summary_rows.append",
+          "lineNumber": 486
+        },
+        {
+          "caller": "analyze",
+          "callee": "logger.info",
+          "lineNumber": 507
+        },
+        {
+          "caller": "analyze",
+          "callee": "len",
+          "lineNumber": 507
+        },
+        {
+          "caller": "analyze",
+          "callee": "len",
+          "lineNumber": 507
+        }
+      ],
+      "metrics": {
+        "importCount": 4,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/analysis/redundancy.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 401,
+      "nonEmptyLines": 345,
+      "classes": [
+        {
+          "name": "RedundancyAnalyzer",
+          "startLine": 21,
+          "endLine": 401,
+          "methods": [
+            "__init__",
+            "_get_policies_with_members",
+            "_normalize_text_field",
+            "_normalize_policy_key",
+            "analyze",
+            "_find_duplicate_sets",
+            "_get_addr_ranges",
+            "_get_svc_ranges",
+            "_is_addr_subset",
+            "_is_svc_subset",
+            "_is_text_subset",
+            "_is_logically_contained",
+            "analyze_logical",
+            "_find_logical_sets"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "RedundancyAnalyzer",
+          "line": 21,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_get_policies_with_members",
+          "callee": "logger.info",
+          "lineNumber": 42
+        },
+        {
+          "caller": "_get_policies_with_members",
+          "callee": "select(Policy)\n            .where(\n                Policy.device_id == self.device_id,\n                Policy.enable == True,\n                Policy.action == 'allow'\n            )\n            .options(\n                selectinload(Policy.address_members),\n                selectinload(Policy.service_members)\n            )\n            .order_by",
+          "lineNumber": 44
+        },
+        {
+          "caller": "_get_policies_with_members",
+          "callee": "select(Policy)\n            .where(\n                Policy.device_id == self.device_id,\n                Policy.enable == True,\n                Policy.action == 'allow'\n            )\n            .options",
+          "lineNumber": 44
+        },
+        {
+          "caller": "_get_policies_with_members",
+          "callee": "select(Policy)\n            .where",
+          "lineNumber": 44
+        },
+        {
+          "caller": "_get_policies_with_members",
+          "callee": "select",
+          "lineNumber": 44
+        },
+        {
+          "caller": "_get_policies_with_members",
+          "callee": "selectinload",
+          "lineNumber": 51
+        },
+        {
+          "caller": "_get_policies_with_members",
+          "callee": "selectinload",
+          "lineNumber": 52
+        },
+        {
+          "caller": "_get_policies_with_members",
+          "callee": "self.db.execute",
+          "lineNumber": 56
+        },
+        {
+          "caller": "_get_policies_with_members",
+          "callee": "result.scalars().all",
+          "lineNumber": 57
+        },
+        {
+          "caller": "_get_policies_with_members",
+          "callee": "result.scalars",
+          "lineNumber": 57
+        },
+        {
+          "caller": "_get_policies_with_members",
+          "callee": "logger.info",
+          "lineNumber": 58
+        },
+        {
+          "caller": "_get_policies_with_members",
+          "callee": "len",
+          "lineNumber": 58
+        },
+        {
+          "caller": "_normalize_text_field",
+          "callee": "csv.reader",
+          "lineNumber": 71
+        },
+        {
+          "caller": "_normalize_text_field",
+          "callee": "io.StringIO",
+          "lineNumber": 71
+        },
+        {
+          "caller": "_normalize_text_field",
+          "callee": "v.strip",
+          "lineNumber": 72
+        },
+        {
+          "caller": "_normalize_text_field",
+          "callee": "v.strip",
+          "lineNumber": 72
+        },
+        {
+          "caller": "_normalize_text_field",
+          "callee": "v.strip",
+          "lineNumber": 74
+        },
+        {
+          "caller": "_normalize_text_field",
+          "callee": "value.split",
+          "lineNumber": 74
+        },
+        {
+          "caller": "_normalize_text_field",
+          "callee": "v.strip",
+          "lineNumber": 74
+        },
+        {
+          "caller": "_normalize_text_field",
+          "callee": "tuple",
+          "lineNumber": 75
+        },
+        {
+          "caller": "_normalize_text_field",
+          "callee": "sorted",
+          "lineNumber": 75
+        },
+        {
+          "caller": "_normalize_policy_key",
+          "callee": "src_addrs.append",
+          "lineNumber": 93
+        },
+        {
+          "caller": "_normalize_policy_key",
+          "callee": "src_addrs.append",
+          "lineNumber": 95
+        },
+        {
+          "caller": "_normalize_policy_key",
+          "callee": "tuple",
+          "lineNumber": 96
+        },
+        {
+          "caller": "_normalize_policy_key",
+          "callee": "sorted",
+          "lineNumber": 96
+        },
+        {
+          "caller": "_normalize_policy_key",
+          "callee": "dst_addrs.append",
+          "lineNumber": 103
+        },
+        {
+          "caller": "_normalize_policy_key",
+          "callee": "dst_addrs.append",
+          "lineNumber": 105
+        },
+        {
+          "caller": "_normalize_policy_key",
+          "callee": "tuple",
+          "lineNumber": 106
+        },
+        {
+          "caller": "_normalize_policy_key",
+          "callee": "sorted",
+          "lineNumber": 106
+        },
+        {
+          "caller": "_normalize_policy_key",
+          "callee": "services.append",
+          "lineNumber": 112
+        },
+        {
+          "caller": "_normalize_policy_key",
+          "callee": "services.append",
+          "lineNumber": 114
+        },
+        {
+          "caller": "_normalize_policy_key",
+          "callee": "tuple",
+          "lineNumber": 115
+        },
+        {
+          "caller": "_normalize_policy_key",
+          "callee": "sorted",
+          "lineNumber": 115
+        },
+        {
+          "caller": "_normalize_policy_key",
+          "callee": "self._normalize_text_field",
+          "lineNumber": 121
+        },
+        {
+          "caller": "_normalize_policy_key",
+          "callee": "self._normalize_text_field",
+          "lineNumber": 124
+        },
+        {
+          "caller": "_normalize_policy_key",
+          "callee": "key_fields.extend",
+          "lineNumber": 129
+        },
+        {
+          "caller": "_normalize_policy_key",
+          "callee": "self._normalize_text_field",
+          "lineNumber": 130
+        },
+        {
+          "caller": "_normalize_policy_key",
+          "callee": "self._normalize_text_field",
+          "lineNumber": 131
+        },
+        {
+          "caller": "_normalize_policy_key",
+          "callee": "tuple",
+          "lineNumber": 135
+        },
+        {
+          "caller": "analyze",
+          "callee": "logger.info",
+          "lineNumber": 147
+        },
+        {
+          "caller": "analyze",
+          "callee": "crud.device.get_device",
+          "lineNumber": 149
+        },
+        {
+          "caller": "analyze",
+          "callee": "ValueError",
+          "lineNumber": 151
+        },
+        {
+          "caller": "analyze",
+          "callee": "self._get_policies_with_members",
+          "lineNumber": 154
+        },
+        {
+          "caller": "analyze",
+          "callee": "logger.info",
+          "lineNumber": 156
+        },
+        {
+          "caller": "analyze",
+          "callee": "asyncio.get_running_loop().run_in_executor",
+          "lineNumber": 158
+        },
+        {
+          "caller": "analyze",
+          "callee": "asyncio.get_running_loop",
+          "lineNumber": 158
+        },
+        {
+          "caller": "analyze",
+          "callee": "logger.info",
+          "lineNumber": 163
+        },
+        {
+          "caller": "analyze",
+          "callee": "logger.info",
+          "lineNumber": 166
+        },
+        {
+          "caller": "analyze",
+          "callee": "len",
+          "lineNumber": 166
+        },
+        {
+          "caller": "_find_duplicate_sets",
+          "callee": "defaultdict",
+          "lineNumber": 174
+        },
+        {
+          "caller": "_find_duplicate_sets",
+          "callee": "self._normalize_policy_key",
+          "lineNumber": 178
+        },
+        {
+          "caller": "_find_duplicate_sets",
+          "callee": "RedundancyPolicySetCreate",
+          "lineNumber": 183
+        },
+        {
+          "caller": "_find_duplicate_sets",
+          "callee": "temp_results.append",
+          "lineNumber": 189
+        },
+        {
+          "caller": "_find_duplicate_sets",
+          "callee": "RedundancyPolicySetCreate",
+          "lineNumber": 194
+        },
+        {
+          "caller": "_find_duplicate_sets",
+          "callee": "upper_rules.items",
+          "lineNumber": 205
+        },
+        {
+          "caller": "_find_duplicate_sets",
+          "callee": "final_results.append",
+          "lineNumber": 207
+        },
+        {
+          "caller": "_find_duplicate_sets",
+          "callee": "final_results.extend",
+          "lineNumber": 210
+        },
+        {
+          "caller": "_is_addr_subset",
+          "callee": "any",
+          "lineNumber": 254
+        },
+        {
+          "caller": "_is_any",
+          "callee": "v.strip().lower",
+          "lineNumber": 295
+        },
+        {
+          "caller": "_is_any",
+          "callee": "v.strip",
+          "lineNumber": 295
+        },
+        {
+          "caller": "_is_text_subset",
+          "callee": "_is_any",
+          "lineNumber": 297
+        },
+        {
+          "caller": "_is_text_subset",
+          "callee": "_is_any",
+          "lineNumber": 299
+        },
+        {
+          "caller": "_is_text_subset",
+          "callee": "(small_val or '').strip",
+          "lineNumber": 301
+        },
+        {
+          "caller": "_is_text_subset",
+          "callee": "(large_val or '').strip",
+          "lineNumber": 301
+        },
+        {
+          "caller": "_is_logically_contained",
+          "callee": "self._get_addr_ranges",
+          "lineNumber": 306
+        },
+        {
+          "caller": "_is_logically_contained",
+          "callee": "self._get_addr_ranges",
+          "lineNumber": 307
+        },
+        {
+          "caller": "_is_logically_contained",
+          "callee": "self._is_addr_subset",
+          "lineNumber": 308
+        },
+        {
+          "caller": "_is_logically_contained",
+          "callee": "self._get_addr_ranges",
+          "lineNumber": 312
+        },
+        {
+          "caller": "_is_logically_contained",
+          "callee": "self._get_addr_ranges",
+          "lineNumber": 313
+        },
+        {
+          "caller": "_is_logically_contained",
+          "callee": "self._is_addr_subset",
+          "lineNumber": 314
+        },
+        {
+          "caller": "_is_logically_contained",
+          "callee": "self._get_svc_ranges",
+          "lineNumber": 318
+        },
+        {
+          "caller": "_is_logically_contained",
+          "callee": "self._get_svc_ranges",
+          "lineNumber": 319
+        },
+        {
+          "caller": "_is_logically_contained",
+          "callee": "self._is_svc_subset",
+          "lineNumber": 320
+        },
+        {
+          "caller": "_is_logically_contained",
+          "callee": "self._is_text_subset",
+          "lineNumber": 324
+        },
+        {
+          "caller": "_is_logically_contained",
+          "callee": "self._is_text_subset",
+          "lineNumber": 328
+        },
+        {
+          "caller": "_is_logically_contained",
+          "callee": "self._is_text_subset",
+          "lineNumber": 333
+        },
+        {
+          "caller": "_is_logically_contained",
+          "callee": "self._is_text_subset",
+          "lineNumber": 335
+        },
+        {
+          "caller": "_is_logically_contained",
+          "callee": "self._is_text_subset",
+          "lineNumber": 337
+        },
+        {
+          "caller": "analyze_logical",
+          "callee": "crud.device.get_device",
+          "lineNumber": 353
+        },
+        {
+          "caller": "analyze_logical",
+          "callee": "ValueError",
+          "lineNumber": 355
+        },
+        {
+          "caller": "analyze_logical",
+          "callee": "self._get_policies_with_members",
+          "lineNumber": 358
+        },
+        {
+          "caller": "analyze_logical",
+          "callee": "logger.info",
+          "lineNumber": 359
+        },
+        {
+          "caller": "analyze_logical",
+          "callee": "len",
+          "lineNumber": 359
+        },
+        {
+          "caller": "analyze_logical",
+          "callee": "asyncio.get_running_loop().run_in_executor",
+          "lineNumber": 362
+        },
+        {
+          "caller": "analyze_logical",
+          "callee": "asyncio.get_running_loop",
+          "lineNumber": 362
+        },
+        {
+          "caller": "analyze_logical",
+          "callee": "logger.info",
+          "lineNumber": 366
+        },
+        {
+          "caller": "analyze_logical",
+          "callee": "len",
+          "lineNumber": 366
+        },
+        {
+          "caller": "_find_logical_sets",
+          "callee": "len",
+          "lineNumber": 371
+        },
+        {
+          "caller": "_find_logical_sets",
+          "callee": "range",
+          "lineNumber": 376
+        },
+        {
+          "caller": "_find_logical_sets",
+          "callee": "range",
+          "lineNumber": 378
+        },
+        {
+          "caller": "_find_logical_sets",
+          "callee": "self._is_logically_contained",
+          "lineNumber": 380
+        },
+        {
+          "caller": "_find_logical_sets",
+          "callee": "policy_map.get",
+          "lineNumber": 381
+        },
+        {
+          "caller": "_find_logical_sets",
+          "callee": "results.append",
+          "lineNumber": 385
+        },
+        {
+          "caller": "_find_logical_sets",
+          "callee": "RedundancyPolicySetCreate",
+          "lineNumber": 385
+        },
+        {
+          "caller": "_find_logical_sets",
+          "callee": "results.append",
+          "lineNumber": 392
+        },
+        {
+          "caller": "_find_logical_sets",
+          "callee": "RedundancyPolicySetCreate",
+          "lineNumber": 392
+        }
+      ],
+      "metrics": {
+        "importCount": 6,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/analysis/tasks.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 488,
+      "nonEmptyLines": 403,
+      "functions": [
+        {
+          "name": "get_kst_now",
+          "startLine": 17,
+          "endLine": 19,
+          "params": []
+        },
+        {
+          "name": "_get_device_analysis_lock",
+          "startLine": 40,
+          "endLine": 41,
+          "params": [
+            "device_id"
+          ]
+        },
+        {
+          "name": "run_redundancy_analysis_task",
+          "startLine": 44,
+          "endLine": 50,
+          "params": [
+            "device_id",
+            "requested_by_user_id",
+            "requested_by_username"
+          ]
+        },
+        {
+          "name": "_run_redundancy_analysis",
+          "startLine": 53,
+          "endLine": 129,
+          "params": [
+            "db",
+            "device_id",
+            "requested_by_user_id",
+            "requested_by_username"
+          ]
+        },
+        {
+          "name": "run_unused_analysis_task",
+          "startLine": 132,
+          "endLine": 135,
+          "params": [
+            "device_id",
+            "days",
+            "requested_by_user_id",
+            "requested_by_username"
+          ]
+        },
+        {
+          "name": "_run_unused_analysis",
+          "startLine": 138,
+          "endLine": 200,
+          "params": [
+            "db",
+            "device_id",
+            "days",
+            "requested_by_user_id",
+            "requested_by_username"
+          ]
+        },
+        {
+          "name": "run_impact_analysis_task",
+          "startLine": 203,
+          "endLine": 206,
+          "params": [
+            "device_id",
+            "target_policy_ids",
+            "reference_policy_id",
+            "move_direction",
+            "requested_by_user_id",
+            "requested_by_username"
+          ]
+        },
+        {
+          "name": "_run_impact_analysis",
+          "startLine": 209,
+          "endLine": 277,
+          "params": [
+            "db",
+            "device_id",
+            "target_policy_ids",
+            "reference_policy_id",
+            "move_direction",
+            "requested_by_user_id",
+            "requested_by_username"
+          ]
+        },
+        {
+          "name": "run_unreferenced_objects_analysis_task",
+          "startLine": 280,
+          "endLine": 283,
+          "params": [
+            "device_id",
+            "requested_by_user_id",
+            "requested_by_username"
+          ]
+        },
+        {
+          "name": "_run_unreferenced_objects_analysis",
+          "startLine": 286,
+          "endLine": 347,
+          "params": [
+            "db",
+            "device_id",
+            "requested_by_user_id",
+            "requested_by_username"
+          ]
+        },
+        {
+          "name": "run_risky_ports_analysis_task",
+          "startLine": 351,
+          "endLine": 354,
+          "params": [
+            "device_id",
+            "target_policy_ids",
+            "requested_by_user_id",
+            "requested_by_username"
+          ]
+        },
+        {
+          "name": "_run_risky_ports_analysis",
+          "startLine": 357,
+          "endLine": 418,
+          "params": [
+            "db",
+            "device_id",
+            "target_policy_ids",
+            "requested_by_user_id",
+            "requested_by_username"
+          ]
+        },
+        {
+          "name": "run_over_permissive_analysis_task",
+          "startLine": 421,
+          "endLine": 424,
+          "params": [
+            "device_id",
+            "target_policy_ids",
+            "requested_by_user_id",
+            "requested_by_username"
+          ]
+        },
+        {
+          "name": "_run_over_permissive_analysis",
+          "startLine": 427,
+          "endLine": 488,
+          "params": [
+            "db",
+            "device_id",
+            "target_policy_ids",
+            "requested_by_user_id",
+            "requested_by_username"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "get_kst_now",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "_get_device_analysis_lock",
+          "line": 40,
+          "isDefault": false
+        },
+        {
+          "name": "run_redundancy_analysis_task",
+          "line": 44,
+          "isDefault": false
+        },
+        {
+          "name": "_run_redundancy_analysis",
+          "line": 53,
+          "isDefault": false
+        },
+        {
+          "name": "run_unused_analysis_task",
+          "line": 132,
+          "isDefault": false
+        },
+        {
+          "name": "_run_unused_analysis",
+          "line": 138,
+          "isDefault": false
+        },
+        {
+          "name": "run_impact_analysis_task",
+          "line": 203,
+          "isDefault": false
+        },
+        {
+          "name": "_run_impact_analysis",
+          "line": 209,
+          "isDefault": false
+        },
+        {
+          "name": "run_unreferenced_objects_analysis_task",
+          "line": 280,
+          "isDefault": false
+        },
+        {
+          "name": "_run_unreferenced_objects_analysis",
+          "line": 286,
+          "isDefault": false
+        },
+        {
+          "name": "run_risky_ports_analysis_task",
+          "line": 351,
+          "isDefault": false
+        },
+        {
+          "name": "_run_risky_ports_analysis",
+          "line": 357,
+          "isDefault": false
+        },
+        {
+          "name": "run_over_permissive_analysis_task",
+          "line": 421,
+          "isDefault": false
+        },
+        {
+          "name": "_run_over_permissive_analysis",
+          "line": 427,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "get_kst_now",
+          "callee": "datetime.now(ZoneInfo(\"Asia/Seoul\")).replace",
+          "lineNumber": 19
+        },
+        {
+          "caller": "get_kst_now",
+          "callee": "datetime.now",
+          "lineNumber": 19
+        },
+        {
+          "caller": "get_kst_now",
+          "callee": "ZoneInfo",
+          "lineNumber": 19
+        },
+        {
+          "caller": "_get_device_analysis_lock",
+          "callee": "_device_analysis_locks.setdefault",
+          "lineNumber": 41
+        },
+        {
+          "caller": "_get_device_analysis_lock",
+          "callee": "asyncio.Lock",
+          "lineNumber": 41
+        },
+        {
+          "caller": "run_redundancy_analysis_task",
+          "callee": "SessionLocal",
+          "lineNumber": 49
+        },
+        {
+          "caller": "run_redundancy_analysis_task",
+          "callee": "_run_redundancy_analysis",
+          "lineNumber": 50
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "_get_device_analysis_lock",
+          "lineNumber": 63
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "device_lock.locked",
+          "lineNumber": 64
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "logger.warning",
+          "lineNumber": 65
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "logger.info",
+          "lineNumber": 69
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "AnalysisTaskCreate",
+          "lineNumber": 72
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 75
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "crud.analysis.create_analysis_task",
+          "lineNumber": 79
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "AnalysisTaskUpdate",
+          "lineNumber": 82
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 83
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "crud.analysis.update_analysis_task",
+          "lineNumber": 86
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "log_activity",
+          "lineNumber": 87
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "RedundancyAnalyzer",
+          "lineNumber": 91
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "analyzer.analyze",
+          "lineNumber": 92
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "crud.analysis.create_redundancy_policy_sets",
+          "lineNumber": 97
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "crud.analysis.get_redundancy_policy_sets_by_task",
+          "lineNumber": 100
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "jsonable_encoder",
+          "lineNumber": 101
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "AnalysisResultCreate",
+          "lineNumber": 104
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "crud.analysis.create_or_update_analysis_result",
+          "lineNumber": 110
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "AnalysisTaskUpdate",
+          "lineNumber": 113
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 114
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "crud.analysis.update_analysis_task",
+          "lineNumber": 117
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "log_activity",
+          "lineNumber": 118
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "logger.info",
+          "lineNumber": 119
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "logger.error",
+          "lineNumber": 122
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "AnalysisTaskUpdate",
+          "lineNumber": 123
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 124
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "str",
+          "lineNumber": 126
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "crud.analysis.update_analysis_task",
+          "lineNumber": 128
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "log_activity",
+          "lineNumber": 129
+        },
+        {
+          "caller": "_run_redundancy_analysis",
+          "callee": "str",
+          "lineNumber": 129
+        },
+        {
+          "caller": "run_unused_analysis_task",
+          "callee": "SessionLocal",
+          "lineNumber": 134
+        },
+        {
+          "caller": "run_unused_analysis_task",
+          "callee": "_run_unused_analysis",
+          "lineNumber": 135
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "_get_device_analysis_lock",
+          "lineNumber": 143
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "device_lock.locked",
+          "lineNumber": 144
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "logger.warning",
+          "lineNumber": 145
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "logger.info",
+          "lineNumber": 149
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "AnalysisTaskCreate",
+          "lineNumber": 151
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 154
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "crud.analysis.create_analysis_task",
+          "lineNumber": 158
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "AnalysisTaskUpdate",
+          "lineNumber": 160
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 161
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "crud.analysis.update_analysis_task",
+          "lineNumber": 164
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "log_activity",
+          "lineNumber": 165
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "UnusedPolicyAnalyzer",
+          "lineNumber": 169
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "analyzer.analyze",
+          "lineNumber": 170
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "jsonable_encoder",
+          "lineNumber": 174
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "AnalysisResultCreate",
+          "lineNumber": 176
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "crud.analysis.create_or_update_analysis_result",
+          "lineNumber": 182
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "AnalysisTaskUpdate",
+          "lineNumber": 184
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 185
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "crud.analysis.update_analysis_task",
+          "lineNumber": 188
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "log_activity",
+          "lineNumber": 189
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "logger.info",
+          "lineNumber": 190
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "logger.error",
+          "lineNumber": 193
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "AnalysisTaskUpdate",
+          "lineNumber": 194
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 195
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "str",
+          "lineNumber": 197
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "crud.analysis.update_analysis_task",
+          "lineNumber": 199
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "log_activity",
+          "lineNumber": 200
+        },
+        {
+          "caller": "_run_unused_analysis",
+          "callee": "str",
+          "lineNumber": 200
+        },
+        {
+          "caller": "run_impact_analysis_task",
+          "callee": "SessionLocal",
+          "lineNumber": 205
+        },
+        {
+          "caller": "run_impact_analysis_task",
+          "callee": "_run_impact_analysis",
+          "lineNumber": 206
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "_get_device_analysis_lock",
+          "lineNumber": 214
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "device_lock.locked",
+          "lineNumber": 215
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "logger.warning",
+          "lineNumber": 216
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "isinstance",
+          "lineNumber": 220
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "AnalysisTaskCreate",
+          "lineNumber": 223
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 226
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "crud.analysis.create_analysis_task",
+          "lineNumber": 230
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "AnalysisTaskUpdate",
+          "lineNumber": 232
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 233
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "crud.analysis.update_analysis_task",
+          "lineNumber": 236
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "log_activity",
+          "lineNumber": 237
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "ImpactAnalyzer",
+          "lineNumber": 241
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "analyzer.analyze",
+          "lineNumber": 248
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "jsonable_encoder",
+          "lineNumber": 251
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "AnalysisResultCreate",
+          "lineNumber": 253
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "crud.analysis.create_or_update_analysis_result",
+          "lineNumber": 259
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "AnalysisTaskUpdate",
+          "lineNumber": 261
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 262
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "crud.analysis.update_analysis_task",
+          "lineNumber": 265
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "log_activity",
+          "lineNumber": 266
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "logger.info",
+          "lineNumber": 267
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "logger.error",
+          "lineNumber": 270
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "AnalysisTaskUpdate",
+          "lineNumber": 271
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 272
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "str",
+          "lineNumber": 274
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "crud.analysis.update_analysis_task",
+          "lineNumber": 276
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "log_activity",
+          "lineNumber": 277
+        },
+        {
+          "caller": "_run_impact_analysis",
+          "callee": "str",
+          "lineNumber": 277
+        },
+        {
+          "caller": "run_unreferenced_objects_analysis_task",
+          "callee": "SessionLocal",
+          "lineNumber": 282
+        },
+        {
+          "caller": "run_unreferenced_objects_analysis_task",
+          "callee": "_run_unreferenced_objects_analysis",
+          "lineNumber": 283
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "_get_device_analysis_lock",
+          "lineNumber": 291
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "device_lock.locked",
+          "lineNumber": 292
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "logger.warning",
+          "lineNumber": 293
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "logger.info",
+          "lineNumber": 297
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "AnalysisTaskCreate",
+          "lineNumber": 299
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 302
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "crud.analysis.create_analysis_task",
+          "lineNumber": 306
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "AnalysisTaskUpdate",
+          "lineNumber": 308
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 309
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "crud.analysis.update_analysis_task",
+          "lineNumber": 312
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "log_activity",
+          "lineNumber": 313
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "UnreferencedObjectsAnalyzer",
+          "lineNumber": 317
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "analyzer.analyze",
+          "lineNumber": 318
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "jsonable_encoder",
+          "lineNumber": 321
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "AnalysisResultCreate",
+          "lineNumber": 323
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "crud.analysis.create_or_update_analysis_result",
+          "lineNumber": 329
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "AnalysisTaskUpdate",
+          "lineNumber": 331
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 332
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "crud.analysis.update_analysis_task",
+          "lineNumber": 335
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "log_activity",
+          "lineNumber": 336
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "logger.info",
+          "lineNumber": 337
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "logger.error",
+          "lineNumber": 340
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "AnalysisTaskUpdate",
+          "lineNumber": 341
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 342
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "str",
+          "lineNumber": 344
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "crud.analysis.update_analysis_task",
+          "lineNumber": 346
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "log_activity",
+          "lineNumber": 347
+        },
+        {
+          "caller": "_run_unreferenced_objects_analysis",
+          "callee": "str",
+          "lineNumber": 347
+        },
+        {
+          "caller": "run_risky_ports_analysis_task",
+          "callee": "SessionLocal",
+          "lineNumber": 353
+        },
+        {
+          "caller": "run_risky_ports_analysis_task",
+          "callee": "_run_risky_ports_analysis",
+          "lineNumber": 354
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "_get_device_analysis_lock",
+          "lineNumber": 362
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "device_lock.locked",
+          "lineNumber": 363
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "logger.warning",
+          "lineNumber": 364
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "logger.info",
+          "lineNumber": 368
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "AnalysisTaskCreate",
+          "lineNumber": 370
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 373
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "crud.analysis.create_analysis_task",
+          "lineNumber": 377
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "AnalysisTaskUpdate",
+          "lineNumber": 379
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 380
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "crud.analysis.update_analysis_task",
+          "lineNumber": 383
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "log_activity",
+          "lineNumber": 384
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "RiskyPortsAnalyzer",
+          "lineNumber": 387
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "analyzer.analyze",
+          "lineNumber": 388
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "jsonable_encoder",
+          "lineNumber": 391
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "AnalysisResultCreate",
+          "lineNumber": 393
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "crud.analysis.create_or_update_analysis_result",
+          "lineNumber": 399
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "logger.info",
+          "lineNumber": 400
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "AnalysisTaskUpdate",
+          "lineNumber": 402
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 403
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "crud.analysis.update_analysis_task",
+          "lineNumber": 406
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "log_activity",
+          "lineNumber": 407
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "logger.info",
+          "lineNumber": 408
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "logger.error",
+          "lineNumber": 411
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "AnalysisTaskUpdate",
+          "lineNumber": 412
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 413
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "str",
+          "lineNumber": 415
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "crud.analysis.update_analysis_task",
+          "lineNumber": 417
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "log_activity",
+          "lineNumber": 418
+        },
+        {
+          "caller": "_run_risky_ports_analysis",
+          "callee": "str",
+          "lineNumber": 418
+        },
+        {
+          "caller": "run_over_permissive_analysis_task",
+          "callee": "SessionLocal",
+          "lineNumber": 423
+        },
+        {
+          "caller": "run_over_permissive_analysis_task",
+          "callee": "_run_over_permissive_analysis",
+          "lineNumber": 424
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "_get_device_analysis_lock",
+          "lineNumber": 432
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "device_lock.locked",
+          "lineNumber": 433
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "logger.warning",
+          "lineNumber": 434
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "logger.info",
+          "lineNumber": 438
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "AnalysisTaskCreate",
+          "lineNumber": 440
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 443
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "crud.analysis.create_analysis_task",
+          "lineNumber": 447
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "AnalysisTaskUpdate",
+          "lineNumber": 449
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 450
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "crud.analysis.update_analysis_task",
+          "lineNumber": 453
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "log_activity",
+          "lineNumber": 454
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "OverPermissiveAnalyzer",
+          "lineNumber": 457
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "analyzer.analyze",
+          "lineNumber": 458
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "jsonable_encoder",
+          "lineNumber": 461
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "AnalysisResultCreate",
+          "lineNumber": 463
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "crud.analysis.create_or_update_analysis_result",
+          "lineNumber": 469
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "logger.info",
+          "lineNumber": 470
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "AnalysisTaskUpdate",
+          "lineNumber": 472
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 473
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "crud.analysis.update_analysis_task",
+          "lineNumber": 476
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "log_activity",
+          "lineNumber": 477
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "logger.info",
+          "lineNumber": 478
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "logger.error",
+          "lineNumber": 481
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "AnalysisTaskUpdate",
+          "lineNumber": 482
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "get_kst_now",
+          "lineNumber": 483
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "str",
+          "lineNumber": 485
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "crud.analysis.update_analysis_task",
+          "lineNumber": 487
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "log_activity",
+          "lineNumber": 488
+        },
+        {
+          "caller": "_run_over_permissive_analysis",
+          "callee": "str",
+          "lineNumber": 488
+        }
+      ],
+      "metrics": {
+        "importCount": 12,
+        "exportCount": 14,
+        "functionCount": 14,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/app/services/analysis/unreferenced_objects.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 205,
+      "nonEmptyLines": 165,
+      "classes": [
+        {
+          "name": "UnreferencedObjectsAnalyzer",
+          "startLine": 16,
+          "endLine": 198,
+          "methods": [
+            "__init__",
+            "_get_all_objects",
+            "_get_referenced_objects",
+            "analyze"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "UnreferencedObjectsAnalyzer",
+          "line": 16,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_get_all_objects",
+          "callee": "select(NetworkObject).where",
+          "lineNumber": 42
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "select",
+          "lineNumber": 42
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "self.db.execute",
+          "lineNumber": 46
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "net_objects_result.scalars().all",
+          "lineNumber": 47
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "net_objects_result.scalars",
+          "lineNumber": 47
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "select(NetworkGroup).where",
+          "lineNumber": 50
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "select",
+          "lineNumber": 50
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "self.db.execute",
+          "lineNumber": 53
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "net_groups_result.scalars().all",
+          "lineNumber": 54
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "net_groups_result.scalars",
+          "lineNumber": 54
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "select(Service).where",
+          "lineNumber": 57
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "select",
+          "lineNumber": 57
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "self.db.execute",
+          "lineNumber": 61
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "services_result.scalars().all",
+          "lineNumber": 62
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "services_result.scalars",
+          "lineNumber": 62
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "select(ServiceGroup).where",
+          "lineNumber": 65
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "select",
+          "lineNumber": 65
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "self.db.execute",
+          "lineNumber": 68
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "service_groups_result.scalars().all",
+          "lineNumber": 69
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "service_groups_result.scalars",
+          "lineNumber": 69
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "logger.info",
+          "lineNumber": 78
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "len",
+          "lineNumber": 78
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "len",
+          "lineNumber": 78
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "len",
+          "lineNumber": 79
+        },
+        {
+          "caller": "_get_all_objects",
+          "callee": "len",
+          "lineNumber": 79
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "select(Policy).where",
+          "lineNumber": 91
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "select",
+          "lineNumber": 91
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "self.db.execute",
+          "lineNumber": 95
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "result.scalars().all",
+          "lineNumber": 96
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "result.scalars",
+          "lineNumber": 96
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "set",
+          "lineNumber": 99
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "set",
+          "lineNumber": 100
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "set",
+          "lineNumber": 101
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "set",
+          "lineNumber": 102
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "self._get_all_objects",
+          "lineNumber": 106
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "token.strip",
+          "lineNumber": 114
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "policy.source.split",
+          "lineNumber": 114
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "referenced[\"network_objects\"].add",
+          "lineNumber": 118
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "referenced[\"network_groups\"].add",
+          "lineNumber": 120
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "token.strip",
+          "lineNumber": 124
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "policy.destination.split",
+          "lineNumber": 124
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "referenced[\"network_objects\"].add",
+          "lineNumber": 128
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "referenced[\"network_groups\"].add",
+          "lineNumber": 130
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "token.strip",
+          "lineNumber": 134
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "policy.service.split",
+          "lineNumber": 134
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "referenced[\"services\"].add",
+          "lineNumber": 138
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "referenced[\"service_groups\"].add",
+          "lineNumber": 140
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "logger.info",
+          "lineNumber": 142
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "len",
+          "lineNumber": 142
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "len",
+          "lineNumber": 142
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "len",
+          "lineNumber": 143
+        },
+        {
+          "caller": "_get_referenced_objects",
+          "callee": "len",
+          "lineNumber": 143
+        },
+        {
+          "caller": "analyze",
+          "callee": "logger.info",
+          "lineNumber": 154
+        },
+        {
+          "caller": "analyze",
+          "callee": "self._get_all_objects",
+          "lineNumber": 156
+        },
+        {
+          "caller": "analyze",
+          "callee": "self._get_referenced_objects",
+          "lineNumber": 157
+        },
+        {
+          "caller": "analyze",
+          "callee": "results.append",
+          "lineNumber": 164
+        },
+        {
+          "caller": "analyze",
+          "callee": "results.append",
+          "lineNumber": 173
+        },
+        {
+          "caller": "analyze",
+          "callee": "results.append",
+          "lineNumber": 182
+        },
+        {
+          "caller": "analyze",
+          "callee": "results.append",
+          "lineNumber": 191
+        },
+        {
+          "caller": "analyze",
+          "callee": "logger.info",
+          "lineNumber": 197
+        },
+        {
+          "caller": "analyze",
+          "callee": "len",
+          "lineNumber": 197
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/analysis/unused.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 92,
+      "nonEmptyLines": 74,
+      "classes": [
+        {
+          "name": "UnusedPolicyAnalyzer",
+          "startLine": 15,
+          "endLine": 91,
+          "methods": [
+            "__init__",
+            "_get_policies",
+            "analyze"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "UnusedPolicyAnalyzer",
+          "line": 15,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_get_policies",
+          "callee": "logger.info",
+          "lineNumber": 31
+        },
+        {
+          "caller": "_get_policies",
+          "callee": "select(Policy)\n            .where(\n                Policy.device_id == self.device_id,\n                Policy.enable == True\n            )\n            .order_by",
+          "lineNumber": 33
+        },
+        {
+          "caller": "_get_policies",
+          "callee": "select(Policy)\n            .where",
+          "lineNumber": 33
+        },
+        {
+          "caller": "_get_policies",
+          "callee": "select",
+          "lineNumber": 33
+        },
+        {
+          "caller": "_get_policies",
+          "callee": "self.db.execute",
+          "lineNumber": 40
+        },
+        {
+          "caller": "_get_policies",
+          "callee": "result.scalars().all",
+          "lineNumber": 41
+        },
+        {
+          "caller": "_get_policies",
+          "callee": "result.scalars",
+          "lineNumber": 41
+        },
+        {
+          "caller": "_get_policies",
+          "callee": "logger.info",
+          "lineNumber": 42
+        },
+        {
+          "caller": "_get_policies",
+          "callee": "len",
+          "lineNumber": 42
+        },
+        {
+          "caller": "analyze",
+          "callee": "logger.info",
+          "lineNumber": 55
+        },
+        {
+          "caller": "analyze",
+          "callee": "self._get_policies",
+          "lineNumber": 57
+        },
+        {
+          "caller": "analyze",
+          "callee": "datetime.now",
+          "lineNumber": 60
+        },
+        {
+          "caller": "analyze",
+          "callee": "timedelta",
+          "lineNumber": 60
+        },
+        {
+          "caller": "analyze",
+          "callee": "datetime.now",
+          "lineNumber": 73
+        },
+        {
+          "caller": "analyze",
+          "callee": "datetime.now",
+          "lineNumber": 80
+        },
+        {
+          "caller": "analyze",
+          "callee": "results.append",
+          "lineNumber": 82
+        },
+        {
+          "caller": "analyze",
+          "callee": "policy.last_hit_date.isoformat",
+          "lineNumber": 86
+        },
+        {
+          "caller": "analyze",
+          "callee": "logger.info",
+          "lineNumber": 90
+        },
+        {
+          "caller": "analyze",
+          "callee": "len",
+          "lineNumber": 90
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    }
+  ]
+}

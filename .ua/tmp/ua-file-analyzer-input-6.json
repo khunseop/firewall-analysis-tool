@@ -1,0 +1,16 @@
+{
+  "projectRoot": "/Users/hoon/Code/firewall-analysis-tool",
+  "batchFiles": [
+    {"path": "frontend/src/api/analysis.ts", "language": "typescript", "sizeLines": 148, "fileCategory": "code"},
+    {"path": "frontend/src/api/client.ts", "language": "typescript", "sizeLines": 88, "fileCategory": "code"},
+    {"path": "frontend/src/api/deletionWorkflow.ts", "language": "typescript", "sizeLines": 355, "fileCategory": "code"},
+    {"path": "frontend/src/api/devices.ts", "language": "typescript", "sizeLines": 140, "fileCategory": "code"},
+    {"path": "frontend/src/api/firewall.ts", "language": "typescript", "sizeLines": 141, "fileCategory": "code"},
+    {"path": "frontend/src/api/notifications.ts", "language": "typescript", "sizeLines": 61, "fileCategory": "code"},
+    {"path": "frontend/src/api/policyBuilder.ts", "language": "typescript", "sizeLines": 205, "fileCategory": "code"},
+    {"path": "frontend/src/api/schedules.ts", "language": "typescript", "sizeLines": 58, "fileCategory": "code"},
+    {"path": "frontend/src/api/settings.ts", "language": "typescript", "sizeLines": 84, "fileCategory": "code"},
+    {"path": "frontend/src/api/users.ts", "language": "typescript", "sizeLines": 39, "fileCategory": "code"}
+  ],
+  "batchImportData": {"frontend/src/api/analysis.ts": ["frontend/src/api/client.ts"], "frontend/src/api/client.ts": [], "frontend/src/api/deletionWorkflow.ts": ["frontend/src/api/client.ts"], "frontend/src/api/devices.ts": ["frontend/src/api/client.ts"], "frontend/src/api/firewall.ts": ["frontend/src/api/client.ts"], "frontend/src/api/notifications.ts": ["frontend/src/api/client.ts"], "frontend/src/api/policyBuilder.ts": ["frontend/src/api/client.ts"], "frontend/src/api/schedules.ts": ["frontend/src/api/client.ts"], "frontend/src/api/settings.ts": ["frontend/src/api/client.ts"], "frontend/src/api/users.ts": ["frontend/src/api/client.ts"]}
+}

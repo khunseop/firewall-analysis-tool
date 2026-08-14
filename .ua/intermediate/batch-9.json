@@ -1,0 +1,391 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/components/pages/DevicesPage.tsx",
+      "type": "file",
+      "name": "DevicesPage.tsx",
+      "filePath": "frontend/src/components/pages/DevicesPage.tsx",
+      "summary": "장비(Devices) 관리 페이지의 최상위 컴포넌트. 장비 목록 조회/생성/수정/삭제, 동기화 실행, 대량 가져오기/내보내기, 직접 추출, 그룹/옵션 일괄 변경 등 장비 관리 전 기능을 오케스트레이션하고 WebSocket으로 동기화·내보내기 진행상황을 실시간 반영한다.",
+      "tags": ["page-component", "api-handler", "websocket", "state-management", "device-management"],
+      "complexity": "complex",
+      "languageNotes": "755줄 규모의 대형 페이지 컴포넌트로, 다수의 useState/useMutation/useCallback을 통해 여러 다이얼로그와 그리드 상태를 조합한다."
+    },
+    {
+      "id": "function:frontend/src/components/pages/DevicesPage.tsx:DevicesPage",
+      "type": "function",
+      "name": "DevicesPage",
+      "filePath": "frontend/src/components/pages/DevicesPage.tsx",
+      "lineRange": [40, 755],
+      "summary": "장비 목록 Ag-Grid, 추가/수정/삭제, 동기화, 대량 가져오기·내보내기, 직접 추출 다이얼로그를 모두 관리하는 페이지 루트 컴포넌트.",
+      "tags": ["component", "api-handler", "state-management"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/pages/devices/BulkGroupDialog.tsx",
+      "type": "file",
+      "name": "BulkGroupDialog.tsx",
+      "filePath": "frontend/src/components/pages/devices/BulkGroupDialog.tsx",
+      "summary": "선택된 여러 장비에 그룹명을 일괄 지정하는 다이얼로그 컴포넌트. 기존 그룹 목록에서 선택하거나 새 그룹명을 직접 입력할 수 있다.",
+      "tags": ["dialog", "component", "bulk-edit", "device-management"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/devices/BulkGroupDialog.tsx:BulkGroupDialog",
+      "type": "function",
+      "name": "BulkGroupDialog",
+      "filePath": "frontend/src/components/pages/devices/BulkGroupDialog.tsx",
+      "lineRange": [6, 61],
+      "summary": "선택된 장비 수와 기존 그룹 목록을 받아 그룹명 입력/선택 폼을 렌더링하고 제출 시 onSubmit으로 전달한다.",
+      "tags": ["component", "dialog", "form"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/pages/devices/BulkOptionsDialog.tsx",
+      "type": "file",
+      "name": "BulkOptionsDialog.tsx",
+      "filePath": "frontend/src/components/pages/devices/BulkOptionsDialog.tsx",
+      "summary": "선택된 여러 장비에 옵션(정책/오브젝트 임계치 등)을 일괄 적용하는 다이얼로그 컴포넌트.",
+      "tags": ["dialog", "component", "bulk-edit", "device-management"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/devices/BulkOptionsDialog.tsx:BulkOptionsDialog",
+      "type": "function",
+      "name": "BulkOptionsDialog",
+      "filePath": "frontend/src/components/pages/devices/BulkOptionsDialog.tsx",
+      "lineRange": [5, 41],
+      "summary": "선택된 장비 수와 초기값을 받아 일괄 옵션 폼을 렌더링하고 제출 시 onSubmit으로 값을 전달한다.",
+      "tags": ["component", "dialog", "form"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/pages/devices/DeviceDetailDialog.tsx",
+      "type": "file",
+      "name": "DeviceDetailDialog.tsx",
+      "filePath": "frontend/src/components/pages/devices/DeviceDetailDialog.tsx",
+      "summary": "선택한 장비의 상세 정보(호스트명, 모델, 시리얼, 위치, 자원 사용률 등)를 읽기 전용으로 표시하는 다이얼로그. 수정 버튼으로 편집 폼 진입을 트리거한다.",
+      "tags": ["dialog", "component", "device-management", "detail-view"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/devices/DeviceDetailDialog.tsx:CapacityRow",
+      "type": "function",
+      "name": "CapacityRow",
+      "filePath": "frontend/src/components/pages/devices/DeviceDetailDialog.tsx",
+      "lineRange": [15, 31],
+      "summary": "정책/오브젝트 수 대비 임계치 사용률을 퍼센트 바 형태로 표시하는 서브 컴포넌트.",
+      "tags": ["component", "utility", "capacity-indicator"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/devices/DeviceDetailDialog.tsx:DeviceDetailDialog",
+      "type": "function",
+      "name": "DeviceDetailDialog",
+      "filePath": "frontend/src/components/pages/devices/DeviceDetailDialog.tsx",
+      "lineRange": [33, 109],
+      "summary": "장비 상세 필드와 자원 사용률(CapacityRow)을 조합해 렌더링하고, 닫기·수정 액션을 상위로 전달한다.",
+      "tags": ["component", "dialog", "detail-view"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/pages/devices/DeviceFormDialog.tsx",
+      "type": "file",
+      "name": "DeviceFormDialog.tsx",
+      "filePath": "frontend/src/components/pages/devices/DeviceFormDialog.tsx",
+      "summary": "장비 생성/수정용 폼 다이얼로그. 기본 접속 정보, 벤더 선택, 자동수집 필드의 수동 입력 플래그, 위치 좌표, 임계치 등 다수 섹션을 하나의 폼으로 제공한다.",
+      "tags": ["dialog", "component", "form", "device-management"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pages/devices/DeviceFormDialog.tsx:DeviceFormDialog",
+      "type": "function",
+      "name": "DeviceFormDialog",
+      "filePath": "frontend/src/components/pages/devices/DeviceFormDialog.tsx",
+      "lineRange": [10, 202],
+      "summary": "장비 생성/수정 폼 상태를 관리하며 이름·IP·계정·벤더·자동수집(수동 플래그 포함)·위치·임계치 입력 필드를 렌더링하고 제출 시 onSubmit을 호출한다.",
+      "tags": ["component", "dialog", "form", "state-management"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/pages/devices/DeviceGridCells.tsx",
+      "type": "file",
+      "name": "DeviceGridCells.tsx",
+      "filePath": "frontend/src/components/pages/devices/DeviceGridCells.tsx",
+      "summary": "Ag-Grid 장비 목록의 셀 렌더러 모음. 장비명 셀은 클릭 시 관련 정책/오브젝트/분석 페이지로 이동하는 드롭다운 메뉴를 제공하고, 자원 경고 배지 셀은 임계치 초과 여부를 시각화한다.",
+      "tags": ["grid-cell", "component", "ag-grid", "navigation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/devices/DeviceGridCells.tsx:DeviceNameCell",
+      "type": "function",
+      "name": "DeviceNameCell",
+      "filePath": "frontend/src/components/pages/devices/DeviceGridCells.tsx",
+      "lineRange": [12, 97],
+      "summary": "장비명 셀 렌더러. 클릭 시 열리는 드롭다운으로 해당 장비의 정책/오브젝트/분석 페이지 이동 및 상세보기를 제공한다.",
+      "tags": ["grid-cell", "component", "navigation"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/devices/DeviceGridCells.tsx:ResourceWarningBadge",
+      "type": "function",
+      "name": "ResourceWarningBadge",
+      "filePath": "frontend/src/components/pages/devices/DeviceGridCells.tsx",
+      "lineRange": [98, 117],
+      "summary": "장비의 정책/오브젝트 수가 임계치를 초과했는지 시각적으로 표시하는 경고 배지 셀 렌더러.",
+      "tags": ["grid-cell", "component", "capacity-indicator"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/pages/devices/DirectExportDialog.tsx",
+      "type": "file",
+      "name": "DirectExportDialog.tsx",
+      "filePath": "frontend/src/components/pages/devices/DirectExportDialog.tsx",
+      "summary": "선택된 장비들에서 직접(장비 접속) 정책/오브젝트 데이터를 추출하는 다이얼로그. 추출 유형·소스·병합 여부·SSH 사용·타임아웃 옵션을 받아 단일 또는 벤더별 개별 추출 API를 호출한다.",
+      "tags": ["dialog", "component", "api-handler", "export", "device-management"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/devices/DirectExportDialog.tsx:DirectExportDialog",
+      "type": "function",
+      "name": "DirectExportDialog",
+      "filePath": "frontend/src/components/pages/devices/DirectExportDialog.tsx",
+      "lineRange": [16, 204],
+      "summary": "직접 추출 옵션 폼을 렌더링하고 제출 시 벤더별로 bulkExportDevices 또는 directExport API를 호출해 추출 작업을 시작시킨다.",
+      "tags": ["component", "dialog", "api-handler", "export"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/pages/devices/constants.ts",
+      "type": "file",
+      "name": "constants.ts",
+      "filePath": "frontend/src/components/pages/devices/constants.ts",
+      "summary": "장비 관리 화면 전반에서 재사용되는 상수 모음. 벤더 옵션·배지 스타일, 동기화 상태 설정/순서, 폼 기본값(DEFAULT_FORM)을 정의한다.",
+      "tags": ["constants", "device-management", "configuration"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/pages/devices/deviceColumns.tsx",
+      "type": "file",
+      "name": "deviceColumns.tsx",
+      "filePath": "frontend/src/components/pages/devices/deviceColumns.tsx",
+      "summary": "장비 목록 Ag-Grid의 컬럼 정의를 생성하는 팩토리 함수를 제공한다. 벤더/상태 배지 셀, 최근 동기화 시간 정렬 등 컬럼별 렌더링과 정렬 로직을 포함한다.",
+      "tags": ["ag-grid", "factory", "column-definition", "device-management"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/devices/deviceColumns.tsx:buildColumnDefs",
+      "type": "function",
+      "name": "buildColumnDefs",
+      "filePath": "frontend/src/components/pages/devices/deviceColumns.tsx",
+      "lineRange": [8, 118],
+      "summary": "상세보기 콜백을 받아 장비 목록 Ag-Grid의 전체 컬럼 정의 배열을 생성한다. 벤더 배지, 상태 배지, 최근 동기화 시간 등의 커스텀 셀 렌더러와 정렬 비교자를 포함한다.",
+      "tags": ["factory", "ag-grid", "column-definition"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:frontend/src/components/pages/DevicesPage.tsx",
+      "target": "function:frontend/src/components/pages/DevicesPage.tsx:DevicesPage",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/DevicesPage.tsx",
+      "target": "function:frontend/src/components/pages/DevicesPage.tsx:DevicesPage",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/BulkGroupDialog.tsx",
+      "target": "function:frontend/src/components/pages/devices/BulkGroupDialog.tsx:BulkGroupDialog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/BulkGroupDialog.tsx",
+      "target": "function:frontend/src/components/pages/devices/BulkGroupDialog.tsx:BulkGroupDialog",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/BulkOptionsDialog.tsx",
+      "target": "function:frontend/src/components/pages/devices/BulkOptionsDialog.tsx:BulkOptionsDialog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/BulkOptionsDialog.tsx",
+      "target": "function:frontend/src/components/pages/devices/BulkOptionsDialog.tsx:BulkOptionsDialog",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/DeviceDetailDialog.tsx",
+      "target": "function:frontend/src/components/pages/devices/DeviceDetailDialog.tsx:CapacityRow",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/DeviceDetailDialog.tsx",
+      "target": "function:frontend/src/components/pages/devices/DeviceDetailDialog.tsx:DeviceDetailDialog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/DeviceDetailDialog.tsx",
+      "target": "function:frontend/src/components/pages/devices/DeviceDetailDialog.tsx:DeviceDetailDialog",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/DeviceFormDialog.tsx",
+      "target": "function:frontend/src/components/pages/devices/DeviceFormDialog.tsx:DeviceFormDialog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/DeviceFormDialog.tsx",
+      "target": "function:frontend/src/components/pages/devices/DeviceFormDialog.tsx:DeviceFormDialog",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/DeviceGridCells.tsx",
+      "target": "function:frontend/src/components/pages/devices/DeviceGridCells.tsx:DeviceNameCell",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/DeviceGridCells.tsx",
+      "target": "function:frontend/src/components/pages/devices/DeviceGridCells.tsx:DeviceNameCell",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/DeviceGridCells.tsx",
+      "target": "function:frontend/src/components/pages/devices/DeviceGridCells.tsx:ResourceWarningBadge",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/DeviceGridCells.tsx",
+      "target": "function:frontend/src/components/pages/devices/DeviceGridCells.tsx:ResourceWarningBadge",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/DirectExportDialog.tsx",
+      "target": "function:frontend/src/components/pages/devices/DirectExportDialog.tsx:DirectExportDialog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/DirectExportDialog.tsx",
+      "target": "function:frontend/src/components/pages/devices/DirectExportDialog.tsx:DirectExportDialog",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/deviceColumns.tsx",
+      "target": "function:frontend/src/components/pages/devices/deviceColumns.tsx:buildColumnDefs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/deviceColumns.tsx",
+      "target": "function:frontend/src/components/pages/devices/deviceColumns.tsx:buildColumnDefs",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:frontend/src/components/pages/DevicesPage.tsx",
+      "target": "file:frontend/src/components/pages/devices/BulkGroupDialog.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/pages/DevicesPage.tsx",
+      "target": "file:frontend/src/components/pages/devices/BulkOptionsDialog.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/pages/DevicesPage.tsx",
+      "target": "file:frontend/src/components/pages/devices/DeviceDetailDialog.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/pages/DevicesPage.tsx",
+      "target": "file:frontend/src/components/pages/devices/DeviceFormDialog.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/pages/DevicesPage.tsx",
+      "target": "file:frontend/src/components/pages/devices/DirectExportDialog.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/pages/DevicesPage.tsx",
+      "target": "file:frontend/src/components/pages/devices/deviceColumns.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/DeviceFormDialog.tsx",
+      "target": "file:frontend/src/components/pages/devices/constants.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/deviceColumns.tsx",
+      "target": "file:frontend/src/components/pages/devices/DeviceGridCells.tsx",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:frontend/src/components/pages/devices/deviceColumns.tsx",
+      "target": "file:frontend/src/components/pages/devices/constants.ts",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:frontend/src/components/pages/DevicesPage.tsx:DevicesPage",
+      "target": "function:frontend/src/components/pages/devices/deviceColumns.tsx:buildColumnDefs",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ]
+}

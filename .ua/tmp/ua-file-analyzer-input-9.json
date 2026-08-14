@@ -1,0 +1,15 @@
+{
+  "projectRoot": "/Users/hoon/Code/firewall-analysis-tool",
+  "batchFiles": [
+    {"path": "frontend/src/components/pages/DevicesPage.tsx", "language": "typescript", "sizeLines": 755, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/devices/BulkGroupDialog.tsx", "language": "typescript", "sizeLines": 61, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/devices/BulkOptionsDialog.tsx", "language": "typescript", "sizeLines": 41, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/devices/DeviceDetailDialog.tsx", "language": "typescript", "sizeLines": 109, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/devices/DeviceFormDialog.tsx", "language": "typescript", "sizeLines": 202, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/devices/DeviceGridCells.tsx", "language": "typescript", "sizeLines": 117, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/devices/DirectExportDialog.tsx", "language": "typescript", "sizeLines": 204, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/devices/constants.ts", "language": "typescript", "sizeLines": 60, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/devices/deviceColumns.tsx", "language": "typescript", "sizeLines": 118, "fileCategory": "code"}
+  ],
+  "batchImportData": {"frontend/src/components/pages/DevicesPage.tsx": ["frontend/src/components/pages/devices/BulkGroupDialog.tsx", "frontend/src/components/pages/devices/BulkOptionsDialog.tsx", "frontend/src/components/pages/devices/DeviceDetailDialog.tsx", "frontend/src/components/pages/devices/DeviceFormDialog.tsx", "frontend/src/components/pages/devices/DirectExportDialog.tsx", "frontend/src/components/pages/devices/deviceColumns.tsx"], "frontend/src/components/pages/devices/BulkGroupDialog.tsx": [], "frontend/src/components/pages/devices/BulkOptionsDialog.tsx": [], "frontend/src/components/pages/devices/DeviceDetailDialog.tsx": [], "frontend/src/components/pages/devices/DeviceFormDialog.tsx": ["frontend/src/components/pages/devices/constants.ts"], "frontend/src/components/pages/devices/DeviceGridCells.tsx": [], "frontend/src/components/pages/devices/DirectExportDialog.tsx": [], "frontend/src/components/pages/devices/constants.ts": [], "frontend/src/components/pages/devices/deviceColumns.tsx": ["frontend/src/components/pages/devices/DeviceGridCells.tsx", "frontend/src/components/pages/devices/constants.ts"]}
+}

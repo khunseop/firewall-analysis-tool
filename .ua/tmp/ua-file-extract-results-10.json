@@ -1,0 +1,1995 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 9,
+  "filesSkipped": [],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 9,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 9,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "results": [
+    {
+      "path": "frontend/src/components/pages/SettingsPage.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 60,
+      "nonEmptyLines": 54,
+      "functions": [
+        {
+          "name": "SettingsPage",
+          "startLine": 20,
+          "endLine": 60,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "SettingsPage",
+          "line": 20,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "SettingsPage",
+          "callee": "useState",
+          "lineNumber": 21
+        },
+        {
+          "caller": "SettingsPage",
+          "callee": "TABS.map",
+          "lineNumber": 34
+        },
+        {
+          "caller": "SettingsPage",
+          "callee": "setActiveTab",
+          "lineNumber": 37
+        }
+      ],
+      "metrics": {
+        "importCount": 6,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/settings/AccountSettings.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 200,
+      "nonEmptyLines": 187,
+      "functions": [
+        {
+          "name": "AccountSettings",
+          "startLine": 12,
+          "endLine": 196,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "AccountSettings",
+          "line": 12,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "AccountSettings",
+          "callee": "useQueryClient",
+          "lineNumber": 13
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "useConfirm",
+          "lineNumber": 14
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "useState",
+          "lineNumber": 15
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "useState",
+          "lineNumber": 16
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "useState",
+          "lineNumber": 17
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "useQuery",
+          "lineNumber": 19
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "useMutation",
+          "lineNumber": 21
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "createUser",
+          "lineNumber": 22
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "queryClient.invalidateQueries",
+          "lineNumber": 24
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "setCreateOpen",
+          "lineNumber": 25
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "setNewUser",
+          "lineNumber": 26
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "toast.success",
+          "lineNumber": 27
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "toast.error",
+          "lineNumber": 29
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "useMutation",
+          "lineNumber": 32
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "changeUserPassword",
+          "lineNumber": 33
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "setPwDialog",
+          "lineNumber": 34
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "toast.success",
+          "lineNumber": 34
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "toast.error",
+          "lineNumber": 35
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "useMutation",
+          "lineNumber": 38
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "toggleUserActive",
+          "lineNumber": 39
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "queryClient.invalidateQueries",
+          "lineNumber": 40
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "toast.error",
+          "lineNumber": 41
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "useMutation",
+          "lineNumber": 44
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "deleteUser",
+          "lineNumber": 45
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "queryClient.invalidateQueries",
+          "lineNumber": 46
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "toast.success",
+          "lineNumber": 46
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "toast.error",
+          "lineNumber": 47
+        },
+        {
+          "caller": "handleDelete",
+          "callee": "confirm",
+          "lineNumber": 51
+        },
+        {
+          "caller": "handleDelete",
+          "callee": "deleteMutation.mutate",
+          "lineNumber": 52
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "setCreateOpen",
+          "lineNumber": 63
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "users.map",
+          "lineNumber": 83
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "new Date(user.created_at).toLocaleDateString",
+          "lineNumber": 99
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "setPwDialog",
+          "lineNumber": 104
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "toggleMutation.mutate",
+          "lineNumber": 111
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "handleDelete",
+          "lineNumber": 118
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "e.preventDefault",
+          "lineNumber": 143
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "createMutation.mutate",
+          "lineNumber": 143
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "setNewUser",
+          "lineNumber": 146
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "setNewUser",
+          "lineNumber": 150
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "setNewUser",
+          "lineNumber": 153
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "setCreateOpen",
+          "lineNumber": 157
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "setPwDialog",
+          "lineNumber": 168
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "e.preventDefault",
+          "lineNumber": 173
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "pwMutation.mutate",
+          "lineNumber": 173
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "setPwDialog",
+          "lineNumber": 179
+        },
+        {
+          "caller": "AccountSettings",
+          "callee": "setPwDialog",
+          "lineNumber": 185
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 286,
+      "nonEmptyLines": 264,
+      "functions": [
+        {
+          "name": "DeletionWorkflowSettings",
+          "startLine": 11,
+          "endLine": 282,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "DeletionWorkflowSettings",
+          "line": 11,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "useQueryClient",
+          "lineNumber": 12
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "useState",
+          "lineNumber": 13
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "useState",
+          "lineNumber": 14
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "useState",
+          "lineNumber": 15
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "useState",
+          "lineNumber": 16
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "useState",
+          "lineNumber": 17
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "useState",
+          "lineNumber": 18
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "useState",
+          "lineNumber": 19
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "useRef",
+          "lineNumber": 20
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "useQuery",
+          "lineNumber": 22
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "useQuery",
+          "lineNumber": 27
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "useEffect",
+          "lineNumber": 32
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "setConfig",
+          "lineNumber": 33
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "useEffect",
+          "lineNumber": 36
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "getDeletionWorkflowConfigYaml()\n      .then((yaml) => { setYamlText(yaml); setYamlDirty(false) })\n      .catch",
+          "lineNumber": 38
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "getDeletionWorkflowConfigYaml()\n      .then",
+          "lineNumber": 38
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "getDeletionWorkflowConfigYaml",
+          "lineNumber": 38
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "setYamlText",
+          "lineNumber": 39
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "setYamlDirty",
+          "lineNumber": 39
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "toast.error",
+          "lineNumber": 40
+        },
+        {
+          "caller": "handleYamlSave",
+          "callee": "setYamlSaving",
+          "lineNumber": 44
+        },
+        {
+          "caller": "handleYamlSave",
+          "callee": "updateDeletionWorkflowConfigYaml",
+          "lineNumber": 46
+        },
+        {
+          "caller": "handleYamlSave",
+          "callee": "queryClient.invalidateQueries",
+          "lineNumber": 47
+        },
+        {
+          "caller": "handleYamlSave",
+          "callee": "toast.success",
+          "lineNumber": 48
+        },
+        {
+          "caller": "handleYamlSave",
+          "callee": "setYamlDirty",
+          "lineNumber": 49
+        },
+        {
+          "caller": "handleYamlSave",
+          "callee": "toast.error",
+          "lineNumber": 51
+        },
+        {
+          "caller": "handleYamlSave",
+          "callee": "setYamlSaving",
+          "lineNumber": 53
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "useMutation",
+          "lineNumber": 57
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "updateDeletionWorkflowConfig",
+          "lineNumber": 58
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "queryClient.invalidateQueries",
+          "lineNumber": 60
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "toast.success",
+          "lineNumber": 61
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "setDirty",
+          "lineNumber": 62
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "toast.error",
+          "lineNumber": 64
+        },
+        {
+          "caller": "handleExport",
+          "callee": "exportDeletionWorkflowConfig",
+          "lineNumber": 69
+        },
+        {
+          "caller": "handleExport",
+          "callee": "URL.createObjectURL",
+          "lineNumber": 70
+        },
+        {
+          "caller": "handleExport",
+          "callee": "document.createElement",
+          "lineNumber": 71
+        },
+        {
+          "caller": "handleExport",
+          "callee": "a.click",
+          "lineNumber": 74
+        },
+        {
+          "caller": "handleExport",
+          "callee": "URL.revokeObjectURL",
+          "lineNumber": 75
+        },
+        {
+          "caller": "handleExport",
+          "callee": "toast.error",
+          "lineNumber": 77
+        },
+        {
+          "caller": "handleImport",
+          "callee": "setImporting",
+          "lineNumber": 84
+        },
+        {
+          "caller": "handleImport",
+          "callee": "importDeletionWorkflowConfig",
+          "lineNumber": 86
+        },
+        {
+          "caller": "handleImport",
+          "callee": "queryClient.invalidateQueries",
+          "lineNumber": 87
+        },
+        {
+          "caller": "handleImport",
+          "callee": "setDirty",
+          "lineNumber": 88
+        },
+        {
+          "caller": "handleImport",
+          "callee": "toast.success",
+          "lineNumber": 89
+        },
+        {
+          "caller": "handleImport",
+          "callee": "toast.error",
+          "lineNumber": 91
+        },
+        {
+          "caller": "handleImport",
+          "callee": "setImporting",
+          "lineNumber": 93
+        },
+        {
+          "caller": "setExceptions",
+          "callee": "setConfig",
+          "lineNumber": 102
+        },
+        {
+          "caller": "setExceptions",
+          "callee": "setDirty",
+          "lineNumber": 106
+        },
+        {
+          "caller": "addItem",
+          "callee": "setExceptions",
+          "lineNumber": 110
+        },
+        {
+          "caller": "addItem",
+          "callee": "getExceptions",
+          "lineNumber": 110
+        },
+        {
+          "caller": "removeItem",
+          "callee": "setExceptions",
+          "lineNumber": 114
+        },
+        {
+          "caller": "removeItem",
+          "callee": "getExceptions(key).filter",
+          "lineNumber": 114
+        },
+        {
+          "caller": "removeItem",
+          "callee": "getExceptions",
+          "lineNumber": 114
+        },
+        {
+          "caller": "updateItem",
+          "callee": "setExceptions",
+          "lineNumber": 118
+        },
+        {
+          "caller": "updateItem",
+          "callee": "getExceptions(key).map",
+          "lineNumber": 118
+        },
+        {
+          "caller": "updateItem",
+          "callee": "getExceptions",
+          "lineNumber": 118
+        },
+        {
+          "caller": "setCriteria",
+          "callee": "setConfig",
+          "lineNumber": 123
+        },
+        {
+          "caller": "setCriteria",
+          "callee": "setDirty",
+          "lineNumber": 124
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "getExceptions",
+          "lineNumber": 136
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "addItem",
+          "lineNumber": 140
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "removeItem",
+          "lineNumber": 141
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "updateItem",
+          "lineNumber": 142
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "setExceptions",
+          "lineNumber": 143
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "getExceptions",
+          "lineNumber": 143
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "getExceptions",
+          "lineNumber": 147
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "addItem",
+          "lineNumber": 151
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "removeItem",
+          "lineNumber": 152
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "updateItem",
+          "lineNumber": 153
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "setExceptions",
+          "lineNumber": 154
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "getExceptions",
+          "lineNumber": 154
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "getExceptions",
+          "lineNumber": 162
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "new Date().toISOString().slice",
+          "lineNumber": 165
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "new Date().toISOString",
+          "lineNumber": 165
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "setExceptions",
+          "lineNumber": 166
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "getExceptions",
+          "lineNumber": 167
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "getExceptions",
+          "lineNumber": 172
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "setExceptions",
+          "lineNumber": 173
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "items.filter",
+          "lineNumber": 173
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "getExceptions",
+          "lineNumber": 176
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "setExceptions",
+          "lineNumber": 177
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "items.map",
+          "lineNumber": 177
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "getExceptions",
+          "lineNumber": 180
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "setExceptions",
+          "lineNumber": 181
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "getCriteria",
+          "lineNumber": 195
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "setCriteria",
+          "lineNumber": 196
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "Number",
+          "lineNumber": 196
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "getCriteria",
+          "lineNumber": 205
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "setCriteria",
+          "lineNumber": 206
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "Number",
+          "lineNumber": 206
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "setAdvancedOpen",
+          "lineNumber": 216
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "setYamlText",
+          "lineNumber": 229
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "setYamlDirty",
+          "lineNumber": 229
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "saveMutation.mutate",
+          "lineNumber": 254
+        },
+        {
+          "caller": "DeletionWorkflowSettings",
+          "callee": "importRef.current?.click",
+          "lineNumber": 270
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/settings/DuplicatePolicyTable.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 379,
+      "nonEmptyLines": 365,
+      "functions": [
+        {
+          "name": "DeviceSearchSelect",
+          "startLine": 25,
+          "endLine": 126,
+          "params": [
+            "{\n  value,\n  devices,\n  onChange,\n  placeholder = '장비 선택',\n  className = '',\n}"
+          ]
+        },
+        {
+          "name": "DuplicatePolicyTable",
+          "startLine": 128,
+          "endLine": 379,
+          "params": [
+            "{\n  items, devices, onAdd, onRemove, onUpdate, onBulkAdd\n}"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "DeviceSearchSelect",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "DuplicatePolicyTable",
+          "line": 128,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "useState",
+          "lineNumber": 38
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "useState",
+          "lineNumber": 39
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "useRef",
+          "lineNumber": 40
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "useRef",
+          "lineNumber": 41
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "devices.find",
+          "lineNumber": 43
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "devices.filter",
+          "lineNumber": 44
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "q.toLowerCase",
+          "lineNumber": 46
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "d.name.toLowerCase().includes",
+          "lineNumber": 47
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "d.name.toLowerCase",
+          "lineNumber": 47
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "d.ip_address.toLowerCase().includes",
+          "lineNumber": 47
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "d.ip_address.toLowerCase",
+          "lineNumber": 47
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "useEffect",
+          "lineNumber": 50
+        },
+        {
+          "caller": "handler",
+          "callee": "ref.current.contains",
+          "lineNumber": 53
+        },
+        {
+          "caller": "handler",
+          "callee": "setOpen",
+          "lineNumber": 53
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "document.addEventListener",
+          "lineNumber": 55
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "document.removeEventListener",
+          "lineNumber": 56
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "useState",
+          "lineNumber": 60
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "setPrevOpen",
+          "lineNumber": 62
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "setQ",
+          "lineNumber": 63
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "useEffect",
+          "lineNumber": 65
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "setTimeout",
+          "lineNumber": 66
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "inputRef.current?.focus",
+          "lineNumber": 66
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "setOpen",
+          "lineNumber": 73
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "setQ",
+          "lineNumber": 89
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "onChange",
+          "lineNumber": 100
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "setOpen",
+          "lineNumber": 100
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "filtered.map",
+          "lineNumber": 109
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "onChange",
+          "lineNumber": 113
+        },
+        {
+          "caller": "DeviceSearchSelect",
+          "callee": "setOpen",
+          "lineNumber": 113
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "new Date().toISOString().slice",
+          "lineNumber": 138
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "new Date().toISOString",
+          "lineNumber": 138
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "useState",
+          "lineNumber": 139
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "useState",
+          "lineNumber": 140
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "useState",
+          "lineNumber": 141
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "useState",
+          "lineNumber": 142
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "useState",
+          "lineNumber": 143
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "useState",
+          "lineNumber": 144
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "useState",
+          "lineNumber": 145
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "useEffect",
+          "lineNumber": 147
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "setPage",
+          "lineNumber": 147
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "Object.fromEntries",
+          "lineNumber": 149
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "devices.map",
+          "lineNumber": 149
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "items.map",
+          "lineNumber": 150
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "withIdx\n    .filter(({ item }) => {\n      if (filterDeviceId !== '' && item.device_id !== filterDeviceId) return false\n      if (hideExpired && item.expires_at && item.expires_at < today) return false\n      if (search) {\n        const dev = deviceMap[item.device_id]\n        return [item.name, item.reason, item.registered_at, item.expires_at, dev?.name, dev?.ip_address]\n          .some(v => String(v ?? '').toLowerCase().includes(search.toLowerCase()))\n      }\n      return true\n    })\n    .sort",
+          "lineNumber": 151
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "withIdx\n    .filter",
+          "lineNumber": 151
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "[item.name, item.reason, item.registered_at, item.expires_at, dev?.name, dev?.ip_address]\n          .some",
+          "lineNumber": 157
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "String(v ?? '').toLowerCase().includes",
+          "lineNumber": 158
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "String(v ?? '').toLowerCase",
+          "lineNumber": 158
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "String",
+          "lineNumber": 158
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "search.toLowerCase",
+          "lineNumber": 158
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "(b.item.registered_at ?? '').localeCompare",
+          "lineNumber": 162
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "Math.max",
+          "lineNumber": 163
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "Math.ceil",
+          "lineNumber": 163
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "filtered.slice",
+          "lineNumber": 164
+        },
+        {
+          "caller": "handleYamlAdd",
+          "callee": "setParsing",
+          "lineNumber": 167
+        },
+        {
+          "caller": "handleYamlAdd",
+          "callee": "parseYamlToJson",
+          "lineNumber": 169
+        },
+        {
+          "caller": "handleYamlAdd",
+          "callee": "Array.isArray",
+          "lineNumber": 170
+        },
+        {
+          "caller": "handleYamlAdd",
+          "callee": "onBulkAdd",
+          "lineNumber": 171
+        },
+        {
+          "caller": "handleYamlAdd",
+          "callee": "setYamlInput",
+          "lineNumber": 172
+        },
+        {
+          "caller": "handleYamlAdd",
+          "callee": "setYamlOpen",
+          "lineNumber": 173
+        },
+        {
+          "caller": "handleYamlAdd",
+          "callee": "toast.success",
+          "lineNumber": 174
+        },
+        {
+          "caller": "handleYamlAdd",
+          "callee": "toast.error",
+          "lineNumber": 176
+        },
+        {
+          "caller": "handleYamlAdd",
+          "callee": "setParsing",
+          "lineNumber": 178
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "setYamlOpen",
+          "lineNumber": 192
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "setSearch",
+          "lineNumber": 220
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "setHideExpired",
+          "lineNumber": 229
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "setYamlInput",
+          "lineNumber": 241
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "yamlInput.trim",
+          "lineNumber": 250
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "setYamlOpen",
+          "lineNumber": 256
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "setYamlInput",
+          "lineNumber": 256
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "paged.map",
+          "lineNumber": 278
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "onUpdate",
+          "lineNumber": 286
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "onUpdate",
+          "lineNumber": 292
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "onUpdate",
+          "lineNumber": 300
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "onUpdate",
+          "lineNumber": 309
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "onUpdate",
+          "lineNumber": 318
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "onRemove",
+          "lineNumber": 325
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "setFilterDeviceId",
+          "lineNumber": 350
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "setPage",
+          "lineNumber": 360
+        },
+        {
+          "caller": "DuplicatePolicyTable",
+          "callee": "setPage",
+          "lineNumber": 368
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/settings/ExceptionTable.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 204,
+      "nonEmptyLines": 195,
+      "functions": [
+        {
+          "name": "ExceptionTable",
+          "startLine": 10,
+          "endLine": 200,
+          "params": [
+            "{\n  title, items, keyField, keyPlaceholder, category, onAdd, onRemove, onUpdate, onBulkAdd\n}"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "EX_PAGE_SIZE",
+          "line": 8,
+          "isDefault": false
+        },
+        {
+          "name": "ExceptionTable",
+          "line": 10,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "ExceptionTable",
+          "callee": "useState",
+          "lineNumber": 23
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "useState",
+          "lineNumber": 24
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "useState",
+          "lineNumber": 25
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "useRef",
+          "lineNumber": 26
+        },
+        {
+          "caller": "handleTemplateDownload",
+          "callee": "downloadExceptionExcelTemplate",
+          "lineNumber": 31
+        },
+        {
+          "caller": "handleTemplateDownload",
+          "callee": "toast.error",
+          "lineNumber": 33
+        },
+        {
+          "caller": "handleFileChange",
+          "callee": "setImporting",
+          "lineNumber": 40
+        },
+        {
+          "caller": "handleFileChange",
+          "callee": "importExceptionExcel",
+          "lineNumber": 42
+        },
+        {
+          "caller": "handleFileChange",
+          "callee": "onBulkAdd",
+          "lineNumber": 43
+        },
+        {
+          "caller": "handleFileChange",
+          "callee": "toast.success",
+          "lineNumber": 44
+        },
+        {
+          "caller": "handleFileChange",
+          "callee": "toast.error",
+          "lineNumber": 46
+        },
+        {
+          "caller": "handleFileChange",
+          "callee": "setImporting",
+          "lineNumber": 48
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "items.map",
+          "lineNumber": 54
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "withIdx.filter",
+          "lineNumber": 56
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "[item[keyField], item.reason, item.start, item.until]\n          .some",
+          "lineNumber": 57
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "String(v ?? '').toLowerCase().includes",
+          "lineNumber": 58
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "String(v ?? '').toLowerCase",
+          "lineNumber": 58
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "String",
+          "lineNumber": 58
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "search.toLowerCase",
+          "lineNumber": 58
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "Math.max",
+          "lineNumber": 61
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "Math.ceil",
+          "lineNumber": 61
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "filtered.slice",
+          "lineNumber": 62
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "setSearch",
+          "lineNumber": 73
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "setPage",
+          "lineNumber": 73
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "fileInputRef.current?.click",
+          "lineNumber": 88
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "paged.map",
+          "lineNumber": 125
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "onUpdate",
+          "lineNumber": 130
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "onUpdate",
+          "lineNumber": 138
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "onUpdate",
+          "lineNumber": 147
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "onUpdate",
+          "lineNumber": 155
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "onRemove",
+          "lineNumber": 160
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "setPage",
+          "lineNumber": 181
+        },
+        {
+          "caller": "ExceptionTable",
+          "callee": "setPage",
+          "lineNumber": 189
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/settings/GeneralSettings.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 67,
+      "nonEmptyLines": 60,
+      "functions": [
+        {
+          "name": "GeneralSettings",
+          "startLine": 11,
+          "endLine": 63,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "GeneralSettings",
+          "line": 11,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "GeneralSettings",
+          "callee": "useQueryClient",
+          "lineNumber": 12
+        },
+        {
+          "caller": "GeneralSettings",
+          "callee": "useQuery",
+          "lineNumber": 13
+        },
+        {
+          "caller": "GeneralSettings",
+          "callee": "useState",
+          "lineNumber": 14
+        },
+        {
+          "caller": "GeneralSettings",
+          "callee": "useState",
+          "lineNumber": 17
+        },
+        {
+          "caller": "GeneralSettings",
+          "callee": "setPrevSettings",
+          "lineNumber": 19
+        },
+        {
+          "caller": "GeneralSettings",
+          "callee": "settings.forEach",
+          "lineNumber": 22
+        },
+        {
+          "caller": "GeneralSettings",
+          "callee": "setValues",
+          "lineNumber": 23
+        },
+        {
+          "caller": "GeneralSettings",
+          "callee": "useMutation",
+          "lineNumber": 27
+        },
+        {
+          "caller": "GeneralSettings",
+          "callee": "updateSetting",
+          "lineNumber": 28
+        },
+        {
+          "caller": "GeneralSettings",
+          "callee": "queryClient.invalidateQueries",
+          "lineNumber": 29
+        },
+        {
+          "caller": "GeneralSettings",
+          "callee": "toast.success",
+          "lineNumber": 29
+        },
+        {
+          "caller": "GeneralSettings",
+          "callee": "toast.error",
+          "lineNumber": 30
+        },
+        {
+          "caller": "GeneralSettings",
+          "callee": "settings.filter",
+          "lineNumber": 36
+        },
+        {
+          "caller": "GeneralSettings",
+          "callee": "['risky_ports', 'deletion_workflow_config'].includes",
+          "lineNumber": 36
+        },
+        {
+          "caller": "GeneralSettings",
+          "callee": "generalSettings.map",
+          "lineNumber": 40
+        },
+        {
+          "caller": "GeneralSettings",
+          "callee": "setValues",
+          "lineNumber": 47
+        },
+        {
+          "caller": "GeneralSettings",
+          "callee": "updateMutation.mutate",
+          "lineNumber": 51
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/settings/LogSettings.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 66,
+      "nonEmptyLines": 62,
+      "functions": [
+        {
+          "name": "LogSettings",
+          "startLine": 7,
+          "endLine": 62,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "LogSettings",
+          "line": 7,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "LogSettings",
+          "callee": "useState",
+          "lineNumber": 8
+        },
+        {
+          "caller": "LogSettings",
+          "callee": "useState",
+          "lineNumber": 9
+        },
+        {
+          "caller": "LogSettings",
+          "callee": "useConfirm",
+          "lineNumber": 10
+        },
+        {
+          "caller": "handleCleanup",
+          "callee": "confirm",
+          "lineNumber": 13
+        },
+        {
+          "caller": "handleCleanup",
+          "callee": "setIsDeleting",
+          "lineNumber": 20
+        },
+        {
+          "caller": "handleCleanup",
+          "callee": "deleteOldNotifications",
+          "lineNumber": 22
+        },
+        {
+          "caller": "handleCleanup",
+          "callee": "toast.success",
+          "lineNumber": 23
+        },
+        {
+          "caller": "handleCleanup",
+          "callee": "toast.error",
+          "lineNumber": 25
+        },
+        {
+          "caller": "handleCleanup",
+          "callee": "setIsDeleting",
+          "lineNumber": 27
+        },
+        {
+          "caller": "LogSettings",
+          "callee": "setDays",
+          "lineNumber": 44
+        },
+        {
+          "caller": "LogSettings",
+          "callee": "Number",
+          "lineNumber": 44
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/settings/PolicyDefaultsSettings.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 104,
+      "nonEmptyLines": 93,
+      "functions": [
+        {
+          "name": "PolicyDefaultsSettings",
+          "startLine": 40,
+          "endLine": 104,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "PolicyDefaultsSettings",
+          "line": 40,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "useQueryClient",
+          "lineNumber": 41
+        },
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "useQuery",
+          "lineNumber": 42
+        },
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "useState",
+          "lineNumber": 43
+        },
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "useState",
+          "lineNumber": 44
+        },
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "useState",
+          "lineNumber": 46
+        },
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "setPrevSettings",
+          "lineNumber": 48
+        },
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "settings.find",
+          "lineNumber": 49
+        },
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "setValues",
+          "lineNumber": 51
+        },
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "JSON.parse",
+          "lineNumber": 51
+        },
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "useMutation",
+          "lineNumber": 55
+        },
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "updateSetting",
+          "lineNumber": 56
+        },
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "JSON.stringify",
+          "lineNumber": 56
+        },
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "queryClient.invalidateQueries",
+          "lineNumber": 58
+        },
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "toast.success",
+          "lineNumber": 59
+        },
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "setDirty",
+          "lineNumber": 60
+        },
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "toast.error",
+          "lineNumber": 62
+        },
+        {
+          "caller": "update",
+          "callee": "setValues",
+          "lineNumber": 66
+        },
+        {
+          "caller": "update",
+          "callee": "setDirty",
+          "lineNumber": 67
+        },
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "FIELD_LABELS.map",
+          "lineNumber": 79
+        },
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "update",
+          "lineNumber": 84
+        },
+        {
+          "caller": "PolicyDefaultsSettings",
+          "callee": "saveMutation.mutate",
+          "lineNumber": 93
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/settings/RiskyPortsSettings.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 131,
+      "nonEmptyLines": 120,
+      "functions": [
+        {
+          "name": "RiskyPortsSettings",
+          "startLine": 14,
+          "endLine": 127,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "RiskyPortsSettings",
+          "line": 14,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "useQueryClient",
+          "lineNumber": 15
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "useQuery",
+          "lineNumber": 16
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "useState",
+          "lineNumber": 17
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "useState",
+          "lineNumber": 18
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "useState",
+          "lineNumber": 21
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "setPrevSettings",
+          "lineNumber": 23
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "settings.find",
+          "lineNumber": 24
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "setRows",
+          "lineNumber": 26
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "JSON.parse",
+          "lineNumber": 26
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "setRows",
+          "lineNumber": 26
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "useMutation",
+          "lineNumber": 30
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "updateSetting",
+          "lineNumber": 31
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "JSON.stringify",
+          "lineNumber": 31
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "queryClient.invalidateQueries",
+          "lineNumber": 33
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "toast.success",
+          "lineNumber": 34
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "setDirty",
+          "lineNumber": 35
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "toast.error",
+          "lineNumber": 37
+        },
+        {
+          "caller": "update",
+          "callee": "setRows",
+          "lineNumber": 41
+        },
+        {
+          "caller": "update",
+          "callee": "prev.map",
+          "lineNumber": 41
+        },
+        {
+          "caller": "update",
+          "callee": "setDirty",
+          "lineNumber": 42
+        },
+        {
+          "caller": "addRow",
+          "callee": "setRows",
+          "lineNumber": 45
+        },
+        {
+          "caller": "addRow",
+          "callee": "setDirty",
+          "lineNumber": 45
+        },
+        {
+          "caller": "removeRow",
+          "callee": "setRows",
+          "lineNumber": 47
+        },
+        {
+          "caller": "removeRow",
+          "callee": "prev.filter",
+          "lineNumber": 47
+        },
+        {
+          "caller": "removeRow",
+          "callee": "setDirty",
+          "lineNumber": 47
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "rows.map",
+          "lineNumber": 64
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "update",
+          "lineNumber": 69
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "['TCP', 'UDP', 'ICMP', 'ANY'].map",
+          "lineNumber": 72
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "update",
+          "lineNumber": 78
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "update",
+          "lineNumber": 86
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "removeRow",
+          "lineNumber": 92
+        },
+        {
+          "caller": "RiskyPortsSettings",
+          "callee": "saveMutation.mutate",
+          "lineNumber": 116
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    }
+  ]
+}

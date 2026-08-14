@@ -1,0 +1,5404 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 9,
+  "filesSkipped": [],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 9,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 9,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "results": [
+    {
+      "path": "backend/app/services/firewall/exceptions.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 35,
+      "nonEmptyLines": 27,
+      "classes": [
+        {
+          "name": "FirewallError",
+          "startLine": 5,
+          "endLine": 7,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "FirewallConnectionError",
+          "startLine": 9,
+          "endLine": 11,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "FirewallAuthenticationError",
+          "startLine": 13,
+          "endLine": 15,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "FirewallTimeoutError",
+          "startLine": 17,
+          "endLine": 19,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "FirewallAPIError",
+          "startLine": 21,
+          "endLine": 23,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "FirewallConfigurationError",
+          "startLine": 25,
+          "endLine": 27,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "FirewallDataError",
+          "startLine": 29,
+          "endLine": 31,
+          "methods": [],
+          "properties": []
+        },
+        {
+          "name": "FirewallUnsupportedError",
+          "startLine": 33,
+          "endLine": 35,
+          "methods": [],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "FirewallError",
+          "line": 5,
+          "isDefault": false
+        },
+        {
+          "name": "FirewallConnectionError",
+          "line": 9,
+          "isDefault": false
+        },
+        {
+          "name": "FirewallAuthenticationError",
+          "line": 13,
+          "isDefault": false
+        },
+        {
+          "name": "FirewallTimeoutError",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "FirewallAPIError",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "FirewallConfigurationError",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "FirewallDataError",
+          "line": 29,
+          "isDefault": false
+        },
+        {
+          "name": "FirewallUnsupportedError",
+          "line": 33,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 8,
+        "functionCount": 0,
+        "classCount": 8
+      }
+    },
+    {
+      "path": "backend/app/services/firewall/factory.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 103,
+      "nonEmptyLines": 87,
+      "classes": [
+        {
+          "name": "FirewallCollectorFactory",
+          "startLine": 11,
+          "endLine": 103,
+          "methods": [
+            "get_collector",
+            "get_supported_vendors",
+            "get_vendor_requirements"
+          ],
+          "properties": [
+            "REQUIRED_PARAMS"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "FirewallCollectorFactory",
+          "line": 11,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "get_collector",
+          "callee": "logging.getLogger",
+          "lineNumber": 50
+        },
+        {
+          "caller": "get_collector",
+          "callee": "source_type.lower",
+          "lineNumber": 52
+        },
+        {
+          "caller": "get_collector",
+          "callee": "logger.error",
+          "lineNumber": 54
+        },
+        {
+          "caller": "get_collector",
+          "callee": "FirewallUnsupportedError",
+          "lineNumber": 55
+        },
+        {
+          "caller": "get_collector",
+          "callee": "kwargs.get",
+          "lineNumber": 58
+        },
+        {
+          "caller": "get_collector",
+          "callee": "kwargs.get",
+          "lineNumber": 59
+        },
+        {
+          "caller": "get_collector",
+          "callee": "kwargs.get",
+          "lineNumber": 60
+        },
+        {
+          "caller": "get_collector",
+          "callee": "PaloAltoAPI",
+          "lineNumber": 65
+        },
+        {
+          "caller": "get_collector",
+          "callee": "MF2Collector",
+          "lineNumber": 68
+        },
+        {
+          "caller": "get_collector",
+          "callee": "NGFCollector",
+          "lineNumber": 71
+        },
+        {
+          "caller": "get_collector",
+          "callee": "MockCollector",
+          "lineNumber": 74
+        },
+        {
+          "caller": "get_collector",
+          "callee": "FirewallUnsupportedError",
+          "lineNumber": 76
+        },
+        {
+          "caller": "get_supported_vendors",
+          "callee": "list",
+          "lineNumber": 85
+        },
+        {
+          "caller": "get_supported_vendors",
+          "callee": "FirewallCollectorFactory.REQUIRED_PARAMS.keys",
+          "lineNumber": 85
+        },
+        {
+          "caller": "get_vendor_requirements",
+          "callee": "vendor.lower",
+          "lineNumber": 100
+        },
+        {
+          "caller": "get_vendor_requirements",
+          "callee": "FirewallUnsupportedError",
+          "lineNumber": 102
+        }
+      ],
+      "metrics": {
+        "importCount": 6,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/firewall/interface.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 185,
+      "nonEmptyLines": 148,
+      "classes": [
+        {
+          "name": "FirewallInterface",
+          "startLine": 7,
+          "endLine": 185,
+          "methods": [
+            "__init__",
+            "is_connected",
+            "get_connection_info",
+            "connect",
+            "disconnect",
+            "test_connection",
+            "get_system_info",
+            "export_security_rules",
+            "export_network_objects",
+            "export_network_group_objects",
+            "export_service_objects",
+            "export_service_group_objects",
+            "export_last_hit_date",
+            "export_resource_limits",
+            "export_system_info"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "FirewallInterface",
+          "line": 7,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "__init__",
+          "callee": "logging.getLogger",
+          "lineNumber": 25
+        },
+        {
+          "caller": "export_last_hit_date",
+          "callee": "NotImplementedError",
+          "lineNumber": 159
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "NotImplementedError",
+          "lineNumber": 172
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "NotImplementedError",
+          "lineNumber": 185
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/firewall/vendors/mf2.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 536,
+      "nonEmptyLines": 471,
+      "functions": [
+        {
+          "name": "create_ssh_client",
+          "startLine": 73,
+          "endLine": 82,
+          "params": [
+            "host",
+            "port",
+            "username",
+            "password"
+          ]
+        },
+        {
+          "name": "exec_remote_command",
+          "startLine": 84,
+          "endLine": 90,
+          "params": [
+            "ssh",
+            "command",
+            "remote_directory"
+          ]
+        },
+        {
+          "name": "download_object_files",
+          "startLine": 92,
+          "endLine": 119,
+          "params": [
+            "host",
+            "port",
+            "username",
+            "password",
+            "remote_directory",
+            "local_directory",
+            "conf_types"
+          ]
+        },
+        {
+          "name": "show_system_info",
+          "startLine": 121,
+          "endLine": 151,
+          "params": [
+            "host",
+            "username",
+            "password"
+          ]
+        },
+        {
+          "name": "delete_files",
+          "startLine": 153,
+          "endLine": 162,
+          "params": [
+            "file_paths"
+          ]
+        },
+        {
+          "name": "host_parsing",
+          "startLine": 164,
+          "endLine": 183,
+          "params": [
+            "file_path"
+          ]
+        },
+        {
+          "name": "network_parsing",
+          "startLine": 185,
+          "endLine": 205,
+          "params": [
+            "file_path"
+          ]
+        },
+        {
+          "name": "combine_mask_end",
+          "startLine": 207,
+          "endLine": 213,
+          "params": [
+            "row"
+          ]
+        },
+        {
+          "name": "export_address_objects",
+          "startLine": 215,
+          "endLine": 241,
+          "params": [
+            "group_file",
+            "host_file",
+            "network_file"
+          ]
+        },
+        {
+          "name": "service_parsing",
+          "startLine": 243,
+          "endLine": 261,
+          "params": [
+            "file_path"
+          ]
+        },
+        {
+          "name": "export_security_rules",
+          "startLine": 263,
+          "endLine": 274,
+          "params": [
+            "device_ip",
+            "username",
+            "password"
+          ]
+        },
+        {
+          "name": "_remove_newlines_from_file",
+          "startLine": 277,
+          "endLine": 280,
+          "params": [
+            "file_path"
+          ]
+        },
+        {
+          "name": "_extract_braces_of_depth_2_or_more_without_outer_braces",
+          "startLine": 282,
+          "endLine": 298,
+          "params": [
+            "content"
+          ]
+        },
+        {
+          "name": "_group_parsing",
+          "startLine": 300,
+          "endLine": 322,
+          "params": [
+            "file_path"
+          ]
+        },
+        {
+          "name": "_replace_values",
+          "startLine": 324,
+          "endLine": 326,
+          "params": [
+            "ids",
+            "mapping"
+          ]
+        },
+        {
+          "name": "_combine_group_objects",
+          "startLine": 328,
+          "endLine": 331,
+          "params": [
+            "row"
+          ]
+        },
+        {
+          "name": "_download_rule_file",
+          "startLine": 333,
+          "endLine": 346,
+          "params": [
+            "host",
+            "port",
+            "username",
+            "password",
+            "remote_directory",
+            "local_directory"
+          ]
+        },
+        {
+          "name": "_download_file",
+          "startLine": 348,
+          "endLine": 355,
+          "params": [
+            "ssh",
+            "remote_directory",
+            "file_name",
+            "local_directory",
+            "host"
+          ]
+        },
+        {
+          "name": "_parse_object",
+          "startLine": 357,
+          "endLine": 370,
+          "params": [
+            "input_str"
+          ]
+        },
+        {
+          "name": "_rule_parsing",
+          "startLine": 372,
+          "endLine": 403,
+          "params": [
+            "file_path"
+          ]
+        },
+        {
+          "name": "_find_pattern",
+          "startLine": 405,
+          "endLine": 408,
+          "params": [
+            "pattern",
+            "text"
+          ]
+        },
+        {
+          "name": "_get_schedule",
+          "startLine": 410,
+          "endLine": 412,
+          "params": [
+            "shaping_string"
+          ]
+        },
+        {
+          "name": "_extract_braces_of_depth_1_or_more",
+          "startLine": 414,
+          "endLine": 427,
+          "params": [
+            "content"
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "name": "MF2Collector",
+          "startLine": 429,
+          "endLine": 536,
+          "methods": [
+            "__init__",
+            "connect",
+            "disconnect",
+            "test_connection",
+            "get_system_info",
+            "export_security_rules",
+            "export_network_objects",
+            "export_network_group_objects",
+            "export_service_objects",
+            "export_service_group_objects",
+            "export_usage_logs"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "create_ssh_client",
+          "line": 73,
+          "isDefault": false
+        },
+        {
+          "name": "exec_remote_command",
+          "line": 84,
+          "isDefault": false
+        },
+        {
+          "name": "download_object_files",
+          "line": 92,
+          "isDefault": false
+        },
+        {
+          "name": "show_system_info",
+          "line": 121,
+          "isDefault": false
+        },
+        {
+          "name": "delete_files",
+          "line": 153,
+          "isDefault": false
+        },
+        {
+          "name": "host_parsing",
+          "line": 164,
+          "isDefault": false
+        },
+        {
+          "name": "network_parsing",
+          "line": 185,
+          "isDefault": false
+        },
+        {
+          "name": "combine_mask_end",
+          "line": 207,
+          "isDefault": false
+        },
+        {
+          "name": "export_address_objects",
+          "line": 215,
+          "isDefault": false
+        },
+        {
+          "name": "service_parsing",
+          "line": 243,
+          "isDefault": false
+        },
+        {
+          "name": "export_security_rules",
+          "line": 263,
+          "isDefault": false
+        },
+        {
+          "name": "_remove_newlines_from_file",
+          "line": 277,
+          "isDefault": false
+        },
+        {
+          "name": "_extract_braces_of_depth_2_or_more_without_outer_braces",
+          "line": 282,
+          "isDefault": false
+        },
+        {
+          "name": "_group_parsing",
+          "line": 300,
+          "isDefault": false
+        },
+        {
+          "name": "_replace_values",
+          "line": 324,
+          "isDefault": false
+        },
+        {
+          "name": "_combine_group_objects",
+          "line": 328,
+          "isDefault": false
+        },
+        {
+          "name": "_download_rule_file",
+          "line": 333,
+          "isDefault": false
+        },
+        {
+          "name": "_download_file",
+          "line": 348,
+          "isDefault": false
+        },
+        {
+          "name": "_parse_object",
+          "line": 357,
+          "isDefault": false
+        },
+        {
+          "name": "_rule_parsing",
+          "line": 372,
+          "isDefault": false
+        },
+        {
+          "name": "_find_pattern",
+          "line": 405,
+          "isDefault": false
+        },
+        {
+          "name": "_get_schedule",
+          "line": 410,
+          "isDefault": false
+        },
+        {
+          "name": "_extract_braces_of_depth_1_or_more",
+          "line": 414,
+          "isDefault": false
+        },
+        {
+          "name": "MF2Collector",
+          "line": 429,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "create_ssh_client",
+          "callee": "paramiko.SSHClient",
+          "lineNumber": 77
+        },
+        {
+          "caller": "create_ssh_client",
+          "callee": "client.load_system_host_keys",
+          "lineNumber": 78
+        },
+        {
+          "caller": "create_ssh_client",
+          "callee": "client.set_missing_host_key_policy",
+          "lineNumber": 80
+        },
+        {
+          "caller": "create_ssh_client",
+          "callee": "paramiko.AutoAddPolicy",
+          "lineNumber": 80
+        },
+        {
+          "caller": "create_ssh_client",
+          "callee": "client.connect",
+          "lineNumber": 81
+        },
+        {
+          "caller": "exec_remote_command",
+          "callee": "ssh.exec_command",
+          "lineNumber": 90
+        },
+        {
+          "caller": "download_object_files",
+          "callee": "create_ssh_client",
+          "lineNumber": 101
+        },
+        {
+          "caller": "download_object_files",
+          "callee": "exec_remote_command",
+          "lineNumber": 104
+        },
+        {
+          "caller": "download_object_files",
+          "callee": "stdout.readlines",
+          "lineNumber": 105
+        },
+        {
+          "caller": "download_object_files",
+          "callee": "SCPClient",
+          "lineNumber": 107
+        },
+        {
+          "caller": "download_object_files",
+          "callee": "ssh.get_transport",
+          "lineNumber": 107
+        },
+        {
+          "caller": "download_object_files",
+          "callee": "line.strip",
+          "lineNumber": 109
+        },
+        {
+          "caller": "download_object_files",
+          "callee": "os.path.join",
+          "lineNumber": 112
+        },
+        {
+          "caller": "download_object_files",
+          "callee": "os.path.exists",
+          "lineNumber": 114
+        },
+        {
+          "caller": "download_object_files",
+          "callee": "scp.get",
+          "lineNumber": 115
+        },
+        {
+          "caller": "download_object_files",
+          "callee": "os.path.join",
+          "lineNumber": 115
+        },
+        {
+          "caller": "download_object_files",
+          "callee": "downloaded_files.append",
+          "lineNumber": 116
+        },
+        {
+          "caller": "download_object_files",
+          "callee": "ssh.close",
+          "lineNumber": 118
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "create_ssh_client",
+          "lineNumber": 125
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "ssh.exec_command",
+          "lineNumber": 127
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "stdout.readline().strip",
+          "lineNumber": 128
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "stdout.readline",
+          "lineNumber": 128
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "ssh.exec_command",
+          "lineNumber": 130
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "stdout.readline().rstrip().split",
+          "lineNumber": 131
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "stdout.readline().rstrip",
+          "lineNumber": 131
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "stdout.readline",
+          "lineNumber": 131
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "uptime_parts[4].rstrip",
+          "lineNumber": 132
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "len",
+          "lineNumber": 132
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "ssh.exec_command",
+          "lineNumber": 134
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "stdout.readlines",
+          "lineNumber": 135
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "ssh.exec_command",
+          "lineNumber": 137
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "stdout.readline().strip",
+          "lineNumber": 138
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "stdout.readline",
+          "lineNumber": 138
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "info_lines[0].split('=')[1].strip",
+          "lineNumber": 141
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "info_lines[0].split",
+          "lineNumber": 141
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "len",
+          "lineNumber": 141
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "info_lines[2].split('=')[1].strip",
+          "lineNumber": 142
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "info_lines[2].split",
+          "lineNumber": 142
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "len",
+          "lineNumber": 142
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "info_lines[3].split('=')[1].strip",
+          "lineNumber": 143
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "info_lines[3].split",
+          "lineNumber": 143
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "len",
+          "lineNumber": 143
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "pd.DataFrame",
+          "lineNumber": 149
+        },
+        {
+          "caller": "show_system_info",
+          "callee": "ssh.close",
+          "lineNumber": 151
+        },
+        {
+          "caller": "delete_files",
+          "callee": "isinstance",
+          "lineNumber": 155
+        },
+        {
+          "caller": "delete_files",
+          "callee": "os.path.exists",
+          "lineNumber": 158
+        },
+        {
+          "caller": "delete_files",
+          "callee": "os.remove",
+          "lineNumber": 160
+        },
+        {
+          "caller": "delete_files",
+          "callee": "logging.error",
+          "lineNumber": 162
+        },
+        {
+          "caller": "host_parsing",
+          "callee": "_remove_newlines_from_file",
+          "lineNumber": 169
+        },
+        {
+          "caller": "host_parsing",
+          "callee": "_extract_braces_of_depth_2_or_more_without_outer_braces",
+          "lineNumber": 171
+        },
+        {
+          "caller": "host_parsing",
+          "callee": "depth_braces.pop",
+          "lineNumber": 173
+        },
+        {
+          "caller": "host_parsing",
+          "callee": "HOST_PATTERN.items",
+          "lineNumber": 178
+        },
+        {
+          "caller": "host_parsing",
+          "callee": "re.search",
+          "lineNumber": 179
+        },
+        {
+          "caller": "host_parsing",
+          "callee": "match.group",
+          "lineNumber": 181
+        },
+        {
+          "caller": "host_parsing",
+          "callee": "data_list.append",
+          "lineNumber": 182
+        },
+        {
+          "caller": "host_parsing",
+          "callee": "pd.DataFrame",
+          "lineNumber": 183
+        },
+        {
+          "caller": "network_parsing",
+          "callee": "_remove_newlines_from_file",
+          "lineNumber": 190
+        },
+        {
+          "caller": "network_parsing",
+          "callee": "_extract_braces_of_depth_2_or_more_without_outer_braces",
+          "lineNumber": 191
+        },
+        {
+          "caller": "network_parsing",
+          "callee": "depth_braces.pop",
+          "lineNumber": 193
+        },
+        {
+          "caller": "network_parsing",
+          "callee": "pattern.items",
+          "lineNumber": 200
+        },
+        {
+          "caller": "network_parsing",
+          "callee": "re.search",
+          "lineNumber": 201
+        },
+        {
+          "caller": "network_parsing",
+          "callee": "match.group",
+          "lineNumber": 203
+        },
+        {
+          "caller": "network_parsing",
+          "callee": "data_list.append",
+          "lineNumber": 204
+        },
+        {
+          "caller": "network_parsing",
+          "callee": "pd.DataFrame",
+          "lineNumber": 205
+        },
+        {
+          "caller": "combine_mask_end",
+          "callee": "row.get",
+          "lineNumber": 209
+        },
+        {
+          "caller": "combine_mask_end",
+          "callee": "str(mask_val).isdigit",
+          "lineNumber": 210
+        },
+        {
+          "caller": "combine_mask_end",
+          "callee": "str",
+          "lineNumber": 210
+        },
+        {
+          "caller": "combine_mask_end",
+          "callee": "row.get",
+          "lineNumber": 211
+        },
+        {
+          "caller": "combine_mask_end",
+          "callee": "row.get",
+          "lineNumber": 213
+        },
+        {
+          "caller": "export_address_objects",
+          "callee": "_group_parsing",
+          "lineNumber": 217
+        },
+        {
+          "caller": "export_address_objects",
+          "callee": "network_parsing",
+          "lineNumber": 218
+        },
+        {
+          "caller": "export_address_objects",
+          "callee": "host_parsing",
+          "lineNumber": 219
+        },
+        {
+          "caller": "export_address_objects",
+          "callee": "network_df.apply",
+          "lineNumber": 222
+        },
+        {
+          "caller": "export_address_objects",
+          "callee": "dict",
+          "lineNumber": 225
+        },
+        {
+          "caller": "export_address_objects",
+          "callee": "zip",
+          "lineNumber": 225
+        },
+        {
+          "caller": "export_address_objects",
+          "callee": "network_df['id'].astype",
+          "lineNumber": 225
+        },
+        {
+          "caller": "export_address_objects",
+          "callee": "dict",
+          "lineNumber": 226
+        },
+        {
+          "caller": "export_address_objects",
+          "callee": "zip",
+          "lineNumber": 226
+        },
+        {
+          "caller": "export_address_objects",
+          "callee": "host_df['id'].astype",
+          "lineNumber": 226
+        },
+        {
+          "caller": "export_address_objects",
+          "callee": "group_df['networks'].apply",
+          "lineNumber": 229
+        },
+        {
+          "caller": "export_address_objects",
+          "callee": "_replace_values",
+          "lineNumber": 229
+        },
+        {
+          "caller": "export_address_objects",
+          "callee": "group_df['hosts'].apply",
+          "lineNumber": 230
+        },
+        {
+          "caller": "export_address_objects",
+          "callee": "_replace_values",
+          "lineNumber": 230
+        },
+        {
+          "caller": "export_address_objects",
+          "callee": "group_df.apply",
+          "lineNumber": 231
+        },
+        {
+          "caller": "export_address_objects",
+          "callee": "pd.concat",
+          "lineNumber": 239
+        },
+        {
+          "caller": "service_parsing",
+          "callee": "_remove_newlines_from_file",
+          "lineNumber": 245
+        },
+        {
+          "caller": "service_parsing",
+          "callee": "_extract_braces_of_depth_2_or_more_without_outer_braces",
+          "lineNumber": 246
+        },
+        {
+          "caller": "service_parsing",
+          "callee": "depth_braces.pop",
+          "lineNumber": 249
+        },
+        {
+          "caller": "service_parsing",
+          "callee": "depth_braces.pop",
+          "lineNumber": 251
+        },
+        {
+          "caller": "service_parsing",
+          "callee": "SERVICE_PATTERN.items",
+          "lineNumber": 256
+        },
+        {
+          "caller": "service_parsing",
+          "callee": "re.search",
+          "lineNumber": 257
+        },
+        {
+          "caller": "service_parsing",
+          "callee": "match.group",
+          "lineNumber": 259
+        },
+        {
+          "caller": "service_parsing",
+          "callee": "data_list.append",
+          "lineNumber": 260
+        },
+        {
+          "caller": "service_parsing",
+          "callee": "pd.DataFrame",
+          "lineNumber": 261
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "_download_rule_file",
+          "lineNumber": 266
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "logging.error",
+          "lineNumber": 268
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "pd.DataFrame",
+          "lineNumber": 269
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "_rule_parsing",
+          "lineNumber": 272
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "delete_files",
+          "lineNumber": 273
+        },
+        {
+          "caller": "_remove_newlines_from_file",
+          "callee": "open",
+          "lineNumber": 279
+        },
+        {
+          "caller": "_remove_newlines_from_file",
+          "callee": "file.read().replace",
+          "lineNumber": 280
+        },
+        {
+          "caller": "_remove_newlines_from_file",
+          "callee": "file.read",
+          "lineNumber": 280
+        },
+        {
+          "caller": "_extract_braces_of_depth_2_or_more_without_outer_braces",
+          "callee": "results.append",
+          "lineNumber": 295
+        },
+        {
+          "caller": "_extract_braces_of_depth_2_or_more_without_outer_braces",
+          "callee": "temp[1:-1].strip",
+          "lineNumber": 295
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "_remove_newlines_from_file",
+          "lineNumber": 302
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "_extract_braces_of_depth_2_or_more_without_outer_braces",
+          "lineNumber": 303
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "depth_braces.pop",
+          "lineNumber": 304
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "GROUP_PATTERN.items",
+          "lineNumber": 309
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "re.search",
+          "lineNumber": 310
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "item.split('=')[0].replace('[', '').replace",
+          "lineNumber": 314
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "item.split('=')[0].replace",
+          "lineNumber": 314
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "item.split",
+          "lineNumber": 314
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "match.group(1).split",
+          "lineNumber": 314
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "match.group",
+          "lineNumber": 314
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "','.join",
+          "lineNumber": 315
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "item.split",
+          "lineNumber": 317
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "match.group(1).split",
+          "lineNumber": 317
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "match.group",
+          "lineNumber": 317
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "len",
+          "lineNumber": 317
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "item.split",
+          "lineNumber": 317
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "','.join",
+          "lineNumber": 318
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "match.group",
+          "lineNumber": 320
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "data_list.append",
+          "lineNumber": 321
+        },
+        {
+          "caller": "_group_parsing",
+          "callee": "pd.DataFrame",
+          "lineNumber": 322
+        },
+        {
+          "caller": "_replace_values",
+          "callee": "','.join",
+          "lineNumber": 326
+        },
+        {
+          "caller": "_replace_values",
+          "callee": "mapping.get",
+          "lineNumber": 326
+        },
+        {
+          "caller": "_replace_values",
+          "callee": "item.strip",
+          "lineNumber": 326
+        },
+        {
+          "caller": "_replace_values",
+          "callee": "ids.split",
+          "lineNumber": 326
+        },
+        {
+          "caller": "_combine_group_objects",
+          "callee": "row.get",
+          "lineNumber": 330
+        },
+        {
+          "caller": "_combine_group_objects",
+          "callee": "row.get",
+          "lineNumber": 330
+        },
+        {
+          "caller": "_combine_group_objects",
+          "callee": "','.join",
+          "lineNumber": 331
+        },
+        {
+          "caller": "_combine_group_objects",
+          "callee": "val.strip",
+          "lineNumber": 331
+        },
+        {
+          "caller": "_download_rule_file",
+          "callee": "create_ssh_client",
+          "lineNumber": 336
+        },
+        {
+          "caller": "_download_rule_file",
+          "callee": "exec_remote_command",
+          "lineNumber": 338
+        },
+        {
+          "caller": "_download_rule_file",
+          "callee": "stdout.readlines",
+          "lineNumber": 339
+        },
+        {
+          "caller": "_download_rule_file",
+          "callee": "fwrules_lines[0].split",
+          "lineNumber": 342
+        },
+        {
+          "caller": "_download_rule_file",
+          "callee": "_download_file",
+          "lineNumber": 343
+        },
+        {
+          "caller": "_download_rule_file",
+          "callee": "ssh.close",
+          "lineNumber": 345
+        },
+        {
+          "caller": "_download_file",
+          "callee": "os.path.join",
+          "lineNumber": 350
+        },
+        {
+          "caller": "_download_file",
+          "callee": "os.path.join",
+          "lineNumber": 352
+        },
+        {
+          "caller": "_download_file",
+          "callee": "SCPClient",
+          "lineNumber": 353
+        },
+        {
+          "caller": "_download_file",
+          "callee": "ssh.get_transport",
+          "lineNumber": 353
+        },
+        {
+          "caller": "_download_file",
+          "callee": "scp.get",
+          "lineNumber": 354
+        },
+        {
+          "caller": "_parse_object",
+          "callee": "input_str.replace",
+          "lineNumber": 359
+        },
+        {
+          "caller": "_parse_object",
+          "callee": "cleaned.split",
+          "lineNumber": 362
+        },
+        {
+          "caller": "_parse_object",
+          "callee": "entry.split",
+          "lineNumber": 363
+        },
+        {
+          "caller": "_parse_object",
+          "callee": "len",
+          "lineNumber": 364
+        },
+        {
+          "caller": "_parse_object",
+          "callee": "parsed.append",
+          "lineNumber": 364
+        },
+        {
+          "caller": "_parse_object",
+          "callee": "cleaned.split",
+          "lineNumber": 366
+        },
+        {
+          "caller": "_parse_object",
+          "callee": "len",
+          "lineNumber": 367
+        },
+        {
+          "caller": "_parse_object",
+          "callee": "parsed.append",
+          "lineNumber": 367
+        },
+        {
+          "caller": "_parse_object",
+          "callee": "parsed.append",
+          "lineNumber": 369
+        },
+        {
+          "caller": "_parse_object",
+          "callee": "','.join",
+          "lineNumber": 370
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "_remove_newlines_from_file",
+          "lineNumber": 376
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "_extract_braces_of_depth_2_or_more_without_outer_braces",
+          "lineNumber": 377
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "pd.DataFrame",
+          "lineNumber": 378
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "_extract_braces_of_depth_1_or_more",
+          "lineNumber": 381
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "enumerate",
+          "lineNumber": 383
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "_find_pattern",
+          "lineNumber": 386
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "_find_pattern",
+          "lineNumber": 387
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "_find_pattern",
+          "lineNumber": 388
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "_parse_object",
+          "lineNumber": 389
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "_find_pattern",
+          "lineNumber": 389
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "_parse_object",
+          "lineNumber": 390
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "_find_pattern",
+          "lineNumber": 390
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "_parse_object",
+          "lineNumber": 391
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "_find_pattern",
+          "lineNumber": 391
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "_parse_object",
+          "lineNumber": 392
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "_find_pattern",
+          "lineNumber": 392
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "_get_schedule",
+          "lineNumber": 394
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "_find_pattern",
+          "lineNumber": 394
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "_find_pattern",
+          "lineNumber": 395
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "policies.append",
+          "lineNumber": 397
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "pd.DataFrame",
+          "lineNumber": 399
+        },
+        {
+          "caller": "_rule_parsing",
+          "callee": "df[col].replace",
+          "lineNumber": 402
+        },
+        {
+          "caller": "_find_pattern",
+          "callee": "re.search",
+          "lineNumber": 407
+        },
+        {
+          "caller": "_find_pattern",
+          "callee": "match.group",
+          "lineNumber": 408
+        },
+        {
+          "caller": "_get_schedule",
+          "callee": "shaping_string.split('=')[1].lstrip",
+          "lineNumber": 412
+        },
+        {
+          "caller": "_get_schedule",
+          "callee": "shaping_string.split",
+          "lineNumber": 412
+        },
+        {
+          "caller": "_extract_braces_of_depth_1_or_more",
+          "callee": "results.append",
+          "lineNumber": 425
+        },
+        {
+          "caller": "_extract_braces_of_depth_1_or_more",
+          "callee": "temp.strip",
+          "lineNumber": 425
+        },
+        {
+          "caller": "__init__",
+          "callee": "super().__init__",
+          "lineNumber": 435
+        },
+        {
+          "caller": "__init__",
+          "callee": "super",
+          "lineNumber": 435
+        },
+        {
+          "caller": "__init__",
+          "callee": "os.path.dirname",
+          "lineNumber": 437
+        },
+        {
+          "caller": "__init__",
+          "callee": "os.path.abspath",
+          "lineNumber": 437
+        },
+        {
+          "caller": "__init__",
+          "callee": "os.path.join",
+          "lineNumber": 438
+        },
+        {
+          "caller": "__init__",
+          "callee": "os.makedirs",
+          "lineNumber": 439
+        },
+        {
+          "caller": "connect",
+          "callee": "show_system_info",
+          "lineNumber": 444
+        },
+        {
+          "caller": "connect",
+          "callee": "FirewallConnectionError",
+          "lineNumber": 449
+        },
+        {
+          "caller": "test_connection",
+          "callee": "show_system_info",
+          "lineNumber": 459
+        },
+        {
+          "caller": "get_system_info",
+          "callee": "show_system_info",
+          "lineNumber": 466
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "export_security_rules",
+          "lineNumber": 470
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "download_object_files",
+          "lineNumber": 475
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "len",
+          "lineNumber": 476
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "len",
+          "lineNumber": 476
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "pd.DataFrame",
+          "lineNumber": 477
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "os.path.join",
+          "lineNumber": 479
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "os.path.join",
+          "lineNumber": 480
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "host_parsing",
+          "lineNumber": 482
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "host_df[['name', 'ip']].rename",
+          "lineNumber": 483
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "network_parsing",
+          "lineNumber": 486
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "network_df.apply",
+          "lineNumber": 487
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "network_df[['name', 'Value']].rename",
+          "lineNumber": 488
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "pd.concat",
+          "lineNumber": 491
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "result_df['Value'].apply",
+          "lineNumber": 493
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "str",
+          "lineNumber": 493
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "delete_files",
+          "lineNumber": 495
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "download_object_files",
+          "lineNumber": 501
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "len",
+          "lineNumber": 502
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "len",
+          "lineNumber": 502
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "pd.DataFrame",
+          "lineNumber": 503
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "os.path.join",
+          "lineNumber": 505
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "os.path.join",
+          "lineNumber": 506
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "os.path.join",
+          "lineNumber": 507
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "export_address_objects",
+          "lineNumber": 509
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "delete_files",
+          "lineNumber": 510
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "download_object_files",
+          "lineNumber": 516
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "len",
+          "lineNumber": 517
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "len",
+          "lineNumber": 517
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "pd.DataFrame",
+          "lineNumber": 518
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "os.path.join",
+          "lineNumber": 520
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "service_parsing",
+          "lineNumber": 521
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "service_df[['name', 'protocol', 'str_svc_port']].rename",
+          "lineNumber": 522
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "service_df['Protocol'].apply",
+          "lineNumber": 525
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "x.lower",
+          "lineNumber": 525
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "isinstance",
+          "lineNumber": 525
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "delete_files",
+          "lineNumber": 527
+        },
+        {
+          "caller": "export_service_group_objects",
+          "callee": "NotImplementedError",
+          "lineNumber": 532
+        },
+        {
+          "caller": "export_usage_logs",
+          "callee": "NotImplementedError",
+          "lineNumber": 536
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 24,
+        "functionCount": 23,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/app/services/firewall/vendors/mock.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 238,
+      "nonEmptyLines": 204,
+      "classes": [
+        {
+          "name": "MockFirewall",
+          "startLine": 10,
+          "endLine": 178,
+          "methods": [
+            "__init__",
+            "_generate_random_ip",
+            "_generate_random_subnet",
+            "_generate_random_port",
+            "_generate_sample_data",
+            "export_security_rules",
+            "export_network_objects",
+            "export_network_group_objects",
+            "export_service_objects",
+            "export_service_group_objects"
+          ],
+          "properties": []
+        },
+        {
+          "name": "MockCollector",
+          "startLine": 180,
+          "endLine": 238,
+          "methods": [
+            "__init__",
+            "connect",
+            "disconnect",
+            "test_connection",
+            "export_security_rules",
+            "export_network_objects",
+            "export_network_group_objects",
+            "export_service_objects",
+            "export_service_group_objects",
+            "get_system_info",
+            "export_last_hit_date"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "MockFirewall",
+          "line": 10,
+          "isDefault": false
+        },
+        {
+          "name": "MockCollector",
+          "line": 180,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "__init__",
+          "callee": "self._generate_sample_data",
+          "lineNumber": 17
+        },
+        {
+          "caller": "_generate_random_ip",
+          "callee": "random.choice",
+          "lineNumber": 20
+        },
+        {
+          "caller": "_generate_random_ip",
+          "callee": "random.randint",
+          "lineNumber": 21
+        },
+        {
+          "caller": "_generate_random_ip",
+          "callee": "random.randint",
+          "lineNumber": 21
+        },
+        {
+          "caller": "_generate_random_subnet",
+          "callee": "random.choice",
+          "lineNumber": 24
+        },
+        {
+          "caller": "_generate_random_subnet",
+          "callee": "random.choice",
+          "lineNumber": 25
+        },
+        {
+          "caller": "_generate_random_port",
+          "callee": "random.choice",
+          "lineNumber": 31
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.seed",
+          "lineNumber": 34
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.randint",
+          "lineNumber": 40
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.DataFrame",
+          "lineNumber": 41
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 42
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.choice",
+          "lineNumber": 43
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 43
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "self._generate_random_ip",
+          "lineNumber": 44
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.random",
+          "lineNumber": 44
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "self._generate_random_subnet",
+          "lineNumber": 44
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 44
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.concat([\n            self.network_objects,\n            pd.DataFrame([{'Name': 'Test-Host-1', 'Type': 'host', 'Value': '1.1.1.1'}])\n        ], ignore_index=True).drop_duplicates",
+          "lineNumber": 47
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.concat",
+          "lineNumber": 47
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.DataFrame",
+          "lineNumber": 49
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.randint",
+          "lineNumber": 54
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.DataFrame",
+          "lineNumber": 55
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.choice",
+          "lineNumber": 56
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 56
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "','.join",
+          "lineNumber": 57
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.sample",
+          "lineNumber": 57
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "self.network_objects['Name'].tolist",
+          "lineNumber": 57
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.randint",
+          "lineNumber": 57
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "min",
+          "lineNumber": 57
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "len",
+          "lineNumber": 57
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 57
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.concat([\n            self.network_groups,\n            pd.DataFrame([{'Group Name': 'Test-Group-1', 'Entry': 'Test-Host-1'}])\n        ], ignore_index=True).drop_duplicates",
+          "lineNumber": 60
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.concat",
+          "lineNumber": 60
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.DataFrame",
+          "lineNumber": 62
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.randint",
+          "lineNumber": 66
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "self._generate_random_port",
+          "lineNumber": 67
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 67
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.DataFrame",
+          "lineNumber": 68
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "p.replace",
+          "lineNumber": 69
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.choice",
+          "lineNumber": 70
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 70
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.concat([\n            self.service_objects,\n            pd.DataFrame([\n                {'Name': 'Svc_80', 'Protocol': 'tcp', 'Port': '80'},\n                {'Name': 'Svc_443', 'Protocol': 'tcp', 'Port': '443'}\n            ])\n        ], ignore_index=True).drop_duplicates",
+          "lineNumber": 74
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.concat",
+          "lineNumber": 74
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.DataFrame",
+          "lineNumber": 76
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.randint",
+          "lineNumber": 83
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.DataFrame",
+          "lineNumber": 84
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.choice",
+          "lineNumber": 85
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 85
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "','.join",
+          "lineNumber": 86
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.sample",
+          "lineNumber": 86
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "self.service_objects['Name'].tolist",
+          "lineNumber": 86
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.randint",
+          "lineNumber": 86
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "min",
+          "lineNumber": 86
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "len",
+          "lineNumber": 86
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 86
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.concat([\n            self.service_groups,\n            pd.DataFrame([{'Group Name': 'Test-Svc-Group', 'Entry': 'Svc_80,Svc_443'}])\n        ], ignore_index=True).drop_duplicates",
+          "lineNumber": 88
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.concat",
+          "lineNumber": 88
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.DataFrame",
+          "lineNumber": 90
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "self.network_objects['Name'].tolist",
+          "lineNumber": 94
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "self.network_groups['Group Name'].tolist",
+          "lineNumber": 94
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "self.service_objects['Name'].tolist",
+          "lineNumber": 95
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "self.service_groups['Group Name'].tolist",
+          "lineNumber": 95
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.randint",
+          "lineNumber": 97
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 99
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.choice",
+          "lineNumber": 100
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 100
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.choice",
+          "lineNumber": 101
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 101
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.choice",
+          "lineNumber": 102
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 102
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "', '.join",
+          "lineNumber": 103
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.sample",
+          "lineNumber": 103
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.randint",
+          "lineNumber": 103
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 103
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.random",
+          "lineNumber": 104
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.randint",
+          "lineNumber": 104
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 104
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "', '.join",
+          "lineNumber": 105
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.sample",
+          "lineNumber": 105
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.randint",
+          "lineNumber": 105
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 105
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "', '.join",
+          "lineNumber": 106
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.sample",
+          "lineNumber": 106
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.randint",
+          "lineNumber": 106
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 106
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "', '.join",
+          "lineNumber": 107
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.sample",
+          "lineNumber": 107
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.randint",
+          "lineNumber": 107
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 107
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 108
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.choice",
+          "lineNumber": 110
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "(datetime.now() - timedelta(days=random.randint(0, 90))).strftime",
+          "lineNumber": 111
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "datetime.now",
+          "lineNumber": 111
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "timedelta",
+          "lineNumber": 111
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.randint",
+          "lineNumber": 111
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "(datetime.now() - timedelta(seconds=random.randint(0, 86400))).timestamp",
+          "lineNumber": 112
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "datetime.now",
+          "lineNumber": 112
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "timedelta",
+          "lineNumber": 112
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "random.randint",
+          "lineNumber": 112
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "range",
+          "lineNumber": 117
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.DataFrame",
+          "lineNumber": 120
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.concat([\n            self.network_objects,\n            pd.DataFrame([{'Name': 'Test-Combined-Host', 'Type': 'host', 'Value': '192.168.1.100'}])\n        ], ignore_index=True).drop_duplicates",
+          "lineNumber": 123
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.concat",
+          "lineNumber": 123
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.DataFrame",
+          "lineNumber": 125
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.DataFrame",
+          "lineNumber": 128
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "datetime.now().strftime",
+          "lineNumber": 138
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "datetime.now",
+          "lineNumber": 138
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "datetime.now().strftime",
+          "lineNumber": 149
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "datetime.now",
+          "lineNumber": 149
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "datetime.now().strftime",
+          "lineNumber": 160
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "datetime.now",
+          "lineNumber": 160
+        },
+        {
+          "caller": "_generate_sample_data",
+          "callee": "pd.concat",
+          "lineNumber": 163
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.rules.copy",
+          "lineNumber": 166
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "self.network_objects.copy",
+          "lineNumber": 169
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "self.network_groups.copy",
+          "lineNumber": 172
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "self.service_objects.copy",
+          "lineNumber": 175
+        },
+        {
+          "caller": "export_service_group_objects",
+          "callee": "self.service_groups.copy",
+          "lineNumber": 178
+        },
+        {
+          "caller": "__init__",
+          "callee": "super().__init__",
+          "lineNumber": 184
+        },
+        {
+          "caller": "__init__",
+          "callee": "super",
+          "lineNumber": 184
+        },
+        {
+          "caller": "__init__",
+          "callee": "MockFirewall",
+          "lineNumber": 185
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.client.export_security_rules",
+          "lineNumber": 201
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "self.client.export_network_objects",
+          "lineNumber": 205
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "self.client.export_network_group_objects",
+          "lineNumber": 209
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "self.client.export_service_objects",
+          "lineNumber": 213
+        },
+        {
+          "caller": "export_service_group_objects",
+          "callee": "self.client.export_service_group_objects",
+          "lineNumber": 217
+        },
+        {
+          "caller": "get_system_info",
+          "callee": "time.sleep",
+          "lineNumber": 220
+        },
+        {
+          "caller": "get_system_info",
+          "callee": "random.uniform",
+          "lineNumber": 220
+        },
+        {
+          "caller": "get_system_info",
+          "callee": "pd.DataFrame",
+          "lineNumber": 221
+        },
+        {
+          "caller": "export_last_hit_date",
+          "callee": "self.export_security_rules",
+          "lineNumber": 230
+        },
+        {
+          "caller": "export_last_hit_date",
+          "callee": "datetime.now",
+          "lineNumber": 233
+        },
+        {
+          "caller": "export_last_hit_date",
+          "callee": "rules_df.iterrows",
+          "lineNumber": 234
+        },
+        {
+          "caller": "export_last_hit_date",
+          "callee": "rule.get",
+          "lineNumber": 235
+        },
+        {
+          "caller": "export_last_hit_date",
+          "callee": "rule.get",
+          "lineNumber": 235
+        },
+        {
+          "caller": "export_last_hit_date",
+          "callee": "(now - timedelta(days=random.randint(0, 30))).strftime",
+          "lineNumber": 236
+        },
+        {
+          "caller": "export_last_hit_date",
+          "callee": "timedelta",
+          "lineNumber": 236
+        },
+        {
+          "caller": "export_last_hit_date",
+          "callee": "random.randint",
+          "lineNumber": 236
+        },
+        {
+          "caller": "export_last_hit_date",
+          "callee": "random.random",
+          "lineNumber": 236
+        },
+        {
+          "caller": "export_last_hit_date",
+          "callee": "result.append",
+          "lineNumber": 237
+        },
+        {
+          "caller": "export_last_hit_date",
+          "callee": "pd.DataFrame",
+          "lineNumber": 238
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 2,
+        "functionCount": 0,
+        "classCount": 2
+      }
+    },
+    {
+      "path": "backend/app/services/firewall/vendors/ngf.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 395,
+      "nonEmptyLines": 345,
+      "classes": [
+        {
+          "name": "NGFClient",
+          "startLine": 20,
+          "endLine": 307,
+          "methods": [
+            "__init__",
+            "session",
+            "_get_headers",
+            "login",
+            "logout",
+            "_get",
+            "get_fw4_rules",
+            "get_host_objects",
+            "get_network_objects",
+            "get_domain_objects",
+            "get_group_objects",
+            "get_service_objects",
+            "get_service_group_objects",
+            "get_service_group_objects_information",
+            "list_to_string",
+            "export_security_rules",
+            "export_objects",
+            "export_service_group_objects_with_members",
+            "export_network_group_objects_with_members"
+          ],
+          "properties": []
+        },
+        {
+          "name": "NGFCollector",
+          "startLine": 309,
+          "endLine": 395,
+          "methods": [
+            "__init__",
+            "connect",
+            "disconnect",
+            "test_connection",
+            "get_system_info",
+            "export_security_rules",
+            "export_network_objects",
+            "export_network_group_objects",
+            "export_service_objects",
+            "export_service_group_objects",
+            "export_last_hit_date"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "NGFClient",
+          "line": 20,
+          "isDefault": false
+        },
+        {
+          "name": "NGFCollector",
+          "line": 309,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "session",
+          "callee": "self.login",
+          "lineNumber": 49
+        },
+        {
+          "caller": "session",
+          "callee": "self.logout",
+          "lineNumber": 52
+        },
+        {
+          "caller": "_get_headers",
+          "callee": "str",
+          "lineNumber": 63
+        },
+        {
+          "caller": "login",
+          "callee": "requests.post",
+          "lineNumber": 86
+        },
+        {
+          "caller": "login",
+          "callee": "self._get_headers",
+          "lineNumber": 87
+        },
+        {
+          "caller": "login",
+          "callee": "json.dumps",
+          "lineNumber": 87
+        },
+        {
+          "caller": "login",
+          "callee": "response.json().get(\"result\", {}).get",
+          "lineNumber": 92
+        },
+        {
+          "caller": "login",
+          "callee": "response.json().get",
+          "lineNumber": 92
+        },
+        {
+          "caller": "login",
+          "callee": "response.json",
+          "lineNumber": 92
+        },
+        {
+          "caller": "login",
+          "callee": "logging.error",
+          "lineNumber": 95
+        },
+        {
+          "caller": "login",
+          "callee": "logging.error",
+          "lineNumber": 97
+        },
+        {
+          "caller": "logout",
+          "callee": "requests.delete",
+          "lineNumber": 107
+        },
+        {
+          "caller": "logout",
+          "callee": "self._get_headers",
+          "lineNumber": 108
+        },
+        {
+          "caller": "logout",
+          "callee": "logging.error",
+          "lineNumber": 115
+        },
+        {
+          "caller": "_get",
+          "callee": "requests.get",
+          "lineNumber": 122
+        },
+        {
+          "caller": "_get",
+          "callee": "self._get_headers",
+          "lineNumber": 123
+        },
+        {
+          "caller": "_get",
+          "callee": "response.json",
+          "lineNumber": 127
+        },
+        {
+          "caller": "_get",
+          "callee": "logging.error",
+          "lineNumber": 129
+        },
+        {
+          "caller": "get_fw4_rules",
+          "callee": "self._get",
+          "lineNumber": 133
+        },
+        {
+          "caller": "get_host_objects",
+          "callee": "self._get",
+          "lineNumber": 134
+        },
+        {
+          "caller": "get_network_objects",
+          "callee": "self._get",
+          "lineNumber": 135
+        },
+        {
+          "caller": "get_domain_objects",
+          "callee": "self._get",
+          "lineNumber": 136
+        },
+        {
+          "caller": "get_group_objects",
+          "callee": "self._get",
+          "lineNumber": 137
+        },
+        {
+          "caller": "get_service_objects",
+          "callee": "self._get",
+          "lineNumber": 138
+        },
+        {
+          "caller": "get_service_group_objects",
+          "callee": "self._get",
+          "lineNumber": 139
+        },
+        {
+          "caller": "get_service_group_objects_information",
+          "callee": "requests.post",
+          "lineNumber": 145
+        },
+        {
+          "caller": "get_service_group_objects_information",
+          "callee": "self._get_headers",
+          "lineNumber": 146
+        },
+        {
+          "caller": "get_service_group_objects_information",
+          "callee": "response.json",
+          "lineNumber": 150
+        },
+        {
+          "caller": "get_service_group_objects_information",
+          "callee": "logging.error",
+          "lineNumber": 152
+        },
+        {
+          "caller": "list_to_string",
+          "callee": "isinstance",
+          "lineNumber": 158
+        },
+        {
+          "caller": "list_to_string",
+          "callee": "','.join",
+          "lineNumber": 159
+        },
+        {
+          "caller": "list_to_string",
+          "callee": "str",
+          "lineNumber": 159
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.login",
+          "lineNumber": 172
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "Exception",
+          "lineNumber": 172
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.get_fw4_rules",
+          "lineNumber": 173
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "Exception",
+          "lineNumber": 174
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rules_data.get",
+          "lineNumber": 177
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.get",
+          "lineNumber": 179
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.get",
+          "lineNumber": 182
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.get",
+          "lineNumber": 183
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.get",
+          "lineNumber": 184
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.get",
+          "lineNumber": 185
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string",
+          "lineNumber": 187
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "src.get",
+          "lineNumber": 187
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.get",
+          "lineNumber": 187
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string",
+          "lineNumber": 188
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "list",
+          "lineNumber": 188
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "user.values",
+          "lineNumber": 188
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.get",
+          "lineNumber": 188
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string",
+          "lineNumber": 189
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "dst.get",
+          "lineNumber": 189
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.get",
+          "lineNumber": 189
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string",
+          "lineNumber": 190
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "srv.get",
+          "lineNumber": 190
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.get",
+          "lineNumber": 190
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string",
+          "lineNumber": 191
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "app.get",
+          "lineNumber": 191
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.get",
+          "lineNumber": 191
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.get",
+          "lineNumber": 192
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.get",
+          "lineNumber": 193
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "security_rules.append",
+          "lineNumber": 195
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "pd.DataFrame",
+          "lineNumber": 196
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "Exception",
+          "lineNumber": 198
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.logout",
+          "lineNumber": 200
+        },
+        {
+          "caller": "export_objects",
+          "callee": "ValueError",
+          "lineNumber": 211
+        },
+        {
+          "caller": "_get_data",
+          "callee": "type_to_getter.get",
+          "lineNumber": 219
+        },
+        {
+          "caller": "_get_data",
+          "callee": "ValueError",
+          "lineNumber": 220
+        },
+        {
+          "caller": "_get_data",
+          "callee": "getter",
+          "lineNumber": 222
+        },
+        {
+          "caller": "_get_data",
+          "callee": "pd.DataFrame",
+          "lineNumber": 223
+        },
+        {
+          "caller": "_get_data",
+          "callee": "pd.json_normalize",
+          "lineNumber": 226
+        },
+        {
+          "caller": "_get_data",
+          "callee": "data.get",
+          "lineNumber": 226
+        },
+        {
+          "caller": "_get_data",
+          "callee": "df[col].apply",
+          "lineNumber": 229
+        },
+        {
+          "caller": "_get_data",
+          "callee": "self.list_to_string",
+          "lineNumber": 229
+        },
+        {
+          "caller": "_get_data",
+          "callee": "isinstance",
+          "lineNumber": 229
+        },
+        {
+          "caller": "_get_data",
+          "callee": "','.join",
+          "lineNumber": 229
+        },
+        {
+          "caller": "_get_data",
+          "callee": "map",
+          "lineNumber": 229
+        },
+        {
+          "caller": "_get_data",
+          "callee": "x.values",
+          "lineNumber": 229
+        },
+        {
+          "caller": "_get_data",
+          "callee": "isinstance",
+          "lineNumber": 229
+        },
+        {
+          "caller": "export_objects",
+          "callee": "self.session",
+          "lineNumber": 234
+        },
+        {
+          "caller": "export_objects",
+          "callee": "_get_data",
+          "lineNumber": 234
+        },
+        {
+          "caller": "export_objects",
+          "callee": "_get_data",
+          "lineNumber": 235
+        },
+        {
+          "caller": "export_objects",
+          "callee": "Exception",
+          "lineNumber": 237
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "self.session",
+          "lineNumber": 241
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "self.export_objects",
+          "lineNumber": 243
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "str",
+          "lineNumber": 244
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "service_df.iterrows",
+          "lineNumber": 244
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "self.export_objects",
+          "lineNumber": 246
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "pd.DataFrame",
+          "lineNumber": 247
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "group_df.iterrows",
+          "lineNumber": 250
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "self.get_service_group_objects_information",
+          "lineNumber": 252
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "object_data.get",
+          "lineNumber": 253
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "pd.json_normalize",
+          "lineNumber": 254
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "object_data.get",
+          "lineNumber": 254
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "str(detail.get('mem_id', '')).split",
+          "lineNumber": 255
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "str",
+          "lineNumber": 255
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "detail.get",
+          "lineNumber": 255
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "service_lookup.get",
+          "lineNumber": 257
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "mid.strip",
+          "lineNumber": 257
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "mid.strip",
+          "lineNumber": 257
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "mid.strip",
+          "lineNumber": 257
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "group_details.append",
+          "lineNumber": 258
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "','.join",
+          "lineNumber": 258
+        },
+        {
+          "caller": "export_service_group_objects_with_members",
+          "callee": "pd.DataFrame",
+          "lineNumber": 259
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "self.session",
+          "lineNumber": 263
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "self.export_objects",
+          "lineNumber": 264
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "self.export_objects",
+          "lineNumber": 265
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "self.export_objects",
+          "lineNumber": 266
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "pd.DataFrame",
+          "lineNumber": 267
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "str",
+          "lineNumber": 270
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "pd.concat([host_df, network_df]).iterrows",
+          "lineNumber": 270
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "pd.concat",
+          "lineNumber": 270
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "str",
+          "lineNumber": 274
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "mid.strip",
+          "lineNumber": 276
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "str(group.get('mmbr_obj_id', '')).split",
+          "lineNumber": 276
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "str",
+          "lineNumber": 276
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "group.get",
+          "lineNumber": 276
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "mid.strip",
+          "lineNumber": 276
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "set",
+          "lineNumber": 277
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "group_df.iterrows",
+          "lineNumber": 278
+        },
+        {
+          "caller": "resolve_group_membership",
+          "callee": "set",
+          "lineNumber": 283
+        },
+        {
+          "caller": "resolve_group_membership",
+          "callee": "set",
+          "lineNumber": 284
+        },
+        {
+          "caller": "resolve_group_membership",
+          "callee": "set",
+          "lineNumber": 285
+        },
+        {
+          "caller": "resolve_group_membership",
+          "callee": "processed_groups.add",
+          "lineNumber": 288
+        },
+        {
+          "caller": "resolve_group_membership",
+          "callee": "set",
+          "lineNumber": 289
+        },
+        {
+          "caller": "resolve_group_membership",
+          "callee": "all_members.add",
+          "lineNumber": 292
+        },
+        {
+          "caller": "resolve_group_membership",
+          "callee": "all_members.update",
+          "lineNumber": 295
+        },
+        {
+          "caller": "resolve_group_membership",
+          "callee": "resolve_group_membership",
+          "lineNumber": 295
+        },
+        {
+          "caller": "resolve_group_membership",
+          "callee": "all_members.add",
+          "lineNumber": 297
+        },
+        {
+          "caller": "resolve_group_membership",
+          "callee": "processed_groups.remove",
+          "lineNumber": 298
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "resolve_group_membership",
+          "lineNumber": 305
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "pd.DataFrame",
+          "lineNumber": 307
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "','.join",
+          "lineNumber": 307
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "sorted",
+          "lineNumber": 307
+        },
+        {
+          "caller": "export_network_group_objects_with_members",
+          "callee": "group_membership.values",
+          "lineNumber": 307
+        },
+        {
+          "caller": "__init__",
+          "callee": "super().__init__",
+          "lineNumber": 314
+        },
+        {
+          "caller": "__init__",
+          "callee": "super",
+          "lineNumber": 314
+        },
+        {
+          "caller": "__init__",
+          "callee": "NGFClient",
+          "lineNumber": 315
+        },
+        {
+          "caller": "connect",
+          "callee": "self.client.login",
+          "lineNumber": 319
+        },
+        {
+          "caller": "connect",
+          "callee": "FirewallAuthenticationError",
+          "lineNumber": 325
+        },
+        {
+          "caller": "disconnect",
+          "callee": "self.client.logout",
+          "lineNumber": 329
+        },
+        {
+          "caller": "test_connection",
+          "callee": "self.client.login",
+          "lineNumber": 336
+        },
+        {
+          "caller": "test_connection",
+          "callee": "self.client.logout",
+          "lineNumber": 337
+        },
+        {
+          "caller": "get_system_info",
+          "callee": "NotImplementedError",
+          "lineNumber": 345
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.client.export_security_rules",
+          "lineNumber": 349
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "self.client.session",
+          "lineNumber": 353
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "self.client.export_objects",
+          "lineNumber": 355
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "host_df[['name', 'ip_list']].rename",
+          "lineNumber": 356
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "pd.DataFrame",
+          "lineNumber": 356
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "self.client.export_objects",
+          "lineNumber": 360
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "network_df[['name', 'ip_list_ip_info1', 'ip_list_ip_info2']].rename",
+          "lineNumber": 362
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "network_df.apply",
+          "lineNumber": 364
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "str",
+          "lineNumber": 364
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "row.get",
+          "lineNumber": 364
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "network_df['Value'].apply",
+          "lineNumber": 365
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "network_df.drop",
+          "lineNumber": 366
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "pd.DataFrame",
+          "lineNumber": 367
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "self.client.export_objects",
+          "lineNumber": 370
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "domain_df[['name', 'dmn_name']].rename",
+          "lineNumber": 371
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "pd.DataFrame",
+          "lineNumber": 371
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "pd.concat",
+          "lineNumber": 374
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "self.client.export_network_group_objects_with_members",
+          "lineNumber": 378
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "self.client.export_objects",
+          "lineNumber": 382
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "service_df[['name', 'prtc_name', 'srv_port']].rename",
+          "lineNumber": 384
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "service_df['Protocol'].str.lower",
+          "lineNumber": 385
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "pd.DataFrame",
+          "lineNumber": 387
+        },
+        {
+          "caller": "export_service_group_objects",
+          "callee": "self.client.export_service_group_objects_with_members",
+          "lineNumber": 391
+        },
+        {
+          "caller": "export_last_hit_date",
+          "callee": "pd.DataFrame",
+          "lineNumber": 395
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 2,
+        "functionCount": 0,
+        "classCount": 2
+      }
+    },
+    {
+      "path": "backend/app/services/firewall/vendors/paloalto.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 690,
+      "nonEmptyLines": 589,
+      "classes": [
+        {
+          "name": "PaloAltoAPI",
+          "startLine": 25,
+          "endLine": 690,
+          "methods": [
+            "__init__",
+            "connect",
+            "disconnect",
+            "test_connection",
+            "_get_member_texts",
+            "list_to_string",
+            "get_api_data",
+            "_get_api_key",
+            "get_config",
+            "get_system_info",
+            "export_security_rules",
+            "export_network_objects",
+            "export_network_group_objects",
+            "export_service_objects",
+            "export_service_group_objects",
+            "export_last_hit_date",
+            "export_last_hit_date_ssh",
+            "export_resource_limits",
+            "export_system_info"
+          ],
+          "properties": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "PaloAltoAPI",
+          "line": 25,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "__init__",
+          "callee": "super().__init__",
+          "lineNumber": 31
+        },
+        {
+          "caller": "__init__",
+          "callee": "super",
+          "lineNumber": 31
+        },
+        {
+          "caller": "connect",
+          "callee": "self._get_api_key",
+          "lineNumber": 40
+        },
+        {
+          "caller": "connect",
+          "callee": "self.logger.error",
+          "lineNumber": 44
+        },
+        {
+          "caller": "test_connection",
+          "callee": "self.connect",
+          "lineNumber": 58
+        },
+        {
+          "caller": "list_to_string",
+          "callee": "str",
+          "lineNumber": 73
+        },
+        {
+          "caller": "list_to_string",
+          "callee": "processed.append",
+          "lineNumber": 74
+        },
+        {
+          "caller": "list_to_string",
+          "callee": "','.join",
+          "lineNumber": 75
+        },
+        {
+          "caller": "get_api_data",
+          "callee": "requests.get",
+          "lineNumber": 86
+        },
+        {
+          "caller": "get_api_data",
+          "callee": "FirewallAPIError",
+          "lineNumber": 93
+        },
+        {
+          "caller": "get_api_data",
+          "callee": "FirewallConnectionError",
+          "lineNumber": 96
+        },
+        {
+          "caller": "get_api_data",
+          "callee": "FirewallConnectionError",
+          "lineNumber": 98
+        },
+        {
+          "caller": "get_api_data",
+          "callee": "FirewallAPIError",
+          "lineNumber": 100
+        },
+        {
+          "caller": "get_api_data",
+          "callee": "str",
+          "lineNumber": 100
+        },
+        {
+          "caller": "_get_api_key",
+          "callee": "self.get_api_data",
+          "lineNumber": 114
+        },
+        {
+          "caller": "_get_api_key",
+          "callee": "ET.fromstring",
+          "lineNumber": 115
+        },
+        {
+          "caller": "_get_api_key",
+          "callee": "tree.find",
+          "lineNumber": 117
+        },
+        {
+          "caller": "_get_api_key",
+          "callee": "FirewallAuthenticationError",
+          "lineNumber": 119
+        },
+        {
+          "caller": "_get_api_key",
+          "callee": "FirewallAPIError",
+          "lineNumber": 122
+        },
+        {
+          "caller": "_get_api_key",
+          "callee": "FirewallAuthenticationError",
+          "lineNumber": 124
+        },
+        {
+          "caller": "_get_api_key",
+          "callee": "str",
+          "lineNumber": 124
+        },
+        {
+          "caller": "get_config",
+          "callee": "self.get_api_data",
+          "lineNumber": 139
+        },
+        {
+          "caller": "get_system_info",
+          "callee": "self.get_api_data",
+          "lineNumber": 149
+        },
+        {
+          "caller": "get_system_info",
+          "callee": "ET.fromstring",
+          "lineNumber": 150
+        },
+        {
+          "caller": "get_system_info",
+          "callee": "tree.findtext",
+          "lineNumber": 151
+        },
+        {
+          "caller": "get_system_info",
+          "callee": "tree.findtext",
+          "lineNumber": 153
+        },
+        {
+          "caller": "get_system_info",
+          "callee": "tree.findtext",
+          "lineNumber": 154
+        },
+        {
+          "caller": "get_system_info",
+          "callee": "tree.findtext",
+          "lineNumber": 155
+        },
+        {
+          "caller": "get_system_info",
+          "callee": "uptime.split",
+          "lineNumber": 156
+        },
+        {
+          "caller": "get_system_info",
+          "callee": "tree.findtext",
+          "lineNumber": 157
+        },
+        {
+          "caller": "get_system_info",
+          "callee": "tree.findtext",
+          "lineNumber": 158
+        },
+        {
+          "caller": "get_system_info",
+          "callee": "tree.findtext",
+          "lineNumber": 159
+        },
+        {
+          "caller": "get_system_info",
+          "callee": "tree.findtext",
+          "lineNumber": 160
+        },
+        {
+          "caller": "get_system_info",
+          "callee": "pd.DataFrame",
+          "lineNumber": 162
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "kwargs.get",
+          "lineNumber": 173
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.get_config",
+          "lineNumber": 174
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "ET.fromstring",
+          "lineNumber": 175
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "tree.findall",
+          "lineNumber": 178
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "vsys.attrib.get",
+          "lineNumber": 182
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "vsys.findall",
+          "lineNumber": 184
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "enumerate",
+          "lineNumber": 185
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "str",
+          "lineNumber": 186
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.attrib.get",
+          "lineNumber": 186
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self._get_member_texts",
+          "lineNumber": 189
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.findall",
+          "lineNumber": 189
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string(disabled_list).strip().lower",
+          "lineNumber": 190
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string(disabled_list).strip",
+          "lineNumber": 190
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string",
+          "lineNumber": 190
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string",
+          "lineNumber": 195
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self._get_member_texts",
+          "lineNumber": 195
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.findall",
+          "lineNumber": 195
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string",
+          "lineNumber": 196
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self._get_member_texts",
+          "lineNumber": 196
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.findall",
+          "lineNumber": 196
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string",
+          "lineNumber": 197
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self._get_member_texts",
+          "lineNumber": 197
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.findall",
+          "lineNumber": 197
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string",
+          "lineNumber": 198
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self._get_member_texts",
+          "lineNumber": 198
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.findall",
+          "lineNumber": 198
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string",
+          "lineNumber": 199
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self._get_member_texts",
+          "lineNumber": 199
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.findall",
+          "lineNumber": 199
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string",
+          "lineNumber": 200
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self._get_member_texts",
+          "lineNumber": 200
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.findall",
+          "lineNumber": 200
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string",
+          "lineNumber": 203
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self._get_member_texts",
+          "lineNumber": 203
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.findall",
+          "lineNumber": 203
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string",
+          "lineNumber": 204
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self._get_member_texts",
+          "lineNumber": 204
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.findall",
+          "lineNumber": 204
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string",
+          "lineNumber": 205
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self._get_member_texts",
+          "lineNumber": 205
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.findall",
+          "lineNumber": 205
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string",
+          "lineNumber": 208
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self._get_member_texts",
+          "lineNumber": 208
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.findall",
+          "lineNumber": 208
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string",
+          "lineNumber": 209
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self._get_member_texts",
+          "lineNumber": 209
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.findall",
+          "lineNumber": 209
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self._get_member_texts",
+          "lineNumber": 213
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "rule.findall",
+          "lineNumber": 213
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "self.list_to_string",
+          "lineNumber": 214
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "desc.replace",
+          "lineNumber": 214
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "security_rules.append",
+          "lineNumber": 234
+        },
+        {
+          "caller": "export_security_rules",
+          "callee": "pd.DataFrame",
+          "lineNumber": 236
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "self.get_config",
+          "lineNumber": 240
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "ET.fromstring",
+          "lineNumber": 241
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "tree.findall",
+          "lineNumber": 242
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "address.attrib.get",
+          "lineNumber": 246
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "address.find",
+          "lineNumber": 248
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "address.find",
+          "lineNumber": 248
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "address.findall",
+          "lineNumber": 249
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "self.list_to_string",
+          "lineNumber": 255
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "address_objects.append",
+          "lineNumber": 257
+        },
+        {
+          "caller": "export_network_objects",
+          "callee": "pd.DataFrame",
+          "lineNumber": 259
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "self.get_config",
+          "lineNumber": 263
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "ET.fromstring",
+          "lineNumber": 264
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "tree.findall",
+          "lineNumber": 265
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "group.attrib.get",
+          "lineNumber": 269
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "group.findall",
+          "lineNumber": 270
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "self.list_to_string",
+          "lineNumber": 275
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "group_objects.append",
+          "lineNumber": 277
+        },
+        {
+          "caller": "export_network_group_objects",
+          "callee": "pd.DataFrame",
+          "lineNumber": 279
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "self.get_config",
+          "lineNumber": 283
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "ET.fromstring",
+          "lineNumber": 284
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "tree.findall",
+          "lineNumber": 285
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "service.attrib.get",
+          "lineNumber": 289
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "service.find",
+          "lineNumber": 290
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "protocol.find",
+          "lineNumber": 294
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "protocol.find",
+          "lineNumber": 294
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "service_objects.append",
+          "lineNumber": 301
+        },
+        {
+          "caller": "export_service_objects",
+          "callee": "pd.DataFrame",
+          "lineNumber": 303
+        },
+        {
+          "caller": "export_service_group_objects",
+          "callee": "self.get_config",
+          "lineNumber": 307
+        },
+        {
+          "caller": "export_service_group_objects",
+          "callee": "ET.fromstring",
+          "lineNumber": 308
+        },
+        {
+          "caller": "export_service_group_objects",
+          "callee": "tree.findall",
+          "lineNumber": 309
+        },
+        {
+          "caller": "export_service_group_objects",
+          "callee": "group.attrib.get",
+          "lineNumber": 313
+        },
+        {
+          "caller": "export_service_group_objects",
+          "callee": "group.findall",
+          "lineNumber": 314
+        },
+        {
+          "caller": "export_service_group_objects",
+          "callee": "self.list_to_string",
+          "lineNumber": 319
+        },
+        {
+          "caller": "export_service_group_objects",
+          "callee": "group_objects.append",
+          "lineNumber": 321
+        },
+        {
+          "caller": "export_service_group_objects",
+          "callee": "pd.DataFrame",
+          "lineNumber": 323
+        },
+        {
+          "caller": "_ts_to_date",
+          "callee": "datetime.datetime.fromtimestamp(ts_int).strftime",
+          "lineNumber": 339
+        },
+        {
+          "caller": "_ts_to_date",
+          "callee": "datetime.datetime.fromtimestamp",
+          "lineNumber": 339
+        },
+        {
+          "caller": "_fetch_vsys_hit",
+          "callee": "self.get_api_data",
+          "lineNumber": 352
+        },
+        {
+          "caller": "_fetch_vsys_hit",
+          "callee": "ET.fromstring",
+          "lineNumber": 353
+        },
+        {
+          "caller": "_fetch_vsys_hit",
+          "callee": "tree.findall",
+          "lineNumber": 354
+        },
+        {
+          "caller": "_fetch_vsys_hit",
+          "callee": "str",
+          "lineNumber": 358
+        },
+        {
+          "caller": "_fetch_vsys_hit",
+          "callee": "rule.attrib.get",
+          "lineNumber": 358
+        },
+        {
+          "caller": "_fetch_vsys_hit",
+          "callee": "self._get_member_texts",
+          "lineNumber": 364
+        },
+        {
+          "caller": "_fetch_vsys_hit",
+          "callee": "int",
+          "lineNumber": 366
+        },
+        {
+          "caller": "_fetch_vsys_hit",
+          "callee": "int",
+          "lineNumber": 367
+        },
+        {
+          "caller": "_fetch_vsys_hit",
+          "callee": "int",
+          "lineNumber": 368
+        },
+        {
+          "caller": "_fetch_vsys_hit",
+          "callee": "self.logger.error",
+          "lineNumber": 370
+        },
+        {
+          "caller": "_fetch_vsys_hit",
+          "callee": "datetime.datetime.now",
+          "lineNumber": 374
+        },
+        {
+          "caller": "_fetch_vsys_hit",
+          "callee": "datetime.datetime.fromtimestamp",
+          "lineNumber": 374
+        },
+        {
+          "caller": "_fetch_vsys_hit",
+          "callee": "vsys_results.append",
+          "lineNumber": 377
+        },
+        {
+          "caller": "_fetch_vsys_hit",
+          "callee": "_ts_to_date",
+          "lineNumber": 381
+        },
+        {
+          "caller": "_fetch_vsys_hit",
+          "callee": "_ts_to_date",
+          "lineNumber": 382
+        },
+        {
+          "caller": "export_last_hit_date",
+          "callee": "str",
+          "lineNumber": 387
+        },
+        {
+          "caller": "export_last_hit_date",
+          "callee": "results.extend",
+          "lineNumber": 391
+        },
+        {
+          "caller": "export_last_hit_date",
+          "callee": "_fetch_vsys_hit",
+          "lineNumber": 391
+        },
+        {
+          "caller": "export_last_hit_date",
+          "callee": "self.logger.warning",
+          "lineNumber": 393
+        },
+        {
+          "caller": "export_last_hit_date",
+          "callee": "pd.DataFrame",
+          "lineNumber": 395
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "str",
+          "lineNumber": 412
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "self.logger.info",
+          "lineNumber": 414
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "paramiko.SSHClient",
+          "lineNumber": 420
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "ssh.set_missing_host_key_policy",
+          "lineNumber": 421
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "paramiko.AutoAddPolicy",
+          "lineNumber": 421
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "ssh.connect",
+          "lineNumber": 422
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "ssh.invoke_shell",
+          "lineNumber": 429
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "time.time",
+          "lineNumber": 434
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "channel.recv_ready",
+          "lineNumber": 436
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "channel.recv(65535).decode",
+          "lineNumber": 438
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "channel.recv",
+          "lineNumber": 438
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "output.strip().endswith",
+          "lineNumber": 440
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "output.strip",
+          "lineNumber": 440
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "time.time",
+          "lineNumber": 443
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "TimeoutError",
+          "lineNumber": 444
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "time.sleep",
+          "lineNumber": 446
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "read_until_prompt",
+          "lineNumber": 449
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "channel.send",
+          "lineNumber": 452
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "read_until_prompt",
+          "lineNumber": 453
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "channel.send",
+          "lineNumber": 454
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "read_until_prompt",
+          "lineNumber": 455
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "self.logger.info",
+          "lineNumber": 459
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "command.strip",
+          "lineNumber": 459
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "channel.send",
+          "lineNumber": 460
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "read_until_prompt",
+          "lineNumber": 463
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "self.logger.info",
+          "lineNumber": 464
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "output.splitlines",
+          "lineNumber": 466
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "line.strip",
+          "lineNumber": 469
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "re.match",
+          "lineNumber": 487
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "match.group",
+          "lineNumber": 489
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "int",
+          "lineNumber": 490
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "match.group",
+          "lineNumber": 490
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "match.group(3).strip",
+          "lineNumber": 491
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "match.group",
+          "lineNumber": 491
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "re.sub",
+          "lineNumber": 497
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "datetime.datetime.strptime",
+          "lineNumber": 499
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "dt_obj.strftime",
+          "lineNumber": 500
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "self.logger.warning",
+          "lineNumber": 502
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "all_results.append",
+          "lineNumber": 504
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "self.logger.error",
+          "lineNumber": 512
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "FirewallAuthenticationError",
+          "lineNumber": 513
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "self.logger.error",
+          "lineNumber": 515
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "FirewallConnectionError",
+          "lineNumber": 516
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "self.logger.error",
+          "lineNumber": 518
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "FirewallConnectionError",
+          "lineNumber": 519
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "self.logger.error",
+          "lineNumber": 521
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "FirewallAPIError",
+          "lineNumber": 522
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "str",
+          "lineNumber": 522
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "ssh.close",
+          "lineNumber": 525
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "self.logger.info",
+          "lineNumber": 526
+        },
+        {
+          "caller": "export_last_hit_date_ssh",
+          "callee": "pd.DataFrame",
+          "lineNumber": 528
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "self.logger.info",
+          "lineNumber": 546
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "paramiko.SSHClient",
+          "lineNumber": 550
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "ssh.set_missing_host_key_policy",
+          "lineNumber": 551
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "paramiko.AutoAddPolicy",
+          "lineNumber": 551
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "ssh.connect",
+          "lineNumber": 552
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "ssh.invoke_shell",
+          "lineNumber": 561
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "time.time",
+          "lineNumber": 565
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "channel.recv_ready",
+          "lineNumber": 567
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "channel.recv(65535).decode",
+          "lineNumber": 568
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "channel.recv",
+          "lineNumber": 568
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "output.strip().endswith",
+          "lineNumber": 569
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "output.strip",
+          "lineNumber": 569
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "time.time",
+          "lineNumber": 571
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "TimeoutError",
+          "lineNumber": 572
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "time.sleep",
+          "lineNumber": 573
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "read_until_prompt",
+          "lineNumber": 575
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "channel.send",
+          "lineNumber": 577
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "read_until_prompt",
+          "lineNumber": 578
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "channel.send",
+          "lineNumber": 580
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "read_until_prompt",
+          "lineNumber": 581
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "output.splitlines",
+          "lineNumber": 584
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "re.match",
+          "lineNumber": 585
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "line.strip",
+          "lineNumber": 585
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "match.group",
+          "lineNumber": 588
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "match.group",
+          "lineNumber": 588
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "self._RESOURCE_LIMIT_KEY_MAP.get",
+          "lineNumber": 589
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "int",
+          "lineNumber": 591
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "self.logger.error",
+          "lineNumber": 596
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "FirewallAuthenticationError",
+          "lineNumber": 597
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "self.logger.error",
+          "lineNumber": 599
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "FirewallConnectionError",
+          "lineNumber": 600
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "self.logger.error",
+          "lineNumber": 602
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "FirewallConnectionError",
+          "lineNumber": 603
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "self.logger.error",
+          "lineNumber": 605
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "FirewallAPIError",
+          "lineNumber": 606
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "str",
+          "lineNumber": 606
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "ssh.close",
+          "lineNumber": 609
+        },
+        {
+          "caller": "export_resource_limits",
+          "callee": "self.logger.info",
+          "lineNumber": 610
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "self.logger.info",
+          "lineNumber": 629
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "paramiko.SSHClient",
+          "lineNumber": 633
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "ssh.set_missing_host_key_policy",
+          "lineNumber": 634
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "paramiko.AutoAddPolicy",
+          "lineNumber": 634
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "ssh.connect",
+          "lineNumber": 635
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "ssh.invoke_shell",
+          "lineNumber": 641
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "time.time",
+          "lineNumber": 645
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "channel.recv_ready",
+          "lineNumber": 647
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "channel.recv(65535).decode",
+          "lineNumber": 648
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "channel.recv",
+          "lineNumber": 648
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "output.strip().endswith",
+          "lineNumber": 649
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "output.strip",
+          "lineNumber": 649
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "time.time",
+          "lineNumber": 651
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "TimeoutError",
+          "lineNumber": 652
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "time.sleep",
+          "lineNumber": 653
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "read_until_prompt",
+          "lineNumber": 655
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "channel.send",
+          "lineNumber": 657
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "read_until_prompt",
+          "lineNumber": 658
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "channel.send",
+          "lineNumber": 660
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "read_until_prompt",
+          "lineNumber": 661
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "output.splitlines",
+          "lineNumber": 664
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "re.match",
+          "lineNumber": 665
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "line.strip",
+          "lineNumber": 665
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "match.group",
+          "lineNumber": 668
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "match.group(2).strip",
+          "lineNumber": 668
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "match.group",
+          "lineNumber": 668
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "self._SYSTEM_INFO_KEY_MAP.get",
+          "lineNumber": 669
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "self.logger.error",
+          "lineNumber": 676
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "FirewallAuthenticationError",
+          "lineNumber": 677
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "self.logger.error",
+          "lineNumber": 679
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "FirewallConnectionError",
+          "lineNumber": 680
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "self.logger.error",
+          "lineNumber": 682
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "FirewallConnectionError",
+          "lineNumber": 683
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "self.logger.error",
+          "lineNumber": 685
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "FirewallAPIError",
+          "lineNumber": 686
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "str",
+          "lineNumber": 686
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "ssh.close",
+          "lineNumber": 689
+        },
+        {
+          "caller": "export_system_info",
+          "callee": "self.logger.info",
+          "lineNumber": 690
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 1,
+        "functionCount": 0,
+        "classCount": 1
+      }
+    },
+    {
+      "path": "backend/debug_hit_dates.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 85,
+      "nonEmptyLines": 67,
+      "functions": [
+        {
+          "name": "main",
+          "startLine": 32,
+          "endLine": 81,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "main",
+          "line": 32,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "main",
+          "callee": "argparse.ArgumentParser",
+          "lineNumber": 33
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 34
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 35
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 36
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 37
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 38
+        },
+        {
+          "caller": "main",
+          "callee": "parser.parse_args",
+          "lineNumber": 39
+        },
+        {
+          "caller": "main",
+          "callee": "logging.basicConfig",
+          "lineNumber": 41
+        },
+        {
+          "caller": "main",
+          "callee": "getpass.getpass",
+          "lineNumber": 43
+        },
+        {
+          "caller": "main",
+          "callee": "v.strip",
+          "lineNumber": 44
+        },
+        {
+          "caller": "main",
+          "callee": "args.vsys.split",
+          "lineNumber": 44
+        },
+        {
+          "caller": "main",
+          "callee": "PaloAltoAPI",
+          "lineNumber": 46
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 49
+        },
+        {
+          "caller": "main",
+          "callee": "api.connect",
+          "lineNumber": 50
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 51
+        },
+        {
+          "caller": "main",
+          "callee": "sys.exit",
+          "lineNumber": 52
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 53
+        },
+        {
+          "caller": "main",
+          "callee": "\", \".join",
+          "lineNumber": 56
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 57
+        },
+        {
+          "caller": "main",
+          "callee": "api.export_last_hit_date_ssh",
+          "lineNumber": 61
+        },
+        {
+          "caller": "main",
+          "callee": "api.export_last_hit_date",
+          "lineNumber": 63
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 65
+        },
+        {
+          "caller": "main",
+          "callee": "type",
+          "lineNumber": 65
+        },
+        {
+          "caller": "main",
+          "callee": "sys.exit",
+          "lineNumber": 66
+        },
+        {
+          "caller": "main",
+          "callee": "api.disconnect",
+          "lineNumber": 68
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 70
+        },
+        {
+          "caller": "main",
+          "callee": "len",
+          "lineNumber": 70
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 72
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 74
+        },
+        {
+          "caller": "main",
+          "callee": "df.head(20).to_string",
+          "lineNumber": 74
+        },
+        {
+          "caller": "main",
+          "callee": "df.head",
+          "lineNumber": 74
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 76
+        },
+        {
+          "caller": "main",
+          "callee": "df['vsys'].value_counts().to_string",
+          "lineNumber": 76
+        },
+        {
+          "caller": "main",
+          "callee": "df['vsys'].value_counts",
+          "lineNumber": 76
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 79
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 80
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 81
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/debug_threshold.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 96,
+      "nonEmptyLines": 77,
+      "functions": [
+        {
+          "name": "main",
+          "startLine": 26,
+          "endLine": 92,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "main",
+          "line": 26,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "main",
+          "callee": "argparse.ArgumentParser",
+          "lineNumber": 27
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 28
+        },
+        {
+          "caller": "main",
+          "callee": "parser.add_argument",
+          "lineNumber": 29
+        },
+        {
+          "caller": "main",
+          "callee": "parser.parse_args",
+          "lineNumber": 30
+        },
+        {
+          "caller": "main",
+          "callee": "logging.basicConfig",
+          "lineNumber": 32
+        },
+        {
+          "caller": "main",
+          "callee": "getpass.getpass",
+          "lineNumber": 34
+        },
+        {
+          "caller": "main",
+          "callee": "PaloAltoAPI",
+          "lineNumber": 35
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 37
+        },
+        {
+          "caller": "main",
+          "callee": "api.export_resource_limits",
+          "lineNumber": 39
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 40
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 42
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 43
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 44
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 46
+        },
+        {
+          "caller": "main",
+          "callee": "type",
+          "lineNumber": 46
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 48
+        },
+        {
+          "caller": "main",
+          "callee": "paramiko.SSHClient",
+          "lineNumber": 52
+        },
+        {
+          "caller": "main",
+          "callee": "ssh.set_missing_host_key_policy",
+          "lineNumber": 53
+        },
+        {
+          "caller": "main",
+          "callee": "paramiko.AutoAddPolicy",
+          "lineNumber": 53
+        },
+        {
+          "caller": "main",
+          "callee": "ssh.connect",
+          "lineNumber": 54
+        },
+        {
+          "caller": "main",
+          "callee": "ssh.invoke_shell",
+          "lineNumber": 59
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "time.time",
+          "lineNumber": 63
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "channel.recv_ready",
+          "lineNumber": 65
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "channel.recv(65535).decode",
+          "lineNumber": 66
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "channel.recv",
+          "lineNumber": 66
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "output.strip().endswith",
+          "lineNumber": 67
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "output.strip",
+          "lineNumber": 67
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "time.time",
+          "lineNumber": 69
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "TimeoutError",
+          "lineNumber": 70
+        },
+        {
+          "caller": "read_until_prompt",
+          "callee": "time.sleep",
+          "lineNumber": 71
+        },
+        {
+          "caller": "main",
+          "callee": "read_until_prompt",
+          "lineNumber": 73
+        },
+        {
+          "caller": "main",
+          "callee": "channel.send",
+          "lineNumber": 74
+        },
+        {
+          "caller": "main",
+          "callee": "read_until_prompt",
+          "lineNumber": 75
+        },
+        {
+          "caller": "main",
+          "callee": "channel.send",
+          "lineNumber": 77
+        },
+        {
+          "caller": "main",
+          "callee": "read_until_prompt",
+          "lineNumber": 78
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 79
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 80
+        },
+        {
+          "caller": "main",
+          "callee": "output.strip",
+          "lineNumber": 80
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 82
+        },
+        {
+          "caller": "main",
+          "callee": "channel.send",
+          "lineNumber": 83
+        },
+        {
+          "caller": "main",
+          "callee": "read_until_prompt",
+          "lineNumber": 84
+        },
+        {
+          "caller": "main",
+          "callee": "l.strip",
+          "lineNumber": 85
+        },
+        {
+          "caller": "main",
+          "callee": "output2.splitlines",
+          "lineNumber": 85
+        },
+        {
+          "caller": "main",
+          "callee": "l.lower",
+          "lineNumber": 85
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 86
+        },
+        {
+          "caller": "main",
+          "callee": "'\\n'.join",
+          "lineNumber": 86
+        },
+        {
+          "caller": "main",
+          "callee": "ssh.close",
+          "lineNumber": 88
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 90
+        },
+        {
+          "caller": "main",
+          "callee": "type",
+          "lineNumber": 90
+        },
+        {
+          "caller": "main",
+          "callee": "print",
+          "lineNumber": 92
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    }
+  ]
+}

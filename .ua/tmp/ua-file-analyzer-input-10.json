@@ -1,0 +1,15 @@
+{
+  "projectRoot": "/Users/hoon/Code/firewall-analysis-tool",
+  "batchFiles": [
+    {"path": "frontend/src/components/pages/SettingsPage.tsx", "language": "typescript", "sizeLines": 60, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/settings/AccountSettings.tsx", "language": "typescript", "sizeLines": 200, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx", "language": "typescript", "sizeLines": 286, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/settings/DuplicatePolicyTable.tsx", "language": "typescript", "sizeLines": 379, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/settings/ExceptionTable.tsx", "language": "typescript", "sizeLines": 204, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/settings/GeneralSettings.tsx", "language": "typescript", "sizeLines": 67, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/settings/LogSettings.tsx", "language": "typescript", "sizeLines": 66, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/settings/PolicyDefaultsSettings.tsx", "language": "typescript", "sizeLines": 104, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/settings/RiskyPortsSettings.tsx", "language": "typescript", "sizeLines": 131, "fileCategory": "code"}
+  ],
+  "batchImportData": {"frontend/src/components/pages/SettingsPage.tsx": ["frontend/src/components/pages/settings/AccountSettings.tsx", "frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx", "frontend/src/components/pages/settings/GeneralSettings.tsx", "frontend/src/components/pages/settings/LogSettings.tsx", "frontend/src/components/pages/settings/PolicyDefaultsSettings.tsx", "frontend/src/components/pages/settings/RiskyPortsSettings.tsx"], "frontend/src/components/pages/settings/AccountSettings.tsx": [], "frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx": ["frontend/src/components/pages/settings/DuplicatePolicyTable.tsx", "frontend/src/components/pages/settings/ExceptionTable.tsx"], "frontend/src/components/pages/settings/DuplicatePolicyTable.tsx": ["frontend/src/components/pages/settings/ExceptionTable.tsx"], "frontend/src/components/pages/settings/ExceptionTable.tsx": [], "frontend/src/components/pages/settings/GeneralSettings.tsx": [], "frontend/src/components/pages/settings/LogSettings.tsx": [], "frontend/src/components/pages/settings/PolicyDefaultsSettings.tsx": [], "frontend/src/components/pages/settings/RiskyPortsSettings.tsx": []}
+}

@@ -1,0 +1,15 @@
+{
+  "projectRoot": "/Users/hoon/Code/firewall-analysis-tool",
+  "batchFiles": [
+    {"path": "backend/app/core/executors.py", "language": "python", "sizeLines": 14, "fileCategory": "code"},
+    {"path": "backend/app/crud/crud_analysis.py", "language": "python", "sizeLines": 149, "fileCategory": "code"},
+    {"path": "backend/app/models/analysis.py", "language": "python", "sizeLines": 105, "fileCategory": "code"},
+    {"path": "backend/app/schemas/analysis.py", "language": "python", "sizeLines": 92, "fileCategory": "code"},
+    {"path": "backend/app/services/analysis/impact.py", "language": "python", "sizeLines": 513, "fileCategory": "code"},
+    {"path": "backend/app/services/analysis/redundancy.py", "language": "python", "sizeLines": 401, "fileCategory": "code"},
+    {"path": "backend/app/services/analysis/tasks.py", "language": "python", "sizeLines": 488, "fileCategory": "code"},
+    {"path": "backend/app/services/analysis/unreferenced_objects.py", "language": "python", "sizeLines": 205, "fileCategory": "code"},
+    {"path": "backend/app/services/analysis/unused.py", "language": "python", "sizeLines": 92, "fileCategory": "code"}
+  ],
+  "batchImportData": {"backend/app/core/executors.py": [], "backend/app/crud/crud_analysis.py": ["backend/app/models/analysis.py", "backend/app/models/device.py", "backend/app/schemas/analysis.py"], "backend/app/models/analysis.py": ["backend/app/db/session.py"], "backend/app/schemas/analysis.py": ["backend/app/models/analysis.py", "backend/app/schemas/policy.py"], "backend/app/services/analysis/impact.py": ["backend/app/core/executors.py", "backend/app/models/__init__.py", "backend/app/schemas/analysis.py", "backend/app/services/analysis/common.py"], "backend/app/services/analysis/redundancy.py": ["backend/app/__init__.py", "backend/app/core/executors.py", "backend/app/crud/__init__.py", "backend/app/models/__init__.py", "backend/app/models/analysis.py", "backend/app/schemas/analysis.py"], "backend/app/services/analysis/tasks.py": ["backend/app/__init__.py", "backend/app/crud/__init__.py", "backend/app/db/session.py", "backend/app/models/analysis.py", "backend/app/schemas/analysis.py", "backend/app/services/analysis/impact.py", "backend/app/services/analysis/over_permissive.py", "backend/app/services/analysis/redundancy.py", "backend/app/services/analysis/risky_ports.py", "backend/app/services/analysis/unreferenced_objects.py", "backend/app/services/analysis/unused.py", "backend/app/services/audit_log.py"], "backend/app/services/analysis/unreferenced_objects.py": ["backend/app/models/__init__.py"], "backend/app/services/analysis/unused.py": ["backend/app/models/__init__.py", "backend/app/schemas/analysis.py"]}
+}

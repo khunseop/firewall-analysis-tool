@@ -1,0 +1,2806 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 10,
+  "filesSkipped": [],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 10,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 10,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "results": [
+    {
+      "path": "frontend/src/api/analysis.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 148,
+      "nonEmptyLines": 133,
+      "functions": [
+        {
+          "name": "startAnalysis",
+          "startLine": 57,
+          "endLine": 105,
+          "params": [
+            "deviceId",
+            "analysisType",
+            "params"
+          ]
+        },
+        {
+          "name": "getAnalysisStatus",
+          "startLine": 107,
+          "endLine": 110,
+          "params": [
+            "deviceId"
+          ]
+        },
+        {
+          "name": "getAnalysisResults",
+          "startLine": 112,
+          "endLine": 115,
+          "params": [
+            "taskId"
+          ]
+        },
+        {
+          "name": "getLatestAnalysisResult",
+          "startLine": 117,
+          "endLine": 120,
+          "params": [
+            "deviceId",
+            "analysisType"
+          ]
+        },
+        {
+          "name": "listAnalysisTasks",
+          "startLine": 122,
+          "endLine": 133,
+          "params": [
+            "params"
+          ]
+        },
+        {
+          "name": "getAnalysisTaskDetail",
+          "startLine": 135,
+          "endLine": 138,
+          "params": [
+            "taskId"
+          ]
+        },
+        {
+          "name": "getAnalysisTaskResult",
+          "startLine": 140,
+          "endLine": 143,
+          "params": [
+            "taskId"
+          ]
+        },
+        {
+          "name": "deleteAnalysisTask",
+          "startLine": 145,
+          "endLine": 148,
+          "params": [
+            "taskId"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "startAnalysis",
+          "line": 57,
+          "isDefault": false
+        },
+        {
+          "name": "getAnalysisStatus",
+          "line": 107,
+          "isDefault": false
+        },
+        {
+          "name": "getAnalysisResults",
+          "line": 112,
+          "isDefault": false
+        },
+        {
+          "name": "getLatestAnalysisResult",
+          "line": 117,
+          "isDefault": false
+        },
+        {
+          "name": "listAnalysisTasks",
+          "line": 122,
+          "isDefault": false
+        },
+        {
+          "name": "getAnalysisTaskDetail",
+          "line": 135,
+          "isDefault": false
+        },
+        {
+          "name": "getAnalysisTaskResult",
+          "line": 140,
+          "isDefault": false
+        },
+        {
+          "name": "deleteAnalysisTask",
+          "line": 145,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "startAnalysis",
+          "callee": "apiClient.post",
+          "lineNumber": 65
+        },
+        {
+          "caller": "startAnalysis",
+          "callee": "apiClient.post",
+          "lineNumber": 70
+        },
+        {
+          "caller": "startAnalysis",
+          "callee": "policyIds.map((id) => `target_policy_id=${id}`).join",
+          "lineNumber": 75
+        },
+        {
+          "caller": "startAnalysis",
+          "callee": "policyIds.map",
+          "lineNumber": 75
+        },
+        {
+          "caller": "startAnalysis",
+          "callee": "apiClient.post",
+          "lineNumber": 77
+        },
+        {
+          "caller": "startAnalysis",
+          "callee": "apiClient.post",
+          "lineNumber": 81
+        },
+        {
+          "caller": "startAnalysis",
+          "callee": "policyIds.map((id) => `target_policy_id=${id}`).join",
+          "lineNumber": 87
+        },
+        {
+          "caller": "startAnalysis",
+          "callee": "policyIds.map",
+          "lineNumber": 87
+        },
+        {
+          "caller": "startAnalysis",
+          "callee": "apiClient.post",
+          "lineNumber": 88
+        },
+        {
+          "caller": "startAnalysis",
+          "callee": "apiClient.post",
+          "lineNumber": 91
+        },
+        {
+          "caller": "startAnalysis",
+          "callee": "policyIds.map((id) => `target_policy_id=${id}`).join",
+          "lineNumber": 97
+        },
+        {
+          "caller": "startAnalysis",
+          "callee": "policyIds.map",
+          "lineNumber": 97
+        },
+        {
+          "caller": "startAnalysis",
+          "callee": "apiClient.post",
+          "lineNumber": 98
+        },
+        {
+          "caller": "startAnalysis",
+          "callee": "apiClient.post",
+          "lineNumber": 101
+        },
+        {
+          "caller": "getAnalysisStatus",
+          "callee": "await apiClient.get",
+          "lineNumber": 108
+        },
+        {
+          "caller": "getAnalysisResults",
+          "callee": "apiClient.get",
+          "lineNumber": 113
+        },
+        {
+          "caller": "getLatestAnalysisResult",
+          "callee": "await apiClient.get",
+          "lineNumber": 118
+        },
+        {
+          "caller": "listAnalysisTasks",
+          "callee": "query.set",
+          "lineNumber": 125
+        },
+        {
+          "caller": "listAnalysisTasks",
+          "callee": "String",
+          "lineNumber": 125
+        },
+        {
+          "caller": "listAnalysisTasks",
+          "callee": "query.set",
+          "lineNumber": 126
+        },
+        {
+          "caller": "listAnalysisTasks",
+          "callee": "query.set",
+          "lineNumber": 127
+        },
+        {
+          "caller": "listAnalysisTasks",
+          "callee": "query.set",
+          "lineNumber": 128
+        },
+        {
+          "caller": "listAnalysisTasks",
+          "callee": "query.set",
+          "lineNumber": 129
+        },
+        {
+          "caller": "listAnalysisTasks",
+          "callee": "String",
+          "lineNumber": 129
+        },
+        {
+          "caller": "listAnalysisTasks",
+          "callee": "query.set",
+          "lineNumber": 130
+        },
+        {
+          "caller": "listAnalysisTasks",
+          "callee": "String",
+          "lineNumber": 130
+        },
+        {
+          "caller": "listAnalysisTasks",
+          "callee": "await apiClient.get",
+          "lineNumber": 131
+        },
+        {
+          "caller": "listAnalysisTasks",
+          "callee": "query.toString",
+          "lineNumber": 131
+        },
+        {
+          "caller": "getAnalysisTaskDetail",
+          "callee": "await apiClient.get",
+          "lineNumber": 136
+        },
+        {
+          "caller": "getAnalysisTaskResult",
+          "callee": "await apiClient.get",
+          "lineNumber": 141
+        },
+        {
+          "caller": "deleteAnalysisTask",
+          "callee": "await apiClient.delete",
+          "lineNumber": 146
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 8,
+        "functionCount": 8,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/api/client.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 88,
+      "nonEmptyLines": 82,
+      "functions": [
+        {
+          "name": "saveBlob",
+          "startLine": 30,
+          "endLine": 39,
+          "params": [
+            "blob",
+            "filename"
+          ]
+        },
+        {
+          "name": "downloadBlob",
+          "startLine": 41,
+          "endLine": 55,
+          "params": [
+            "url",
+            "defaultFilename"
+          ]
+        },
+        {
+          "name": "downloadBlobPost",
+          "startLine": 57,
+          "endLine": 88,
+          "params": [
+            "url",
+            "body",
+            "defaultFilename",
+            "timeoutMs"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "apiClient",
+          "line": 4,
+          "isDefault": false
+        },
+        {
+          "name": "saveBlob",
+          "line": 30,
+          "isDefault": false
+        },
+        {
+          "name": "downloadBlob",
+          "line": 41,
+          "isDefault": false
+        },
+        {
+          "name": "downloadBlobPost",
+          "line": 57,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "saveBlob",
+          "callee": "URL.createObjectURL",
+          "lineNumber": 31
+        },
+        {
+          "caller": "saveBlob",
+          "callee": "document.createElement",
+          "lineNumber": 32
+        },
+        {
+          "caller": "saveBlob",
+          "callee": "document.body.appendChild",
+          "lineNumber": 35
+        },
+        {
+          "caller": "saveBlob",
+          "callee": "a.click",
+          "lineNumber": 36
+        },
+        {
+          "caller": "saveBlob",
+          "callee": "document.body.removeChild",
+          "lineNumber": 37
+        },
+        {
+          "caller": "saveBlob",
+          "callee": "URL.revokeObjectURL",
+          "lineNumber": 38
+        },
+        {
+          "caller": "downloadBlob",
+          "callee": "useAuthStore.getState",
+          "lineNumber": 42
+        },
+        {
+          "caller": "downloadBlob",
+          "callee": "fetch",
+          "lineNumber": 43
+        },
+        {
+          "caller": "downloadBlob",
+          "callee": "res.json",
+          "lineNumber": 49
+        },
+        {
+          "caller": "downloadBlob",
+          "callee": "saveBlob",
+          "lineNumber": 54
+        },
+        {
+          "caller": "downloadBlob",
+          "callee": "res.blob",
+          "lineNumber": 54
+        },
+        {
+          "caller": "downloadBlobPost",
+          "callee": "useAuthStore.getState",
+          "lineNumber": 63
+        },
+        {
+          "caller": "downloadBlobPost",
+          "callee": "setTimeout",
+          "lineNumber": 65
+        },
+        {
+          "caller": "downloadBlobPost",
+          "callee": "controller.abort",
+          "lineNumber": 65
+        },
+        {
+          "caller": "downloadBlobPost",
+          "callee": "fetch",
+          "lineNumber": 67
+        },
+        {
+          "caller": "downloadBlobPost",
+          "callee": "JSON.stringify",
+          "lineNumber": 73
+        },
+        {
+          "caller": "downloadBlobPost",
+          "callee": "res.json",
+          "lineNumber": 79
+        },
+        {
+          "caller": "downloadBlobPost",
+          "callee": "saveBlob",
+          "lineNumber": 84
+        },
+        {
+          "caller": "downloadBlobPost",
+          "callee": "res.blob",
+          "lineNumber": 84
+        },
+        {
+          "caller": "downloadBlobPost",
+          "callee": "clearTimeout",
+          "lineNumber": 86
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 4,
+        "functionCount": 3,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/api/deletionWorkflow.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 355,
+      "nonEmptyLines": 316,
+      "functions": [
+        {
+          "name": "fetchDeletionTasks",
+          "startLine": 56,
+          "endLine": 59,
+          "params": []
+        },
+        {
+          "name": "extractDeviceData",
+          "startLine": 61,
+          "endLine": 88,
+          "params": [
+            "deviceId"
+          ]
+        },
+        {
+          "name": "exportRedundancyData",
+          "startLine": 90,
+          "endLine": 112,
+          "params": [
+            "deviceId"
+          ]
+        },
+        {
+          "name": "listProjects",
+          "startLine": 116,
+          "endLine": 120,
+          "params": [
+            "deviceId"
+          ]
+        },
+        {
+          "name": "createProject",
+          "startLine": 122,
+          "endLine": 144,
+          "params": [
+            "deviceId",
+            "name",
+            "memo",
+            "referenceDate"
+          ]
+        },
+        {
+          "name": "updateProject",
+          "startLine": 146,
+          "endLine": 170,
+          "params": [
+            "id",
+            "patch"
+          ]
+        },
+        {
+          "name": "getProject",
+          "startLine": 172,
+          "endLine": 175,
+          "params": [
+            "id"
+          ]
+        },
+        {
+          "name": "deleteProject",
+          "startLine": 177,
+          "endLine": 179,
+          "params": [
+            "id"
+          ]
+        },
+        {
+          "name": "runProjectExtract",
+          "startLine": 183,
+          "endLine": 194,
+          "params": [
+            "projectId"
+          ]
+        },
+        {
+          "name": "runProjectTask",
+          "startLine": 196,
+          "endLine": 210,
+          "params": [
+            "projectId",
+            "taskId"
+          ]
+        },
+        {
+          "name": "uploadExternalFile",
+          "startLine": 212,
+          "endLine": 235,
+          "params": [
+            "projectId",
+            "taskId",
+            "slot",
+            "file"
+          ]
+        },
+        {
+          "name": "downloadTaskFile",
+          "startLine": 237,
+          "endLine": 256,
+          "params": [
+            "projectId",
+            "taskId",
+            "slot"
+          ]
+        },
+        {
+          "name": "resetProjectOutputs",
+          "startLine": 260,
+          "endLine": 271,
+          "params": [
+            "projectId"
+          ]
+        },
+        {
+          "name": "resetAllProjectFiles",
+          "startLine": 273,
+          "endLine": 284,
+          "params": [
+            "projectId"
+          ]
+        },
+        {
+          "name": "completeProject",
+          "startLine": 286,
+          "endLine": 303,
+          "params": [
+            "projectId"
+          ]
+        },
+        {
+          "name": "clearProjectOutputs",
+          "startLine": 305,
+          "endLine": 320,
+          "params": [
+            "projectId",
+            "taskIds"
+          ]
+        },
+        {
+          "name": "executeDeletionTask",
+          "startLine": 324,
+          "endLine": 355,
+          "params": [
+            "taskId",
+            "files",
+            "vendor"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "fetchDeletionTasks",
+          "line": 56,
+          "isDefault": false
+        },
+        {
+          "name": "extractDeviceData",
+          "line": 61,
+          "isDefault": false
+        },
+        {
+          "name": "exportRedundancyData",
+          "line": 90,
+          "isDefault": false
+        },
+        {
+          "name": "listProjects",
+          "line": 116,
+          "isDefault": false
+        },
+        {
+          "name": "createProject",
+          "line": 122,
+          "isDefault": false
+        },
+        {
+          "name": "updateProject",
+          "line": 146,
+          "isDefault": false
+        },
+        {
+          "name": "getProject",
+          "line": 172,
+          "isDefault": false
+        },
+        {
+          "name": "deleteProject",
+          "line": 177,
+          "isDefault": false
+        },
+        {
+          "name": "runProjectExtract",
+          "line": 183,
+          "isDefault": false
+        },
+        {
+          "name": "runProjectTask",
+          "line": 196,
+          "isDefault": false
+        },
+        {
+          "name": "uploadExternalFile",
+          "line": 212,
+          "isDefault": false
+        },
+        {
+          "name": "downloadTaskFile",
+          "line": 237,
+          "isDefault": false
+        },
+        {
+          "name": "resetProjectOutputs",
+          "line": 260,
+          "isDefault": false
+        },
+        {
+          "name": "resetAllProjectFiles",
+          "line": 273,
+          "isDefault": false
+        },
+        {
+          "name": "completeProject",
+          "line": 286,
+          "isDefault": false
+        },
+        {
+          "name": "clearProjectOutputs",
+          "line": 305,
+          "isDefault": false
+        },
+        {
+          "name": "executeDeletionTask",
+          "line": 324,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "fetchDeletionTasks",
+          "callee": "await apiClient.get",
+          "lineNumber": 57
+        },
+        {
+          "caller": "extractDeviceData",
+          "callee": "useAuthStore.getState",
+          "lineNumber": 64
+        },
+        {
+          "caller": "extractDeviceData",
+          "callee": "formData.append",
+          "lineNumber": 66
+        },
+        {
+          "caller": "extractDeviceData",
+          "callee": "String",
+          "lineNumber": 66
+        },
+        {
+          "caller": "extractDeviceData",
+          "callee": "fetch",
+          "lineNumber": 68
+        },
+        {
+          "caller": "extractDeviceData",
+          "callee": "res.json",
+          "lineNumber": 77
+        },
+        {
+          "caller": "extractDeviceData",
+          "callee": "res.blob",
+          "lineNumber": 83
+        },
+        {
+          "caller": "extractDeviceData",
+          "callee": "res.headers.get",
+          "lineNumber": 84
+        },
+        {
+          "caller": "extractDeviceData",
+          "callee": "disposition.match",
+          "lineNumber": 85
+        },
+        {
+          "caller": "exportRedundancyData",
+          "callee": "useAuthStore.getState",
+          "lineNumber": 93
+        },
+        {
+          "caller": "exportRedundancyData",
+          "callee": "fetch",
+          "lineNumber": 94
+        },
+        {
+          "caller": "exportRedundancyData",
+          "callee": "res.json",
+          "lineNumber": 101
+        },
+        {
+          "caller": "exportRedundancyData",
+          "callee": "res.blob",
+          "lineNumber": 107
+        },
+        {
+          "caller": "exportRedundancyData",
+          "callee": "res.headers.get",
+          "lineNumber": 108
+        },
+        {
+          "caller": "exportRedundancyData",
+          "callee": "disposition.match",
+          "lineNumber": 109
+        },
+        {
+          "caller": "listProjects",
+          "callee": "await apiClient.get",
+          "lineNumber": 118
+        },
+        {
+          "caller": "createProject",
+          "callee": "useAuthStore.getState",
+          "lineNumber": 128
+        },
+        {
+          "caller": "createProject",
+          "callee": "form.append",
+          "lineNumber": 130
+        },
+        {
+          "caller": "createProject",
+          "callee": "String",
+          "lineNumber": 130
+        },
+        {
+          "caller": "createProject",
+          "callee": "form.append",
+          "lineNumber": 131
+        },
+        {
+          "caller": "createProject",
+          "callee": "form.append",
+          "lineNumber": 132
+        },
+        {
+          "caller": "createProject",
+          "callee": "form.append",
+          "lineNumber": 133
+        },
+        {
+          "caller": "createProject",
+          "callee": "fetch",
+          "lineNumber": 134
+        },
+        {
+          "caller": "createProject",
+          "callee": "res.json().catch",
+          "lineNumber": 140
+        },
+        {
+          "caller": "createProject",
+          "callee": "res.json",
+          "lineNumber": 140
+        },
+        {
+          "caller": "createProject",
+          "callee": "res.json",
+          "lineNumber": 143
+        },
+        {
+          "caller": "updateProject",
+          "callee": "useAuthStore.getState",
+          "lineNumber": 150
+        },
+        {
+          "caller": "updateProject",
+          "callee": "form.append",
+          "lineNumber": 152
+        },
+        {
+          "caller": "updateProject",
+          "callee": "form.append",
+          "lineNumber": 155
+        },
+        {
+          "caller": "updateProject",
+          "callee": "form.append",
+          "lineNumber": 157
+        },
+        {
+          "caller": "updateProject",
+          "callee": "fetch",
+          "lineNumber": 160
+        },
+        {
+          "caller": "updateProject",
+          "callee": "res.json().catch",
+          "lineNumber": 166
+        },
+        {
+          "caller": "updateProject",
+          "callee": "res.json",
+          "lineNumber": 166
+        },
+        {
+          "caller": "updateProject",
+          "callee": "res.json",
+          "lineNumber": 169
+        },
+        {
+          "caller": "getProject",
+          "callee": "await apiClient.get",
+          "lineNumber": 173
+        },
+        {
+          "caller": "deleteProject",
+          "callee": "apiClient.delete",
+          "lineNumber": 178
+        },
+        {
+          "caller": "runProjectExtract",
+          "callee": "useAuthStore.getState",
+          "lineNumber": 184
+        },
+        {
+          "caller": "runProjectExtract",
+          "callee": "fetch",
+          "lineNumber": 185
+        },
+        {
+          "caller": "runProjectExtract",
+          "callee": "res.json().catch",
+          "lineNumber": 190
+        },
+        {
+          "caller": "runProjectExtract",
+          "callee": "res.json",
+          "lineNumber": 190
+        },
+        {
+          "caller": "runProjectExtract",
+          "callee": "res.json",
+          "lineNumber": 193
+        },
+        {
+          "caller": "runProjectTask",
+          "callee": "useAuthStore.getState",
+          "lineNumber": 200
+        },
+        {
+          "caller": "runProjectTask",
+          "callee": "fetch",
+          "lineNumber": 201
+        },
+        {
+          "caller": "runProjectTask",
+          "callee": "res.json().catch",
+          "lineNumber": 206
+        },
+        {
+          "caller": "runProjectTask",
+          "callee": "res.json",
+          "lineNumber": 206
+        },
+        {
+          "caller": "runProjectTask",
+          "callee": "res.json",
+          "lineNumber": 209
+        },
+        {
+          "caller": "uploadExternalFile",
+          "callee": "useAuthStore.getState",
+          "lineNumber": 218
+        },
+        {
+          "caller": "uploadExternalFile",
+          "callee": "form.append",
+          "lineNumber": 220
+        },
+        {
+          "caller": "uploadExternalFile",
+          "callee": "form.append",
+          "lineNumber": 221
+        },
+        {
+          "caller": "uploadExternalFile",
+          "callee": "fetch",
+          "lineNumber": 222
+        },
+        {
+          "caller": "uploadExternalFile",
+          "callee": "res.json().catch",
+          "lineNumber": 231
+        },
+        {
+          "caller": "uploadExternalFile",
+          "callee": "res.json",
+          "lineNumber": 231
+        },
+        {
+          "caller": "uploadExternalFile",
+          "callee": "res.json",
+          "lineNumber": 234
+        },
+        {
+          "caller": "downloadTaskFile",
+          "callee": "useAuthStore.getState",
+          "lineNumber": 242
+        },
+        {
+          "caller": "downloadTaskFile",
+          "callee": "fetch",
+          "lineNumber": 243
+        },
+        {
+          "caller": "downloadTaskFile",
+          "callee": "res.json().catch",
+          "lineNumber": 248
+        },
+        {
+          "caller": "downloadTaskFile",
+          "callee": "res.json",
+          "lineNumber": 248
+        },
+        {
+          "caller": "downloadTaskFile",
+          "callee": "res.blob",
+          "lineNumber": 251
+        },
+        {
+          "caller": "downloadTaskFile",
+          "callee": "res.headers.get",
+          "lineNumber": 252
+        },
+        {
+          "caller": "downloadTaskFile",
+          "callee": "disposition.match",
+          "lineNumber": 253
+        },
+        {
+          "caller": "resetProjectOutputs",
+          "callee": "useAuthStore.getState",
+          "lineNumber": 261
+        },
+        {
+          "caller": "resetProjectOutputs",
+          "callee": "fetch",
+          "lineNumber": 262
+        },
+        {
+          "caller": "resetProjectOutputs",
+          "callee": "res.json().catch",
+          "lineNumber": 267
+        },
+        {
+          "caller": "resetProjectOutputs",
+          "callee": "res.json",
+          "lineNumber": 267
+        },
+        {
+          "caller": "resetProjectOutputs",
+          "callee": "res.json",
+          "lineNumber": 270
+        },
+        {
+          "caller": "resetAllProjectFiles",
+          "callee": "useAuthStore.getState",
+          "lineNumber": 274
+        },
+        {
+          "caller": "resetAllProjectFiles",
+          "callee": "fetch",
+          "lineNumber": 275
+        },
+        {
+          "caller": "resetAllProjectFiles",
+          "callee": "res.json().catch",
+          "lineNumber": 280
+        },
+        {
+          "caller": "resetAllProjectFiles",
+          "callee": "res.json",
+          "lineNumber": 280
+        },
+        {
+          "caller": "resetAllProjectFiles",
+          "callee": "res.json",
+          "lineNumber": 283
+        },
+        {
+          "caller": "completeProject",
+          "callee": "useAuthStore.getState",
+          "lineNumber": 289
+        },
+        {
+          "caller": "completeProject",
+          "callee": "fetch",
+          "lineNumber": 290
+        },
+        {
+          "caller": "completeProject",
+          "callee": "res.json().catch",
+          "lineNumber": 295
+        },
+        {
+          "caller": "completeProject",
+          "callee": "res.json",
+          "lineNumber": 295
+        },
+        {
+          "caller": "completeProject",
+          "callee": "res.blob",
+          "lineNumber": 298
+        },
+        {
+          "caller": "completeProject",
+          "callee": "res.headers.get",
+          "lineNumber": 299
+        },
+        {
+          "caller": "completeProject",
+          "callee": "disposition.match",
+          "lineNumber": 300
+        },
+        {
+          "caller": "completeProject",
+          "callee": "disposition.match",
+          "lineNumber": 300
+        },
+        {
+          "caller": "completeProject",
+          "callee": "decodeURIComponent",
+          "lineNumber": 301
+        },
+        {
+          "caller": "clearProjectOutputs",
+          "callee": "useAuthStore.getState",
+          "lineNumber": 309
+        },
+        {
+          "caller": "clearProjectOutputs",
+          "callee": "fetch",
+          "lineNumber": 310
+        },
+        {
+          "caller": "clearProjectOutputs",
+          "callee": "JSON.stringify",
+          "lineNumber": 313
+        },
+        {
+          "caller": "clearProjectOutputs",
+          "callee": "res.json().catch",
+          "lineNumber": 316
+        },
+        {
+          "caller": "clearProjectOutputs",
+          "callee": "res.json",
+          "lineNumber": 316
+        },
+        {
+          "caller": "clearProjectOutputs",
+          "callee": "res.json",
+          "lineNumber": 319
+        },
+        {
+          "caller": "executeDeletionTask",
+          "callee": "useAuthStore.getState",
+          "lineNumber": 329
+        },
+        {
+          "caller": "executeDeletionTask",
+          "callee": "files.forEach",
+          "lineNumber": 331
+        },
+        {
+          "caller": "executeDeletionTask",
+          "callee": "formData.append",
+          "lineNumber": 331
+        },
+        {
+          "caller": "executeDeletionTask",
+          "callee": "formData.append",
+          "lineNumber": 332
+        },
+        {
+          "caller": "executeDeletionTask",
+          "callee": "fetch",
+          "lineNumber": 334
+        },
+        {
+          "caller": "executeDeletionTask",
+          "callee": "res.json",
+          "lineNumber": 343
+        },
+        {
+          "caller": "executeDeletionTask",
+          "callee": "res.blob",
+          "lineNumber": 349
+        },
+        {
+          "caller": "executeDeletionTask",
+          "callee": "res.headers.get",
+          "lineNumber": 350
+        },
+        {
+          "caller": "executeDeletionTask",
+          "callee": "disposition.match",
+          "lineNumber": 351
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 17,
+        "functionCount": 17,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/api/devices.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 140,
+      "nonEmptyLines": 119,
+      "functions": [
+        {
+          "name": "listDevices",
+          "startLine": 15,
+          "endLine": 18,
+          "params": []
+        },
+        {
+          "name": "getDevice",
+          "startLine": 20,
+          "endLine": 23,
+          "params": [
+            "id"
+          ]
+        },
+        {
+          "name": "getDashboardStats",
+          "startLine": 25,
+          "endLine": 28,
+          "params": []
+        },
+        {
+          "name": "createDevice",
+          "startLine": 30,
+          "endLine": 33,
+          "params": [
+            "payload"
+          ]
+        },
+        {
+          "name": "updateDevice",
+          "startLine": 35,
+          "endLine": 38,
+          "params": [
+            "id",
+            "payload"
+          ]
+        },
+        {
+          "name": "deleteDevice",
+          "startLine": 40,
+          "endLine": 43,
+          "params": [
+            "id"
+          ]
+        },
+        {
+          "name": "testConnection",
+          "startLine": 45,
+          "endLine": 48,
+          "params": [
+            "id"
+          ]
+        },
+        {
+          "name": "syncAll",
+          "startLine": 50,
+          "endLine": 53,
+          "params": [
+            "id"
+          ]
+        },
+        {
+          "name": "getSyncStatus",
+          "startLine": 55,
+          "endLine": 58,
+          "params": [
+            "id"
+          ]
+        },
+        {
+          "name": "downloadDeviceTemplate",
+          "startLine": 60,
+          "endLine": 62,
+          "params": []
+        },
+        {
+          "name": "bulkImportDevices",
+          "startLine": 64,
+          "endLine": 71,
+          "params": [
+            "file"
+          ]
+        },
+        {
+          "name": "directExport",
+          "startLine": 99,
+          "endLine": 110,
+          "params": [
+            "device",
+            "exportType",
+            "options"
+          ]
+        },
+        {
+          "name": "bulkExportDevices",
+          "startLine": 112,
+          "endLine": 126,
+          "params": [
+            "devices",
+            "exportType",
+            "options"
+          ]
+        },
+        {
+          "name": "getActiveExportTasks",
+          "startLine": 128,
+          "endLine": 131,
+          "params": []
+        },
+        {
+          "name": "getExportTaskStatus",
+          "startLine": 133,
+          "endLine": 136,
+          "params": [
+            "taskId"
+          ]
+        },
+        {
+          "name": "downloadExportResult",
+          "startLine": 138,
+          "endLine": 140,
+          "params": [
+            "taskId",
+            "filename"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "Device",
+          "line": 4,
+          "isDefault": false
+        },
+        {
+          "name": "DeviceCreate",
+          "line": 4,
+          "isDefault": false
+        },
+        {
+          "name": "DeviceUpdate",
+          "line": 4,
+          "isDefault": false
+        },
+        {
+          "name": "DeviceStats",
+          "line": 4,
+          "isDefault": false
+        },
+        {
+          "name": "DashboardStats",
+          "line": 4,
+          "isDefault": false
+        },
+        {
+          "name": "listDevices",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "getDevice",
+          "line": 20,
+          "isDefault": false
+        },
+        {
+          "name": "getDashboardStats",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "createDevice",
+          "line": 30,
+          "isDefault": false
+        },
+        {
+          "name": "updateDevice",
+          "line": 35,
+          "isDefault": false
+        },
+        {
+          "name": "deleteDevice",
+          "line": 40,
+          "isDefault": false
+        },
+        {
+          "name": "testConnection",
+          "line": 45,
+          "isDefault": false
+        },
+        {
+          "name": "syncAll",
+          "line": 50,
+          "isDefault": false
+        },
+        {
+          "name": "getSyncStatus",
+          "line": 55,
+          "isDefault": false
+        },
+        {
+          "name": "downloadDeviceTemplate",
+          "line": 60,
+          "isDefault": false
+        },
+        {
+          "name": "bulkImportDevices",
+          "line": 64,
+          "isDefault": false
+        },
+        {
+          "name": "directExport",
+          "line": 99,
+          "isDefault": false
+        },
+        {
+          "name": "bulkExportDevices",
+          "line": 112,
+          "isDefault": false
+        },
+        {
+          "name": "getActiveExportTasks",
+          "line": 128,
+          "isDefault": false
+        },
+        {
+          "name": "getExportTaskStatus",
+          "line": 133,
+          "isDefault": false
+        },
+        {
+          "name": "downloadExportResult",
+          "line": 138,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "listDevices",
+          "callee": "await apiClient.get",
+          "lineNumber": 16
+        },
+        {
+          "caller": "getDevice",
+          "callee": "await apiClient.get",
+          "lineNumber": 21
+        },
+        {
+          "caller": "getDashboardStats",
+          "callee": "await apiClient.get",
+          "lineNumber": 26
+        },
+        {
+          "caller": "createDevice",
+          "callee": "await apiClient.post",
+          "lineNumber": 31
+        },
+        {
+          "caller": "updateDevice",
+          "callee": "await apiClient.put",
+          "lineNumber": 36
+        },
+        {
+          "caller": "deleteDevice",
+          "callee": "await apiClient.delete",
+          "lineNumber": 41
+        },
+        {
+          "caller": "testConnection",
+          "callee": "apiClient.post",
+          "lineNumber": 46
+        },
+        {
+          "caller": "syncAll",
+          "callee": "apiClient.post",
+          "lineNumber": 51
+        },
+        {
+          "caller": "getSyncStatus",
+          "callee": "apiClient.get",
+          "lineNumber": 56
+        },
+        {
+          "caller": "downloadDeviceTemplate",
+          "callee": "downloadBlob",
+          "lineNumber": 61
+        },
+        {
+          "caller": "bulkImportDevices",
+          "callee": "formData.append",
+          "lineNumber": 66
+        },
+        {
+          "caller": "bulkImportDevices",
+          "callee": "await apiClient.post",
+          "lineNumber": 67
+        },
+        {
+          "caller": "directExport",
+          "callee": "apiClient.post",
+          "lineNumber": 104
+        },
+        {
+          "caller": "bulkExportDevices",
+          "callee": "apiClient.post",
+          "lineNumber": 117
+        },
+        {
+          "caller": "bulkExportDevices",
+          "callee": "devices.map",
+          "lineNumber": 118
+        },
+        {
+          "caller": "getActiveExportTasks",
+          "callee": "await apiClient.get",
+          "lineNumber": 129
+        },
+        {
+          "caller": "getExportTaskStatus",
+          "callee": "await apiClient.get",
+          "lineNumber": 134
+        },
+        {
+          "caller": "downloadExportResult",
+          "callee": "downloadBlob",
+          "lineNumber": 139
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 21,
+        "functionCount": 16,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/api/firewall.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 141,
+      "nonEmptyLines": 118,
+      "functions": [
+        {
+          "name": "searchPolicies",
+          "startLine": 37,
+          "endLine": 40,
+          "params": [
+            "payload"
+          ]
+        },
+        {
+          "name": "getPolicyCount",
+          "startLine": 42,
+          "endLine": 45,
+          "params": [
+            "deviceId"
+          ]
+        },
+        {
+          "name": "getObjectCount",
+          "startLine": 47,
+          "endLine": 50,
+          "params": [
+            "deviceId"
+          ]
+        },
+        {
+          "name": "getPolicies",
+          "startLine": 52,
+          "endLine": 55,
+          "params": [
+            "deviceId"
+          ]
+        },
+        {
+          "name": "getNetworkObjects",
+          "startLine": 57,
+          "endLine": 60,
+          "params": [
+            "deviceId"
+          ]
+        },
+        {
+          "name": "getNetworkGroups",
+          "startLine": 62,
+          "endLine": 65,
+          "params": [
+            "deviceId"
+          ]
+        },
+        {
+          "name": "getServices",
+          "startLine": 67,
+          "endLine": 70,
+          "params": [
+            "deviceId"
+          ]
+        },
+        {
+          "name": "getServiceGroups",
+          "startLine": 72,
+          "endLine": 75,
+          "params": [
+            "deviceId"
+          ]
+        },
+        {
+          "name": "searchObjects",
+          "startLine": 77,
+          "endLine": 80,
+          "params": [
+            "payload"
+          ]
+        },
+        {
+          "name": "getObjectDetails",
+          "startLine": 82,
+          "endLine": 85,
+          "params": [
+            "deviceId",
+            "name"
+          ]
+        },
+        {
+          "name": "getChangeLogs",
+          "startLine": 87,
+          "endLine": 91,
+          "params": [
+            "deviceIds"
+          ]
+        },
+        {
+          "name": "getPolicyHistory",
+          "startLine": 93,
+          "endLine": 98,
+          "params": [
+            "deviceId",
+            "ruleName"
+          ]
+        },
+        {
+          "name": "getObjectUsageCounts",
+          "startLine": 102,
+          "endLine": 106,
+          "params": [
+            "deviceIds"
+          ]
+        },
+        {
+          "name": "getChangeStats",
+          "startLine": 112,
+          "endLine": 118,
+          "params": [
+            "deviceIds",
+            "weeks",
+            "category"
+          ]
+        },
+        {
+          "name": "getObjectCountHistory",
+          "startLine": 122,
+          "endLine": 129,
+          "params": [
+            "deviceId",
+            "weeks",
+            "category"
+          ]
+        },
+        {
+          "name": "exportStyledToExcel",
+          "startLine": 135,
+          "endLine": 137,
+          "params": [
+            "payload"
+          ]
+        },
+        {
+          "name": "exportToExcel",
+          "startLine": 139,
+          "endLine": 141,
+          "params": [
+            "data",
+            "filename"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "Policy",
+          "line": 18,
+          "isDefault": false
+        },
+        {
+          "name": "FilterLeafNode",
+          "line": 18,
+          "isDefault": false
+        },
+        {
+          "name": "FilterGroupNode",
+          "line": 18,
+          "isDefault": false
+        },
+        {
+          "name": "FilterExprNode",
+          "line": 18,
+          "isDefault": false
+        },
+        {
+          "name": "PolicySearchRequest",
+          "line": 18,
+          "isDefault": false
+        },
+        {
+          "name": "ChangeLogEntry",
+          "line": 18,
+          "isDefault": false
+        },
+        {
+          "name": "PolicyHistoryEntry",
+          "line": 18,
+          "isDefault": false
+        },
+        {
+          "name": "PolicySearchResponse",
+          "line": 18,
+          "isDefault": false
+        },
+        {
+          "name": "NetworkObject",
+          "line": 28,
+          "isDefault": false
+        },
+        {
+          "name": "NetworkGroup",
+          "line": 28,
+          "isDefault": false
+        },
+        {
+          "name": "Service",
+          "line": 28,
+          "isDefault": false
+        },
+        {
+          "name": "ServiceGroup",
+          "line": 28,
+          "isDefault": false
+        },
+        {
+          "name": "ObjectSearchRequest",
+          "line": 28,
+          "isDefault": false
+        },
+        {
+          "name": "ObjectSearchResponse",
+          "line": 28,
+          "isDefault": false
+        },
+        {
+          "name": "searchPolicies",
+          "line": 37,
+          "isDefault": false
+        },
+        {
+          "name": "getPolicyCount",
+          "line": 42,
+          "isDefault": false
+        },
+        {
+          "name": "getObjectCount",
+          "line": 47,
+          "isDefault": false
+        },
+        {
+          "name": "getPolicies",
+          "line": 52,
+          "isDefault": false
+        },
+        {
+          "name": "getNetworkObjects",
+          "line": 57,
+          "isDefault": false
+        },
+        {
+          "name": "getNetworkGroups",
+          "line": 62,
+          "isDefault": false
+        },
+        {
+          "name": "getServices",
+          "line": 67,
+          "isDefault": false
+        },
+        {
+          "name": "getServiceGroups",
+          "line": 72,
+          "isDefault": false
+        },
+        {
+          "name": "searchObjects",
+          "line": 77,
+          "isDefault": false
+        },
+        {
+          "name": "getObjectDetails",
+          "line": 82,
+          "isDefault": false
+        },
+        {
+          "name": "getChangeLogs",
+          "line": 87,
+          "isDefault": false
+        },
+        {
+          "name": "getPolicyHistory",
+          "line": 93,
+          "isDefault": false
+        },
+        {
+          "name": "getObjectUsageCounts",
+          "line": 102,
+          "isDefault": false
+        },
+        {
+          "name": "getChangeStats",
+          "line": 112,
+          "isDefault": false
+        },
+        {
+          "name": "getObjectCountHistory",
+          "line": 122,
+          "isDefault": false
+        },
+        {
+          "name": "exportStyledToExcel",
+          "line": 135,
+          "isDefault": false
+        },
+        {
+          "name": "exportToExcel",
+          "line": 139,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "searchPolicies",
+          "callee": "await apiClient.post",
+          "lineNumber": 38
+        },
+        {
+          "caller": "getPolicyCount",
+          "callee": "apiClient.get",
+          "lineNumber": 43
+        },
+        {
+          "caller": "getObjectCount",
+          "callee": "apiClient.get",
+          "lineNumber": 48
+        },
+        {
+          "caller": "getPolicies",
+          "callee": "await apiClient.get",
+          "lineNumber": 53
+        },
+        {
+          "caller": "getNetworkObjects",
+          "callee": "await apiClient.get",
+          "lineNumber": 58
+        },
+        {
+          "caller": "getNetworkGroups",
+          "callee": "await apiClient.get",
+          "lineNumber": 63
+        },
+        {
+          "caller": "getServices",
+          "callee": "await apiClient.get",
+          "lineNumber": 68
+        },
+        {
+          "caller": "getServiceGroups",
+          "callee": "await apiClient.get",
+          "lineNumber": 73
+        },
+        {
+          "caller": "searchObjects",
+          "callee": "await apiClient.post",
+          "lineNumber": 78
+        },
+        {
+          "caller": "getObjectDetails",
+          "callee": "apiClient.get",
+          "lineNumber": 83
+        },
+        {
+          "caller": "getObjectDetails",
+          "callee": "encodeURIComponent",
+          "lineNumber": 83
+        },
+        {
+          "caller": "getChangeLogs",
+          "callee": "deviceIds.map(id => `device_ids=${id}`).join",
+          "lineNumber": 88
+        },
+        {
+          "caller": "getChangeLogs",
+          "callee": "deviceIds.map",
+          "lineNumber": 88
+        },
+        {
+          "caller": "getChangeLogs",
+          "callee": "await apiClient.get",
+          "lineNumber": 89
+        },
+        {
+          "caller": "getPolicyHistory",
+          "callee": "await apiClient.get",
+          "lineNumber": 94
+        },
+        {
+          "caller": "getPolicyHistory",
+          "callee": "encodeURIComponent",
+          "lineNumber": 95
+        },
+        {
+          "caller": "getObjectUsageCounts",
+          "callee": "deviceIds.map(id => `device_ids=${id}`).join",
+          "lineNumber": 103
+        },
+        {
+          "caller": "getObjectUsageCounts",
+          "callee": "deviceIds.map",
+          "lineNumber": 103
+        },
+        {
+          "caller": "getObjectUsageCounts",
+          "callee": "await apiClient.get",
+          "lineNumber": 104
+        },
+        {
+          "caller": "getChangeStats",
+          "callee": "deviceIds.map(id => `device_ids=${id}`).join",
+          "lineNumber": 115
+        },
+        {
+          "caller": "getChangeStats",
+          "callee": "deviceIds.map",
+          "lineNumber": 115
+        },
+        {
+          "caller": "getChangeStats",
+          "callee": "await apiClient.get",
+          "lineNumber": 116
+        },
+        {
+          "caller": "getObjectCountHistory",
+          "callee": "await apiClient.get",
+          "lineNumber": 125
+        },
+        {
+          "caller": "exportStyledToExcel",
+          "callee": "downloadBlobPost",
+          "lineNumber": 136
+        },
+        {
+          "caller": "exportToExcel",
+          "callee": "downloadBlobPost",
+          "lineNumber": 140
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 31,
+        "functionCount": 17,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/api/notifications.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 61,
+      "nonEmptyLines": 54,
+      "functions": [
+        {
+          "name": "createNotification",
+          "startLine": 32,
+          "endLine": 35,
+          "params": [
+            "payload"
+          ]
+        },
+        {
+          "name": "getNotifications",
+          "startLine": 37,
+          "endLine": 56,
+          "params": [
+            "params"
+          ]
+        },
+        {
+          "name": "deleteOldNotifications",
+          "startLine": 58,
+          "endLine": 61,
+          "params": [
+            "days"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "createNotification",
+          "line": 32,
+          "isDefault": false
+        },
+        {
+          "name": "getNotifications",
+          "line": 37,
+          "isDefault": false
+        },
+        {
+          "name": "deleteOldNotifications",
+          "line": 58,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "createNotification",
+          "callee": "await apiClient.post",
+          "lineNumber": 33
+        },
+        {
+          "caller": "getNotifications",
+          "callee": "query.append",
+          "lineNumber": 47
+        },
+        {
+          "caller": "getNotifications",
+          "callee": "String",
+          "lineNumber": 47
+        },
+        {
+          "caller": "getNotifications",
+          "callee": "query.append",
+          "lineNumber": 48
+        },
+        {
+          "caller": "getNotifications",
+          "callee": "String",
+          "lineNumber": 48
+        },
+        {
+          "caller": "getNotifications",
+          "callee": "query.append",
+          "lineNumber": 49
+        },
+        {
+          "caller": "getNotifications",
+          "callee": "query.append",
+          "lineNumber": 50
+        },
+        {
+          "caller": "getNotifications",
+          "callee": "query.append",
+          "lineNumber": 51
+        },
+        {
+          "caller": "getNotifications",
+          "callee": "query.append",
+          "lineNumber": 52
+        },
+        {
+          "caller": "getNotifications",
+          "callee": "query.append",
+          "lineNumber": 53
+        },
+        {
+          "caller": "getNotifications",
+          "callee": "await apiClient.get",
+          "lineNumber": 54
+        },
+        {
+          "caller": "getNotifications",
+          "callee": "query.toString",
+          "lineNumber": 54
+        },
+        {
+          "caller": "deleteOldNotifications",
+          "callee": "await apiClient.delete",
+          "lineNumber": 59
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 3,
+        "functionCount": 3,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/api/policyBuilder.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 205,
+      "nonEmptyLines": 184,
+      "functions": [
+        {
+          "name": "listPendingChanges",
+          "startLine": 117,
+          "endLine": 120,
+          "params": [
+            "deviceId"
+          ]
+        },
+        {
+          "name": "addPendingChange",
+          "startLine": 122,
+          "endLine": 128,
+          "params": [
+            "deviceId",
+            "payload"
+          ]
+        },
+        {
+          "name": "updatePendingChange",
+          "startLine": 130,
+          "endLine": 137,
+          "params": [
+            "deviceId",
+            "changeId",
+            "payload"
+          ]
+        },
+        {
+          "name": "removePendingChange",
+          "startLine": 139,
+          "endLine": 141,
+          "params": [
+            "deviceId",
+            "changeId"
+          ]
+        },
+        {
+          "name": "getPreviewOrder",
+          "startLine": 143,
+          "endLine": 146,
+          "params": [
+            "deviceId"
+          ]
+        },
+        {
+          "name": "clearPendingChanges",
+          "startLine": 148,
+          "endLine": 150,
+          "params": [
+            "deviceId"
+          ]
+        },
+        {
+          "name": "cleanupOrphanNewObjects",
+          "startLine": 157,
+          "endLine": 173,
+          "params": [
+            "deviceId",
+            "remainingChanges"
+          ]
+        },
+        {
+          "name": "checkObjectGaps",
+          "startLine": 175,
+          "endLine": 178,
+          "params": [
+            "deviceId",
+            "newPolicies"
+          ]
+        },
+        {
+          "name": "planBulkPolicy",
+          "startLine": 180,
+          "endLine": 186,
+          "params": [
+            "deviceId",
+            "payload"
+          ]
+        },
+        {
+          "name": "newPolicyRowDefaults",
+          "startLine": 188,
+          "endLine": 205,
+          "params": [
+            "rowIndex"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "listPendingChanges",
+          "line": 117,
+          "isDefault": false
+        },
+        {
+          "name": "addPendingChange",
+          "line": 122,
+          "isDefault": false
+        },
+        {
+          "name": "updatePendingChange",
+          "line": 130,
+          "isDefault": false
+        },
+        {
+          "name": "removePendingChange",
+          "line": 139,
+          "isDefault": false
+        },
+        {
+          "name": "getPreviewOrder",
+          "line": 143,
+          "isDefault": false
+        },
+        {
+          "name": "clearPendingChanges",
+          "line": 148,
+          "isDefault": false
+        },
+        {
+          "name": "cleanupOrphanNewObjects",
+          "line": 157,
+          "isDefault": false
+        },
+        {
+          "name": "checkObjectGaps",
+          "line": 175,
+          "isDefault": false
+        },
+        {
+          "name": "planBulkPolicy",
+          "line": 180,
+          "isDefault": false
+        },
+        {
+          "name": "newPolicyRowDefaults",
+          "line": 188,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "listPendingChanges",
+          "callee": "await apiClient.get",
+          "lineNumber": 118
+        },
+        {
+          "caller": "addPendingChange",
+          "callee": "await apiClient.post",
+          "lineNumber": 126
+        },
+        {
+          "caller": "updatePendingChange",
+          "callee": "await apiClient.patch",
+          "lineNumber": 135
+        },
+        {
+          "caller": "removePendingChange",
+          "callee": "apiClient.delete",
+          "lineNumber": 140
+        },
+        {
+          "caller": "getPreviewOrder",
+          "callee": "await apiClient.get",
+          "lineNumber": 144
+        },
+        {
+          "caller": "clearPendingChanges",
+          "callee": "apiClient.delete",
+          "lineNumber": 149
+        },
+        {
+          "caller": "cleanupOrphanNewObjects",
+          "callee": "String",
+          "lineNumber": 162
+        },
+        {
+          "caller": "cleanupOrphanNewObjects",
+          "callee": "raw.split",
+          "lineNumber": 163
+        },
+        {
+          "caller": "cleanupOrphanNewObjects",
+          "callee": "token.trim().replace",
+          "lineNumber": 164
+        },
+        {
+          "caller": "cleanupOrphanNewObjects",
+          "callee": "token.trim",
+          "lineNumber": 164
+        },
+        {
+          "caller": "cleanupOrphanNewObjects",
+          "callee": "referencedNames.add",
+          "lineNumber": 165
+        },
+        {
+          "caller": "cleanupOrphanNewObjects",
+          "callee": "remainingChanges.filter",
+          "lineNumber": 169
+        },
+        {
+          "caller": "cleanupOrphanNewObjects",
+          "callee": "referencedNames.has",
+          "lineNumber": 170
+        },
+        {
+          "caller": "cleanupOrphanNewObjects",
+          "callee": "String",
+          "lineNumber": 170
+        },
+        {
+          "caller": "cleanupOrphanNewObjects",
+          "callee": "Promise.all",
+          "lineNumber": 172
+        },
+        {
+          "caller": "cleanupOrphanNewObjects",
+          "callee": "orphaned.map",
+          "lineNumber": 172
+        },
+        {
+          "caller": "cleanupOrphanNewObjects",
+          "callee": "removePendingChange",
+          "lineNumber": 172
+        },
+        {
+          "caller": "checkObjectGaps",
+          "callee": "apiClient.post",
+          "lineNumber": 176
+        },
+        {
+          "caller": "planBulkPolicy",
+          "callee": "await apiClient.post",
+          "lineNumber": 184
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 10,
+        "functionCount": 10,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/api/schedules.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 58,
+      "nonEmptyLines": 50,
+      "functions": [
+        {
+          "name": "listSchedules",
+          "startLine": 35,
+          "endLine": 38,
+          "params": []
+        },
+        {
+          "name": "getSchedule",
+          "startLine": 40,
+          "endLine": 43,
+          "params": [
+            "id"
+          ]
+        },
+        {
+          "name": "createSchedule",
+          "startLine": 45,
+          "endLine": 48,
+          "params": [
+            "payload"
+          ]
+        },
+        {
+          "name": "updateSchedule",
+          "startLine": 50,
+          "endLine": 53,
+          "params": [
+            "id",
+            "payload"
+          ]
+        },
+        {
+          "name": "deleteSchedule",
+          "startLine": 55,
+          "endLine": 58,
+          "params": [
+            "id"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "listSchedules",
+          "line": 35,
+          "isDefault": false
+        },
+        {
+          "name": "getSchedule",
+          "line": 40,
+          "isDefault": false
+        },
+        {
+          "name": "createSchedule",
+          "line": 45,
+          "isDefault": false
+        },
+        {
+          "name": "updateSchedule",
+          "line": 50,
+          "isDefault": false
+        },
+        {
+          "name": "deleteSchedule",
+          "line": 55,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "listSchedules",
+          "callee": "await apiClient.get",
+          "lineNumber": 36
+        },
+        {
+          "caller": "getSchedule",
+          "callee": "await apiClient.get",
+          "lineNumber": 41
+        },
+        {
+          "caller": "createSchedule",
+          "callee": "await apiClient.post",
+          "lineNumber": 46
+        },
+        {
+          "caller": "updateSchedule",
+          "callee": "await apiClient.put",
+          "lineNumber": 51
+        },
+        {
+          "caller": "deleteSchedule",
+          "callee": "await apiClient.delete",
+          "lineNumber": 56
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 5,
+        "functionCount": 5,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/api/settings.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 84,
+      "nonEmptyLines": 70,
+      "functions": [
+        {
+          "name": "getSettings",
+          "startLine": 10,
+          "endLine": 13,
+          "params": []
+        },
+        {
+          "name": "getSetting",
+          "startLine": 15,
+          "endLine": 18,
+          "params": [
+            "key"
+          ]
+        },
+        {
+          "name": "updateSetting",
+          "startLine": 20,
+          "endLine": 23,
+          "params": [
+            "key",
+            "value",
+            "description"
+          ]
+        },
+        {
+          "name": "getDeletionWorkflowConfig",
+          "startLine": 25,
+          "endLine": 28,
+          "params": []
+        },
+        {
+          "name": "updateDeletionWorkflowConfig",
+          "startLine": 30,
+          "endLine": 33,
+          "params": [
+            "config"
+          ]
+        },
+        {
+          "name": "exportDeletionWorkflowConfig",
+          "startLine": 35,
+          "endLine": 41,
+          "params": []
+        },
+        {
+          "name": "importDeletionWorkflowConfig",
+          "startLine": 43,
+          "endLine": 49,
+          "params": [
+            "file"
+          ]
+        },
+        {
+          "name": "getDeletionWorkflowConfigYaml",
+          "startLine": 51,
+          "endLine": 56,
+          "params": []
+        },
+        {
+          "name": "updateDeletionWorkflowConfigYaml",
+          "startLine": 58,
+          "endLine": 62,
+          "params": [
+            "yamlText"
+          ]
+        },
+        {
+          "name": "parseYamlToJson",
+          "startLine": 64,
+          "endLine": 69,
+          "params": [
+            "yamlText"
+          ]
+        },
+        {
+          "name": "downloadExceptionExcelTemplate",
+          "startLine": 73,
+          "endLine": 75,
+          "params": [
+            "category"
+          ]
+        },
+        {
+          "name": "importExceptionExcel",
+          "startLine": 77,
+          "endLine": 84,
+          "params": [
+            "category",
+            "file"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "getSettings",
+          "line": 10,
+          "isDefault": false
+        },
+        {
+          "name": "getSetting",
+          "line": 15,
+          "isDefault": false
+        },
+        {
+          "name": "updateSetting",
+          "line": 20,
+          "isDefault": false
+        },
+        {
+          "name": "getDeletionWorkflowConfig",
+          "line": 25,
+          "isDefault": false
+        },
+        {
+          "name": "updateDeletionWorkflowConfig",
+          "line": 30,
+          "isDefault": false
+        },
+        {
+          "name": "exportDeletionWorkflowConfig",
+          "line": 35,
+          "isDefault": false
+        },
+        {
+          "name": "importDeletionWorkflowConfig",
+          "line": 43,
+          "isDefault": false
+        },
+        {
+          "name": "getDeletionWorkflowConfigYaml",
+          "line": 51,
+          "isDefault": false
+        },
+        {
+          "name": "updateDeletionWorkflowConfigYaml",
+          "line": 58,
+          "isDefault": false
+        },
+        {
+          "name": "parseYamlToJson",
+          "line": 64,
+          "isDefault": false
+        },
+        {
+          "name": "downloadExceptionExcelTemplate",
+          "line": 73,
+          "isDefault": false
+        },
+        {
+          "name": "importExceptionExcel",
+          "line": 77,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "getSettings",
+          "callee": "await apiClient.get",
+          "lineNumber": 11
+        },
+        {
+          "caller": "getSetting",
+          "callee": "await apiClient.get",
+          "lineNumber": 16
+        },
+        {
+          "caller": "updateSetting",
+          "callee": "await apiClient.put",
+          "lineNumber": 21
+        },
+        {
+          "caller": "getDeletionWorkflowConfig",
+          "callee": "apiClient.get",
+          "lineNumber": 26
+        },
+        {
+          "caller": "updateDeletionWorkflowConfig",
+          "callee": "apiClient.put",
+          "lineNumber": 31
+        },
+        {
+          "caller": "exportDeletionWorkflowConfig",
+          "callee": "apiClient.get",
+          "lineNumber": 36
+        },
+        {
+          "caller": "exportDeletionWorkflowConfig",
+          "callee": "disposition.match",
+          "lineNumber": 38
+        },
+        {
+          "caller": "importDeletionWorkflowConfig",
+          "callee": "form.append",
+          "lineNumber": 45
+        },
+        {
+          "caller": "importDeletionWorkflowConfig",
+          "callee": "apiClient.post",
+          "lineNumber": 46
+        },
+        {
+          "caller": "getDeletionWorkflowConfigYaml",
+          "callee": "await apiClient.get",
+          "lineNumber": 52
+        },
+        {
+          "caller": "updateDeletionWorkflowConfigYaml",
+          "callee": "apiClient.put",
+          "lineNumber": 59
+        },
+        {
+          "caller": "parseYamlToJson",
+          "callee": "await apiClient.post",
+          "lineNumber": 65
+        },
+        {
+          "caller": "downloadExceptionExcelTemplate",
+          "callee": "downloadBlob",
+          "lineNumber": 74
+        },
+        {
+          "caller": "importExceptionExcel",
+          "callee": "form.append",
+          "lineNumber": 79
+        },
+        {
+          "caller": "importExceptionExcel",
+          "callee": "await apiClient.post",
+          "lineNumber": 80
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 12,
+        "functionCount": 12,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/api/users.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 39,
+      "nonEmptyLines": 32,
+      "functions": [
+        {
+          "name": "getUsers",
+          "startLine": 17,
+          "endLine": 20,
+          "params": []
+        },
+        {
+          "name": "createUser",
+          "startLine": 22,
+          "endLine": 25,
+          "params": [
+            "payload"
+          ]
+        },
+        {
+          "name": "changeUserPassword",
+          "startLine": 27,
+          "endLine": 30,
+          "params": [
+            "userId",
+            "password"
+          ]
+        },
+        {
+          "name": "toggleUserActive",
+          "startLine": 32,
+          "endLine": 35,
+          "params": [
+            "userId",
+            "is_active"
+          ]
+        },
+        {
+          "name": "deleteUser",
+          "startLine": 37,
+          "endLine": 39,
+          "params": [
+            "userId"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "getUsers",
+          "line": 17,
+          "isDefault": false
+        },
+        {
+          "name": "createUser",
+          "line": 22,
+          "isDefault": false
+        },
+        {
+          "name": "changeUserPassword",
+          "line": 27,
+          "isDefault": false
+        },
+        {
+          "name": "toggleUserActive",
+          "line": 32,
+          "isDefault": false
+        },
+        {
+          "name": "deleteUser",
+          "line": 37,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "getUsers",
+          "callee": "await apiClient.get",
+          "lineNumber": 18
+        },
+        {
+          "caller": "createUser",
+          "callee": "await apiClient.post",
+          "lineNumber": 23
+        },
+        {
+          "caller": "changeUserPassword",
+          "callee": "await apiClient.patch",
+          "lineNumber": 28
+        },
+        {
+          "caller": "toggleUserActive",
+          "callee": "await apiClient.patch",
+          "lineNumber": 33
+        },
+        {
+          "caller": "deleteUser",
+          "callee": "apiClient.delete",
+          "lineNumber": 38
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 5,
+        "functionCount": 5,
+        "classCount": 0
+      }
+    }
+  ]
+}

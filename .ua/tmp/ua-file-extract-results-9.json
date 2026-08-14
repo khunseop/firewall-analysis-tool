@@ -1,0 +1,1951 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 9,
+  "filesSkipped": [],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 9,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 9,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "results": [
+    {
+      "path": "frontend/src/components/pages/DevicesPage.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 755,
+      "nonEmptyLines": 705,
+      "functions": [
+        {
+          "name": "exportTypeLabel",
+          "startLine": 38,
+          "endLine": 38,
+          "params": [
+            "type"
+          ]
+        },
+        {
+          "name": "DevicesPage",
+          "startLine": 40,
+          "endLine": 755,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "DevicesPage",
+          "line": 40,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "DevicesPage",
+          "callee": "useQueryClient",
+          "lineNumber": 41
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useRef",
+          "lineNumber": 42
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useDeviceSearchStore",
+          "lineNumber": 43
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useState",
+          "lineNumber": 44
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useState",
+          "lineNumber": 45
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useState",
+          "lineNumber": 46
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useState",
+          "lineNumber": 47
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useState",
+          "lineNumber": 48
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useState",
+          "lineNumber": 49
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useState",
+          "lineNumber": 50
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useState",
+          "lineNumber": 51
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useState",
+          "lineNumber": 52
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useState",
+          "lineNumber": 53
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useState",
+          "lineNumber": 54
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useState",
+          "lineNumber": 55
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useRef",
+          "lineNumber": 56
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useConfirm",
+          "lineNumber": 57
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useMemo",
+          "lineNumber": 59
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "buildColumnDefs",
+          "lineNumber": 59
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useEffect",
+          "lineNumber": 61
+        },
+        {
+          "caller": "handleClickOutside",
+          "callee": "addMenuRef.current.contains",
+          "lineNumber": 64
+        },
+        {
+          "caller": "handleClickOutside",
+          "callee": "setAddMenuOpen",
+          "lineNumber": 65
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "document.addEventListener",
+          "lineNumber": 68
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "document.removeEventListener",
+          "lineNumber": 69
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useQuery",
+          "lineNumber": 72
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useEffect",
+          "lineNumber": 75
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "api.getSelectedRows",
+          "lineNumber": 78
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setSelectedDevices",
+          "lineNumber": 81
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useMemo",
+          "lineNumber": 84
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "[...new Set(devices.map(d => d.group).filter(Boolean) as string[])].sort",
+          "lineNumber": 85
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "devices.map(d => d.group).filter",
+          "lineNumber": 85
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "devices.map",
+          "lineNumber": 85
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useMemo",
+          "lineNumber": 88
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "devices.some",
+          "lineNumber": 88
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useMemo",
+          "lineNumber": 90
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useEffect",
+          "lineNumber": 99
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "gridRef.current?.gridApi?.onFilterChanged",
+          "lineNumber": 100
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useCallback",
+          "lineNumber": 103
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useCallback",
+          "lineNumber": 104
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useMemo",
+          "lineNumber": 109
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "devices.filter",
+          "lineNumber": 111
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "devices.filter",
+          "lineNumber": 112
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "devices.filter",
+          "lineNumber": 113
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "Math.round",
+          "lineNumber": 116
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useMutation",
+          "lineNumber": 118
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "createDevice",
+          "lineNumber": 119
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "queryClient.invalidateQueries",
+          "lineNumber": 120
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setFormOpen",
+          "lineNumber": 120
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.success",
+          "lineNumber": 120
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.error",
+          "lineNumber": 121
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useMutation",
+          "lineNumber": 123
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "updateDevice",
+          "lineNumber": 124
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "queryClient.invalidateQueries",
+          "lineNumber": 125
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setFormOpen",
+          "lineNumber": 125
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setEditTarget",
+          "lineNumber": 125
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.success",
+          "lineNumber": 125
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.error",
+          "lineNumber": 126
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useMutation",
+          "lineNumber": 128
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "deleteDevice",
+          "lineNumber": 129
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "queryClient.invalidateQueries",
+          "lineNumber": 130
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.success",
+          "lineNumber": 130
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.error",
+          "lineNumber": 131
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useMutation",
+          "lineNumber": 133
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "syncAll",
+          "lineNumber": 134
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.success",
+          "lineNumber": 135
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.error",
+          "lineNumber": 136
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useCallback",
+          "lineNumber": 139
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "api.getRowNode",
+          "lineNumber": 143
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "String",
+          "lineNumber": 143
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "node.setData",
+          "lineNumber": 146
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "new Date().toISOString",
+          "lineNumber": 151
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "notify",
+          "lineNumber": 157
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "queryClient.invalidateQueries",
+          "lineNumber": 158
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "notify",
+          "lineNumber": 160
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "queryClient.invalidateQueries",
+          "lineNumber": 161
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useCallback",
+          "lineNumber": 165
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setExportTasks",
+          "lineNumber": 169
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "exportTypeLabel",
+          "lineNumber": 185
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.success",
+          "lineNumber": 187
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "downloadExportResult",
+          "lineNumber": 188
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "createNotification({ title: '직접 추출 완료', message: `${label} 추출이 완료되었습니다.`, type: 'success', category: 'system' }).catch",
+          "lineNumber": 190
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "createNotification",
+          "lineNumber": 190
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "exportTypeLabel",
+          "lineNumber": 192
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.error",
+          "lineNumber": 194
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "createNotification({ title: '직접 추출 실패', message: errorMessage, type: 'error', category: 'system' }).catch",
+          "lineNumber": 195
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "createNotification",
+          "lineNumber": 195
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useCallback",
+          "lineNumber": 199
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "handleSyncMessage",
+          "lineNumber": 200
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "handleExportTaskMessage",
+          "lineNumber": 201
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useSyncStatusWebSocket",
+          "lineNumber": 204
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useEffect",
+          "lineNumber": 207
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "getActiveExportTasks().then((tasks) => {\n      if (tasks.length === 0) return\n      setExportTasks((prev) => {\n        const next = { ...prev }\n        for (const t of tasks) {\n          next[t.id] = {\n            exportType: t.export_type,\n            deviceIds: t.device_ids,\n            createdAt: t.created_at,\n            status: t.status,\n            step: t.step,\n            progressCurrent: t.progress_current,\n            progressTotal: t.progress_total,\n            errorMessage: t.error_message,\n            resultFilename: t.result_filename,\n          }\n        }\n        return next\n      })\n    }).catch",
+          "lineNumber": 208
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "getActiveExportTasks().then",
+          "lineNumber": 208
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "getActiveExportTasks",
+          "lineNumber": 208
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setExportTasks",
+          "lineNumber": 210
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useCallback",
+          "lineNumber": 230
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setExportTasks",
+          "lineNumber": 231
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "new Date().toISOString",
+          "lineNumber": 235
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useCallback",
+          "lineNumber": 245
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "devices.find",
+          "lineNumber": 248
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useMemo",
+          "lineNumber": 253
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "Object.entries(exportTasks)\n      .map(([id, t]) => ({\n        id: Number(id), ...t,\n        deviceLabel: deviceLabelFor(t.deviceIds),\n        timeLabel: t.createdAt ? new Date(t.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : null,\n      }))\n      .sort",
+          "lineNumber": 254
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "Object.entries(exportTasks)\n      .map",
+          "lineNumber": 254
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "Object.entries",
+          "lineNumber": 254
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "Number",
+          "lineNumber": 256
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "deviceLabelFor",
+          "lineNumber": 257
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "new Date(t.createdAt).toLocaleTimeString",
+          "lineNumber": 258
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useCallback",
+          "lineNumber": 264
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setExportTasks",
+          "lineNumber": 265
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useMutation",
+          "lineNumber": 272
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "bulkImportDevices",
+          "lineNumber": 273
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "queryClient.invalidateQueries",
+          "lineNumber": 275
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setBulkOpen",
+          "lineNumber": 275
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setBulkFile",
+          "lineNumber": 275
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.success",
+          "lineNumber": 276
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.warning",
+          "lineNumber": 277
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "result.failed_devices.join",
+          "lineNumber": 277
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.error",
+          "lineNumber": 279
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useCallback",
+          "lineNumber": 282
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "selectedDevices.map(d => d.name).join",
+          "lineNumber": 284
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "selectedDevices.map",
+          "lineNumber": 284
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "confirm",
+          "lineNumber": 285
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "deleteMutation.mutate",
+          "lineNumber": 292
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setSelectedDevices",
+          "lineNumber": 293
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useCallback",
+          "lineNumber": 297
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "selectedDevices.map(d => d.name).join",
+          "lineNumber": 299
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "selectedDevices.map",
+          "lineNumber": 299
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "confirm",
+          "lineNumber": 300
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "selectedDevices.forEach",
+          "lineNumber": 306
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "syncMutation.mutate",
+          "lineNumber": 306
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.info",
+          "lineNumber": 307
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useCallback",
+          "lineNumber": 310
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.info",
+          "lineNumber": 312
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.success",
+          "lineNumber": 314
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "testConnection",
+          "lineNumber": 314
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.error",
+          "lineNumber": 315
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useCallback",
+          "lineNumber": 319
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setBulkOptionsOpen",
+          "lineNumber": 320
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "Promise.all",
+          "lineNumber": 322
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "selectedDevices.map",
+          "lineNumber": 322
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "updateDevice",
+          "lineNumber": 322
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "queryClient.invalidateQueries",
+          "lineNumber": 323
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.success",
+          "lineNumber": 324
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.error",
+          "lineNumber": 325
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useCallback",
+          "lineNumber": 328
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setBulkGroupOpen",
+          "lineNumber": 329
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "Promise.all",
+          "lineNumber": 331
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "selectedDevices.map",
+          "lineNumber": 331
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "updateDevice",
+          "lineNumber": 331
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "queryClient.invalidateQueries",
+          "lineNumber": 332
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.success",
+          "lineNumber": 333
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toast.error",
+          "lineNumber": 334
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "useCallback",
+          "lineNumber": 337
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setEditTarget",
+          "lineNumber": 339
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setFormOpen",
+          "lineNumber": 340
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "queryClient.invalidateQueries",
+          "lineNumber": 355
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setAddMenuOpen",
+          "lineNumber": 365
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setAddMenuOpen",
+          "lineNumber": 376
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setEditTarget",
+          "lineNumber": 376
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setFormOpen",
+          "lineNumber": 376
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setAddMenuOpen",
+          "lineNumber": 383
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setBulkOpen",
+          "lineNumber": 383
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setAddMenuOpen",
+          "lineNumber": 390
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "downloadDeviceTemplate",
+          "lineNumber": 390
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "visibleExportTasks.map",
+          "lineNumber": 437
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "exportTypeLabel",
+          "lineNumber": 439
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "downloadExportResult",
+          "lineNumber": 449
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "handleDismissExportTask",
+          "lineNumber": 454
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "exportTypeLabel",
+          "lineNumber": 465
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "handleDismissExportTask",
+          "lineNumber": 468
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "exportTypeLabel",
+          "lineNumber": 478
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setBulkOptionsOpen",
+          "lineNumber": 519
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setBulkGroupOpen",
+          "lineNumber": 526
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setDirectExportOpen",
+          "lineNumber": 547
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setQuickFilter",
+          "lineNumber": 568
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setQuickFilter",
+          "lineNumber": 573
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setGroupFilter",
+          "lineNumber": 585
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "existingGroups.map",
+          "lineNumber": 591
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setGroupFilter",
+          "lineNumber": 594
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setGroupFilter",
+          "lineNumber": 603
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setSelectedDevices",
+          "lineNumber": 624
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setFormOpen",
+          "lineNumber": 641
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setEditTarget",
+          "lineNumber": 641
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "editTarget.policy_threshold?.toString",
+          "lineNumber": 660
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "editTarget.network_object_threshold?.toString",
+          "lineNumber": 662
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "editTarget.network_group_threshold?.toString",
+          "lineNumber": 664
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "editTarget.service_threshold?.toString",
+          "lineNumber": 666
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "editTarget.service_group_threshold?.toString",
+          "lineNumber": 668
+        },
+        {
+          "caller": "toNum",
+          "callee": "Number",
+          "lineNumber": 673
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toNum",
+          "lineNumber": 677
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toNum",
+          "lineNumber": 678
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toNum",
+          "lineNumber": 679
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toNum",
+          "lineNumber": 680
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "toNum",
+          "lineNumber": 681
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "updateMutation.mutate",
+          "lineNumber": 686
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "createMutation.mutate",
+          "lineNumber": 688
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setBulkOptionsOpen",
+          "lineNumber": 697
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "selectedDevices.every",
+          "lineNumber": 700
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "selectedDevices.every",
+          "lineNumber": 701
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setDirectExportOpen",
+          "lineNumber": 709
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setBulkGroupOpen",
+          "lineNumber": 717
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setDetailTarget",
+          "lineNumber": 727
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setDetailTarget",
+          "lineNumber": 728
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setEditTarget",
+          "lineNumber": 728
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setFormOpen",
+          "lineNumber": 728
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setBulkFile",
+          "lineNumber": 739
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "setBulkOpen",
+          "lineNumber": 742
+        },
+        {
+          "caller": "DevicesPage",
+          "callee": "bulkImportMutation.mutate",
+          "lineNumber": 745
+        }
+      ],
+      "metrics": {
+        "importCount": 6,
+        "exportCount": 1,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/devices/BulkGroupDialog.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 61,
+      "nonEmptyLines": 60,
+      "functions": [
+        {
+          "name": "BulkGroupDialog",
+          "startLine": 6,
+          "endLine": 61,
+          "params": [
+            "{ open, onClose, count, existingGroups, initial, onSubmit }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "BulkGroupDialog",
+          "line": 6,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "BulkGroupDialog",
+          "callee": "useState",
+          "lineNumber": 11
+        },
+        {
+          "caller": "BulkGroupDialog",
+          "callee": "useState",
+          "lineNumber": 13
+        },
+        {
+          "caller": "BulkGroupDialog",
+          "callee": "setPrevOpen",
+          "lineNumber": 15
+        },
+        {
+          "caller": "BulkGroupDialog",
+          "callee": "setGroup",
+          "lineNumber": 16
+        },
+        {
+          "caller": "BulkGroupDialog",
+          "callee": "setGroup",
+          "lineNumber": 29
+        },
+        {
+          "caller": "BulkGroupDialog",
+          "callee": "existingGroups.map",
+          "lineNumber": 36
+        },
+        {
+          "caller": "BulkGroupDialog",
+          "callee": "existingGroups.map",
+          "lineNumber": 41
+        },
+        {
+          "caller": "BulkGroupDialog",
+          "callee": "setGroup",
+          "lineNumber": 45
+        },
+        {
+          "caller": "BulkGroupDialog",
+          "callee": "onSubmit",
+          "lineNumber": 56
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/devices/BulkOptionsDialog.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 41,
+      "nonEmptyLines": 40,
+      "functions": [
+        {
+          "name": "BulkOptionsDialog",
+          "startLine": 5,
+          "endLine": 41,
+          "params": [
+            "{ open, onClose, count, initial, onSubmit }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "BulkOptionsDialog",
+          "line": 5,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "BulkOptionsDialog",
+          "callee": "useState",
+          "lineNumber": 10
+        },
+        {
+          "caller": "BulkOptionsDialog",
+          "callee": "useState",
+          "lineNumber": 12
+        },
+        {
+          "caller": "BulkOptionsDialog",
+          "callee": "setPrevOpen",
+          "lineNumber": 14
+        },
+        {
+          "caller": "BulkOptionsDialog",
+          "callee": "setForm",
+          "lineNumber": 15
+        },
+        {
+          "caller": "BulkOptionsDialog",
+          "callee": "setForm",
+          "lineNumber": 26
+        },
+        {
+          "caller": "BulkOptionsDialog",
+          "callee": "setForm",
+          "lineNumber": 30
+        },
+        {
+          "caller": "BulkOptionsDialog",
+          "callee": "onSubmit",
+          "lineNumber": 36
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/devices/DeviceDetailDialog.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 109,
+      "nonEmptyLines": 103,
+      "functions": [
+        {
+          "name": "Field",
+          "startLine": 6,
+          "endLine": 13,
+          "params": [
+            "{ label, value }"
+          ]
+        },
+        {
+          "name": "CapacityRow",
+          "startLine": 15,
+          "endLine": 31,
+          "params": [
+            "{ label, usage, threshold }"
+          ]
+        },
+        {
+          "name": "DeviceDetailDialog",
+          "startLine": 33,
+          "endLine": 109,
+          "params": [
+            "{ device, onClose, onEdit }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "DeviceDetailDialog",
+          "line": 33,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "CapacityRow",
+          "callee": "capacityLevel",
+          "lineNumber": 16
+        },
+        {
+          "caller": "CapacityRow",
+          "callee": "Math.min",
+          "lineNumber": 17
+        },
+        {
+          "caller": "CapacityRow",
+          "callee": "Math.round",
+          "lineNumber": 17
+        },
+        {
+          "caller": "DeviceDetailDialog",
+          "callee": "onClose",
+          "lineNumber": 39
+        },
+        {
+          "caller": "DeviceDetailDialog",
+          "callee": "onEdit",
+          "lineNumber": 98
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 3,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/devices/DeviceFormDialog.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 202,
+      "nonEmptyLines": 196,
+      "functions": [
+        {
+          "name": "DeviceFormDialog",
+          "startLine": 10,
+          "endLine": 202,
+          "params": [
+            "{ open, onClose, initial, onSubmit, isPending }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "DeviceFormDialog",
+          "line": 10,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "useState",
+          "lineNumber": 14
+        },
+        {
+          "caller": "set",
+          "callee": "setForm",
+          "lineNumber": 16
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "e.preventDefault",
+          "lineNumber": 26
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "onSubmit",
+          "lineNumber": 26
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "[\n                  { label: '장비명 *', key: 'name' as const, required: true },\n                  { label: 'IP 주소 *', key: 'ip_address' as const, required: true },\n                  { label: '사용자명 *', key: 'username' as const, required: true },\n                  { label: 'HA Peer IP', key: 'ha_peer_ip' as const },\n                  { label: '그룹', key: 'group' as const },\n                ].map",
+          "lineNumber": 37
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "set",
+          "lineNumber": 46
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "set",
+          "lineNumber": 51
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "VENDOR_OPTIONS.map",
+          "lineNumber": 56
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "set",
+          "lineNumber": 64
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "set",
+          "lineNumber": 70
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "set",
+          "lineNumber": 75
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "set",
+          "lineNumber": 79
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "set",
+          "lineNumber": 83
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "[\n                  { label: 'Hostname', key: 'hostname' as const, manualKey: 'hostname_manual' as const },\n                  { label: '모델', key: 'model' as const, manualKey: 'model_manual' as const },\n                  { label: '시리얼 번호', key: 'serial_number' as const, manualKey: 'serial_number_manual' as const },\n                  { label: 'OS버전', key: 'os_version' as const, manualKey: 'os_version_manual' as const },\n                  { label: 'Multi-vsys', key: 'multi_vsys' as const, manualKey: 'multi_vsys_manual' as const },\n                ].map",
+          "lineNumber": 94
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "set",
+          "lineNumber": 105
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "set",
+          "lineNumber": 111
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "set",
+          "lineNumber": 123
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "set",
+          "lineNumber": 127
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "[\n                  { label: '지역', key: 'location_region' as const },\n                  { label: '설치동', key: 'location_building' as const },\n                  { label: '층', key: 'location_floor' as const },\n                  { label: 'Room', key: 'location_room' as const },\n                ].map",
+          "lineNumber": 134
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "set",
+          "lineNumber": 142
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "[\n                  { label: '좌표 X', key: 'location_x' as const },\n                  { label: '좌표 Y', key: 'location_y' as const },\n                  { label: '좌표 Z', key: 'location_z' as const },\n                ].map",
+          "lineNumber": 147
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "set",
+          "lineNumber": 154
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "[\n                  { label: '정책 수 임계치', key: 'policy_threshold' as const, manualKey: 'policy_threshold_manual' as const },\n                  { label: '네트워크 객체 수 임계치', key: 'network_object_threshold' as const, manualKey: 'network_object_threshold_manual' as const },\n                  { label: '네트워크 그룹 수 임계치', key: 'network_group_threshold' as const, manualKey: 'network_group_threshold_manual' as const },\n                  { label: '서비스 객체 수 임계치', key: 'service_threshold' as const, manualKey: 'service_threshold_manual' as const },\n                  { label: '서비스 그룹 수 임계치', key: 'service_group_threshold' as const, manualKey: 'service_group_threshold_manual' as const },\n                ].map",
+          "lineNumber": 165
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "set",
+          "lineNumber": 176
+        },
+        {
+          "caller": "DeviceFormDialog",
+          "callee": "set",
+          "lineNumber": 183
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/devices/DeviceGridCells.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 117,
+      "nonEmptyLines": 110,
+      "exports": [
+        {
+          "name": "DeviceNameCell",
+          "line": 12,
+          "isDefault": false
+        },
+        {
+          "name": "ResourceWarningBadge",
+          "line": 98,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "handleClickOutside",
+          "callee": "menuRef.current.contains",
+          "lineNumber": 26
+        },
+        {
+          "caller": "handleClickOutside",
+          "callee": "buttonRef.current.contains",
+          "lineNumber": 27
+        },
+        {
+          "caller": "handleClickOutside",
+          "callee": "setOpen",
+          "lineNumber": 28
+        },
+        {
+          "caller": "handleScroll",
+          "callee": "setOpen",
+          "lineNumber": 30
+        },
+        {
+          "caller": "goToPolicies",
+          "callee": "setSelectedIds",
+          "lineNumber": 42
+        },
+        {
+          "caller": "goToPolicies",
+          "callee": "setFilterTree",
+          "lineNumber": 43
+        },
+        {
+          "caller": "goToPolicies",
+          "callee": "setSearchRequest",
+          "lineNumber": 44
+        },
+        {
+          "caller": "goToPolicies",
+          "callee": "buildRequestFromFilterTree",
+          "lineNumber": 44
+        },
+        {
+          "caller": "goToPolicies",
+          "callee": "setOpen",
+          "lineNumber": 45
+        },
+        {
+          "caller": "goToPolicies",
+          "callee": "navigate",
+          "lineNumber": 46
+        },
+        {
+          "caller": "goToObjects",
+          "callee": "setSelectedIds",
+          "lineNumber": 48
+        },
+        {
+          "caller": "goToObjects",
+          "callee": "setOpen",
+          "lineNumber": 48
+        },
+        {
+          "caller": "goToObjects",
+          "callee": "navigate",
+          "lineNumber": 48
+        },
+        {
+          "caller": "goToAnalysis",
+          "callee": "setOpen",
+          "lineNumber": 49
+        },
+        {
+          "caller": "goToAnalysis",
+          "callee": "navigate",
+          "lineNumber": 49
+        },
+        {
+          "caller": "showDetail",
+          "callee": "setOpen",
+          "lineNumber": 50
+        },
+        {
+          "caller": "showDetail",
+          "callee": "onShowDetail",
+          "lineNumber": 50
+        },
+        {
+          "caller": "toggleOpen",
+          "callee": "e.stopPropagation",
+          "lineNumber": 53
+        },
+        {
+          "caller": "toggleOpen",
+          "callee": "buttonRef.current?.getBoundingClientRect",
+          "lineNumber": 54
+        },
+        {
+          "caller": "toggleOpen",
+          "callee": "setMenuPos",
+          "lineNumber": 55
+        },
+        {
+          "caller": "toggleOpen",
+          "callee": "setOpen",
+          "lineNumber": 56
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/devices/DirectExportDialog.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 204,
+      "nonEmptyLines": 189,
+      "functions": [
+        {
+          "name": "DirectExportDialog",
+          "startLine": 16,
+          "endLine": 204,
+          "params": [
+            "{ open, onClose, devices, onTasksStarted }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "DirectExportDialog",
+          "line": 16,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "DirectExportDialog",
+          "callee": "useState",
+          "lineNumber": 20
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "useState",
+          "lineNumber": 21
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "useState",
+          "lineNumber": 22
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "useState",
+          "lineNumber": 23
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "useState",
+          "lineNumber": 24
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "useState",
+          "lineNumber": 25
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "useState",
+          "lineNumber": 28
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "setPrevOpen",
+          "lineNumber": 30
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "setExportType",
+          "lineNumber": 32
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "setSource",
+          "lineNumber": 33
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "setMerge",
+          "lineNumber": 34
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "setUseSsh",
+          "lineNumber": 35
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "setTimeout_",
+          "lineNumber": 36
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "setSubmitting",
+          "lineNumber": 37
+        },
+        {
+          "caller": "handleExport",
+          "callee": "EXPORT_TYPE_OPTIONS.find",
+          "lineNumber": 43
+        },
+        {
+          "caller": "handleExport",
+          "callee": "setSubmitting",
+          "lineNumber": 44
+        },
+        {
+          "caller": "handleExport",
+          "callee": "bulkExportDevices",
+          "lineNumber": 48
+        },
+        {
+          "caller": "handleExport",
+          "callee": "onTasksStarted",
+          "lineNumber": 53
+        },
+        {
+          "caller": "handleExport",
+          "callee": "devices.map",
+          "lineNumber": 53
+        },
+        {
+          "caller": "handleExport",
+          "callee": "toast.success",
+          "lineNumber": 54
+        },
+        {
+          "caller": "handleExport",
+          "callee": "Promise.allSettled",
+          "lineNumber": 60
+        },
+        {
+          "caller": "handleExport",
+          "callee": "devices.map",
+          "lineNumber": 60
+        },
+        {
+          "caller": "handleExport",
+          "callee": "bulkExportDevices",
+          "lineNumber": 63
+        },
+        {
+          "caller": "handleExport",
+          "callee": "directExport",
+          "lineNumber": 68
+        },
+        {
+          "caller": "handleExport",
+          "callee": "onTasksStarted",
+          "lineNumber": 73
+        },
+        {
+          "caller": "handleExport",
+          "callee": "results.forEach",
+          "lineNumber": 77
+        },
+        {
+          "caller": "handleExport",
+          "callee": "failed.push",
+          "lineNumber": 78
+        },
+        {
+          "caller": "handleExport",
+          "callee": "toast.success",
+          "lineNumber": 82
+        },
+        {
+          "caller": "handleExport",
+          "callee": "toast.error",
+          "lineNumber": 85
+        },
+        {
+          "caller": "handleExport",
+          "callee": "failed.join",
+          "lineNumber": 85
+        },
+        {
+          "caller": "handleExport",
+          "callee": "onClose",
+          "lineNumber": 88
+        },
+        {
+          "caller": "handleExport",
+          "callee": "toast.error",
+          "lineNumber": 90
+        },
+        {
+          "caller": "handleExport",
+          "callee": "setSubmitting",
+          "lineNumber": 92
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "EXPORT_TYPE_OPTIONS.map",
+          "lineNumber": 114
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "setExportType",
+          "lineNumber": 118
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "setSource",
+          "lineNumber": 134
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "setSource",
+          "lineNumber": 140
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "setMerge",
+          "lineNumber": 150
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "setUseSsh",
+          "lineNumber": 162
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "setTimeout_",
+          "lineNumber": 178
+        },
+        {
+          "caller": "DirectExportDialog",
+          "callee": "Number",
+          "lineNumber": 178
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/devices/constants.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 60,
+      "nonEmptyLines": 54,
+      "exports": [
+        {
+          "name": "VENDOR_OPTIONS",
+          "line": 2,
+          "isDefault": false
+        },
+        {
+          "name": "VENDOR_BADGE",
+          "line": 9,
+          "isDefault": false
+        },
+        {
+          "name": "STATUS_CONFIG",
+          "line": 16,
+          "isDefault": false
+        },
+        {
+          "name": "STATUS_ORDER",
+          "line": 24,
+          "isDefault": false
+        },
+        {
+          "name": "DEFAULT_FORM",
+          "line": 46,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 5,
+        "functionCount": 0,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/devices/deviceColumns.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 118,
+      "nonEmptyLines": 117,
+      "functions": [
+        {
+          "name": "buildColumnDefs",
+          "startLine": 8,
+          "endLine": 118,
+          "params": [
+            "onShowDetail"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "buildColumnDefs",
+          "line": 8,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "buildColumnDefs",
+          "callee": "e.stopPropagation",
+          "lineNumber": 44
+        },
+        {
+          "caller": "buildColumnDefs",
+          "callee": "e.stopPropagation",
+          "lineNumber": 64
+        },
+        {
+          "caller": "buildColumnDefs",
+          "callee": "VENDOR_OPTIONS.find",
+          "lineNumber": 75
+        },
+        {
+          "caller": "buildColumnDefs",
+          "callee": "p.data?.vendor?.toLowerCase",
+          "lineNumber": 77
+        },
+        {
+          "caller": "buildColumnDefs",
+          "callee": "VENDOR_OPTIONS.find",
+          "lineNumber": 78
+        },
+        {
+          "caller": "buildColumnDefs",
+          "callee": "formatRelativeTime",
+          "lineNumber": 108
+        },
+        {
+          "caller": "buildColumnDefs",
+          "callee": "new Date(nodeA.data?.last_sync_at ?? 0).getTime",
+          "lineNumber": 110
+        },
+        {
+          "caller": "buildColumnDefs",
+          "callee": "new Date(nodeB.data?.last_sync_at ?? 0).getTime",
+          "lineNumber": 110
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,226 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/components/pages/SettingsPage.tsx",
+      "type": "file",
+      "name": "SettingsPage.tsx",
+      "filePath": "frontend/src/components/pages/SettingsPage.tsx",
+      "summary": "설정 페이지의 탭 컨테이너. 일반/위험 포트/정책 기본값/계정 관리/로그/삭제 워크플로우 6개 탭을 관리하며 선택된 탭에 해당하는 하위 설정 컴포넌트를 렌더링한다.",
+      "tags": ["entry-point", "component", "tab-navigation", "settings"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/pages/settings/AccountSettings.tsx",
+      "type": "file",
+      "name": "AccountSettings.tsx",
+      "filePath": "frontend/src/components/pages/settings/AccountSettings.tsx",
+      "summary": "계정(사용자) 목록 조회, 생성, 비밀번호 변경, 활성화 토글, 삭제 기능을 제공하는 계정 관리 설정 탭 컴포넌트.",
+      "tags": ["component", "user-management", "crud", "settings"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx",
+      "type": "file",
+      "name": "DeletionWorkflowSettings.tsx",
+      "filePath": "frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx",
+      "summary": "삭제 워크플로우 설정 탭. YAML 직접 편집, 판정 기준(criteria) 폼 입력, 광대역 중복 정책/예외 테이블 관리, 설정 가져오기/내보내기 기능을 제공한다.",
+      "tags": ["component", "workflow", "yaml-editor", "settings"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/pages/settings/DuplicatePolicyTable.tsx",
+      "type": "file",
+      "name": "DuplicatePolicyTable.tsx",
+      "filePath": "frontend/src/components/pages/settings/DuplicatePolicyTable.tsx",
+      "summary": "삭제 워크플로우 예외 대상인 광대역 중복 정책 항목을 검색·필터링·페이지네이션하며 추가/수정/삭제하는 테이블 컴포넌트. 장비 검색 드롭다운(DeviceSearchSelect)과 YAML 일괄 추가 기능을 포함한다.",
+      "tags": ["component", "table", "search", "settings"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:frontend/src/components/pages/settings/ExceptionTable.tsx",
+      "type": "file",
+      "name": "ExceptionTable.tsx",
+      "filePath": "frontend/src/components/pages/settings/ExceptionTable.tsx",
+      "summary": "삭제 워크플로우 예외 항목(요청자/신청유형 등)을 검색·페이지네이션하며 추가/수정/삭제하고 엑셀 템플릿 다운로드 및 엑셀 일괄 가져오기를 지원하는 범용 예외 테이블 컴포넌트.",
+      "tags": ["component", "table", "excel-import", "settings"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/pages/settings/GeneralSettings.tsx",
+      "type": "file",
+      "name": "GeneralSettings.tsx",
+      "filePath": "frontend/src/components/pages/settings/GeneralSettings.tsx",
+      "summary": "일반 시스템 설정 값을 조회하고 수정하여 저장하는 설정 탭 컴포넌트 (위험 포트/삭제 워크플로우 설정은 별도 탭에서 제외).",
+      "tags": ["component", "settings", "form", "configuration"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/pages/settings/LogSettings.tsx",
+      "type": "file",
+      "name": "LogSettings.tsx",
+      "filePath": "frontend/src/components/pages/settings/LogSettings.tsx",
+      "summary": "지정한 보존 일수보다 오래된 알림 로그를 정리(삭제)하는 로그 설정 탭 컴포넌트.",
+      "tags": ["component", "settings", "cleanup", "notifications"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/pages/settings/PolicyDefaultsSettings.tsx",
+      "type": "file",
+      "name": "PolicyDefaultsSettings.tsx",
+      "filePath": "frontend/src/components/pages/settings/PolicyDefaultsSettings.tsx",
+      "summary": "정책 빌더(PolicyBuilder)에서 사용할 정책 생성 기본값(빈 필드 기본값)을 조회하고 수정하여 저장하는 설정 탭 컴포넌트.",
+      "tags": ["component", "settings", "form", "policy-builder"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/pages/settings/RiskyPortsSettings.tsx",
+      "type": "file",
+      "name": "RiskyPortsSettings.tsx",
+      "filePath": "frontend/src/components/pages/settings/RiskyPortsSettings.tsx",
+      "summary": "위험 포트 분석 엔진에서 사용할 위험 포트/프로토콜 목록을 행 단위로 추가·수정·삭제하여 저장하는 설정 탭 컴포넌트.",
+      "tags": ["component", "settings", "form", "risk-analysis"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/SettingsPage.tsx:SettingsPage",
+      "type": "function",
+      "name": "SettingsPage",
+      "filePath": "frontend/src/components/pages/SettingsPage.tsx",
+      "lineRange": [20, 60],
+      "summary": "activeTab 상태로 탭바를 렌더링하고, 선택된 탭에 맞는 설정 하위 컴포넌트 하나를 조건부로 렌더링하는 최상위 컴포넌트.",
+      "tags": ["component", "tab-navigation"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/settings/AccountSettings.tsx:AccountSettings",
+      "type": "function",
+      "name": "AccountSettings",
+      "filePath": "frontend/src/components/pages/settings/AccountSettings.tsx",
+      "lineRange": [12, 196],
+      "summary": "React Query로 사용자 목록을 조회하고, 생성/비밀번호 변경/활성화 토글/삭제 뮤테이션을 처리하는 계정 관리 컴포넌트.",
+      "tags": ["component", "user-management", "crud"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx:DeletionWorkflowSettings",
+      "type": "function",
+      "name": "DeletionWorkflowSettings",
+      "filePath": "frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx",
+      "lineRange": [11, 282],
+      "summary": "삭제 워크플로우 설정(YAML/폼/예외/판정기준)을 조회·수정·저장하며, DuplicatePolicyTable과 ExceptionTable을 하위에 렌더링하는 컴포넌트.",
+      "tags": ["component", "workflow", "yaml-editor"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pages/settings/DuplicatePolicyTable.tsx:DeviceSearchSelect",
+      "type": "function",
+      "name": "DeviceSearchSelect",
+      "filePath": "frontend/src/components/pages/settings/DuplicatePolicyTable.tsx",
+      "lineRange": [25, 126],
+      "summary": "장비 이름/IP로 검색 가능한 드롭다운 선택 컴포넌트로, DuplicatePolicyTable에서 행별 장비 선택 UI로 사용된다.",
+      "tags": ["component", "search", "dropdown"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/settings/DuplicatePolicyTable.tsx:DuplicatePolicyTable",
+      "type": "function",
+      "name": "DuplicatePolicyTable",
+      "filePath": "frontend/src/components/pages/settings/DuplicatePolicyTable.tsx",
+      "lineRange": [128, 379],
+      "summary": "광대역 중복 정책 예외 항목을 검색/필터/정렬/페이지네이션하고 추가·수정·삭제하며 YAML 일괄 추가를 지원하는 테이블 컴포넌트.",
+      "tags": ["component", "table", "pagination"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pages/settings/ExceptionTable.tsx:ExceptionTable",
+      "type": "function",
+      "name": "ExceptionTable",
+      "filePath": "frontend/src/components/pages/settings/ExceptionTable.tsx",
+      "lineRange": [10, 200],
+      "summary": "예외 항목 목록을 검색/페이지네이션하고 추가·수정·삭제하며, 엑셀 템플릿 다운로드 및 엑셀 파일 일괄 가져오기를 처리하는 범용 테이블 컴포넌트.",
+      "tags": ["component", "table", "excel-import"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/settings/GeneralSettings.tsx:GeneralSettings",
+      "type": "function",
+      "name": "GeneralSettings",
+      "filePath": "frontend/src/components/pages/settings/GeneralSettings.tsx",
+      "lineRange": [11, 63],
+      "summary": "일반 카테고리 설정 값을 조회해 폼 상태로 반영하고, 변경 시 뮤테이션으로 저장하는 컴포넌트.",
+      "tags": ["component", "form", "settings"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/settings/LogSettings.tsx:LogSettings",
+      "type": "function",
+      "name": "LogSettings",
+      "filePath": "frontend/src/components/pages/settings/LogSettings.tsx",
+      "lineRange": [7, 62],
+      "summary": "보존 일수를 입력받아 확인 다이얼로그 후 오래된 알림 로그를 삭제 요청하는 컴포넌트.",
+      "tags": ["component", "cleanup", "notifications"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/settings/PolicyDefaultsSettings.tsx:PolicyDefaultsSettings",
+      "type": "function",
+      "name": "PolicyDefaultsSettings",
+      "filePath": "frontend/src/components/pages/settings/PolicyDefaultsSettings.tsx",
+      "lineRange": [40, 104],
+      "summary": "정책 빌더의 필드별 기본값을 조회·수정하여 JSON으로 직렬화해 저장하는 폼 컴포넌트.",
+      "tags": ["component", "form", "policy-builder"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/settings/RiskyPortsSettings.tsx:RiskyPortsSettings",
+      "type": "function",
+      "name": "RiskyPortsSettings",
+      "filePath": "frontend/src/components/pages/settings/RiskyPortsSettings.tsx",
+      "lineRange": [14, 127],
+      "summary": "위험 포트 목록을 행 단위로 조회·추가·수정·삭제하고 JSON으로 직렬화해 저장하는 폼 컴포넌트.",
+      "tags": ["component", "form", "risk-analysis"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {"source": "file:frontend/src/components/pages/SettingsPage.tsx", "target": "function:frontend/src/components/pages/SettingsPage.tsx:SettingsPage", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/pages/SettingsPage.tsx", "target": "function:frontend/src/components/pages/SettingsPage.tsx:SettingsPage", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/pages/settings/AccountSettings.tsx", "target": "function:frontend/src/components/pages/settings/AccountSettings.tsx:AccountSettings", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/pages/settings/AccountSettings.tsx", "target": "function:frontend/src/components/pages/settings/AccountSettings.tsx:AccountSettings", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx", "target": "function:frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx:DeletionWorkflowSettings", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx", "target": "function:frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx:DeletionWorkflowSettings", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/pages/settings/DuplicatePolicyTable.tsx", "target": "function:frontend/src/components/pages/settings/DuplicatePolicyTable.tsx:DeviceSearchSelect", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/pages/settings/DuplicatePolicyTable.tsx", "target": "function:frontend/src/components/pages/settings/DuplicatePolicyTable.tsx:DeviceSearchSelect", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/pages/settings/DuplicatePolicyTable.tsx", "target": "function:frontend/src/components/pages/settings/DuplicatePolicyTable.tsx:DuplicatePolicyTable", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/pages/settings/DuplicatePolicyTable.tsx", "target": "function:frontend/src/components/pages/settings/DuplicatePolicyTable.tsx:DuplicatePolicyTable", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/pages/settings/ExceptionTable.tsx", "target": "function:frontend/src/components/pages/settings/ExceptionTable.tsx:ExceptionTable", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/pages/settings/ExceptionTable.tsx", "target": "function:frontend/src/components/pages/settings/ExceptionTable.tsx:ExceptionTable", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/pages/settings/GeneralSettings.tsx", "target": "function:frontend/src/components/pages/settings/GeneralSettings.tsx:GeneralSettings", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/pages/settings/GeneralSettings.tsx", "target": "function:frontend/src/components/pages/settings/GeneralSettings.tsx:GeneralSettings", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/pages/settings/LogSettings.tsx", "target": "function:frontend/src/components/pages/settings/LogSettings.tsx:LogSettings", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/pages/settings/LogSettings.tsx", "target": "function:frontend/src/components/pages/settings/LogSettings.tsx:LogSettings", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/pages/settings/PolicyDefaultsSettings.tsx", "target": "function:frontend/src/components/pages/settings/PolicyDefaultsSettings.tsx:PolicyDefaultsSettings", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/pages/settings/PolicyDefaultsSettings.tsx", "target": "function:frontend/src/components/pages/settings/PolicyDefaultsSettings.tsx:PolicyDefaultsSettings", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:frontend/src/components/pages/settings/RiskyPortsSettings.tsx", "target": "function:frontend/src/components/pages/settings/RiskyPortsSettings.tsx:RiskyPortsSettings", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:frontend/src/components/pages/settings/RiskyPortsSettings.tsx", "target": "function:frontend/src/components/pages/settings/RiskyPortsSettings.tsx:RiskyPortsSettings", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:frontend/src/components/pages/SettingsPage.tsx", "target": "file:frontend/src/components/pages/settings/AccountSettings.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/components/pages/SettingsPage.tsx", "target": "file:frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/components/pages/SettingsPage.tsx", "target": "file:frontend/src/components/pages/settings/GeneralSettings.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/components/pages/SettingsPage.tsx", "target": "file:frontend/src/components/pages/settings/LogSettings.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/components/pages/SettingsPage.tsx", "target": "file:frontend/src/components/pages/settings/PolicyDefaultsSettings.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/components/pages/SettingsPage.tsx", "target": "file:frontend/src/components/pages/settings/RiskyPortsSettings.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx", "target": "file:frontend/src/components/pages/settings/DuplicatePolicyTable.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx", "target": "file:frontend/src/components/pages/settings/ExceptionTable.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:frontend/src/components/pages/settings/DuplicatePolicyTable.tsx", "target": "file:frontend/src/components/pages/settings/ExceptionTable.tsx", "type": "imports", "direction": "forward", "weight": 0.7},
+
+    {"source": "function:frontend/src/components/pages/SettingsPage.tsx:SettingsPage", "target": "function:frontend/src/components/pages/settings/GeneralSettings.tsx:GeneralSettings", "type": "contains", "direction": "forward", "weight": 0.8},
+    {"source": "function:frontend/src/components/pages/SettingsPage.tsx:SettingsPage", "target": "function:frontend/src/components/pages/settings/RiskyPortsSettings.tsx:RiskyPortsSettings", "type": "contains", "direction": "forward", "weight": 0.8},
+    {"source": "function:frontend/src/components/pages/SettingsPage.tsx:SettingsPage", "target": "function:frontend/src/components/pages/settings/PolicyDefaultsSettings.tsx:PolicyDefaultsSettings", "type": "contains", "direction": "forward", "weight": 0.8},
+    {"source": "function:frontend/src/components/pages/SettingsPage.tsx:SettingsPage", "target": "function:frontend/src/components/pages/settings/AccountSettings.tsx:AccountSettings", "type": "contains", "direction": "forward", "weight": 0.8},
+    {"source": "function:frontend/src/components/pages/SettingsPage.tsx:SettingsPage", "target": "function:frontend/src/components/pages/settings/LogSettings.tsx:LogSettings", "type": "contains", "direction": "forward", "weight": 0.8},
+    {"source": "function:frontend/src/components/pages/SettingsPage.tsx:SettingsPage", "target": "function:frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx:DeletionWorkflowSettings", "type": "contains", "direction": "forward", "weight": 0.8},
+    {"source": "function:frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx:DeletionWorkflowSettings", "target": "function:frontend/src/components/pages/settings/DuplicatePolicyTable.tsx:DuplicatePolicyTable", "type": "contains", "direction": "forward", "weight": 0.8},
+    {"source": "function:frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx:DeletionWorkflowSettings", "target": "function:frontend/src/components/pages/settings/ExceptionTable.tsx:ExceptionTable", "type": "contains", "direction": "forward", "weight": 0.8}
+  ]
+}
