@@ -1,0 +1,9 @@
+{
+  "projectRoot": "/Users/hoon/Code/firewall-analysis-tool",
+  "batchFiles": [
+    {"path": "frontend/src/components/shared/ObjectDetailModal.tsx", "language": "typescript", "sizeLines": 246, "fileCategory": "code"},
+    {"path": "frontend/src/components/shared/PolicyDetailModal.tsx", "language": "typescript", "sizeLines": 580, "fileCategory": "code"},
+    {"path": "frontend/src/components/shared/Skeleton.tsx", "language": "typescript", "sizeLines": 40, "fileCategory": "code"}
+  ],
+  "batchImportData": {"frontend/src/components/shared/ObjectDetailModal.tsx": ["frontend/src/components/shared/Skeleton.tsx"], "frontend/src/components/shared/PolicyDetailModal.tsx": ["frontend/src/components/shared/Skeleton.tsx"], "frontend/src/components/shared/Skeleton.tsx": []}
+}

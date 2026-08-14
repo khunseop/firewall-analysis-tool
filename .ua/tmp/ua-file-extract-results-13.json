@@ -1,0 +1,228 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 2,
+  "filesSkipped": [
+    "deploy.bat",
+    "run_prod.bat"
+  ],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 2,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 0,
+      "failed": 0,
+      "skipped": 2
+    }
+  },
+  "results": [
+    {
+      "path": "CLAUDE.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 141,
+      "nonEmptyLines": 104,
+      "sections": [
+        {
+          "heading": "CLAUDE.md",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "프로젝트 개요",
+          "level": 2,
+          "line": 5
+        },
+        {
+          "heading": "명령어",
+          "level": 2,
+          "line": 15
+        },
+        {
+          "heading": "백엔드",
+          "level": 3,
+          "line": 17
+        },
+        {
+          "heading": "프론트엔드",
+          "level": 3,
+          "line": 34
+        },
+        {
+          "heading": "프로덕션 통합 실행",
+          "level": 3,
+          "line": 46
+        },
+        {
+          "heading": "아키텍처",
+          "level": 2,
+          "line": 52
+        },
+        {
+          "heading": "전체 구조",
+          "level": 3,
+          "line": 54
+        },
+        {
+          "heading": "백엔드 핵심 서브시스템",
+          "level": 3,
+          "line": 66
+        },
+        {
+          "heading": "프론트엔드 구조",
+          "level": 3,
+          "line": 82
+        },
+        {
+          "heading": "FastAPI SPA 서빙 방식",
+          "level": 3,
+          "line": 97
+        },
+        {
+          "heading": "핵심 제약",
+          "level": 2,
+          "line": 103
+        },
+        {
+          "heading": "DB 스키마 변경 체크리스트",
+          "level": 2,
+          "line": 116
+        },
+        {
+          "heading": "확장 패턴",
+          "level": 2,
+          "line": 125
+        },
+        {
+          "heading": "블라스트 레이디어스 주의 (수정 파급 범위)",
+          "level": 2,
+          "line": 130
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 15
+      }
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 181,
+      "nonEmptyLines": 130,
+      "sections": [
+        {
+          "heading": "FAT: Firewall Analysis Tool",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "목차",
+          "level": 2,
+          "line": 7
+        },
+        {
+          "heading": "1. 프로젝트 개요",
+          "level": 2,
+          "line": 17
+        },
+        {
+          "heading": "지원 벤더",
+          "level": 3,
+          "line": 28
+        },
+        {
+          "heading": "2. 설치 및 실행",
+          "level": 2,
+          "line": 39
+        },
+        {
+          "heading": "DB 마이그레이션 명령어",
+          "level": 3,
+          "line": 54
+        },
+        {
+          "heading": "3. 핵심 기능",
+          "level": 2,
+          "line": 66
+        },
+        {
+          "heading": "3.1. 장비 관리 및 실시간 동기화",
+          "level": 3,
+          "line": 68
+        },
+        {
+          "heading": "3.2. 정책 및 객체 조회",
+          "level": 3,
+          "line": 75
+        },
+        {
+          "heading": "3.3. 정책 분석 엔진",
+          "level": 3,
+          "line": 81
+        },
+        {
+          "heading": "3.4. Policies 편집모드 — 정책 생성/수정/삭제/이동 CLI 생성",
+          "level": 3,
+          "line": 94
+        },
+        {
+          "heading": "4. 아키텍처",
+          "level": 2,
+          "line": 107
+        },
+        {
+          "heading": "주요 서브시스템",
+          "level": 3,
+          "line": 119
+        },
+        {
+          "heading": "프론트엔드",
+          "level": 3,
+          "line": 134
+        },
+        {
+          "heading": "상세 문서",
+          "level": 3,
+          "line": 143
+        },
+        {
+          "heading": "5. 개발 가이드라인",
+          "level": 2,
+          "line": 154
+        },
+        {
+          "heading": "5.1. 핵심 제약",
+          "level": 3,
+          "line": 156
+        },
+        {
+          "heading": "5.2. 비동기 원칙",
+          "level": 3,
+          "line": 164
+        },
+        {
+          "heading": "5.3. 확장성",
+          "level": 3,
+          "line": 169
+        },
+        {
+          "heading": "5.4. DB 스키마 변경 체크리스트",
+          "level": 3,
+          "line": 174
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 20
+      }
+    }
+  ]
+}

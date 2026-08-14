@@ -1,0 +1,42 @@
+{
+  "nodes": [
+    {
+      "id": "document:backend/DELETION_WORKFLOW.md",
+      "type": "document",
+      "name": "DELETION_WORKFLOW.md",
+      "filePath": "backend/DELETION_WORKFLOW.md",
+      "summary": "정책 삭제 워크플로우의 아키텍처, 디렉토리 구조, DB 스키마, 그리고 신청정보 파싱부터 최종 결과 생성까지 이어지는 프로세서 파이프라인(RequestParser~DuplicatePolicyClassifier) 단계별 설계를 설명하는 내부 기술 문서.",
+      "tags": ["documentation", "deletion-workflow", "architecture", "database"],
+      "complexity": "moderate",
+      "languageNotes": "Config 기반 프로세서 파이프라인 각 단계(Step 1~10)를 헤딩 구조로 순서대로 설명하는 설계 문서."
+    },
+    {
+      "id": "document:backend/DELETION_WORKFLOW_GUIDE.md",
+      "type": "document",
+      "name": "DELETION_WORKFLOW_GUIDE.md",
+      "filePath": "backend/DELETION_WORKFLOW_GUIDE.md",
+      "summary": "삭제 워크플로우 관련 API 엔드포인트(상태 조회, 시작, 단계별 실행, 파일 다운로드) 레퍼런스와 웹 UI 사용법, 프론트엔드 구현 개요를 담은 사용자용 가이드 문서.",
+      "tags": ["documentation", "api-reference", "deletion-workflow", "user-guide"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:backend/alembic.ini",
+      "type": "config",
+      "name": "alembic.ini",
+      "filePath": "backend/alembic.ini",
+      "summary": "Alembic 데이터베이스 마이그레이션 도구의 설정 파일로, 마이그레이션 스크립트 위치(backend/alembic), 로깅, 파일명 템플릿 등 마이그레이션 실행 전반을 제어한다.",
+      "tags": ["configuration", "database", "migration", "alembic"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:backend/requirements.txt",
+      "type": "document",
+      "name": "requirements.txt",
+      "filePath": "backend/requirements.txt",
+      "summary": "백엔드 Python 의존성 목록으로, FastAPI/SQLAlchemy/Alembic 웹 프레임워크 스택, 암호화(cryptography), 방화벽 SSH 수집(paramiko/scp), 스케줄링(apscheduler), 인증(python-jose/passlib/bcrypt) 라이브러리를 정의한다.",
+      "tags": ["configuration", "dependencies", "python", "build-system"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": []
+}

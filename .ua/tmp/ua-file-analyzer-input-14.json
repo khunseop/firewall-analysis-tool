@@ -1,0 +1,10 @@
+{
+  "projectRoot": "/Users/hoon/Code/firewall-analysis-tool",
+  "batchFiles": [
+    {"path": "backend/DELETION_WORKFLOW.md", "language": "markdown", "sizeLines": 175, "fileCategory": "docs"},
+    {"path": "backend/DELETION_WORKFLOW_GUIDE.md", "language": "markdown", "sizeLines": 118, "fileCategory": "docs"},
+    {"path": "backend/alembic.ini", "language": "config", "sizeLines": 147, "fileCategory": "config"},
+    {"path": "backend/requirements.txt", "language": "txt", "sizeLines": 19, "fileCategory": "docs"}
+  ],
+  "batchImportData": {"backend/DELETION_WORKFLOW.md": [], "backend/DELETION_WORKFLOW_GUIDE.md": [], "backend/alembic.ini": [], "backend/requirements.txt": []}
+}

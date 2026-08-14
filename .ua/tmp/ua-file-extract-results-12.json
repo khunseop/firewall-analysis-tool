@@ -1,0 +1,1008 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 3,
+  "filesSkipped": [],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 3,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 3,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "results": [
+    {
+      "path": "frontend/src/components/shared/ObjectDetailModal.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 246,
+      "nonEmptyLines": 227,
+      "functions": [
+        {
+          "name": "ObjectFields",
+          "startLine": 27,
+          "endLine": 44,
+          "params": [
+            "{ obj }"
+          ]
+        },
+        {
+          "name": "MemberNode",
+          "startLine": 47,
+          "endLine": 113,
+          "params": [
+            "{\n  name, allObjects, allGroups, depth,\n}"
+          ]
+        },
+        {
+          "name": "MemberTree",
+          "startLine": 116,
+          "endLine": 143,
+          "params": [
+            "{ deviceId, members }"
+          ]
+        },
+        {
+          "name": "ObjectDetailModal",
+          "startLine": 145,
+          "endLine": 246,
+          "params": [
+            "{ deviceId, name, objectType, onClose }"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "ObjectDetailModal",
+          "line": 145,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "ObjectFields",
+          "callee": "[\n    { key: 'ip_address', label: 'IP 주소', value: obj.ip_address },\n    { key: 'type',       label: '타입',    value: obj.type },\n    { key: 'description', label: '설명',   value: obj.description },\n  ].filter",
+          "lineNumber": 28
+        },
+        {
+          "caller": "ObjectFields",
+          "callee": "fields.map",
+          "lineNumber": 36
+        },
+        {
+          "caller": "ObjectFields",
+          "callee": "String",
+          "lineNumber": 39
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "useState",
+          "lineNumber": 55
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "allGroups.find",
+          "lineNumber": 57
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "allObjects.find",
+          "lineNumber": 58
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "group.members.split(',').map(m => m.trim()).filter",
+          "lineNumber": 61
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "group.members.split(',').map",
+          "lineNumber": 61
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "group.members.split",
+          "lineNumber": 61
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "m.trim",
+          "lineNumber": 61
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "setExpanded",
+          "lineNumber": 68
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "members.map",
+          "lineNumber": 79
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "setExpanded",
+          "lineNumber": 91
+        },
+        {
+          "caller": "MemberTree",
+          "callee": "useQuery",
+          "lineNumber": 117
+        },
+        {
+          "caller": "MemberTree",
+          "callee": "queryKeys.networkObjects",
+          "lineNumber": 118
+        },
+        {
+          "caller": "MemberTree",
+          "callee": "getNetworkObjects",
+          "lineNumber": 119
+        },
+        {
+          "caller": "MemberTree",
+          "callee": "useQuery",
+          "lineNumber": 122
+        },
+        {
+          "caller": "MemberTree",
+          "callee": "queryKeys.networkGroups",
+          "lineNumber": 123
+        },
+        {
+          "caller": "MemberTree",
+          "callee": "getNetworkGroups",
+          "lineNumber": 124
+        },
+        {
+          "caller": "MemberTree",
+          "callee": "[1, 2, 3].map",
+          "lineNumber": 131
+        },
+        {
+          "caller": "MemberTree",
+          "callee": "members.map",
+          "lineNumber": 138
+        },
+        {
+          "caller": "ObjectDetailModal",
+          "callee": "useNavigate",
+          "lineNumber": 146
+        },
+        {
+          "caller": "ObjectDetailModal",
+          "callee": "useQuery",
+          "lineNumber": 148
+        },
+        {
+          "caller": "ObjectDetailModal",
+          "callee": "queryKeys.objectDetail",
+          "lineNumber": 149
+        },
+        {
+          "caller": "ObjectDetailModal",
+          "callee": "getObjectDetails",
+          "lineNumber": 150
+        },
+        {
+          "caller": "ObjectDetailModal",
+          "callee": "String(obj['members'] ?? '').split(',').map(m => m.trim()).filter",
+          "lineNumber": 157
+        },
+        {
+          "caller": "ObjectDetailModal",
+          "callee": "String(obj['members'] ?? '').split(',').map",
+          "lineNumber": 157
+        },
+        {
+          "caller": "ObjectDetailModal",
+          "callee": "String(obj['members'] ?? '').split",
+          "lineNumber": 157
+        },
+        {
+          "caller": "ObjectDetailModal",
+          "callee": "String",
+          "lineNumber": 157
+        },
+        {
+          "caller": "ObjectDetailModal",
+          "callee": "m.trim",
+          "lineNumber": 157
+        },
+        {
+          "caller": "handleGoToPolicies",
+          "callee": "onClose",
+          "lineNumber": 163
+        },
+        {
+          "caller": "handleGoToPolicies",
+          "callee": "navigate",
+          "lineNumber": 165
+        },
+        {
+          "caller": "handleGoToPolicies",
+          "callee": "encodeURIComponent",
+          "lineNumber": 165
+        },
+        {
+          "caller": "ObjectDetailModal",
+          "callee": "[1, 2, 3].map",
+          "lineNumber": 184
+        },
+        {
+          "caller": "ObjectDetailModal",
+          "callee": "Object.entries(obj)\n                .filter(([k]) => !SKIP_FIELDS.includes(k))\n                .map",
+          "lineNumber": 190
+        },
+        {
+          "caller": "ObjectDetailModal",
+          "callee": "Object.entries(obj)\n                .filter",
+          "lineNumber": 190
+        },
+        {
+          "caller": "ObjectDetailModal",
+          "callee": "Object.entries",
+          "lineNumber": 190
+        },
+        {
+          "caller": "ObjectDetailModal",
+          "callee": "SKIP_FIELDS.includes",
+          "lineNumber": 191
+        },
+        {
+          "caller": "ObjectDetailModal",
+          "callee": "String",
+          "lineNumber": 197
+        },
+        {
+          "caller": "ObjectDetailModal",
+          "callee": "handleGoToPolicies",
+          "lineNumber": 220
+        },
+        {
+          "caller": "ObjectDetailModal",
+          "callee": "handleGoToPolicies",
+          "lineNumber": 228
+        },
+        {
+          "caller": "ObjectDetailModal",
+          "callee": "handleGoToPolicies",
+          "lineNumber": 234
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 4,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/shared/PolicyDetailModal.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 580,
+      "nonEmptyLines": 538,
+      "functions": [
+        {
+          "name": "ObjectFields",
+          "startLine": 24,
+          "endLine": 41,
+          "params": [
+            "{ obj }"
+          ]
+        },
+        {
+          "name": "MemberNode",
+          "startLine": 43,
+          "endLine": 101,
+          "params": [
+            "{\n  name, allObjects, allGroups, depth,\n}"
+          ]
+        },
+        {
+          "name": "MemberTree",
+          "startLine": 103,
+          "endLine": 126,
+          "params": [
+            "{ deviceId, members }"
+          ]
+        },
+        {
+          "name": "ObjectPanel",
+          "startLine": 128,
+          "endLine": 238,
+          "params": [
+            "{\n  deviceId, name, kind, onClose, onCloseModal,\n}"
+          ]
+        },
+        {
+          "name": "ChipList",
+          "startLine": 242,
+          "endLine": 338,
+          "params": [
+            "{ value, isClickable, onClickName, onRemove, onAdd }"
+          ]
+        },
+        {
+          "name": "Section",
+          "startLine": 342,
+          "endLine": 358,
+          "params": [
+            "{ label, count, children, className = '' }"
+          ]
+        },
+        {
+          "name": "countItems",
+          "startLine": 360,
+          "endLine": 363,
+          "params": [
+            "value"
+          ]
+        },
+        {
+          "name": "PolicyDetailModal",
+          "startLine": 381,
+          "endLine": 580,
+          "params": [
+            "{\n  policy,\n  deviceName,\n  validObjectNames,\n  onHistoryClick,\n  onClose,\n  editable = false,\n  onFieldChange,\n}"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "PolicyDetailModal",
+          "line": 381,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "ObjectFields",
+          "callee": "[\n    { key: 'ip_address', label: 'IP 주소', value: obj.ip_address },\n    { key: 'type',       label: '타입',    value: obj.type },\n    { key: 'description', label: '설명',   value: obj.description },\n  ].filter",
+          "lineNumber": 25
+        },
+        {
+          "caller": "ObjectFields",
+          "callee": "fields.map",
+          "lineNumber": 33
+        },
+        {
+          "caller": "ObjectFields",
+          "callee": "String",
+          "lineNumber": 36
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "useState",
+          "lineNumber": 48
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "allGroups.find",
+          "lineNumber": 49
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "allObjects.find",
+          "lineNumber": 50
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "group.members.split(',').map(m => m.trim()).filter",
+          "lineNumber": 52
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "group.members.split(',').map",
+          "lineNumber": 52
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "group.members.split",
+          "lineNumber": 52
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "m.trim",
+          "lineNumber": 52
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "setExpanded",
+          "lineNumber": 58
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "members.map",
+          "lineNumber": 67
+        },
+        {
+          "caller": "MemberNode",
+          "callee": "setExpanded",
+          "lineNumber": 79
+        },
+        {
+          "caller": "MemberTree",
+          "callee": "useQuery",
+          "lineNumber": 104
+        },
+        {
+          "caller": "MemberTree",
+          "callee": "queryKeys.networkObjects",
+          "lineNumber": 105
+        },
+        {
+          "caller": "MemberTree",
+          "callee": "getNetworkObjects",
+          "lineNumber": 106
+        },
+        {
+          "caller": "MemberTree",
+          "callee": "useQuery",
+          "lineNumber": 109
+        },
+        {
+          "caller": "MemberTree",
+          "callee": "queryKeys.networkGroups",
+          "lineNumber": 110
+        },
+        {
+          "caller": "MemberTree",
+          "callee": "getNetworkGroups",
+          "lineNumber": 111
+        },
+        {
+          "caller": "MemberTree",
+          "callee": "[1, 2, 3].map",
+          "lineNumber": 116
+        },
+        {
+          "caller": "MemberTree",
+          "callee": "members.map",
+          "lineNumber": 121
+        },
+        {
+          "caller": "ObjectPanel",
+          "callee": "useNavigate",
+          "lineNumber": 133
+        },
+        {
+          "caller": "ObjectPanel",
+          "callee": "useQuery",
+          "lineNumber": 134
+        },
+        {
+          "caller": "ObjectPanel",
+          "callee": "queryKeys.objectDetail",
+          "lineNumber": 135
+        },
+        {
+          "caller": "ObjectPanel",
+          "callee": "getObjectDetails",
+          "lineNumber": 136
+        },
+        {
+          "caller": "ObjectPanel",
+          "callee": "String(obj['members'] ?? '').split(',').map(m => m.trim()).filter",
+          "lineNumber": 144
+        },
+        {
+          "caller": "ObjectPanel",
+          "callee": "String(obj['members'] ?? '').split(',').map",
+          "lineNumber": 144
+        },
+        {
+          "caller": "ObjectPanel",
+          "callee": "String(obj['members'] ?? '').split",
+          "lineNumber": 144
+        },
+        {
+          "caller": "ObjectPanel",
+          "callee": "String",
+          "lineNumber": 144
+        },
+        {
+          "caller": "ObjectPanel",
+          "callee": "m.trim",
+          "lineNumber": 144
+        },
+        {
+          "caller": "goToPolicies",
+          "callee": "onClose",
+          "lineNumber": 155
+        },
+        {
+          "caller": "goToPolicies",
+          "callee": "onCloseModal",
+          "lineNumber": 156
+        },
+        {
+          "caller": "goToPolicies",
+          "callee": "navigate",
+          "lineNumber": 158
+        },
+        {
+          "caller": "goToPolicies",
+          "callee": "encodeURIComponent",
+          "lineNumber": 158
+        },
+        {
+          "caller": "ObjectPanel",
+          "callee": "[1, 2, 3, 4].map",
+          "lineNumber": 178
+        },
+        {
+          "caller": "ObjectPanel",
+          "callee": "Object.entries(obj)\n              .filter(([k]) => !SKIP.includes(k))\n              .map",
+          "lineNumber": 183
+        },
+        {
+          "caller": "ObjectPanel",
+          "callee": "Object.entries(obj)\n              .filter",
+          "lineNumber": 183
+        },
+        {
+          "caller": "ObjectPanel",
+          "callee": "Object.entries",
+          "lineNumber": 183
+        },
+        {
+          "caller": "ObjectPanel",
+          "callee": "SKIP.includes",
+          "lineNumber": 184
+        },
+        {
+          "caller": "ObjectPanel",
+          "callee": "String",
+          "lineNumber": 190
+        },
+        {
+          "caller": "ObjectPanel",
+          "callee": "goToPolicies",
+          "lineNumber": 212
+        },
+        {
+          "caller": "ObjectPanel",
+          "callee": "goToPolicies",
+          "lineNumber": 220
+        },
+        {
+          "caller": "ObjectPanel",
+          "callee": "goToPolicies",
+          "lineNumber": 226
+        },
+        {
+          "caller": "ChipList",
+          "callee": "useState",
+          "lineNumber": 249
+        },
+        {
+          "caller": "ChipList",
+          "callee": "useState",
+          "lineNumber": 250
+        },
+        {
+          "caller": "ChipList",
+          "callee": "useState",
+          "lineNumber": 251
+        },
+        {
+          "caller": "ChipList",
+          "callee": "(value ?? '').split(',').map((s) => s.trim()).filter",
+          "lineNumber": 253
+        },
+        {
+          "caller": "ChipList",
+          "callee": "(value ?? '').split(',').map",
+          "lineNumber": 253
+        },
+        {
+          "caller": "ChipList",
+          "callee": "(value ?? '').split",
+          "lineNumber": 253
+        },
+        {
+          "caller": "ChipList",
+          "callee": "s.trim",
+          "lineNumber": 253
+        },
+        {
+          "caller": "ChipList",
+          "callee": "all.filter",
+          "lineNumber": 257
+        },
+        {
+          "caller": "ChipList",
+          "callee": "i.toLowerCase().includes",
+          "lineNumber": 257
+        },
+        {
+          "caller": "ChipList",
+          "callee": "i.toLowerCase",
+          "lineNumber": 257
+        },
+        {
+          "caller": "ChipList",
+          "callee": "filter.toLowerCase",
+          "lineNumber": 257
+        },
+        {
+          "caller": "ChipList",
+          "callee": "filtered.slice",
+          "lineNumber": 259
+        },
+        {
+          "caller": "submitAdd",
+          "callee": "addValue.trim",
+          "lineNumber": 263
+        },
+        {
+          "caller": "submitAdd",
+          "callee": "onAdd",
+          "lineNumber": 265
+        },
+        {
+          "caller": "submitAdd",
+          "callee": "setAddValue",
+          "lineNumber": 266
+        },
+        {
+          "caller": "ChipList",
+          "callee": "setFilter",
+          "lineNumber": 276
+        },
+        {
+          "caller": "ChipList",
+          "callee": "visible.map",
+          "lineNumber": 284
+        },
+        {
+          "caller": "ChipList",
+          "callee": "isClickable",
+          "lineNumber": 285
+        },
+        {
+          "caller": "ChipList",
+          "callee": "onClickName!",
+          "lineNumber": 295
+        },
+        {
+          "caller": "ChipList",
+          "callee": "onRemove",
+          "lineNumber": 301
+        },
+        {
+          "caller": "ChipList",
+          "callee": "setExpanded",
+          "lineNumber": 314
+        },
+        {
+          "caller": "ChipList",
+          "callee": "setAddValue",
+          "lineNumber": 326
+        },
+        {
+          "caller": "ChipList",
+          "callee": "e.preventDefault",
+          "lineNumber": 327
+        },
+        {
+          "caller": "ChipList",
+          "callee": "submitAdd",
+          "lineNumber": 327
+        },
+        {
+          "caller": "countItems",
+          "callee": "value.split(',').map(s => s.trim()).filter",
+          "lineNumber": 362
+        },
+        {
+          "caller": "countItems",
+          "callee": "value.split(',').map",
+          "lineNumber": 362
+        },
+        {
+          "caller": "countItems",
+          "callee": "value.split",
+          "lineNumber": 362
+        },
+        {
+          "caller": "countItems",
+          "callee": "s.trim",
+          "lineNumber": 362
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "useState",
+          "lineNumber": 390
+        },
+        {
+          "caller": "isClickable",
+          "callee": "validObjectNames.has",
+          "lineNumber": 392
+        },
+        {
+          "caller": "removeToken",
+          "callee": "(policy[field] ?? '').split(',').map((s) => s.trim()).filter",
+          "lineNumber": 395
+        },
+        {
+          "caller": "removeToken",
+          "callee": "(policy[field] ?? '').split(',').map",
+          "lineNumber": 395
+        },
+        {
+          "caller": "removeToken",
+          "callee": "(policy[field] ?? '').split",
+          "lineNumber": 395
+        },
+        {
+          "caller": "removeToken",
+          "callee": "s.trim",
+          "lineNumber": 395
+        },
+        {
+          "caller": "removeToken",
+          "callee": "onFieldChange",
+          "lineNumber": 396
+        },
+        {
+          "caller": "removeToken",
+          "callee": "tokens.filter((t) => t !== token).join",
+          "lineNumber": 396
+        },
+        {
+          "caller": "removeToken",
+          "callee": "tokens.filter",
+          "lineNumber": 396
+        },
+        {
+          "caller": "addToken",
+          "callee": "(policy[field] ?? '').split(',').map((s) => s.trim()).filter",
+          "lineNumber": 399
+        },
+        {
+          "caller": "addToken",
+          "callee": "(policy[field] ?? '').split(',').map",
+          "lineNumber": 399
+        },
+        {
+          "caller": "addToken",
+          "callee": "(policy[field] ?? '').split",
+          "lineNumber": 399
+        },
+        {
+          "caller": "addToken",
+          "callee": "s.trim",
+          "lineNumber": 399
+        },
+        {
+          "caller": "addToken",
+          "callee": "tokens.includes",
+          "lineNumber": 400
+        },
+        {
+          "caller": "addToken",
+          "callee": "onFieldChange",
+          "lineNumber": 401
+        },
+        {
+          "caller": "addToken",
+          "callee": "[...tokens, token].join",
+          "lineNumber": 401
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "daysSinceHit",
+          "lineNumber": 404
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "policy.action?.toLowerCase",
+          "lineNumber": 405
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "countItems",
+          "lineNumber": 407
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "countItems",
+          "lineNumber": 408
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "countItems",
+          "lineNumber": 409
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "countItems",
+          "lineNumber": 410
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "countItems",
+          "lineNumber": 411
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "onClose",
+          "lineNumber": 416
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "onHistoryClick",
+          "lineNumber": 446
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "setSelectedObj",
+          "lineNumber": 464
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "removeToken",
+          "lineNumber": 465
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "addToken",
+          "lineNumber": 466
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "setSelectedObj",
+          "lineNumber": 473
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "removeToken",
+          "lineNumber": 474
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "addToken",
+          "lineNumber": 475
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "setSelectedObj",
+          "lineNumber": 486
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "removeToken",
+          "lineNumber": 487
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "addToken",
+          "lineNumber": 488
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "removeToken",
+          "lineNumber": 495
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "addToken",
+          "lineNumber": 496
+        },
+        {
+          "caller": "PolicyDetailModal",
+          "callee": "setSelectedObj",
+          "lineNumber": 571
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 8,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/shared/Skeleton.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 40,
+      "nonEmptyLines": 36,
+      "functions": [
+        {
+          "name": "Skeleton",
+          "startLine": 3,
+          "endLine": 7,
+          "params": [
+            "{ className }"
+          ]
+        },
+        {
+          "name": "TableSkeleton",
+          "startLine": 9,
+          "endLine": 28,
+          "params": [
+            "{ rows = 5, cols = 5 }"
+          ]
+        },
+        {
+          "name": "CardSkeleton",
+          "startLine": 30,
+          "endLine": 38,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "Skeleton",
+          "line": 3,
+          "isDefault": false
+        },
+        {
+          "name": "TableSkeleton",
+          "line": 9,
+          "isDefault": false
+        },
+        {
+          "name": "CardSkeleton",
+          "line": 30,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "Skeleton",
+          "callee": "cn",
+          "lineNumber": 5
+        },
+        {
+          "caller": "TableSkeleton",
+          "callee": "Array.from({ length: cols }).map",
+          "lineNumber": 14
+        },
+        {
+          "caller": "TableSkeleton",
+          "callee": "Array.from",
+          "lineNumber": 14
+        },
+        {
+          "caller": "TableSkeleton",
+          "callee": "Array.from({ length: rows }).map",
+          "lineNumber": 19
+        },
+        {
+          "caller": "TableSkeleton",
+          "callee": "Array.from",
+          "lineNumber": 19
+        },
+        {
+          "caller": "TableSkeleton",
+          "callee": "Array.from({ length: cols }).map",
+          "lineNumber": 21
+        },
+        {
+          "caller": "TableSkeleton",
+          "callee": "Array.from",
+          "lineNumber": 21
+        },
+        {
+          "caller": "TableSkeleton",
+          "callee": "cn",
+          "lineNumber": 22
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 3,
+        "functionCount": 3,
+        "classCount": 0
+      }
+    }
+  ]
+}

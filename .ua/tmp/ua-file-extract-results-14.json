@@ -1,0 +1,208 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 2,
+  "filesSkipped": [
+    "backend/alembic.ini",
+    "backend/requirements.txt"
+  ],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 2,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 0,
+      "failed": 0,
+      "skipped": 2
+    }
+  },
+  "results": [
+    {
+      "path": "backend/DELETION_WORKFLOW.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 175,
+      "nonEmptyLines": 125,
+      "sections": [
+        {
+          "heading": "정책 삭제 워크플로우 문서",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "개요",
+          "level": 2,
+          "line": 3
+        },
+        {
+          "heading": "아키텍처",
+          "level": 2,
+          "line": 9
+        },
+        {
+          "heading": "디렉토리 구조",
+          "level": 3,
+          "line": 11
+        },
+        {
+          "heading": "데이터베이스 스키마",
+          "level": 3,
+          "line": 42
+        },
+        {
+          "heading": "DeletionWorkflow 테이블",
+          "level": 4,
+          "line": 44
+        },
+        {
+          "heading": "워크플로우 단계",
+          "level": 2,
+          "line": 67
+        },
+        {
+          "heading": "Step 1: RequestParser (신청정보 파싱)",
+          "level": 3,
+          "line": 69
+        },
+        {
+          "heading": "Step 2: RequestExtractor (Request ID 추출)",
+          "level": 3,
+          "line": 81
+        },
+        {
+          "heading": "Step 3: MisIdAdder (MIS ID 업데이트)",
+          "level": 3,
+          "line": 89
+        },
+        {
+          "heading": "Step 4: ApplicationAggregator (신청정보 가공)",
+          "level": 3,
+          "line": 97
+        },
+        {
+          "heading": "Step 5: RequestInfoAdder (신청정보 매핑)",
+          "level": 3,
+          "line": 105
+        },
+        {
+          "heading": "Step 6: ExceptionHandler (예외처리)",
+          "level": 3,
+          "line": 111
+        },
+        {
+          "heading": "Step 7: DuplicatePolicyClassifier (중복정책 분류)",
+          "level": 3,
+          "line": 117
+        },
+        {
+          "heading": "Step 10: 최종 결과 생성",
+          "level": 3,
+          "line": 127
+        },
+        {
+          "heading": "설정 파일",
+          "level": 2,
+          "line": 138
+        },
+        {
+          "heading": "위치",
+          "level": 3,
+          "line": 140
+        },
+        {
+          "heading": "주요 설정 항목",
+          "level": 3,
+          "line": 143
+        },
+        {
+          "heading": "임시 파일 관리",
+          "level": 2,
+          "line": 163
+        },
+        {
+          "heading": "주의사항",
+          "level": 2,
+          "line": 169
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 20
+      }
+    },
+    {
+      "path": "backend/DELETION_WORKFLOW_GUIDE.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 118,
+      "nonEmptyLines": 92,
+      "sections": [
+        {
+          "heading": "정책 삭제 워크플로우 — API 레퍼런스 및 사용 가이드",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "API 엔드포인트",
+          "level": 2,
+          "line": 5
+        },
+        {
+          "heading": "워크플로우 관리",
+          "level": 3,
+          "line": 7
+        },
+        {
+          "heading": "GET `/deletion-workflow/{device_id}/status`",
+          "level": 4,
+          "line": 9
+        },
+        {
+          "heading": "POST `/deletion-workflow/{device_id}/start`",
+          "level": 4,
+          "line": 27
+        },
+        {
+          "heading": "POST `/deletion-workflow/{device_id}/step/{step_number}/execute`",
+          "level": 4,
+          "line": 30
+        },
+        {
+          "heading": "파일 다운로드",
+          "level": 3,
+          "line": 40
+        },
+        {
+          "heading": "API 사용 예시",
+          "level": 2,
+          "line": 49
+        },
+        {
+          "heading": "웹 UI 사용법",
+          "level": 2,
+          "line": 86
+        },
+        {
+          "heading": "프론트엔드 구현",
+          "level": 2,
+          "line": 99
+        },
+        {
+          "heading": "향후 개선 사항",
+          "level": 2,
+          "line": 112
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 11
+      }
+    }
+  ]
+}

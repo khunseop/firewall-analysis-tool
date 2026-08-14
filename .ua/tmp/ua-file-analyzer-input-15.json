@@ -1,0 +1,14 @@
+{
+  "projectRoot": "/Users/hoon/Code/firewall-analysis-tool",
+  "batchFiles": [
+    {"path": "docs/ARCHITECTURE.md", "language": "markdown", "sizeLines": 263, "fileCategory": "docs"},
+    {"path": "docs/ARCHITECTURE_OPERATIONS.md", "language": "markdown", "sizeLines": 185, "fileCategory": "docs"},
+    {"path": "docs/DATABASE.md", "language": "markdown", "sizeLines": 328, "fileCategory": "docs"},
+    {"path": "docs/DESIGN.md", "language": "markdown", "sizeLines": 273, "fileCategory": "docs"},
+    {"path": "docs/DEVELOPMENT.md", "language": "markdown", "sizeLines": 197, "fileCategory": "docs"},
+    {"path": "docs/REFACTOR_CANDIDATES.md", "language": "markdown", "sizeLines": 32, "fileCategory": "docs"},
+    {"path": "docs/방화벽_정책_삭제_워크플로우_Phase3_자동연장예외요청.md", "language": "markdown", "sizeLines": 127, "fileCategory": "docs"},
+    {"path": "docs/방화벽_정책_삭제_워크플로우_운영_매뉴얼.md", "language": "markdown", "sizeLines": 1039, "fileCategory": "docs"}
+  ],
+  "batchImportData": {"docs/ARCHITECTURE.md": [], "docs/ARCHITECTURE_OPERATIONS.md": [], "docs/DATABASE.md": [], "docs/DESIGN.md": [], "docs/DEVELOPMENT.md": [], "docs/REFACTOR_CANDIDATES.md": [], "docs/방화벽_정책_삭제_워크플로우_Phase3_자동연장예외요청.md": [], "docs/방화벽_정책_삭제_워크플로우_운영_매뉴얼.md": []}
+}

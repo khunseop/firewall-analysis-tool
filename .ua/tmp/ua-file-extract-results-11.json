@@ -1,0 +1,1677 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 5,
+  "filesSkipped": [],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 5,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 5,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "results": [
+    {
+      "path": "frontend/src/components/pages/DeletionWorkflowDetailPage.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 756,
+      "nonEmptyLines": 695,
+      "functions": [
+        {
+          "name": "DeletionWorkflowDetailPage",
+          "startLine": 14,
+          "endLine": 756,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "DeletionWorkflowDetailPage",
+          "line": 14,
+          "isDefault": true
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "useParams",
+          "lineNumber": 15
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "useNavigate",
+          "lineNumber": 16
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "useQueryClient",
+          "lineNumber": 17
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "Number",
+          "lineNumber": 18
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "useRef",
+          "lineNumber": 21
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "useState",
+          "lineNumber": 22
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "useState",
+          "lineNumber": 23
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "useState",
+          "lineNumber": 24
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "useState",
+          "lineNumber": 27
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "useState",
+          "lineNumber": 32
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "useState",
+          "lineNumber": 33
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "useState",
+          "lineNumber": 36
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "useState",
+          "lineNumber": 39
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "useState",
+          "lineNumber": 45
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "useState",
+          "lineNumber": 48
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "useState",
+          "lineNumber": 49
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "useQuery",
+          "lineNumber": 51
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "queryKeys.deletionWorkflowProject",
+          "lineNumber": 52
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "getProject",
+          "lineNumber": 53
+        },
+        {
+          "caller": "refresh",
+          "callee": "qc.invalidateQueries",
+          "lineNumber": 57
+        },
+        {
+          "caller": "refresh",
+          "callee": "queryKeys.deletionWorkflowProject",
+          "lineNumber": 57
+        },
+        {
+          "caller": "applyTaskOutputs",
+          "callee": "qc.setQueryData",
+          "lineNumber": 61
+        },
+        {
+          "caller": "applyTaskOutputs",
+          "callee": "queryKeys.deletionWorkflowProject",
+          "lineNumber": 62
+        },
+        {
+          "caller": "applyTaskOutputs",
+          "callee": "result.outputs.map",
+          "lineNumber": 65
+        },
+        {
+          "caller": "applyTaskOutputs",
+          "callee": "new Date().toISOString",
+          "lineNumber": 69
+        },
+        {
+          "caller": "applyTaskOutputs",
+          "callee": "(old.files ?? []).filter",
+          "lineNumber": 71
+        },
+        {
+          "caller": "applyTaskOutputs",
+          "callee": "newFiles.some",
+          "lineNumber": 72
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "useMutation",
+          "lineNumber": 79
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "updateProject",
+          "lineNumber": 80
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "qc.setQueryData",
+          "lineNumber": 82
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "qc.invalidateQueries",
+          "lineNumber": 87
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "toast.success",
+          "lineNumber": 88
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "setEditingRefDate",
+          "lineNumber": 89
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "toast.error",
+          "lineNumber": 91
+        },
+        {
+          "caller": "handleRefDateSave",
+          "callee": "refDateMutation.mutate",
+          "lineNumber": 95
+        },
+        {
+          "caller": "handleRefDateEdit",
+          "callee": "setRefDateInput",
+          "lineNumber": 99
+        },
+        {
+          "caller": "handleRefDateEdit",
+          "callee": "setEditingRefDate",
+          "lineNumber": 100
+        },
+        {
+          "caller": "askSyncDecision",
+          "callee": "setSyncConfirm",
+          "lineNumber": 108
+        },
+        {
+          "caller": "askSyncDecision",
+          "callee": "setSyncConfirm",
+          "lineNumber": 112
+        },
+        {
+          "caller": "askSyncDecision",
+          "callee": "setSyncing",
+          "lineNumber": 113
+        },
+        {
+          "caller": "askSyncDecision",
+          "callee": "toast.info",
+          "lineNumber": 115
+        },
+        {
+          "caller": "askSyncDecision",
+          "callee": "syncAll",
+          "lineNumber": 116
+        },
+        {
+          "caller": "askSyncDecision",
+          "callee": "setTimeout",
+          "lineNumber": 118
+        },
+        {
+          "caller": "askSyncDecision",
+          "callee": "getSyncStatus(deviceId).catch",
+          "lineNumber": 119
+        },
+        {
+          "caller": "askSyncDecision",
+          "callee": "getSyncStatus",
+          "lineNumber": 119
+        },
+        {
+          "caller": "askSyncDecision",
+          "callee": "toast.success",
+          "lineNumber": 122
+        },
+        {
+          "caller": "askSyncDecision",
+          "callee": "toast.error",
+          "lineNumber": 126
+        },
+        {
+          "caller": "askSyncDecision",
+          "callee": "toast.error",
+          "lineNumber": 131
+        },
+        {
+          "caller": "askSyncDecision",
+          "callee": "setSyncing",
+          "lineNumber": 133
+        },
+        {
+          "caller": "askSyncDecision",
+          "callee": "resolve",
+          "lineNumber": 135
+        },
+        {
+          "caller": "askSyncDecision",
+          "callee": "setSyncConfirm",
+          "lineNumber": 138
+        },
+        {
+          "caller": "askSyncDecision",
+          "callee": "resolve",
+          "lineNumber": 139
+        },
+        {
+          "caller": "checkSync",
+          "callee": "getDevice",
+          "lineNumber": 147
+        },
+        {
+          "caller": "checkSync",
+          "callee": "device.last_sync_at.substring",
+          "lineNumber": 151
+        },
+        {
+          "caller": "checkSync",
+          "callee": "new Date().toISOString().substring",
+          "lineNumber": 152
+        },
+        {
+          "caller": "checkSync",
+          "callee": "new Date().toISOString",
+          "lineNumber": 152
+        },
+        {
+          "caller": "checkSync",
+          "callee": "askSyncDecision",
+          "lineNumber": 155
+        },
+        {
+          "caller": "ensureRedundancyAnalysis",
+          "callee": "getAnalysisStatus",
+          "lineNumber": 163
+        },
+        {
+          "caller": "ensureRedundancyAnalysis",
+          "callee": "toast.info",
+          "lineNumber": 167
+        },
+        {
+          "caller": "ensureRedundancyAnalysis",
+          "callee": "setTimeout",
+          "lineNumber": 169
+        },
+        {
+          "caller": "ensureRedundancyAnalysis",
+          "callee": "getAnalysisStatus(deviceId).catch",
+          "lineNumber": 170
+        },
+        {
+          "caller": "ensureRedundancyAnalysis",
+          "callee": "getAnalysisStatus",
+          "lineNumber": 170
+        },
+        {
+          "caller": "ensureRedundancyAnalysis",
+          "callee": "toast.info",
+          "lineNumber": 181
+        },
+        {
+          "caller": "ensureRedundancyAnalysis",
+          "callee": "startAnalysis",
+          "lineNumber": 183
+        },
+        {
+          "caller": "ensureRedundancyAnalysis",
+          "callee": "toast.error",
+          "lineNumber": 185
+        },
+        {
+          "caller": "ensureRedundancyAnalysis",
+          "callee": "setTimeout",
+          "lineNumber": 190
+        },
+        {
+          "caller": "ensureRedundancyAnalysis",
+          "callee": "getAnalysisStatus(deviceId).catch",
+          "lineNumber": 191
+        },
+        {
+          "caller": "ensureRedundancyAnalysis",
+          "callee": "getAnalysisStatus",
+          "lineNumber": 191
+        },
+        {
+          "caller": "ensureRedundancyAnalysis",
+          "callee": "toast.success",
+          "lineNumber": 194
+        },
+        {
+          "caller": "ensureRedundancyAnalysis",
+          "callee": "toast.error",
+          "lineNumber": 198
+        },
+        {
+          "caller": "ensureRedundancyAnalysis",
+          "callee": "toast.error",
+          "lineNumber": 202
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "setAutoRunning",
+          "lineNumber": 210
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "setAutoRunBlockedAt",
+          "lineNumber": 211
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "getProject(projectId).catch",
+          "lineNumber": 216
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "getProject",
+          "lineNumber": 216
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "hasOutput",
+          "lineNumber": 217
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "checkSync",
+          "lineNumber": 219
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "setAutoRunning",
+          "lineNumber": 222
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "setAutoRunCurrentTaskId",
+          "lineNumber": 223
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "setTaskTimings",
+          "lineNumber": 227
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "Date.now",
+          "lineNumber": 227
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "setAutoRunCurrentTaskId",
+          "lineNumber": 228
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "runProjectExtract",
+          "lineNumber": 230
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "Date.now",
+          "lineNumber": 231
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "setTaskTimings",
+          "lineNumber": 232
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "qc.setQueryData",
+          "lineNumber": 234
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "(old.files ?? []).filter",
+          "lineNumber": 238
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "new Date().toISOString",
+          "lineNumber": 245
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "toast.error",
+          "lineNumber": 251
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "setAutoRunning",
+          "lineNumber": 253
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "setAutoRunCurrentTaskId",
+          "lineNumber": 254
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "refresh",
+          "lineNumber": 255
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "EXECUTION_ORDER.indexOf",
+          "lineNumber": 262
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "EXECUTION_ORDER.slice",
+          "lineNumber": 264
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "Math.max",
+          "lineNumber": 264
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "qc.getQueryData",
+          "lineNumber": 270
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "hasOutput",
+          "lineNumber": 276
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "ALL_TASK_META.find",
+          "lineNumber": 279
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "(taskMeta.externalInputs ?? []).some",
+          "lineNumber": 283
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "getProject(projectId).catch",
+          "lineNumber": 284
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "getProject",
+          "lineNumber": 284
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "(taskMeta.externalInputs ?? [])\n        .filter",
+          "lineNumber": 287
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "getExternalFile",
+          "lineNumber": 288
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "setAutoRunBlockedAt",
+          "lineNumber": 290
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "toast.info",
+          "lineNumber": 291
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "getExternalFile",
+          "lineNumber": 296
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "qc.getQueryData",
+          "lineNumber": 302
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "setAutoRunCurrentTaskId",
+          "lineNumber": 307
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "ensureRedundancyAnalysis",
+          "lineNumber": 308
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "setTaskTimings",
+          "lineNumber": 317
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "Date.now",
+          "lineNumber": 317
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "setAutoRunCurrentTaskId",
+          "lineNumber": 318
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "runProjectTask",
+          "lineNumber": 320
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "Date.now",
+          "lineNumber": 322
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "setTaskTimings",
+          "lineNumber": 323
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "applyTaskOutputs",
+          "lineNumber": 324
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "toast.error",
+          "lineNumber": 326
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "setAutoRunning",
+          "lineNumber": 332
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "setAutoRunCurrentTaskId",
+          "lineNumber": 333
+        },
+        {
+          "caller": "startAutoRunFrom",
+          "callee": "refresh",
+          "lineNumber": 335
+        },
+        {
+          "caller": "handleWillRerun",
+          "callee": "getDownstreamTaskIds",
+          "lineNumber": 345
+        },
+        {
+          "caller": "handleWillRerun",
+          "callee": "clearProjectOutputs(projectId, downstreamIds).catch",
+          "lineNumber": 347
+        },
+        {
+          "caller": "handleWillRerun",
+          "callee": "clearProjectOutputs",
+          "lineNumber": 347
+        },
+        {
+          "caller": "handleWillRerun",
+          "callee": "qc.setQueryData",
+          "lineNumber": 349
+        },
+        {
+          "caller": "handleWillRerun",
+          "callee": "(old.files ?? []).filter",
+          "lineNumber": 355
+        },
+        {
+          "caller": "handleWillRerun",
+          "callee": "downstreamIds.includes",
+          "lineNumber": 356
+        },
+        {
+          "caller": "handleWillRerun",
+          "callee": "f.slot.startsWith",
+          "lineNumber": 356
+        },
+        {
+          "caller": "handleOutputReplaced",
+          "callee": "getDownstreamTaskIds",
+          "lineNumber": 366
+        },
+        {
+          "caller": "handleOutputReplaced",
+          "callee": "clearProjectOutputs(projectId, downstreamIds).catch",
+          "lineNumber": 368
+        },
+        {
+          "caller": "handleOutputReplaced",
+          "callee": "clearProjectOutputs",
+          "lineNumber": 368
+        },
+        {
+          "caller": "handleOutputReplaced",
+          "callee": "refresh",
+          "lineNumber": 370
+        },
+        {
+          "caller": "handleOutputReplaced",
+          "callee": "EXECUTION_ORDER.indexOf",
+          "lineNumber": 372
+        },
+        {
+          "caller": "handleOutputReplaced",
+          "callee": "startAutoRunFrom",
+          "lineNumber": 374
+        },
+        {
+          "caller": "handleReset",
+          "callee": "setResetting",
+          "lineNumber": 381
+        },
+        {
+          "caller": "handleReset",
+          "callee": "resetAllProjectFiles",
+          "lineNumber": 383
+        },
+        {
+          "caller": "handleReset",
+          "callee": "toast.success",
+          "lineNumber": 384
+        },
+        {
+          "caller": "handleReset",
+          "callee": "refresh",
+          "lineNumber": 385
+        },
+        {
+          "caller": "handleReset",
+          "callee": "toast.error",
+          "lineNumber": 387
+        },
+        {
+          "caller": "handleReset",
+          "callee": "setResetting",
+          "lineNumber": 389
+        },
+        {
+          "caller": "handleReset",
+          "callee": "setResetConfirm",
+          "lineNumber": 390
+        },
+        {
+          "caller": "handleComplete",
+          "callee": "setCompleting",
+          "lineNumber": 397
+        },
+        {
+          "caller": "handleComplete",
+          "callee": "completeProject",
+          "lineNumber": 399
+        },
+        {
+          "caller": "handleComplete",
+          "callee": "triggerDownload",
+          "lineNumber": 400
+        },
+        {
+          "caller": "handleComplete",
+          "callee": "qc.invalidateQueries",
+          "lineNumber": 401
+        },
+        {
+          "caller": "handleComplete",
+          "callee": "queryKeys.deletionWorkflowProject",
+          "lineNumber": 401
+        },
+        {
+          "caller": "handleComplete",
+          "callee": "qc.invalidateQueries",
+          "lineNumber": 402
+        },
+        {
+          "caller": "handleComplete",
+          "callee": "toast.success",
+          "lineNumber": 403
+        },
+        {
+          "caller": "handleComplete",
+          "callee": "toast.error",
+          "lineNumber": 405
+        },
+        {
+          "caller": "handleComplete",
+          "callee": "setCompleting",
+          "lineNumber": 407
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "Boolean",
+          "lineNumber": 430
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "PHASE1_TASKS.filter",
+          "lineNumber": 433
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "hasOutput",
+          "lineNumber": 433
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "PHASE2_TASKS.filter",
+          "lineNumber": 434
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "hasOutput",
+          "lineNumber": 434
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "PHASE3_TASKS.filter",
+          "lineNumber": 435
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "hasOutput",
+          "lineNumber": 435
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "Math.round",
+          "lineNumber": 438
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "ALL_TASK_META.find",
+          "lineNumber": 442
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "hasOutput",
+          "lineNumber": 447
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "hasOutput",
+          "lineNumber": 447
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "navigate",
+          "lineNumber": 454
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "new Date(project.created_at).toLocaleDateString",
+          "lineNumber": 466
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "setRefDateInput",
+          "lineNumber": 476
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "handleRefDateSave",
+          "lineNumber": 478
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "setEditingRefDate",
+          "lineNumber": 479
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "setEditingRefDate",
+          "lineNumber": 492
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "setRefDateInput",
+          "lineNumber": 500
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "refDateMutation.mutate",
+          "lineNumber": 500
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "startAutoRunFrom",
+          "lineNumber": 549
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "setResetConfirm",
+          "lineNumber": 557
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "ALL_TASK_META.find",
+          "lineNumber": 590
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "getProject(projectId).catch",
+          "lineNumber": 611
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "getProject",
+          "lineNumber": 611
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "checkSync",
+          "lineNumber": 613
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "PHASE1_TASKS.map",
+          "lineNumber": 622
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "PHASE2_TASKS.map",
+          "lineNumber": 642
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "PHASE3_TASKS.map",
+          "lineNumber": 662
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "setSyncConfirm",
+          "lineNumber": 698
+        },
+        {
+          "caller": "DeletionWorkflowDetailPage",
+          "callee": "setResetConfirm",
+          "lineNumber": 737
+        }
+      ],
+      "metrics": {
+        "importCount": 3,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/deletion-workflow/ExternalFileUpload.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 58,
+      "nonEmptyLines": 54,
+      "functions": [
+        {
+          "name": "ExternalFileUpload",
+          "startLine": 6,
+          "endLine": 56,
+          "params": [
+            "{\n  projectId, taskId, slot, label, required, hint, existingFile, onUploaded,\n}"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "ExternalFileUpload",
+          "line": 6,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "ExternalFileUpload",
+          "callee": "useRef",
+          "lineNumber": 12
+        },
+        {
+          "caller": "ExternalFileUpload",
+          "callee": "useState",
+          "lineNumber": 13
+        },
+        {
+          "caller": "handleFile",
+          "callee": "setUploading",
+          "lineNumber": 16
+        },
+        {
+          "caller": "handleFile",
+          "callee": "uploadExternalFile",
+          "lineNumber": 18
+        },
+        {
+          "caller": "handleFile",
+          "callee": "toast.success",
+          "lineNumber": 19
+        },
+        {
+          "caller": "handleFile",
+          "callee": "onUploaded",
+          "lineNumber": 20
+        },
+        {
+          "caller": "handleFile",
+          "callee": "toast.error",
+          "lineNumber": 22
+        },
+        {
+          "caller": "handleFile",
+          "callee": "setUploading",
+          "lineNumber": 24
+        },
+        {
+          "caller": "ExternalFileUpload",
+          "callee": "fileRef.current?.click",
+          "lineNumber": 41
+        },
+        {
+          "caller": "ExternalFileUpload",
+          "callee": "handleFile",
+          "lineNumber": 50
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/deletion-workflow/Task0Section.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 176,
+      "nonEmptyLines": 168,
+      "functions": [
+        {
+          "name": "Task0Section",
+          "startLine": 7,
+          "endLine": 174,
+          "params": [
+            "{\n  projectId, files, hasPeerIp, autoRunCurrentTaskId, onRefresh, onBeforeExtract,\n}"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "Task0Section",
+          "line": 7,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "Task0Section",
+          "callee": "useState",
+          "lineNumber": 14
+        },
+        {
+          "caller": "Task0Section",
+          "callee": "useState",
+          "lineNumber": 16
+        },
+        {
+          "caller": "Task0Section",
+          "callee": "hasOutput",
+          "lineNumber": 17
+        },
+        {
+          "caller": "Task0Section",
+          "callee": "hasOutput",
+          "lineNumber": 18
+        },
+        {
+          "caller": "Task0Section",
+          "callee": "files.find",
+          "lineNumber": 19
+        },
+        {
+          "caller": "Task0Section",
+          "callee": "files.find",
+          "lineNumber": 20
+        },
+        {
+          "caller": "Task0Section",
+          "callee": "getExternalFile",
+          "lineNumber": 21
+        },
+        {
+          "caller": "Task0Section",
+          "callee": "useRef",
+          "lineNumber": 22
+        },
+        {
+          "caller": "Task0Section",
+          "callee": "useState",
+          "lineNumber": 23
+        },
+        {
+          "caller": "handleExtract",
+          "callee": "onBeforeExtract",
+          "lineNumber": 27
+        },
+        {
+          "caller": "handleExtract",
+          "callee": "setExtracting",
+          "lineNumber": 31
+        },
+        {
+          "caller": "handleExtract",
+          "callee": "runProjectExtract",
+          "lineNumber": 33
+        },
+        {
+          "caller": "handleExtract",
+          "callee": "toast.success",
+          "lineNumber": 34
+        },
+        {
+          "caller": "handleExtract",
+          "callee": "onRefresh",
+          "lineNumber": 35
+        },
+        {
+          "caller": "handleExtract",
+          "callee": "toast.error",
+          "lineNumber": 37
+        },
+        {
+          "caller": "handleExtract",
+          "callee": "setExtracting",
+          "lineNumber": 39
+        },
+        {
+          "caller": "handleMerge",
+          "callee": "setMerging",
+          "lineNumber": 44
+        },
+        {
+          "caller": "handleMerge",
+          "callee": "runProjectTask",
+          "lineNumber": 46
+        },
+        {
+          "caller": "handleMerge",
+          "callee": "toast.success",
+          "lineNumber": 47
+        },
+        {
+          "caller": "handleMerge",
+          "callee": "onRefresh",
+          "lineNumber": 48
+        },
+        {
+          "caller": "handleMerge",
+          "callee": "toast.error",
+          "lineNumber": 50
+        },
+        {
+          "caller": "handleMerge",
+          "callee": "setMerging",
+          "lineNumber": 52
+        },
+        {
+          "caller": "handleHaFile",
+          "callee": "setUploading",
+          "lineNumber": 57
+        },
+        {
+          "caller": "handleHaFile",
+          "callee": "uploadExternalFile",
+          "lineNumber": 59
+        },
+        {
+          "caller": "handleHaFile",
+          "callee": "toast.success",
+          "lineNumber": 60
+        },
+        {
+          "caller": "handleHaFile",
+          "callee": "onRefresh",
+          "lineNumber": 61
+        },
+        {
+          "caller": "handleHaFile",
+          "callee": "toast.error",
+          "lineNumber": 63
+        },
+        {
+          "caller": "handleHaFile",
+          "callee": "setUploading",
+          "lineNumber": 65
+        },
+        {
+          "caller": "Task0Section",
+          "callee": "downloadTaskFile",
+          "lineNumber": 97
+        },
+        {
+          "caller": "Task0Section",
+          "callee": "triggerDownload",
+          "lineNumber": 98
+        },
+        {
+          "caller": "Task0Section",
+          "callee": "toast.error",
+          "lineNumber": 99
+        },
+        {
+          "caller": "Task0Section",
+          "callee": "fileRef.current?.click",
+          "lineNumber": 160
+        },
+        {
+          "caller": "Task0Section",
+          "callee": "handleHaFile",
+          "lineNumber": 168
+        }
+      ],
+      "metrics": {
+        "importCount": 1,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/deletion-workflow/TaskCard.tsx",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 230,
+      "nonEmptyLines": 216,
+      "functions": [
+        {
+          "name": "TaskCard",
+          "startLine": 8,
+          "endLine": 228,
+          "params": [
+            "{\n  task, projectId, files, phase, autoRunCurrentTaskId,\n  timing, onRefresh, onOutputReplaced, onWillRerun, onOutputSaved,\n}"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "TaskCard",
+          "line": 8,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "TaskCard",
+          "callee": "useState",
+          "lineNumber": 19
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "useState",
+          "lineNumber": 20
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "useRef",
+          "lineNumber": 21
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "useState",
+          "lineNumber": 22
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "useState",
+          "lineNumber": 23
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "useState",
+          "lineNumber": 24
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "getOutputFiles",
+          "lineNumber": 26
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "useEffect",
+          "lineNumber": 36
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "setElapsedMs",
+          "lineNumber": 38
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "Date.now",
+          "lineNumber": 38
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "setInterval",
+          "lineNumber": 39
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "setElapsedMs",
+          "lineNumber": 39
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "Date.now",
+          "lineNumber": 39
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "clearInterval",
+          "lineNumber": 40
+        },
+        {
+          "caller": "handleRun",
+          "callee": "Date.now",
+          "lineNumber": 52
+        },
+        {
+          "caller": "handleRun",
+          "callee": "setManualStartedAt",
+          "lineNumber": 53
+        },
+        {
+          "caller": "handleRun",
+          "callee": "setManualCompletedMs",
+          "lineNumber": 54
+        },
+        {
+          "caller": "handleRun",
+          "callee": "setElapsedMs",
+          "lineNumber": 55
+        },
+        {
+          "caller": "handleRun",
+          "callee": "setRunning",
+          "lineNumber": 56
+        },
+        {
+          "caller": "handleRun",
+          "callee": "onWillRerun",
+          "lineNumber": 60
+        },
+        {
+          "caller": "handleRun",
+          "callee": "runProjectTask",
+          "lineNumber": 62
+        },
+        {
+          "caller": "handleRun",
+          "callee": "setManualCompletedMs",
+          "lineNumber": 63
+        },
+        {
+          "caller": "handleRun",
+          "callee": "Date.now",
+          "lineNumber": 63
+        },
+        {
+          "caller": "handleRun",
+          "callee": "toast.success",
+          "lineNumber": 64
+        },
+        {
+          "caller": "handleRun",
+          "callee": "onOutputSaved",
+          "lineNumber": 66
+        },
+        {
+          "caller": "handleRun",
+          "callee": "onOutputReplaced",
+          "lineNumber": 69
+        },
+        {
+          "caller": "handleRun",
+          "callee": "onRefresh",
+          "lineNumber": 71
+        },
+        {
+          "caller": "handleRun",
+          "callee": "toast.error",
+          "lineNumber": 74
+        },
+        {
+          "caller": "handleRun",
+          "callee": "setManualStartedAt",
+          "lineNumber": 75
+        },
+        {
+          "caller": "handleRun",
+          "callee": "setManualCompletedMs",
+          "lineNumber": 76
+        },
+        {
+          "caller": "handleRun",
+          "callee": "setRunning",
+          "lineNumber": 78
+        },
+        {
+          "caller": "handleDownload",
+          "callee": "downloadTaskFile",
+          "lineNumber": 84
+        },
+        {
+          "caller": "handleDownload",
+          "callee": "triggerDownload",
+          "lineNumber": 85
+        },
+        {
+          "caller": "handleDownload",
+          "callee": "toast.error",
+          "lineNumber": 87
+        },
+        {
+          "caller": "handleReplaceOutput",
+          "callee": "setReplacingSlot",
+          "lineNumber": 92
+        },
+        {
+          "caller": "handleReplaceOutput",
+          "callee": "uploadExternalFile",
+          "lineNumber": 94
+        },
+        {
+          "caller": "handleReplaceOutput",
+          "callee": "toast.success",
+          "lineNumber": 95
+        },
+        {
+          "caller": "handleReplaceOutput",
+          "callee": "onOutputReplaced",
+          "lineNumber": 96
+        },
+        {
+          "caller": "handleReplaceOutput",
+          "callee": "toast.error",
+          "lineNumber": 98
+        },
+        {
+          "caller": "handleReplaceOutput",
+          "callee": "setReplacingSlot",
+          "lineNumber": 100
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "formatElapsed",
+          "lineNumber": 132
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "formatElapsed",
+          "lineNumber": 137
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "getExternalFile",
+          "lineNumber": 143
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "task.externalInputs.map",
+          "lineNumber": 161
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "getExternalFile",
+          "lineNumber": 166
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "getExternalFile",
+          "lineNumber": 169
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "getExternalFile",
+          "lineNumber": 174
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "outputs.map",
+          "lineNumber": 196
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "handleDownload",
+          "lineNumber": 199
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "replaceRefs.current[f.slot]?.click",
+          "lineNumber": 206
+        },
+        {
+          "caller": "TaskCard",
+          "callee": "handleReplaceOutput",
+          "lineNumber": 220
+        }
+      ],
+      "metrics": {
+        "importCount": 2,
+        "exportCount": 1,
+        "functionCount": 1,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "frontend/src/components/pages/deletion-workflow/taskMeta.ts",
+      "language": "typescript",
+      "fileCategory": "code",
+      "totalLines": 75,
+      "nonEmptyLines": 62,
+      "functions": [
+        {
+          "name": "getOutputFiles",
+          "startLine": 51,
+          "endLine": 53,
+          "params": [
+            "files",
+            "taskId"
+          ]
+        },
+        {
+          "name": "hasOutput",
+          "startLine": 55,
+          "endLine": 57,
+          "params": [
+            "files",
+            "taskId"
+          ]
+        },
+        {
+          "name": "getExternalFile",
+          "startLine": 59,
+          "endLine": 61,
+          "params": [
+            "files",
+            "taskId",
+            "slot"
+          ]
+        },
+        {
+          "name": "getDownstreamTaskIds",
+          "startLine": 63,
+          "endLine": 67,
+          "params": [
+            "fromTaskId"
+          ]
+        },
+        {
+          "name": "formatElapsed",
+          "startLine": 69,
+          "endLine": 73,
+          "params": [
+            "ms"
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "name": "PHASE1_TASKS",
+          "line": 12,
+          "isDefault": false
+        },
+        {
+          "name": "PHASE2_TASKS",
+          "line": 22,
+          "isDefault": false
+        },
+        {
+          "name": "PHASE3_TASKS",
+          "line": 39,
+          "isDefault": false
+        },
+        {
+          "name": "EXECUTION_ORDER",
+          "line": 44,
+          "isDefault": false
+        },
+        {
+          "name": "ALL_TASK_META",
+          "line": 45,
+          "isDefault": false
+        },
+        {
+          "name": "triggerDownload",
+          "line": 49,
+          "isDefault": false
+        },
+        {
+          "name": "getOutputFiles",
+          "line": 51,
+          "isDefault": false
+        },
+        {
+          "name": "hasOutput",
+          "line": 55,
+          "isDefault": false
+        },
+        {
+          "name": "getExternalFile",
+          "line": 59,
+          "isDefault": false
+        },
+        {
+          "name": "getDownstreamTaskIds",
+          "line": 63,
+          "isDefault": false
+        },
+        {
+          "name": "formatElapsed",
+          "line": 69,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "getOutputFiles",
+          "callee": "files.filter",
+          "lineNumber": 52
+        },
+        {
+          "caller": "getOutputFiles",
+          "callee": "f.slot.startsWith",
+          "lineNumber": 52
+        },
+        {
+          "caller": "hasOutput",
+          "callee": "files.some",
+          "lineNumber": 56
+        },
+        {
+          "caller": "hasOutput",
+          "callee": "f.slot.startsWith",
+          "lineNumber": 56
+        },
+        {
+          "caller": "getExternalFile",
+          "callee": "files.find",
+          "lineNumber": 60
+        },
+        {
+          "caller": "getDownstreamTaskIds",
+          "callee": "EXECUTION_ORDER.indexOf",
+          "lineNumber": 64
+        },
+        {
+          "caller": "getDownstreamTaskIds",
+          "callee": "EXECUTION_ORDER.slice",
+          "lineNumber": 66
+        },
+        {
+          "caller": "formatElapsed",
+          "callee": "(ms / 1000).toFixed",
+          "lineNumber": 71
+        },
+        {
+          "caller": "formatElapsed",
+          "callee": "Math.floor",
+          "lineNumber": 72
+        },
+        {
+          "caller": "formatElapsed",
+          "callee": "Math.floor",
+          "lineNumber": 72
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 11,
+        "functionCount": 5,
+        "classCount": 0
+      }
+    }
+  ]
+}

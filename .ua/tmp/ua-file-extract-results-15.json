@@ -1,0 +1,1046 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 8,
+  "filesSkipped": [],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 8,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 0,
+      "failed": 0,
+      "skipped": 8
+    }
+  },
+  "results": [
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 263,
+      "nonEmptyLines": 205,
+      "sections": [
+        {
+          "heading": "시스템 아키텍처 및 데이터 흐름 (System Architecture)",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "1. 전체 시스템 구조",
+          "level": 2,
+          "line": 7
+        },
+        {
+          "heading": "2. 데이터 동기화 단계 (Synchronization Phase)",
+          "level": 2,
+          "line": 74
+        },
+        {
+          "heading": "2.1. 오케스트레이션 흐름",
+          "level": 3,
+          "line": 76
+        },
+        {
+          "heading": "2.2. 멀티 벤더 추상화",
+          "level": 3,
+          "line": 119
+        },
+        {
+          "heading": "3. 정책 인덱싱 단계 (Policy Indexing Phase)",
+          "level": 2,
+          "line": 144
+        },
+        {
+          "heading": "3.1. 그룹 재귀 확장 (Resolver)",
+          "level": 3,
+          "line": 148
+        },
+        {
+          "heading": "3.2. IP/포트 범위 변환",
+          "level": 3,
+          "line": 165
+        },
+        {
+          "heading": "3.3. 벌크 인덱싱",
+          "level": 3,
+          "line": 179
+        },
+        {
+          "heading": "4. 정책 검색 및 분석 (Search & Analysis)",
+          "level": 2,
+          "line": 191
+        },
+        {
+          "heading": "4.1. 범위 기반 검색",
+          "level": 3,
+          "line": 193
+        },
+        {
+          "heading": "4.2. 비동기 분석 엔진",
+          "level": 3,
+          "line": 209
+        },
+        {
+          "heading": "4.3. 정책 빌더 (Policy Builder) — Policies 편집모드의 CLI 생성 엔진",
+          "level": 3,
+          "line": 232
+        },
+        {
+          "heading": "5. 이어서 보기",
+          "level": 2,
+          "line": 261
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 14
+      }
+    },
+    {
+      "path": "docs/ARCHITECTURE_OPERATIONS.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 185,
+      "nonEmptyLines": 139,
+      "sections": [
+        {
+          "heading": "실시간 통신, 운영, 보안, 확장 (Architecture — Operations)",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "1. 실시간 통신 (WebSocket)",
+          "level": 2,
+          "line": 7
+        },
+        {
+          "heading": "1.1. 클라이언트 ↔ 서버",
+          "level": 3,
+          "line": 9
+        },
+        {
+          "heading": "1.2. 프론트엔드 훅",
+          "level": 3,
+          "line": 23
+        },
+        {
+          "heading": "2. 삭제 워크플로우",
+          "level": 2,
+          "line": 43
+        },
+        {
+          "heading": "3. 스케줄링 (APScheduler)",
+          "level": 2,
+          "line": 72
+        },
+        {
+          "heading": "4. 보안 및 인증",
+          "level": 2,
+          "line": 92
+        },
+        {
+          "heading": "4.1. 토큰 기반 인증",
+          "level": 3,
+          "line": 94
+        },
+        {
+          "heading": "4.2. 비밀번호 암호화",
+          "level": 3,
+          "line": 107
+        },
+        {
+          "heading": "5. 성능 최적화",
+          "level": 2,
+          "line": 119
+        },
+        {
+          "heading": "5.1. 벌크 연산",
+          "level": 3,
+          "line": 121
+        },
+        {
+          "heading": "5.2. 비동기 처리",
+          "level": 3,
+          "line": 132
+        },
+        {
+          "heading": "5.3. 캐싱 (프론트엔드)",
+          "level": 3,
+          "line": 142
+        },
+        {
+          "heading": "6. 확장 포인트",
+          "level": 2,
+          "line": 155
+        },
+        {
+          "heading": "새 벤더 추가",
+          "level": 3,
+          "line": 157
+        },
+        {
+          "heading": "새 분석 엔진 추가",
+          "level": 3,
+          "line": 174
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 16
+      }
+    },
+    {
+      "path": "docs/DATABASE.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 328,
+      "nonEmptyLines": 285,
+      "sections": [
+        {
+          "heading": "데이터베이스 스키마 정의서 (Database Schema Documentation)",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "1. 장비 및 이력 관리",
+          "level": 2,
+          "line": 7
+        },
+        {
+          "heading": "`devices` Table (방화벽 장비)",
+          "level": 3,
+          "line": 9
+        },
+        {
+          "heading": "`change_logs` Table (변경 이력)",
+          "level": 3,
+          "line": 53
+        },
+        {
+          "heading": "1.1. 사용자 관리",
+          "level": 2,
+          "line": 68
+        },
+        {
+          "heading": "`users` Table (시스템 사용자)",
+          "level": 3,
+          "line": 70
+        },
+        {
+          "heading": "2. 정책 및 객체 테이블",
+          "level": 2,
+          "line": 83
+        },
+        {
+          "heading": "`network_objects` Table (네트워크 객체)",
+          "level": 3,
+          "line": 85
+        },
+        {
+          "heading": "`network_groups` Table (네트워크 그룹)",
+          "level": 3,
+          "line": 100
+        },
+        {
+          "heading": "`services` Table (서비스 객체)",
+          "level": 3,
+          "line": 111
+        },
+        {
+          "heading": "`service_groups` Table (서비스 그룹)",
+          "level": 3,
+          "line": 124
+        },
+        {
+          "heading": "`policies` Table (보안 정책)",
+          "level": 3,
+          "line": 135
+        },
+        {
+          "heading": "3. 고속 검색 인덱스 테이블",
+          "level": 2,
+          "line": 158
+        },
+        {
+          "heading": "`policy_address_members` Table (주소 인덱스)",
+          "level": 3,
+          "line": 160
+        },
+        {
+          "heading": "`policy_service_members` Table (서비스 인덱스)",
+          "level": 3,
+          "line": 171
+        },
+        {
+          "heading": "4. 분석 및 시스템 로그",
+          "level": 2,
+          "line": 183
+        },
+        {
+          "heading": "`analysistasks` Table (분석 작업)",
+          "level": 3,
+          "line": 185
+        },
+        {
+          "heading": "`analysis_results` Table (분석 결과)",
+          "level": 3,
+          "line": 199
+        },
+        {
+          "heading": "`redundancypolicysets` Table (중복 정책 분석 결과)",
+          "level": 3,
+          "line": 210
+        },
+        {
+          "heading": "`notification_logs` Table (시스템 알림)",
+          "level": 3,
+          "line": 219
+        },
+        {
+          "heading": "`sync_histories` Table (동기화 이력)",
+          "level": 3,
+          "line": 229
+        },
+        {
+          "heading": "`export_tasks` Table (Devices 직접 추출 백그라운드 작업)",
+          "level": 3,
+          "line": 240
+        },
+        {
+          "heading": "`pending_policy_changes` Table (Policies 편집모드 대기중 변경사항)",
+          "level": 3,
+          "line": 265
+        },
+        {
+          "heading": "5. 설정 및 스케줄",
+          "level": 2,
+          "line": 281
+        },
+        {
+          "heading": "`settings` Table (애플리케이션 설정)",
+          "level": 3,
+          "line": 283
+        },
+        {
+          "heading": "`sync_schedules` Table (동기화 스케줄)",
+          "level": 3,
+          "line": 289
+        },
+        {
+          "heading": "6. 삭제 워크플로우",
+          "level": 2,
+          "line": 301
+        },
+        {
+          "heading": "`deletion_workflow_projects` Table (삭제 워크플로우 프로젝트)",
+          "level": 3,
+          "line": 303
+        },
+        {
+          "heading": "`deletion_workflow_files` Table (삭제 워크플로우 파일)",
+          "level": 3,
+          "line": 317
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 29
+      }
+    },
+    {
+      "path": "docs/DESIGN.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 273,
+      "nonEmptyLines": 225,
+      "sections": [
+        {
+          "heading": "Brand & Style",
+          "level": 2,
+          "line": 140
+        },
+        {
+          "heading": "Colors",
+          "level": 2,
+          "line": 146
+        },
+        {
+          "heading": "Border pattern",
+          "level": 3,
+          "line": 156
+        },
+        {
+          "heading": "Typography",
+          "level": 2,
+          "line": 159
+        },
+        {
+          "heading": "Layout & Spacing",
+          "level": 2,
+          "line": 172
+        },
+        {
+          "heading": "Elevation & Depth",
+          "level": 2,
+          "line": 193
+        },
+        {
+          "heading": "Shapes",
+          "level": 2,
+          "line": 203
+        },
+        {
+          "heading": "Components",
+          "level": 2,
+          "line": 207
+        },
+        {
+          "heading": "Buttons",
+          "level": 3,
+          "line": 209
+        },
+        {
+          "heading": "Cards & Modules",
+          "level": 3,
+          "line": 219
+        },
+        {
+          "heading": "Data Tables",
+          "level": 3,
+          "line": 233
+        },
+        {
+          "heading": "Status Chips",
+          "level": 3,
+          "line": 239
+        },
+        {
+          "heading": "Badges / Tags",
+          "level": 3,
+          "line": 252
+        },
+        {
+          "heading": "Progress Bars",
+          "level": 3,
+          "line": 258
+        },
+        {
+          "heading": "Search Input",
+          "level": 3,
+          "line": 262
+        },
+        {
+          "heading": "Alert Banners",
+          "level": 3,
+          "line": 271
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 16
+      }
+    },
+    {
+      "path": "docs/DEVELOPMENT.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 197,
+      "nonEmptyLines": 141,
+      "sections": [
+        {
+          "heading": "개발 환경 설정 및 명령어 (Development Guide)",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "백엔드 개발 환경",
+          "level": 2,
+          "line": 7
+        },
+        {
+          "heading": "1. 의존성 설치",
+          "level": 3,
+          "line": 9
+        },
+        {
+          "heading": "2. 데이터베이스 마이그레이션",
+          "level": 3,
+          "line": 15
+        },
+        {
+          "heading": "초기 마이그레이션 (새 환경)",
+          "level": 4,
+          "line": 17
+        },
+        {
+          "heading": "마이그레이션 명령어",
+          "level": 4,
+          "line": 23
+        },
+        {
+          "heading": "스키마 변경 워크플로우",
+          "level": 4,
+          "line": 38
+        },
+        {
+          "heading": "3. 서버 실행",
+          "level": 3,
+          "line": 57
+        },
+        {
+          "heading": "4. 테스트 실행",
+          "level": 3,
+          "line": 70
+        },
+        {
+          "heading": "프론트엔드 개발 환경",
+          "level": 2,
+          "line": 82
+        },
+        {
+          "heading": "1. 의존성 설치",
+          "level": 3,
+          "line": 84
+        },
+        {
+          "heading": "2. 개발 서버 실행",
+          "level": 3,
+          "line": 91
+        },
+        {
+          "heading": "Vite 프록시 설정",
+          "level": 4,
+          "line": 102
+        },
+        {
+          "heading": "3. 프로덕션 빌드",
+          "level": 3,
+          "line": 106
+        },
+        {
+          "heading": "4. 빌드 결과물 확인",
+          "level": 3,
+          "line": 119
+        },
+        {
+          "heading": "5. 린트 검사",
+          "level": 3,
+          "line": 128
+        },
+        {
+          "heading": "프로덕션 빌드 및 배포",
+          "level": 2,
+          "line": 137
+        },
+        {
+          "heading": "통합 빌드 (Frontend + Backend)",
+          "level": 3,
+          "line": 141
+        },
+        {
+          "heading": "Step 1: 프론트엔드 빌드",
+          "level": 4,
+          "line": 143
+        },
+        {
+          "heading": "Step 2: 백엔드 서버 시작",
+          "level": 4,
+          "line": 152
+        },
+        {
+          "heading": "배포 체크리스트",
+          "level": 3,
+          "line": 164
+        },
+        {
+          "heading": "개발 팁",
+          "level": 2,
+          "line": 174
+        },
+        {
+          "heading": "토큰 관리 (로그인 상태)",
+          "level": 3,
+          "line": 176
+        },
+        {
+          "heading": "실시간 업데이트 (WebSocket)",
+          "level": 3,
+          "line": 181
+        },
+        {
+          "heading": "DB 백업",
+          "level": 3,
+          "line": 185
+        },
+        {
+          "heading": "환경 변수",
+          "level": 3,
+          "line": 191
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 26
+      }
+    },
+    {
+      "path": "docs/REFACTOR_CANDIDATES.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 32,
+      "nonEmptyLines": 26,
+      "sections": [
+        {
+          "heading": "리팩토링 후보 (대형 파일)",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "백엔드",
+          "level": 2,
+          "line": 5
+        },
+        {
+          "heading": "프론트엔드",
+          "level": 2,
+          "line": 19
+        },
+        {
+          "heading": "참고",
+          "level": 2,
+          "line": 30
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 4
+      }
+    },
+    {
+      "path": "docs/방화벽_정책_삭제_워크플로우_Phase3_자동연장예외요청.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 127,
+      "nonEmptyLines": 89,
+      "sections": [
+        {
+          "heading": "삭제 워크플로우 Phase 3 — 자동연장예외 요청 (Task 19)",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "1. 목적",
+          "level": 2,
+          "line": 9
+        },
+        {
+          "heading": "2. 입력 (4개, 전부 자동 리졸빙 — 사용자 파일 선택 불필요)",
+          "level": 2,
+          "line": 17
+        },
+        {
+          "heading": "3. 처리 로직 (구현: `processors/auto_renewal_exception_generator.py`)",
+          "level": 2,
+          "line": 30
+        },
+        {
+          "heading": "4. 출력: 자동연장예외파일.xlsx (4개 시트)",
+          "level": 2,
+          "line": 60
+        },
+        {
+          "heading": "5. 검증용 예시",
+          "level": 2,
+          "line": 73
+        },
+        {
+          "heading": "6. 파이프라인 등록 위치 (코드 참조)",
+          "level": 2,
+          "line": 98
+        },
+        {
+          "heading": "7. 오류 상황 대처",
+          "level": 2,
+          "line": 112
+        },
+        {
+          "heading": "8. 보류 사항",
+          "level": 2,
+          "line": 124
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 9
+      }
+    },
+    {
+      "path": "docs/방화벽_정책_삭제_워크플로우_운영_매뉴얼.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 1039,
+      "nonEmptyLines": 773,
+      "sections": [
+        {
+          "heading": "방화벽 정책 삭제 워크플로우 운영 매뉴얼",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "목차",
+          "level": 2,
+          "line": 9
+        },
+        {
+          "heading": "1. 업무 개요",
+          "level": 2,
+          "line": 30
+        },
+        {
+          "heading": "1.1 목적",
+          "level": 3,
+          "line": 32
+        },
+        {
+          "heading": "1.2 지원 벤더",
+          "level": 3,
+          "line": 45
+        },
+        {
+          "heading": "2. 전체 흐름도",
+          "level": 2,
+          "line": 52
+        },
+        {
+          "heading": "3. 준비 사항 및 필요 파일",
+          "level": 2,
+          "line": 106
+        },
+        {
+          "heading": "3.1 필수 외부 파일",
+          "level": 3,
+          "line": 108
+        },
+        {
+          "heading": "3.2 MIS ID CSV 형식",
+          "level": 3,
+          "line": 117
+        },
+        {
+          "heading": "3.3 작업 환경",
+          "level": 3,
+          "line": 127
+        },
+        {
+          "heading": "4. Phase 0 — 데이터 추출",
+          "level": 2,
+          "line": 135
+        },
+        {
+          "heading": "Task 0. FAT DB 추출",
+          "level": 3,
+          "line": 137
+        },
+        {
+          "heading": "Task 1. HA 히트카운트 병합 (Palo Alto HA 장비 한정, 선택)",
+          "level": 3,
+          "line": 182
+        },
+        {
+          "heading": "5. Phase 1 — 정책 파일 전처리",
+          "level": 2,
+          "line": 205
+        },
+        {
+          "heading": "Task 2. 신청정보 파싱",
+          "level": 3,
+          "line": 207
+        },
+        {
+          "heading": "Task 3. 중복정책 분석 (FAT 자동)",
+          "level": 3,
+          "line": 246
+        },
+        {
+          "heading": "Task 4. 중복결과 신청정보 파싱",
+          "level": 3,
+          "line": 262
+        },
+        {
+          "heading": "Task 5. MIS ID 매핑",
+          "level": 3,
+          "line": 272
+        },
+        {
+          "heading": "Task 6. 신청번호 추출",
+          "level": 3,
+          "line": 289
+        },
+        {
+          "heading": "6. Phase 2 — 신청정보 매핑",
+          "level": 2,
+          "line": 312
+        },
+        {
+          "heading": "Task 7. GSAMS 신청정보 취합",
+          "level": 3,
+          "line": 314
+        },
+        {
+          "heading": "Task 8. 신청정보 정책파일 매핑",
+          "level": 3,
+          "line": 344
+        },
+        {
+          "heading": "Task 9. 자동연장 날짜 업데이트",
+          "level": 3,
+          "line": 387
+        },
+        {
+          "heading": "7. Phase 3 — 예외 분류 및 사용이력 반영",
+          "level": 2,
+          "line": 426
+        },
+        {
+          "heading": "Task 10/11. 예외처리",
+          "level": 3,
+          "line": 428
+        },
+        {
+          "heading": "Task 12. 사용이력 반영",
+          "level": 3,
+          "line": 473
+        },
+        {
+          "heading": "Task 13. 하단 최신정책 검증",
+          "level": 3,
+          "line": 497
+        },
+        {
+          "heading": "8. Phase 4 — 중복정책 분류",
+          "level": 2,
+          "line": 528
+        },
+        {
+          "heading": "Task 14. 중복정책 분류",
+          "level": 3,
+          "line": 530
+        },
+        {
+          "heading": "Task 15. 만료셋 예외처리",
+          "level": 3,
+          "line": 582
+        },
+        {
+          "heading": "Task 16. 중복정책 상태 업데이트",
+          "level": 3,
+          "line": 643
+        },
+        {
+          "heading": "Task 17. 중복예외 반영",
+          "level": 3,
+          "line": 665
+        },
+        {
+          "heading": "9. Phase 5 — 공지대상 분류 (최종 산출물)",
+          "level": 2,
+          "line": 689
+        },
+        {
+          "heading": "Task 18. 공지대상 분류",
+          "level": 3,
+          "line": 691
+        },
+        {
+          "heading": "① 기간만료 + 사용 정책 → `_기간만료(공지용).xlsx`",
+          "level": 4,
+          "line": 699
+        },
+        {
+          "heading": "② 기간만료 + 미사용 정책 → `_만료_미사용정책(공지용).xlsx`",
+          "level": 4,
+          "line": 709
+        },
+        {
+          "heading": "③ 장기미사용 정책 → `_장기미사용정책(공지용).xlsx`",
+          "level": 4,
+          "line": 719
+        },
+        {
+          "heading": "④ 이력없는 미사용 정책 → `_이력없는_미사용정책.xlsx`",
+          "level": 4,
+          "line": 735
+        },
+        {
+          "heading": "10. 최종 산출물 목록",
+          "level": 2,
+          "line": 752
+        },
+        {
+          "heading": "11. 컬럼 정의 참조표",
+          "level": 2,
+          "line": 767
+        },
+        {
+          "heading": "분류 컬럼",
+          "level": 3,
+          "line": 769
+        },
+        {
+          "heading": "신청정보 컬럼 생명주기",
+          "level": 3,
+          "line": 782
+        },
+        {
+          "heading": "12. 분류 기준 상세",
+          "level": 2,
+          "line": 804
+        },
+        {
+          "heading": "12.1 신청 유형 (Request Type) 판별",
+          "level": 3,
+          "line": 806
+        },
+        {
+          "heading": "12.2 만료 여부 판별",
+          "level": 3,
+          "line": 817
+        },
+        {
+          "heading": "12.3 미사용 판별 기준",
+          "level": 3,
+          "line": 825
+        },
+        {
+          "heading": "12.4 중복정책 작업구분 결정",
+          "level": 3,
+          "line": 834
+        },
+        {
+          "heading": "12.5 YAML 예외 유효성 기준",
+          "level": 3,
+          "line": 840
+        },
+        {
+          "heading": "13. 오류 상황 대처",
+          "level": 2,
+          "line": 850
+        },
+        {
+          "heading": "13.1 신청정보 파싱 실패 (Request Type = Unknown) 다수",
+          "level": 3,
+          "line": 852
+        },
+        {
+          "heading": "13.2 Task 15 후 `_정리_v1.xlsx`에 예외 시트가 없음",
+          "level": 3,
+          "line": 860
+        },
+        {
+          "heading": "13.3 공지대상 분류 결과가 비어있음 (Task 18)",
+          "level": 3,
+          "line": 868
+        },
+        {
+          "heading": "13.4 GSAMS 매핑 후 날짜가 1900-01-01인 정책 다수",
+          "level": 3,
+          "line": 875
+        },
+        {
+          "heading": "13.5 자동연장 날짜 업데이트가 안 되는 정책 (Task 9)",
+          "level": 3,
+          "line": 883
+        },
+        {
+          "heading": "13.6 중복여부가 채워지지 않는 정책 있음 (Task 16)",
+          "level": 3,
+          "line": 890
+        },
+        {
+          "heading": "13.7 YAML 예외가 반영되지 않음 (Task 17)",
+          "level": 3,
+          "line": 895
+        },
+        {
+          "heading": "14. 태스크별 입출력 요약표",
+          "level": 2,
+          "line": 903
+        },
+        {
+          "heading": "15. 수동 작업 시 Excel 필터 조건",
+          "level": 2,
+          "line": 930
+        },
+        {
+          "heading": "① 기간만료 + 사용 (`_기간만료(공지용).xlsx`)",
+          "level": 3,
+          "line": 935
+        },
+        {
+          "heading": "② 기간만료 + 미사용 (`_만료_미사용정책(공지용).xlsx`)",
+          "level": 3,
+          "line": 945
+        },
+        {
+          "heading": "③ 장기미사용 — GROUP (`_장기미사용정책(공지용).xlsx`의 일부)",
+          "level": 3,
+          "line": 955
+        },
+        {
+          "heading": "③ 장기미사용 — GENERAL (위 결과에 합산)",
+          "level": 3,
+          "line": 965
+        },
+        {
+          "heading": "④ 이력없는 미사용 (`_이력없는_미사용정책.xlsx`)",
+          "level": 3,
+          "line": 975
+        },
+        {
+          "heading": "16. Phase 6 — 자동연장예외 요청 (Task 19)",
+          "level": 2,
+          "line": 986
+        },
+        {
+          "heading": "Task 19. 자동연장예외파일 생성",
+          "level": 3,
+          "line": 988
+        },
+        {
+          "heading": "부록. 파일 버전 네이밍 규칙",
+          "level": 2,
+          "line": 1017
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 66
+      }
+    }
+  ]
+}

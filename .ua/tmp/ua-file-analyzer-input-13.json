@@ -1,0 +1,10 @@
+{
+  "projectRoot": "/Users/hoon/Code/firewall-analysis-tool",
+  "batchFiles": [
+    {"path": "CLAUDE.md", "language": "markdown", "sizeLines": 141, "fileCategory": "docs"},
+    {"path": "README.md", "language": "markdown", "sizeLines": 181, "fileCategory": "docs"},
+    {"path": "deploy.bat", "language": "batch", "sizeLines": 107, "fileCategory": "script"},
+    {"path": "run_prod.bat", "language": "batch", "sizeLines": 98, "fileCategory": "script"}
+  ],
+  "batchImportData": {"CLAUDE.md": [], "README.md": [], "deploy.bat": [], "run_prod.bat": []}
+}

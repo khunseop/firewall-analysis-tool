@@ -1,0 +1,11 @@
+{
+  "projectRoot": "/Users/hoon/Code/firewall-analysis-tool",
+  "batchFiles": [
+    {"path": "frontend/src/components/pages/DeletionWorkflowDetailPage.tsx", "language": "typescript", "sizeLines": 756, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/deletion-workflow/ExternalFileUpload.tsx", "language": "typescript", "sizeLines": 58, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/deletion-workflow/Task0Section.tsx", "language": "typescript", "sizeLines": 176, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/deletion-workflow/TaskCard.tsx", "language": "typescript", "sizeLines": 230, "fileCategory": "code"},
+    {"path": "frontend/src/components/pages/deletion-workflow/taskMeta.ts", "language": "typescript", "sizeLines": 75, "fileCategory": "code"}
+  ],
+  "batchImportData": {"frontend/src/components/pages/DeletionWorkflowDetailPage.tsx": ["frontend/src/components/pages/deletion-workflow/Task0Section.tsx", "frontend/src/components/pages/deletion-workflow/TaskCard.tsx", "frontend/src/components/pages/deletion-workflow/taskMeta.ts"], "frontend/src/components/pages/deletion-workflow/ExternalFileUpload.tsx": [], "frontend/src/components/pages/deletion-workflow/Task0Section.tsx": ["frontend/src/components/pages/deletion-workflow/taskMeta.ts"], "frontend/src/components/pages/deletion-workflow/TaskCard.tsx": ["frontend/src/components/pages/deletion-workflow/ExternalFileUpload.tsx", "frontend/src/components/pages/deletion-workflow/taskMeta.ts"], "frontend/src/components/pages/deletion-workflow/taskMeta.ts": []}
+}

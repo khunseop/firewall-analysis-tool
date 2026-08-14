@@ -1,0 +1,59 @@
+{
+  "nodes": [
+    {
+      "id": "document:CLAUDE.md",
+      "type": "document",
+      "name": "CLAUDE.md",
+      "filePath": "CLAUDE.md",
+      "summary": "Claude Code에게 제공하는 프로젝트 가이드 문서. 아키텍처 개요, 백엔드/프론트엔드 실행 명령어, 핵심 서브시스템 표, DB 스키마 변경 체크리스트, 확장 패턴, 그리고 여러 곳에서 참조되는 공유 모듈(블라스트 레이디어스) 목록을 정리한다.",
+      "tags": ["documentation", "entry-point", "architecture-guide", "development-guidelines"],
+      "complexity": "moderate",
+      "languageNotes": "15개 섹션으로 구성된 계층적 마크다운 문서로, 백엔드 서브시스템 표와 파급범위(blast radius) 주의사항이 핵심 내용이다."
+    },
+    {
+      "id": "document:README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "README.md",
+      "summary": "FAT(Firewall Analysis Tool) 프로젝트의 공식 소개 문서. 지원 벤더, 설치/실행 방법, 핵심 기능(동기화, 정책/객체 조회, 분석 엔진, Policies 편집모드), 아키텍처, 개발 가이드라인을 20개 섹션에 걸쳐 설명한다.",
+      "tags": ["documentation", "entry-point", "overview", "getting-started"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:deploy.bat",
+      "type": "file",
+      "name": "deploy.bat",
+      "filePath": "deploy.bat",
+      "summary": "Windows 배치 스크립트로 git pull, 프론트엔드 빌드(npm run build), git bundle 생성, fat.bundle과 frontend/dist를 묶은 fat.zip 생성까지 자동화하여 운영망 배포 준비를 수행한다.",
+      "tags": ["deployment", "build-system", "automation", "windows-batch"],
+      "complexity": "moderate",
+      "languageNotes": "git stash, git pull 재시도 루프(최대 3회), PowerShell Compress-Archive 호출 등 배치 스크립트 특유의 오류 처리와 :fail/:end 라벨 기반 흐름 제어를 사용한다."
+    },
+    {
+      "id": "file:run_prod.bat",
+      "type": "file",
+      "name": "run_prod.bat",
+      "filePath": "run_prod.bat",
+      "summary": "운영망에서 fat.zip(fat.bundle + frontend/dist)을 압축 해제해 git bundle로부터 최신 변경사항을 반영하고 frontend/dist를 교체한 뒤 uvicorn으로 서버를 기동하는 배치 스크립트.",
+      "tags": ["deployment", "server-startup", "automation", "windows-batch"],
+      "complexity": "moderate",
+      "languageNotes": "fat.zip이 없으면 업데이트를 건너뛰고 서버만 실행하는 분기(:run_server)를 포함하며, PowerShell Expand-Archive와 git pull(로컬 bundle 경로)을 사용한다."
+    }
+  ],
+  "edges": [
+    {
+      "source": "document:CLAUDE.md",
+      "target": "document:README.md",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:run_prod.bat",
+      "target": "file:deploy.bat",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    }
+  ]
+}
