@@ -1,0 +1,176 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/components/pages/DeletionWorkflowDetailPage.tsx",
+      "type": "file",
+      "name": "DeletionWorkflowDetailPage.tsx",
+      "filePath": "frontend/src/components/pages/DeletionWorkflowDetailPage.tsx",
+      "summary": "삭제 워크플로우 프로젝트 상세 페이지. Task 0~19까지 3단계(Phase)의 진행 상태를 표시하고, 동기화 확인, 자동 실행(auto-run), 기준일 편집, 리셋/완료 처리 등 전체 프로젝트 흐름을 오케스트레이션하는 최상위 컴포넌트.",
+      "tags": ["page-component", "workflow", "orchestration", "react-query", "state-management"],
+      "complexity": "complex",
+      "languageNotes": "단일 컴포넌트 안에 다수의 useState/핸들러가 밀집된 대형 페이지 컴포넌트로, 자동 실행 로직(startAutoRunFrom)이 재귀적으로 다음 태스크를 순차 실행한다."
+    },
+    {
+      "id": "file:frontend/src/components/pages/deletion-workflow/ExternalFileUpload.tsx",
+      "type": "file",
+      "name": "ExternalFileUpload.tsx",
+      "filePath": "frontend/src/components/pages/deletion-workflow/ExternalFileUpload.tsx",
+      "summary": "삭제 워크플로우 태스크에 필요한 외부 파일(MIS CSV, GSAMS Excel 등)을 업로드하는 재사용 가능한 파일 업로드 위젯 컴포넌트.",
+      "tags": ["component", "file-upload", "reusable"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/pages/deletion-workflow/Task0Section.tsx",
+      "type": "file",
+      "name": "Task0Section.tsx",
+      "filePath": "frontend/src/components/pages/deletion-workflow/Task0Section.tsx",
+      "summary": "삭제 워크플로우의 사전 단계(Task 0)를 담당하는 섹션 컴포넌트. DB 추출 파일에서 정책을 추출(extract)하고 HA 페어 정책을 병합(merge)하는 UI와 로직을 제공.",
+      "tags": ["component", "workflow", "file-upload", "extraction"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/pages/deletion-workflow/TaskCard.tsx",
+      "type": "file",
+      "name": "TaskCard.tsx",
+      "filePath": "frontend/src/components/pages/deletion-workflow/TaskCard.tsx",
+      "summary": "삭제 워크플로우의 개별 태스크(1~19단계)를 표시하는 카드 컴포넌트. 태스크 실행, 결과 다운로드, 산출물 교체(replace) 및 소요 시간 표시 기능을 담당.",
+      "tags": ["component", "workflow", "task-card", "file-upload"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/pages/deletion-workflow/taskMeta.ts",
+      "type": "file",
+      "name": "taskMeta.ts",
+      "filePath": "frontend/src/components/pages/deletion-workflow/taskMeta.ts",
+      "summary": "삭제 워크플로우 3단계(Phase)의 태스크 메타데이터(PHASE1~3_TASKS, 실행 순서)와 태스크 파일 조회·다운로드·경과시간 포맷 등의 유틸 함수를 정의하는 모듈.",
+      "tags": ["utility", "workflow", "constants", "type-definition"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/DeletionWorkflowDetailPage.tsx:DeletionWorkflowDetailPage",
+      "type": "function",
+      "name": "DeletionWorkflowDetailPage",
+      "filePath": "frontend/src/components/pages/DeletionWorkflowDetailPage.tsx",
+      "lineRange": [14, 756],
+      "summary": "삭제 워크플로우 프로젝트 상세 페이지의 루트 컴포넌트 함수. 프로젝트 조회, 기준일 저장, 동기화/중복분석 확인, 자동 실행(startAutoRunFrom), 리셋/완료 처리 등의 핸들러를 포함.",
+      "tags": ["entry-point", "page-component", "workflow"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:frontend/src/components/pages/deletion-workflow/ExternalFileUpload.tsx:ExternalFileUpload",
+      "type": "function",
+      "name": "ExternalFileUpload",
+      "filePath": "frontend/src/components/pages/deletion-workflow/ExternalFileUpload.tsx",
+      "lineRange": [6, 56],
+      "summary": "숨겨진 파일 input을 트리거해 외부 파일을 업로드하고 완료 시 onUploaded 콜백을 호출하는 컴포넌트 함수.",
+      "tags": ["component", "file-upload"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/deletion-workflow/Task0Section.tsx:Task0Section",
+      "type": "function",
+      "name": "Task0Section",
+      "filePath": "frontend/src/components/pages/deletion-workflow/Task0Section.tsx",
+      "lineRange": [7, 174],
+      "summary": "DB 추출(extract) 및 HA 병합(merge) 두 하위 작업의 실행, 진행상태 표시, 파일 다운로드 UI를 렌더링하는 컴포넌트 함수.",
+      "tags": ["component", "workflow", "file-upload"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/deletion-workflow/TaskCard.tsx:TaskCard",
+      "type": "function",
+      "name": "TaskCard",
+      "filePath": "frontend/src/components/pages/deletion-workflow/TaskCard.tsx",
+      "lineRange": [8, 228],
+      "summary": "개별 태스크의 실행(handleRun), 다운로드(handleDownload), 산출물 교체(handleReplaceOutput) 로직과 경과 시간 표시 UI를 담당하는 컴포넌트 함수.",
+      "tags": ["component", "workflow", "task-card"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:getOutputFiles",
+      "type": "function",
+      "name": "getOutputFiles",
+      "filePath": "frontend/src/components/pages/deletion-workflow/taskMeta.ts",
+      "lineRange": [51, 53],
+      "summary": "주어진 태스크 ID에 해당하는 산출물(output_) 슬롯 파일 목록을 필터링해 반환.",
+      "tags": ["utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:hasOutput",
+      "type": "function",
+      "name": "hasOutput",
+      "filePath": "frontend/src/components/pages/deletion-workflow/taskMeta.ts",
+      "lineRange": [55, 57],
+      "summary": "주어진 태스크가 산출물 파일을 하나라도 가지고 있는지 여부를 반환.",
+      "tags": ["utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:getExternalFile",
+      "type": "function",
+      "name": "getExternalFile",
+      "filePath": "frontend/src/components/pages/deletion-workflow/taskMeta.ts",
+      "lineRange": [59, 61],
+      "summary": "특정 태스크와 슬롯에 매칭되는 외부 업로드 파일을 조회.",
+      "tags": ["utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:getDownstreamTaskIds",
+      "type": "function",
+      "name": "getDownstreamTaskIds",
+      "filePath": "frontend/src/components/pages/deletion-workflow/taskMeta.ts",
+      "lineRange": [63, 67],
+      "summary": "실행 순서(EXECUTION_ORDER) 기준으로 특정 태스크 이후의 하위(downstream) 태스크 ID 목록을 반환. 재실행 시 영향받는 태스크 산출물 초기화에 사용.",
+      "tags": ["utility", "workflow"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:formatElapsed",
+      "type": "function",
+      "name": "formatElapsed",
+      "filePath": "frontend/src/components/pages/deletion-workflow/taskMeta.ts",
+      "lineRange": [69, 73],
+      "summary": "밀리초 단위 경과 시간을 ms/s/분+s 형태의 사람이 읽기 쉬운 문자열로 포맷.",
+      "tags": ["utility", "formatting"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    { "source": "file:frontend/src/components/pages/DeletionWorkflowDetailPage.tsx", "target": "function:frontend/src/components/pages/DeletionWorkflowDetailPage.tsx:DeletionWorkflowDetailPage", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/pages/DeletionWorkflowDetailPage.tsx", "target": "function:frontend/src/components/pages/DeletionWorkflowDetailPage.tsx:DeletionWorkflowDetailPage", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/ExternalFileUpload.tsx", "target": "function:frontend/src/components/pages/deletion-workflow/ExternalFileUpload.tsx:ExternalFileUpload", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/ExternalFileUpload.tsx", "target": "function:frontend/src/components/pages/deletion-workflow/ExternalFileUpload.tsx:ExternalFileUpload", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/Task0Section.tsx", "target": "function:frontend/src/components/pages/deletion-workflow/Task0Section.tsx:Task0Section", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/Task0Section.tsx", "target": "function:frontend/src/components/pages/deletion-workflow/Task0Section.tsx:Task0Section", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/TaskCard.tsx", "target": "function:frontend/src/components/pages/deletion-workflow/TaskCard.tsx:TaskCard", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/TaskCard.tsx", "target": "function:frontend/src/components/pages/deletion-workflow/TaskCard.tsx:TaskCard", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/taskMeta.ts", "target": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:getOutputFiles", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/taskMeta.ts", "target": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:getOutputFiles", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/taskMeta.ts", "target": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:hasOutput", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/taskMeta.ts", "target": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:hasOutput", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/taskMeta.ts", "target": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:getExternalFile", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/taskMeta.ts", "target": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:getExternalFile", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/taskMeta.ts", "target": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:getDownstreamTaskIds", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/taskMeta.ts", "target": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:getDownstreamTaskIds", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/taskMeta.ts", "target": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:formatElapsed", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/taskMeta.ts", "target": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:formatElapsed", "type": "exports", "direction": "forward", "weight": 0.8 },
+
+    { "source": "file:frontend/src/components/pages/DeletionWorkflowDetailPage.tsx", "target": "file:frontend/src/components/pages/deletion-workflow/Task0Section.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/pages/DeletionWorkflowDetailPage.tsx", "target": "file:frontend/src/components/pages/deletion-workflow/TaskCard.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/pages/DeletionWorkflowDetailPage.tsx", "target": "file:frontend/src/components/pages/deletion-workflow/taskMeta.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/Task0Section.tsx", "target": "file:frontend/src/components/pages/deletion-workflow/taskMeta.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/TaskCard.tsx", "target": "file:frontend/src/components/pages/deletion-workflow/ExternalFileUpload.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/components/pages/deletion-workflow/TaskCard.tsx", "target": "file:frontend/src/components/pages/deletion-workflow/taskMeta.ts", "type": "imports", "direction": "forward", "weight": 0.7 },
+
+    { "source": "function:frontend/src/components/pages/DeletionWorkflowDetailPage.tsx:DeletionWorkflowDetailPage", "target": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:hasOutput", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/components/pages/DeletionWorkflowDetailPage.tsx:DeletionWorkflowDetailPage", "target": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:getDownstreamTaskIds", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/components/pages/deletion-workflow/Task0Section.tsx:Task0Section", "target": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:hasOutput", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/components/pages/deletion-workflow/Task0Section.tsx:Task0Section", "target": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:getExternalFile", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/components/pages/deletion-workflow/TaskCard.tsx:TaskCard", "target": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:getOutputFiles", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/components/pages/deletion-workflow/TaskCard.tsx:TaskCard", "target": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:getExternalFile", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/components/pages/deletion-workflow/TaskCard.tsx:TaskCard", "target": "function:frontend/src/components/pages/deletion-workflow/taskMeta.ts:formatElapsed", "type": "calls", "direction": "forward", "weight": 0.8 },
+    { "source": "function:frontend/src/components/pages/deletion-workflow/TaskCard.tsx:TaskCard", "target": "function:frontend/src/components/pages/deletion-workflow/ExternalFileUpload.tsx:ExternalFileUpload", "type": "depends_on", "direction": "forward", "weight": 0.6 }
+  ]
+}
