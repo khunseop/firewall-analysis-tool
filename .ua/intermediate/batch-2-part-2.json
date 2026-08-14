@@ -1,0 +1,733 @@
+{
+  "nodes": [
+    {
+      "id": "file:backend/app/crud/crud_service.py",
+      "type": "file",
+      "name": "crud_service.py",
+      "filePath": "backend/app/crud/crud_service.py",
+      "summary": "서비스(포트/프로토콜) 오브젝트 조회/생성/수정/삭제와 검색을 제공하는 CRUD 모듈.",
+      "tags": [
+        "crud",
+        "service-object",
+        "search",
+        "database"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/crud/crud_service.py:search_services",
+      "type": "function",
+      "name": "search_services",
+      "filePath": "backend/app/crud/crud_service.py",
+      "lineRange": [
+        39,
+        92
+      ],
+      "summary": "이름·프로토콜·포트·설명 조건으로 서비스 오브젝트를 검색하는 함수.",
+      "tags": [
+        "crud",
+        "search",
+        "service-object"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/crud/crud_service_group.py",
+      "type": "file",
+      "name": "crud_service_group.py",
+      "filePath": "backend/app/crud/crud_service_group.py",
+      "summary": "서비스 그룹 오브젝트에 대한 조회/생성/수정/삭제 및 검색 CRUD 함수 모음.",
+      "tags": [
+        "crud",
+        "service-object",
+        "database"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/crud/crud_settings.py",
+      "type": "file",
+      "name": "crud_settings.py",
+      "filePath": "backend/app/crud/crud_settings.py",
+      "summary": "키-값 기반 애플리케이션 설정(Settings) 항목을 조회/생성/수정하는 CRUD 모듈.",
+      "tags": [
+        "crud",
+        "settings",
+        "database"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/crud/crud_sync_schedule.py",
+      "type": "file",
+      "name": "crud_sync_schedule.py",
+      "filePath": "backend/app/crud/crud_sync_schedule.py",
+      "summary": "동기화 스케줄 등록/조회/수정/삭제 및 실행 상태 갱신을 담당하는 CRUD 모듈.",
+      "tags": [
+        "crud",
+        "scheduler",
+        "database"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/crud/crud_sync_schedule.py:update_sync_schedule",
+      "type": "function",
+      "name": "update_sync_schedule",
+      "filePath": "backend/app/crud/crud_sync_schedule.py",
+      "lineRange": [
+        42,
+        55
+      ],
+      "summary": "동기화 스케줄 설정을 부분 갱신하는 함수.",
+      "tags": [
+        "crud",
+        "scheduler"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/crud/crud_sync_schedule.py:update_schedule_run_status",
+      "type": "function",
+      "name": "update_schedule_run_status",
+      "filePath": "backend/app/crud/crud_sync_schedule.py",
+      "lineRange": [
+        65,
+        79
+      ],
+      "summary": "스케줄의 마지막 실행 상태와 시각을 갱신하는 함수.",
+      "tags": [
+        "crud",
+        "scheduler",
+        "state"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/db/session.py",
+      "type": "file",
+      "name": "session.py",
+      "filePath": "backend/app/db/session.py",
+      "summary": "SQLAlchemy 비동기 엔진과 세션 팩토리를 생성하고, SQLite PRAGMA 설정 및 요청 스코프 세션 의존성(get_db)을 제공한다.",
+      "tags": [
+        "database",
+        "sqlalchemy",
+        "session",
+        "config"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/models/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/app/models/__init__.py",
+      "summary": "모든 SQLAlchemy ORM 모델을 한곳에서 재노출하는 모델 패키지 배럴 파일.",
+      "tags": [
+        "barrel",
+        "entry-point",
+        "orm",
+        "database"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/models/change_log.py",
+      "type": "file",
+      "name": "change_log.py",
+      "filePath": "backend/app/models/change_log.py",
+      "summary": "정책/오브젝트 변경 이력을 기록하는 ChangeLog ORM 모델을 정의한다.",
+      "tags": [
+        "data-model",
+        "orm",
+        "change-log"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/app/models/change_log.py:ChangeLog",
+      "type": "class",
+      "name": "ChangeLog",
+      "filePath": "backend/app/models/change_log.py",
+      "lineRange": [
+        7,
+        35
+      ],
+      "summary": "정책/오브젝트의 생성·수정·삭제 이력을 저장하는 ORM 모델.",
+      "tags": [
+        "data-model",
+        "orm",
+        "change-log"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/models/deletion_workflow.py",
+      "type": "file",
+      "name": "deletion_workflow.py",
+      "filePath": "backend/app/models/deletion_workflow.py",
+      "summary": "삭제 워크플로우 프로젝트(DeletionWorkflowProject)와 산출 파일(DeletionWorkflowFile) ORM 모델을 정의한다.",
+      "tags": [
+        "data-model",
+        "orm",
+        "deletion-workflow"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/app/models/deletion_workflow.py:DeletionWorkflowProject",
+      "type": "class",
+      "name": "DeletionWorkflowProject",
+      "filePath": "backend/app/models/deletion_workflow.py",
+      "lineRange": [
+        7,
+        26
+      ],
+      "summary": "삭제 워크플로우 작업 단위를 나타내는 프로젝트 ORM 모델.",
+      "tags": [
+        "data-model",
+        "orm",
+        "deletion-workflow"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/app/models/deletion_workflow.py:DeletionWorkflowFile",
+      "type": "class",
+      "name": "DeletionWorkflowFile",
+      "filePath": "backend/app/models/deletion_workflow.py",
+      "lineRange": [
+        29,
+        44
+      ],
+      "summary": "프로젝트의 각 단계별 산출 파일을 저장하는 ORM 모델.",
+      "tags": [
+        "data-model",
+        "orm",
+        "deletion-workflow"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/models/device.py",
+      "type": "file",
+      "name": "device.py",
+      "filePath": "backend/app/models/device.py",
+      "summary": "벤더별 연결 정보, HA 구성, 동기화 상태, 수집 임계값 등을 포함하는 Device ORM 모델을 정의한다.",
+      "tags": [
+        "data-model",
+        "orm",
+        "device-management"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/app/models/device.py:Device",
+      "type": "class",
+      "name": "Device",
+      "filePath": "backend/app/models/device.py",
+      "lineRange": [
+        4,
+        90
+      ],
+      "summary": "벤더 종류, 접속 정보(암호화 저장), HA 구성, 동기화 상태, 수집 임계값 등을 담는 핵심 장비 ORM 모델.",
+      "tags": [
+        "data-model",
+        "orm",
+        "device-management"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/app/models/export_task.py",
+      "type": "file",
+      "name": "export_task.py",
+      "filePath": "backend/app/models/export_task.py",
+      "summary": "장비 데이터 내보내기(Excel export) 백그라운드 작업의 상태를 추적하는 ExportTask ORM 모델을 정의한다.",
+      "tags": [
+        "data-model",
+        "orm",
+        "export"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/app/models/export_task.py:ExportTask",
+      "type": "class",
+      "name": "ExportTask",
+      "filePath": "backend/app/models/export_task.py",
+      "lineRange": [
+        5,
+        34
+      ],
+      "summary": "장비 데이터 내보내기 백그라운드 작업의 진행 상태와 결과 파일 경로를 추적하는 ORM 모델.",
+      "tags": [
+        "data-model",
+        "orm",
+        "export"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/models/network_group.py",
+      "type": "file",
+      "name": "network_group.py",
+      "filePath": "backend/app/models/network_group.py",
+      "summary": "네트워크 오브젝트 그룹을 나타내는 NetworkGroup ORM 모델을 정의한다.",
+      "tags": [
+        "data-model",
+        "orm",
+        "network-object"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/app/models/network_group.py:NetworkGroup",
+      "type": "class",
+      "name": "NetworkGroup",
+      "filePath": "backend/app/models/network_group.py",
+      "lineRange": [
+        7,
+        30
+      ],
+      "summary": "네트워크 오브젝트 그룹을 나타내는 ORM 모델.",
+      "tags": [
+        "data-model",
+        "orm",
+        "network-object"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/models/network_object.py",
+      "type": "file",
+      "name": "network_object.py",
+      "filePath": "backend/app/models/network_object.py",
+      "summary": "IP/CIDR/범위 등의 네트워크 오브젝트를 나타내는 NetworkObject ORM 모델을 정의한다.",
+      "tags": [
+        "data-model",
+        "orm",
+        "network-object"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/app/models/network_object.py:NetworkObject",
+      "type": "class",
+      "name": "NetworkObject",
+      "filePath": "backend/app/models/network_object.py",
+      "lineRange": [
+        7,
+        34
+      ],
+      "summary": "IP/CIDR/범위 등의 네트워크 오브젝트를 나타내는 ORM 모델.",
+      "tags": [
+        "data-model",
+        "orm",
+        "network-object"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:backend/app/crud/crud_service.py",
+      "target": "function:backend/app/crud/crud_service.py:search_services",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_service.py",
+      "target": "function:backend/app/crud/crud_service.py:search_services",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_service.py",
+      "target": "file:backend/app/crud/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_service.py",
+      "target": "file:backend/app/crud/base.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_service.py",
+      "target": "file:backend/app/models/service.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_service.py",
+      "target": "file:backend/app/schemas/service.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_service.py",
+      "target": "file:backend/app/services/normalize.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_service_group.py",
+      "target": "file:backend/app/crud/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_service_group.py",
+      "target": "file:backend/app/crud/base.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_service_group.py",
+      "target": "file:backend/app/models/service_group.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_service_group.py",
+      "target": "file:backend/app/schemas/service_group.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_settings.py",
+      "target": "file:backend/app/models/settings.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_settings.py",
+      "target": "file:backend/app/schemas/settings.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_sync_schedule.py",
+      "target": "function:backend/app/crud/crud_sync_schedule.py:update_sync_schedule",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_sync_schedule.py",
+      "target": "function:backend/app/crud/crud_sync_schedule.py:update_sync_schedule",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_sync_schedule.py",
+      "target": "function:backend/app/crud/crud_sync_schedule.py:update_schedule_run_status",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_sync_schedule.py",
+      "target": "function:backend/app/crud/crud_sync_schedule.py:update_schedule_run_status",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_sync_schedule.py",
+      "target": "file:backend/app/models/sync_schedule.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_sync_schedule.py",
+      "target": "file:backend/app/schemas/sync_schedule.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/db/session.py",
+      "target": "file:backend/app/core/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/__init__.py",
+      "target": "file:backend/app/models/analysis.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/__init__.py",
+      "target": "file:backend/app/models/change_log.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/__init__.py",
+      "target": "file:backend/app/models/deletion_workflow.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/__init__.py",
+      "target": "file:backend/app/models/device.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/__init__.py",
+      "target": "file:backend/app/models/export_task.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/__init__.py",
+      "target": "file:backend/app/models/network_group.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/__init__.py",
+      "target": "file:backend/app/models/network_object.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/__init__.py",
+      "target": "file:backend/app/models/notification_log.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/__init__.py",
+      "target": "file:backend/app/models/pending_policy_change.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/__init__.py",
+      "target": "file:backend/app/models/policy.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/__init__.py",
+      "target": "file:backend/app/models/policy_members.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/__init__.py",
+      "target": "file:backend/app/models/service.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/__init__.py",
+      "target": "file:backend/app/models/service_group.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/__init__.py",
+      "target": "file:backend/app/models/settings.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/__init__.py",
+      "target": "file:backend/app/models/sync_history.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/__init__.py",
+      "target": "file:backend/app/models/sync_schedule.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/__init__.py",
+      "target": "file:backend/app/models/user.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/change_log.py",
+      "target": "class:backend/app/models/change_log.py:ChangeLog",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/models/change_log.py",
+      "target": "class:backend/app/models/change_log.py:ChangeLog",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/models/change_log.py",
+      "target": "file:backend/app/db/session.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/deletion_workflow.py",
+      "target": "class:backend/app/models/deletion_workflow.py:DeletionWorkflowProject",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/models/deletion_workflow.py",
+      "target": "class:backend/app/models/deletion_workflow.py:DeletionWorkflowProject",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/models/deletion_workflow.py",
+      "target": "class:backend/app/models/deletion_workflow.py:DeletionWorkflowFile",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/models/deletion_workflow.py",
+      "target": "class:backend/app/models/deletion_workflow.py:DeletionWorkflowFile",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/models/deletion_workflow.py",
+      "target": "file:backend/app/db/session.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/device.py",
+      "target": "class:backend/app/models/device.py:Device",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/models/device.py",
+      "target": "class:backend/app/models/device.py:Device",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/models/device.py",
+      "target": "file:backend/app/db/session.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/export_task.py",
+      "target": "class:backend/app/models/export_task.py:ExportTask",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/models/export_task.py",
+      "target": "class:backend/app/models/export_task.py:ExportTask",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/models/export_task.py",
+      "target": "file:backend/app/db/session.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/network_group.py",
+      "target": "class:backend/app/models/network_group.py:NetworkGroup",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/models/network_group.py",
+      "target": "class:backend/app/models/network_group.py:NetworkGroup",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/models/network_group.py",
+      "target": "file:backend/app/db/session.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/models/network_object.py",
+      "target": "class:backend/app/models/network_object.py:NetworkObject",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/models/network_object.py",
+      "target": "class:backend/app/models/network_object.py:NetworkObject",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/models/network_object.py",
+      "target": "file:backend/app/db/session.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    }
+  ]
+}

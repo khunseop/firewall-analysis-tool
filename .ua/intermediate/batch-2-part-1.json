@@ -1,0 +1,2151 @@
+{
+  "nodes": [
+    {
+      "id": "file:backend/alembic/env.py",
+      "type": "file",
+      "name": "env.py",
+      "filePath": "backend/alembic/env.py",
+      "summary": "Alembic 비동기 마이그레이션 실행 환경을 설정하며 오프라인/온라인 모드로 DB 스키마 마이그레이션을 실행한다.",
+      "tags": [
+        "migration",
+        "database",
+        "alembic",
+        "infrastructure"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/env.py:run_migrations_offline",
+      "type": "function",
+      "name": "run_migrations_offline",
+      "filePath": "backend/alembic/env.py",
+      "lineRange": [
+        38,
+        48
+      ],
+      "summary": "DB 접속 없이 URL만으로 마이그레이션 SQL을 생성하는 오프라인 모드 실행 함수.",
+      "tags": [
+        "migration",
+        "alembic"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/alembic/env.py:run_migrations_online",
+      "type": "function",
+      "name": "run_migrations_online",
+      "filePath": "backend/alembic/env.py",
+      "lineRange": [
+        60,
+        69
+      ],
+      "summary": "비동기 엔진을 생성해 실제 DB 커넥션으로 온라인 마이그레이션을 실행하는 함수.",
+      "tags": [
+        "migration",
+        "alembic",
+        "async"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "type": "file",
+      "name": "devices.py",
+      "filePath": "backend/app/api/api_v1/endpoints/devices.py",
+      "summary": "장비(방화벽) CRUD, 엑셀 일괄 등록/내보내기, 연결 테스트 등 Devices 페이지의 백엔드 API 엔드포인트를 제공한다.",
+      "tags": [
+        "api-handler",
+        "device-management",
+        "excel-export",
+        "crud"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/devices.py:create_device",
+      "type": "function",
+      "name": "create_device",
+      "filePath": "backend/app/api/api_v1/endpoints/devices.py",
+      "lineRange": [
+        45,
+        67
+      ],
+      "summary": "신규 장비를 생성하고 감사 로그를 남기는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "device-management"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/devices.py:download_excel_template",
+      "type": "function",
+      "name": "download_excel_template",
+      "filePath": "backend/app/api/api_v1/endpoints/devices.py",
+      "lineRange": [
+        88,
+        191
+      ],
+      "summary": "장비 일괄 등록용 엑셀 템플릿 파일을 생성해 다운로드로 제공하는 핸들러.",
+      "tags": [
+        "api-handler",
+        "excel",
+        "template"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/devices.py:update_device",
+      "type": "function",
+      "name": "update_device",
+      "filePath": "backend/app/api/api_v1/endpoints/devices.py",
+      "lineRange": [
+        204,
+        227
+      ],
+      "summary": "기존 장비 정보를 수정하고 변경 이력을 기록하는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "device-management"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/devices.py:delete_device",
+      "type": "function",
+      "name": "delete_device",
+      "filePath": "backend/app/api/api_v1/endpoints/devices.py",
+      "lineRange": [
+        230,
+        249
+      ],
+      "summary": "장비를 삭제하고 감사 로그를 남기는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "device-management"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/devices.py:test_connection",
+      "type": "function",
+      "name": "test_connection",
+      "filePath": "backend/app/api/api_v1/endpoints/devices.py",
+      "lineRange": [
+        252,
+        268
+      ],
+      "summary": "장비에 대한 연결 테스트를 수행하는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "device-management",
+        "validation"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/devices.py:bulk_import_devices",
+      "type": "function",
+      "name": "bulk_import_devices",
+      "filePath": "backend/app/api/api_v1/endpoints/devices.py",
+      "lineRange": [
+        271,
+        448
+      ],
+      "summary": "엑셀 파일을 파싱해 여러 장비를 검증 후 일괄 등록하는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "excel",
+        "bulk-import"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/devices.py:_create_export_task",
+      "type": "function",
+      "name": "_create_export_task",
+      "filePath": "backend/app/api/api_v1/endpoints/devices.py",
+      "lineRange": [
+        455,
+        481
+      ],
+      "summary": "내보내기 작업(ExportTask) 레코드를 생성하는 내부 헬퍼 함수.",
+      "tags": [
+        "utility",
+        "export"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/devices.py:direct_export_device",
+      "type": "function",
+      "name": "direct_export_device",
+      "filePath": "backend/app/api/api_v1/endpoints/devices.py",
+      "lineRange": [
+        485,
+        501
+      ],
+      "summary": "단일 장비의 정책/오브젝트를 백그라운드로 즉시 추출·내보내는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "export",
+        "background-task"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/devices.py:bulk_export_devices",
+      "type": "function",
+      "name": "bulk_export_devices",
+      "filePath": "backend/app/api/api_v1/endpoints/devices.py",
+      "lineRange": [
+        505,
+        529
+      ],
+      "summary": "여러 장비의 데이터를 백그라운드로 일괄 내보내는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "export",
+        "background-task"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/devices.py:download_export_task_result",
+      "type": "function",
+      "name": "download_export_task_result",
+      "filePath": "backend/app/api/api_v1/endpoints/devices.py",
+      "lineRange": [
+        551,
+        569
+      ],
+      "summary": "완료된 내보내기 작업의 결과 파일을 다운로드로 제공하는 핸들러.",
+      "tags": [
+        "api-handler",
+        "export",
+        "file-download"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/devices.py:get_dashboard_stats",
+      "type": "function",
+      "name": "get_dashboard_stats",
+      "filePath": "backend/app/api/api_v1/endpoints/devices.py",
+      "lineRange": [
+        81,
+        85
+      ],
+      "summary": "전체 장비의 대시보드 통계를 조회해 반환하는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "dashboard",
+        "statistics"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "type": "file",
+      "name": "firewall_query.py",
+      "filePath": "backend/app/api/api_v1/endpoints/firewall_query.py",
+      "summary": "동기화된 정책/오브젝트 조회, 검색, 변경 이력, 동기화 이력, 정책 diff 등 방화벽 데이터 조회 전용 API 엔드포인트 모음.",
+      "tags": [
+        "api-handler",
+        "query",
+        "policy",
+        "search"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/firewall_query.py:parse_index",
+      "type": "function",
+      "name": "parse_index",
+      "filePath": "backend/app/api/api_v1/endpoints/firewall_query.py",
+      "lineRange": [
+        17,
+        29
+      ],
+      "summary": "동기화된 정책의 인덱스(Resolver 기반 멤버 테이블)를 재생성하는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "indexing"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/firewall_query.py:count_device_objects",
+      "type": "function",
+      "name": "count_device_objects",
+      "filePath": "backend/app/api/api_v1/endpoints/firewall_query.py",
+      "lineRange": [
+        45,
+        56
+      ],
+      "summary": "장비별 네트워크/서비스 오브젝트 개수를 집계해 반환하는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "statistics"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/firewall_query.py:search_policies",
+      "type": "function",
+      "name": "search_policies",
+      "filePath": "backend/app/api/api_v1/endpoints/firewall_query.py",
+      "lineRange": [
+        60,
+        81
+      ],
+      "summary": "조건식 기반으로 정책을 검색하고 유효 오브젝트 이름 집합을 함께 반환하는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "search",
+        "policy"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_object_details",
+      "type": "function",
+      "name": "get_object_details",
+      "filePath": "backend/app/api/api_v1/endpoints/firewall_query.py",
+      "lineRange": [
+        111,
+        160
+      ],
+      "summary": "이름으로 네트워크/서비스 오브젝트 또는 그룹의 상세 정보를 조회하는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "object-lookup"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/firewall_query.py:search_objects",
+      "type": "function",
+      "name": "search_objects",
+      "filePath": "backend/app/api/api_v1/endpoints/firewall_query.py",
+      "lineRange": [
+        172,
+        300
+      ],
+      "summary": "네트워크/서비스 오브젝트와 그룹을 다양한 조건으로 검색하는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "search",
+        "object"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_object_usage_counts",
+      "type": "function",
+      "name": "get_object_usage_counts",
+      "filePath": "backend/app/api/api_v1/endpoints/firewall_query.py",
+      "lineRange": [
+        304,
+        343
+      ],
+      "summary": "정책의 출발지/목적지/서비스 필드를 분석해 오브젝트별 사용 횟수를 집계하는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "statistics",
+        "policy"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_policy_history",
+      "type": "function",
+      "name": "get_policy_history",
+      "filePath": "backend/app/api/api_v1/endpoints/firewall_query.py",
+      "lineRange": [
+        347,
+        375
+      ],
+      "summary": "특정 정책 규칙의 변경 이력을 조회하는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "change-log",
+        "policy"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_change_stats",
+      "type": "function",
+      "name": "get_change_stats",
+      "filePath": "backend/app/api/api_v1/endpoints/firewall_query.py",
+      "lineRange": [
+        386,
+        415
+      ],
+      "summary": "주 단위로 그룹화된 변경 통계를 집계해 반환하는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "statistics",
+        "change-log"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_policy_change_logs",
+      "type": "function",
+      "name": "get_policy_change_logs",
+      "filePath": "backend/app/api/api_v1/endpoints/firewall_query.py",
+      "lineRange": [
+        419,
+        447
+      ],
+      "summary": "여러 장비의 최근 정책 변경 로그를 조회하는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "change-log"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_sync_history",
+      "type": "function",
+      "name": "get_sync_history",
+      "filePath": "backend/app/api/api_v1/endpoints/firewall_query.py",
+      "lineRange": [
+        451,
+        475
+      ],
+      "summary": "장비의 동기화 이력을 조회하는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "sync-history"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_object_count_history",
+      "type": "function",
+      "name": "get_object_count_history",
+      "filePath": "backend/app/api/api_v1/endpoints/firewall_query.py",
+      "lineRange": [
+        479,
+        513
+      ],
+      "summary": "주 단위 오브젝트 개수 추이를 동기화 이력에서 계산하는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "statistics",
+        "history"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_policy_diff",
+      "type": "function",
+      "name": "get_policy_diff",
+      "filePath": "backend/app/api/api_v1/endpoints/firewall_query.py",
+      "lineRange": [
+        517,
+        667
+      ],
+      "summary": "두 동기화 시점 사이의 정책 변경 내역(diff)을 계산해 반환하는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "policy",
+        "diff"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/firewall_query.py:read_db_device_policies",
+      "type": "function",
+      "name": "read_db_device_policies",
+      "filePath": "backend/app/api/api_v1/endpoints/firewall_query.py",
+      "lineRange": [
+        33,
+        34
+      ],
+      "summary": "장비의 DB 저장된 정책 목록을 조회하는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/api/api_v1/endpoints/firewall_query.py:count_device_policies",
+      "type": "function",
+      "name": "count_device_policies",
+      "filePath": "backend/app/api/api_v1/endpoints/firewall_query.py",
+      "lineRange": [
+        38,
+        41
+      ],
+      "summary": "장비의 정책 개수를 조회하는 API 핸들러.",
+      "tags": [
+        "api-handler",
+        "statistics",
+        "policy"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/core/config.py",
+      "type": "file",
+      "name": "config.py",
+      "filePath": "backend/app/core/config.py",
+      "summary": "환경변수(.env) 로드 및 암호화 키 자동 생성을 포함한 애플리케이션 전역 설정(Settings)을 정의한다.",
+      "tags": [
+        "configuration",
+        "settings",
+        "security",
+        "entry-point"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/core/config.py:_ensure_env_file",
+      "type": "function",
+      "name": "_ensure_env_file",
+      "filePath": "backend/app/core/config.py",
+      "lineRange": [
+        18,
+        66
+      ],
+      "summary": "`.env` 파일이 없으면 기본값과 자동 생성된 암호화 키로 새로 작성하는 초기화 함수.",
+      "tags": [
+        "configuration",
+        "initialization",
+        "security"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/app/core/config.py:Settings",
+      "type": "class",
+      "name": "Settings",
+      "filePath": "backend/app/core/config.py",
+      "lineRange": [
+        69,
+        77
+      ],
+      "summary": "DB 연결 문자열, 암호화 키, JWT 설정 등 애플리케이션 전역 설정을 담는 Pydantic 설정 클래스.",
+      "tags": [
+        "configuration",
+        "settings",
+        "singleton"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/core/security.py",
+      "type": "file",
+      "name": "security.py",
+      "filePath": "backend/app/core/security.py",
+      "summary": "Fernet 대칭키 기반 비밀번호 암호화/복호화 유틸리티 함수를 제공한다.",
+      "tags": [
+        "security",
+        "encryption",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/core/security.py:encrypt",
+      "type": "function",
+      "name": "encrypt",
+      "filePath": "backend/app/core/security.py",
+      "lineRange": [
+        7,
+        12
+      ],
+      "summary": "Fernet 키로 평문 문자열을 암호화하는 함수.",
+      "tags": [
+        "security",
+        "encryption"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/core/security.py:decrypt",
+      "type": "function",
+      "name": "decrypt",
+      "filePath": "backend/app/core/security.py",
+      "lineRange": [
+        14,
+        19
+      ],
+      "summary": "Fernet 키로 암호화된 문자열을 복호화하는 함수.",
+      "tags": [
+        "security",
+        "encryption"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/crud/base.py",
+      "type": "file",
+      "name": "base.py",
+      "filePath": "backend/app/crud/base.py",
+      "summary": "장비 스코프 객체(NetworkObject/Group, Service/Group) 공통 CRUD 로직을 제네릭 함수로 제공하는 공유 모듈.",
+      "tags": [
+        "crud",
+        "utility",
+        "generic",
+        "database"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/crud/base.py:search_groups",
+      "type": "function",
+      "name": "search_groups",
+      "filePath": "backend/app/crud/base.py",
+      "lineRange": [
+        73,
+        93
+      ],
+      "summary": "그룹형 오브젝트(NetworkGroup/ServiceGroup)를 이름·멤버·설명 조건으로 검색하는 제네릭 함수.",
+      "tags": [
+        "crud",
+        "search",
+        "generic"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/crud/crud_change_log.py",
+      "type": "file",
+      "name": "crud_change_log.py",
+      "filePath": "backend/app/crud/crud_change_log.py",
+      "summary": "정책/오브젝트 변경 이력(ChangeLog) 레코드를 생성하고 장비별로 조회하는 CRUD 함수 모음.",
+      "tags": [
+        "crud",
+        "change-log",
+        "database"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/crud/crud_deletion_workflow.py",
+      "type": "file",
+      "name": "crud_deletion_workflow.py",
+      "filePath": "backend/app/crud/crud_deletion_workflow.py",
+      "summary": "삭제 워크플로우 프로젝트 및 산출 파일(DeletionWorkflowFile) 생성/조회/상태갱신을 담당하는 CRUD 계층.",
+      "tags": [
+        "crud",
+        "deletion-workflow",
+        "database"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/app/crud/crud_deletion_workflow.py:create_project",
+      "type": "function",
+      "name": "create_project",
+      "filePath": "backend/app/crud/crud_deletion_workflow.py",
+      "lineRange": [
+        10,
+        30
+      ],
+      "summary": "삭제 워크플로우 신규 프로젝트를 생성하는 함수.",
+      "tags": [
+        "crud",
+        "deletion-workflow"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/crud/crud_deletion_workflow.py:set_project_running",
+      "type": "function",
+      "name": "set_project_running",
+      "filePath": "backend/app/crud/crud_deletion_workflow.py",
+      "lineRange": [
+        73,
+        85
+      ],
+      "summary": "프로젝트를 실행 중 상태로 표시하고 태스크 ID·실행자 정보를 기록하는 함수.",
+      "tags": [
+        "crud",
+        "deletion-workflow",
+        "state"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/crud/crud_deletion_workflow.py:clear_project_running",
+      "type": "function",
+      "name": "clear_project_running",
+      "filePath": "backend/app/crud/crud_deletion_workflow.py",
+      "lineRange": [
+        88,
+        97
+      ],
+      "summary": "프로젝트의 실행 중 상태를 해제하는 함수.",
+      "tags": [
+        "crud",
+        "deletion-workflow",
+        "state"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/crud/crud_deletion_workflow.py:update_project",
+      "type": "function",
+      "name": "update_project",
+      "filePath": "backend/app/crud/crud_deletion_workflow.py",
+      "lineRange": [
+        103,
+        116
+      ],
+      "summary": "프로젝트의 메모/기준일 등 메타데이터를 수정하는 함수.",
+      "tags": [
+        "crud",
+        "deletion-workflow"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/crud/crud_deletion_workflow.py:upsert_file",
+      "type": "function",
+      "name": "upsert_file",
+      "filePath": "backend/app/crud/crud_deletion_workflow.py",
+      "lineRange": [
+        119,
+        153
+      ],
+      "summary": "프로젝트-태스크-슬롯 기준으로 산출 파일을 생성하거나 갱신하는 함수.",
+      "tags": [
+        "crud",
+        "deletion-workflow",
+        "file"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/crud/crud_deletion_workflow.py:get_file",
+      "type": "function",
+      "name": "get_file",
+      "filePath": "backend/app/crud/crud_deletion_workflow.py",
+      "lineRange": [
+        156,
+        169
+      ],
+      "summary": "프로젝트/태스크/슬롯 조건으로 저장된 산출 파일을 조회하는 함수.",
+      "tags": [
+        "crud",
+        "deletion-workflow",
+        "file"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/crud/crud_deletion_workflow.py:clear_output_files",
+      "type": "function",
+      "name": "clear_output_files",
+      "filePath": "backend/app/crud/crud_deletion_workflow.py",
+      "lineRange": [
+        182,
+        195
+      ],
+      "summary": "지정된 태스크들의 산출 파일을 삭제하는 함수.",
+      "tags": [
+        "crud",
+        "deletion-workflow",
+        "file"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/crud/crud_device.py",
+      "type": "file",
+      "name": "crud_device.py",
+      "filePath": "backend/app/crud/crud_device.py",
+      "summary": "장비 등록/수정/삭제, 동기화 상태 갱신, 대시보드 통계 등 Device 모델에 대한 핵심 CRUD 및 집계 로직을 제공한다.",
+      "tags": [
+        "crud",
+        "device-management",
+        "database",
+        "dashboard"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/app/crud/crud_device.py:update_device",
+      "type": "function",
+      "name": "update_device",
+      "filePath": "backend/app/crud/crud_device.py",
+      "lineRange": [
+        47,
+        61
+      ],
+      "summary": "장비 정보를 부분 갱신하는 함수.",
+      "tags": [
+        "crud",
+        "device-management"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/crud/crud_device.py:remove_device",
+      "type": "function",
+      "name": "remove_device",
+      "filePath": "backend/app/crud/crud_device.py",
+      "lineRange": [
+        63,
+        90
+      ],
+      "summary": "장비와 연관 데이터를 삭제하는 함수.",
+      "tags": [
+        "crud",
+        "device-management"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/crud/crud_device.py:update_sync_status",
+      "type": "function",
+      "name": "update_sync_status",
+      "filePath": "backend/app/crud/crud_device.py",
+      "lineRange": [
+        93,
+        127
+      ],
+      "summary": "장비의 동기화 상태와 진행 단계를 갱신하는 함수.",
+      "tags": [
+        "crud",
+        "device-management",
+        "sync"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/crud/crud_device.py:update_collected_system_info",
+      "type": "function",
+      "name": "update_collected_system_info",
+      "filePath": "backend/app/crud/crud_device.py",
+      "lineRange": [
+        158,
+        168
+      ],
+      "summary": "SSH/API로 수집한 장비의 시스템 정보(호스트명/시리얼/OS)를 저장하는 함수.",
+      "tags": [
+        "crud",
+        "device-management"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/crud/crud_device.py:get_dashboard_stats",
+      "type": "function",
+      "name": "get_dashboard_stats",
+      "filePath": "backend/app/crud/crud_device.py",
+      "lineRange": [
+        171,
+        235
+      ],
+      "summary": "전체 장비의 정책/오브젝트 수, 동기화 상태 등 대시보드 통계를 집계하는 함수.",
+      "tags": [
+        "crud",
+        "dashboard",
+        "statistics"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/crud/crud_device.py:update_device_stats_cache",
+      "type": "function",
+      "name": "update_device_stats_cache",
+      "filePath": "backend/app/crud/crud_device.py",
+      "lineRange": [
+        238,
+        279
+      ],
+      "summary": "장비별 정책/오브젝트 개수 캐시를 재계산해 갱신하는 함수.",
+      "tags": [
+        "crud",
+        "cache",
+        "statistics"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/crud/crud_network_group.py",
+      "type": "file",
+      "name": "crud_network_group.py",
+      "filePath": "backend/app/crud/crud_network_group.py",
+      "summary": "네트워크 그룹 오브젝트에 대한 조회/생성/수정/삭제 및 검색 CRUD 함수 모음.",
+      "tags": [
+        "crud",
+        "network-object",
+        "database"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/crud/crud_network_object.py",
+      "type": "file",
+      "name": "crud_network_object.py",
+      "filePath": "backend/app/crud/crud_network_object.py",
+      "summary": "네트워크 오브젝트 조회/생성/수정/삭제와 IP·이름 기반 검색을 제공하는 CRUD 모듈.",
+      "tags": [
+        "crud",
+        "network-object",
+        "search",
+        "database"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/crud/crud_network_object.py:search_network_objects",
+      "type": "function",
+      "name": "search_network_objects",
+      "filePath": "backend/app/crud/crud_network_object.py",
+      "lineRange": [
+        39,
+        91
+      ],
+      "summary": "이름·IP·유형·설명 등 다중 조건으로 네트워크 오브젝트를 검색하는 함수.",
+      "tags": [
+        "crud",
+        "search",
+        "network-object"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/crud/crud_notification_log.py",
+      "type": "file",
+      "name": "crud_notification_log.py",
+      "filePath": "backend/app/crud/crud_notification_log.py",
+      "summary": "알림 로그 생성, 필터링 조회(카테고리/기간/검색어), 오래된 로그 정리를 담당하는 CRUD 모듈.",
+      "tags": [
+        "crud",
+        "notification",
+        "database"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/crud/crud_notification_log.py:get_notification_logs",
+      "type": "function",
+      "name": "get_notification_logs",
+      "filePath": "backend/app/crud/crud_notification_log.py",
+      "lineRange": [
+        17,
+        74
+      ],
+      "summary": "카테고리/유형/검색어/기간 조건으로 알림 로그를 필터링 조회하는 함수.",
+      "tags": [
+        "crud",
+        "notification",
+        "search"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/crud/crud_notification_log.py:delete_old_logs",
+      "type": "function",
+      "name": "delete_old_logs",
+      "filePath": "backend/app/crud/crud_notification_log.py",
+      "lineRange": [
+        77,
+        87
+      ],
+      "summary": "지정 일수보다 오래된 알림 로그를 삭제하는 함수.",
+      "tags": [
+        "crud",
+        "notification",
+        "cleanup"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/crud/crud_pending_policy_change.py",
+      "type": "file",
+      "name": "crud_pending_policy_change.py",
+      "filePath": "backend/app/crud/crud_pending_policy_change.py",
+      "summary": "PolicyBuilder 편집모드에서 생성된 대기중 정책 변경사항(pending_policy_changes)을 장비별로 저장/조회/수정/삭제하는 CRUD 모듈.",
+      "tags": [
+        "crud",
+        "policy-builder",
+        "database"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/crud/crud_pending_policy_change.py:create",
+      "type": "function",
+      "name": "create",
+      "filePath": "backend/app/crud/crud_pending_policy_change.py",
+      "lineRange": [
+        23,
+        35
+      ],
+      "summary": "PolicyBuilder 편집모드의 대기중 정책 변경사항을 새로 생성하는 함수.",
+      "tags": [
+        "crud",
+        "policy-builder"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:backend/alembic/env.py",
+      "target": "function:backend/alembic/env.py:run_migrations_offline",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/alembic/env.py",
+      "target": "function:backend/alembic/env.py:run_migrations_offline",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/alembic/env.py",
+      "target": "function:backend/alembic/env.py:run_migrations_online",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/alembic/env.py",
+      "target": "function:backend/alembic/env.py:run_migrations_online",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/alembic/env.py",
+      "target": "file:backend/app/core/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/alembic/env.py",
+      "target": "file:backend/app/db/session.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/alembic/env.py",
+      "target": "file:backend/app/models/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:create_device",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:create_device",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:download_excel_template",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:download_excel_template",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:update_device",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:update_device",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:delete_device",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:delete_device",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:test_connection",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:test_connection",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:bulk_import_devices",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:bulk_import_devices",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:_create_export_task",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:_create_export_task",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:direct_export_device",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:direct_export_device",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:bulk_export_devices",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:bulk_export_devices",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:download_export_task_result",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:download_export_task_result",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "file:backend/app/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "file:backend/app/core/auth.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "file:backend/app/crud/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "file:backend/app/db/session.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "file:backend/app/models/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "file:backend/app/models/user.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "file:backend/app/schemas/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "file:backend/app/services/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "file:backend/app/services/audit_log.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "file:backend/app/services/device_service.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "file:backend/app/services/export/tasks.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:backend/app/api/api_v1/endpoints/devices.py:create_device",
+      "target": "function:backend/app/services/audit_log.py:log_activity",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/app/api/api_v1/endpoints/devices.py:update_device",
+      "target": "function:backend/app/crud/crud_device.py:update_device",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/app/api/api_v1/endpoints/devices.py:update_device",
+      "target": "function:backend/app/services/audit_log.py:log_activity",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/app/api/api_v1/endpoints/devices.py:delete_device",
+      "target": "function:backend/app/crud/crud_device.py:remove_device",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/app/api/api_v1/endpoints/devices.py:delete_device",
+      "target": "function:backend/app/services/audit_log.py:log_activity",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/app/api/api_v1/endpoints/devices.py:test_connection",
+      "target": "function:backend/app/services/device_service.py:test_device_connection",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/app/api/api_v1/endpoints/devices.py:bulk_import_devices",
+      "target": "function:backend/app/services/audit_log.py:log_activity",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/app/api/api_v1/endpoints/devices.py:direct_export_device",
+      "target": "function:backend/app/services/export/tasks.py:run_export_task",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/app/api/api_v1/endpoints/devices.py:bulk_export_devices",
+      "target": "function:backend/app/services/export/tasks.py:run_export_task",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/app/api/api_v1/endpoints/devices.py:get_dashboard_stats",
+      "target": "function:backend/app/crud/crud_device.py:get_dashboard_stats",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:get_dashboard_stats",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "target": "function:backend/app/api/api_v1/endpoints/devices.py:get_dashboard_stats",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:parse_index",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:parse_index",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:count_device_objects",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:count_device_objects",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:search_policies",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:search_policies",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_object_details",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_object_details",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:search_objects",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:search_objects",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_object_usage_counts",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_object_usage_counts",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_policy_history",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_policy_history",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_change_stats",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_change_stats",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_policy_change_logs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_policy_change_logs",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_sync_history",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_sync_history",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_object_count_history",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_object_count_history",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_policy_diff",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:get_policy_diff",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "file:backend/app/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "file:backend/app/crud/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "file:backend/app/db/session.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "file:backend/app/models/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "file:backend/app/models/change_log.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "file:backend/app/models/sync_history.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "file:backend/app/schemas/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "file:backend/app/services/policy_indexer.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:backend/app/api/api_v1/endpoints/firewall_query.py:parse_index",
+      "target": "function:backend/app/services/policy_indexer.py:rebuild_policy_indices",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:read_db_device_policies",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:read_db_device_policies",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/app/api/api_v1/endpoints/firewall_query.py:read_db_device_policies",
+      "target": "function:backend/app/crud/crud_policy.py:get_policies_by_device",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:count_device_policies",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/api/api_v1/endpoints/firewall_query.py",
+      "target": "function:backend/app/api/api_v1/endpoints/firewall_query.py:count_device_policies",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/app/api/api_v1/endpoints/firewall_query.py:count_device_policies",
+      "target": "function:backend/app/crud/crud_policy.py:count_policies_by_device",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/app/api/api_v1/endpoints/firewall_query.py:search_policies",
+      "target": "function:backend/app/crud/crud_policy.py:search_policies",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/app/api/api_v1/endpoints/firewall_query.py:search_objects",
+      "target": "function:backend/app/crud/crud_network_object.py:search_network_objects",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:backend/app/api/api_v1/endpoints/firewall_query.py:search_objects",
+      "target": "function:backend/app/crud/crud_service.py:search_services",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/core/config.py",
+      "target": "function:backend/app/core/config.py:_ensure_env_file",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/core/config.py",
+      "target": "function:backend/app/core/config.py:_ensure_env_file",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/core/config.py",
+      "target": "class:backend/app/core/config.py:Settings",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/core/config.py",
+      "target": "class:backend/app/core/config.py:Settings",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/core/security.py",
+      "target": "function:backend/app/core/security.py:encrypt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/core/security.py",
+      "target": "function:backend/app/core/security.py:encrypt",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/core/security.py",
+      "target": "function:backend/app/core/security.py:decrypt",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/core/security.py",
+      "target": "function:backend/app/core/security.py:decrypt",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/core/security.py",
+      "target": "file:backend/app/core/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/base.py",
+      "target": "function:backend/app/crud/base.py:search_groups",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/base.py",
+      "target": "function:backend/app/crud/base.py:search_groups",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_change_log.py",
+      "target": "file:backend/app/models/change_log.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_change_log.py",
+      "target": "file:backend/app/schemas/change_log.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_deletion_workflow.py",
+      "target": "function:backend/app/crud/crud_deletion_workflow.py:create_project",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_deletion_workflow.py",
+      "target": "function:backend/app/crud/crud_deletion_workflow.py:create_project",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_deletion_workflow.py",
+      "target": "function:backend/app/crud/crud_deletion_workflow.py:set_project_running",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_deletion_workflow.py",
+      "target": "function:backend/app/crud/crud_deletion_workflow.py:set_project_running",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_deletion_workflow.py",
+      "target": "function:backend/app/crud/crud_deletion_workflow.py:clear_project_running",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_deletion_workflow.py",
+      "target": "function:backend/app/crud/crud_deletion_workflow.py:clear_project_running",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_deletion_workflow.py",
+      "target": "function:backend/app/crud/crud_deletion_workflow.py:update_project",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_deletion_workflow.py",
+      "target": "function:backend/app/crud/crud_deletion_workflow.py:update_project",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_deletion_workflow.py",
+      "target": "function:backend/app/crud/crud_deletion_workflow.py:upsert_file",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_deletion_workflow.py",
+      "target": "function:backend/app/crud/crud_deletion_workflow.py:upsert_file",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_deletion_workflow.py",
+      "target": "function:backend/app/crud/crud_deletion_workflow.py:get_file",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_deletion_workflow.py",
+      "target": "function:backend/app/crud/crud_deletion_workflow.py:get_file",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_deletion_workflow.py",
+      "target": "function:backend/app/crud/crud_deletion_workflow.py:clear_output_files",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_deletion_workflow.py",
+      "target": "function:backend/app/crud/crud_deletion_workflow.py:clear_output_files",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_deletion_workflow.py",
+      "target": "file:backend/app/models/deletion_workflow.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "function:backend/app/crud/crud_device.py:update_device",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "function:backend/app/crud/crud_device.py:update_device",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "function:backend/app/crud/crud_device.py:remove_device",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "function:backend/app/crud/crud_device.py:remove_device",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "function:backend/app/crud/crud_device.py:update_sync_status",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "function:backend/app/crud/crud_device.py:update_sync_status",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "function:backend/app/crud/crud_device.py:update_collected_system_info",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "function:backend/app/crud/crud_device.py:update_collected_system_info",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "function:backend/app/crud/crud_device.py:get_dashboard_stats",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "function:backend/app/crud/crud_device.py:get_dashboard_stats",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "function:backend/app/crud/crud_device.py:update_device_stats_cache",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "function:backend/app/crud/crud_device.py:update_device_stats_cache",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "file:backend/app/core/security.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "file:backend/app/models/analysis.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "file:backend/app/models/change_log.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "file:backend/app/models/device.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "file:backend/app/models/network_group.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "file:backend/app/models/network_object.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "file:backend/app/models/notification_log.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "file:backend/app/models/policy.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "file:backend/app/models/policy_members.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "file:backend/app/models/service.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "file:backend/app/models/service_group.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_device.py",
+      "target": "file:backend/app/schemas/device.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_network_group.py",
+      "target": "file:backend/app/crud/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_network_group.py",
+      "target": "file:backend/app/crud/base.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_network_group.py",
+      "target": "file:backend/app/models/network_group.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_network_group.py",
+      "target": "file:backend/app/schemas/network_group.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_network_object.py",
+      "target": "function:backend/app/crud/crud_network_object.py:search_network_objects",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_network_object.py",
+      "target": "function:backend/app/crud/crud_network_object.py:search_network_objects",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_network_object.py",
+      "target": "file:backend/app/crud/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_network_object.py",
+      "target": "file:backend/app/crud/base.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_network_object.py",
+      "target": "file:backend/app/models/network_object.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_network_object.py",
+      "target": "file:backend/app/schemas/network_object.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_network_object.py",
+      "target": "file:backend/app/services/normalize.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_notification_log.py",
+      "target": "function:backend/app/crud/crud_notification_log.py:get_notification_logs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_notification_log.py",
+      "target": "function:backend/app/crud/crud_notification_log.py:get_notification_logs",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_notification_log.py",
+      "target": "function:backend/app/crud/crud_notification_log.py:delete_old_logs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_notification_log.py",
+      "target": "function:backend/app/crud/crud_notification_log.py:delete_old_logs",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_notification_log.py",
+      "target": "file:backend/app/models/notification_log.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_notification_log.py",
+      "target": "file:backend/app/schemas/notification_log.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_pending_policy_change.py",
+      "target": "function:backend/app/crud/crud_pending_policy_change.py:create",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1.0
+    },
+    {
+      "source": "file:backend/app/crud/crud_pending_policy_change.py",
+      "target": "function:backend/app/crud/crud_pending_policy_change.py:create",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:backend/app/crud/crud_pending_policy_change.py",
+      "target": "file:backend/app/models/pending_policy_change.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:backend/app/crud/crud_pending_policy_change.py",
+      "target": "file:backend/app/schemas/pending_policy_change.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    }
+  ]
+}
