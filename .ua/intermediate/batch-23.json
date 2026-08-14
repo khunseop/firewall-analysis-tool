@@ -1,0 +1,391 @@
+{
+  "nodes": [
+    {
+      "id": "file:frontend/src/components/ui/label.tsx",
+      "type": "file",
+      "name": "label.tsx",
+      "filePath": "frontend/src/components/ui/label.tsx",
+      "summary": "Radix UI Label을 감싼 shadcn 스타일의 폼 라벨 프리미티브 컴포넌트.",
+      "tags": ["component", "ui-primitive", "form"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/ui/progress.tsx",
+      "type": "file",
+      "name": "progress.tsx",
+      "filePath": "frontend/src/components/ui/progress.tsx",
+      "summary": "Radix UI Progress를 감싼 진행률 표시 바 컴포넌트.",
+      "tags": ["component", "ui-primitive"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/ui/select.tsx",
+      "type": "file",
+      "name": "select.tsx",
+      "filePath": "frontend/src/components/ui/select.tsx",
+      "summary": "Radix UI Select를 감싼 드롭다운 선택 컴포넌트 모음(Trigger, Content, Item, ScrollButton 등)으로 구성된 shadcn 스타일 프리미티브.",
+      "tags": ["component", "ui-primitive", "select", "dropdown"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/ui/separator.tsx",
+      "type": "file",
+      "name": "separator.tsx",
+      "filePath": "frontend/src/components/ui/separator.tsx",
+      "summary": "Radix UI Separator를 감싼 구분선 컴포넌트.",
+      "tags": ["component", "ui-primitive"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/ui/sheet.tsx",
+      "type": "file",
+      "name": "sheet.tsx",
+      "filePath": "frontend/src/components/ui/sheet.tsx",
+      "summary": "Radix UI Dialog 기반의 사이드 패널(Sheet) 컴포넌트 모음으로, Trigger/Content/Header/Footer/Title/Description을 제공.",
+      "tags": ["component", "ui-primitive", "modal", "sidebar"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/ui/table.tsx",
+      "type": "file",
+      "name": "table.tsx",
+      "filePath": "frontend/src/components/ui/table.tsx",
+      "summary": "HTML table 요소를 감싼 shadcn 스타일 테이블 프리미티브 컴포넌트 모음(Header, Body, Footer, Row, Cell 등).",
+      "tags": ["component", "ui-primitive", "table"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/components/ui/tabs.tsx",
+      "type": "file",
+      "name": "tabs.tsx",
+      "filePath": "frontend/src/components/ui/tabs.tsx",
+      "summary": "Radix UI Tabs를 감싼 탭 네비게이션 컴포넌트 모음(Tabs, TabsList, TabsTrigger, TabsContent).",
+      "tags": ["component", "ui-primitive", "tabs"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/ui/textarea.tsx",
+      "type": "file",
+      "name": "textarea.tsx",
+      "filePath": "frontend/src/components/ui/textarea.tsx",
+      "summary": "다중행 텍스트 입력을 위한 shadcn 스타일 Textarea 컴포넌트.",
+      "tags": ["component", "ui-primitive", "form"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/components/ui/tooltip.tsx",
+      "type": "file",
+      "name": "tooltip.tsx",
+      "filePath": "frontend/src/components/ui/tooltip.tsx",
+      "summary": "Radix UI Tooltip을 감싼 툴팁 컴포넌트 모음(Provider, Trigger, Content).",
+      "tags": ["component", "ui-primitive", "tooltip"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/hooks/useWebSocket.ts",
+      "type": "file",
+      "name": "useWebSocket.ts",
+      "filePath": "frontend/src/hooks/useWebSocket.ts",
+      "summary": "동기화/분석 진행 상태 WebSocket 연결을 관리하는 커스텀 훅. 쿠키 기반 인증과 지수 백오프(1s~30s) 재연결 로직을 포함.",
+      "tags": ["hook", "websocket", "real-time"],
+      "complexity": "moderate",
+      "languageNotes": "useRef로 소켓·타이머·콜백 참조를 유지하고 useEffect cleanup에서 안전하게 종료하는 전형적인 React WebSocket 훅 패턴."
+    },
+    {
+      "id": "file:frontend/src/index.css",
+      "type": "file",
+      "name": "index.css",
+      "filePath": "frontend/src/index.css",
+      "summary": "Manrope, Inter, Pretendard 웹폰트를 로컬로 로드하고 Tailwind base/components/utilities를 적용하는 전역 스타일시트.",
+      "tags": ["stylesheet", "fonts", "tailwind", "global-styles"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/lib/deviceCapacity.ts",
+      "type": "file",
+      "name": "deviceCapacity.ts",
+      "filePath": "frontend/src/lib/deviceCapacity.ts",
+      "summary": "장비 사용률(정책/객체 수 등)을 임계값과 비교해 용량 경고 등급(정상/경고/위험)을 계산하고 등급별 색상을 정의하는 유틸리티.",
+      "tags": ["utility", "device", "capacity"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/lib/notify.ts",
+      "type": "file",
+      "name": "notify.ts",
+      "filePath": "frontend/src/lib/notify.ts",
+      "summary": "토스트 알림 표시와 알림 이력 저장(createNotification)을 함께 처리하는 공용 notify() 헬퍼.",
+      "tags": ["utility", "notification", "toast"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/lib/policyBuilderParse.ts",
+      "type": "file",
+      "name": "policyBuilderParse.ts",
+      "filePath": "frontend/src/lib/policyBuilderParse.ts",
+      "summary": "탭/CSV 형식으로 붙여넣은 정책 텍스트를 헤더 매핑을 통해 정책 행 배열로 파싱하는 PolicyBuilder 전용 유틸리티. 알 수 없는 컬럼과 스킵된 라인을 추적.",
+      "tags": ["utility", "parser", "policy-builder"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/lib/policyDiff.ts",
+      "type": "file",
+      "name": "policyDiff.ts",
+      "filePath": "frontend/src/lib/policyDiff.ts",
+      "summary": "콤마로 구분된 다중 값 필드(출발지/목적지 등)의 원본과 수정본을 토큰화해 추가/제거 항목 차이를 계산하는 유틸리티.",
+      "tags": ["utility", "diff", "policy"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/lib/utils.ts",
+      "type": "file",
+      "name": "utils.ts",
+      "filePath": "frontend/src/lib/utils.ts",
+      "summary": "클래스명 병합(cn), 날짜/숫자 포맷팅, 상대시간 계산, Ag-Grid rowId 변환 등 프론트엔드 전역에서 쓰이는 공용 유틸리티 함수 모음.",
+      "tags": ["utility", "formatting", "shared"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/src/main.tsx",
+      "type": "file",
+      "name": "main.tsx",
+      "filePath": "frontend/src/main.tsx",
+      "summary": "React 애플리케이션의 진입점으로, 전역 스타일을 로드하고 루트 App 컴포넌트를 DOM에 마운트.",
+      "tags": ["entry-point", "bootstrap"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/store/authStore.ts",
+      "type": "file",
+      "name": "authStore.ts",
+      "filePath": "frontend/src/store/authStore.ts",
+      "summary": "JWT 토큰을 localStorage와 쿠키에 이중 저장하는 Zustand 기반 인증 상태 스토어(useAuthStore). 쿠키는 백엔드 AuthMiddleware·WebSocket 인증용.",
+      "tags": ["state-management", "authentication", "zustand"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/store/deviceSearchStore.ts",
+      "type": "file",
+      "name": "deviceSearchStore.ts",
+      "filePath": "frontend/src/store/deviceSearchStore.ts",
+      "summary": "장비 검색 조건을 영속 저장하는 Zustand 스토어(useDeviceSearchStore).",
+      "tags": ["state-management", "zustand", "device"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/store/deviceStore.ts",
+      "type": "file",
+      "name": "deviceStore.ts",
+      "filePath": "frontend/src/store/deviceStore.ts",
+      "summary": "선택된 장비 ID 목록을 영속 저장하는 Zustand 스토어(useDeviceStore).",
+      "tags": ["state-management", "zustand", "device"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/store/policySearchStore.ts",
+      "type": "file",
+      "name": "policySearchStore.ts",
+      "filePath": "frontend/src/store/policySearchStore.ts",
+      "summary": "정책 검색 조건(searchRequest)만 영속 저장하는 Zustand 스토어(usePolicySearchStore). 검색 결과 자체는 React Query 캐시가 담당하며, 새로고침 시 저장된 조건으로 쿼리가 자동 재실행됨.",
+      "tags": ["state-management", "zustand", "policy-search"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/types/device.ts",
+      "type": "file",
+      "name": "device.ts",
+      "filePath": "frontend/src/types/device.ts",
+      "summary": "장비(Device) 엔티티와 생성/수정 요청 타입을 정의. 호스트명·시리얼번호·OS버전 등 자동수집 필드마다 대응하는 `_manual` 플래그와 정책/객체 임계값·캐시된 통계 필드를 포함.",
+      "tags": ["type-definition", "device", "schema"],
+      "complexity": "moderate",
+      "languageNotes": "자동수집+수동입력 필드 패턴을 위해 각 필드마다 대응하는 boolean `_manual` 플래그를 두는 컨벤션을 따름."
+    },
+    {
+      "id": "file:frontend/src/types/object.ts",
+      "type": "file",
+      "name": "object.ts",
+      "filePath": "frontend/src/types/object.ts",
+      "summary": "네트워크 객체(NetworkObject), 네트워크 그룹, 서비스(Service), 서비스 그룹 등 방화벽 오브젝트 엔티티의 TypeScript 타입 정의.",
+      "tags": ["type-definition", "object", "schema"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/src/types/policy.ts",
+      "type": "file",
+      "name": "policy.ts",
+      "filePath": "frontend/src/types/policy.ts",
+      "summary": "방화벽 정책(Policy) 엔티티와 트리 구조 필터 표현식(FilterLeafNode/FilterGroupNode), 정책 검색 요청(PolicySearchRequest) 타입을 정의.",
+      "tags": ["type-definition", "policy", "schema"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:frontend/tailwind.config.js",
+      "type": "file",
+      "name": "tailwind.config.js",
+      "filePath": "frontend/tailwind.config.js",
+      "summary": "폰트 패밀리, shadcn/ui CSS 변수 기반 색상 팔레트, 다크모드(class 전략) 등을 정의하는 Tailwind CSS 설정 파일.",
+      "tags": ["configuration", "tailwind", "theming", "build-system"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/components/ui/sheet.tsx:SheetHeader",
+      "type": "function",
+      "name": "SheetHeader",
+      "filePath": "frontend/src/components/ui/sheet.tsx",
+      "lineRange": [65, 67],
+      "summary": "Sheet 패널 상단 헤더 영역을 렌더링하는 레이아웃 컴포넌트.",
+      "tags": ["component", "layout"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/components/ui/sheet.tsx:SheetFooter",
+      "type": "function",
+      "name": "SheetFooter",
+      "filePath": "frontend/src/components/ui/sheet.tsx",
+      "lineRange": [69, 71],
+      "summary": "Sheet 패널 하단 푸터 영역을 렌더링하는 레이아웃 컴포넌트.",
+      "tags": ["component", "layout"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/hooks/useWebSocket.ts:useSyncStatusWebSocket",
+      "type": "function",
+      "name": "useSyncStatusWebSocket",
+      "filePath": "frontend/src/hooks/useWebSocket.ts",
+      "lineRange": [32, 100],
+      "summary": "동기화/분석 상태 WebSocket에 연결하고 메시지 수신 콜백을 호출하며, 연결 끊김 시 지수 백오프로 자동 재연결하는 훅 본체.",
+      "tags": ["hook", "websocket", "reconnect"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/lib/deviceCapacity.ts:capacityLevel",
+      "type": "function",
+      "name": "capacityLevel",
+      "filePath": "frontend/src/lib/deviceCapacity.ts",
+      "lineRange": [3, 9],
+      "summary": "사용량과 임계값을 비교해 용량 상태 등급을 반환하는 함수.",
+      "tags": ["utility", "calculation"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/lib/notify.ts:notify",
+      "type": "function",
+      "name": "notify",
+      "filePath": "frontend/src/lib/notify.ts",
+      "lineRange": [4, 17],
+      "summary": "타입(success/error/warning/info)에 맞는 토스트를 띄우고 동시에 알림 이력 API(createNotification)를 호출하는 공용 알림 함수.",
+      "tags": ["utility", "notification"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/lib/policyBuilderParse.ts:parsePastedPolicies",
+      "type": "function",
+      "name": "parsePastedPolicies",
+      "filePath": "frontend/src/lib/policyBuilderParse.ts",
+      "lineRange": [51, 106],
+      "summary": "붙여넣은 텍스트를 헤더 라인과 데이터 라인으로 분리하고, 컬럼명을 필드에 매핑해 정책 행 객체 배열과 스킵/미인식 컬럼 정보를 생성하는 파서.",
+      "tags": ["parser", "policy-builder"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:frontend/src/lib/policyDiff.ts:diffMultiValueField",
+      "type": "function",
+      "name": "diffMultiValueField",
+      "filePath": "frontend/src/lib/policyDiff.ts",
+      "lineRange": [18, 24],
+      "summary": "원본과 수정본 다중 값 필드를 토큰화해 추가된 항목과 제거된 항목을 계산하는 함수.",
+      "tags": ["diff", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/lib/policyDiff.ts:isFieldDiffEmpty",
+      "type": "function",
+      "name": "isFieldDiffEmpty",
+      "filePath": "frontend/src/lib/policyDiff.ts",
+      "lineRange": [26, 28],
+      "summary": "필드 diff 결과에 추가/제거된 항목이 없는지 판별하는 함수.",
+      "tags": ["diff", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/lib/utils.ts:cn",
+      "type": "function",
+      "name": "cn",
+      "filePath": "frontend/src/lib/utils.ts",
+      "lineRange": [4, 6],
+      "summary": "clsx와 twMerge를 조합해 Tailwind 클래스명을 병합하는 헬퍼.",
+      "tags": ["utility", "tailwind", "classname"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/lib/utils.ts:formatDate",
+      "type": "function",
+      "name": "formatDate",
+      "filePath": "frontend/src/lib/utils.ts",
+      "lineRange": [8, 11],
+      "summary": "ISO 날짜 문자열을 로케일 문자열로 포맷하는 헬퍼.",
+      "tags": ["utility", "date", "formatting"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/lib/utils.ts:formatNumber",
+      "type": "function",
+      "name": "formatNumber",
+      "filePath": "frontend/src/lib/utils.ts",
+      "lineRange": [13, 16],
+      "summary": "숫자를 천 단위 구분 로케일 문자열로 포맷하는 헬퍼.",
+      "tags": ["utility", "formatting"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/lib/utils.ts:formatRelativeTime",
+      "type": "function",
+      "name": "formatRelativeTime",
+      "filePath": "frontend/src/lib/utils.ts",
+      "lineRange": [19, 32],
+      "summary": "주어진 날짜와 현재 시각의 차이를 '몇 분 전/몇 시간 전' 형태의 상대 시간 문자열로 변환하는 헬퍼.",
+      "tags": ["utility", "date", "formatting"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:frontend/src/lib/utils.ts:daysSinceHit",
+      "type": "function",
+      "name": "daysSinceHit",
+      "filePath": "frontend/src/lib/utils.ts",
+      "lineRange": [35, 38],
+      "summary": "마지막 히트 날짜로부터 경과한 일수를 계산하는 헬퍼.",
+      "tags": ["utility", "date"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    { "source": "file:frontend/src/components/ui/sheet.tsx", "target": "function:frontend/src/components/ui/sheet.tsx:SheetHeader", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/ui/sheet.tsx", "target": "function:frontend/src/components/ui/sheet.tsx:SheetFooter", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/components/ui/sheet.tsx", "target": "function:frontend/src/components/ui/sheet.tsx:SheetHeader", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/components/ui/sheet.tsx", "target": "function:frontend/src/components/ui/sheet.tsx:SheetFooter", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/hooks/useWebSocket.ts", "target": "function:frontend/src/hooks/useWebSocket.ts:useSyncStatusWebSocket", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/hooks/useWebSocket.ts", "target": "function:frontend/src/hooks/useWebSocket.ts:useSyncStatusWebSocket", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/lib/deviceCapacity.ts", "target": "function:frontend/src/lib/deviceCapacity.ts:capacityLevel", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/lib/deviceCapacity.ts", "target": "function:frontend/src/lib/deviceCapacity.ts:capacityLevel", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/lib/notify.ts", "target": "function:frontend/src/lib/notify.ts:notify", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/lib/notify.ts", "target": "function:frontend/src/lib/notify.ts:notify", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/lib/policyBuilderParse.ts", "target": "function:frontend/src/lib/policyBuilderParse.ts:parsePastedPolicies", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/lib/policyBuilderParse.ts", "target": "function:frontend/src/lib/policyBuilderParse.ts:parsePastedPolicies", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/lib/policyDiff.ts", "target": "function:frontend/src/lib/policyDiff.ts:diffMultiValueField", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/lib/policyDiff.ts", "target": "function:frontend/src/lib/policyDiff.ts:isFieldDiffEmpty", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/lib/policyDiff.ts", "target": "function:frontend/src/lib/policyDiff.ts:diffMultiValueField", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/lib/policyDiff.ts", "target": "function:frontend/src/lib/policyDiff.ts:isFieldDiffEmpty", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/lib/utils.ts", "target": "function:frontend/src/lib/utils.ts:cn", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/lib/utils.ts", "target": "function:frontend/src/lib/utils.ts:formatDate", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/lib/utils.ts", "target": "function:frontend/src/lib/utils.ts:formatNumber", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/lib/utils.ts", "target": "function:frontend/src/lib/utils.ts:formatRelativeTime", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/lib/utils.ts", "target": "function:frontend/src/lib/utils.ts:daysSinceHit", "type": "contains", "direction": "forward", "weight": 1.0 },
+    { "source": "file:frontend/src/lib/utils.ts", "target": "function:frontend/src/lib/utils.ts:cn", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/lib/utils.ts", "target": "function:frontend/src/lib/utils.ts:formatDate", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/lib/utils.ts", "target": "function:frontend/src/lib/utils.ts:formatNumber", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/lib/utils.ts", "target": "function:frontend/src/lib/utils.ts:formatRelativeTime", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/lib/utils.ts", "target": "function:frontend/src/lib/utils.ts:daysSinceHit", "type": "exports", "direction": "forward", "weight": 0.8 },
+    { "source": "file:frontend/src/main.tsx", "target": "file:frontend/src/App.tsx", "type": "imports", "direction": "forward", "weight": 0.7 },
+    { "source": "file:frontend/src/main.tsx", "target": "file:frontend/src/index.css", "type": "imports", "direction": "forward", "weight": 0.7 }
+  ]
+}
