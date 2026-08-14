@@ -1,0 +1,14 @@
+{
+  "fixedSectionOk": true,
+  "nodesRecovered": 1,
+  "edgesRestored": 1,
+  "crossBatchEdgesAdded": 0,
+  "typesRemapped": 0,
+  "complexityRemapped": 0,
+  "notes": [
+    "No unknown node types, no unknown complexity values, and no nodes missing an id were found in assembled-graph.json.",
+    "The single dropped edge (firewall_query.py:read_db_device_policies -> crud_policy.py:get_policies_by_device) was caused by batch-1-part-1's analysis of crud_policy.py missing the get_policies_by_device function as an extracted node, even though the function exists in the source file (crud_policy.py:24-29) and is called from firewall_query.py. Recreated the node with default summary/tags/complexity and restored the 'calls' edge.",
+    "Cross-batch imports check: all 427 file-to-file entries in scan-result.json's importMap where both endpoints exist as file nodes already have corresponding 'imports' edges in the assembled graph. No gaps found, consistent with the merge script's own 'Recovered 0 imports edges' result.",
+    "Node type distribution (file 324, function 501, class 110, document 27, config 8) and complexity distribution (simple 508, moderate 325, complex 137) both look reasonable with no unexpected skew."
+  ]
+}

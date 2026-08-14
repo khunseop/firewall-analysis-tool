@@ -15022,6 +15022,21 @@
         "excel-export"
       ],
       "complexity": "complex"
+    },
+    {
+      "id": "function:backend/app/crud/crud_policy.py:get_policies_by_device",
+      "type": "function",
+      "name": "get_policies_by_device",
+      "filePath": "backend/app/crud/crud_policy.py",
+      "lineRange": [
+        24,
+        29
+      ],
+      "summary": "No summary available",
+      "tags": [
+        "untagged"
+      ],
+      "complexity": "moderate"
     }
   ],
   "edges": [
@@ -27078,6 +27093,13 @@
       "type": "related",
       "direction": "forward",
       "weight": 0.5
+    },
+    {
+      "source": "function:backend/app/api/api_v1/endpoints/firewall_query.py:read_db_device_policies",
+      "target": "function:backend/app/crud/crud_policy.py:get_policies_by_device",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
     }
   ]
 }
