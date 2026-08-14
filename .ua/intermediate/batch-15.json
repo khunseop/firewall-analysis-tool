@@ -1,0 +1,176 @@
+{
+  "nodes": [
+    {
+      "id": "document:docs/ARCHITECTURE.md",
+      "type": "document",
+      "name": "ARCHITECTURE.md",
+      "filePath": "docs/ARCHITECTURE.md",
+      "summary": "시스템 전체 구조와 데이터 흐름을 설명하는 아키텍처 문서. 동기화 오케스트레이션(멀티 벤더 추상화 포함), 정책 인덱싱 단계(그룹 재귀 확장, IP/포트 범위 변환, 벌크 인덱싱), 정책 검색·분석 엔진, 정책 빌더(CLI 생성 엔진)까지 4단계 파이프라인을 순서대로 다룬다.",
+      "tags": ["documentation", "architecture", "sync-pipeline", "policy-indexing"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:docs/ARCHITECTURE_OPERATIONS.md",
+      "type": "document",
+      "name": "ARCHITECTURE_OPERATIONS.md",
+      "filePath": "docs/ARCHITECTURE_OPERATIONS.md",
+      "summary": "실시간 통신(WebSocket), 삭제 워크플로우, 스케줄링(APScheduler), 보안·인증(토큰/비밀번호 암호화), 성능 최적화(벌크 연산·비동기 처리·프론트 캐싱), 확장 포인트(신규 벤더/분석 엔진 추가 방법)를 다루는 아키텍처 운영 보조 문서로, ARCHITECTURE.md의 후속 문서다.",
+      "tags": ["documentation", "architecture", "websocket", "security", "performance"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/DATABASE.md",
+      "type": "document",
+      "name": "DATABASE.md",
+      "filePath": "docs/DATABASE.md",
+      "summary": "전체 DB 스키마 정의서. 장비/사용자/이력 테이블, 정책·객체 테이블, 고속 검색 인덱스 테이블(policy_address_members, policy_service_members), 분석·시스템 로그 테이블, 설정·스케줄 테이블, 삭제 워크플로우 테이블까지 총 20여 개 테이블의 구조를 항목별로 문서화한다.",
+      "tags": ["documentation", "database", "schema-reference", "data-model"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:docs/DESIGN.md",
+      "type": "document",
+      "name": "DESIGN.md",
+      "filePath": "docs/DESIGN.md",
+      "summary": "프론트엔드 디자인 시스템 가이드. 브랜드/컬러/타이포그래피, 레이아웃·여백, 엘리베이션, 도형, 그리고 버튼·카드·데이터 테이블·상태 칩·배지·프로그레스바·검색창·알림 배너 등 공용 UI 컴포넌트의 스타일 규칙을 정리한다.",
+      "tags": ["documentation", "design-system", "ui-guideline", "frontend"],
+      "complexity": "complex"
+    },
+    {
+      "id": "document:docs/DEVELOPMENT.md",
+      "type": "document",
+      "name": "DEVELOPMENT.md",
+      "filePath": "docs/DEVELOPMENT.md",
+      "summary": "백엔드·프론트엔드 개발 환경 설정과 명령어 가이드. 의존성 설치, DB 마이그레이션(Alembic), 서버/테스트 실행, Vite 프록시 설정, 프로덕션 통합 빌드·배포 체크리스트, 토큰 관리·WebSocket·DB 백업 등 개발 팁을 다룬다.",
+      "tags": ["documentation", "development-guide", "deployment", "onboarding"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/REFACTOR_CANDIDATES.md",
+      "type": "document",
+      "name": "REFACTOR_CANDIDATES.md",
+      "filePath": "docs/REFACTOR_CANDIDATES.md",
+      "summary": "500줄이 넘는 대형 파일 목록과 분리 방향을 정리한 리팩토링 후보 메모. 백엔드(devices.py, deletion_workflow.py, sync/tasks.py, risky_ports.py, impact.py 등)와 프론트엔드(DeletionWorkflowDetailPage.tsx, PoliciesPage.tsx 등) 파일별 분리 전략을 제안하며, 아직 실제 분리는 진행되지 않은 계획 문서다.",
+      "tags": ["documentation", "refactoring", "tech-debt", "planning"],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:docs/방화벽_정책_삭제_워크플로우_Phase3_자동연장예외요청.md",
+      "type": "document",
+      "name": "방화벽_정책_삭제_워크플로우_Phase3_자동연장예외요청.md",
+      "filePath": "docs/방화벽_정책_삭제_워크플로우_Phase3_자동연장예외요청.md",
+      "summary": "삭제 워크플로우 Phase 3의 자동연장예외 요청(Task 19) 기능 명세 문서. 4개 자동 리졸빙 입력, processors/auto_renewal_exception_generator.py의 처리 로직, 4개 시트로 구성된 자동연장예외파일.xlsx 출력, 검증 예시와 오류 대처법을 다룬다.",
+      "tags": ["documentation", "deletion-workflow", "feature-spec", "business-process"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:docs/방화벽_정책_삭제_워크플로우_운영_매뉴얼.md",
+      "type": "document",
+      "name": "방화벽_정책_삭제_워크플로우_운영_매뉴얼.md",
+      "filePath": "docs/방화벽_정책_삭제_워크플로우_운영_매뉴얼.md",
+      "summary": "방화벽 정책 삭제 워크플로우 전체 업무 매뉴얼. Phase 0(데이터 추출)부터 Phase 6(자동연장예외 요청)까지 19개 Task의 입출력, 분류 기준(신청 유형·만료·미사용 판별 등), 컬럼 정의, Excel 수동 필터 조건, 오류 상황 대처법을 총망라한 1000줄 이상의 상세 운영 가이드다.",
+      "tags": ["documentation", "deletion-workflow", "operations-manual", "business-process"],
+      "complexity": "complex"
+    }
+  ],
+  "edges": [
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "file:backend/app/services/sync/tasks.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "file:backend/app/services/policy_indexer.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "file:backend/app/crud/crud_policy.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE.md",
+      "target": "file:backend/app/services/policy_builder/cli_generator.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE_OPERATIONS.md",
+      "target": "file:backend/app/services/websocket_manager.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE_OPERATIONS.md",
+      "target": "file:backend/app/services/scheduler.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE_OPERATIONS.md",
+      "target": "file:backend/app/core/security.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/ARCHITECTURE_OPERATIONS.md",
+      "target": "file:backend/app/core/executors.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/REFACTOR_CANDIDATES.md",
+      "target": "file:backend/app/api/api_v1/endpoints/devices.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/REFACTOR_CANDIDATES.md",
+      "target": "file:backend/app/api/api_v1/endpoints/deletion_workflow.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/REFACTOR_CANDIDATES.md",
+      "target": "file:backend/app/services/sync/tasks.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/REFACTOR_CANDIDATES.md",
+      "target": "file:backend/app/crud/crud_policy.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/방화벽_정책_삭제_워크플로우_Phase3_자동연장예외요청.md",
+      "target": "file:backend/app/services/deletion_workflow/processors/auto_renewal_exception_generator.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:docs/방화벽_정책_삭제_워크플로우_운영_매뉴얼.md",
+      "target": "file:backend/app/services/deletion_workflow/export_service.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}
