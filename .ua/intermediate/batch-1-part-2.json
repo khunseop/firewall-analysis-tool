@@ -1,0 +1,456 @@
+{
+  "nodes": [
+    {
+      "id": "file:backend/app/schemas/policy.py",
+      "type": "file",
+      "name": "policy.py",
+      "filePath": "backend/app/schemas/policy.py",
+      "summary": "정책(Policy) CRUD와 필터 트리 기반 검색 요청·응답을 위한 Pydantic 스키마(PolicyBase, PolicySearchRequest, FilterLeafNode/FilterGroupNode 등)를 정의하는 파일.",
+      "tags": ["type-definition", "schema", "policy-search"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/app/schemas/policy.py:PolicySearchRequest",
+      "type": "class",
+      "name": "PolicySearchRequest",
+      "filePath": "backend/app/schemas/policy.py",
+      "lineRange": [58, 118],
+      "summary": "AND/OR 필터 트리(FilterGroupNode)와 정렬·페이지네이션 옵션을 담는 정책 검색 요청 스키마. crud_policy.search_policies의 입력 형태로 사용된다.",
+      "tags": ["type-definition", "schema", "policy-search"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/app/schemas/policy_builder.py",
+      "type": "file",
+      "name": "policy_builder.py",
+      "filePath": "backend/app/schemas/policy_builder.py",
+      "summary": "PolicyBuilder 기능(신규 정책 생성, 오브젝트 부족분 검사, 이동/삽입 계획, CLI 명령 생성)에 사용되는 Pydantic 요청·응답 스키마 모음(NewPolicyRow, MoveTarget, GeneratedCommand, BulkPolicyPlanResponse 등)을 정의하는 파일.",
+      "tags": ["type-definition", "schema", "policy-builder"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/app/schemas/policy_builder.py:PreviewPolicyRow",
+      "type": "class",
+      "name": "PreviewPolicyRow",
+      "filePath": "backend/app/schemas/policy_builder.py",
+      "lineRange": [92, 119],
+      "summary": "삽입/이동 미리보기에서 각 정책 행의 순번, 액션, 충돌 여부 등을 담는 응답 스키마.",
+      "tags": ["type-definition", "schema", "policy-builder"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/schemas/sync_history.py",
+      "type": "file",
+      "name": "sync_history.py",
+      "filePath": "backend/app/schemas/sync_history.py",
+      "summary": "동기화 이력과 정책 변경 diff를 표현하는 Pydantic 스키마(SyncHistory, PolicyDiffEntry, PolicyDiffResponse 등)를 정의하는 파일.",
+      "tags": ["type-definition", "schema", "sync-history"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/analysis/common.py",
+      "type": "file",
+      "name": "common.py",
+      "filePath": "backend/app/services/analysis/common.py",
+      "summary": "여러 분석 엔진이 공통으로 사용하는 활성 정책+멤버 로딩 헬퍼를 제공하는 공용 모듈.",
+      "tags": ["utility", "analysis", "shared"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/analysis/common.py:load_active_policies_with_members",
+      "type": "function",
+      "name": "load_active_policies_with_members",
+      "filePath": "backend/app/services/analysis/common.py",
+      "lineRange": [17, 37],
+      "summary": "장비의 활성 정책과 각 정책의 주소/서비스 멤버를 함께 조회해 반환하는 공용 함수. redundancy, unused, impact, over_permissive, risky_ports 등 여러 분석 엔진과 PolicyBuilder에서 공유 사용된다.",
+      "tags": ["utility", "analysis", "shared", "database"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/app/services/analysis/over_permissive.py",
+      "type": "file",
+      "name": "over_permissive.py",
+      "filePath": "backend/app/services/analysis/over_permissive.py",
+      "summary": "과도하게 넓은 범위(over-permissive)의 주소/서비스 조건을 가진 정책을 탐지하는 분석 엔진. IP/포트 범위를 병합해 실제 필요한 범위와 비교한다.",
+      "tags": ["analysis", "policy-analysis", "over-permissive"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/app/services/analysis/over_permissive.py:OverPermissiveAnalyzer",
+      "type": "class",
+      "name": "OverPermissiveAnalyzer",
+      "filePath": "backend/app/services/analysis/over_permissive.py",
+      "lineRange": [13, 209],
+      "summary": "정책의 주소/서비스 범위를 병합·집계해 지나치게 넓은 범위를 가진 정책을 판별하는 분석기 클래스. IP 범위 병합(_merge_ip_ranges), 포트 범위 병합(_merge_port_ranges), 범위 크기 계산 로직을 포함한다.",
+      "tags": ["analysis", "policy-analysis", "over-permissive", "range-merge"],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:backend/app/services/analysis/risky_ports.py",
+      "type": "file",
+      "name": "risky_ports.py",
+      "filePath": "backend/app/services/analysis/risky_ports.py",
+      "summary": "위험 포트(설정된 risky_ports 목록)를 허용하는 정책을 탐지하고, 서비스 그룹에서 위험 포트만 제거한 안전한 대체 서비스 오브젝트/그룹을 추천하는 분석 엔진.",
+      "tags": ["analysis", "policy-analysis", "risky-ports", "security"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/app/services/analysis/risky_ports.py:RiskyPortsAnalyzer",
+      "type": "class",
+      "name": "RiskyPortsAnalyzer",
+      "filePath": "backend/app/services/analysis/risky_ports.py",
+      "lineRange": [21, 647],
+      "summary": "정책에서 사용하는 서비스(단일/그룹)를 위험 포트 정의와 대조해 위반 여부를 판정하고, 위험 포트를 제외한 안전한 서비스 오브젝트·그룹 구성을 계산하는 핵심 분석기 클래스. 서비스 그룹 재귀 확장과 포트 범위 분할 로직을 포함한다.",
+      "tags": ["analysis", "policy-analysis", "risky-ports", "security", "recursion"],
+      "complexity": "complex",
+      "languageNotes": "21개 메서드로 구성된 대형 클래스로, 서비스 그룹 확장·포트 토큰 파싱·범위 분할·안전 대체안 생성을 단계별로 분리해 처리한다."
+    },
+    {
+      "id": "file:backend/app/services/analysis/risky_ports_models.py",
+      "type": "file",
+      "name": "risky_ports_models.py",
+      "filePath": "backend/app/services/analysis/risky_ports_models.py",
+      "summary": "위험 포트 정의(프로토콜, 포트/범위, 설명)를 표현하고 서비스 토큰과의 매칭을 판정하는 값 객체 모듈.",
+      "tags": ["data-model", "risky-ports", "security"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/app/services/analysis/risky_ports_models.py:RiskyPortDefinition",
+      "type": "class",
+      "name": "RiskyPortDefinition",
+      "filePath": "backend/app/services/analysis/risky_ports_models.py",
+      "lineRange": [7, 59],
+      "summary": "위험 포트 하나(프로토콜, 포트 또는 포트 범위)를 나타내며 주어진 서비스 토큰이 해당 위험 포트에 매칭되는지 판정하는 matches 메서드를 제공하는 값 객체.",
+      "tags": ["data-model", "risky-ports", "security"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/app/services/analysis/risky_ports_utils.py",
+      "type": "file",
+      "name": "risky_ports_utils.py",
+      "filePath": "backend/app/services/analysis/risky_ports_utils.py",
+      "summary": "서비스 토큰 문자열 파싱, 포트 범위 분할, 포트 범위 크기 계산 등 risky_ports 분석에 필요한 순수 유틸리티 함수 모음.",
+      "tags": ["utility", "risky-ports", "parsing"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/analysis/risky_ports_utils.py:parse_service_token",
+      "type": "function",
+      "name": "parse_service_token",
+      "filePath": "backend/app/services/analysis/risky_ports_utils.py",
+      "lineRange": [13, 27],
+      "summary": "서비스 토큰 문자열(프로토콜/포트 표기)을 파싱해 구조화된 형태로 변환하는 함수.",
+      "tags": ["utility", "parsing", "risky-ports"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/analysis/risky_ports_utils.py:split_port_range",
+      "type": "function",
+      "name": "split_port_range",
+      "filePath": "backend/app/services/analysis/risky_ports_utils.py",
+      "lineRange": [30, 67],
+      "summary": "포트 범위에서 특정 위험 포트(들)를 제외한 나머지 안전한 하위 범위들로 분할하는 함수.",
+      "tags": ["utility", "risky-ports", "range-split"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/services/analysis/risky_ports_utils.py:calculate_port_range_size",
+      "type": "function",
+      "name": "calculate_port_range_size",
+      "filePath": "backend/app/services/analysis/risky_ports_utils.py",
+      "lineRange": [70, 95],
+      "summary": "포트 범위 표현의 전체 포트 개수(크기)를 계산하는 함수.",
+      "tags": ["utility", "risky-ports"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/normalize.py",
+      "type": "file",
+      "name": "normalize.py",
+      "filePath": "backend/app/services/normalize.py",
+      "summary": "IPv4 주소와 포트 문자열을 숫자 범위로 정규화하는 공용 함수를 제공하는 모듈. 정책 인덱싱과 범위 오버랩 검색의 기반이 되는 핵심 정규화 로직이다.",
+      "tags": ["utility", "normalization", "shared"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/normalize.py:parse_ipv4_numeric",
+      "type": "function",
+      "name": "parse_ipv4_numeric",
+      "filePath": "backend/app/services/normalize.py",
+      "lineRange": [5, 32],
+      "summary": "IPv4 주소 또는 CIDR/범위 표기를 시작-끝 숫자 범위로 변환하는 함수. policy_address_members 인덱싱과 오버랩 검색에 사용된다.",
+      "tags": ["utility", "normalization", "ip-address"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/services/normalize.py:parse_port_numeric",
+      "type": "function",
+      "name": "parse_port_numeric",
+      "filePath": "backend/app/services/normalize.py",
+      "lineRange": [35, 50],
+      "summary": "포트 또는 포트 범위 문자열을 시작-끝 숫자 범위로 변환하는 함수. policy_service_members 인덱싱과 오버랩 검색에 사용된다.",
+      "tags": ["utility", "normalization", "port"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/policy_builder/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "backend/app/services/policy_builder/__init__.py",
+      "summary": "policy_builder 서비스 패키지를 표시하는 빈 초기화 파일.",
+      "tags": ["entry-point", "package-init", "empty-file"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/policy_builder/cli_generator.py",
+      "type": "file",
+      "name": "cli_generator.py",
+      "filePath": "backend/app/services/policy_builder/cli_generator.py",
+      "summary": "PolicyBuilder가 만든 정책/오브젝트 변경사항을 PAN-OS set/delete/move CLI 텍스트로 변환하는 순수 함수 모음. 정책 생성, 필드 추가/삭제, 규칙 삭제, 이동, 주소/서비스 오브젝트 생성 명령을 각각 생성한다.",
+      "tags": ["cli-generation", "policy-builder", "palo-alto"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/services/policy_builder/cli_generator.py:generate_policy_set_command",
+      "type": "function",
+      "name": "generate_policy_set_command",
+      "filePath": "backend/app/services/policy_builder/cli_generator.py",
+      "lineRange": [42, 92],
+      "summary": "신규 정책 행(NewPolicyRow)을 PAN-OS `set` 규칙 생성 CLI 명령 문자열로 변환하는 함수.",
+      "tags": ["cli-generation", "policy-builder"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/services/policy_builder/cli_generator.py:generate_field_append_command",
+      "type": "function",
+      "name": "generate_field_append_command",
+      "filePath": "backend/app/services/policy_builder/cli_generator.py",
+      "lineRange": [98, 124],
+      "summary": "기존 정책 필드에 값을 추가하는 `set` CLI 명령을 생성하는 함수.",
+      "tags": ["cli-generation", "policy-builder"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/policy_builder/cli_generator.py:generate_field_delete_command",
+      "type": "function",
+      "name": "generate_field_delete_command",
+      "filePath": "backend/app/services/policy_builder/cli_generator.py",
+      "lineRange": [127, 144],
+      "summary": "기존 정책 필드에서 값을 제거하는 `delete` CLI 명령을 생성하는 함수.",
+      "tags": ["cli-generation", "policy-builder"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/policy_builder/cli_generator.py:generate_move_command",
+      "type": "function",
+      "name": "generate_move_command",
+      "filePath": "backend/app/services/policy_builder/cli_generator.py",
+      "lineRange": [158, 175],
+      "summary": "정책 규칙을 특정 기준 규칙 앞/뒤로 재배치하는 `move` CLI 명령을 생성하는 함수.",
+      "tags": ["cli-generation", "policy-builder"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/policy_builder/cli_generator.py:generate_address_object_command",
+      "type": "function",
+      "name": "generate_address_object_command",
+      "filePath": "backend/app/services/policy_builder/cli_generator.py",
+      "lineRange": [178, 202],
+      "summary": "부족한 주소 오브젝트를 생성하는 `set address` CLI 명령을 생성하는 함수.",
+      "tags": ["cli-generation", "policy-builder"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/policy_builder/cli_generator.py:generate_service_object_command",
+      "type": "function",
+      "name": "generate_service_object_command",
+      "filePath": "backend/app/services/policy_builder/cli_generator.py",
+      "lineRange": [205, 223],
+      "summary": "부족한 서비스 오브젝트를 생성하는 `set service` CLI 명령을 생성하는 함수.",
+      "tags": ["cli-generation", "policy-builder"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/policy_builder/insertion_analyzer.py",
+      "type": "file",
+      "name": "insertion_analyzer.py",
+      "filePath": "backend/app/services/policy_builder/insertion_analyzer.py",
+      "summary": "신규(가상) 정책의 삽입 위치를 계산하고 기존 정책과의 재배치 충돌을 검증하는 모듈. policy_overlap.py의 오버랩 판정 로직을 impact 분석과 공유한다.",
+      "tags": ["policy-builder", "insertion-analysis", "conflict-detection"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/app/services/policy_builder/insertion_analyzer.py:_resolve_insertion_index",
+      "type": "function",
+      "name": "_resolve_insertion_index",
+      "filePath": "backend/app/services/policy_builder/insertion_analyzer.py",
+      "lineRange": [31, 42],
+      "summary": "기준 정책(MoveTarget)을 기존 정책 순서 목록에서 찾아 삽입 인덱스를 계산하는 내부 함수.",
+      "tags": ["policy-builder", "insertion-analysis"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/policy_builder/insertion_analyzer.py:_find_conflicts",
+      "type": "function",
+      "name": "_find_conflicts",
+      "filePath": "backend/app/services/policy_builder/insertion_analyzer.py",
+      "lineRange": [49, 91],
+      "summary": "삽입될 정책과 주변 정책들 사이에 조건 오버랩으로 인한 재배치 충돌이 있는지 검사하는 내부 함수.",
+      "tags": ["policy-builder", "insertion-analysis", "conflict-detection"],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:backend/app/services/policy_builder/insertion_analyzer.py:_build_previews",
+      "type": "function",
+      "name": "_build_previews",
+      "filePath": "backend/app/services/policy_builder/insertion_analyzer.py",
+      "lineRange": [94, 108],
+      "summary": "삽입 결과 미리보기용 정책 행 목록(PreviewPolicyRow)을 구성하는 내부 함수.",
+      "tags": ["policy-builder", "insertion-analysis"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/policy_builder/insertion_analyzer.py:analyze_insertion",
+      "type": "function",
+      "name": "analyze_insertion",
+      "filePath": "backend/app/services/policy_builder/insertion_analyzer.py",
+      "lineRange": [111, 137],
+      "summary": "가상 정책의 삽입 위치, 충돌, 미리보기를 종합해 반환하는 핵심 진입 함수. plan_bulk_policy 엔드포인트에서 신규/기존 정책 이동 검증에 사용된다.",
+      "tags": ["policy-builder", "insertion-analysis", "conflict-detection"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/services/policy_builder/insertion_analyzer.py:_resolve_insertion_index_dict",
+      "type": "function",
+      "name": "_resolve_insertion_index_dict",
+      "filePath": "backend/app/services/policy_builder/insertion_analyzer.py",
+      "lineRange": [140, 151],
+      "summary": "딕셔너리 형태 정책 목록을 대상으로 삽입 인덱스를 계산하는 보조 함수(build_full_order에서 사용).",
+      "tags": ["policy-builder", "insertion-analysis"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/policy_builder/insertion_analyzer.py:_policy_to_item",
+      "type": "function",
+      "name": "_policy_to_item",
+      "filePath": "backend/app/services/policy_builder/insertion_analyzer.py",
+      "lineRange": [154, 163],
+      "summary": "DB 정책 객체를 순서 계산용 아이템 딕셔너리로 변환하는 내부 함수.",
+      "tags": ["policy-builder", "insertion-analysis"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/policy_builder/insertion_analyzer.py:_create_payload_to_item",
+      "type": "function",
+      "name": "_create_payload_to_item",
+      "filePath": "backend/app/services/policy_builder/insertion_analyzer.py",
+      "lineRange": [166, 178],
+      "summary": "신규 생성 payload를 순서 계산용 아이템 딕셔너리로 변환하는 내부 함수.",
+      "tags": ["policy-builder", "insertion-analysis"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/policy_builder/insertion_analyzer.py:_apply_modify_overlay",
+      "type": "function",
+      "name": "_apply_modify_overlay",
+      "filePath": "backend/app/services/policy_builder/insertion_analyzer.py",
+      "lineRange": [181, 191],
+      "summary": "수정 대기중인 변경사항(diff)을 기존 정책 아이템에 덮어써 최신 상태를 반영하는 내부 함수.",
+      "tags": ["policy-builder", "insertion-analysis"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/policy_builder/insertion_analyzer.py:build_full_order",
+      "type": "function",
+      "name": "build_full_order",
+      "filePath": "backend/app/services/policy_builder/insertion_analyzer.py",
+      "lineRange": [194, 270],
+      "summary": "대기중인 모든 생성/수정/삭제/이동 변경사항을 기존 정책 순서에 적용해 최종 전체 정책 순서 미리보기를 계산하는 함수. plan_bulk_policy의 preview_order 응답 생성에 사용된다.",
+      "tags": ["policy-builder", "insertion-analysis", "ordering"],
+      "complexity": "complex"
+    }
+  ],
+  "edges": [
+    {"source": "file:backend/app/schemas/policy.py", "target": "class:backend/app/schemas/policy.py:PolicySearchRequest", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/schemas/policy.py", "target": "class:backend/app/schemas/policy.py:PolicySearchRequest", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/app/schemas/policy_builder.py", "target": "class:backend/app/schemas/policy_builder.py:PreviewPolicyRow", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/schemas/policy_builder.py", "target": "class:backend/app/schemas/policy_builder.py:PreviewPolicyRow", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/app/services/analysis/common.py", "target": "function:backend/app/services/analysis/common.py:load_active_policies_with_members", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/analysis/common.py", "target": "function:backend/app/services/analysis/common.py:load_active_policies_with_members", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/analysis/common.py", "target": "file:backend/app/models/__init__.py", "type": "imports", "direction": "forward", "weight": 0.7},
+
+    {"source": "file:backend/app/services/analysis/over_permissive.py", "target": "class:backend/app/services/analysis/over_permissive.py:OverPermissiveAnalyzer", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/analysis/over_permissive.py", "target": "class:backend/app/services/analysis/over_permissive.py:OverPermissiveAnalyzer", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "class:backend/app/services/analysis/over_permissive.py:OverPermissiveAnalyzer", "target": "function:backend/app/services/analysis/common.py:load_active_policies_with_members", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/analysis/over_permissive.py", "target": "file:backend/app/__init__.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/analysis/over_permissive.py", "target": "file:backend/app/crud/__init__.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/analysis/over_permissive.py", "target": "file:backend/app/models/__init__.py", "type": "imports", "direction": "forward", "weight": 0.7},
+
+    {"source": "file:backend/app/services/analysis/risky_ports.py", "target": "class:backend/app/services/analysis/risky_ports.py:RiskyPortsAnalyzer", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/analysis/risky_ports.py", "target": "class:backend/app/services/analysis/risky_ports.py:RiskyPortsAnalyzer", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "class:backend/app/services/analysis/risky_ports.py:RiskyPortsAnalyzer", "target": "function:backend/app/services/analysis/risky_ports_utils.py:parse_service_token", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "class:backend/app/services/analysis/risky_ports.py:RiskyPortsAnalyzer", "target": "function:backend/app/services/analysis/risky_ports_utils.py:split_port_range", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "class:backend/app/services/analysis/risky_ports.py:RiskyPortsAnalyzer", "target": "class:backend/app/services/analysis/risky_ports_models.py:RiskyPortDefinition", "type": "depends_on", "direction": "forward", "weight": 0.6},
+    {"source": "file:backend/app/services/analysis/risky_ports.py", "target": "file:backend/app/__init__.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/analysis/risky_ports.py", "target": "file:backend/app/crud/__init__.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/analysis/risky_ports.py", "target": "file:backend/app/models/__init__.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/analysis/risky_ports.py", "target": "file:backend/app/services/analysis/risky_ports_models.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/analysis/risky_ports.py", "target": "file:backend/app/services/analysis/risky_ports_utils.py", "type": "imports", "direction": "forward", "weight": 0.7},
+
+    {"source": "file:backend/app/services/analysis/risky_ports_models.py", "target": "class:backend/app/services/analysis/risky_ports_models.py:RiskyPortDefinition", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/analysis/risky_ports_models.py", "target": "class:backend/app/services/analysis/risky_ports_models.py:RiskyPortDefinition", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/app/services/analysis/risky_ports_utils.py", "target": "function:backend/app/services/analysis/risky_ports_utils.py:parse_service_token", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/analysis/risky_ports_utils.py", "target": "function:backend/app/services/analysis/risky_ports_utils.py:split_port_range", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/analysis/risky_ports_utils.py", "target": "function:backend/app/services/analysis/risky_ports_utils.py:calculate_port_range_size", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/analysis/risky_ports_utils.py", "target": "function:backend/app/services/analysis/risky_ports_utils.py:parse_service_token", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/analysis/risky_ports_utils.py", "target": "function:backend/app/services/analysis/risky_ports_utils.py:split_port_range", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/analysis/risky_ports_utils.py", "target": "function:backend/app/services/analysis/risky_ports_utils.py:calculate_port_range_size", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/analysis/risky_ports_utils.py", "target": "file:backend/app/services/normalize.py", "type": "imports", "direction": "forward", "weight": 0.7},
+
+    {"source": "file:backend/app/services/normalize.py", "target": "function:backend/app/services/normalize.py:parse_ipv4_numeric", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/normalize.py", "target": "function:backend/app/services/normalize.py:parse_port_numeric", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/normalize.py", "target": "function:backend/app/services/normalize.py:parse_ipv4_numeric", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/normalize.py", "target": "function:backend/app/services/normalize.py:parse_port_numeric", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/app/services/policy_builder/cli_generator.py", "target": "function:backend/app/services/policy_builder/cli_generator.py:generate_policy_set_command", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/policy_builder/cli_generator.py", "target": "function:backend/app/services/policy_builder/cli_generator.py:generate_field_append_command", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/policy_builder/cli_generator.py", "target": "function:backend/app/services/policy_builder/cli_generator.py:generate_field_delete_command", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/policy_builder/cli_generator.py", "target": "function:backend/app/services/policy_builder/cli_generator.py:generate_move_command", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/policy_builder/cli_generator.py", "target": "function:backend/app/services/policy_builder/cli_generator.py:generate_address_object_command", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/policy_builder/cli_generator.py", "target": "function:backend/app/services/policy_builder/cli_generator.py:generate_service_object_command", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/policy_builder/cli_generator.py", "target": "function:backend/app/services/policy_builder/cli_generator.py:generate_policy_set_command", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/policy_builder/cli_generator.py", "target": "function:backend/app/services/policy_builder/cli_generator.py:generate_field_append_command", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/policy_builder/cli_generator.py", "target": "function:backend/app/services/policy_builder/cli_generator.py:generate_field_delete_command", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/policy_builder/cli_generator.py", "target": "function:backend/app/services/policy_builder/cli_generator.py:generate_move_command", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/policy_builder/cli_generator.py", "target": "function:backend/app/services/policy_builder/cli_generator.py:generate_address_object_command", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/policy_builder/cli_generator.py", "target": "function:backend/app/services/policy_builder/cli_generator.py:generate_service_object_command", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/policy_builder/cli_generator.py", "target": "file:backend/app/schemas/policy_builder.py", "type": "imports", "direction": "forward", "weight": 0.7},
+
+    {"source": "file:backend/app/services/policy_builder/insertion_analyzer.py", "target": "function:backend/app/services/policy_builder/insertion_analyzer.py:_resolve_insertion_index", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/policy_builder/insertion_analyzer.py", "target": "function:backend/app/services/policy_builder/insertion_analyzer.py:_find_conflicts", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/policy_builder/insertion_analyzer.py", "target": "function:backend/app/services/policy_builder/insertion_analyzer.py:_build_previews", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/policy_builder/insertion_analyzer.py", "target": "function:backend/app/services/policy_builder/insertion_analyzer.py:analyze_insertion", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/policy_builder/insertion_analyzer.py", "target": "function:backend/app/services/policy_builder/insertion_analyzer.py:_resolve_insertion_index_dict", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/policy_builder/insertion_analyzer.py", "target": "function:backend/app/services/policy_builder/insertion_analyzer.py:_policy_to_item", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/policy_builder/insertion_analyzer.py", "target": "function:backend/app/services/policy_builder/insertion_analyzer.py:_create_payload_to_item", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/policy_builder/insertion_analyzer.py", "target": "function:backend/app/services/policy_builder/insertion_analyzer.py:_apply_modify_overlay", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/policy_builder/insertion_analyzer.py", "target": "function:backend/app/services/policy_builder/insertion_analyzer.py:build_full_order", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/policy_builder/insertion_analyzer.py", "target": "function:backend/app/services/policy_builder/insertion_analyzer.py:analyze_insertion", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/policy_builder/insertion_analyzer.py", "target": "function:backend/app/services/policy_builder/insertion_analyzer.py:build_full_order", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/app/services/policy_builder/insertion_analyzer.py:analyze_insertion", "target": "function:backend/app/services/policy_builder/insertion_analyzer.py:_resolve_insertion_index", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/app/services/policy_builder/insertion_analyzer.py:analyze_insertion", "target": "function:backend/app/services/policy_builder/insertion_analyzer.py:_find_conflicts", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/app/services/policy_builder/insertion_analyzer.py:analyze_insertion", "target": "function:backend/app/services/policy_builder/insertion_analyzer.py:_build_previews", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/app/services/policy_builder/insertion_analyzer.py:build_full_order", "target": "function:backend/app/services/policy_builder/insertion_analyzer.py:_resolve_insertion_index_dict", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/app/services/policy_builder/insertion_analyzer.py:build_full_order", "target": "function:backend/app/services/policy_builder/insertion_analyzer.py:_policy_to_item", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/app/services/policy_builder/insertion_analyzer.py:build_full_order", "target": "function:backend/app/services/policy_builder/insertion_analyzer.py:_create_payload_to_item", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "function:backend/app/services/policy_builder/insertion_analyzer.py:build_full_order", "target": "function:backend/app/services/policy_builder/insertion_analyzer.py:_apply_modify_overlay", "type": "calls", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/policy_builder/insertion_analyzer.py", "target": "file:backend/app/__init__.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/policy_builder/insertion_analyzer.py", "target": "file:backend/app/crud/__init__.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/policy_builder/insertion_analyzer.py", "target": "file:backend/app/schemas/policy_builder.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/policy_builder/insertion_analyzer.py", "target": "file:backend/app/services/analysis/common.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/policy_builder/insertion_analyzer.py", "target": "file:backend/app/services/policy_builder/virtual_policy.py", "type": "imports", "direction": "forward", "weight": 0.7}
+  ]
+}
