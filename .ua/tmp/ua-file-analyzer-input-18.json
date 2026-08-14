@@ -1,0 +1,31 @@
+{
+  "projectRoot": "/Users/hoon/Code/firewall-analysis-tool",
+  "batchFiles": [
+    {"path": ".ua/.understandignore", "language": "unknown", "sizeLines": 161, "fileCategory": "code"},
+    {"path": ".ua/config.json", "language": "json", "sizeLines": 3, "fileCategory": "config"},
+    {"path": "backend/alembic/README", "language": "unknown", "sizeLines": 0, "fileCategory": "code"},
+    {"path": "backend/alembic/script.py.mako", "language": "mako", "sizeLines": 28, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py", "language": "python", "sizeLines": 32, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/03b8541df858_add_full_text_search_index_to_policies.py", "language": "python", "sizeLines": 30, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/05af03b5b5a7_add_is_indexed_to_policies.py", "language": "python", "sizeLines": 30, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/09dd00061f54_sync_history_total_network_objects_.py", "language": "python", "sizeLines": 34, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/0c2bcf544f00_split_group_thresholds_and_add_manual_.py", "language": "python", "sizeLines": 65, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/0d3443650046_add_analysis_task_and_redundancy_policy_.py", "language": "python", "sizeLines": 59, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/13da5d437d69_add_from_zone_to_zone_log_setting_to_.py", "language": "python", "sizeLines": 36, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/1bc65d6e069d_add_user_fields_to_notification_log.py", "language": "python", "sizeLines": 30, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/250479d68b62_add_group_to_device.py", "language": "python", "sizeLines": 26, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/3b8b30b839e4_add_sync_histories_table.py", "language": "python", "sizeLines": 42, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/4018cfde1957_add_policy_device_id_is_active_.py", "language": "python", "sizeLines": 30, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/4e930a9f1c8e_create_initial_schema.py", "language": "python", "sizeLines": 141, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/506be5600d50_add_is_active_and_last_seen_at_to_models.py", "language": "python", "sizeLines": 68, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/57cc3fce8f18_add_device_stats_cache_columns.py", "language": "python", "sizeLines": 37, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/58ee57742835_device_system_info_자동수집_컬럼_추가_hostname_.py", "language": "python", "sizeLines": 65, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/5a0be6dd8ed0_add_analysis_results_table.py", "language": "python", "sizeLines": 46, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/6d1230479e2c_add_error_message_to_analysistask.py", "language": "python", "sizeLines": 26, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/6ff06bc5a575_replace_device_resource_usage_fields_.py", "language": "python", "sizeLines": 46, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/775a087473c7_add_sync_status_to_devices.py", "language": "python", "sizeLines": 40, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/7c21e9d0a4b1_drop_legacy_notifications_and_stale_index.py", "language": "python", "sizeLines": 60, "fileCategory": "code"},
+    {"path": "backend/alembic/versions/829b54b9f860_add_device_detail_and_resource_fields.py", "language": "python", "sizeLines": 62, "fileCategory": "code"}
+  ],
+  "batchImportData": {".ua/.understandignore": [], ".ua/config.json": [], "backend/alembic/README": [], "backend/alembic/script.py.mako": [], "backend/alembic/versions/021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py": [], "backend/alembic/versions/03b8541df858_add_full_text_search_index_to_policies.py": [], "backend/alembic/versions/05af03b5b5a7_add_is_indexed_to_policies.py": [], "backend/alembic/versions/09dd00061f54_sync_history_total_network_objects_.py": [], "backend/alembic/versions/0c2bcf544f00_split_group_thresholds_and_add_manual_.py": [], "backend/alembic/versions/0d3443650046_add_analysis_task_and_redundancy_policy_.py": [], "backend/alembic/versions/13da5d437d69_add_from_zone_to_zone_log_setting_to_.py": [], "backend/alembic/versions/1bc65d6e069d_add_user_fields_to_notification_log.py": [], "backend/alembic/versions/250479d68b62_add_group_to_device.py": [], "backend/alembic/versions/3b8b30b839e4_add_sync_histories_table.py": [], "backend/alembic/versions/4018cfde1957_add_policy_device_id_is_active_.py": [], "backend/alembic/versions/4e930a9f1c8e_create_initial_schema.py": [], "backend/alembic/versions/506be5600d50_add_is_active_and_last_seen_at_to_models.py": [], "backend/alembic/versions/57cc3fce8f18_add_device_stats_cache_columns.py": [], "backend/alembic/versions/58ee57742835_device_system_info_자동수집_컬럼_추가_hostname_.py": [], "backend/alembic/versions/5a0be6dd8ed0_add_analysis_results_table.py": [], "backend/alembic/versions/6d1230479e2c_add_error_message_to_analysistask.py": [], "backend/alembic/versions/6ff06bc5a575_replace_device_resource_usage_fields_.py": [], "backend/alembic/versions/775a087473c7_add_sync_status_to_devices.py": [], "backend/alembic/versions/7c21e9d0a4b1_drop_legacy_notifications_and_stale_index.py": [], "backend/alembic/versions/829b54b9f860_add_device_detail_and_resource_fields.py": []}
+}

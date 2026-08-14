@@ -1,0 +1,3542 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 25,
+  "filesSkipped": [],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 25,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 25,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "results": [
+    {
+      "path": "backend/alembic/versions/96102c4e15f4_refactor_sync_status_and_remove_ip_.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 44,
+      "nonEmptyLines": 33,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 32,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 35,
+          "endLine": 44,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 35,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.drop_index",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.create_index",
+          "lineNumber": 32
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 37
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 38
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 40
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 41
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Column",
+          "lineNumber": 41
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.INTEGER",
+          "lineNumber": 41
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_index",
+          "lineNumber": 43
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.create_index",
+          "lineNumber": 44
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/98af10f9d74d_add_export_tasks_table.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 55,
+      "nonEmptyLines": 46,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 47,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 50,
+          "endLine": 55,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 50,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.JSON",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Boolean",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Boolean",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 31
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 31
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 33
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 33
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 34
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 34
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 35
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 35
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 36
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 36
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 37
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 37
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 38
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 38
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 39
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 39
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 40
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 40
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 41
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 41
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 42
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 42
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 43
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 43
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 44
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 46
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.f",
+          "lineNumber": 46
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 53
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.f",
+          "lineNumber": 53
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 54
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/999999999999_add_last_hit_date_to_policies.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 38,
+      "nonEmptyLines": 27,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 27,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 30,
+          "endLine": 36,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 30,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.get_bind",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.inspect",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "inspector.get_columns",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.add_column",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 27
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.get_bind",
+          "lineNumber": 32
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.inspect",
+          "lineNumber": 33
+        },
+        {
+          "caller": "downgrade",
+          "callee": "inspector.get_columns",
+          "lineNumber": 34
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_column",
+          "lineNumber": 36
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/9f3d51c8e2a7_align_not_null_and_unique_constraints.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 54,
+      "nonEmptyLines": 41,
+      "functions": [
+        {
+          "name": "_set_nullable",
+          "startLine": 36,
+          "endLine": 40,
+          "params": [
+            "nullable"
+          ]
+        },
+        {
+          "name": "upgrade",
+          "startLine": 43,
+          "endLine": 47,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 50,
+          "endLine": 54,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "_set_nullable",
+          "line": 36,
+          "isDefault": false
+        },
+        {
+          "name": "upgrade",
+          "line": 43,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 50,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "_set_nullable",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 38
+        },
+        {
+          "caller": "_set_nullable",
+          "callee": "batch.alter_column",
+          "lineNumber": 40
+        },
+        {
+          "caller": "upgrade",
+          "callee": "_set_nullable",
+          "lineNumber": 45
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 46
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch.create_unique_constraint",
+          "lineNumber": 47
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 52
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch.drop_constraint",
+          "lineNumber": 53
+        },
+        {
+          "caller": "downgrade",
+          "callee": "_set_nullable",
+          "lineNumber": 54
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 3,
+        "functionCount": 3,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/a1b2c3d4e5f6_add_numeric_and_flatten_columns.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 83,
+      "nonEmptyLines": 68,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 52,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 55,
+          "endLine": 83,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 55,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.get_bind",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.inspect",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "inspector.get_columns",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 34
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 34
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 34
+        },
+        {
+          "caller": "upgrade",
+          "callee": "inspector.get_columns",
+          "lineNumber": 37
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 38
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 40
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 40
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 40
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 42
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 42
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.BigInteger",
+          "lineNumber": 42
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 44
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 44
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.BigInteger",
+          "lineNumber": 44
+        },
+        {
+          "caller": "upgrade",
+          "callee": "inspector.get_columns",
+          "lineNumber": 47
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 48
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 50
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 50
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 50
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 52
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 52
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 52
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.get_bind",
+          "lineNumber": 57
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.inspect",
+          "lineNumber": 58
+        },
+        {
+          "caller": "downgrade",
+          "callee": "inspector.get_columns",
+          "lineNumber": 60
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 61
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 63
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 65
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 67
+        },
+        {
+          "caller": "downgrade",
+          "callee": "inspector.get_columns",
+          "lineNumber": 69
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 70
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 72
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 74
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 76
+        },
+        {
+          "caller": "downgrade",
+          "callee": "inspector.get_columns",
+          "lineNumber": 78
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 79
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 81
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 83
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/a3f7c9d1e246_add_concurrent_task_lock_and_requester_.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 50,
+      "nonEmptyLines": 37,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 34,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 37,
+          "endLine": 50,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 37,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 31
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 33
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 33
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 33
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 34
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 34
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 34
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 39
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 40
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 41
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 42
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 44
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 45
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 46
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 48
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 49
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 50
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/ac6ed09caa16_add_reference_date_to_deletion_workflow_.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 26,
+      "nonEmptyLines": 17,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 22,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 25,
+          "endLine": 26,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 25,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.add_column",
+          "lineNumber": 22
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 22
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Date",
+          "lineNumber": 22
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_column",
+          "lineNumber": 26
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/b2bcdf268319_add_hit_count_to_policies.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 31,
+      "nonEmptyLines": 21,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 26,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 29,
+          "endLine": 31,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 29,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.add_column",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.execute",
+          "lineNumber": 26
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_column",
+          "lineNumber": 31
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/b2c3d4e5f6a7_add_policy_member_indexes.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 59,
+      "nonEmptyLines": 48,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 49,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 52,
+          "endLine": 59,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 52,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 22
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKey",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKey",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 31
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.BigInteger",
+          "lineNumber": 31
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.BigInteger",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 34
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 35
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 37
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 39
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 39
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 40
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 40
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKey",
+          "lineNumber": 40
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 41
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 41
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKey",
+          "lineNumber": 41
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 42
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 42
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 43
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 43
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 44
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 44
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 45
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 45
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 46
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 46
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 48
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 49
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 53
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 54
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 55
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 57
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 58
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 59
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/b66eeb2bdb5d_optimize_policy_address_members.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 35,
+      "nonEmptyLines": 26,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 25,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 28,
+          "endLine": 35,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 28,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 25
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 31
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 35
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Column",
+          "lineNumber": 35
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.VARCHAR",
+          "lineNumber": 35
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/be31ff864885_add_deletion_workflow_projects_and_files.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 56,
+      "nonEmptyLines": 46,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 49,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 52,
+          "endLine": 56,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 52,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 22
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKeyConstraint",
+          "lineNumber": 31
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 34
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 36
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 38
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 38
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 39
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 39
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 40
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 40
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 41
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 41
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 42
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 42
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 43
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.LargeBinary",
+          "lineNumber": 43
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 44
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 44
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKeyConstraint",
+          "lineNumber": 45
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 46
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.UniqueConstraint",
+          "lineNumber": 47
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 49
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 53
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 54
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 55
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 56
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/c3d4e5f6a7b8_deprecate_flattened_strings_comment.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 28,
+      "nonEmptyLines": 19,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 23,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 26,
+          "endLine": 28,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 26,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/cea930c349cb_add_bidirectional_relationship_between_.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 32,
+      "nonEmptyLines": 23,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 25,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 28,
+          "endLine": 32,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 28,
+          "isDefault": false
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/d4e5f6a7b8c9_drop_policies_flattened_columns.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 44,
+      "nonEmptyLines": 35,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 31,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 34,
+          "endLine": 44,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 34,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.get_bind",
+          "lineNumber": 22
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.inspect",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "inspector.get_columns",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 31
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.get_bind",
+          "lineNumber": 35
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.inspect",
+          "lineNumber": 36
+        },
+        {
+          "caller": "downgrade",
+          "callee": "inspector.get_columns",
+          "lineNumber": 37
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 38
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 40
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Column",
+          "lineNumber": 40
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.String",
+          "lineNumber": 40
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 42
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Column",
+          "lineNumber": 42
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.String",
+          "lineNumber": 42
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 44
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Column",
+          "lineNumber": 44
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.String",
+          "lineNumber": 44
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/ed78465f7817_add_pending_policy_changes_table.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 49,
+      "nonEmptyLines": 40,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 40,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 43,
+          "endLine": 49,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 43,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.JSON",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 31
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 31
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKeyConstraint",
+          "lineNumber": 33
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKeyConstraint",
+          "lineNumber": 34
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKeyConstraint",
+          "lineNumber": 35
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 36
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 38
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 39
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.f",
+          "lineNumber": 39
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 46
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.f",
+          "lineNumber": 46
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 47
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 48
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/f1a2b3c4d5e6_add_sync_schedules_table.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 44,
+      "nonEmptyLines": 34,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 38,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 41,
+          "endLine": 43,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 41,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Boolean",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.JSON",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.JSON",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 31
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 31
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 33
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 33
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 34
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 34
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 35
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.UniqueConstraint",
+          "lineNumber": 36
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 38
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.f",
+          "lineNumber": 38
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 42
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.f",
+          "lineNumber": 42
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 43
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/g2d3e4f5a6b7_add_settings_table.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 40,
+      "nonEmptyLines": 29,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 34,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 37,
+          "endLine": 39,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 37,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 22
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.f",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.execute",
+          "lineNumber": 31
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 38
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.f",
+          "lineNumber": 38
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 39
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/h1i2j3k4l5m6_add_token_to_policy_address_members.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 31,
+      "nonEmptyLines": 21,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 24,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 27,
+          "endLine": 30,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 27,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 24
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 29
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 30
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/i2j3k4l5m6n7_add_model_to_devices.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 32,
+      "nonEmptyLines": 21,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 24,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 27,
+          "endLine": 30,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 27,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 24
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 29
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 30
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/j3k4l5m6n7o8_add_notification_logs_table.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 49,
+      "nonEmptyLines": 39,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 39,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 42,
+          "endLine": 48,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 42,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Text",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 31
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 31
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 33
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 33
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 34
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 36
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.f",
+          "lineNumber": 36
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 37
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.f",
+          "lineNumber": 37
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 38
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.f",
+          "lineNumber": 38
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 39
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.f",
+          "lineNumber": 39
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 44
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.f",
+          "lineNumber": 44
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 45
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.f",
+          "lineNumber": 45
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 46
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.f",
+          "lineNumber": 46
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 47
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.f",
+          "lineNumber": 47
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 48
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/k4l5m6n7o8p9_remove_read_from_notification_logs.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 31,
+      "nonEmptyLines": 21,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 24,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 27,
+          "endLine": 30,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 27,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 24
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 29
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 30
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Column",
+          "lineNumber": 30
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 30
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/l5m6n7o8p9q0_add_deletion_workflows_table.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 46,
+      "nonEmptyLines": 36,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 38,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 41,
+          "endLine": 45,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 41,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.JSON",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 31
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.JSON",
+          "lineNumber": 31
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 33
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 33
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.ForeignKeyConstraint",
+          "lineNumber": 34
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 35
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 37
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.f",
+          "lineNumber": 37
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 38
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.f",
+          "lineNumber": 38
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 43
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.f",
+          "lineNumber": 43
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 44
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.f",
+          "lineNumber": 44
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 45
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/m7n8o9p0q1r2_add_collect_last_hit_date_to_devices.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 31,
+      "nonEmptyLines": 21,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 21,
+          "endLine": 24,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 27,
+          "endLine": 30,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 21,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 27,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "batch_op.add_column",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Boolean",
+          "lineNumber": 24
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.batch_alter_table",
+          "lineNumber": 29
+        },
+        {
+          "caller": "downgrade",
+          "callee": "batch_op.drop_column",
+          "lineNumber": 30
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/n8o9p0q1r2s3_add_users_table.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 39,
+      "nonEmptyLines": 30,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 20,
+          "endLine": 33,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 36,
+          "endLine": 39,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 20,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 36,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.create_table",
+          "lineNumber": 21
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 23
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.String",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Boolean",
+          "lineNumber": 26
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Boolean",
+          "lineNumber": 27
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.func.now",
+          "lineNumber": 28
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.Column",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 29
+        },
+        {
+          "caller": "upgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 30
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 32
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.create_index",
+          "lineNumber": 33
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 37
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 38
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 39
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    },
+    {
+      "path": "backend/alembic/versions/o9p0q1r2s3t4_drop_deletion_workflows_table.py",
+      "language": "python",
+      "fileCategory": "code",
+      "totalLines": 46,
+      "nonEmptyLines": 37,
+      "functions": [
+        {
+          "name": "upgrade",
+          "startLine": 22,
+          "endLine": 26,
+          "params": []
+        },
+        {
+          "name": "downgrade",
+          "startLine": 29,
+          "endLine": 46,
+          "params": []
+        }
+      ],
+      "exports": [
+        {
+          "name": "upgrade",
+          "line": 22,
+          "isDefault": false
+        },
+        {
+          "name": "downgrade",
+          "line": 29,
+          "isDefault": false
+        }
+      ],
+      "callGraph": [
+        {
+          "caller": "upgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 24
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.drop_index",
+          "lineNumber": 25
+        },
+        {
+          "caller": "upgrade",
+          "callee": "op.drop_table",
+          "lineNumber": 26
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.create_table",
+          "lineNumber": 31
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Column",
+          "lineNumber": 33
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 33
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Column",
+          "lineNumber": 34
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 34
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Column",
+          "lineNumber": 35
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Integer",
+          "lineNumber": 35
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Column",
+          "lineNumber": 36
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.String",
+          "lineNumber": 36
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Column",
+          "lineNumber": 37
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.String",
+          "lineNumber": 37
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Column",
+          "lineNumber": 38
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.JSON",
+          "lineNumber": 38
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Column",
+          "lineNumber": 39
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.JSON",
+          "lineNumber": 39
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Column",
+          "lineNumber": 40
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 40
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.Column",
+          "lineNumber": 41
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.DateTime",
+          "lineNumber": 41
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.ForeignKeyConstraint",
+          "lineNumber": 42
+        },
+        {
+          "caller": "downgrade",
+          "callee": "sa.PrimaryKeyConstraint",
+          "lineNumber": 43
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.create_index",
+          "lineNumber": 45
+        },
+        {
+          "caller": "downgrade",
+          "callee": "op.create_index",
+          "lineNumber": 46
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 2,
+        "functionCount": 2,
+        "classCount": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "projectRoot": "/Users/hoon/Code/firewall-analysis-tool",
+  "batchFiles": [
+    {"path": "docs/improvement/README.md", "language": "markdown", "sizeLines": 57, "fileCategory": "docs"},
+    {"path": "docs/improvement/deletion-workflow-auto-run.md", "language": "markdown", "sizeLines": 90, "fileCategory": "docs"},
+    {"path": "docs/improvement/phase1-critical-fixes.md", "language": "markdown", "sizeLines": 99, "fileCategory": "docs"},
+    {"path": "docs/improvement/phase2-backend-refactor.md", "language": "markdown", "sizeLines": 124, "fileCategory": "docs"},
+    {"path": "docs/improvement/phase3-frontend-performance.md", "language": "markdown", "sizeLines": 116, "fileCategory": "docs"},
+    {"path": "docs/improvement/phase4-frontend-ui.md", "language": "markdown", "sizeLines": 110, "fileCategory": "docs"}
+  ],
+  "batchImportData": {"docs/improvement/README.md": [], "docs/improvement/deletion-workflow-auto-run.md": [], "docs/improvement/phase1-critical-fixes.md": [], "docs/improvement/phase2-backend-refactor.md": [], "docs/improvement/phase3-frontend-performance.md": [], "docs/improvement/phase4-frontend-ui.md": []}
+}

@@ -1,0 +1,127 @@
+{
+  "nodes": [
+    {
+      "id": "document:frontend/DESIGN_SYSTEM.md",
+      "type": "document",
+      "name": "DESIGN_SYSTEM.md",
+      "filePath": "frontend/DESIGN_SYSTEM.md",
+      "summary": "FAT 프론트엔드의 디자인 시스템 가이드. 컬러 토큰, 타이포그래피, 레이아웃, 카드/버튼/배지 컴포넌트 스타일, AG Grid 사용 패턴, CSS 유틸리티 클래스 등 15개 섹션에 걸쳐 UI 구현 규칙을 정의한다.",
+      "tags": ["documentation", "design-system", "ui-guidelines", "css", "ag-grid"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "document:frontend/README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "frontend/README.md",
+      "summary": "Vite + React + TypeScript 템플릿 기본 안내 문서로, 개발 환경 설정과 ESLint 설정 확장 방법을 설명한다.",
+      "tags": ["documentation", "entry-point", "vite", "typescript"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:frontend/components.json",
+      "type": "config",
+      "name": "components.json",
+      "filePath": "frontend/components.json",
+      "summary": "shadcn/ui 컴포넌트 생성기 설정 파일로, 스타일(new-york), Tailwind 연동, 경로 별칭(alias), 아이콘 라이브러리(lucide)를 지정한다.",
+      "tags": ["configuration", "ui-components", "tailwind", "shadcn"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:frontend/index.html",
+      "type": "file",
+      "name": "index.html",
+      "filePath": "frontend/index.html",
+      "summary": "Vite 기반 React SPA의 HTML 엔트리 포인트로, `#root` 마운트 지점과 `src/main.tsx` 모듈 스크립트를 로드한다.",
+      "tags": ["entry-point", "html", "vite", "spa"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:frontend/package.json",
+      "type": "config",
+      "name": "package.json",
+      "filePath": "frontend/package.json",
+      "summary": "프론트엔드 npm 패키지 매니페스트. React 19, Vite, TypeScript, AG Grid, Radix UI, TanStack React Query, Zustand, Tailwind 등 의존성과 dev/build/lint/preview 스크립트를 정의한다.",
+      "tags": ["configuration", "build-system", "dependencies", "react", "vite"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:frontend/tsconfig.app.json",
+      "type": "config",
+      "name": "tsconfig.app.json",
+      "filePath": "frontend/tsconfig.app.json",
+      "summary": "애플리케이션 소스코드(`src/`)에 적용되는 TypeScript 컴파일러 설정으로, strict 모드와 번들러 모듈 해석 옵션을 지정한다.",
+      "tags": ["configuration", "typescript", "build-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:frontend/tsconfig.json",
+      "type": "config",
+      "name": "tsconfig.json",
+      "filePath": "frontend/tsconfig.json",
+      "summary": "프로젝트 참조(project references)를 통해 `tsconfig.app.json`과 `tsconfig.node.json`을 연결하는 최상위 TypeScript 설정 파일.",
+      "tags": ["configuration", "typescript", "build-system"],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:frontend/tsconfig.node.json",
+      "type": "config",
+      "name": "tsconfig.node.json",
+      "filePath": "frontend/tsconfig.node.json",
+      "summary": "Vite 설정 파일 등 Node.js 환경에서 실행되는 빌드 스크립트에 적용되는 TypeScript 컴파일러 설정.",
+      "tags": ["configuration", "typescript", "build-system", "node"],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "config:frontend/package.json",
+      "target": "file:frontend/index.html",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:frontend/tsconfig.app.json",
+      "target": "file:frontend/index.html",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:frontend/tsconfig.json",
+      "target": "config:frontend/tsconfig.app.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:frontend/tsconfig.json",
+      "target": "config:frontend/tsconfig.node.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:frontend/components.json",
+      "target": "config:frontend/package.json",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:frontend/README.md",
+      "target": "file:frontend/index.html",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:frontend/DESIGN_SYSTEM.md",
+      "target": "config:frontend/components.json",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    }
+  ]
+}

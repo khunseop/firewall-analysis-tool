@@ -1,0 +1,452 @@
+{
+  "scriptCompleted": true,
+  "filesAnalyzed": 7,
+  "filesSkipped": [
+    "frontend/index.html"
+  ],
+  "analysisOutcomes": {
+    "structure": {
+      "succeeded": 7,
+      "failed": 0
+    },
+    "callGraph": {
+      "succeeded": 0,
+      "failed": 0,
+      "skipped": 7
+    }
+  },
+  "results": [
+    {
+      "path": "frontend/DESIGN_SYSTEM.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 427,
+      "nonEmptyLines": 348,
+      "sections": [
+        {
+          "heading": "FAT Design System",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "1. 컬러 토큰 (`ds-*`)",
+          "level": 2,
+          "line": 8
+        },
+        {
+          "heading": "Surface (배경 레이어)",
+          "level": 3,
+          "line": 12
+        },
+        {
+          "heading": "On-Surface (텍스트)",
+          "level": 3,
+          "line": 22
+        },
+        {
+          "heading": "Tertiary (브랜드 액션 컬러 — 파랑)",
+          "level": 3,
+          "line": 28
+        },
+        {
+          "heading": "Error",
+          "level": 3,
+          "line": 35
+        },
+        {
+          "heading": "Outline (경계선)",
+          "level": 3,
+          "line": 41
+        },
+        {
+          "heading": "2. 타이포그래피",
+          "level": 2,
+          "line": 52
+        },
+        {
+          "heading": "폰트 패밀리",
+          "level": 3,
+          "line": 54
+        },
+        {
+          "heading": "텍스트 사이즈 패턴",
+          "level": 3,
+          "line": 61
+        },
+        {
+          "heading": "3. 레이아웃",
+          "level": 2,
+          "line": 75
+        },
+        {
+          "heading": "페이지 구조",
+          "level": 3,
+          "line": 77
+        },
+        {
+          "heading": "Navbar",
+          "level": 3,
+          "line": 97
+        },
+        {
+          "heading": "배경",
+          "level": 3,
+          "line": 104
+        },
+        {
+          "heading": "4. 카드 / 컨테이너",
+          "level": 2,
+          "line": 115
+        },
+        {
+          "heading": "기본 카드",
+          "level": 3,
+          "line": 117
+        },
+        {
+          "heading": "카드 헤더 바",
+          "level": 3,
+          "line": 122
+        },
+        {
+          "heading": "카드 푸터 바",
+          "level": 3,
+          "line": 130
+        },
+        {
+          "heading": "5. KPI 카드",
+          "level": 2,
+          "line": 139
+        },
+        {
+          "heading": "6. 버튼",
+          "level": 2,
+          "line": 167
+        },
+        {
+          "heading": "기본 액션 버튼 (갱신, 새로고침 등)",
+          "level": 3,
+          "line": 169
+        },
+        {
+          "heading": "주요 액션 버튼 (추가, 저장)",
+          "level": 3,
+          "line": 177
+        },
+        {
+          "heading": "서브 버튼 (일괄 등록, 템플릿 등)",
+          "level": 3,
+          "line": 185
+        },
+        {
+          "heading": "아이콘 전용 버튼 (테이블 행 액션)",
+          "level": 3,
+          "line": 193
+        },
+        {
+          "heading": "7. 배지 / 태그",
+          "level": 2,
+          "line": 206
+        },
+        {
+          "heading": "벤더 배지",
+          "level": 3,
+          "line": 208
+        },
+        {
+          "heading": "상태 배지 (도트 + 텍스트 방식)",
+          "level": 3,
+          "line": 223
+        },
+        {
+          "heading": "그룹 / 기타 태그",
+          "level": 3,
+          "line": 239
+        },
+        {
+          "heading": "수집 옵션 배지 (소형)",
+          "level": 3,
+          "line": 246
+        },
+        {
+          "heading": "실시간 인디케이터",
+          "level": 3,
+          "line": 253
+        },
+        {
+          "heading": "8. 검색 입력창",
+          "level": 2,
+          "line": 263
+        },
+        {
+          "heading": "9. 테이블",
+          "level": 2,
+          "line": 282
+        },
+        {
+          "heading": "10. AG Grid",
+          "level": 2,
+          "line": 307
+        },
+        {
+          "heading": "그리드 높이 계산 패턴",
+          "level": 3,
+          "line": 323
+        },
+        {
+          "heading": "`fitColumns` vs 기본",
+          "level": 3,
+          "line": 332
+        },
+        {
+          "heading": "AG Grid 컬럼 셀 렌더러 패턴",
+          "level": 3,
+          "line": 336
+        },
+        {
+          "heading": "11. 경고 배너",
+          "level": 2,
+          "line": 361
+        },
+        {
+          "heading": "12. CSS 유틸리티 클래스",
+          "level": 2,
+          "line": 380
+        },
+        {
+          "heading": "13. 드롭다운 패널 (글래스)",
+          "level": 2,
+          "line": 398
+        },
+        {
+          "heading": "14. 아이콘 사용 원칙",
+          "level": 2,
+          "line": 406
+        },
+        {
+          "heading": "15. 박스 섀도",
+          "level": 2,
+          "line": 417
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 41
+      }
+    },
+    {
+      "path": "frontend/README.md",
+      "language": "markdown",
+      "fileCategory": "docs",
+      "totalLines": 73,
+      "nonEmptyLines": 60,
+      "sections": [
+        {
+          "heading": "React + TypeScript + Vite",
+          "level": 1,
+          "line": 1
+        },
+        {
+          "heading": "React Compiler",
+          "level": 2,
+          "line": 10
+        },
+        {
+          "heading": "Expanding the ESLint configuration",
+          "level": 2,
+          "line": 14
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 3
+      }
+    },
+    {
+      "path": "frontend/components.json",
+      "language": "json",
+      "fileCategory": "config",
+      "totalLines": 20,
+      "nonEmptyLines": 20,
+      "sections": [
+        {
+          "heading": "$schema",
+          "level": 1,
+          "line": 2
+        },
+        {
+          "heading": "style",
+          "level": 1,
+          "line": 3
+        },
+        {
+          "heading": "rsc",
+          "level": 1,
+          "line": 4
+        },
+        {
+          "heading": "tsx",
+          "level": 1,
+          "line": 5
+        },
+        {
+          "heading": "tailwind",
+          "level": 1,
+          "line": 6
+        },
+        {
+          "heading": "aliases",
+          "level": 1,
+          "line": 12
+        },
+        {
+          "heading": "iconLibrary",
+          "level": 1,
+          "line": 19
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 7
+      }
+    },
+    {
+      "path": "frontend/package.json",
+      "language": "json",
+      "fileCategory": "config",
+      "totalLines": 63,
+      "nonEmptyLines": 63,
+      "sections": [
+        {
+          "heading": "name",
+          "level": 1,
+          "line": 2
+        },
+        {
+          "heading": "private",
+          "level": 1,
+          "line": 3
+        },
+        {
+          "heading": "version",
+          "level": 1,
+          "line": 4
+        },
+        {
+          "heading": "type",
+          "level": 1,
+          "line": 5
+        },
+        {
+          "heading": "scripts",
+          "level": 1,
+          "line": 6
+        },
+        {
+          "heading": "dependencies",
+          "level": 1,
+          "line": 12
+        },
+        {
+          "heading": "devDependencies",
+          "level": 1,
+          "line": 48
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 7
+      }
+    },
+    {
+      "path": "frontend/tsconfig.app.json",
+      "language": "json",
+      "fileCategory": "config",
+      "totalLines": 32,
+      "nonEmptyLines": 30,
+      "sections": [
+        {
+          "heading": "compilerOptions",
+          "level": 1,
+          "line": 2
+        },
+        {
+          "heading": "include",
+          "level": 1,
+          "line": 31
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 2
+      }
+    },
+    {
+      "path": "frontend/tsconfig.json",
+      "language": "json",
+      "fileCategory": "config",
+      "totalLines": 7,
+      "nonEmptyLines": 7,
+      "sections": [
+        {
+          "heading": "files",
+          "level": 1,
+          "line": 2
+        },
+        {
+          "heading": "references",
+          "level": 1,
+          "line": 3
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 2
+      }
+    },
+    {
+      "path": "frontend/tsconfig.node.json",
+      "language": "json",
+      "fileCategory": "config",
+      "totalLines": 26,
+      "nonEmptyLines": 24,
+      "sections": [
+        {
+          "heading": "compilerOptions",
+          "level": 1,
+          "line": 2
+        },
+        {
+          "heading": "include",
+          "level": 1,
+          "line": 25
+        }
+      ],
+      "metrics": {
+        "importCount": 0,
+        "exportCount": 0,
+        "functionCount": 0,
+        "classCount": 0,
+        "sectionCount": 2
+      }
+    }
+  ]
+}

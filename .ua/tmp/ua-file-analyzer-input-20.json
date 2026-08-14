@@ -1,0 +1,31 @@
+{
+  "projectRoot": "/Users/hoon/Code/firewall-analysis-tool",
+  "batchFiles": [
+    {"path": "backend/alembic/versions/p1q2r3s4t5u6_add_task_id_to_analysis_results.py", "language": "python", "sizeLines": 36, "fileCategory": "code"},
+    {"path": "backend/app/api/__init__.py", "language": "python", "sizeLines": 0, "fileCategory": "code"},
+    {"path": "backend/app/api/api_v1/__init__.py", "language": "python", "sizeLines": 0, "fileCategory": "code"},
+    {"path": "backend/app/api/api_v1/endpoints/export.py", "language": "python", "sizeLines": 114, "fileCategory": "code"},
+    {"path": "backend/app/crud/README.md", "language": "markdown", "sizeLines": 46, "fileCategory": "docs"},
+    {"path": "backend/app/services/README.md", "language": "markdown", "sizeLines": 40, "fileCategory": "docs"},
+    {"path": "backend/app/services/analysis/README.md", "language": "markdown", "sizeLines": 76, "fileCategory": "docs"},
+    {"path": "backend/app/services/analysis/policy_overlap.py", "language": "python", "sizeLines": 220, "fileCategory": "code"},
+    {"path": "backend/app/services/deletion_workflow/README.md", "language": "markdown", "sizeLines": 50, "fileCategory": "docs"},
+    {"path": "backend/app/services/deletion_workflow/__init__.py", "language": "python", "sizeLines": 1, "fileCategory": "code"},
+    {"path": "backend/app/services/deletion_workflow/core/__init__.py", "language": "python", "sizeLines": 1, "fileCategory": "code"},
+    {"path": "backend/app/services/deletion_workflow/utils/__init__.py", "language": "python", "sizeLines": 1, "fileCategory": "code"},
+    {"path": "backend/app/services/deletion_workflow/utils/excel_manager.py", "language": "python", "sizeLines": 54, "fileCategory": "code"},
+    {"path": "backend/app/services/export/__init__.py", "language": "python", "sizeLines": 0, "fileCategory": "code"},
+    {"path": "backend/app/services/firewall/README.md", "language": "markdown", "sizeLines": 57, "fileCategory": "docs"},
+    {"path": "backend/app/services/sync/README.md", "language": "markdown", "sizeLines": 50, "fileCategory": "docs"},
+    {"path": "backend/app/services/sync/__init__.py", "language": "python", "sizeLines": 0, "fileCategory": "code"},
+    {"path": "backend/app/static/redoc.standalone.js", "language": "javascript", "sizeLines": 1781, "fileCategory": "code"},
+    {"path": "backend/app/static/swagger-ui-bundle.js", "language": "javascript", "sizeLines": 1, "fileCategory": "code"},
+    {"path": "backend/app/static/swagger-ui.css", "language": "css", "sizeLines": 2, "fileCategory": "markup"},
+    {"path": "backend/config/deletion_workflow_config.example.json", "language": "json", "sizeLines": 263, "fileCategory": "config"},
+    {"path": "backend/create_admin.py", "language": "python", "sizeLines": 82, "fileCategory": "code"},
+    {"path": "backend/migrate.py", "language": "python", "sizeLines": 109, "fileCategory": "code"},
+    {"path": "frontend/eslint.config.js", "language": "javascript", "sizeLines": 23, "fileCategory": "code"},
+    {"path": "frontend/postcss.config.js", "language": "javascript", "sizeLines": 6, "fileCategory": "code"}
+  ],
+  "batchImportData": {"backend/alembic/versions/p1q2r3s4t5u6_add_task_id_to_analysis_results.py": [], "backend/app/api/__init__.py": [], "backend/app/api/api_v1/__init__.py": [], "backend/app/api/api_v1/endpoints/export.py": [], "backend/app/crud/README.md": [], "backend/app/services/README.md": [], "backend/app/services/analysis/README.md": [], "backend/app/services/analysis/policy_overlap.py": [], "backend/app/services/deletion_workflow/README.md": [], "backend/app/services/deletion_workflow/__init__.py": [], "backend/app/services/deletion_workflow/core/__init__.py": [], "backend/app/services/deletion_workflow/utils/__init__.py": [], "backend/app/services/deletion_workflow/utils/excel_manager.py": [], "backend/app/services/export/__init__.py": [], "backend/app/services/firewall/README.md": [], "backend/app/services/sync/README.md": [], "backend/app/services/sync/__init__.py": [], "backend/app/static/redoc.standalone.js": [], "backend/app/static/swagger-ui-bundle.js": [], "backend/app/static/swagger-ui.css": [], "backend/config/deletion_workflow_config.example.json": [], "backend/create_admin.py": [], "backend/migrate.py": [], "frontend/eslint.config.js": [], "frontend/postcss.config.js": []}
+}
