@@ -1,0 +1,215 @@
+{
+  "nodes": [
+    {
+      "id": "file:backend/app/main.py",
+      "type": "file",
+      "name": "main.py",
+      "filePath": "backend/app/main.py",
+      "summary": "FastAPI 애플리케이션 진입점. 인증 미들웨어, 라우터 등록, Swagger/ReDoc 커스터마이징, React SPA 정적 파일 서빙 및 404 폴백을 설정한다.",
+      "tags": ["entry-point", "middleware", "api-handler", "spa-serving"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/app/models/user.py",
+      "type": "file",
+      "name": "user.py",
+      "filePath": "backend/app/models/user.py",
+      "summary": "사용자 계정(User) ORM 모델 — 아이디, 비밀번호 해시, 관리자 여부, 로그인 이력 등을 저장하는 테이블 정의.",
+      "tags": ["data-model", "database", "authentication"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/schemas/user.py",
+      "type": "file",
+      "name": "user.py",
+      "filePath": "backend/app/schemas/user.py",
+      "summary": "사용자 관련 Pydantic 스키마(생성/응답/토큰) 정의 모음.",
+      "tags": ["type-definition", "validation", "schema"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/audit_log.py",
+      "type": "file",
+      "name": "audit_log.py",
+      "filePath": "backend/app/services/audit_log.py",
+      "summary": "사용자/시스템 활동을 NotificationLog 테이블에 기록하는 감사 로그 헬퍼 함수.",
+      "tags": ["audit-log", "utility", "notification"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/core/workspace_runner.py",
+      "type": "file",
+      "name": "workspace_runner.py",
+      "filePath": "backend/app/services/deletion_workflow/core/workspace_runner.py",
+      "summary": "Deletion Workflow 태스크를 임시 작업 디렉터리에서 안전하게 실행하고 결과 파일을 수집한 뒤 정리하는 실행기 클래스.",
+      "tags": ["file-management", "task-runner", "deletion-workflow"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/app/services/deletion_workflow/task_meta.py",
+      "type": "file",
+      "name": "task_meta.py",
+      "filePath": "backend/app/services/deletion_workflow/task_meta.py",
+      "summary": "Deletion Workflow 태스크 메타데이터(TASK_META)와 FPAT YAML 설정 파일 경로를 제공하는 모듈.",
+      "tags": ["configuration", "deletion-workflow", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:backend/app/services/websocket_manager.py",
+      "type": "file",
+      "name": "websocket_manager.py",
+      "filePath": "backend/app/services/websocket_manager.py",
+      "summary": "활성 WebSocket 연결을 관리하고 장비 동기화 상태·내보내기(export) 진행 상태를 모든 클라이언트에 브로드캐스트하는 매니저 클래스.",
+      "tags": ["websocket", "real-time", "service", "singleton"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:backend/smoke_test.py",
+      "type": "file",
+      "name": "smoke_test.py",
+      "filePath": "backend/smoke_test.py",
+      "summary": "DB 초기화, 장비 생성, 동기화 실행, 정책 검색 시나리오 검증을 순서대로 수행하는 엔드투엔드 스모크 테스트 스크립트.",
+      "tags": ["test", "smoke-test", "integration-test"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:backend/app/main.py:AuthMiddleware",
+      "type": "class",
+      "name": "AuthMiddleware",
+      "filePath": "backend/app/main.py",
+      "lineRange": [53, 69],
+      "summary": "정적 자산·로그인·API 경로를 제외한 모든 요청에 대해 쿠키의 JWT를 검사하고, 미인증 시 /login으로 리다이렉트하는 인증 미들웨어.",
+      "tags": ["middleware", "authentication", "security"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/app/main.py:lifespan",
+      "type": "function",
+      "name": "lifespan",
+      "filePath": "backend/app/main.py",
+      "lineRange": [73, 79],
+      "summary": "앱 시작 시 동기화 스케줄러를 구동하고 종료 시 정지시키는 lifespan 컨텍스트 매니저.",
+      "tags": ["entry-point", "lifecycle", "scheduler"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/main.py:_serve_react",
+      "type": "function",
+      "name": "_serve_react",
+      "filePath": "backend/app/main.py",
+      "lineRange": [133, 138],
+      "summary": "빌드된 React index.html을 서빙하는 헬퍼 함수.",
+      "tags": ["spa-serving", "utility"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/main.py:spa_fallback_handler",
+      "type": "function",
+      "name": "spa_fallback_handler",
+      "filePath": "backend/app/main.py",
+      "lineRange": [147, 156],
+      "summary": "404 발생 시 API 경로가 아니면 React SPA로 폴백 처리하는 예외 핸들러.",
+      "tags": ["spa-serving", "routing", "error-handler"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/app/models/user.py:User",
+      "type": "class",
+      "name": "User",
+      "filePath": "backend/app/models/user.py",
+      "lineRange": [6, 15],
+      "summary": "사용자 계정 테이블 ORM 모델. id, username, password_hash, is_admin, is_active, 로그인 이력 등을 저장한다.",
+      "tags": ["data-model", "database", "authentication"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/app/services/audit_log.py:log_activity",
+      "type": "function",
+      "name": "log_activity",
+      "filePath": "backend/app/services/audit_log.py",
+      "lineRange": [10, 35],
+      "summary": "활동 제목/메시지/유형/장비 정보 등을 받아 NotificationLog 테이블에 KST 타임존 기준으로 기록하는 감사 로그 함수.",
+      "tags": ["audit-log", "utility", "notification"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:backend/app/services/deletion_workflow/core/workspace_runner.py:WorkspaceRunner",
+      "type": "class",
+      "name": "WorkspaceRunner",
+      "filePath": "backend/app/services/deletion_workflow/core/workspace_runner.py",
+      "lineRange": [24, 150],
+      "summary": "임시 작업 디렉터리를 생성하고 입력 파일을 배치한 뒤 ConfigManager/FileManager/ExcelManager 및 TaskRegistry로 프로세서를 실행, 결과 파일을 수집·정리하는 Deletion Workflow 실행기.",
+      "tags": ["task-runner", "file-management", "deletion-workflow"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:backend/app/services/websocket_manager.py:WebSocketManager",
+      "type": "class",
+      "name": "WebSocketManager",
+      "filePath": "backend/app/services/websocket_manager.py",
+      "lineRange": [13, 94],
+      "summary": "활성 WebSocket 연결 집합을 관리하며 장비 동기화 상태와 내보내기(export) 진행 상태를 모든 연결에 브로드캐스트하는 싱글턴 매니저.",
+      "tags": ["websocket", "real-time", "singleton", "service"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:backend/smoke_test.py:create_test_device",
+      "type": "function",
+      "name": "create_test_device",
+      "filePath": "backend/smoke_test.py",
+      "lineRange": [27, 36],
+      "summary": "테스트용 방화벽 장비를 생성한다(기존 동일 이름 장비가 있으면 삭제 후 재생성).",
+      "tags": ["test", "fixture"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/smoke_test.py:run_sync",
+      "type": "function",
+      "name": "run_sync",
+      "filePath": "backend/smoke_test.py",
+      "lineRange": [38, 46],
+      "summary": "동기화를 시작하고 완료될 때까지 상태를 폴링하며 대기한다.",
+      "tags": ["test", "polling", "sync"],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:backend/smoke_test.py:test_policy_search_scenarios",
+      "type": "function",
+      "name": "test_policy_search_scenarios",
+      "filePath": "backend/smoke_test.py",
+      "lineRange": [48, 68],
+      "summary": "다양한 조건의 정책 검색 시나리오를 실행하고 결과 건수를 검증한다.",
+      "tags": ["test", "integration-test"],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {"source": "file:backend/app/main.py", "target": "file:backend/app/api/api_v1/api.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/main.py", "target": "file:backend/app/core/auth.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/main.py", "target": "file:backend/app/services/scheduler.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/models/user.py", "target": "file:backend/app/db/session.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/app/services/audit_log.py", "target": "file:backend/app/models/notification_log.py", "type": "imports", "direction": "forward", "weight": 0.7},
+    {"source": "file:backend/smoke_test.py", "target": "file:backend/app/main.py", "type": "imports", "direction": "forward", "weight": 0.7},
+
+    {"source": "file:backend/app/main.py", "target": "class:backend/app/main.py:AuthMiddleware", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/main.py", "target": "function:backend/app/main.py:lifespan", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/main.py", "target": "function:backend/app/main.py:_serve_react", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/main.py", "target": "function:backend/app/main.py:spa_fallback_handler", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/models/user.py", "target": "class:backend/app/models/user.py:User", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/audit_log.py", "target": "function:backend/app/services/audit_log.py:log_activity", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/deletion_workflow/core/workspace_runner.py", "target": "class:backend/app/services/deletion_workflow/core/workspace_runner.py:WorkspaceRunner", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/app/services/websocket_manager.py", "target": "class:backend/app/services/websocket_manager.py:WebSocketManager", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/smoke_test.py", "target": "function:backend/smoke_test.py:create_test_device", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/smoke_test.py", "target": "function:backend/smoke_test.py:run_sync", "type": "contains", "direction": "forward", "weight": 1.0},
+    {"source": "file:backend/smoke_test.py", "target": "function:backend/smoke_test.py:test_policy_search_scenarios", "type": "contains", "direction": "forward", "weight": 1.0},
+
+    {"source": "file:backend/app/models/user.py", "target": "class:backend/app/models/user.py:User", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/audit_log.py", "target": "function:backend/app/services/audit_log.py:log_activity", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/deletion_workflow/core/workspace_runner.py", "target": "class:backend/app/services/deletion_workflow/core/workspace_runner.py:WorkspaceRunner", "type": "exports", "direction": "forward", "weight": 0.8},
+    {"source": "file:backend/app/services/websocket_manager.py", "target": "class:backend/app/services/websocket_manager.py:WebSocketManager", "type": "exports", "direction": "forward", "weight": 0.8},
+
+    {"source": "class:backend/app/main.py:AuthMiddleware", "target": "function:backend/app/core/auth.py:decode_token", "type": "calls", "direction": "forward", "weight": 0.8},
+
+    {"source": "file:backend/app/main.py", "target": "file:backend/smoke_test.py", "type": "tested_by", "direction": "forward", "weight": 0.5}
+  ]
+}
