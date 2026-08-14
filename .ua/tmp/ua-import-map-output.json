@@ -1,0 +1,930 @@
+{
+  "scriptCompleted": true,
+  "stats": {
+    "filesScanned": 359,
+    "filesWithImports": 134,
+    "totalEdges": 427
+  },
+  "importMap": {
+    ".ua/.understandignore": [],
+    ".ua/config.json": [],
+    "CLAUDE.md": [],
+    "README.md": [],
+    "backend/DELETION_WORKFLOW.md": [],
+    "backend/DELETION_WORKFLOW_GUIDE.md": [],
+    "backend/alembic.ini": [],
+    "backend/alembic/README": [],
+    "backend/alembic/env.py": [
+      "backend/app/core/config.py",
+      "backend/app/db/session.py",
+      "backend/app/models/__init__.py"
+    ],
+    "backend/alembic/script.py.mako": [],
+    "backend/alembic/versions/021c2a4e1680_add_ha_peer_ip_and_use_ssh_for_last_hit_.py": [],
+    "backend/alembic/versions/03b8541df858_add_full_text_search_index_to_policies.py": [],
+    "backend/alembic/versions/05af03b5b5a7_add_is_indexed_to_policies.py": [],
+    "backend/alembic/versions/09dd00061f54_sync_history_total_network_objects_.py": [],
+    "backend/alembic/versions/0c2bcf544f00_split_group_thresholds_and_add_manual_.py": [],
+    "backend/alembic/versions/0d3443650046_add_analysis_task_and_redundancy_policy_.py": [],
+    "backend/alembic/versions/13da5d437d69_add_from_zone_to_zone_log_setting_to_.py": [],
+    "backend/alembic/versions/1bc65d6e069d_add_user_fields_to_notification_log.py": [],
+    "backend/alembic/versions/250479d68b62_add_group_to_device.py": [],
+    "backend/alembic/versions/3b8b30b839e4_add_sync_histories_table.py": [],
+    "backend/alembic/versions/4018cfde1957_add_policy_device_id_is_active_.py": [],
+    "backend/alembic/versions/4e930a9f1c8e_create_initial_schema.py": [],
+    "backend/alembic/versions/506be5600d50_add_is_active_and_last_seen_at_to_models.py": [],
+    "backend/alembic/versions/57cc3fce8f18_add_device_stats_cache_columns.py": [],
+    "backend/alembic/versions/58ee57742835_device_system_info_자동수집_컬럼_추가_hostname_.py": [],
+    "backend/alembic/versions/5a0be6dd8ed0_add_analysis_results_table.py": [],
+    "backend/alembic/versions/6d1230479e2c_add_error_message_to_analysistask.py": [],
+    "backend/alembic/versions/6ff06bc5a575_replace_device_resource_usage_fields_.py": [],
+    "backend/alembic/versions/775a087473c7_add_sync_status_to_devices.py": [],
+    "backend/alembic/versions/7c21e9d0a4b1_drop_legacy_notifications_and_stale_index.py": [],
+    "backend/alembic/versions/829b54b9f860_add_device_detail_and_resource_fields.py": [],
+    "backend/alembic/versions/96102c4e15f4_refactor_sync_status_and_remove_ip_.py": [],
+    "backend/alembic/versions/98af10f9d74d_add_export_tasks_table.py": [],
+    "backend/alembic/versions/999999999999_add_last_hit_date_to_policies.py": [],
+    "backend/alembic/versions/9f3d51c8e2a7_align_not_null_and_unique_constraints.py": [],
+    "backend/alembic/versions/a1b2c3d4e5f6_add_numeric_and_flatten_columns.py": [],
+    "backend/alembic/versions/a3f7c9d1e246_add_concurrent_task_lock_and_requester_.py": [],
+    "backend/alembic/versions/ac6ed09caa16_add_reference_date_to_deletion_workflow_.py": [],
+    "backend/alembic/versions/b2bcdf268319_add_hit_count_to_policies.py": [],
+    "backend/alembic/versions/b2c3d4e5f6a7_add_policy_member_indexes.py": [],
+    "backend/alembic/versions/b66eeb2bdb5d_optimize_policy_address_members.py": [],
+    "backend/alembic/versions/be31ff864885_add_deletion_workflow_projects_and_files.py": [],
+    "backend/alembic/versions/c3d4e5f6a7b8_deprecate_flattened_strings_comment.py": [],
+    "backend/alembic/versions/cea930c349cb_add_bidirectional_relationship_between_.py": [],
+    "backend/alembic/versions/d4e5f6a7b8c9_drop_policies_flattened_columns.py": [],
+    "backend/alembic/versions/ed78465f7817_add_pending_policy_changes_table.py": [],
+    "backend/alembic/versions/f1a2b3c4d5e6_add_sync_schedules_table.py": [],
+    "backend/alembic/versions/g2d3e4f5a6b7_add_settings_table.py": [],
+    "backend/alembic/versions/h1i2j3k4l5m6_add_token_to_policy_address_members.py": [],
+    "backend/alembic/versions/i2j3k4l5m6n7_add_model_to_devices.py": [],
+    "backend/alembic/versions/j3k4l5m6n7o8_add_notification_logs_table.py": [],
+    "backend/alembic/versions/k4l5m6n7o8p9_remove_read_from_notification_logs.py": [],
+    "backend/alembic/versions/l5m6n7o8p9q0_add_deletion_workflows_table.py": [],
+    "backend/alembic/versions/m7n8o9p0q1r2_add_collect_last_hit_date_to_devices.py": [],
+    "backend/alembic/versions/n8o9p0q1r2s3_add_users_table.py": [],
+    "backend/alembic/versions/o9p0q1r2s3t4_drop_deletion_workflows_table.py": [],
+    "backend/alembic/versions/p1q2r3s4t5u6_add_task_id_to_analysis_results.py": [],
+    "backend/app/__init__.py": [],
+    "backend/app/api/__init__.py": [],
+    "backend/app/api/api_v1/__init__.py": [],
+    "backend/app/api/api_v1/api.py": [
+      "backend/app/core/auth.py"
+    ],
+    "backend/app/api/api_v1/endpoints/analysis.py": [
+      "backend/app/__init__.py",
+      "backend/app/core/auth.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/db/session.py",
+      "backend/app/models/user.py",
+      "backend/app/schemas/__init__.py",
+      "backend/app/services/analysis/tasks.py"
+    ],
+    "backend/app/api/api_v1/endpoints/auth.py": [
+      "backend/app/core/auth.py",
+      "backend/app/crud/crud_user.py",
+      "backend/app/db/session.py",
+      "backend/app/models/user.py",
+      "backend/app/schemas/user.py",
+      "backend/app/services/audit_log.py"
+    ],
+    "backend/app/api/api_v1/endpoints/deletion_workflow.py": [
+      "backend/app/__init__.py",
+      "backend/app/core/auth.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/db/session.py",
+      "backend/app/models/user.py",
+      "backend/app/services/deletion_workflow/config_bridge.py",
+      "backend/app/services/deletion_workflow/core/workspace_runner.py",
+      "backend/app/services/deletion_workflow/export_service.py",
+      "backend/app/services/deletion_workflow/task_meta.py"
+    ],
+    "backend/app/api/api_v1/endpoints/devices.py": [
+      "backend/app/__init__.py",
+      "backend/app/core/auth.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/db/session.py",
+      "backend/app/models/__init__.py",
+      "backend/app/models/user.py",
+      "backend/app/schemas/__init__.py",
+      "backend/app/services/__init__.py",
+      "backend/app/services/audit_log.py",
+      "backend/app/services/device_service.py",
+      "backend/app/services/export/tasks.py"
+    ],
+    "backend/app/api/api_v1/endpoints/export.py": [],
+    "backend/app/api/api_v1/endpoints/firewall_query.py": [
+      "backend/app/__init__.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/db/session.py",
+      "backend/app/models/__init__.py",
+      "backend/app/models/change_log.py",
+      "backend/app/models/sync_history.py",
+      "backend/app/schemas/__init__.py",
+      "backend/app/services/policy_indexer.py"
+    ],
+    "backend/app/api/api_v1/endpoints/firewall_sync.py": [
+      "backend/app/__init__.py",
+      "backend/app/core/auth.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/db/session.py",
+      "backend/app/models/user.py",
+      "backend/app/schemas/__init__.py",
+      "backend/app/services/sync/collector.py",
+      "backend/app/services/sync/tasks.py",
+      "backend/app/services/sync/transform.py"
+    ],
+    "backend/app/api/api_v1/endpoints/notifications.py": [
+      "backend/app/__init__.py",
+      "backend/app/core/auth.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/db/session.py",
+      "backend/app/models/user.py",
+      "backend/app/schemas/__init__.py"
+    ],
+    "backend/app/api/api_v1/endpoints/policy_builder.py": [
+      "backend/app/__init__.py",
+      "backend/app/core/auth.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/db/session.py",
+      "backend/app/models/user.py",
+      "backend/app/schemas/__init__.py",
+      "backend/app/services/analysis/common.py",
+      "backend/app/services/policy_builder/__init__.py",
+      "backend/app/services/policy_builder/cli_generator.py",
+      "backend/app/services/policy_builder/insertion_analyzer.py",
+      "backend/app/services/policy_builder/object_gap.py",
+      "backend/app/services/policy_builder/virtual_policy.py"
+    ],
+    "backend/app/api/api_v1/endpoints/settings.py": [
+      "backend/app/__init__.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/db/session.py",
+      "backend/app/schemas/__init__.py"
+    ],
+    "backend/app/api/api_v1/endpoints/sync_schedule.py": [
+      "backend/app/__init__.py",
+      "backend/app/core/auth.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/db/session.py",
+      "backend/app/models/user.py",
+      "backend/app/schemas/__init__.py",
+      "backend/app/services/audit_log.py",
+      "backend/app/services/scheduler.py"
+    ],
+    "backend/app/api/api_v1/endpoints/users.py": [
+      "backend/app/__init__.py",
+      "backend/app/core/auth.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/db/session.py",
+      "backend/app/models/user.py",
+      "backend/app/schemas/user.py",
+      "backend/app/services/audit_log.py"
+    ],
+    "backend/app/api/api_v1/endpoints/websocket.py": [
+      "backend/app/core/auth.py",
+      "backend/app/services/websocket_manager.py"
+    ],
+    "backend/app/core/auth.py": [
+      "backend/app/core/config.py",
+      "backend/app/db/session.py"
+    ],
+    "backend/app/core/config.py": [],
+    "backend/app/core/executors.py": [],
+    "backend/app/core/security.py": [
+      "backend/app/core/config.py"
+    ],
+    "backend/app/crud/README.md": [],
+    "backend/app/crud/__init__.py": [],
+    "backend/app/crud/base.py": [],
+    "backend/app/crud/crud_analysis.py": [
+      "backend/app/models/analysis.py",
+      "backend/app/models/device.py",
+      "backend/app/schemas/analysis.py"
+    ],
+    "backend/app/crud/crud_change_log.py": [
+      "backend/app/models/change_log.py",
+      "backend/app/schemas/change_log.py"
+    ],
+    "backend/app/crud/crud_deletion_workflow.py": [
+      "backend/app/models/deletion_workflow.py"
+    ],
+    "backend/app/crud/crud_device.py": [
+      "backend/app/core/security.py",
+      "backend/app/models/analysis.py",
+      "backend/app/models/change_log.py",
+      "backend/app/models/device.py",
+      "backend/app/models/network_group.py",
+      "backend/app/models/network_object.py",
+      "backend/app/models/notification_log.py",
+      "backend/app/models/policy.py",
+      "backend/app/models/policy_members.py",
+      "backend/app/models/service.py",
+      "backend/app/models/service_group.py",
+      "backend/app/schemas/device.py"
+    ],
+    "backend/app/crud/crud_network_group.py": [
+      "backend/app/crud/__init__.py",
+      "backend/app/crud/base.py",
+      "backend/app/models/network_group.py",
+      "backend/app/schemas/network_group.py"
+    ],
+    "backend/app/crud/crud_network_object.py": [
+      "backend/app/crud/__init__.py",
+      "backend/app/crud/base.py",
+      "backend/app/models/network_object.py",
+      "backend/app/schemas/network_object.py",
+      "backend/app/services/normalize.py"
+    ],
+    "backend/app/crud/crud_notification_log.py": [
+      "backend/app/models/notification_log.py",
+      "backend/app/schemas/notification_log.py"
+    ],
+    "backend/app/crud/crud_pending_policy_change.py": [
+      "backend/app/models/pending_policy_change.py",
+      "backend/app/schemas/pending_policy_change.py"
+    ],
+    "backend/app/crud/crud_policy.py": [
+      "backend/app/__init__.py",
+      "backend/app/models/__init__.py",
+      "backend/app/models/policy.py",
+      "backend/app/schemas/__init__.py",
+      "backend/app/schemas/policy.py",
+      "backend/app/services/normalize.py"
+    ],
+    "backend/app/crud/crud_service.py": [
+      "backend/app/crud/__init__.py",
+      "backend/app/crud/base.py",
+      "backend/app/models/service.py",
+      "backend/app/schemas/service.py",
+      "backend/app/services/normalize.py"
+    ],
+    "backend/app/crud/crud_service_group.py": [
+      "backend/app/crud/__init__.py",
+      "backend/app/crud/base.py",
+      "backend/app/models/service_group.py",
+      "backend/app/schemas/service_group.py"
+    ],
+    "backend/app/crud/crud_settings.py": [
+      "backend/app/models/settings.py",
+      "backend/app/schemas/settings.py"
+    ],
+    "backend/app/crud/crud_sync_schedule.py": [
+      "backend/app/models/sync_schedule.py",
+      "backend/app/schemas/sync_schedule.py"
+    ],
+    "backend/app/crud/crud_user.py": [
+      "backend/app/core/auth.py",
+      "backend/app/models/user.py"
+    ],
+    "backend/app/db/session.py": [
+      "backend/app/core/config.py"
+    ],
+    "backend/app/main.py": [
+      "backend/app/api/api_v1/api.py",
+      "backend/app/core/auth.py",
+      "backend/app/services/scheduler.py"
+    ],
+    "backend/app/models/__init__.py": [
+      "backend/app/models/analysis.py",
+      "backend/app/models/change_log.py",
+      "backend/app/models/deletion_workflow.py",
+      "backend/app/models/device.py",
+      "backend/app/models/export_task.py",
+      "backend/app/models/network_group.py",
+      "backend/app/models/network_object.py",
+      "backend/app/models/notification_log.py",
+      "backend/app/models/pending_policy_change.py",
+      "backend/app/models/policy.py",
+      "backend/app/models/policy_members.py",
+      "backend/app/models/service.py",
+      "backend/app/models/service_group.py",
+      "backend/app/models/settings.py",
+      "backend/app/models/sync_history.py",
+      "backend/app/models/sync_schedule.py",
+      "backend/app/models/user.py"
+    ],
+    "backend/app/models/analysis.py": [
+      "backend/app/db/session.py"
+    ],
+    "backend/app/models/change_log.py": [
+      "backend/app/db/session.py"
+    ],
+    "backend/app/models/deletion_workflow.py": [
+      "backend/app/db/session.py"
+    ],
+    "backend/app/models/device.py": [
+      "backend/app/db/session.py"
+    ],
+    "backend/app/models/export_task.py": [
+      "backend/app/db/session.py"
+    ],
+    "backend/app/models/network_group.py": [
+      "backend/app/db/session.py"
+    ],
+    "backend/app/models/network_object.py": [
+      "backend/app/db/session.py"
+    ],
+    "backend/app/models/notification_log.py": [
+      "backend/app/db/session.py"
+    ],
+    "backend/app/models/pending_policy_change.py": [
+      "backend/app/db/session.py"
+    ],
+    "backend/app/models/policy.py": [
+      "backend/app/db/session.py"
+    ],
+    "backend/app/models/policy_members.py": [
+      "backend/app/db/session.py"
+    ],
+    "backend/app/models/service.py": [
+      "backend/app/db/session.py"
+    ],
+    "backend/app/models/service_group.py": [
+      "backend/app/db/session.py"
+    ],
+    "backend/app/models/settings.py": [
+      "backend/app/db/session.py"
+    ],
+    "backend/app/models/sync_history.py": [
+      "backend/app/db/session.py"
+    ],
+    "backend/app/models/sync_schedule.py": [
+      "backend/app/db/session.py"
+    ],
+    "backend/app/models/user.py": [
+      "backend/app/db/session.py"
+    ],
+    "backend/app/schemas/__init__.py": [
+      "backend/app/schemas/analysis.py",
+      "backend/app/schemas/change_log.py",
+      "backend/app/schemas/device.py",
+      "backend/app/schemas/msg.py",
+      "backend/app/schemas/network_group.py",
+      "backend/app/schemas/network_object.py",
+      "backend/app/schemas/notification_log.py",
+      "backend/app/schemas/object_search.py",
+      "backend/app/schemas/pending_policy_change.py",
+      "backend/app/schemas/policy.py",
+      "backend/app/schemas/policy_builder.py",
+      "backend/app/schemas/service.py",
+      "backend/app/schemas/service_group.py",
+      "backend/app/schemas/settings.py",
+      "backend/app/schemas/sync_history.py",
+      "backend/app/schemas/sync_schedule.py"
+    ],
+    "backend/app/schemas/analysis.py": [
+      "backend/app/models/analysis.py",
+      "backend/app/schemas/policy.py"
+    ],
+    "backend/app/schemas/change_log.py": [],
+    "backend/app/schemas/device.py": [],
+    "backend/app/schemas/msg.py": [],
+    "backend/app/schemas/network_group.py": [],
+    "backend/app/schemas/network_object.py": [],
+    "backend/app/schemas/notification_log.py": [],
+    "backend/app/schemas/object_search.py": [
+      "backend/app/schemas/network_group.py",
+      "backend/app/schemas/network_object.py",
+      "backend/app/schemas/service.py",
+      "backend/app/schemas/service_group.py"
+    ],
+    "backend/app/schemas/pending_policy_change.py": [],
+    "backend/app/schemas/policy.py": [],
+    "backend/app/schemas/policy_builder.py": [],
+    "backend/app/schemas/service.py": [],
+    "backend/app/schemas/service_group.py": [],
+    "backend/app/schemas/settings.py": [],
+    "backend/app/schemas/sync_history.py": [],
+    "backend/app/schemas/sync_schedule.py": [],
+    "backend/app/schemas/user.py": [],
+    "backend/app/services/README.md": [],
+    "backend/app/services/__init__.py": [
+      "backend/app/services/device_service.py"
+    ],
+    "backend/app/services/analysis/README.md": [],
+    "backend/app/services/analysis/common.py": [
+      "backend/app/models/__init__.py"
+    ],
+    "backend/app/services/analysis/impact.py": [
+      "backend/app/core/executors.py",
+      "backend/app/models/__init__.py",
+      "backend/app/schemas/analysis.py",
+      "backend/app/services/analysis/common.py"
+    ],
+    "backend/app/services/analysis/over_permissive.py": [
+      "backend/app/__init__.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/models/__init__.py"
+    ],
+    "backend/app/services/analysis/policy_overlap.py": [],
+    "backend/app/services/analysis/redundancy.py": [
+      "backend/app/__init__.py",
+      "backend/app/core/executors.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/models/__init__.py",
+      "backend/app/models/analysis.py",
+      "backend/app/schemas/analysis.py"
+    ],
+    "backend/app/services/analysis/risky_ports.py": [
+      "backend/app/__init__.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/models/__init__.py",
+      "backend/app/services/analysis/risky_ports_models.py",
+      "backend/app/services/analysis/risky_ports_utils.py"
+    ],
+    "backend/app/services/analysis/risky_ports_models.py": [],
+    "backend/app/services/analysis/risky_ports_utils.py": [
+      "backend/app/services/normalize.py"
+    ],
+    "backend/app/services/analysis/tasks.py": [
+      "backend/app/__init__.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/db/session.py",
+      "backend/app/models/analysis.py",
+      "backend/app/schemas/analysis.py",
+      "backend/app/services/analysis/impact.py",
+      "backend/app/services/analysis/over_permissive.py",
+      "backend/app/services/analysis/redundancy.py",
+      "backend/app/services/analysis/risky_ports.py",
+      "backend/app/services/analysis/unreferenced_objects.py",
+      "backend/app/services/analysis/unused.py",
+      "backend/app/services/audit_log.py"
+    ],
+    "backend/app/services/analysis/unreferenced_objects.py": [
+      "backend/app/models/__init__.py"
+    ],
+    "backend/app/services/analysis/unused.py": [
+      "backend/app/models/__init__.py",
+      "backend/app/schemas/analysis.py"
+    ],
+    "backend/app/services/audit_log.py": [
+      "backend/app/models/notification_log.py"
+    ],
+    "backend/app/services/deletion_workflow/README.md": [],
+    "backend/app/services/deletion_workflow/__init__.py": [],
+    "backend/app/services/deletion_workflow/config_bridge.py": [
+      "backend/app/__init__.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/schemas/__init__.py"
+    ],
+    "backend/app/services/deletion_workflow/core/__init__.py": [],
+    "backend/app/services/deletion_workflow/core/config_manager.py": [],
+    "backend/app/services/deletion_workflow/core/input_resolver.py": [
+      "backend/app/models/deletion_workflow.py"
+    ],
+    "backend/app/services/deletion_workflow/core/pipeline.py": [
+      "backend/app/services/deletion_workflow/processors/application_aggregator.py",
+      "backend/app/services/deletion_workflow/processors/auto_renewal_checker.py",
+      "backend/app/services/deletion_workflow/processors/auto_renewal_exception_generator.py",
+      "backend/app/services/deletion_workflow/processors/bottom_latest_policy_validator.py",
+      "backend/app/services/deletion_workflow/processors/duplicate_exception_applier.py",
+      "backend/app/services/deletion_workflow/processors/duplicate_expired_cleaner.py",
+      "backend/app/services/deletion_workflow/processors/duplicate_policy_classifier.py",
+      "backend/app/services/deletion_workflow/processors/exception_handler.py",
+      "backend/app/services/deletion_workflow/processors/merge_hitcount.py",
+      "backend/app/services/deletion_workflow/processors/mis_id_adder.py",
+      "backend/app/services/deletion_workflow/processors/notification_classifier.py",
+      "backend/app/services/deletion_workflow/processors/policy_usage_processor.py",
+      "backend/app/services/deletion_workflow/processors/request_extractor.py",
+      "backend/app/services/deletion_workflow/processors/request_info_adder.py",
+      "backend/app/services/deletion_workflow/processors/request_parser.py"
+    ],
+    "backend/app/services/deletion_workflow/core/workspace_runner.py": [],
+    "backend/app/services/deletion_workflow/export_service.py": [
+      "backend/app/__init__.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/models/analysis.py",
+      "backend/app/models/network_group.py",
+      "backend/app/models/network_object.py",
+      "backend/app/models/policy.py",
+      "backend/app/models/service.py",
+      "backend/app/models/service_group.py"
+    ],
+    "backend/app/services/deletion_workflow/processors/__init__.py": [
+      "backend/app/services/deletion_workflow/processors/application_aggregator.py",
+      "backend/app/services/deletion_workflow/processors/auto_renewal_checker.py",
+      "backend/app/services/deletion_workflow/processors/duplicate_policy_classifier.py",
+      "backend/app/services/deletion_workflow/processors/exception_handler.py",
+      "backend/app/services/deletion_workflow/processors/merge_hitcount.py",
+      "backend/app/services/deletion_workflow/processors/mis_id_adder.py",
+      "backend/app/services/deletion_workflow/processors/notification_classifier.py",
+      "backend/app/services/deletion_workflow/processors/policy_usage_processor.py",
+      "backend/app/services/deletion_workflow/processors/request_extractor.py",
+      "backend/app/services/deletion_workflow/processors/request_info_adder.py",
+      "backend/app/services/deletion_workflow/processors/request_parser.py"
+    ],
+    "backend/app/services/deletion_workflow/processors/application_aggregator.py": [
+      "backend/app/services/deletion_workflow/processors/base_processor.py"
+    ],
+    "backend/app/services/deletion_workflow/processors/auto_renewal_checker.py": [
+      "backend/app/services/deletion_workflow/processors/base_processor.py"
+    ],
+    "backend/app/services/deletion_workflow/processors/auto_renewal_exception_generator.py": [
+      "backend/app/services/deletion_workflow/processors/base_processor.py"
+    ],
+    "backend/app/services/deletion_workflow/processors/base_processor.py": [
+      "backend/app/services/deletion_workflow/core/config_manager.py",
+      "backend/app/services/deletion_workflow/utils/file_manager.py"
+    ],
+    "backend/app/services/deletion_workflow/processors/bottom_latest_policy_validator.py": [
+      "backend/app/services/deletion_workflow/processors/base_processor.py"
+    ],
+    "backend/app/services/deletion_workflow/processors/duplicate_exception_applier.py": [
+      "backend/app/services/deletion_workflow/processors/base_processor.py"
+    ],
+    "backend/app/services/deletion_workflow/processors/duplicate_expired_cleaner.py": [
+      "backend/app/services/deletion_workflow/processors/base_processor.py"
+    ],
+    "backend/app/services/deletion_workflow/processors/duplicate_policy_classifier.py": [
+      "backend/app/services/deletion_workflow/processors/base_processor.py"
+    ],
+    "backend/app/services/deletion_workflow/processors/exception_handler.py": [
+      "backend/app/services/deletion_workflow/processors/base_processor.py"
+    ],
+    "backend/app/services/deletion_workflow/processors/merge_hitcount.py": [
+      "backend/app/services/deletion_workflow/processors/base_processor.py"
+    ],
+    "backend/app/services/deletion_workflow/processors/mis_id_adder.py": [
+      "backend/app/services/deletion_workflow/processors/base_processor.py"
+    ],
+    "backend/app/services/deletion_workflow/processors/notification_classifier.py": [
+      "backend/app/services/deletion_workflow/processors/base_processor.py"
+    ],
+    "backend/app/services/deletion_workflow/processors/policy_usage_processor.py": [
+      "backend/app/services/deletion_workflow/processors/base_processor.py"
+    ],
+    "backend/app/services/deletion_workflow/processors/request_extractor.py": [
+      "backend/app/services/deletion_workflow/processors/base_processor.py"
+    ],
+    "backend/app/services/deletion_workflow/processors/request_info_adder.py": [
+      "backend/app/services/deletion_workflow/processors/base_processor.py"
+    ],
+    "backend/app/services/deletion_workflow/processors/request_parser.py": [
+      "backend/app/services/deletion_workflow/processors/base_processor.py"
+    ],
+    "backend/app/services/deletion_workflow/task_meta.py": [],
+    "backend/app/services/deletion_workflow/utils/__init__.py": [],
+    "backend/app/services/deletion_workflow/utils/excel_manager.py": [],
+    "backend/app/services/deletion_workflow/utils/file_manager.py": [],
+    "backend/app/services/device_service.py": [
+      "backend/app/core/security.py",
+      "backend/app/models/device.py",
+      "backend/app/services/firewall/factory.py"
+    ],
+    "backend/app/services/export/__init__.py": [],
+    "backend/app/services/export/tasks.py": [
+      "backend/app/__init__.py",
+      "backend/app/core/config.py",
+      "backend/app/core/executors.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/db/session.py",
+      "backend/app/models/__init__.py",
+      "backend/app/services/sync/collector.py",
+      "backend/app/services/websocket_manager.py"
+    ],
+    "backend/app/services/firewall/README.md": [],
+    "backend/app/services/firewall/exceptions.py": [],
+    "backend/app/services/firewall/factory.py": [
+      "backend/app/services/firewall/exceptions.py",
+      "backend/app/services/firewall/interface.py",
+      "backend/app/services/firewall/vendors/mf2.py",
+      "backend/app/services/firewall/vendors/mock.py",
+      "backend/app/services/firewall/vendors/ngf.py",
+      "backend/app/services/firewall/vendors/paloalto.py"
+    ],
+    "backend/app/services/firewall/interface.py": [],
+    "backend/app/services/firewall/vendors/mf2.py": [
+      "backend/app/services/firewall/exceptions.py",
+      "backend/app/services/firewall/interface.py"
+    ],
+    "backend/app/services/firewall/vendors/mock.py": [
+      "backend/app/services/firewall/interface.py"
+    ],
+    "backend/app/services/firewall/vendors/ngf.py": [
+      "backend/app/services/firewall/exceptions.py",
+      "backend/app/services/firewall/interface.py"
+    ],
+    "backend/app/services/firewall/vendors/paloalto.py": [
+      "backend/app/services/firewall/exceptions.py",
+      "backend/app/services/firewall/interface.py"
+    ],
+    "backend/app/services/normalize.py": [],
+    "backend/app/services/policy_builder/__init__.py": [],
+    "backend/app/services/policy_builder/cli_generator.py": [
+      "backend/app/schemas/policy_builder.py"
+    ],
+    "backend/app/services/policy_builder/insertion_analyzer.py": [
+      "backend/app/__init__.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/schemas/policy_builder.py",
+      "backend/app/services/analysis/common.py",
+      "backend/app/services/policy_builder/virtual_policy.py"
+    ],
+    "backend/app/services/policy_builder/member_resolver.py": [
+      "backend/app/services/normalize.py"
+    ],
+    "backend/app/services/policy_builder/object_gap.py": [
+      "backend/app/__init__.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/schemas/policy_builder.py"
+    ],
+    "backend/app/services/policy_builder/virtual_policy.py": [
+      "backend/app/__init__.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/schemas/policy_builder.py",
+      "backend/app/services/policy_builder/member_resolver.py",
+      "backend/app/services/policy_indexer.py"
+    ],
+    "backend/app/services/policy_indexer.py": [
+      "backend/app/__init__.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/models/__init__.py",
+      "backend/app/services/policy_builder/member_resolver.py"
+    ],
+    "backend/app/services/scheduler.py": [
+      "backend/app/__init__.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/db/session.py",
+      "backend/app/services/sync/tasks.py"
+    ],
+    "backend/app/services/sync/README.md": [],
+    "backend/app/services/sync/__init__.py": [],
+    "backend/app/services/sync/collector.py": [
+      "backend/app/__init__.py",
+      "backend/app/core/security.py",
+      "backend/app/models/__init__.py",
+      "backend/app/services/firewall/factory.py",
+      "backend/app/services/firewall/interface.py"
+    ],
+    "backend/app/services/sync/tasks.py": [
+      "backend/app/__init__.py",
+      "backend/app/core/executors.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/db/session.py",
+      "backend/app/models/__init__.py",
+      "backend/app/models/analysis.py",
+      "backend/app/models/policy_members.py",
+      "backend/app/schemas/__init__.py",
+      "backend/app/services/audit_log.py",
+      "backend/app/services/policy_indexer.py",
+      "backend/app/services/sync/collector.py",
+      "backend/app/services/sync/transform.py"
+    ],
+    "backend/app/services/sync/transform.py": [
+      "backend/app/__init__.py",
+      "backend/app/schemas/__init__.py"
+    ],
+    "backend/app/services/websocket_manager.py": [],
+    "backend/app/static/redoc.standalone.js": [],
+    "backend/app/static/swagger-ui-bundle.js": [],
+    "backend/app/static/swagger-ui.css": [],
+    "backend/cleanup_duplicate_policy_exceptions.py": [
+      "backend/app/__init__.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/db/session.py",
+      "backend/app/schemas/__init__.py"
+    ],
+    "backend/cleanup_orphaned_redundancy_sets.py": [
+      "backend/app/db/session.py",
+      "backend/app/models/analysis.py",
+      "backend/app/models/policy.py"
+    ],
+    "backend/config/deletion_workflow_config.example.json": [],
+    "backend/create_admin.py": [],
+    "backend/debug_hit_dates.py": [
+      "backend/app/services/firewall/vendors/paloalto.py"
+    ],
+    "backend/debug_threshold.py": [
+      "backend/app/services/firewall/vendors/paloalto.py"
+    ],
+    "backend/migrate.py": [],
+    "backend/reindex_device.py": [
+      "backend/app/__init__.py",
+      "backend/app/crud/__init__.py",
+      "backend/app/db/session.py",
+      "backend/app/services/policy_indexer.py"
+    ],
+    "backend/requirements.txt": [],
+    "backend/scripts/find_duplicate_values.py": [
+      "backend/app/db/session.py",
+      "backend/app/models/__init__.py"
+    ],
+    "backend/scripts/find_unknown_broad_policies.py": [
+      "backend/app/db/session.py",
+      "backend/app/models/__init__.py",
+      "backend/app/services/deletion_workflow/config_bridge.py",
+      "backend/app/services/deletion_workflow/core/config_manager.py",
+      "backend/app/services/deletion_workflow/processors/request_parser.py"
+    ],
+    "backend/smoke_test.py": [
+      "backend/app/main.py"
+    ],
+    "deploy.bat": [],
+    "docs/ARCHITECTURE.md": [],
+    "docs/ARCHITECTURE_OPERATIONS.md": [],
+    "docs/DATABASE.md": [],
+    "docs/DESIGN.md": [],
+    "docs/DEVELOPMENT.md": [],
+    "docs/REFACTOR_CANDIDATES.md": [],
+    "docs/improvement/README.md": [],
+    "docs/improvement/deletion-workflow-auto-run.md": [],
+    "docs/improvement/phase1-critical-fixes.md": [],
+    "docs/improvement/phase2-backend-refactor.md": [],
+    "docs/improvement/phase3-frontend-performance.md": [],
+    "docs/improvement/phase4-frontend-ui.md": [],
+    "docs/방화벽_정책_삭제_워크플로우_Phase3_자동연장예외요청.md": [],
+    "docs/방화벽_정책_삭제_워크플로우_운영_매뉴얼.md": [],
+    "frontend/DESIGN_SYSTEM.md": [],
+    "frontend/README.md": [],
+    "frontend/components.json": [],
+    "frontend/eslint.config.js": [],
+    "frontend/index.html": [],
+    "frontend/package.json": [],
+    "frontend/postcss.config.js": [],
+    "frontend/src/App.css": [],
+    "frontend/src/App.tsx": [],
+    "frontend/src/api/analysis.ts": [
+      "frontend/src/api/client.ts"
+    ],
+    "frontend/src/api/auth.ts": [],
+    "frontend/src/api/client.ts": [],
+    "frontend/src/api/deletionWorkflow.ts": [
+      "frontend/src/api/client.ts"
+    ],
+    "frontend/src/api/devices.ts": [
+      "frontend/src/api/client.ts"
+    ],
+    "frontend/src/api/firewall.ts": [
+      "frontend/src/api/client.ts"
+    ],
+    "frontend/src/api/notifications.ts": [
+      "frontend/src/api/client.ts"
+    ],
+    "frontend/src/api/policyBuilder.ts": [
+      "frontend/src/api/client.ts"
+    ],
+    "frontend/src/api/queryKeys.ts": [],
+    "frontend/src/api/schedules.ts": [
+      "frontend/src/api/client.ts"
+    ],
+    "frontend/src/api/settings.ts": [
+      "frontend/src/api/client.ts"
+    ],
+    "frontend/src/api/users.ts": [
+      "frontend/src/api/client.ts"
+    ],
+    "frontend/src/components/layout/AppLayout.tsx": [
+      "frontend/src/components/layout/Navbar.tsx"
+    ],
+    "frontend/src/components/layout/Navbar.tsx": [],
+    "frontend/src/components/layout/ProtectedRoute.tsx": [],
+    "frontend/src/components/pages/AnalysisDetailPage.tsx": [],
+    "frontend/src/components/pages/AnalysisListPage.tsx": [],
+    "frontend/src/components/pages/DashboardPage.tsx": [],
+    "frontend/src/components/pages/DeletionWorkflowDetailPage.tsx": [
+      "frontend/src/components/pages/deletion-workflow/Task0Section.tsx",
+      "frontend/src/components/pages/deletion-workflow/TaskCard.tsx",
+      "frontend/src/components/pages/deletion-workflow/taskMeta.ts"
+    ],
+    "frontend/src/components/pages/DeletionWorkflowListPage.tsx": [],
+    "frontend/src/components/pages/DeletionWorkflowPage.tsx": [],
+    "frontend/src/components/pages/DevicesPage.tsx": [
+      "frontend/src/components/pages/devices/BulkGroupDialog.tsx",
+      "frontend/src/components/pages/devices/BulkOptionsDialog.tsx",
+      "frontend/src/components/pages/devices/DeviceDetailDialog.tsx",
+      "frontend/src/components/pages/devices/DeviceFormDialog.tsx",
+      "frontend/src/components/pages/devices/DirectExportDialog.tsx",
+      "frontend/src/components/pages/devices/deviceColumns.tsx"
+    ],
+    "frontend/src/components/pages/ImpactMovePreviewDialog.tsx": [],
+    "frontend/src/components/pages/LoginPage.tsx": [],
+    "frontend/src/components/pages/NotificationsPage.tsx": [],
+    "frontend/src/components/pages/ObjectsPage.tsx": [],
+    "frontend/src/components/pages/PoliciesPage.tsx": [],
+    "frontend/src/components/pages/PolicyDiffPage.tsx": [],
+    "frontend/src/components/pages/SchedulesPage.tsx": [],
+    "frontend/src/components/pages/SettingsPage.tsx": [
+      "frontend/src/components/pages/settings/AccountSettings.tsx",
+      "frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx",
+      "frontend/src/components/pages/settings/GeneralSettings.tsx",
+      "frontend/src/components/pages/settings/LogSettings.tsx",
+      "frontend/src/components/pages/settings/PolicyDefaultsSettings.tsx",
+      "frontend/src/components/pages/settings/RiskyPortsSettings.tsx"
+    ],
+    "frontend/src/components/pages/deletion-workflow/ExternalFileUpload.tsx": [],
+    "frontend/src/components/pages/deletion-workflow/Task0Section.tsx": [
+      "frontend/src/components/pages/deletion-workflow/taskMeta.ts"
+    ],
+    "frontend/src/components/pages/deletion-workflow/TaskCard.tsx": [
+      "frontend/src/components/pages/deletion-workflow/ExternalFileUpload.tsx",
+      "frontend/src/components/pages/deletion-workflow/taskMeta.ts"
+    ],
+    "frontend/src/components/pages/deletion-workflow/taskMeta.ts": [],
+    "frontend/src/components/pages/devices/BulkGroupDialog.tsx": [],
+    "frontend/src/components/pages/devices/BulkOptionsDialog.tsx": [],
+    "frontend/src/components/pages/devices/DeviceDetailDialog.tsx": [],
+    "frontend/src/components/pages/devices/DeviceFormDialog.tsx": [
+      "frontend/src/components/pages/devices/constants.ts"
+    ],
+    "frontend/src/components/pages/devices/DeviceGridCells.tsx": [],
+    "frontend/src/components/pages/devices/DirectExportDialog.tsx": [],
+    "frontend/src/components/pages/devices/constants.ts": [],
+    "frontend/src/components/pages/devices/deviceColumns.tsx": [
+      "frontend/src/components/pages/devices/DeviceGridCells.tsx",
+      "frontend/src/components/pages/devices/constants.ts"
+    ],
+    "frontend/src/components/pages/policy-builder/CreatePolicyModal.tsx": [],
+    "frontend/src/components/pages/policy-builder/EditActionMenu.tsx": [],
+    "frontend/src/components/pages/policy-builder/ModifyPolicyModal.tsx": [],
+    "frontend/src/components/pages/policy-builder/MoveExistingDialog.tsx": [],
+    "frontend/src/components/pages/policy-builder/MoveTargetPicker.tsx": [],
+    "frontend/src/components/pages/policy-builder/NewPolicyFormModal.tsx": [],
+    "frontend/src/components/pages/policy-builder/NewPolicyPasteInput.tsx": [],
+    "frontend/src/components/pages/policy-builder/ObjectGapPanel.tsx": [],
+    "frontend/src/components/pages/policy-builder/PlanResultPanel.tsx": [],
+    "frontend/src/components/pages/settings/AccountSettings.tsx": [],
+    "frontend/src/components/pages/settings/DeletionWorkflowSettings.tsx": [
+      "frontend/src/components/pages/settings/DuplicatePolicyTable.tsx",
+      "frontend/src/components/pages/settings/ExceptionTable.tsx"
+    ],
+    "frontend/src/components/pages/settings/DuplicatePolicyTable.tsx": [
+      "frontend/src/components/pages/settings/ExceptionTable.tsx"
+    ],
+    "frontend/src/components/pages/settings/ExceptionTable.tsx": [],
+    "frontend/src/components/pages/settings/GeneralSettings.tsx": [],
+    "frontend/src/components/pages/settings/LogSettings.tsx": [],
+    "frontend/src/components/pages/settings/PolicyDefaultsSettings.tsx": [],
+    "frontend/src/components/pages/settings/RiskyPortsSettings.tsx": [],
+    "frontend/src/components/shared/AgGridWrapper.tsx": [],
+    "frontend/src/components/shared/ConfirmDialog.tsx": [],
+    "frontend/src/components/shared/DeviceSelector.tsx": [],
+    "frontend/src/components/shared/EmptyState.tsx": [],
+    "frontend/src/components/shared/ErrorBoundary.tsx": [],
+    "frontend/src/components/shared/GroupedDeviceMultiSelect.tsx": [],
+    "frontend/src/components/shared/LoadingOverlay.tsx": [],
+    "frontend/src/components/shared/ObjectDetailModal.tsx": [
+      "frontend/src/components/shared/Skeleton.tsx"
+    ],
+    "frontend/src/components/shared/PolicyDetailModal.tsx": [
+      "frontend/src/components/shared/Skeleton.tsx"
+    ],
+    "frontend/src/components/shared/PolicyGridPicker.tsx": [],
+    "frontend/src/components/shared/PolicyHistoryModal.tsx": [],
+    "frontend/src/components/shared/PolicyMiniRow.tsx": [],
+    "frontend/src/components/shared/QueryBuilder.tsx": [
+      "frontend/src/components/shared/queryBuilderModel.ts"
+    ],
+    "frontend/src/components/shared/Skeleton.tsx": [],
+    "frontend/src/components/shared/Spinner.tsx": [],
+    "frontend/src/components/shared/StatusBadge.tsx": [],
+    "frontend/src/components/shared/queryBuilderModel.ts": [],
+    "frontend/src/components/ui/alert-dialog.tsx": [],
+    "frontend/src/components/ui/badge.tsx": [],
+    "frontend/src/components/ui/button-variants.ts": [],
+    "frontend/src/components/ui/button.tsx": [
+      "frontend/src/components/ui/button-variants.ts"
+    ],
+    "frontend/src/components/ui/card.tsx": [],
+    "frontend/src/components/ui/checkbox.tsx": [],
+    "frontend/src/components/ui/dialog.tsx": [],
+    "frontend/src/components/ui/input.tsx": [],
+    "frontend/src/components/ui/label.tsx": [],
+    "frontend/src/components/ui/progress.tsx": [],
+    "frontend/src/components/ui/select.tsx": [],
+    "frontend/src/components/ui/separator.tsx": [],
+    "frontend/src/components/ui/sheet.tsx": [],
+    "frontend/src/components/ui/table.tsx": [],
+    "frontend/src/components/ui/tabs.tsx": [],
+    "frontend/src/components/ui/textarea.tsx": [],
+    "frontend/src/components/ui/tooltip.tsx": [],
+    "frontend/src/hooks/useWebSocket.ts": [],
+    "frontend/src/index.css": [],
+    "frontend/src/lib/deviceCapacity.ts": [],
+    "frontend/src/lib/notify.ts": [],
+    "frontend/src/lib/policyBuilderParse.ts": [],
+    "frontend/src/lib/policyDiff.ts": [],
+    "frontend/src/lib/utils.ts": [],
+    "frontend/src/main.tsx": [
+      "frontend/src/App.tsx",
+      "frontend/src/index.css"
+    ],
+    "frontend/src/store/authStore.ts": [],
+    "frontend/src/store/deviceSearchStore.ts": [],
+    "frontend/src/store/deviceStore.ts": [],
+    "frontend/src/store/policySearchStore.ts": [],
+    "frontend/src/types/device.ts": [],
+    "frontend/src/types/object.ts": [],
+    "frontend/src/types/policy.ts": [],
+    "frontend/tailwind.config.js": [],
+    "frontend/tsconfig.app.json": [],
+    "frontend/tsconfig.json": [],
+    "frontend/tsconfig.node.json": [],
+    "frontend/vite.config.ts": [],
+    "run_prod.bat": [],
+    "scripts/duplicate_common_policy_finder.py": [],
+    "scripts/vf_common_policy_finder.py": []
+  }
+}
