@@ -128,9 +128,13 @@ export const getObjectCountHistory = async (
   return res.data
 }
 
-interface ExcelColumn { header: string; width: number }
-interface ExcelRow { values: (string | number | null)[]; rowBg: string | null; cellFontColors: (string | null)[] }
-export interface StyledExcelPayload { filename: string; columns: ExcelColumn[]; rows: ExcelRow[] }
+export interface ExcelColumn { header: string; width: number }
+export interface ExcelRow { values: (string | number | null)[]; rowBg: string | null; cellFontColors: (string | null)[] }
+export interface ExcelSheet { name: string; columns: ExcelColumn[]; rows: ExcelRow[] }
+/** 단일 시트는 columns/rows, 다중 시트는 sheets — 백엔드 /firewall/export/excel이 둘 다 처리한다. */
+export type StyledExcelPayload =
+  | { filename: string; columns: ExcelColumn[]; rows: ExcelRow[] }
+  | { filename: string; sheets: ExcelSheet[] }
 
 export const exportStyledToExcel = async (payload: StyledExcelPayload): Promise<void> => {
   await downloadBlobPost('/api/v1/firewall/export/excel', payload, `${payload.filename}.xlsx`)

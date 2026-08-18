@@ -19,16 +19,8 @@ def _hex(color: str) -> str:
     return color.lstrip("#").upper()
 
 
-def _build_styled_excel(data: dict) -> BytesIO:
-    """New structured format: {columns: [{header, width}], rows: [{values, rowBg, cellFontColors}]}"""
-    columns = data["columns"]
-    rows = data["rows"]
-
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "분석결과"
-
-    # Header
+def _write_sheet(ws, columns: list, rows: list) -> None:
+    """한 시트에 헤더 + 데이터 행을 채운다. _build_styled_excel/_build_multi_sheet_excel이 공유."""
     ws.append([col["header"] for col in columns])
     for cell in ws[1]:
         cell.fill = HEADER_FILL
@@ -36,11 +28,9 @@ def _build_styled_excel(data: dict) -> BytesIO:
         cell.alignment = HEADER_ALIGN
     ws.row_dimensions[1].height = 22
 
-    # Column widths
     for i, col in enumerate(columns):
         ws.column_dimensions[get_column_letter(i + 1)].width = col.get("width", 15)
 
-    # Data rows
     for row_data in rows:
         values = row_data.get("values", [])
         row_bg = row_data.get("rowBg")
@@ -59,6 +49,28 @@ def _build_styled_excel(data: dict) -> BytesIO:
             font_color = cell_colors[col_idx] if col_idx < len(cell_colors) else None
             if font_color:
                 cell.font = Font(color=_hex(font_color), bold=True)
+
+
+def _build_styled_excel(data: dict) -> BytesIO:
+    """New structured format: {columns: [{header, width}], rows: [{values, rowBg, cellFontColors}]}"""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "분석결과"
+    _write_sheet(ws, data["columns"], data["rows"])
+
+    output = BytesIO()
+    wb.save(output)
+    return output
+
+
+def _build_multi_sheet_excel(data: dict) -> BytesIO:
+    """다중 시트 포맷: {sheets: [{name, columns, rows}, ...]}"""
+    wb = Workbook()
+    wb.remove(wb.active)
+    for sheet in data["sheets"]:
+        # 엑셀 시트명은 31자 제한 + 일부 특수문자 금지라 안전하게 자른다.
+        ws = wb.create_sheet(title=sheet["name"][:31])
+        _write_sheet(ws, sheet["columns"], sheet["rows"])
 
     output = BytesIO()
     wb.save(output)
@@ -94,7 +106,9 @@ def _build_flat_excel(data: dict) -> BytesIO:
 async def export_to_excel(data: dict):
     try:
         filename = data.get("filename", "export")
-        if "columns" in data and "rows" in data:
+        if "sheets" in data:
+            output = _build_multi_sheet_excel(data)
+        elif "columns" in data and "rows" in data:
             output = _build_styled_excel(data)
         else:
             output = _build_flat_excel(data)
