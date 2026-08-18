@@ -18,9 +18,10 @@ from app.core.security import decrypt
 from app.models.device import Device
 from app.services.firewall.factory import FirewallCollectorFactory
 
-# 기존 sync 시점 diff(`firewall_query.get_policy_diff`)와 동일한 필드 세트를 비교한다 —
-# 두 diff 결과를 프론트의 같은 컴포넌트로 렌더링하므로 항목이 어긋나면 안 된다.
-DIFF_FIELDS = ["enable", "action", "source", "destination", "service", "description", "user", "application", "security_profile", "category"]
+# 기존 sync 시점 diff(`firewall_query.get_policy_diff`)와 동일한 필드 세트에 seq(순서)만 추가한다.
+# sync 쪽은 동기화마다 미세하게 흔들리는 순서를 변경으로 잡으면 노이즈가 커서 seq를 일부러 제외하지만,
+# Running vs Candidate는 사용자가 직접 만든 이동만 반영되므로 노이즈 없이 순서 변경을 그대로 보여줄 수 있다.
+DIFF_FIELDS = ["enable", "action", "source", "destination", "service", "description", "user", "application", "security_profile", "category", "seq"]
 
 
 class LivePolicyDiffError(Exception):

@@ -5,6 +5,7 @@ import { apiClient } from '@/api/client'
 import { queryKeys } from '@/api/queryKeys'
 import { DeviceSelectorSingle } from '@/components/shared/DeviceSelector'
 import { listDevices } from '@/api/devices'
+import { diffMultiValueField, isFieldDiffEmpty } from '@/lib/policyDiff'
 import { cn } from '@/lib/utils'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -78,7 +79,12 @@ const FIELD_LABELS: Record<string, string> = {
   enable: '활성화', action: '액션', source: '출발지', destination: '목적지',
   service: '서비스', description: '설명', user: '사용자',
   application: '애플리케이션', security_profile: '보안 프로파일', category: '카테고리',
+  seq: '순서',
 }
+
+// 콤마로 여러 값을 담는 필드만 "실제 바뀐 항목"(추가/삭제) 요약을 보여준다 — enable/action/seq 같은
+// 단일 값 필드는 이미 이전/이후 칸에 전체 값이 보이므로 별도 요약이 필요 없다.
+const LIST_FIELDS = new Set(['source', 'destination', 'service', 'user', 'application'])
 
 const SNAPSHOT_FIELDS = ['action', 'enable', 'source', 'destination', 'service', 'description', 'user', 'application', 'security_profile']
 
@@ -112,20 +118,33 @@ function FieldDiffTable({ changes }: { changes: FieldChange[] }) {
         <span className="flex items-center gap-1"><Minus className="w-2.5 h-2.5 text-red-400" />이전 값</span>
         <span className="flex items-center gap-1"><Plus className="w-2.5 h-2.5 text-emerald-500" />이후 값</span>
       </div>
-      {changes.map((fc, i) => (
-        <div
-          key={i}
-          className="grid grid-cols-[140px_1fr_1fr] gap-2 text-[12px] px-3 py-2 border-b border-ds-outline-variant/10 last:border-0"
-        >
-          <span className="font-medium text-ds-on-surface-variant">{FIELD_LABELS[fc.field] ?? fc.field}</span>
-          <div className="bg-red-50 rounded px-2 py-1 font-mono text-[11px] text-red-700 break-all">
-            {fc.before || <span className="italic text-ds-on-surface-variant/30">없음</span>}
+      {changes.map((fc, i) => {
+        const tokenDiff = LIST_FIELDS.has(fc.field) ? diffMultiValueField(fc.before ?? '', fc.after ?? '') : null
+        return (
+          <div key={i} className="px-3 py-2 border-b border-ds-outline-variant/10 last:border-0 space-y-1.5">
+            <div className="grid grid-cols-[140px_1fr_1fr] gap-2 text-[12px]">
+              <span className="font-medium text-ds-on-surface-variant">{FIELD_LABELS[fc.field] ?? fc.field}</span>
+              <div className="bg-red-50 rounded px-2 py-1 font-mono text-[11px] text-red-700 break-all">
+                {fc.before || <span className="italic text-ds-on-surface-variant/30">없음</span>}
+              </div>
+              <div className="bg-emerald-50 rounded px-2 py-1 font-mono text-[11px] text-emerald-700 break-all">
+                {fc.after || <span className="italic text-ds-on-surface-variant/30">없음</span>}
+              </div>
+            </div>
+            {/* 콤마로 구분된 값 전체가 아니라, 실제로 추가/삭제된 항목만 따로 뽑아 보여준다 */}
+            {tokenDiff && !isFieldDiffEmpty(tokenDiff) && (
+              <div className="pl-[148px] flex flex-wrap gap-1">
+                {tokenDiff.added.map((t) => (
+                  <span key={`+${t}`} className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-100 text-emerald-700">+{t}</span>
+                ))}
+                {tokenDiff.removed.map((t) => (
+                  <span key={`-${t}`} className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-red-100 text-red-700">-{t}</span>
+                ))}
+              </div>
+            )}
           </div>
-          <div className="bg-emerald-50 rounded px-2 py-1 font-mono text-[11px] text-emerald-700 break-all">
-            {fc.after || <span className="italic text-ds-on-surface-variant/30">없음</span>}
-          </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
