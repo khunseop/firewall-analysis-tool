@@ -57,8 +57,32 @@ function CommandSection({ title, commands }: { title: string; commands: Generate
 }
 
 export function PlanResultPanel({ plan }: { plan: BulkPolicyPlanResponse }) {
+  // 오브젝트 생성 → 정책 생성/수정/삭제 → 이동 순서는 CLI를 그대로 순서대로 붙여넣어도
+  // 참조 오류 없이 동작하도록 맞춘 순서다 — "전체 복사"도 같은 순서를 따른다.
+  const allSections = [
+    plan.object_commands, plan.policy_commands, plan.modify_commands, plan.delete_commands, plan.move_commands,
+  ]
+  const allSuccessCommands = allSections.flat().filter((c) => c.command)
+  const totalErrors = allSections.flat().filter((c) => c.error).length
+
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <p className="text-[12px] text-ds-on-surface-variant">
+          총 {allSuccessCommands.length}건의 명령어
+          {totalErrors > 0 && <span className="text-ds-error font-semibold"> · 오류 {totalErrors}건</span>}
+        </p>
+        {allSuccessCommands.length > 0 && (
+          <button
+            type="button"
+            onClick={() => copyText(allSuccessCommands.map((c) => c.command).join('\n'))}
+            className="text-[12px] font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-md text-ds-on-tertiary btn-primary-gradient"
+          >
+            <Copy className="w-3.5 h-3.5" /> 전체 명령어 한번에 복사
+          </button>
+        )}
+      </div>
+
       {plan.warnings.length > 0 && (
         <div className="space-y-1">
           {plan.warnings.map((w, i) => (
@@ -73,7 +97,7 @@ export function PlanResultPanel({ plan }: { plan: BulkPolicyPlanResponse }) {
       {plan.conflicts.length > 0 && (
         <div className="space-y-1.5">
           <p className="text-[12px] font-semibold text-ds-error">삽입 충돌 ({plan.conflicts.length}건)</p>
-          <div className="space-y-1">
+          <div className="space-y-1 max-h-[220px] overflow-y-auto">
             {plan.conflicts.map((c, i) => (
               <div key={i} className="text-[12px] bg-ds-error/10 text-ds-error rounded-md px-2.5 py-1.5">
                 [{c.conflict_type === 'blocking' ? '차단' : '가려짐'}] {c.reason}

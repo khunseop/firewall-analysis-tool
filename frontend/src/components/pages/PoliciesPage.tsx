@@ -1012,11 +1012,15 @@ export function PoliciesPage() {
 
       {planResult && (
         <Dialog open onOpenChange={(open) => !open && setPlanResult(null)}>
-          <DialogContent className="max-w-4xl bg-ds-surface-container-lowest max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
+          {/* 삽입 충돌/명령어가 많아지면 금방 내용이 넘쳐 헤더까지 스크롤해야 하는 문제가 있었다 —
+              높이를 뷰포트 기준으로 고정하고 헤더는 그대로 둔 채 본문만 스크롤되게 한다. */}
+          <DialogContent className="max-w-6xl w-[92vw] h-[88vh] bg-ds-surface-container-lowest flex flex-col">
+            <DialogHeader className="shrink-0">
               <DialogTitle className="font-headline text-ds-on-surface">생성된 CLI</DialogTitle>
             </DialogHeader>
-            <PlanResultPanel plan={planResult} />
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+              <PlanResultPanel plan={planResult} />
+            </div>
           </DialogContent>
         </Dialog>
       )}
