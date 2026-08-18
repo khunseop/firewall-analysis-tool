@@ -1,10 +1,12 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, ChevronRight, Plus, Minus, Edit2, AlertCircle, Search, X, Clock, Zap } from 'lucide-react'
+import { toast } from 'sonner'
+import { ChevronDown, ChevronRight, Plus, Minus, Edit2, AlertCircle, Search, X, Clock, Zap, FileDown } from 'lucide-react'
 import { apiClient } from '@/api/client'
 import { queryKeys } from '@/api/queryKeys'
 import { DeviceSelectorSingle } from '@/components/shared/DeviceSelector'
 import { listDevices } from '@/api/devices'
+import { exportStyledToExcel, type StyledExcelPayload } from '@/api/firewall'
 import { diffMultiValueField, isFieldDiffEmpty } from '@/lib/policyDiff'
 import { cn } from '@/lib/utils'
 
@@ -362,6 +364,55 @@ function SyncPointSelector({
   )
 }
 
+// ─── Excel 내보내기 ─────────────────────────────────────────────────────────────
+
+const ACTION_LABEL_KO: Record<DiffEntry['action'], string> = { created: '추가', updated: '수정', deleted: '삭제' }
+const ROW_BG_BY_ACTION: Record<DiffEntry['action'], string> = { created: '#E8F5E9', updated: '#FFF8E1', deleted: '#FFEBEE' }
+
+/**
+ * 화면에 보이는 diff(현재 필터/검색 적용된 결과)를 필드 단위로 펼쳐서 엑셀 payload로 만든다.
+ * 정책당 field_changes 개수가 제각각이라 "정책 1행"이 아니라 "정책+필드 1행"으로 펼친다 —
+ * 필터/정렬이 쉬워지고, 추가/삭제 정책도 SNAPSHOT_FIELDS 기준으로 같은 모양의 행이 나온다.
+ */
+function buildDiffExcelPayload(changes: DiffEntry[], filename: string): StyledExcelPayload {
+  const columns = [
+    { header: '상태', width: 10 },
+    { header: '정책명', width: 32 },
+    { header: 'VSYS', width: 12 },
+    { header: '필드', width: 16 },
+    { header: '이전 값', width: 45 },
+    { header: '이후 값', width: 45 },
+  ]
+
+  const rows: StyledExcelPayload['rows'] = []
+  for (const entry of changes) {
+    const rowBg = ROW_BG_BY_ACTION[entry.action]
+    const base = [ACTION_LABEL_KO[entry.action], entry.rule_name, entry.vsys ?? '']
+
+    if (entry.action === 'updated') {
+      for (const fc of entry.field_changes) {
+        rows.push({ values: [...base, FIELD_LABELS[fc.field] ?? fc.field, fc.before ?? '', fc.after ?? ''], rowBg, cellFontColors: [] })
+      }
+      continue
+    }
+
+    // created/deleted는 field_changes가 없으므로 SNAPSHOT_FIELDS를 펼쳐 화면 상세보기와 동일한 필드 세트를 보여준다.
+    const snapshot = (entry.action === 'created' ? entry.after : entry.before) ?? {}
+    for (const field of SNAPSHOT_FIELDS) {
+      const v = snapshot[field]
+      if (v == null || v === '') continue
+      const value = String(v)
+      rows.push({
+        values: [...base, FIELD_LABELS[field] ?? field, entry.action === 'deleted' ? value : '', entry.action === 'created' ? value : ''],
+        rowBg,
+        cellFontColors: [],
+      })
+    }
+  }
+
+  return { filename, columns, rows }
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 type FilterTab = 'all' | 'created' | 'updated' | 'deleted'
@@ -435,6 +486,16 @@ export function PolicyDiffPage() {
     setSelectedDeviceId(id)
     setFromSyncId(null)
     setToSyncId(null)
+  }
+
+  // 화면에 보이는 필터/검색 결과 그대로 저장한다 — 필터를 걸어놓고 저장했는데 전체가 나오면 헷갈린다.
+  const handleExport = () => {
+    if (!diffResult || filteredChanges.length === 0) return
+    const deviceName = devices.find((d) => d.id === selectedDeviceId)?.name ?? `device${selectedDeviceId}`
+    const fromLabel = diffResult.from_sync.id === LIVE_RUNNING_ID ? 'running' : fmt(diffResult.from_sync.sync_at).replace(/[.: ]/g, '')
+    const toLabel = diffResult.to_sync.id === LIVE_CANDIDATE_ID ? 'candidate' : fmt(diffResult.to_sync.sync_at).replace(/[.: ]/g, '')
+    const filename = `정책비교_${deviceName}_${fromLabel}_${toLabel}`
+    exportStyledToExcel(buildDiffExcelPayload(filteredChanges, filename)).catch((e: Error) => toast.error(e.message))
   }
 
   return (
@@ -587,6 +648,14 @@ export function PolicyDiffPage() {
                     {label}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={handleExport}
+                  disabled={filteredChanges.length === 0}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold bg-ds-surface-container text-ds-on-surface-variant hover:bg-ds-surface-container-high transition-colors disabled:opacity-40"
+                >
+                  <FileDown className="w-3.5 h-3.5" /> 엑셀로 저장
+                </button>
                 <input
                   type="text"
                   placeholder="정책명 검색…"
