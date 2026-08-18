@@ -7,10 +7,16 @@ from app.db.session import get_db
 from sqlalchemy.future import select
 from sqlalchemy import desc
 from app.services.policy_indexer import rebuild_policy_indices
+from app.services.live_policy_diff import get_live_running_candidate_diff, LivePolicyDiffError
 from app.models.change_log import ChangeLog
 from app.models.sync_history import SyncHistory
 
 router = APIRouter()
+
+# /policy-diff에서 실제 sync_history.id 대신 "지금 장비에 붙어 실시간으로 받아온 running/candidate"를
+# 뜻하는 sentinel 값. 방향을 from=running, to=candidate로 고정해 모호함을 없앤다.
+LIVE_RUNNING_SENTINEL = -1
+LIVE_CANDIDATE_SENTINEL = -2
 
 
 @router.post("/parse-index/{device_id}", response_model=schemas.Msg)
@@ -523,7 +529,21 @@ async def get_policy_diff(
     """
     두 동기화 시점 사이의 정책 변경 Diff를 반환합니다.
     from_sync_id → to_sync_id 기간 동안 추가/수정/삭제된 정책을 필드 레벨까지 상세히 제공합니다.
+
+    from_sync_id/to_sync_id가 각각 LIVE_RUNNING_SENTINEL/LIVE_CANDIDATE_SENTINEL이면
+    sync 이력이 아니라 장비에 직접 붙어 실시간 running/candidate를 비교한다(Palo Alto 전용).
     """
+    if from_sync_id == LIVE_RUNNING_SENTINEL or to_sync_id == LIVE_CANDIDATE_SENTINEL:
+        if from_sync_id != LIVE_RUNNING_SENTINEL or to_sync_id != LIVE_CANDIDATE_SENTINEL:
+            raise HTTPException(status_code=400, detail="실시간 비교는 from=Running, to=Candidate 조합으로만 가능합니다.")
+        device = await crud.device.get_device(db, device_id=device_id)
+        if not device:
+            raise HTTPException(status_code=404, detail="Device not found")
+        try:
+            return await get_live_running_candidate_diff(device)
+        except LivePolicyDiffError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
     from_result = await db.execute(select(SyncHistory).where(SyncHistory.id == from_sync_id))
     from_sync = from_result.scalar_one_or_none()
     to_result = await db.execute(select(SyncHistory).where(SyncHistory.id == to_sync_id))

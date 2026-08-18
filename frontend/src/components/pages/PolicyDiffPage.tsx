@@ -1,18 +1,27 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, ChevronRight, Plus, Minus, Edit2, AlertCircle, Search, X, Clock } from 'lucide-react'
+import { ChevronDown, ChevronRight, Plus, Minus, Edit2, AlertCircle, Search, X, Clock, Zap } from 'lucide-react'
 import { apiClient } from '@/api/client'
 import { queryKeys } from '@/api/queryKeys'
 import { DeviceSelectorSingle } from '@/components/shared/DeviceSelector'
+import { listDevices } from '@/api/devices'
 import { cn } from '@/lib/utils'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
+
+// 실제 DB sync 시점이 아니라 "지금 장비에 직접 붙어 받아온 running/candidate"를 뜻하는
+// sentinel id. 백엔드 /firewall/policy-diff와 값이 일치해야 한다.
+const LIVE_RUNNING_ID = -1
+const LIVE_CANDIDATE_ID = -2
 
 interface SyncPoint {
   id: number
   device_id: number
   sync_at: string
   total_policies: number | null
+  /** true면 sync_at/total_policies 대신 liveLabel을 표시하는 실시간(running/candidate) 항목 */
+  isLive?: boolean
+  liveLabel?: string
 }
 
 interface FieldChange {
@@ -59,6 +68,10 @@ function fmt(iso: string) {
     year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', second: '2-digit',
   })
+}
+
+function pointLabel(p: SyncPoint) {
+  return p.isLive ? p.liveLabel! : fmt(p.sync_at)
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -238,7 +251,7 @@ function SyncPointSelector({
   const q = search.trim().toLowerCase()
   const filtered = useMemo(() => {
     if (!q) return points
-    return points.filter((p) => fmt(p.sync_at).toLowerCase().includes(q))
+    return points.filter((p) => pointLabel(p).toLowerCase().includes(q))
   }, [points, q])
 
   const selected = points.find((p) => p.id === value)
@@ -260,10 +273,12 @@ function SyncPointSelector({
             open ? 'border-ds-tertiary' : 'border-ds-outline-variant/30 hover:border-ds-outline-variant/50'
           )}
         >
-          <Clock className="w-3.5 h-3.5 shrink-0 text-ds-on-surface-variant/50" />
+          {selected?.isLive
+            ? <Zap className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+            : <Clock className="w-3.5 h-3.5 shrink-0 text-ds-on-surface-variant/50" />}
           <span className={cn('flex-1 truncate', !selected && 'text-ds-on-surface-variant/50')}>
             {selected
-              ? `${fmt(selected.sync_at)}${selected.total_policies != null ? `  (${selected.total_policies.toLocaleString()}개)` : ''}`
+              ? `${pointLabel(selected)}${!selected.isLive && selected.total_policies != null ? `  (${selected.total_policies.toLocaleString()}개)` : ''}`
               : '-- 시점 선택 --'}
           </span>
           <ChevronDown className={cn('w-3.5 h-3.5 shrink-0 opacity-60 transition-transform', open && 'rotate-180')} />
@@ -312,8 +327,9 @@ function SyncPointSelector({
                     )}>
                       {p.id === value && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
                     </span>
-                    <span className="truncate font-mono leading-tight">{fmt(p.sync_at)}</span>
-                    {p.total_policies != null && (
+                    {p.isLive && <Zap className="w-3 h-3 shrink-0 text-amber-500" />}
+                    <span className={cn('truncate leading-tight', p.isLive ? 'font-semibold' : 'font-mono')}>{pointLabel(p)}</span>
+                    {!p.isLive && p.total_policies != null && (
                       <span className="ml-auto text-[10px] text-ds-on-surface-variant/50 shrink-0">{p.total_policies.toLocaleString()}개</span>
                     )}
                   </button>
@@ -343,6 +359,36 @@ export function PolicyDiffPage() {
     queryFn: () => fetchSyncHistory(selectedDeviceId!),
     enabled: selectedDeviceId != null,
   })
+
+  // DeviceSelectorSingle이 이미 같은 쿼리 키로 장비 목록을 받아와 있으므로 캐시를 그대로 재사용한다.
+  const { data: devices = [] } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices })
+  const isPaloAlto = devices.find((d) => d.id === selectedDeviceId)?.vendor?.toLowerCase() === 'paloalto'
+
+  // Palo Alto 장비에서는 From에 "Running(실시간)", To에 "Candidate(실시간)"를 한 항목씩 추가한다 —
+  // 과거 sync 시점과는 짝지을 수 없으므로(스냅샷 미보관) 방향을 고정해 한쪽에만 넣는다.
+  const fromPoints: SyncPoint[] = useMemo(() => (
+    isPaloAlto
+      ? [{ id: LIVE_RUNNING_ID, device_id: selectedDeviceId!, sync_at: '', total_policies: null, isLive: true, liveLabel: 'Running (실시간)' }, ...syncHistory]
+      : syncHistory
+  ), [isPaloAlto, selectedDeviceId, syncHistory])
+  const toPoints: SyncPoint[] = useMemo(() => (
+    isPaloAlto
+      ? [{ id: LIVE_CANDIDATE_ID, device_id: selectedDeviceId!, sync_at: '', total_policies: null, isLive: true, liveLabel: 'Candidate (실시간)' }, ...syncHistory]
+      : syncHistory
+  ), [isPaloAlto, selectedDeviceId, syncHistory])
+
+  // Running/Candidate는 서로만 짝지을 수 있다 — 한쪽을 실시간으로 고르면 반대쪽을 자동으로 맞추고,
+  // 반대쪽에서 다른(과거 sync) 값을 고르면 실시간 선택은 무효가 되어 다시 골라야 한다.
+  const handleFromChange = (id: number | null) => {
+    setFromSyncId(id)
+    if (id === LIVE_RUNNING_ID) setToSyncId(LIVE_CANDIDATE_ID)
+    else if (toSyncId === LIVE_CANDIDATE_ID) setToSyncId(null)
+  }
+  const handleToChange = (id: number | null) => {
+    setToSyncId(id)
+    if (id === LIVE_CANDIDATE_ID) setFromSyncId(LIVE_RUNNING_ID)
+    else if (fromSyncId === LIVE_RUNNING_ID) setFromSyncId(null)
+  }
 
   const canCompare = selectedDeviceId != null && fromSyncId != null && toSyncId != null && fromSyncId !== toSyncId
 
@@ -377,7 +423,10 @@ export function PolicyDiffPage() {
       {/* Page header */}
       <div className="shrink-0">
         <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">정책 변경 비교 (Diff)</h1>
-        <p className="text-[13px] text-ds-on-surface-variant/70 mt-0.5">두 동기화 시점을 선택하여 정책 변경사항을 필드 레벨까지 상세히 비교합니다.</p>
+        <p className="text-[13px] text-ds-on-surface-variant/70 mt-0.5">
+          두 동기화 시점을 선택하여 정책 변경사항을 필드 레벨까지 상세히 비교합니다.
+          {isPaloAlto && ' Palo Alto 장비는 From/To에서 Running/Candidate를 골라 실시간으로도 비교할 수 있습니다.'}
+        </p>
       </div>
 
       {/* 카드: 비교 설정 */}
@@ -396,7 +445,7 @@ export function PolicyDiffPage() {
           {selectedDeviceId != null && (
             historyLoading ? (
               <p className="text-[13px] text-ds-on-surface-variant/60">동기화 이력 로딩 중...</p>
-            ) : syncHistory.length === 0 ? (
+            ) : syncHistory.length === 0 && !isPaloAlto ? (
               <div className="flex items-center gap-2 text-[13px] text-ds-on-surface-variant/70">
                 <AlertCircle className="w-4 h-4 shrink-0 text-amber-500" />
                 이 장비에 대한 동기화 이력이 없습니다. 동기화를 먼저 실행해주세요.
@@ -405,9 +454,9 @@ export function PolicyDiffPage() {
               <div className="flex flex-wrap gap-5 items-end">
                 <SyncPointSelector
                   label="비교 시작 (From)"
-                  points={syncHistory}
+                  points={fromPoints}
                   value={fromSyncId}
-                  onChange={setFromSyncId}
+                  onChange={handleFromChange}
                   disabledId={toSyncId}
                 />
 
@@ -415,9 +464,9 @@ export function PolicyDiffPage() {
 
                 <SyncPointSelector
                   label="비교 종료 (To)"
-                  points={syncHistory}
+                  points={toPoints}
                   value={toSyncId}
-                  onChange={setToSyncId}
+                  onChange={handleToChange}
                   disabledId={fromSyncId}
                 />
               </div>
@@ -427,7 +476,7 @@ export function PolicyDiffPage() {
       </div>
 
       {/* 실행 버튼 */}
-      {selectedDeviceId != null && syncHistory.length > 0 && (
+      {selectedDeviceId != null && (syncHistory.length > 0 || isPaloAlto) && (
         <div className="flex items-center gap-4">
           <button
             onClick={() => canCompare && refetch()}
@@ -455,10 +504,15 @@ export function PolicyDiffPage() {
         <>
           {/* 기간 정보 */}
           <div className="card rounded-xl px-5 py-3 flex flex-wrap items-center gap-2 text-[13px]">
+            {diffResult.from_sync.id === LIVE_RUNNING_ID && <Zap className="w-3.5 h-3.5 shrink-0 text-amber-500" />}
             <span className="w-1.5 h-1.5 rounded-full bg-ds-tertiary shrink-0" />
-            <span className="font-semibold text-ds-on-surface">{fmt(diffResult.from_sync.sync_at)}</span>
+            <span className="font-semibold text-ds-on-surface">
+              {diffResult.from_sync.id === LIVE_RUNNING_ID ? 'Running (실시간)' : fmt(diffResult.from_sync.sync_at)}
+            </span>
             <span className="text-ds-on-surface-variant/40">→</span>
-            <span className="font-semibold text-ds-on-surface">{fmt(diffResult.to_sync.sync_at)}</span>
+            <span className="font-semibold text-ds-on-surface">
+              {diffResult.to_sync.id === LIVE_CANDIDATE_ID ? 'Candidate (실시간)' : fmt(diffResult.to_sync.sync_at)}
+            </span>
             {diffResult.from_sync.total_policies != null && diffResult.to_sync.total_policies != null && (
               <span className="ml-2 text-[12px] text-ds-on-surface-variant/60">
                 정책 수: {diffResult.from_sync.total_policies.toLocaleString()} → {diffResult.to_sync.total_policies.toLocaleString()}
