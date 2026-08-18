@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { getPolicies } from '@/api/firewall'
 import { queryKeys } from '@/api/queryKeys'
-import { addPendingChange } from '@/api/policyBuilder'
+import { addPendingChange, newPolicyRowDefaults, type NewObjectSpec, type NewPolicyRow } from '@/api/policyBuilder'
+import { ObjectGapPanel } from '@/components/pages/policy-builder/ObjectGapPanel'
 
 const SAMPLE_HEADER = '정책명\t필드\t동작\t값'
 
@@ -61,6 +62,7 @@ export function ModifyPolicyModal({ deviceId, onClose, onApplied }: {
 }) {
   const [text, setText] = useState('')
   const [rows, setRows] = useState<ParsedRow[]>([])
+  const [newObjects, setNewObjects] = useState<NewObjectSpec[]>([])
 
   const { data: policies = [] } = useQuery({
     queryKey: queryKeys.policiesRaw(deviceId),
@@ -73,9 +75,25 @@ export function ModifyPolicyModal({ deviceId, onClose, onApplied }: {
   const validRows = rows.filter((r) => !r.error)
   const errorRows = rows.filter((r) => r.error)
 
+  // 오브젝트 갭 검사는 "추가"되는 source/destination/service 값에 대해서만 의미가 있다
+  // (삭제되는 값이나 from/to존·애플리케이션·사용자는 주소/서비스 오브젝트가 아니다).
+  const gapRows: NewPolicyRow[] = useMemo(() => (
+    validRows
+      .filter((r) => r.action === '추가' && ['source', 'destination', 'service'].includes(FIELD_LABEL_TO_BACKEND[r.fieldLabel]))
+      .map((r, i) => ({
+        ...newPolicyRowDefaults(1000 + i),
+        rule_name: `modify-${r.policyId}-${i}`,
+        [FIELD_LABEL_TO_BACKEND[r.fieldLabel]]: r.values.join(','),
+      }))
+  ), [validRows])
+
   const mutation = useMutation({
     mutationFn: async () => {
       const timestamp = Date.now()
+      await Promise.all(newObjects.map((obj) => addPendingChange(deviceId, {
+        change_type: 'new_object', client_key: `obj-${obj.object_kind}-${obj.name}-${timestamp}`,
+        payload: obj as unknown as Record<string, unknown>,
+      })))
       await Promise.all(validRows.map((row) => {
         const backendField = BACKEND_FIELD_OVERRIDE[FIELD_LABEL_TO_BACKEND[row.fieldLabel]] ?? FIELD_LABEL_TO_BACKEND[row.fieldLabel]
         const diff = row.action === '추가' ? { added: row.values, removed: [] } : { added: [], removed: row.values }
@@ -158,6 +176,7 @@ export function ModifyPolicyModal({ deviceId, onClose, onApplied }: {
           {errorRows.length > 0 && (
             <p className="text-[12px] text-ds-error">오류가 있는 {errorRows.length}건은 제외하고 나머지만 적용됩니다.</p>
           )}
+          <ObjectGapPanel deviceId={deviceId} rows={gapRows} newObjects={newObjects} onChange={setNewObjects} />
         </div>
 
         <DialogFooter>
