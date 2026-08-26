@@ -155,24 +155,35 @@ class ConfigManager:
             return False
         return True
 
-    def is_excepted(self, category: str, value: str) -> bool:
+    @staticmethod
+    def _exact(a: str, b: str) -> bool:
+        """공백을 제외한 완전일치 비교."""
+        return bool(a) and str(a).strip() == str(b).strip()
+
+    def find_exception(self, category: str, value: str) -> Optional[Dict[str, Any]]:
         """
-        특정 항목이 예외 대상인지 확인합니다 (기간 체크 포함).
+        특정 항목이 예외 대상인지 확인하고, 매치된 항목(dict)을 반환합니다.
+        매치되지 않으면 None.
 
         Args:
             category: 'request_ids', 'policy_rules', 또는 'static_list'
             value: 체크할 ID / 규칙명 / 패턴 매칭 대상
 
-        Returns:
-            bool: 예외 대상 여부
+        매칭 방식:
+            - request_ids: 부분 포함 (id in value)
+            - policy_rules: 정규식 검색 (re.search)
+            - static_list: 완전일치 (정책명 == value, 공백 제외) — "고정 예외 목록 (정책명 완전일치)"
         """
         exceptions = self.get(f'exceptions.{category}', [])
 
         for item in exceptions:
             # static_list 구 형식 (문자열) 호환
             if isinstance(item, str):
-                if item and item in value:
-                    return True
+                if category == 'static_list':
+                    if self._exact(item, value):
+                        return {'name': item}
+                elif item and item in value:
+                    return {'name': item}
                 continue
 
             match = False
@@ -186,25 +197,44 @@ class ConfigManager:
                 except re.error:
                     logger.warning(f"잘못된 정규표현식 패턴: {pattern}")
             elif category == 'static_list':
-                name = item.get('name', '')
-                match = bool(name) and str(name) in value
+                match = self._exact(item.get('name', ''), value)
 
             if match and self._is_in_period(item):
-                return True
+                return item
 
         # static_list를 별도 카테고리로 호출하지 않은 경우 (하위 호환)
         if category != 'static_list':
             static_list = self.get('exceptions.static_list', [])
             for item in static_list:
                 if isinstance(item, str):
-                    if item and item in value:
-                        return True
+                    if self._exact(item, value):
+                        return {'name': item}
                 elif isinstance(item, dict):
-                    name = item.get('name', '')
-                    if name and str(name) in value and self._is_in_period(item):
-                        return True
+                    if self._exact(item.get('name', ''), value) and self._is_in_period(item):
+                        return item
 
-        return False
+        return None
+
+    def is_excepted(self, category: str, value: str) -> bool:
+        """
+        특정 항목이 예외 대상인지 확인합니다 (기간 체크 포함).
+
+        Args:
+            category: 'request_ids', 'policy_rules', 또는 'static_list'
+            value: 체크할 ID / 규칙명 / 패턴 매칭 대상
+
+        Returns:
+            bool: 예외 대상 여부
+        """
+        return self.find_exception(category, value) is not None
+
+    def get_exception_reason(self, category: str, value: str) -> Optional[str]:
+        """매치된 예외 항목의 '사유'를 반환합니다. 매치되지 않거나 사유가 없으면 None."""
+        item = self.find_exception(category, value)
+        if not item:
+            return None
+        reason = item.get('reason')
+        return str(reason).strip() if reason else None
 
     def all(self) -> Dict[str, Any]:
         return self.config_data

@@ -29,6 +29,12 @@ class ExceptionHandler(BaseProcessor):
         except Exception:
             return '만료'
 
+    def _labeled(self, base_label: str, category: str, value) -> str:
+        """기본 라벨에 config에 등록된 '사유'를 덧붙여 상세화합니다.
+        사유가 없으면 기본 라벨만 반환."""
+        reason = self.config.get_exception_reason(category, str(value))
+        return f"{base_label} ({reason})" if reason else base_label
+
     def _reorder_cols(self, df: pd.DataFrame) -> pd.DataFrame:
         """예외/신청이력/만료여부/미사용여부 컬럼 순서를 조정합니다."""
         cols = list(df.columns)
@@ -63,10 +69,12 @@ class ExceptionHandler(BaseProcessor):
             df['REQUEST_ID'] = df['REQUEST_ID'].fillna('')
 
             rule_mask = df.apply(lambda r: self.config.is_excepted('policy_rules', str(r['Rule Name'])), axis=1)
-            df.loc[rule_mask, '예외'] = '예외정책'
+            df.loc[rule_mask, '예외'] = df.loc[rule_mask, 'Rule Name'].apply(
+                lambda v: self._labeled('예외정책', 'policy_rules', v))
 
             req_mask = df.apply(lambda r: self.config.is_excepted('request_ids', str(r['REQUEST_ID'])), axis=1)
-            df.loc[req_mask, '예외'] = '예외신청정책'
+            df.loc[req_mask, '예외'] = df.loc[req_mask, 'REQUEST_ID'].apply(
+                lambda v: self._labeled('예외신청정책', 'request_ids', v))
 
             # 신규정책 (Rule Name 날짜 추출, 이미 예외가 없는 경우만)
             df['날짜'] = df['Rule Name'].str.extract(r'(\d{8})', expand=False)
@@ -127,10 +135,12 @@ class ExceptionHandler(BaseProcessor):
 
             name_col = 'Rule Name' if 'Rule Name' in df.columns else 'Description'
             rule_mask = df.apply(lambda r: self.config.is_excepted('policy_rules', str(r[name_col])), axis=1)
-            df.loc[rule_mask, '예외'] = '예외정책'
+            df.loc[rule_mask, '예외'] = df.loc[rule_mask, name_col].apply(
+                lambda v: self._labeled('예외정책', 'policy_rules', v))
 
             req_mask = df.apply(lambda r: self.config.is_excepted('request_ids', str(r['REQUEST_ID'])), axis=1)
-            df.loc[req_mask, '예외'] = '예외신청정책'
+            df.loc[req_mask, '예외'] = df.loc[req_mask, 'REQUEST_ID'].apply(
+                lambda v: self._labeled('예외신청정책', 'request_ids', v))
 
             df.loc[df['REQUEST_STATUS'] == 99, '예외'] = '자동연장정책'
 
