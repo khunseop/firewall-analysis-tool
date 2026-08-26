@@ -272,7 +272,25 @@ async def sync_data_task(
                     # SQLite는 PRAGMA foreign_keys=ON이 아니라서 ondelete="CASCADE"가 실제로
                     # 동작하지 않는다. 명시적으로 지우지 않으면 중복분석 결과가 삭제된
                     # policy_id를 참조하는 고아 행으로 남아 이후 export에서 조용히 누락된다.
-                    await db.execute(delete(RedundancyPolicySet).where(RedundancyPolicySet.policy_id.in_(ids_to_delete)))
+                    # 단, policy_id만 지우면 같은 set_number의 짝(상위/하위 정책)이 남아
+                    # 파트너 없는 singleton 세트가 되어 "항상 유지"로 오분류되므로,
+                    # 삭제된 정책이 속한 세트(task_id, set_number) 전체를 함께 지운다.
+                    orphan_set_keys = (await db.execute(
+                        select(RedundancyPolicySet.task_id, RedundancyPolicySet.set_number)
+                        .where(RedundancyPolicySet.policy_id.in_(ids_to_delete))
+                        .distinct()
+                    )).all()
+                    if orphan_set_keys:
+                        sets_by_task: Dict[int, set] = {}
+                        for task_id_, set_number_ in orphan_set_keys:
+                            sets_by_task.setdefault(task_id_, set()).add(set_number_)
+                        for task_id_, set_numbers in sets_by_task.items():
+                            await db.execute(
+                                delete(RedundancyPolicySet).where(
+                                    RedundancyPolicySet.task_id == task_id_,
+                                    RedundancyPolicySet.set_number.in_(set_numbers),
+                                )
+                            )
                 await db.execute(delete(model).where(model.id.in_(ids_to_delete)))
 
             # 4-2. 대량 생성 (Bulk Insert)

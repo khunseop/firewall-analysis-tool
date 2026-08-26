@@ -6,7 +6,7 @@ import asyncio
 import datetime
 import io
 import logging
-from typing import Tuple
+from typing import Dict, Tuple
 
 import pandas as pd
 from sqlalchemy import select
@@ -144,9 +144,19 @@ async def build_redundancy_export(db: AsyncSession, device_id: int, device) -> T
     # 내보내면 Upper/Lower 중 한쪽만 남는 것처럼 보이므로, 고아 행이 하나라도 있는
     # set_number는 세트 전체를 제외한다.
     orphaned_set_numbers = {rps.set_number for rps in redundancy_sets if rps.policy is None}
+
+    # 방어 로직: 중복 세트는 항상 2건 이상(상위 1 + 하위 1 이상)이어야 정상이다.
+    # (과거 버그로 짝이 깨진 채 1건만 남은 세트가 DB에 이미 존재할 수 있으므로,
+    # policy_id 자체는 살아있어도 세트 크기가 1이면 함께 제외한다.)
+    set_sizes: Dict[int, int] = {}
+    for rps in redundancy_sets:
+        set_sizes[rps.set_number] = set_sizes.get(rps.set_number, 0) + 1
+    singleton_set_numbers = {sn for sn, size in set_sizes.items() if size < 2}
+    orphaned_set_numbers |= singleton_set_numbers
+
     if orphaned_set_numbers:
         logger.warning(
-            f"Task {task.id}: 정책이 삭제/재생성되어 고아가 된 중복 세트 {len(orphaned_set_numbers)}건 "
+            f"Task {task.id}: 짝이 깨진 중복 세트 {len(orphaned_set_numbers)}건 "
             f"제외 (set_number={sorted(orphaned_set_numbers)})"
         )
 
