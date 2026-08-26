@@ -547,7 +547,8 @@ async def _run_task3_from_db(project_id, project, device, db, dwcrud):
     from app.services.deletion_workflow.core.input_resolver import get_downstream_tasks
 
     try:
-        content, filename = await build_redundancy_export(db, project.device_id, device)
+        content, filename = await build_redundancy_export(
+            db, project.device_id, device, reference_date=project.reference_date)
     except ExportDataError as e:
         raise HTTPException(status_code=404, detail=str(e))
 

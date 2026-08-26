@@ -6,7 +6,7 @@ import asyncio
 import datetime
 import io
 import logging
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 import pandas as pd
 from sqlalchemy import select
@@ -114,10 +114,15 @@ async def build_device_export(
     return content, filename
 
 
-async def build_redundancy_export(db: AsyncSession, device_id: int, device) -> Tuple[bytes, str]:
+async def build_redundancy_export(
+    db: AsyncSession, device_id: int, device, reference_date: Optional[datetime.date] = None,
+) -> Tuple[bytes, str]:
     """FAT DB의 최신 중복 분석 결과를 fpat 호환 xlsx로 변환합니다.
 
-    반환: (xlsx bytes, 파일명). 완료된 분석 결과가 없으면 ExportDataError.
+    - **reference_date**: 프로젝트 기준일(없으면 오늘). 조회된 분석 결과의 완료일이
+      이 날짜와 다르면(=당일 분석이 아니면) 오래된 데이터를 그대로 쓰지 않도록 차단한다.
+
+    반환: (xlsx bytes, 파일명). 완료된 분석 결과가 없거나 최신이 아니면 ExportDataError.
     """
     result = await db.execute(
         select(AnalysisTask)
@@ -133,6 +138,16 @@ async def build_redundancy_export(db: AsyncSession, device_id: int, device) -> T
     if not task:
         raise ExportDataError(
             "FAT DB에 완료된 중복 분석 결과가 없습니다. 분석 → 중복 분석을 먼저 실행하세요."
+        )
+
+    required_date = reference_date or datetime.date.today()
+    completed_date = task.completed_at.date() if task.completed_at else None
+    if completed_date != required_date:
+        raise ExportDataError(
+            f"중복 분석 결과가 최신이 아닙니다 (마지막 분석 완료일: "
+            f"{completed_date.isoformat() if completed_date else '알 수 없음'}, "
+            f"기준일: {required_date.isoformat()}). "
+            f"Analysis → 중복 분석을 다시 실행한 뒤 재시도하세요."
         )
 
     redundancy_sets = await crud.analysis.get_redundancy_policy_sets_by_task(db=db, task_id=task.id)
