@@ -23,7 +23,8 @@ if exist "scp_config.bat" (
     set /p DOWNLOAD_CONFIRM="중계 서버에서 fat.zip을 새로 받아오시겠습니까? (Y/N, 기본 N): "
     if /i "!DOWNLOAD_CONFIRM!"=="Y" (
         echo        다운로드 중... ^(!RELAY_USER!@!RELAY_HOST!:!RELAY_PATH!^)
-        scp -P !RELAY_PORT! -i "!SSH_KEY_PATH!" "!RELAY_USER!@!RELAY_HOST!:!RELAY_PATH!" "fat.zip"
+        echo        ^(중계 서버 비밀번호를 입력하세요^)
+        scp -P !RELAY_PORT! "!RELAY_USER!@!RELAY_HOST!:!RELAY_PATH!" "fat.zip"
         if errorlevel 1 (
             echo [오류] fat.zip 다운로드에 실패했습니다.
             goto :fail

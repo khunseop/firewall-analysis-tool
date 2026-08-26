@@ -95,7 +95,8 @@ if exist "scp_config.bat" (
     set /p UPLOAD_CONFIRM="중계 서버로 fat.zip을 업로드하시겠습니까? (Y/N): "
     if /i "!UPLOAD_CONFIRM!"=="Y" (
         echo        업로드 중... ^(!RELAY_USER!@!RELAY_HOST!:!RELAY_PATH!^)
-        scp -P !RELAY_PORT! -i "!SSH_KEY_PATH!" "fat.zip" "!RELAY_USER!@!RELAY_HOST!:!RELAY_PATH!"
+        echo        ^(중계 서버 비밀번호를 입력하세요^)
+        scp -P !RELAY_PORT! "fat.zip" "!RELAY_USER!@!RELAY_HOST!:!RELAY_PATH!"
         if errorlevel 1 (
             echo [오류] fat.zip 업로드에 실패했습니다.
             goto :fail

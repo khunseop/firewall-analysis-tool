@@ -6,10 +6,12 @@ REM  사용법:
 REM    1. 이 파일을 "scp_config.bat"으로 복사
 REM    2. 아래 값을 실제 중계 서버 정보로 채우기
 REM    3. scp_config.bat은 .gitignore에 등록되어 있어 커밋되지 않음
+REM    4. SSH 키를 쓰지 않고 비밀번호 인증을 사용하므로, scp 실행 시
+REM       콘솔에서 비밀번호를 직접 입력하게 됨 (별도 키 파일 불필요)
 REM ============================================
 
 set RELAY_HOST=relay.example.com
 set RELAY_PORT=22
 set RELAY_USER=youruser
-set RELAY_PATH=/path/on/relay/fat.zip
-set SSH_KEY_PATH=C:\path\to\id_rsa
+REM RELAY_PATH는 절대경로/상대경로 모두 가능 (상대경로는 원격 계정의 홈 디렉터리 기준)
+set RELAY_PATH=fat.zip
