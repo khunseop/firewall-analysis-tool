@@ -456,7 +456,7 @@ async def run_project_task(
     try:
         # ── Task 3: FAT DB 중복분석 → project file 자동 저장 ──────────────────
         if task_id == 3:
-            return await _run_task3_from_db(project_id, project.device_id, device, db, dwcrud)
+            return await _run_task3_from_db(project_id, project, device, db, dwcrud)
 
         if task_id not in TASK_META:
             raise HTTPException(status_code=400, detail=f"유효하지 않은 태스크 번호: {task_id}")
@@ -530,6 +530,11 @@ async def run_project_task(
         if downstream:
             await dwcrud.clear_output_files(db, project_id, task_ids=downstream)
 
+        # 완료된 프로젝트에서 중간 태스크를 재실행하면 결과가 갱신되므로
+        # 완료 상태를 해제해 다시 완료 처리(결과 저장)할 수 있게 한다.
+        if project.status == "completed":
+            await dwcrud.update_project_status(db, project, "running")
+
         await db.commit()
         return {"ok": True, "task_id": effective_task_id, "outputs": saved}
     finally:
@@ -537,12 +542,12 @@ async def run_project_task(
         await db.commit()
 
 
-async def _run_task3_from_db(project_id, device_id, device, db, dwcrud):
+async def _run_task3_from_db(project_id, project, device, db, dwcrud):
     """Task 3 (중복정책분석): FAT DB 중복분석 결과를 Excel로 변환하여 project file 저장."""
     from app.services.deletion_workflow.core.input_resolver import get_downstream_tasks
 
     try:
-        content, filename = await build_redundancy_export(db, device_id, device)
+        content, filename = await build_redundancy_export(db, project.device_id, device)
     except ExportDataError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -552,6 +557,11 @@ async def _run_task3_from_db(project_id, device_id, device, db, dwcrud):
     downstream = get_downstream_tasks(3)
     if downstream:
         await dwcrud.clear_output_files(db, project_id, task_ids=downstream)
+
+    # 완료된 프로젝트에서 중간 태스크를 재실행하면 결과가 갱신되므로
+    # 완료 상태를 해제해 다시 완료 처리(결과 저장)할 수 있게 한다.
+    if project.status == "completed":
+        await dwcrud.update_project_status(db, project, "running")
 
     await db.commit()
     return {"ok": True, "task_id": 3, "outputs": [{"slot": "output_0", "filename": filename}]}
