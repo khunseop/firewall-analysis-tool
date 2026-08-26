@@ -90,6 +90,23 @@ del /q "fat.bundle"
 echo        완료.
 
 echo.
+if exist "scp_config.bat" (
+    call scp_config.bat
+    set /p UPLOAD_CONFIRM="중계 서버로 fat.zip을 업로드하시겠습니까? (Y/N): "
+    if /i "!UPLOAD_CONFIRM!"=="Y" (
+        echo        업로드 중... ^(!RELAY_USER!@!RELAY_HOST!:!RELAY_PATH!^)
+        scp -P !RELAY_PORT! -i "!SSH_KEY_PATH!" "fat.zip" "!RELAY_USER!@!RELAY_HOST!:!RELAY_PATH!"
+        if errorlevel 1 (
+            echo [오류] fat.zip 업로드에 실패했습니다.
+            goto :fail
+        )
+        echo        완료.
+    )
+) else (
+    echo        ^(참고^) scp_config.bat이 없어 중계 서버 업로드를 건너뜁니다. scp_config.bat.example을 복사해서 사용하세요.
+)
+
+echo.
 echo ============================================
 echo  배포 준비 완료.
 echo  fat.zip을 운영망으로 옮긴 뒤

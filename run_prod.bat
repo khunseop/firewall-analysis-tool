@@ -17,12 +17,29 @@ if errorlevel 1 (
     goto :fail
 )
 
+echo.
+if exist "scp_config.bat" (
+    call scp_config.bat
+    set /p DOWNLOAD_CONFIRM="중계 서버에서 fat.zip을 새로 받아오시겠습니까? (Y/N, 기본 N): "
+    if /i "!DOWNLOAD_CONFIRM!"=="Y" (
+        echo        다운로드 중... ^(!RELAY_USER!@!RELAY_HOST!:!RELAY_PATH!^)
+        scp -P !RELAY_PORT! -i "!SSH_KEY_PATH!" "!RELAY_USER!@!RELAY_HOST!:!RELAY_PATH!" "fat.zip"
+        if errorlevel 1 (
+            echo [오류] fat.zip 다운로드에 실패했습니다.
+            goto :fail
+        )
+        echo        완료.
+    )
+) else (
+    echo [알림] scp_config.bat이 없어 중계 서버 다운로드를 건너뜁니다. scp_config.bat.example을 복사해서 사용하세요.
+)
+
 if not exist "fat.zip" (
     echo [알림] fat.zip이 없어 업데이트 없이 서버만 실행합니다.
     goto :run_server
 )
 
-echo [1/4] 로컬 변경 사항 확인 중...
+echo [1/5] 로컬 변경 사항 확인 중...
 set DIRTY=
 for /f "delims=" %%i in ('git status --porcelain') do set DIRTY=1
 if defined DIRTY (
@@ -38,7 +55,7 @@ if defined DIRTY (
 )
 
 echo.
-echo [2/4] fat.zip 압축 해제 중...
+echo [2/5] fat.zip 압축 해제 중...
 if exist "_fat_extract" (
     rmdir /s /q "_fat_extract"
 )
@@ -59,7 +76,7 @@ if not exist "_fat_extract\dist" (
 echo        완료.
 
 echo.
-echo [3/4] fat.bundle로부터 업데이트 반영 중...
+echo [3/5] fat.bundle로부터 업데이트 반영 중...
 for /f "delims=" %%b in ('git rev-parse --abbrev-ref HEAD') do set CURRENT_BRANCH=%%b
 git pull "%~dp0_fat_extract\fat.bundle" %CURRENT_BRANCH%
 if errorlevel 1 (
@@ -79,7 +96,16 @@ echo        완료.
 
 :run_server
 echo.
-echo [4/4] 서버 실행 중...
+echo [4/5] DB 마이그레이션 적용 중 (python backend/migrate.py)...
+python backend\migrate.py
+if errorlevel 1 (
+    echo [오류] DB 마이그레이션에 실패했습니다. 서버를 실행하지 않습니다.
+    goto :fail
+)
+echo        완료.
+
+echo.
+echo [5/5] 서버 실행 중...
 echo   uvicorn app.main:app --app-dir backend
 echo ============================================
 uvicorn app.main:app --app-dir backend

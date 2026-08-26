@@ -223,3 +223,4 @@ backend/fat.db.bak*
 fat.bundle
 dist.zip
 fat.zip
+scp_config.bat
