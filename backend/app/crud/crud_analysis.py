@@ -39,10 +39,10 @@ async def get_running_analysis_task(db: AsyncSession, device_id: Optional[int] =
     return result.scalars().first()
 
 async def get_running_analysis_task_by_project(db: AsyncSession, project_id: int) -> Optional[AnalysisTask]:
-    """특정 deletion_workflow 프로젝트에서 진행 중인(IN_PROGRESS) 파이프라인 태스크를 조회합니다."""
+    """특정 analysis_project에서 진행 중인(IN_PROGRESS) 파이프라인 태스크를 조회합니다."""
     stmt = select(AnalysisTask).filter(
         AnalysisTask.task_status == AnalysisTaskStatus.IN_PROGRESS,
-        AnalysisTask.deletion_workflow_project_id == project_id,
+        AnalysisTask.analysis_project_id == project_id,
     )
     result = await db.execute(stmt)
     return result.scalars().first()
@@ -119,17 +119,28 @@ async def get_analysis_result_by_task_id(db: AsyncSession, *, task_id: int) -> O
     result = await db.execute(select(AnalysisResult).filter(AnalysisResult.task_id == task_id))
     return result.scalars().first()
 
+# 프로젝트형 분석 모듈(예: deletion_workflow)의 task_type 목록.
+# list_analysis_tasks_paginated()가 명시적 타입 필터 없이 조회될 때(퀵 분석 이력 목록)
+# 이 타입들의 실행 행(파이프라인 단계별로 여러 개 쌓임)을 자동으로 제외한다 —
+# 이들은 프로젝트 단위로 별도 조회(analysis_projects 엔드포인트)된다.
+PROJECT_MODULE_TASK_TYPES = {"deletion_workflow"}
+
+
 async def list_analysis_tasks_paginated(
     db: AsyncSession, *,
     device_id: Optional[int] = None,
     task_type: Optional[str] = None,
     task_status: Optional[str] = None,
     search: Optional[str] = None,
-    deletion_workflow_project_id: Optional[int] = None,
+    analysis_project_id: Optional[int] = None,
     page: int = 1,
     page_size: int = 20,
 ) -> Tuple[List[AnalysisTask], int]:
-    """분석 실행(task) 이력을 게시판 형태로 검색·페이지네이션 조회합니다."""
+    """분석 실행(task) 이력을 게시판 형태로 검색·페이지네이션 조회합니다.
+
+    task_type이 명시되지 않고 analysis_project_id도 없으면(=퀵 분석 이력 목록 조회)
+    PROJECT_MODULE_TASK_TYPES에 속한 실행은 자동으로 제외한다.
+    """
     stmt = select(AnalysisTask).options(selectinload(AnalysisTask.device))
     count_stmt = select(func.count()).select_from(AnalysisTask)
 
@@ -142,10 +153,12 @@ async def list_analysis_tasks_paginated(
         conditions.append(AnalysisTask.device_id == device_id)
     if task_type:
         conditions.append(AnalysisTask.task_type == task_type)
+    elif analysis_project_id is None:
+        conditions.append(AnalysisTask.task_type.notin_(PROJECT_MODULE_TASK_TYPES))
     if task_status:
         conditions.append(AnalysisTask.task_status == task_status)
-    if deletion_workflow_project_id is not None:
-        conditions.append(AnalysisTask.deletion_workflow_project_id == deletion_workflow_project_id)
+    if analysis_project_id is not None:
+        conditions.append(AnalysisTask.analysis_project_id == analysis_project_id)
     if search:
         conditions.append(Device.name.ilike(f"%{search}%"))
 
