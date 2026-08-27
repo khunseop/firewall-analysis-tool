@@ -446,7 +446,7 @@ export default function DeletionWorkflowDetailPage() {
       {/* 헤더 */}
       <div className="flex items-center gap-4 px-6 py-4 border-b border-ds-outline-variant/30 shrink-0">
         <button
-          onClick={() => navigate('/deletion-workflow')}
+          onClick={() => navigate('/analysis/projects/deletion_workflow')}
           className="flex items-center gap-1 text-sm text-ds-on-surface-variant hover:text-ds-on-surface"
         >
           <ArrowLeft className="w-4 h-4" /> 목록으로
