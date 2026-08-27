@@ -21,7 +21,7 @@ const SettingsPage = lazy(() => import('@/components/pages/SettingsPage').then((
 const NotificationsPage = lazy(() => import('@/components/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
 const PolicyDiffPage = lazy(() => import('@/components/pages/PolicyDiffPage').then((m) => ({ default: m.PolicyDiffPage })))
 const DeletionWorkflowPage = lazy(() => import('@/components/pages/DeletionWorkflowPage').then((m) => ({ default: m.DeletionWorkflowPage })))
-const DeletionWorkflowListPage = lazy(() => import('@/components/pages/DeletionWorkflowListPage'))
+const ProjectListPage = lazy(() => import('@/components/pages/ProjectListPage'))
 const DeletionWorkflowDetailPage = lazy(() => import('@/components/pages/DeletionWorkflowDetailPage'))
 
 const queryClient = new QueryClient({
@@ -32,6 +32,11 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+function DeletionWorkflowRedirect() {
+  const { id } = useParams<{ id: string }>()
+  return <Navigate to={`/analysis/projects/deletion_workflow/${id}`} replace />
+}
 
 function PageFallback() {
   return (
@@ -64,9 +69,11 @@ export default function App() {
                 <Route path="schedules" element={<SchedulesPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
-                <Route path="deletion-workflow" element={<DeletionWorkflowListPage />} />
-                <Route path="deletion-workflow/:id" element={<DeletionWorkflowDetailPage />} />
+                <Route path="analysis/projects/:moduleType" element={<ProjectListPage />} />
+                <Route path="analysis/projects/deletion_workflow/:id" element={<DeletionWorkflowDetailPage />} />
                 <Route path="deletion-workflow/legacy" element={<DeletionWorkflowPage />} />
+                <Route path="deletion-workflow" element={<Navigate to="/analysis/projects/deletion_workflow" replace />} />
+                <Route path="deletion-workflow/:id" element={<DeletionWorkflowRedirect />} />
               </Route>
             </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
