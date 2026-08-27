@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -11,24 +11,10 @@ import { exportStyledToExcel } from '@/api/firewall'
 import type { StyledExcelPayload } from '@/api/firewall'
 import { saveBlob } from '@/api/client'
 import { ImpactMovePreviewDialog } from '@/components/pages/ImpactMovePreviewDialog'
-import { formatNumber, formatRelativeTime, formatDate } from '@/lib/utils'
+import { formatRelativeTime, formatDate } from '@/lib/utils'
 import { queryKeys } from '@/api/queryKeys'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
-
-const ANALYSIS_TYPE_LABELS: Record<string, string> = {
-  redundancy: '중복 정책 분석',
-  unused: '미사용 정책 분석',
-  impact: '정책 이동 영향 분석',
-  unreferenced_objects: '미참조 오브젝트 분석',
-  risky_ports: '위험 포트 분석',
-  over_permissive: '과허용 정책 분석',
-}
-
-const MOVE_FEASIBILITY_LABELS: Record<string, { label: string; style: { color: string; fontWeight: string } }> = {
-  full:    { label: '가능',    style: { color: '#1f7a4d', fontWeight: '600' } },
-  partial: { label: '부분 가능', style: { color: '#b26b00', fontWeight: '600' } },
-  blocked: { label: '불가',    style: { color: '#9f403d', fontWeight: '600' } },
-}
+import { getQuickModule } from './analysis-modules'
 
 const STATUS_LABELS: Record<string, { label: string; dot: string; text: string }> = {
   pending:     { label: '대기중', dot: 'bg-ds-outline',                text: 'text-ds-on-surface-variant' },
@@ -38,134 +24,6 @@ const STATUS_LABELS: Record<string, { label: string; dot: string; text: string }
 }
 
 const resultRowId = (p: { data: Record<string, unknown> }) => String(p.data.id ?? p.data.policy_id ?? JSON.stringify(p.data))
-
-// Policy fields accessed from nested policy sub-object (all analyzers wrap policy data under "policy" key)
-const pv = (key: string) => (p: { data?: Record<string, unknown> }) => (p.data?.policy as Record<string, unknown> | undefined)?.[key] ?? p.data?.[key]
-
-function makePolicyCols(onRuleNameClick?: (name: string) => void): ColDef[] {
-  return [
-    { headerName: '순번',        filter: 'agNumberColumnFilter', width: 70,  valueGetter: pv('seq') },
-    {
-      headerName: '정책명', filter: 'agTextColumnFilter', width: 160, valueGetter: pv('rule_name'),
-      ...(onRuleNameClick && {
-        cellRenderer: (p: { value: string }) => {
-          if (!p.value) return null
-          return React.createElement('button', {
-            className: 'text-ds-primary underline-offset-2 hover:underline text-left w-full truncate',
-            onClick: () => onRuleNameClick(p.value),
-          }, p.value)
-        },
-      }),
-    },
-    { headerName: '액션',        filter: 'agTextColumnFilter',   width: 80,  valueGetter: pv('action') },
-    { headerName: '활성',        width: 70,  valueGetter: pv('enable'), valueFormatter: (p) => (p.value ? '활성' : '비활성') },
-    { headerName: '출발지',      filter: 'agTextColumnFilter',   width: 200, valueGetter: pv('source') },
-    { headerName: '목적지',      filter: 'agTextColumnFilter',   width: 200, valueGetter: pv('destination') },
-    { headerName: '서비스',      filter: 'agTextColumnFilter',   width: 160, valueGetter: pv('service') },
-    { headerName: '사용자',      filter: 'agTextColumnFilter',   width: 100, valueGetter: pv('user') },
-    { headerName: '보안 프로파일', filter: 'agTextColumnFilter', width: 130, valueGetter: pv('security_profile') },
-    { headerName: '카테고리',    filter: 'agTextColumnFilter',   width: 100, valueGetter: pv('category') },
-    { headerName: '설명',        filter: 'agTextColumnFilter',   width: 150, valueGetter: pv('description') },
-    { headerName: '마지막 사용일', filter: 'agTextColumnFilter', width: 130, valueGetter: pv('last_hit_date') },
-    { headerName: 'VSYS',        filter: 'agTextColumnFilter',   width: 80,  valueGetter: pv('vsys') },
-  ]
-}
-
-function getColumnDefs(
-  analysisType: string,
-  onRuleNameClick?: (name: string) => void,
-  onPreviewClick?: (row: Record<string, unknown>) => void,
-): ColDef[] {
-  if (analysisType === 'redundancy') {
-    return [
-      { field: 'set_number', headerName: '중복번호', filter: 'agNumberColumnFilter', pinned: 'left', width: 100, valueFormatter: (p) => formatNumber(p.value) },
-      {
-        field: 'type', headerName: '구분', filter: 'agTextColumnFilter', pinned: 'left', width: 100,
-        valueFormatter: (p) => p.value === 'UPPER' ? '상위 정책' : p.value === 'LOWER' ? '하위 정책' : p.value ?? '',
-        cellStyle: (p) => {
-          if (p.value === 'UPPER') return { color: '#005bc4', fontWeight: '500' }
-          if (p.value === 'LOWER') return { color: '#b26b00', fontWeight: '500' }
-          return null
-        },
-      },
-      ...makePolicyCols(onRuleNameClick),
-    ]
-  }
-  if (analysisType === 'unused') {
-    return [
-      { field: 'reason', headerName: '미사용 사유', filter: 'agTextColumnFilter', pinned: 'left', width: 150 },
-      { field: 'days_unused', headerName: '미사용 일수', filter: 'agNumberColumnFilter', width: 120, valueFormatter: (p) => p.value ? `${p.value}일` : '-' },
-      ...makePolicyCols(onRuleNameClick),
-    ]
-  }
-  if (analysisType === 'unreferenced_objects') {
-    return [
-      { field: 'object_name', headerName: '객체명', filter: 'agTextColumnFilter', pinned: 'left', width: 200 },
-      {
-        field: 'object_type', headerName: '객체 유형', filter: 'agTextColumnFilter', width: 150,
-        valueFormatter: (p) => {
-          const map: Record<string, string> = { network_object: '네트워크 객체', network_group: '네트워크 그룹', service: '서비스 객체', service_group: '서비스 그룹' }
-          return map[p.value as string] ?? p.value
-        },
-      },
-    ]
-  }
-  if (analysisType === 'risky_ports') {
-    return [
-      {
-        headerName: '위험 포트', filter: 'agTextColumnFilter', width: 200,
-        cellStyle: { color: '#9f403d', fontWeight: '500' },
-        valueGetter: (p) => {
-          const ports = p.data?.removed_risky_ports
-          if (Array.isArray(ports)) return ports.map((r: Record<string, unknown>) => r.definition ?? String(r)).join(', ')
-          return p.data?.risky_port_def ?? ''
-        },
-      },
-      { headerName: '서비스', filter: 'agTextColumnFilter', width: 160, valueGetter: (p) => p.data?.policy?.service ?? '' },
-      ...makePolicyCols(onRuleNameClick),
-    ]
-  }
-  if (analysisType === 'over_permissive') {
-    return [
-      { field: 'source_range_size', headerName: '출발지 범위', filter: 'agNumberColumnFilter', width: 130, valueFormatter: (p) => formatNumber(p.value) },
-      { field: 'destination_range_size', headerName: '목적지 범위', filter: 'agNumberColumnFilter', width: 130, valueFormatter: (p) => formatNumber(p.value) },
-      { field: 'service_range_size', headerName: '서비스 범위', filter: 'agNumberColumnFilter', width: 130, valueFormatter: (p) => formatNumber(p.value) },
-      ...makePolicyCols(onRuleNameClick),
-    ]
-  }
-  if (analysisType === 'impact') {
-    return [
-      {
-        field: 'impact_type', headerName: '영향 유형', filter: 'agTextColumnFilter', pinned: 'left', width: 150,
-        cellStyle: (p) => {
-          const v = String(p.value ?? '')
-          if (v.includes('최대 안전')) return { color: '#1f7a4d', fontWeight: '600' }
-          if (v.includes('차단')) return { color: '#9f403d', fontWeight: '500' }
-          if (v.includes('Shadow')) return { color: '#b26b00', fontWeight: '500' }
-          return null
-        },
-      },
-      {
-        field: 'move_feasibility', headerName: '이동 가능 여부', filter: 'agTextColumnFilter', pinned: 'left', width: 120,
-        valueFormatter: (p) => MOVE_FEASIBILITY_LABELS[p.value as string]?.label ?? '',
-        cellStyle: (p) => MOVE_FEASIBILITY_LABELS[p.value as string]?.style ?? null,
-      },
-      {
-        headerName: '순서 미리보기', width: 110, pinned: 'left',
-        cellRenderer: (p: { data?: Record<string, unknown> }) => {
-          if (!onPreviewClick || p.data?.impact_type !== '최대 안전 이동 위치') return null
-          return React.createElement('button', {
-            className: 'text-ds-primary underline-offset-2 hover:underline text-[12px]',
-            onClick: () => onPreviewClick(p.data!),
-          }, '순서 보기')
-        },
-      },
-      { field: 'reason', headerName: '사유 / 이동 요약', filter: 'agTextColumnFilter', width: 420, wrapText: true, autoHeight: true, cellStyle: { lineHeight: '1.5', paddingTop: '6px', paddingBottom: '6px', whiteSpace: 'normal' } },
-      ...makePolicyCols(onRuleNameClick),
-    ]
-  }
-  return makePolicyCols(onRuleNameClick)
-}
 
 function buildExcelPayload(
   rows: Record<string, unknown>[],
@@ -207,101 +65,12 @@ function buildExcelPayload(
   return { filename, columns, rows: excelRows }
 }
 
-function buildPaloAltoMoveScript(results: Record<string, unknown>[], deviceName: string): string {
-  const rows = results.filter((r) => r['impact_type'] === '최대 안전 이동 위치')
-  const groupedByVsys = new Map<string, Record<string, unknown>[]>()
-  for (const row of rows) {
-    const vsys = String((row['policy'] as Record<string, unknown> | undefined)?.['vsys'] ?? '')
-    const list = groupedByVsys.get(vsys) ?? []
-    list.push(row)
-    groupedByVsys.set(vsys, list)
-  }
-
-  const lines: string[] = [
-    `# ${deviceName} 정책이동 실행 계획 (자동 생성 — 참고용)`,
-    '# 분석 시점 스냅샷 기준입니다. 실제 룰베이스와 다를 수 있으니 반드시 검토 후 사용하세요.',
-    '# commit은 주석 처리되어 있습니다 — 변경 확인 후 직접 주석을 해제해 실행하세요.',
-    '',
-    'configure',
-  ]
-
-  for (const [vsys, vsysRows] of groupedByVsys) {
-    if (vsys) lines.push('', `edit vsys "${vsys}"`)
-    for (const row of vsysRows) {
-      const ruleName = String((row['policy'] as Record<string, unknown> | undefined)?.['rule_name'] ?? '')
-      const feasibility = row['move_feasibility']
-      if (feasibility === 'blocked') {
-        lines.push(`# '${ruleName}' 이동 불가: ${String(row['reason'] ?? '')}`)
-        continue
-      }
-      if (feasibility === 'full') {
-        const referenceName = row['reference_policy_name'] as string | null
-        if (!referenceName) {
-          lines.push(`move rulebase security rules "${ruleName}" bottom`)
-        } else {
-          const position = row['requested_move_direction'] === 'above' ? 'before' : 'after'
-          lines.push(`move rulebase security rules "${ruleName}" ${position} "${referenceName}"`)
-        }
-      } else if (feasibility === 'partial') {
-        const anchorName = row['blocking_conflict_policy_name'] as string | null
-        const position = row['move_direction'] === '아래로' ? 'before' : 'after'
-        lines.push(`# 요청한 위치까지는 이동 불가 — 아래는 최대로 안전하게 이동 가능한 위치입니다.`)
-        lines.push(`move rulebase security rules "${ruleName}" ${position} "${anchorName}"`)
-      }
-    }
-    if (vsys) lines.push('exit')
-  }
-
-  lines.push('', '# commit', 'exit')
-  return lines.join('\n')
-}
-
-function getRowStyle(analysisType: string) {
-  return (p: RowClassParams<Record<string, unknown>>): RowStyle | undefined => {
-    if (!p.data) return undefined
-    if (analysisType === 'redundancy') {
-      if (p.data.type === 'UPPER') return { backgroundColor: '#e8f4fd' }
-      if (p.data.type === 'LOWER') return { backgroundColor: '#fff8e1' }
-    }
-    if (analysisType === 'impact' && String(p.data.impact_type ?? '').includes('최대 안전')) {
-      return { backgroundColor: '#eaf6ee' }
-    }
-    return undefined
-  }
-}
-
 function ResultSummary({
-  analysisType, results, completedAt, onExport, onDownloadScript,
+  summary, completedAt, onExport, onDownloadScript,
 }: {
-  analysisType: string; results: unknown[]
+  summary: string
   completedAt: string | null; onExport: () => void; onDownloadScript?: () => void
 }) {
-  const summary = useMemo(() => {
-    const r = results as Record<string, unknown>[]
-    if (analysisType === 'redundancy') {
-      const sets = new Set(r.map((x) => x['set_number']))
-      const upper = r.filter((x) => x['type'] === 'UPPER').length
-      const lower = r.filter((x) => x['type'] === 'LOWER').length
-      return `${sets.size}개 중복 세트 발견 (상위 ${upper}건 / 하위 ${lower}건)`
-    }
-    if (analysisType === 'unused') return `미사용 정책 ${r.length}건`
-    if (analysisType === 'unreferenced_objects') {
-      const net = r.filter((x) => ['network_object', 'network_group'].includes(String(x['object_type'] ?? ''))).length
-      const svc = r.filter((x) => ['service', 'service_group'].includes(String(x['object_type'] ?? ''))).length
-      return `미참조 객체 ${r.length}건 (네트워크 ${net}건, 서비스 ${svc}건)`
-    }
-    if (analysisType === 'risky_ports') return `위험 포트 허용 정책 ${r.length}건`
-    if (analysisType === 'over_permissive') return `과허용 정책 ${r.length}건`
-    if (analysisType === 'impact') {
-      const summaryRows = r.filter((x) => x['impact_type'] === '최대 안전 이동 위치')
-      const full = summaryRows.filter((x) => x['move_feasibility'] === 'full').length
-      const partial = summaryRows.filter((x) => x['move_feasibility'] === 'partial').length
-      const blocked = summaryRows.filter((x) => x['move_feasibility'] === 'blocked').length
-      return `이동 대상 ${summaryRows.length}건 (완전 가능 ${full} / 부분 가능 ${partial} / 불가 ${blocked})`
-    }
-    return `${r.length}건`
-  }, [analysisType, results])
-
   return (
     <div className="card rounded-xl px-5 py-3 flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -403,9 +172,10 @@ export function AnalysisDetailPage() {
   }
 
   const currentStatus = STATUS_LABELS[task.task_status] ?? null
-  const results = Array.isArray(resultQuery.data?.result_data) ? resultQuery.data!.result_data : []
-  const columnDefs = getColumnDefs(task.task_type, onRuleNameClick, setPreviewRow)
-  const rowStyleFn = getRowStyle(task.task_type)
+  const results = Array.isArray(resultQuery.data?.result_data) ? resultQuery.data!.result_data as Record<string, unknown>[] : []
+  const module = getQuickModule(task.task_type)
+  const columnDefs = module?.columns(onRuleNameClick, setPreviewRow) ?? []
+  const rowStyleFn = module?.rowStyle
 
   return (
     <div className="flex flex-col gap-6">
@@ -420,7 +190,7 @@ export function AnalysisDetailPage() {
           </button>
           <div>
             <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">
-              {ANALYSIS_TYPE_LABELS[task.task_type] ?? task.task_type}
+              {module?.label ?? task.task_type}
             </h1>
             <p className="text-[12px] text-ds-on-surface-variant mt-0.5">
               {device ? `${device.name} (${device.ip_address})` : `장비 ID ${task.device_id}`}
@@ -467,23 +237,17 @@ export function AnalysisDetailPage() {
         ) : (
           <>
             <ResultSummary
-              analysisType={task.task_type}
-              results={results}
+              summary={module?.summary(results) ?? `${results.length}건`}
               completedAt={resultQuery.data.created_at ?? null}
               onExport={() => {
-                const payload = buildExcelPayload(
-                  results as Record<string, unknown>[],
-                  columnDefs,
-                  rowStyleFn,
-                  `분석결과_${task.task_type}`,
-                )
+                const payload = buildExcelPayload(results, columnDefs, rowStyleFn ?? (() => undefined), `분석결과_${task.task_type}`)
                 exportStyledToExcel(payload).catch((e: Error) => toast.error(e.message))
               }}
               onDownloadScript={
-                task.task_type === 'impact' && device?.vendor === 'paloalto'
+                device && module?.downloadScript
                   ? () => {
-                      const script = buildPaloAltoMoveScript(results as Record<string, unknown>[], device.name)
-                      saveBlob(new Blob([script], { type: 'text/plain' }), `이동계획_${device.name}_${task.id}.txt`)
+                      const script = module.downloadScript!(results, { name: device.name, vendor: device.vendor })
+                      if (script) saveBlob(new Blob([script.content], { type: 'text/plain' }), script.filename)
                     }
                   : undefined
               }
@@ -495,9 +259,9 @@ export function AnalysisDetailPage() {
               </div>
               <AgGridWrapper
                 columnDefs={columnDefs}
-                rowData={results as Record<string, unknown>[]}
+                rowData={results}
                 getRowId={resultRowId}
-                getRowStyle={rowStyleFn as (p: RowClassParams<Record<string, unknown>>) => RowStyle | undefined}
+                getRowStyle={rowStyleFn}
                 height="calc(100vh - 340px)"
                 noRowsText="분석 결과가 없습니다."
               />
