@@ -176,6 +176,9 @@ export function AnalysisDetailPage() {
   const module = getQuickModule(task.task_type)
   const columnDefs = module?.columns(onRuleNameClick, setPreviewRow) ?? []
   const rowStyleFn = module?.rowStyle
+  const downloadScript = device && module?.downloadScript
+    ? module.downloadScript(results, { name: device.name, vendor: device.vendor })
+    : null
 
   return (
     <div className="flex flex-col gap-6">
