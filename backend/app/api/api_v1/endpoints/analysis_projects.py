@@ -20,6 +20,12 @@ from app.crud import crud_analysis_project as apcrud
 router = APIRouter()
 
 
+def _validate_module_type(module_type: str) -> None:
+    """프로젝트형 모듈로 등록되지 않은 module_type을 거부한다."""
+    if module_type not in crud.analysis.PROJECT_MODULE_TASK_TYPES:
+        raise HTTPException(status_code=400, detail=f"알 수 없는 모듈 타입: {module_type}")
+
+
 def _project_dict(project, device) -> dict:
     return {
         "id": project.id,
@@ -43,6 +49,7 @@ async def list_projects(
     db: AsyncSession = Depends(get_db),
 ):
     """모듈 타입별 프로젝트 목록 조회."""
+    _validate_module_type(module_type)
     projects = await apcrud.list_projects(db, module_type=module_type, device_id=device_id)
     result = []
     for p in projects:
@@ -61,6 +68,7 @@ async def create_project(
     db: AsyncSession = Depends(get_db),
 ):
     """새 프로젝트 생성."""
+    _validate_module_type(module_type)
     device = await crud.device.get_device(db=db, device_id=device_id)
     if not device:
         raise HTTPException(status_code=404, detail=f"장비 ID {device_id}를 찾을 수 없습니다.")

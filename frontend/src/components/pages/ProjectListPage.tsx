@@ -16,7 +16,7 @@ import {
   type AnalysisProject,
 } from '@/api/analysisProjects'
 import { queryKeys } from '@/api/queryKeys'
-import { getModule } from './analysis-modules'
+import { PROJECT_MODULES } from './analysis-modules'
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   draft:     { label: '초안',   cls: 'bg-gray-100 text-gray-600' },
@@ -99,13 +99,13 @@ export default function ProjectListPage() {
   const { confirm, ConfirmDialogElement } = useConfirm()
   const [createOpen, setCreateOpen] = useState(false)
 
-  const module = moduleType ? getModule(moduleType) : undefined
+  const module = PROJECT_MODULES.find((m) => m.type === moduleType)
   const moduleLabel = module?.label ?? moduleType ?? ''
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: queryKeys.analysisProjects(moduleType ?? ''),
     queryFn: () => listAnalysisProjects(moduleType!),
-    enabled: !!moduleType,
+    enabled: !!module,
     staleTime: 10_000,
   })
 
@@ -128,7 +128,13 @@ export default function ProjectListPage() {
     if (ok) deleteMutation.mutate(p.id)
   }
 
-  if (!moduleType) return null
+  if (!moduleType || !module) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <EmptyState title={`알 수 없는 프로젝트 모듈입니다: ${moduleType ?? ''}`} />
+      </div>
+    )
+  }
 
   return (
     <div className="h-full flex flex-col">
