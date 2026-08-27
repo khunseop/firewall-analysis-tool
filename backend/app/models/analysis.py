@@ -53,10 +53,10 @@ class AnalysisTask(Base):
     # DELETION_WORKFLOW 타입 전용 필드 (그 외 타입은 항상 NULL).
     # 어느 파이프라인 단계(0~19)의 실행인지, 어느 프로젝트에 속하는지를 나타낸다.
     pipeline_task_id = Column(Integer, nullable=True)
-    deletion_workflow_project_id = Column(Integer, ForeignKey("deletion_workflow_projects.id", ondelete="CASCADE"), nullable=True)
+    analysis_project_id = Column(Integer, ForeignKey("analysis_projects.id", ondelete="CASCADE"), nullable=True)
 
     device = relationship("Device")
-    deletion_workflow_project = relationship("DeletionWorkflowProject")
+    analysis_project = relationship("AnalysisProject")
 
 class RedundancyPolicySet(Base):
     """
