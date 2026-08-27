@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ArrowLeft, AlertCircle, Loader2, Zap, RotateCcw, Square, CalendarDays, Pencil, X, Check, PackageCheck, RefreshCcw } from 'lucide-react'
-import { getProject, runProjectExtract, runProjectTask, getPipelineTaskResult, waitForPipelineTask, resetAllProjectFiles, clearProjectOutputs, updateProject, completeProject, type DeletionWorkflowProjectDetail, type ProjectFileState } from '@/api/deletionWorkflow'
+import { runProjectExtract, runProjectTask, waitForPipelineTask, resetAllProjectFiles, clearProjectOutputs, completeProject } from '@/api/deletionWorkflow'
+import { getAnalysisProject, updateAnalysisProject, getProjectPipelineTaskResult, type AnalysisProjectDetail, type ProjectFileState } from '@/api/analysisProjects'
 import { getDevice, syncAll, getSyncStatus } from '@/api/devices'
 import { startAnalysis, getAnalysisStatus } from '@/api/analysis'
 import { queryKeys } from '@/api/queryKeys'
@@ -48,19 +49,19 @@ export default function DeletionWorkflowDetailPage() {
   const [editingRefDate, setEditingRefDate] = useState(false)
   const [refDateInput, setRefDateInput] = useState('')
 
-  const { data: project, isLoading, error } = useQuery<DeletionWorkflowProjectDetail>({
-    queryKey: queryKeys.deletionWorkflowProject(projectId),
-    queryFn: () => getProject(projectId),
+  const { data: project, isLoading, error } = useQuery<AnalysisProjectDetail>({
+    queryKey: queryKeys.analysisProject(projectId),
+    queryFn: () => getAnalysisProject(projectId),
     staleTime: 5_000,
   })
 
-  const refresh = () => qc.invalidateQueries({ queryKey: queryKeys.deletionWorkflowProject(projectId) })
+  const refresh = () => qc.invalidateQueries({ queryKey: queryKeys.analysisProject(projectId) })
 
   // 태스크 실행 응답을 즉시 캐시에 반영 (진행률 바가 refetch를 기다리지 않고 바로 갱신되도록)
   const applyTaskOutputs = (result: { task_id: number; outputs: { slot: string; filename: string }[] }) => {
     qc.setQueryData(
-      queryKeys.deletionWorkflowProject(projectId),
-      (old: DeletionWorkflowProjectDetail | undefined) => {
+      queryKeys.analysisProject(projectId),
+      (old: AnalysisProjectDetail | undefined) => {
         if (!old) return old
         const newFiles: ProjectFileState[] = result.outputs.map((o) => ({
           task_id: result.task_id,
@@ -77,14 +78,14 @@ export default function DeletionWorkflowDetailPage() {
   }
 
   const refDateMutation = useMutation({
-    mutationFn: (date: string | null) => updateProject(projectId, { reference_date: date }),
+    mutationFn: (date: string | null) => updateAnalysisProject(projectId, { reference_date: date }),
     onSuccess: (data) => {
       qc.setQueryData(
-        ['deletion-workflow-project', projectId],
-        (old: DeletionWorkflowProjectDetail | undefined) =>
+        queryKeys.analysisProject(projectId),
+        (old: AnalysisProjectDetail | undefined) =>
           old ? { ...old, reference_date: data.reference_date } : old,
       )
-      qc.invalidateQueries({ queryKey: queryKeys.deletionWorkflowProjects })
+      qc.invalidateQueries({ queryKey: queryKeys.analysisProjects('deletion_workflow') })
       toast.success(data.reference_date ? `기준일이 ${data.reference_date}로 설정되었습니다.` : '기준일이 해제되었습니다.')
       setEditingRefDate(false)
     },
@@ -141,7 +142,7 @@ export default function DeletionWorkflowDetailPage() {
       })
     })
 
-  const checkSync = async (projectRef: DeletionWorkflowProjectDetail): Promise<boolean> => {
+  const checkSync = async (projectRef: AnalysisProjectDetail): Promise<boolean> => {
     let device
     try {
       device = await getDevice(projectRef.device_id)
@@ -213,7 +214,7 @@ export default function DeletionWorkflowDetailPage() {
     // Task 0: 처음부터 실행하는 경우에만 데이터 추출 포함
     const includeTask0 = fromTaskId === undefined
     if (includeTask0 && autoRunRef.current) {
-      const cur = await getProject(projectId).catch(() => null)
+      const cur = await getAnalysisProject(projectId).catch(() => null)
       if (cur && !hasOutput(cur.files ?? [], 0)) {
         // 기준일 동기화 확인
         const canProceed = await checkSync(cur)
@@ -232,7 +233,7 @@ export default function DeletionWorkflowDetailPage() {
           if (task.task_status === 'failure') {
             throw new Error(task.error_message || '데이터 추출 실패')
           }
-          const result = await getPipelineTaskResult(projectId, runResp.analysis_task_id)
+          const result = await getProjectPipelineTaskResult(projectId, runResp.analysis_task_id)
           const completedAt = Date.now()
           setTaskTimings((prev) => ({ ...prev, 0: { ...prev[0], completedAt } }))
           applyTaskOutputs(result)
@@ -256,8 +257,8 @@ export default function DeletionWorkflowDetailPage() {
       if (!autoRunRef.current) break
 
       // 캐시 우선 조회 (setQueryData로 즉시 반영된 최신 상태 사용)
-      const cachedProject = qc.getQueryData<DeletionWorkflowProjectDetail>(
-        ['deletion-workflow-project', projectId],
+      const cachedProject = qc.getQueryData<AnalysisProjectDetail>(
+        queryKeys.analysisProject(projectId),
       )
       const currentFiles = cachedProject?.files ?? []
 
@@ -270,7 +271,7 @@ export default function DeletionWorkflowDetailPage() {
 
       let checkFiles = currentFiles
       if ((taskMeta.externalInputs ?? []).some((inp) => inp.required)) {
-        const freshProject = await getProject(projectId).catch(() => null)
+        const freshProject = await getAnalysisProject(projectId).catch(() => null)
         checkFiles = freshProject?.files ?? currentFiles
       }
       const missingRequired = (taskMeta.externalInputs ?? [])
@@ -288,8 +289,8 @@ export default function DeletionWorkflowDetailPage() {
 
       // Task 3(중복정책 분석): FAT DB에 분석 결과가 없으면 자동 실행
       if (taskId === 3) {
-        const cachedProject2 = qc.getQueryData<DeletionWorkflowProjectDetail>(
-          ['deletion-workflow-project', projectId],
+        const cachedProject2 = qc.getQueryData<AnalysisProjectDetail>(
+          queryKeys.analysisProject(projectId),
         )
         const deviceId = cachedProject2?.device_id
         if (deviceId) {
@@ -311,7 +312,7 @@ export default function DeletionWorkflowDetailPage() {
         if (task.task_status === 'failure') {
           throw new Error(task.error_message || `태스크 ${taskId} 실행 실패`)
         }
-        const result = await getPipelineTaskResult(projectId, runResp.analysis_task_id)
+        const result = await getProjectPipelineTaskResult(projectId, runResp.analysis_task_id)
         // 완료 즉시 캐시 업데이트 (다음 태스크 판정 + 체크마크 즉각 표시)
         const completedAt = Date.now()
         setTaskTimings((prev) => ({ ...prev, [taskId]: { ...prev[taskId], completedAt } }))
@@ -341,8 +342,8 @@ export default function DeletionWorkflowDetailPage() {
     await clearProjectOutputs(projectId, downstreamIds).catch(() => null)
     // 즉시 캐시에서 이후 태스크 output 파일 제거 (UI 즉각 반영)
     qc.setQueryData(
-      ['deletion-workflow-project', projectId],
-      (old: DeletionWorkflowProjectDetail | undefined) => {
+      queryKeys.analysisProject(projectId),
+      (old: AnalysisProjectDetail | undefined) => {
         if (!old) return old
         return {
           ...old,
@@ -392,8 +393,8 @@ export default function DeletionWorkflowDetailPage() {
     try {
       const { blob, filename } = await completeProject(projectId)
       triggerDownload(blob, filename)
-      qc.invalidateQueries({ queryKey: queryKeys.deletionWorkflowProject(projectId) })
-      qc.invalidateQueries({ queryKey: queryKeys.deletionWorkflowProjects })
+      qc.invalidateQueries({ queryKey: queryKeys.analysisProject(projectId) })
+      qc.invalidateQueries({ queryKey: queryKeys.analysisProjects('deletion_workflow') })
       toast.success('프로젝트 완료 — 결과파일이 저장되었습니다.')
     } catch (e: unknown) {
       toast.error((e as Error).message)
@@ -602,7 +603,7 @@ export default function DeletionWorkflowDetailPage() {
           autoRunCurrentTaskId={autoRunCurrentTaskId}
           onRefresh={refresh}
           onBeforeExtract={async () => {
-            const cur = await getProject(projectId).catch(() => null)
+            const cur = await getAnalysisProject(projectId).catch(() => null)
             if (!cur) return true
             return checkSync(cur)
           }}

@@ -45,9 +45,6 @@ export const queryKeys = {
 
   // 삭제 워크플로우
   deletionWorkflowTasks: ['deletion-workflow-tasks'] as const,
-  deletionWorkflowProjects: ['deletion-workflow-projects'] as const,
-  deletionWorkflowProject: (projectId: number | string | undefined) =>
-    ['deletion-workflow-project', projectId] as const,
   deletionWorkflowConfig: ['deletion-workflow-config'] as const,
 
   // 기타

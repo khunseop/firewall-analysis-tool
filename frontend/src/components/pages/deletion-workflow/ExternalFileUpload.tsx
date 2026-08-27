@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Upload, CheckCircle2, Loader2 } from 'lucide-react'
-import { uploadExternalFile, type ProjectFileState } from '@/api/deletionWorkflow'
+import { uploadExternalFile } from '@/api/deletionWorkflow'
+import type { ProjectFileState } from '@/api/analysisProjects'
 
 export function ExternalFileUpload({
   projectId, taskId, slot, label, required, hint, existingFile, onUploaded,

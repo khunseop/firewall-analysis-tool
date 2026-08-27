@@ -1,4 +1,4 @@
-import type { ProjectFileState } from '@/api/deletionWorkflow'
+import type { ProjectFileState } from '@/api/analysisProjects'
 
 export interface TaskMeta {
   step: number

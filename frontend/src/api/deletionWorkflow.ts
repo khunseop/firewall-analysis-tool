@@ -2,32 +2,7 @@ import { apiClient } from './client'
 import { useAuthStore } from '@/store/authStore'
 import { getAnalysisTaskDetail, type AnalysisTask } from './analysis'
 
-// ── 프로젝트 타입 ───────────────────────────────────────────────────────────
-
-export interface DeletionWorkflowProject {
-  id: number
-  device_id: number
-  device_name: string
-  device_ip: string
-  name: string
-  status: string  // draft / running / completed
-  memo: string | null
-  reference_date: string | null  // YYYY-MM-DD, null이면 실행 시점 현재 날짜
-  created_at: string
-  updated_at: string
-}
-
-export interface ProjectFileState {
-  task_id: number
-  slot: string
-  filename: string
-  created_at: string
-}
-
-export interface DeletionWorkflowProjectDetail extends DeletionWorkflowProject {
-  device_vendor: string
-  files: ProjectFileState[]
-}
+// ── 프로젝트 실행 관련 타입 ──────────────────────────────────────────────────
 
 export interface ProjectTaskOutput {
   slot: string
@@ -40,13 +15,6 @@ export interface ProjectTaskRunResponse {
   ok: boolean
   task_id: number
   analysis_task_id: number
-}
-
-export interface ProjectPipelineTaskResult {
-  task_id: number
-  task_status: string
-  error_message: string | null
-  outputs: ProjectTaskOutput[]
 }
 
 // ── 태스크 메타 타입 ────────────────────────────────────────────────────────
@@ -121,73 +89,6 @@ export const exportRedundancyData = async (
   return { blob, filename }
 }
 
-// ── 프로젝트 CRUD ───────────────────────────────────────────────────────────
-
-export const listProjects = async (deviceId?: number): Promise<DeletionWorkflowProject[]> => {
-  const params = deviceId !== undefined ? { device_id: deviceId } : {}
-  const res = await apiClient.get<DeletionWorkflowProject[]>('/deletion-workflow/projects', { params })
-  return res.data
-}
-
-export const createProject = async (
-  deviceId: number,
-  name: string,
-  memo?: string,
-  referenceDate?: string,
-): Promise<DeletionWorkflowProject> => {
-  const token = useAuthStore.getState().token
-  const form = new FormData()
-  form.append('device_id', String(deviceId))
-  form.append('name', name)
-  if (memo) form.append('memo', memo)
-  if (referenceDate) form.append('reference_date', referenceDate)
-  const res = await fetch('/api/v1/deletion-workflow/projects', {
-    method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: form,
-  })
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}))
-    throw new Error(data.detail || '프로젝트 생성 실패')
-  }
-  return res.json()
-}
-
-export const updateProject = async (
-  id: number,
-  patch: { memo?: string; reference_date?: string | null },
-): Promise<{ id: number; memo: string | null; reference_date: string | null; updated_at: string }> => {
-  const token = useAuthStore.getState().token
-  const form = new FormData()
-  if (patch.memo !== undefined) form.append('memo', patch.memo ?? '')
-  if (patch.reference_date !== undefined) {
-    if (patch.reference_date === null) {
-      form.append('clear_reference_date', 'true')
-    } else {
-      form.append('reference_date', patch.reference_date)
-    }
-  }
-  const res = await fetch(`/api/v1/deletion-workflow/projects/${id}`, {
-    method: 'PATCH',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: form,
-  })
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}))
-    throw new Error(data.detail || '프로젝트 수정 실패')
-  }
-  return res.json()
-}
-
-export const getProject = async (id: number): Promise<DeletionWorkflowProjectDetail> => {
-  const res = await apiClient.get<DeletionWorkflowProjectDetail>(`/deletion-workflow/projects/${id}`)
-  return res.data
-}
-
-export const deleteProject = async (id: number): Promise<void> => {
-  await apiClient.delete(`/deletion-workflow/projects/${id}`)
-}
-
 // ── 프로젝트 태스크 실행 ────────────────────────────────────────────────────
 
 export const runProjectExtract = async (projectId: number): Promise<ProjectTaskRunResponse> => {
@@ -217,18 +118,6 @@ export const runProjectTask = async (
     throw new Error(data.detail || `태스크 ${taskId} 실행 실패`)
   }
   return res.json()
-}
-
-/** 파이프라인 실행(analysis_task_id)이 저장한 출력 파일 목록을 조회한다.
- * waitForPipelineTask()로 success를 확인한 뒤 호출한다. */
-export const getPipelineTaskResult = async (
-  projectId: number,
-  analysisTaskId: number,
-): Promise<ProjectPipelineTaskResult> => {
-  const res = await apiClient.get<ProjectPipelineTaskResult>(
-    `/deletion-workflow/projects/${projectId}/tasks/${analysisTaskId}/result`
-  )
-  return res.data
 }
 
 const PIPELINE_TASK_POLL_INTERVAL_MS = 800
