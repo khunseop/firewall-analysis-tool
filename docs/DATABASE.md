@@ -195,8 +195,8 @@
 | `error_message` | `VARCHAR` | `NULLABLE` | 실패 시 오류 메시지 |
 | `requested_by_user_id` | `INTEGER` | `NULLABLE` | 이 분석을 요청한 사용자 ID (FK 제약 없는 스냅샷) |
 | `requested_by_username` | `VARCHAR` | `NULLABLE` | 위 사용자의 username 스냅샷 (표시용) |
-| `pipeline_task_id` | `INTEGER` | `NULLABLE` | `deletion_workflow` 타입 전용: 파이프라인 단계 번호(0~19). 그 외 타입은 항상 NULL |
-| `deletion_workflow_project_id` | `INTEGER` | `FOREIGN KEY (deletion_workflow_projects.id), NULLABLE` | `deletion_workflow` 타입 전용: 소속 프로젝트 참조 (CASCADE). 그 외 타입은 항상 NULL |
+| `pipeline_task_id` | `INTEGER` | `NULLABLE` | 프로젝트형 분석 모듈 전용: 파이프라인 단계 번호(0~19). 그 외 타입은 항상 NULL |
+| `analysis_project_id` | `INTEGER` | `FOREIGN KEY (analysis_projects.id), NULLABLE` | 프로젝트형 분석 모듈 전용: 소속 프로젝트 참조 (CASCADE). 그 외 타입은 항상 NULL |
 
 ### `analysis_results` Table (분석 결과)
 - 실행(`analysistasks`)마다 새 행이 쌓여 이력으로 보존된다 (device_id+analysis_type 기준으로 덮어쓰지 않음).
@@ -300,35 +300,39 @@
 
 ---
 
-## 6. 삭제 워크플로우
+## 6. 프로젝트형 분석 모듈 (deletion_workflow 등)
 
-> 실행 오케스트레이션은 `analysistasks`/`AnalysisTask`에 흡수되어 있다(백그라운드 실행 + 상태 폴링).
-> 파이프라인 단계 1회 실행 = `analysistasks` 1행(`task_type='deletion_workflow'`, `pipeline_task_id`=0~19,
-> `deletion_workflow_project_id`=소속 프로젝트). 동시 실행 방지는 DB 락 컬럼이 아니라
-> 프로세스 메모리의 프로젝트별 `asyncio.Lock`(`app/services/deletion_workflow/tasks.py`)과
-> `analysistasks` IN_PROGRESS 조회 기반 409 사전 체크로 처리한다.
+> `analysis_projects`/`analysis_project_files`는 "프로젝트형" 분석 모듈(장비별로 프로젝트를
+> 만들고 여러 단계를 순차 실행하는 방식 — 현재는 deletion_workflow만 존재)이 공유하는
+> 데이터 계층이다. `module_type` 컬럼으로 어느 모듈의 프로젝트인지 구분한다. 파이프라인
+> 실행 로직 자체(어떤 단계가 있고 각 단계가 무엇을 하는지)는 모듈마다 독립적이며 이
+> 테이블에는 담기지 않는다 — 실행 상태 추적은 `analysistasks`(`AnalysisTask`,
+> `task_type='deletion_workflow'`, `pipeline_task_id`=단계 번호, `analysis_project_id`=소속
+> 프로젝트)를 통해 이루어진다.
 
-### `deletion_workflow_projects` Table (삭제 워크플로우 프로젝트)
+### `analysis_projects` Table
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
 | `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
+| `module_type` | `VARCHAR` | `NOT NULL, INDEX` | 소속 모듈 (예: `deletion_workflow`) |
 | `device_id` | `INTEGER` | `FOREIGN KEY (devices.id)` | 장비 참조 |
 | `name` | `VARCHAR` | `NOT NULL` | 프로젝트 이름 |
 | `status` | `VARCHAR` | `DEFAULT 'draft'` | 상태 (draft, running, completed) |
 | `memo` | `VARCHAR` | `NULLABLE` | 메모 |
+| `reference_date` | `DATE` | `NULLABLE` | 기준일 |
 | `created_at` | `DATETIME` | `NOT NULL` | 생성 시간 |
 | `updated_at` | `DATETIME` | `NOT NULL` | 마지막 수정 시간 |
 
-### `deletion_workflow_files` Table (삭제 워크플로우 파일)
+### `analysis_project_files` Table
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
 | `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
-| `project_id` | `INTEGER` | `FOREIGN KEY (deletion_workflow_projects.id)` | 프로젝트 참조 (CASCADE) |
-| `task_id` | `INTEGER` | `NOT NULL` | 파이프라인 태스크 번호 (0~14) |
+| `project_id` | `INTEGER` | `FOREIGN KEY (analysis_projects.id)` | 프로젝트 참조 (CASCADE) |
+| `task_id` | `INTEGER` | `NOT NULL` | 모듈 내부 단계 번호 (모듈마다 의미가 다름) |
 | `slot` | `VARCHAR` | `NOT NULL` | 파일 슬롯 (output_0, output_1, external_1, external_2) |
 | `filename` | `VARCHAR` | `NOT NULL` | 파일명 |
 | `file_data` | `BLOB` | `NOT NULL` | 파일 바이너리 데이터 |
 | `created_at` | `DATETIME` | `NOT NULL` | 생성 시간 |
-| `analysis_task_id` | `INTEGER` | `FOREIGN KEY (analysistasks.id), NULLABLE` | 이 파일을 생성한 실행(AnalysisTask) 참조 (SET NULL, 컬럼 추가 이전 데이터 호환을 위해 nullable) |
+| `analysis_task_id` | `INTEGER` | `FOREIGN KEY (analysistasks.id), NULLABLE` | 이 파일을 생성한 실행(AnalysisTask) 참조 (SET NULL) |
 
 > `(project_id, task_id, slot)` 조합이 UNIQUE 제약.

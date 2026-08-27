@@ -72,7 +72,7 @@ ORM Models     (backend/app/models/)  ──►  SQLite fat.db (via Alembic)
 | 정책 인덱서 | `app/services/policy_indexer.py` | DFS 기반 그룹 재귀 확장(Resolver), IP/포트를 숫자 범위로 변환, bulk 인덱싱 |
 | 범위 기반 검색 | `app/crud/crud_policy.py` | `policy_address_members` / `policy_service_members` overlap SQL 쿼리 |
 | 분석 엔진 | `app/services/analysis/` | 6개 비동기 엔진 (`redundancy`, `unused`, `impact`, `unreferenced_objects`, `risky_ports`, `over_permissive`). 백그라운드 태스크는 자체 `SessionLocal()` 세션을 열고, CPU 비교 연산은 `CPU_EXECUTOR`에서 실행. `analysistasks` 테이블로 진행률 추적, 결과는 JSON 저장 |
-| 삭제 워크플로우 | `app/services/deletion_workflow/` | Config 기반 프로세서 파이프라인. 실행 오케스트레이션(`tasks.py`)은 analysis 서브시스템에 흡수되어 있어 각 파이프라인 단계 실행이 `AnalysisTask`(백그라운드 실행 + 상태 폴링) 1행에 대응한다. DB→Excel 변환은 `export_service.py`, 설정 연동은 `config_bridge.py`, 태스크 메타는 `task_meta.py` |
+| 삭제 워크플로우 | `app/services/deletion_workflow/` | Config 기반 프로세서 파이프라인. 프로젝트/파일 저장소는 `analysis_projects`/`analysis_project_files`(module_type='deletion_workflow')로 다른 프로젝트형 분석 모듈과 공유. 실행 오케스트레이션(`tasks.py`)은 analysis의 `AnalysisTask` 패턴 사용. UI는 Analysis 페이지(`/analysis/projects/deletion_workflow`)에 통합됨. DB→Excel 변환은 `export_service.py`, 설정 연동은 `config_bridge.py`, 태스크 메타는 `task_meta.py` |
 | 정책 빌더 (PolicyBuilder) | `app/services/policy_builder/` | Policies 페이지 **편집모드**(별도 페이지 아님)의 생성/수정/삭제/이동을 CLI 텍스트로 변환. `object_gap.py`(부족 오브젝트 감지) → `cli_generator.py`(PAN-OS `set`/`delete`/`move` 텍스트 생성) → `virtual_policy.py`/`insertion_analyzer.py`(가상 정책 삽입·기존 정책 재배치 충돌 검증). 편집모드에서 만든 변경사항은 `pending_policy_changes` 테이블에 **영속 저장**되지만(새로고침 유지), 실제 `policies` 테이블이나 장비에는 **전혀 반영하지 않음** — 최종 CLI는 `/policy-builder/{device_id}/plan`이 대기중 변경사항을 모아 생성하고 사용자가 직접 실행. Palo Alto 전용. 오버랩 판정은 `app/services/analysis/policy_overlap.py`(impact 분석과 공유). 빈 필드 기본값은 Settings(`policy_builder_defaults` key) |
 | 공용 CRUD | `app/crud/base.py` | 장비 스코프 객체(NetworkObject/Group, Service/Group) 4종의 공통 CRUD 제네릭. 각 `crud_*` 모듈은 얇은 래퍼 |
 | 전용 스레드 풀 | `app/core/executors.py` | `IO_EXECUTOR`(수집 SSH/API, 8) / `CPU_EXECUTOR`(분석 연산, 2) — 기본 풀 공유로 인한 상호 굶김 방지 |
@@ -125,8 +125,8 @@ ORM Models     (backend/app/models/)  ──►  SQLite fat.db (via Alembic)
 ## 확장 패턴
 
 - **새 벤더 추가**: `app/services/firewall/` 내 `FirewallInterface`를 상속 구현 후 Factory에 등록.
-- **새 분석 엔진 추가**: `app/services/analysis/`에 추가. `AnalysisTask`로 상태를 관리하고 결과를 JSON으로 저장.
-  - 예외: `deletion_workflow`(정책 삭제 워크플로우)는 파이프라인형이라 `AnalysisTask.pipeline_task_id`(0~19 단계 번호)와 `deletion_workflow_project_id`(여러 실행을 묶는 프로젝트)를 추가로 쓰고, 결과는 JSON이 아니라 `DeletionWorkflowFile`(Excel 바이너리, `analysis_task_id`로 실행을 참조)에 저장한다. 오케스트레이션은 `app/services/deletion_workflow/tasks.py`.
+- **새 분석 엔진 추가(quick형)**: `app/services/analysis/`에 Analyzer 클래스 추가 → `models/analysis.py`의 `AnalysisTaskType`에 항목 추가 → `analysis/tasks.py`에 run_xxx/_run_xxx 쌍 추가 → `endpoints/analysis.py`에 라우트 추가 → 프론트 `components/pages/analysis-modules/`에 모듈 파일 추가 후 `index.ts` 레지스트리에 등록(다른 파일 수정 불필요 — `AnalysisListPage`/`AnalysisDetailPage`가 레지스트리를 순회함).
+- **새 분석 모듈 추가(프로젝트형, deletion_workflow 참고)**: `models/analysis.py`의 `AnalysisTaskType`에 항목 추가, `AnalysisProject.module_type`에 새 값 사용(테이블/스키마 변경 불필요 — `analysis_projects`/`analysis_project_files`를 그대로 공유) → 모듈 전용 서비스 패키지(`app/services/<module>/`)에 파이프라인 로직 + `tasks.py`(백그라운드 실행, `services/deletion_workflow/tasks.py` 패턴 복제) 작성 → 모듈 전용 실행 엔드포인트(`endpoints/<module>.py`) 추가(프로젝트 CRUD는 공용 `endpoints/analysis_projects.py` 재사용, 라우트 추가 불필요) → 프론트 `analysis-modules/`에 `kind: 'project'` 모듈 파일 추가 후 레지스트리 등록 → 위저드 UI는 모듈 전용 컴포넌트로 직접 작성(공통화되어 있지 않음).
 
 ## 블라스트 레이디어스 주의 (수정 파급 범위)
 
