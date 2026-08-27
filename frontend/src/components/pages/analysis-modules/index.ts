@@ -5,6 +5,7 @@ import { impactModule } from './impact'
 import { unreferencedObjectsModule } from './unreferencedObjects'
 import { riskyPortsModule } from './riskyPorts'
 import { overPermissiveModule } from './overPermissive'
+import { deletionWorkflowModule } from './deletionWorkflow'
 
 export const ANALYSIS_MODULES: AnalysisModule[] = [
   redundancyModule,
@@ -13,6 +14,7 @@ export const ANALYSIS_MODULES: AnalysisModule[] = [
   unreferencedObjectsModule,
   riskyPortsModule,
   overPermissiveModule,
+  deletionWorkflowModule,
 ]
 
 export const QUICK_MODULES: QuickAnalysisModule[] = ANALYSIS_MODULES.filter(
