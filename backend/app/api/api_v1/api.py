@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from app.api.api_v1.endpoints import (
-    devices, firewall_sync, firewall_query, export, analysis,
+    devices, firewall_sync, firewall_query, export, analysis, analysis_projects,
     websocket, sync_schedule, settings, notifications, deletion_workflow,
     users, policy_builder,
 )
@@ -20,6 +20,7 @@ api_router.include_router(firewall_sync.router, prefix="/firewall", tags=["firew
 api_router.include_router(firewall_query.router, prefix="/firewall", tags=["firewall-query"], dependencies=_auth)
 api_router.include_router(export.router, prefix="/firewall", tags=["export"], dependencies=_auth)
 api_router.include_router(analysis.router, prefix="/analysis", tags=["analysis"], dependencies=_auth)
+api_router.include_router(analysis_projects.router, prefix="/analysis/projects", tags=["analysis-projects"], dependencies=_auth)
 api_router.include_router(websocket.router, tags=["websocket"])  # auth handled in-endpoint via query param
 api_router.include_router(sync_schedule.router, prefix="/sync-schedules", tags=["sync-schedules"], dependencies=_auth)
 api_router.include_router(settings.router, prefix="/settings", tags=["settings"], dependencies=_auth)
