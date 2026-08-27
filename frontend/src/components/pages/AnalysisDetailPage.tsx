@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -163,6 +163,19 @@ export function AnalysisDetailPage() {
     if (ok) deleteMutation.mutate()
   }
 
+  const results = useMemo(
+    () => (Array.isArray(resultQuery.data?.result_data) ? resultQuery.data!.result_data as Record<string, unknown>[] : []),
+    [resultQuery.data]
+  )
+  const module = useMemo(() => (task ? getQuickModule(task.task_type) : undefined), [task])
+  // PAN-OS 이동 스크립트는 계산 비용이 있어 결과/장비/모듈이 바뀔 때만 재계산한다.
+  const downloadScript = useMemo(
+    () => (device && module?.downloadScript
+      ? module.downloadScript(results, { name: device.name, vendor: device.vendor })
+      : null),
+    [device, module, results]
+  )
+
   if (taskQuery.isLoading) {
     return <div className="py-16 text-center text-[13px] text-ds-on-surface-variant">로딩 중…</div>
   }
@@ -172,13 +185,8 @@ export function AnalysisDetailPage() {
   }
 
   const currentStatus = STATUS_LABELS[task.task_status] ?? null
-  const results = Array.isArray(resultQuery.data?.result_data) ? resultQuery.data!.result_data as Record<string, unknown>[] : []
-  const module = getQuickModule(task.task_type)
   const columnDefs = module?.columns(onRuleNameClick, setPreviewRow) ?? []
   const rowStyleFn = module?.rowStyle
-  const downloadScript = device && module?.downloadScript
-    ? module.downloadScript(results, { name: device.name, vendor: device.vendor })
-    : null
 
   return (
     <div className="flex flex-col gap-6">
