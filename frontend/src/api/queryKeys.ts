@@ -34,6 +34,9 @@ export const queryKeys = {
     ['analysis-tasks', search, typeFilter, statusFilter, page] as const,
   analysisTask: (taskId: number | string | undefined) => ['analysis-task', taskId] as const,
   analysisTaskResult: (taskId: number | string | undefined) => ['analysis-task-result', taskId] as const,
+  analysisProjects: (moduleType: string) => ['analysis-projects', moduleType] as const,
+  analysisProject: (projectId: number | string | undefined) => ['analysis-project', projectId] as const,
+  analysisProjectTasks: (projectId: number | string | undefined) => ['analysis-project-tasks', projectId] as const,
 
   // 대시보드 · 통계
   dashboardStats: ['dashboard-stats'] as const,
