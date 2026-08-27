@@ -34,7 +34,7 @@ Phase 3:
 
 from typing import Dict, List, Optional, Tuple
 
-from app.models.deletion_workflow import DeletionWorkflowFile
+from app.models.analysis_project import AnalysisProjectFile
 
 
 class MissingInputError(Exception):
@@ -47,19 +47,19 @@ def _vendor_task_id(vendor: str) -> int:
 
 
 def _get(
-    files: Dict[Tuple[int, str], DeletionWorkflowFile],
+    files: Dict[Tuple[int, str], AnalysisProjectFile],
     task_id: int,
     slot: str,
-) -> Optional[DeletionWorkflowFile]:
+) -> Optional[AnalysisProjectFile]:
     return files.get((task_id, slot))
 
 
 def _require(
-    files: Dict[Tuple[int, str], DeletionWorkflowFile],
+    files: Dict[Tuple[int, str], AnalysisProjectFile],
     task_id: int,
     slot: str,
     label: str,
-) -> DeletionWorkflowFile:
+) -> AnalysisProjectFile:
     f = _get(files, task_id, slot)
     if f is None:
         raise MissingInputError(f"필수 파일 없음: Task {task_id} / {slot} ({label})")
@@ -68,7 +68,7 @@ def _require(
 
 def resolve_inputs(
     task_id: int,
-    project_files: Dict[Tuple[int, str], DeletionWorkflowFile],
+    project_files: Dict[Tuple[int, str], AnalysisProjectFile],
     vendor: str,
 ) -> List[Tuple[bytes, str]]:
     """
@@ -76,7 +76,7 @@ def resolve_inputs(
 
     Args:
         task_id: 실행할 태스크 번호 (0-18 순번)
-        project_files: {(task_id, slot): DeletionWorkflowFile}
+        project_files: {(task_id, slot): AnalysisProjectFile}
         vendor: 장비 벤더
 
     Returns:

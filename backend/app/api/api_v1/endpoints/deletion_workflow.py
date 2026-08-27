@@ -62,7 +62,7 @@ async def _schedule_pipeline_task(
             device_id=device_id,
             task_type=AnalysisTaskType.DELETION_WORKFLOW,
             pipeline_task_id=pipeline_task_id,
-            deletion_workflow_project_id=project_id,
+            analysis_project_id=project_id,
             created_at=_kst_now(),
             requested_by_user_id=current_user.id,
             requested_by_username=current_user.username,
@@ -227,167 +227,6 @@ async def extract_device_data(
     return _xlsx_response(content, filename)
 
 
-@router.get("/projects")
-async def list_projects(
-    device_id: int = None,
-    db: AsyncSession = Depends(get_db),
-):
-    """프로젝트 목록 조회."""
-    from app.crud import crud_deletion_workflow as dwcrud
-    projects = await dwcrud.list_projects(db, device_id=device_id)
-
-    # device 정보 조인 (lazy load 대신 별도 조회)
-    result = []
-    for p in projects:
-        device = await crud.device.get_device(db=db, device_id=p.device_id)
-        result.append({
-            "id": p.id,
-            "device_id": p.device_id,
-            "device_name": device.name if device else str(p.device_id),
-            "device_ip": device.ip_address if device else "",
-            "name": p.name,
-            "status": p.status,
-            "memo": p.memo,
-            "reference_date": p.reference_date.isoformat() if p.reference_date else None,
-            "created_at": p.created_at.isoformat() if p.created_at else None,
-            "updated_at": p.updated_at.isoformat() if p.updated_at else None,
-        })
-    return result
-
-
-@router.post("/projects")
-async def create_project(
-    device_id: int = Form(...),
-    name: str = Form(...),
-    memo: str = Form(default=""),
-    reference_date: str = Form(default=""),
-    db: AsyncSession = Depends(get_db),
-):
-    """새 프로젝트 생성."""
-    from app.crud import crud_deletion_workflow as dwcrud
-    device = await crud.device.get_device(db=db, device_id=device_id)
-    if not device:
-        raise HTTPException(status_code=404, detail=f"장비 ID {device_id}를 찾을 수 없습니다.")
-
-    parsed_ref_date = None
-    if reference_date:
-        try:
-            parsed_ref_date = datetime.date.fromisoformat(reference_date)
-        except ValueError:
-            raise HTTPException(status_code=400, detail=f"잘못된 날짜 형식: {reference_date} (YYYY-MM-DD 형식 사용)")
-
-    project = await dwcrud.create_project(db, device_id=device_id, name=name, memo=memo or None, reference_date=parsed_ref_date)
-    await db.commit()
-    return {
-        "id": project.id,
-        "device_id": project.device_id,
-        "name": project.name,
-        "status": project.status,
-        "memo": project.memo,
-        "reference_date": project.reference_date.isoformat() if project.reference_date else None,
-        "created_at": project.created_at.isoformat(),
-        "updated_at": project.updated_at.isoformat(),
-    }
-
-
-@router.get("/projects/{project_id}")
-async def get_project(
-    project_id: int,
-    db: AsyncSession = Depends(get_db),
-):
-    """프로젝트 상세 조회 (태스크 파일 상태 포함)."""
-    from app.crud import crud_deletion_workflow as dwcrud
-    project = await dwcrud.get_project(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
-
-    device = await crud.device.get_device(db=db, device_id=project.device_id)
-    files_map = await dwcrud.get_project_files(db, project_id)
-
-    # 파일 상태 목록: task_id, slot, filename, created_at
-    file_states = [
-        {
-            "task_id": k[0],
-            "slot": k[1],
-            "filename": f.filename,
-            "created_at": f.created_at.isoformat() if f.created_at else None,
-        }
-        for k, f in sorted(files_map.items())
-    ]
-
-    return {
-        "id": project.id,
-        "device_id": project.device_id,
-        "device_name": device.name if device else str(project.device_id),
-        "device_ip": device.ip_address if device else "",
-        "device_vendor": device.vendor if device else "",
-        "name": project.name,
-        "status": project.status,
-        "memo": project.memo,
-        "reference_date": project.reference_date.isoformat() if project.reference_date else None,
-        "created_at": project.created_at.isoformat() if project.created_at else None,
-        "updated_at": project.updated_at.isoformat() if project.updated_at else None,
-        "files": file_states,
-    }
-
-
-@router.delete("/projects/{project_id}")
-async def delete_project(
-    project_id: int,
-    db: AsyncSession = Depends(get_db),
-):
-    """프로젝트 삭제 (files cascade)."""
-    from app.crud import crud_deletion_workflow as dwcrud
-    project = await dwcrud.get_project(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
-    await dwcrud.delete_project(db, project_id)
-    await db.commit()
-    return {"ok": True}
-
-
-@router.patch("/projects/{project_id}")
-async def update_project(
-    project_id: int,
-    memo: Optional[str] = Form(default=None),
-    reference_date: Optional[str] = Form(default=None),
-    clear_reference_date: bool = Form(default=False),
-    db: AsyncSession = Depends(get_db),
-):
-    """프로젝트 메모 또는 기준일을 수정합니다.
-
-    - **memo**: 변경할 메모 (미전달 시 유지)
-    - **reference_date**: 기준일 YYYY-MM-DD 형식 (미전달 시 유지)
-    - **clear_reference_date**: true 전달 시 기준일을 초기화 (현재 날짜 기준으로 복원)
-    """
-    from app.crud import crud_deletion_workflow as dwcrud
-
-    project = await dwcrud.get_project(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
-
-    kwargs = {}
-    if memo is not None:
-        kwargs["memo"] = memo
-
-    if clear_reference_date:
-        kwargs["reference_date"] = None
-    elif reference_date is not None:
-        try:
-            kwargs["reference_date"] = datetime.date.fromisoformat(reference_date)
-        except ValueError:
-            raise HTTPException(status_code=400, detail=f"잘못된 날짜 형식: {reference_date} (YYYY-MM-DD 형식 사용)")
-
-    await dwcrud.update_project(db, project, **kwargs)
-    await db.commit()
-    return {
-        "id": project.id,
-        "memo": project.memo,
-        "reference_date": project.reference_date.isoformat() if project.reference_date else None,
-        "updated_at": project.updated_at.isoformat() if project.updated_at else None,
-    }
-
-
 @router.post("/projects/{project_id}/extract")
 async def project_extract(
     project_id: int,
@@ -399,7 +238,7 @@ async def project_extract(
     Task 0: FAT DB에서 데이터를 추출하여 프로젝트에 저장합니다.
     백그라운드로 실행되며, 진행 상태는 GET /analysis/tasks/{analysis_task_id}로 폴링합니다.
     """
-    from app.crud import crud_deletion_workflow as dwcrud
+    from app.crud import crud_analysis_project as dwcrud
     project = await dwcrud.get_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
@@ -431,7 +270,7 @@ async def upload_external_file(
     db: AsyncSession = Depends(get_db),
 ):
     """외부 파일을 프로젝트에 저장합니다 (실행 없음)."""
-    from app.crud import crud_deletion_workflow as dwcrud
+    from app.crud import crud_analysis_project as dwcrud
     project = await dwcrud.get_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
@@ -461,7 +300,7 @@ async def run_project_task(
     외부 파일이 필요한 태스크는 먼저 /upload로 파일을 저장해야 합니다.
     진행 상태는 반환된 analysis_task_id로 GET /analysis/tasks/{id}를 폴링해 확인합니다.
     """
-    from app.crud import crud_deletion_workflow as dwcrud
+    from app.crud import crud_analysis_project as dwcrud
 
     project = await dwcrud.get_project(db, project_id)
     if not project:
@@ -484,60 +323,6 @@ async def run_project_task(
     return {"ok": True, "task_id": task_id, "analysis_task_id": analysis_task_id}
 
 
-@router.get("/projects/{project_id}/tasks")
-async def list_project_pipeline_tasks(
-    project_id: int,
-    db: AsyncSession = Depends(get_db),
-):
-    """프로젝트에 속한 파이프라인 태스크(AnalysisTask) 실행 이력을 조회합니다."""
-    tasks, total = await crud.analysis.list_analysis_tasks_paginated(
-        db, deletion_workflow_project_id=project_id, page=1, page_size=1000,
-    )
-    return {
-        "total": total,
-        "items": [
-            {
-                "id": t.id,
-                "pipeline_task_id": t.pipeline_task_id,
-                "task_status": t.task_status,
-                "created_at": t.created_at.isoformat() if t.created_at else None,
-                "started_at": t.started_at.isoformat() if t.started_at else None,
-                "completed_at": t.completed_at.isoformat() if t.completed_at else None,
-                "error_message": t.error_message,
-                "requested_by_username": t.requested_by_username,
-            }
-            for t in tasks
-        ],
-    }
-
-
-@router.get("/projects/{project_id}/tasks/{analysis_task_id}/result")
-async def get_pipeline_task_result(
-    project_id: int,
-    analysis_task_id: int,
-    db: AsyncSession = Depends(get_db),
-):
-    """특정 파이프라인 실행(analysis_task_id)이 저장한 출력 파일 목록을 반환합니다."""
-    from app.crud import crud_deletion_workflow as dwcrud
-
-    task = await crud.analysis.get_analysis_task(db, analysis_task_id)
-    if not task or task.deletion_workflow_project_id != project_id:
-        raise HTTPException(status_code=404, detail="해당 프로젝트의 실행을 찾을 수 없습니다.")
-
-    files_map = await dwcrud.get_project_files(db, project_id)
-    outputs = [
-        {"slot": k[1], "filename": f.filename}
-        for k, f in sorted(files_map.items())
-        if f.analysis_task_id == analysis_task_id
-    ]
-    return {
-        "task_id": task.pipeline_task_id,
-        "task_status": task.task_status,
-        "error_message": task.error_message,
-        "outputs": outputs,
-    }
-
-
 @router.get("/projects/{project_id}/tasks/{task_id}/download")
 async def download_task_file(
     project_id: int,
@@ -546,7 +331,7 @@ async def download_task_file(
     db: AsyncSession = Depends(get_db),
 ):
     """저장된 태스크 파일을 다운로드합니다."""
-    from app.crud import crud_deletion_workflow as dwcrud
+    from app.crud import crud_analysis_project as dwcrud
     f = await dwcrud.get_file(db, project_id=project_id, task_id=task_id, slot=slot)
     if not f:
         raise HTTPException(status_code=404, detail=f"파일을 찾을 수 없습니다: task {task_id} / {slot}")
@@ -572,7 +357,7 @@ async def reset_project_outputs(
     db: AsyncSession = Depends(get_db),
 ):
     """모든 태스크 output 파일 삭제 (external 파일은 유지)."""
-    from app.crud import crud_deletion_workflow as dwcrud
+    from app.crud import crud_analysis_project as dwcrud
     project = await dwcrud.get_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
@@ -587,7 +372,7 @@ async def reset_all_project_files(
     db: AsyncSession = Depends(get_db),
 ):
     """모든 파일 삭제 (output + external) 및 완료 상태 해제."""
-    from app.crud import crud_deletion_workflow as dwcrud
+    from app.crud import crud_analysis_project as dwcrud
     project = await dwcrud.get_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
@@ -609,7 +394,7 @@ async def clear_project_outputs(
     db: AsyncSession = Depends(get_db),
 ):
     """지정한 태스크들의 output 파일 삭제."""
-    from app.crud import crud_deletion_workflow as dwcrud
+    from app.crud import crud_analysis_project as dwcrud
     project = await dwcrud.get_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
@@ -630,7 +415,7 @@ async def complete_project(
     - 중복정책 정리/공지/삭제: Task 15(예외처리 후) 우선, 없으면 Task 14
     - 자동연장예외파일: Task 19 (있으면 포함)
     """
-    from app.crud import crud_deletion_workflow as dwcrud
+    from app.crud import crud_analysis_project as dwcrud
 
     project = await dwcrud.get_project(db, project_id)
     if not project:

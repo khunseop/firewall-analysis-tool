@@ -4,7 +4,7 @@
 app/services/analysis/tasks.py 의 패턴(백그라운드 실행 + AnalysisTask 상태 추적)을
 그대로 따른다. 각 파이프라인 단계(task_id 0~19) 실행 1회가 AnalysisTask
 (task_type=DELETION_WORKFLOW) 1행에 대응하며, 산출된 파일은 기존과 동일하게
-DeletionWorkflowFile에 저장하되 analysis_task_id로 실행을 참조한다.
+AnalysisProjectFile에 저장하되 analysis_task_id로 실행을 참조한다.
 
 analysis 6종과 달리 AnalysisTask(PENDING) 생성은 API 엔드포인트에서 동기적으로
 수행한다 — 프론트가 백그라운드 스케줄 직후 즉시 analysis_task_id를 받아 폴링을
@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud
 from app.core.executors import IO_EXECUTOR
-from app.crud import crud_deletion_workflow as dwcrud
+from app.crud import crud_analysis_project as dwcrud
 from app.db.session import SessionLocal
 from app.schemas.analysis import AnalysisTaskUpdate
 from app.services.audit_log import log_activity
@@ -93,7 +93,7 @@ async def _run_pipeline_task(
     1. 프로젝트 락을 획득합니다(엔드포인트의 DB 조회 기반 사전 체크에 이은 2차 방어선).
     2. 이미 생성된 AnalysisTask(PENDING)를 'in_progress'로 변경합니다.
     3. Task 0/3은 DB→Excel 변환, 그 외 태스크는 WorkspaceRunner로 레거시 프로세서를 실행합니다.
-    4. 산출 파일을 DeletionWorkflowFile로 저장(analysis_task_id 연결)하고 하위 태스크의
+    4. 산출 파일을 AnalysisProjectFile로 저장(analysis_task_id 연결)하고 하위 태스크의
        stale output을 정리합니다.
     5. AnalysisTask 상태를 'success' 또는 'failure'로 업데이트합니다.
     """
