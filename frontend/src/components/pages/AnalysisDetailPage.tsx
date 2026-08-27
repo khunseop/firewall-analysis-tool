@@ -247,11 +247,8 @@ export function AnalysisDetailPage() {
                 exportStyledToExcel(payload).catch((e: Error) => toast.error(e.message))
               }}
               onDownloadScript={
-                device && module?.downloadScript
-                  ? () => {
-                      const script = module.downloadScript!(results, { name: device.name, vendor: device.vendor })
-                      if (script) saveBlob(new Blob([script.content], { type: 'text/plain' }), script.filename)
-                    }
+                downloadScript
+                  ? () => saveBlob(new Blob([downloadScript.content], { type: 'text/plain' }), downloadScript.filename)
                   : undefined
               }
             />
