@@ -11,7 +11,8 @@ import { formatDate } from '@/lib/utils'
 import { queryKeys } from '@/api/queryKeys'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
-import { QUICK_MODULES } from './analysis-modules'
+import { QUICK_MODULES, PROJECT_MODULES } from './analysis-modules'
+import { listAnalysisProjects, type AnalysisProject } from '@/api/analysisProjects'
 
 const ANALYSIS_TYPE_LABELS: Record<string, string> = Object.fromEntries(QUICK_MODULES.map((m) => [m.type, m.label]))
 
@@ -22,9 +23,46 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   failure:     { label: '실패',   cls: 'bg-red-50 text-red-600' },
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CONFIG[status] ?? { label: status, cls: 'bg-gray-100 text-gray-500' }
-  return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cfg.cls}`}>{cfg.label}</span>
+/** 이력 목록의 "전체" 필터에서 quick 실행과 프로젝트를 함께 보여주기 위한 정규화된 행. */
+interface UnifiedHistoryRow {
+  id: string
+  kind: 'quick' | 'project'
+  label: string
+  deviceName: string
+  deviceIp: string
+  statusLabel: string
+  statusCls: string
+  timestamp: string
+  href: string
+  raw: AnalysisTaskListItem | AnalysisProject
+}
+
+const PROJECT_STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
+  draft:     { label: '초안',   cls: 'bg-gray-100 text-gray-600' },
+  running:   { label: '진행중', cls: 'bg-blue-50 text-blue-600' },
+  completed: { label: '완료',   cls: 'bg-emerald-50 text-emerald-600' },
+}
+
+function toUnifiedRow(item: AnalysisTaskListItem | AnalysisProject, kind: 'quick' | 'project'): UnifiedHistoryRow {
+  if (kind === 'quick') {
+    const t = item as AnalysisTaskListItem
+    const cfg = STATUS_CONFIG[t.task_status] ?? { label: t.task_status, cls: 'bg-gray-100 text-gray-500' }
+    return {
+      id: `quick-${t.id}`, kind, label: ANALYSIS_TYPE_LABELS[t.task_type] ?? t.task_type,
+      deviceName: t.device_name, deviceIp: t.device_ip,
+      statusLabel: cfg.label, statusCls: cfg.cls,
+      timestamp: t.created_at, href: `/analysis/${t.id}`, raw: t,
+    }
+  }
+  const p = item as AnalysisProject
+  const cfg = PROJECT_STATUS_CONFIG[p.status] ?? { label: p.status, cls: 'bg-gray-100 text-gray-500' }
+  const module = PROJECT_MODULES.find((m) => m.type === p.module_type)
+  return {
+    id: `project-${p.id}`, kind, label: module?.label ?? p.module_type,
+    deviceName: p.device_name, deviceIp: p.device_ip,
+    statusLabel: cfg.label, statusCls: cfg.cls,
+    timestamp: p.updated_at, href: `/analysis/projects/${p.module_type}/${p.id}`, raw: p,
+  }
 }
 
 function CreateAnalysisDialog({ open, onClose, initialDeviceId }: { open: boolean; onClose: () => void; initialDeviceId?: number | null }) {
@@ -158,19 +196,51 @@ export function AnalysisListPage() {
 
   useEffect(() => { setPage(1) }, [search, typeFilter, statusFilter])
 
-  const { data, isLoading } = useQuery({
-    queryKey: queryKeys.analysisTasksList(search, typeFilter, statusFilter, page),
+  const isProjectFilter = PROJECT_MODULES.some((m) => m.type === typeFilter)
+
+  const quickQuery = useQuery({
+    queryKey: queryKeys.analysisTasksList(search, isProjectFilter ? 'all' : typeFilter, statusFilter, page),
     queryFn: () => listAnalysisTasks({
       search: search || undefined,
-      analysisType: typeFilter === 'all' ? undefined : typeFilter,
+      analysisType: (typeFilter === 'all' || isProjectFilter) ? undefined : typeFilter,
       status: statusFilter === 'all' ? undefined : statusFilter,
       page, pageSize: PAGE_SIZE,
     }),
+    enabled: !isProjectFilter,
     staleTime: 5_000,
   })
 
-  const items = data?.items ?? []
-  const total = data?.total ?? 0
+  const projectQuery = useQuery({
+    queryKey: queryKeys.analysisProjects(isProjectFilter ? typeFilter : 'all'),
+    queryFn: async () => {
+      if (isProjectFilter) return listAnalysisProjects(typeFilter)
+      const all = await Promise.all(PROJECT_MODULES.map((m) => listAnalysisProjects(m.type)))
+      return all.flat()
+    },
+    enabled: typeFilter === 'all' || isProjectFilter,
+    staleTime: 5_000,
+  })
+
+  const isLoading = quickQuery.isLoading || projectQuery.isLoading
+
+  // "전체": quick(현재 페이지분) + 모든 프로젝트를 합쳐 날짜순 정렬 후 클라이언트에서 페이지네이션.
+  // 특정 quick 유형/상태 필터: 기존과 동일하게 백엔드 페이지네이션 그대로 사용.
+  // 특정 프로젝트형 유형: 프로젝트 목록 전체(비페이지네이션, 프로젝트 수가 적어 무해)를 보여준다.
+  const rows: UnifiedHistoryRow[] = (() => {
+    if (isProjectFilter) {
+      return (projectQuery.data ?? []).map((p) => toUnifiedRow(p, 'project'))
+    }
+    if (typeFilter !== 'all') {
+      return (quickQuery.data?.items ?? []).map((t) => toUnifiedRow(t, 'quick'))
+    }
+    const quickRows = (quickQuery.data?.items ?? []).map((t) => toUnifiedRow(t, 'quick'))
+    const projectRows = (projectQuery.data ?? []).map((p) => toUnifiedRow(p, 'project'))
+    return [...quickRows, ...projectRows].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    )
+  })()
+
+  const total = isProjectFilter ? rows.length : (quickQuery.data?.total ?? 0)
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   const deleteMutation = useMutation({
@@ -225,6 +295,7 @@ export function AnalysisListPage() {
           <SelectContent>
             <SelectItem value="all">전체 유형</SelectItem>
             {QUICK_MODULES.map((m) => <SelectItem key={m.type} value={m.type}>{m.label}</SelectItem>)}
+            {PROJECT_MODULES.map((m) => <SelectItem key={m.type} value={m.type}>{m.label}</SelectItem>)}
           </SelectContent>
         </ShadSelect>
         <ShadSelect value={statusFilter} onValueChange={setStatusFilter}>
@@ -243,7 +314,7 @@ export function AnalysisListPage() {
       <div className="card rounded-xl overflow-hidden">
         {isLoading ? (
           <div className="py-16 text-center text-[13px] text-ds-on-surface-variant">로딩 중…</div>
-        ) : items.length === 0 ? (
+        ) : rows.length === 0 ? (
           <EmptyState title="실행된 분석이 없습니다." />
         ) : (
           <table className="w-full text-sm border-collapse">
@@ -259,30 +330,34 @@ export function AnalysisListPage() {
               </tr>
             </thead>
             <tbody>
-              {items.map((t: AnalysisTaskListItem) => (
+              {rows.map((row) => (
                 <tr
-                  key={t.id}
-                  onClick={() => navigate(`/analysis/${t.id}`)}
+                  key={row.id}
+                  onClick={() => navigate(row.href)}
                   className="border-b border-ds-outline-variant/10 hover:bg-black/[0.02] cursor-pointer"
                 >
-                  <td className="py-2.5 px-4 text-ds-on-surface-variant text-xs">{t.id}</td>
+                  <td className="py-2.5 px-4 text-ds-on-surface-variant text-xs">{row.raw.id}</td>
                   <td className="py-2.5 px-4">
-                    <div className="font-medium text-ds-on-surface text-[13px]">{t.device_name}</div>
-                    <div className="text-[11px] text-ds-on-surface-variant">{t.device_ip}</div>
+                    <div className="font-medium text-ds-on-surface text-[13px]">{row.deviceName}</div>
+                    <div className="text-[11px] text-ds-on-surface-variant">{row.deviceIp}</div>
                   </td>
-                  <td className="py-2.5 px-4 text-[13px] text-ds-on-surface">{ANALYSIS_TYPE_LABELS[t.task_type] ?? t.task_type}</td>
-                  <td className="py-2.5 px-4"><StatusBadge status={t.task_status} /></td>
-                  <td className="py-2.5 px-4 text-ds-on-surface-variant text-xs">{formatDate(t.created_at)}</td>
-                  <td className="py-2.5 px-4 text-ds-on-surface-variant text-xs">{t.completed_at ? formatDate(t.completed_at) : '-'}</td>
+                  <td className="py-2.5 px-4 text-[13px] text-ds-on-surface">{row.label}</td>
+                  <td className="py-2.5 px-4"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${row.statusCls}`}>{row.statusLabel}</span></td>
+                  <td className="py-2.5 px-4 text-ds-on-surface-variant text-xs">{formatDate(row.timestamp)}</td>
+                  <td className="py-2.5 px-4 text-ds-on-surface-variant text-xs">
+                    {row.kind === 'quick' && (row.raw as AnalysisTaskListItem).completed_at ? formatDate((row.raw as AnalysisTaskListItem).completed_at!) : '-'}
+                  </td>
                   <td className="py-2.5 px-4">
-                    <button
-                      onClick={(e) => handleDelete(e, t)}
-                      disabled={t.task_status === 'in_progress'}
-                      className="p-1 rounded text-ds-on-surface-variant/60 hover:text-ds-error hover:bg-ds-error/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                      title="삭제"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {row.kind === 'quick' && (
+                      <button
+                        onClick={(e) => handleDelete(e, row.raw as AnalysisTaskListItem)}
+                        disabled={(row.raw as AnalysisTaskListItem).task_status === 'in_progress'}
+                        className="p-1 rounded text-ds-on-surface-variant/60 hover:text-ds-error hover:bg-ds-error/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        title="삭제"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -292,7 +367,7 @@ export function AnalysisListPage() {
       </div>
 
       {/* 페이지네이션 */}
-      {total > 0 && (
+      {total > 0 && !isProjectFilter && typeFilter !== 'all' && (
         <div className="flex items-center justify-center gap-3">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
