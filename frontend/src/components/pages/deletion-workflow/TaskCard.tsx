@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Play, Download, CheckCircle2, Loader2, RefreshCw } from 'lucide-react'
-import { runProjectTask, uploadExternalFile, downloadTaskFile, type ProjectFileState } from '@/api/deletionWorkflow'
+import { runProjectTask, getPipelineTaskResult, waitForPipelineTask, uploadExternalFile, downloadTaskFile, type ProjectFileState } from '@/api/deletionWorkflow'
 import { triggerDownload, getOutputFiles, getExternalFile, formatElapsed, type TaskMeta } from './taskMeta'
 import { ExternalFileUpload } from './ExternalFileUpload'
 
@@ -59,7 +59,12 @@ export function TaskCard({
       if (isRerun && onWillRerun) {
         await onWillRerun(task.id)
       }
-      const res = await runProjectTask(projectId, task.id)
+      const runResp = await runProjectTask(projectId, task.id)
+      const polled = await waitForPipelineTask(runResp.analysis_task_id)
+      if (polled.task_status === 'failure') {
+        throw new Error(polled.error_message || `${task.name} 실행 실패`)
+      }
+      const res = await getPipelineTaskResult(projectId, runResp.analysis_task_id)
       setManualCompletedMs(Date.now() - startMs)
       toast.success(`${task.name} 완료 (출력 ${res.outputs.length}개)`)
       // refetch를 기다리지 않고 즉시 캐시에 반영 — 진행률 바가 바로 갱신되도록

@@ -72,7 +72,7 @@ ORM Models     (backend/app/models/)  ──►  SQLite fat.db (via Alembic)
 | 정책 인덱서 | `app/services/policy_indexer.py` | DFS 기반 그룹 재귀 확장(Resolver), IP/포트를 숫자 범위로 변환, bulk 인덱싱 |
 | 범위 기반 검색 | `app/crud/crud_policy.py` | `policy_address_members` / `policy_service_members` overlap SQL 쿼리 |
 | 분석 엔진 | `app/services/analysis/` | 6개 비동기 엔진 (`redundancy`, `unused`, `impact`, `unreferenced_objects`, `risky_ports`, `over_permissive`). 백그라운드 태스크는 자체 `SessionLocal()` 세션을 열고, CPU 비교 연산은 `CPU_EXECUTOR`에서 실행. `analysistasks` 테이블로 진행률 추적, 결과는 JSON 저장 |
-| 삭제 워크플로우 | `app/services/deletion_workflow/` | Config 기반 프로세서 파이프라인. DB→Excel 변환은 `export_service.py`, 설정 연동은 `config_bridge.py`, 태스크 메타는 `task_meta.py` |
+| 삭제 워크플로우 | `app/services/deletion_workflow/` | Config 기반 프로세서 파이프라인. 실행 오케스트레이션(`tasks.py`)은 analysis 서브시스템에 흡수되어 있어 각 파이프라인 단계 실행이 `AnalysisTask`(백그라운드 실행 + 상태 폴링) 1행에 대응한다. DB→Excel 변환은 `export_service.py`, 설정 연동은 `config_bridge.py`, 태스크 메타는 `task_meta.py` |
 | 정책 빌더 (PolicyBuilder) | `app/services/policy_builder/` | Policies 페이지 **편집모드**(별도 페이지 아님)의 생성/수정/삭제/이동을 CLI 텍스트로 변환. `object_gap.py`(부족 오브젝트 감지) → `cli_generator.py`(PAN-OS `set`/`delete`/`move` 텍스트 생성) → `virtual_policy.py`/`insertion_analyzer.py`(가상 정책 삽입·기존 정책 재배치 충돌 검증). 편집모드에서 만든 변경사항은 `pending_policy_changes` 테이블에 **영속 저장**되지만(새로고침 유지), 실제 `policies` 테이블이나 장비에는 **전혀 반영하지 않음** — 최종 CLI는 `/policy-builder/{device_id}/plan`이 대기중 변경사항을 모아 생성하고 사용자가 직접 실행. Palo Alto 전용. 오버랩 판정은 `app/services/analysis/policy_overlap.py`(impact 분석과 공유). 빈 필드 기본값은 Settings(`policy_builder_defaults` key) |
 | 공용 CRUD | `app/crud/base.py` | 장비 스코프 객체(NetworkObject/Group, Service/Group) 4종의 공통 CRUD 제네릭. 각 `crud_*` 모듈은 얇은 래퍼 |
 | 전용 스레드 풀 | `app/core/executors.py` | `IO_EXECUTOR`(수집 SSH/API, 8) / `CPU_EXECUTOR`(분석 연산, 2) — 기본 풀 공유로 인한 상호 굶김 방지 |
@@ -126,6 +126,7 @@ ORM Models     (backend/app/models/)  ──►  SQLite fat.db (via Alembic)
 
 - **새 벤더 추가**: `app/services/firewall/` 내 `FirewallInterface`를 상속 구현 후 Factory에 등록.
 - **새 분석 엔진 추가**: `app/services/analysis/`에 추가. `AnalysisTask`로 상태를 관리하고 결과를 JSON으로 저장.
+  - 예외: `deletion_workflow`(정책 삭제 워크플로우)는 파이프라인형이라 `AnalysisTask.pipeline_task_id`(0~19 단계 번호)와 `deletion_workflow_project_id`(여러 실행을 묶는 프로젝트)를 추가로 쓰고, 결과는 JSON이 아니라 `DeletionWorkflowFile`(Excel 바이너리, `analysis_task_id`로 실행을 참조)에 저장한다. 오케스트레이션은 `app/services/deletion_workflow/tasks.py`.
 
 ## 블라스트 레이디어스 주의 (수정 파급 범위)
 
@@ -137,5 +138,6 @@ ORM Models     (backend/app/models/)  ──►  SQLite fat.db (via Alembic)
 - `backend/app/services/sync/tasks.py`의 `run_sync_all_orchestrator` — 전체 동기화 파이프라인의 오케스트레이터. 여기 로직 변경은 모든 벤더의 동기화 흐름에 영향.
 - `backend/app/services/analysis/policy_overlap.py` — 정책 간 조건 중첩 판정 순수 함수 모음. `analysis/impact.py`(기존 정책 이동 영향분석)와 `policy_builder/insertion_analyzer.py`(신규 정책 삽입 검증)가 공유. 판정 로직 변경 시 두 기능 모두 재검증할 것.
 - `backend/app/services/policy_builder/member_resolver.py`의 `compute_policy_member_rows` — `policy_indexer.rebuild_policy_indices`(동기화 시 실제 인덱스 생성)와 `policy_builder`의 가상 정책 멤버 계산이 공유하는 순수 함수. 여기를 바꾸면 실제 DB 인덱싱 결과와 가상 정책 분석 결과가 동시에 달라짐.
+- `backend/app/crud/crud_analysis.py`(`AnalysisTask`/`AnalysisResult` CRUD) — 분석 6종 엔진에 더해 `deletion_workflow`(파이프라인 실행)도 이 모듈에 의존. `AnalysisTask` 필드나 조회 함수 시그니처 변경 시 두 서브시스템 모두 확인할 것.
 
 큰 이관/리팩토링 직후에는 diff를 다시 검토해 로직이 누락되지 않았는지 확인할 것(예: 과거 FPAT 이관 작업 중 예외처리·신청유형 제한 로직이 유실되었다가 나중에 복원된 사례 있음).

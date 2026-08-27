@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Tuple, Union
 from sqlalchemy import select, delete, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.analysis import AnalysisTask
 from app.models.deletion_workflow import DeletionWorkflowFile, DeletionWorkflowProject
 
 
@@ -50,9 +51,12 @@ async def get_project(db: AsyncSession, project_id: int) -> Optional[DeletionWor
 
 async def delete_project(db: AsyncSession, project_id: int) -> None:
     # SQLite FK 강제가 꺼져 있고 Core delete는 ORM cascade를 타지 않으므로
-    # 파일을 명시적으로 먼저 삭제한다 (고아 행 방지)
+    # 파일과 연관 AnalysisTask(파이프라인 실행 이력)를 명시적으로 먼저 삭제한다 (고아 행 방지)
     await db.execute(
         delete(DeletionWorkflowFile).where(DeletionWorkflowFile.project_id == project_id)
+    )
+    await db.execute(
+        delete(AnalysisTask).where(AnalysisTask.deletion_workflow_project_id == project_id)
     )
     await db.execute(
         delete(DeletionWorkflowProject).where(DeletionWorkflowProject.id == project_id)
@@ -65,33 +69,6 @@ async def update_project_status(
     status: str,
 ) -> DeletionWorkflowProject:
     project.status = status
-    project.updated_at = datetime.datetime.utcnow()
-    await db.flush()
-    return project
-
-
-async def set_project_running(
-    db: AsyncSession,
-    project: DeletionWorkflowProject,
-    task_id: int,
-    user_id: Optional[int],
-    username: Optional[str],
-) -> DeletionWorkflowProject:
-    project.running_task_id = task_id
-    project.running_by_user_id = user_id
-    project.running_by_username = username
-    project.updated_at = datetime.datetime.utcnow()
-    await db.flush()
-    return project
-
-
-async def clear_project_running(
-    db: AsyncSession,
-    project: DeletionWorkflowProject,
-) -> DeletionWorkflowProject:
-    project.running_task_id = None
-    project.running_by_user_id = None
-    project.running_by_username = None
     project.updated_at = datetime.datetime.utcnow()
     await db.flush()
     return project
@@ -123,6 +100,7 @@ async def upsert_file(
     slot: str,
     filename: str,
     data: bytes,
+    analysis_task_id: Optional[int] = None,
 ) -> DeletionWorkflowFile:
     result = await db.execute(
         select(DeletionWorkflowFile).where(
@@ -136,6 +114,7 @@ async def upsert_file(
         existing.filename = filename
         existing.file_data = data
         existing.created_at = datetime.datetime.utcnow()
+        existing.analysis_task_id = analysis_task_id
         await db.flush()
         return existing
     else:
@@ -146,6 +125,7 @@ async def upsert_file(
             filename=filename,
             file_data=data,
             created_at=datetime.datetime.utcnow(),
+            analysis_task_id=analysis_task_id,
         )
         db.add(f)
         await db.flush()

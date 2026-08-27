@@ -13,29 +13,66 @@ import io
 import logging
 import zipfile
 import datetime
+from zoneinfo import ZoneInfo
 from urllib.parse import quote
 from typing import List, Optional, Tuple
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
+from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form, Depends
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user
 from app.db.session import get_db
+from app.models.analysis import AnalysisTaskType
 from app.models.user import User
 from app import crud
+from app.schemas.analysis import AnalysisTaskCreate
 from app.services.deletion_workflow.core.workspace_runner import WorkspaceRunner
 from app.services.deletion_workflow.task_meta import TASK_META, fpat_yaml_path
+from app.services.deletion_workflow.tasks import run_pipeline_task
 from app.services.deletion_workflow.export_service import (
     ExportDataError,
     build_device_export,
     build_redundancy_export,
 )
-from app.services.deletion_workflow.config_bridge import (
-    load_config_dict,
-    save_task15_exceptions_to_settings,
-)
+from app.services.deletion_workflow.config_bridge import load_config_dict
+
+
+def _kst_now() -> datetime.datetime:
+    return datetime.datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
+
+
+async def _schedule_pipeline_task(
+    db: AsyncSession,
+    background_tasks: BackgroundTasks,
+    project_id: int,
+    device_id: int,
+    pipeline_task_id: int,
+    current_user: User,
+) -> int:
+    """AnalysisTask(PENDING) 행을 동기적으로 생성하고 백그라운드 실행을 예약합니다.
+
+    프론트가 즉시 analysis_task_id를 받아 폴링을 시작해야 하므로, PENDING 생성만
+    엔드포인트에서 동기 처리하고 실제 실행은 run_pipeline_task로 위임한다.
+    """
+    task = await crud.analysis.create_analysis_task(
+        db,
+        obj_in=AnalysisTaskCreate(
+            device_id=device_id,
+            task_type=AnalysisTaskType.DELETION_WORKFLOW,
+            pipeline_task_id=pipeline_task_id,
+            deletion_workflow_project_id=project_id,
+            created_at=_kst_now(),
+            requested_by_user_id=current_user.id,
+            requested_by_username=current_user.username,
+        ),
+    )
+    background_tasks.add_task(
+        run_pipeline_task, task.id, project_id, pipeline_task_id,
+        current_user.id, current_user.username,
+    )
+    return task.id
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -354,45 +391,35 @@ async def update_project(
 @router.post("/projects/{project_id}/extract")
 async def project_extract(
     project_id: int,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
     Task 0: FAT DB에서 데이터를 추출하여 프로젝트에 저장합니다.
-    기존 /extract 와 동일한 로직이지만 결과를 DB에 저장합니다.
+    백그라운드로 실행되며, 진행 상태는 GET /analysis/tasks/{analysis_task_id}로 폴링합니다.
     """
     from app.crud import crud_deletion_workflow as dwcrud
     project = await dwcrud.get_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
 
-    if project.running_task_id is not None:
+    running = await crud.analysis.get_running_analysis_task_by_project(db, project_id)
+    if running:
         raise HTTPException(
             status_code=409,
-            detail=f"이미 {project.running_by_username}님이 태스크 {project.running_task_id}를 실행 중입니다.",
+            detail=f"이미 {running.requested_by_username}님이 태스크 {running.pipeline_task_id}를 실행 중입니다.",
         )
 
     device = await crud.device.get_device(db=db, device_id=project.device_id)
     if not device:
         raise HTTPException(status_code=404, detail="장비를 찾을 수 없습니다.")
 
-    await dwcrud.set_project_running(db, project, task_id=0, user_id=current_user.id, username=current_user.username)
+    analysis_task_id = await _schedule_pipeline_task(
+        db, background_tasks, project_id, project.device_id, 0, current_user,
+    )
     await db.commit()
-
-    try:
-        try:
-            content, filename = await build_device_export(db, device, reference_date=project.reference_date)
-        except ExportDataError as e:
-            raise HTTPException(status_code=404, detail=str(e))
-
-        await dwcrud.upsert_file(db, project_id=project_id, task_id=0, slot="output_0",
-                                 filename=filename, data=content)
-        await dwcrud.update_project_status(db, project, "running")
-        await db.commit()
-        return {"ok": True, "filename": filename, "task_id": 0, "slot": "output_0"}
-    finally:
-        await dwcrud.clear_project_running(db, project)
-        await db.commit()
+    return {"ok": True, "task_id": 0, "analysis_task_id": analysis_task_id}
 
 
 @router.post("/projects/{project_id}/tasks/{task_id}/upload")
@@ -424,148 +451,91 @@ async def upload_external_file(
 async def run_project_task(
     project_id: int,
     task_id: int,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
-    프로젝트 내에서 태스크를 실행합니다.
+    프로젝트 내에서 태스크를 백그라운드로 실행합니다.
     입력 파일은 프로젝트 파일에서 자동으로 resolve됩니다.
     외부 파일이 필요한 태스크는 먼저 /upload로 파일을 저장해야 합니다.
+    진행 상태는 반환된 analysis_task_id로 GET /analysis/tasks/{id}를 폴링해 확인합니다.
     """
     from app.crud import crud_deletion_workflow as dwcrud
-    from app.services.deletion_workflow.core.input_resolver import (
-        resolve_inputs, MissingInputError, get_vendor_task_id, get_downstream_tasks,
-    )
 
     project = await dwcrud.get_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
 
-    if project.running_task_id is not None:
+    if task_id != 3 and task_id not in TASK_META:
+        raise HTTPException(status_code=400, detail=f"유효하지 않은 태스크 번호: {task_id}")
+
+    running = await crud.analysis.get_running_analysis_task_by_project(db, project_id)
+    if running:
         raise HTTPException(
             status_code=409,
-            detail=f"이미 {project.running_by_username}님이 태스크 {project.running_task_id}를 실행 중입니다.",
+            detail=f"이미 {running.requested_by_username}님이 태스크 {running.pipeline_task_id}를 실행 중입니다.",
         )
 
-    device = await crud.device.get_device(db=db, device_id=project.device_id)
-    vendor = device.vendor if device else ""
-
-    await dwcrud.set_project_running(db, project, task_id=task_id, user_id=current_user.id, username=current_user.username)
+    analysis_task_id = await _schedule_pipeline_task(
+        db, background_tasks, project_id, project.device_id, task_id, current_user,
+    )
     await db.commit()
-
-    try:
-        # ── Task 3: FAT DB 중복분석 → project file 자동 저장 ──────────────────
-        if task_id == 3:
-            return await _run_task3_from_db(project_id, project, device, db, dwcrud)
-
-        if task_id not in TASK_META:
-            raise HTTPException(status_code=400, detail=f"유효하지 않은 태스크 번호: {task_id}")
-
-        # Task 10/11 자동 선택: 벤더에 따라 실제 실행할 task_id 결정
-        effective_task_id = task_id
-        if task_id in (10, 11):
-            effective_task_id = get_vendor_task_id(vendor)
-
-        files_map = await dwcrud.get_project_files(db, project_id)
-
-        try:
-            input_files = resolve_inputs(effective_task_id, files_map, vendor)
-        except MissingInputError as e:
-            raise HTTPException(status_code=422, detail=str(e))
-
-        contents = [data for data, _ in input_files]
-        filenames = [name for _, name in input_files]
-
-        extra_kwargs = {}
-        if effective_task_id == 10:
-            extra_kwargs["vendor"] = "paloalto"
-        elif effective_task_id == 11:
-            extra_kwargs["vendor"] = "secui"
-        elif effective_task_id == 17:
-            extra_kwargs["device_id"] = project.device_id
-        if effective_task_id in (14, 18, 19):
-            extra_kwargs["project_name"] = project.name
-
-        loop = asyncio.get_event_loop()
-        config_dict = await load_config_dict(db)
-        runner = WorkspaceRunner(config_dict=config_dict, reference_date=project.reference_date)
-
-        try:
-            output_files = await loop.run_in_executor(
-                None,
-                lambda: runner.run_task(effective_task_id, contents, filenames, **extra_kwargs)
-            )
-        except (ValueError, RuntimeError) as e:
-            raise HTTPException(status_code=500, detail=str(e))
-        except Exception as e:
-            logger.exception(f"Project {project_id} Task {effective_task_id} 실행 오류: {e}")
-            raise HTTPException(status_code=500, detail=f"태스크 실행 실패: {str(e)}")
-
-        if not output_files:
-            raise HTTPException(status_code=500, detail="태스크 실행 완료됐으나 출력 파일이 없습니다.")
-
-        # Task 15 완료 시 미사용예외를 Settings duplicate_policies에 누적 저장
-        if effective_task_id == 15:
-            unused_threshold_days = config_dict.get("analysis_criteria", {}).get("unused_threshold_days", 90)
-            await save_task15_exceptions_to_settings(
-                db, project.device_id, output_files,
-                reference_date=project.reference_date,
-                unused_threshold_days=unused_threshold_days,
-            )
-
-        # 출력 파일을 프로젝트에 저장 (output_0, output_1, ...) — .yaml은 제외
-        saved = []
-        for idx, (fname, data) in enumerate(
-            [(f, d) for f, d in output_files if not f.endswith('.yaml')]
-        ):
-            slot = f"output_{idx}"
-            await dwcrud.upsert_file(db, project_id=project_id, task_id=effective_task_id,
-                                     slot=slot, filename=fname, data=data)
-            saved.append({"slot": slot, "filename": fname})
-
-        # 재실행으로 이 태스크의 출력이 갱신되었으므로, 이를 입력으로 삼던
-        # 하위 태스크들의 기존 output은 stale해진다. 남겨두면 이후 하위 태스크가
-        # 최신이 아닌 과거 결과를 그대로 사용하게 되므로 함께 삭제해 재실행을 강제한다.
-        downstream = get_downstream_tasks(effective_task_id)
-        if downstream:
-            await dwcrud.clear_output_files(db, project_id, task_ids=downstream)
-
-        # 완료된 프로젝트에서 중간 태스크를 재실행하면 결과가 갱신되므로
-        # 완료 상태를 해제해 다시 완료 처리(결과 저장)할 수 있게 한다.
-        if project.status == "completed":
-            await dwcrud.update_project_status(db, project, "running")
-
-        await db.commit()
-        return {"ok": True, "task_id": effective_task_id, "outputs": saved}
-    finally:
-        await dwcrud.clear_project_running(db, project)
-        await db.commit()
+    return {"ok": True, "task_id": task_id, "analysis_task_id": analysis_task_id}
 
 
-async def _run_task3_from_db(project_id, project, device, db, dwcrud):
-    """Task 3 (중복정책분석): FAT DB 중복분석 결과를 Excel로 변환하여 project file 저장."""
-    from app.services.deletion_workflow.core.input_resolver import get_downstream_tasks
+@router.get("/projects/{project_id}/tasks")
+async def list_project_pipeline_tasks(
+    project_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """프로젝트에 속한 파이프라인 태스크(AnalysisTask) 실행 이력을 조회합니다."""
+    tasks, total = await crud.analysis.list_analysis_tasks_paginated(
+        db, deletion_workflow_project_id=project_id, page=1, page_size=1000,
+    )
+    return {
+        "total": total,
+        "items": [
+            {
+                "id": t.id,
+                "pipeline_task_id": t.pipeline_task_id,
+                "task_status": t.task_status,
+                "created_at": t.created_at.isoformat() if t.created_at else None,
+                "started_at": t.started_at.isoformat() if t.started_at else None,
+                "completed_at": t.completed_at.isoformat() if t.completed_at else None,
+                "error_message": t.error_message,
+                "requested_by_username": t.requested_by_username,
+            }
+            for t in tasks
+        ],
+    }
 
-    try:
-        content, filename = await build_redundancy_export(
-            db, project.device_id, device, reference_date=project.reference_date)
-    except ExportDataError as e:
-        raise HTTPException(status_code=404, detail=str(e))
 
-    await dwcrud.upsert_file(db, project_id=project_id, task_id=3, slot="output_0",
-                             filename=filename, data=content)
+@router.get("/projects/{project_id}/tasks/{analysis_task_id}/result")
+async def get_pipeline_task_result(
+    project_id: int,
+    analysis_task_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """특정 파이프라인 실행(analysis_task_id)이 저장한 출력 파일 목록을 반환합니다."""
+    from app.crud import crud_deletion_workflow as dwcrud
 
-    downstream = get_downstream_tasks(3)
-    if downstream:
-        await dwcrud.clear_output_files(db, project_id, task_ids=downstream)
+    task = await crud.analysis.get_analysis_task(db, analysis_task_id)
+    if not task or task.deletion_workflow_project_id != project_id:
+        raise HTTPException(status_code=404, detail="해당 프로젝트의 실행을 찾을 수 없습니다.")
 
-    # 완료된 프로젝트에서 중간 태스크를 재실행하면 결과가 갱신되므로
-    # 완료 상태를 해제해 다시 완료 처리(결과 저장)할 수 있게 한다.
-    if project.status == "completed":
-        await dwcrud.update_project_status(db, project, "running")
-
-    await db.commit()
-    return {"ok": True, "task_id": 3, "outputs": [{"slot": "output_0", "filename": filename}]}
+    files_map = await dwcrud.get_project_files(db, project_id)
+    outputs = [
+        {"slot": k[1], "filename": f.filename}
+        for k, f in sorted(files_map.items())
+        if f.analysis_task_id == analysis_task_id
+    ]
+    return {
+        "task_id": task.pipeline_task_id,
+        "task_status": task.task_status,
+        "error_message": task.error_message,
+        "outputs": outputs,
+    }
 
 
 @router.get("/projects/{project_id}/tasks/{task_id}/download")

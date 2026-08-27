@@ -1,5 +1,6 @@
 import { apiClient } from './client'
 import { useAuthStore } from '@/store/authStore'
+import { getAnalysisTaskDetail, type AnalysisTask } from './analysis'
 
 // ── 프로젝트 타입 ───────────────────────────────────────────────────────────
 
@@ -33,9 +34,18 @@ export interface ProjectTaskOutput {
   filename: string
 }
 
-export interface ProjectTaskResult {
+/** POST .../extract, .../tasks/{id}/run 응답 — 실행은 백그라운드로 예약되고
+ * 진행 상태는 analysis_task_id로 GET /analysis/tasks/{id}를 폴링해 확인한다. */
+export interface ProjectTaskRunResponse {
   ok: boolean
   task_id: number
+  analysis_task_id: number
+}
+
+export interface ProjectPipelineTaskResult {
+  task_id: number
+  task_status: string
+  error_message: string | null
   outputs: ProjectTaskOutput[]
 }
 
@@ -180,7 +190,7 @@ export const deleteProject = async (id: number): Promise<void> => {
 
 // ── 프로젝트 태스크 실행 ────────────────────────────────────────────────────
 
-export const runProjectExtract = async (projectId: number): Promise<{ ok: boolean; filename: string }> => {
+export const runProjectExtract = async (projectId: number): Promise<ProjectTaskRunResponse> => {
   const token = useAuthStore.getState().token
   const res = await fetch(`/api/v1/deletion-workflow/projects/${projectId}/extract`, {
     method: 'POST',
@@ -196,7 +206,7 @@ export const runProjectExtract = async (projectId: number): Promise<{ ok: boolea
 export const runProjectTask = async (
   projectId: number,
   taskId: number,
-): Promise<ProjectTaskResult> => {
+): Promise<ProjectTaskRunResponse> => {
   const token = useAuthStore.getState().token
   const res = await fetch(`/api/v1/deletion-workflow/projects/${projectId}/tasks/${taskId}/run`, {
     method: 'POST',
@@ -207,6 +217,33 @@ export const runProjectTask = async (
     throw new Error(data.detail || `태스크 ${taskId} 실행 실패`)
   }
   return res.json()
+}
+
+/** 파이프라인 실행(analysis_task_id)이 저장한 출력 파일 목록을 조회한다.
+ * waitForPipelineTask()로 success를 확인한 뒤 호출한다. */
+export const getPipelineTaskResult = async (
+  projectId: number,
+  analysisTaskId: number,
+): Promise<ProjectPipelineTaskResult> => {
+  const res = await apiClient.get<ProjectPipelineTaskResult>(
+    `/deletion-workflow/projects/${projectId}/tasks/${analysisTaskId}/result`
+  )
+  return res.data
+}
+
+const PIPELINE_TASK_POLL_INTERVAL_MS = 800
+
+/** 파이프라인 태스크 실행이 끝날 때까지 대기한다.
+ * 파이프라인 단계는 대개 수 초 이내로 끝나므로, 먼저 즉시 1회 조회해 이미
+ * 끝났으면 지연 없이 반환하고(빠른 경로), 아니면 800ms 간격으로 폴링한다. */
+export const waitForPipelineTask = async (analysisTaskId: number): Promise<AnalysisTask> => {
+  for (;;) {
+    const task = await getAnalysisTaskDetail(analysisTaskId)
+    if (task.task_status === 'success' || task.task_status === 'failure') {
+      return task
+    }
+    await new Promise((resolve) => setTimeout(resolve, PIPELINE_TASK_POLL_INTERVAL_MS))
+  }
 }
 
 export const uploadExternalFile = async (

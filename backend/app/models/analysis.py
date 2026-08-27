@@ -13,6 +13,7 @@ class AnalysisTaskType(str, enum.Enum):
     UNREFERENCED_OBJECTS = "unreferenced_objects" # 미참조 객체 분석
     RISKY_PORTS = "risky_ports"             # 위험 포트 분석
     OVER_PERMISSIVE = "over_permissive"     # 과다 허용 정책 분석
+    DELETION_WORKFLOW = "deletion_workflow" # 정책 삭제 워크플로우 파이프라인 단계 실행
 
 class AnalysisTaskStatus(str, enum.Enum):
     """분석 작업 상태 정의"""
@@ -38,7 +39,7 @@ class AnalysisTask(Base):
     device_id = Column(Integer, ForeignKey("devices.id"), nullable=False)
     task_type = Column(Enum(AnalysisTaskType), nullable=False)
     task_status = Column(Enum(AnalysisTaskStatus), nullable=False, default=AnalysisTaskStatus.PENDING)
-    
+
     # 시간 정보
     created_at = Column(DateTime, nullable=False)
     started_at = Column(DateTime)
@@ -49,7 +50,13 @@ class AnalysisTask(Base):
     requested_by_user_id = Column(Integer, nullable=True)
     requested_by_username = Column(String, nullable=True)
 
+    # DELETION_WORKFLOW 타입 전용 필드 (그 외 타입은 항상 NULL).
+    # 어느 파이프라인 단계(0~19)의 실행인지, 어느 프로젝트에 속하는지를 나타낸다.
+    pipeline_task_id = Column(Integer, nullable=True)
+    deletion_workflow_project_id = Column(Integer, ForeignKey("deletion_workflow_projects.id", ondelete="CASCADE"), nullable=True)
+
     device = relationship("Device")
+    deletion_workflow_project = relationship("DeletionWorkflowProject")
 
 class RedundancyPolicySet(Base):
     """

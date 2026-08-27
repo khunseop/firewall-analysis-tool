@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Database, Play, Download, Upload, CheckCircle2, Loader2 } from 'lucide-react'
-import { runProjectExtract, runProjectTask, uploadExternalFile, downloadTaskFile, type ProjectFileState } from '@/api/deletionWorkflow'
+import { runProjectExtract, runProjectTask, getPipelineTaskResult, waitForPipelineTask, uploadExternalFile, downloadTaskFile, type ProjectFileState } from '@/api/deletionWorkflow'
 import { triggerDownload, hasOutput, getExternalFile } from './taskMeta'
 
 export function Task0Section({
@@ -30,8 +30,13 @@ export function Task0Section({
 
     setExtracting(true)
     try {
-      const res = await runProjectExtract(projectId)
-      toast.success(`추출 완료: ${res.filename}`)
+      const runResp = await runProjectExtract(projectId)
+      const task = await waitForPipelineTask(runResp.analysis_task_id)
+      if (task.task_status === 'failure') {
+        throw new Error(task.error_message || '데이터 추출 실패')
+      }
+      const res = await getPipelineTaskResult(projectId, runResp.analysis_task_id)
+      toast.success(`추출 완료: ${res.outputs[0]?.filename ?? ''}`)
       onRefresh()
     } catch (e: unknown) {
       toast.error((e as Error).message)
@@ -43,7 +48,12 @@ export function Task0Section({
   const handleMerge = async () => {
     setMerging(true)
     try {
-      const res = await runProjectTask(projectId, 1)
+      const runResp = await runProjectTask(projectId, 1)
+      const task = await waitForPipelineTask(runResp.analysis_task_id)
+      if (task.task_status === 'failure') {
+        throw new Error(task.error_message || '히트카운트 병합 실패')
+      }
+      const res = await getPipelineTaskResult(projectId, runResp.analysis_task_id)
       toast.success(`히트카운트 병합 완료 (출력 ${res.outputs.length}개)`)
       onRefresh()
     } catch (e: unknown) {

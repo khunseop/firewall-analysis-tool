@@ -8,6 +8,9 @@ from .policy import Policy
 class AnalysisTaskBase(BaseModel):
     device_id: int
     task_type: AnalysisTaskType
+    # DELETION_WORKFLOW 타입 전용 (그 외 타입은 항상 None)
+    pipeline_task_id: Optional[int] = None
+    deletion_workflow_project_id: Optional[int] = None
 
 class AnalysisTaskCreate(AnalysisTaskBase):
     created_at: datetime

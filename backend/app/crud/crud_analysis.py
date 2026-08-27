@@ -38,6 +38,15 @@ async def get_running_analysis_task(db: AsyncSession, device_id: Optional[int] =
     result = await db.execute(stmt)
     return result.scalars().first()
 
+async def get_running_analysis_task_by_project(db: AsyncSession, project_id: int) -> Optional[AnalysisTask]:
+    """특정 deletion_workflow 프로젝트에서 진행 중인(IN_PROGRESS) 파이프라인 태스크를 조회합니다."""
+    stmt = select(AnalysisTask).filter(
+        AnalysisTask.task_status == AnalysisTaskStatus.IN_PROGRESS,
+        AnalysisTask.deletion_workflow_project_id == project_id,
+    )
+    result = await db.execute(stmt)
+    return result.scalars().first()
+
 async def update_analysis_task(db: AsyncSession, *, db_obj: AnalysisTask, obj_in: AnalysisTaskUpdate) -> AnalysisTask:
     update_data = obj_in.model_dump(exclude_unset=True)
     for field in update_data:
@@ -116,6 +125,7 @@ async def list_analysis_tasks_paginated(
     task_type: Optional[str] = None,
     task_status: Optional[str] = None,
     search: Optional[str] = None,
+    deletion_workflow_project_id: Optional[int] = None,
     page: int = 1,
     page_size: int = 20,
 ) -> Tuple[List[AnalysisTask], int]:
@@ -134,6 +144,8 @@ async def list_analysis_tasks_paginated(
         conditions.append(AnalysisTask.task_type == task_type)
     if task_status:
         conditions.append(AnalysisTask.task_status == task_status)
+    if deletion_workflow_project_id is not None:
+        conditions.append(AnalysisTask.deletion_workflow_project_id == deletion_workflow_project_id)
     if search:
         conditions.append(Device.name.ilike(f"%{search}%"))
 

@@ -14,11 +14,6 @@ class DeletionWorkflowProject(Base):
     memo = Column(String, nullable=True)
     reference_date = Column(Date, nullable=True)  # 기준일: None이면 실행 시점 현재 날짜 사용
 
-    # 현재 실행 중인 태스크 락 (None이면 실행 중인 태스크 없음)
-    running_task_id = Column(Integer, nullable=True)
-    running_by_user_id = Column(Integer, nullable=True)
-    running_by_username = Column(String, nullable=True)
-
     created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
@@ -36,6 +31,10 @@ class DeletionWorkflowFile(Base):
     filename = Column(String, nullable=False)
     file_data = Column(LargeBinary, nullable=False)
     created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+
+    # 이 파일을 생성한 분석 실행(AnalysisTask)에 대한 참조. 이력 추적용이며,
+    # 이 컬럼 추가 이전에 생성된 기존 파일과의 호환을 위해 nullable이다.
+    analysis_task_id = Column(Integer, ForeignKey("analysistasks.id", ondelete="SET NULL"), nullable=True)
 
     project = relationship("DeletionWorkflowProject", back_populates="files")
 

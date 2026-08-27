@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ArrowLeft, AlertCircle, Loader2, Zap, RotateCcw, Square, CalendarDays, Pencil, X, Check, PackageCheck, RefreshCcw } from 'lucide-react'
-import { getProject, runProjectExtract, runProjectTask, resetAllProjectFiles, clearProjectOutputs, updateProject, completeProject, type DeletionWorkflowProjectDetail, type ProjectFileState } from '@/api/deletionWorkflow'
+import { getProject, runProjectExtract, runProjectTask, getPipelineTaskResult, waitForPipelineTask, resetAllProjectFiles, clearProjectOutputs, updateProject, completeProject, type DeletionWorkflowProjectDetail, type ProjectFileState } from '@/api/deletionWorkflow'
 import { getDevice, syncAll, getSyncStatus } from '@/api/devices'
 import { startAnalysis, getAnalysisStatus } from '@/api/analysis'
 import { queryKeys } from '@/api/queryKeys'
@@ -227,26 +227,15 @@ export default function DeletionWorkflowDetailPage() {
         setTaskTimings((prev) => ({ ...prev, 0: { startedAt: Date.now() } }))
         setAutoRunCurrentTaskId(0)
         try {
-          const extractResult = await runProjectExtract(projectId)
+          const runResp = await runProjectExtract(projectId)
+          const task = await waitForPipelineTask(runResp.analysis_task_id)
+          if (task.task_status === 'failure') {
+            throw new Error(task.error_message || '데이터 추출 실패')
+          }
+          const result = await getPipelineTaskResult(projectId, runResp.analysis_task_id)
           const completedAt = Date.now()
           setTaskTimings((prev) => ({ ...prev, 0: { ...prev[0], completedAt } }))
-          // 즉시 캐시 업데이트
-          qc.setQueryData(
-            ['deletion-workflow-project', projectId],
-            (old: DeletionWorkflowProjectDetail | undefined) => {
-              if (!old) return old
-              const existing = (old.files ?? []).filter(
-                (f) => !(f.task_id === 0 && f.slot === 'output_0'),
-              )
-              return {
-                ...old,
-                files: [
-                  ...existing,
-                  { task_id: 0, slot: 'output_0', filename: extractResult.filename, created_at: new Date().toISOString() },
-                ],
-              }
-            },
-          )
+          applyTaskOutputs(result)
         } catch (e: unknown) {
           toast.error(`데이터 추출 실패: ${(e as Error).message}`)
           autoRunRef.current = false
@@ -317,7 +306,12 @@ export default function DeletionWorkflowDetailPage() {
       setTaskTimings((prev) => ({ ...prev, [taskId]: { startedAt: Date.now() } }))
       setAutoRunCurrentTaskId(taskId)
       try {
-        const result = await runProjectTask(projectId, taskId)
+        const runResp = await runProjectTask(projectId, taskId)
+        const task = await waitForPipelineTask(runResp.analysis_task_id)
+        if (task.task_status === 'failure') {
+          throw new Error(task.error_message || `태스크 ${taskId} 실행 실패`)
+        }
+        const result = await getPipelineTaskResult(projectId, runResp.analysis_task_id)
         // 완료 즉시 캐시 업데이트 (다음 태스크 판정 + 체크마크 즉각 표시)
         const completedAt = Date.now()
         setTaskTimings((prev) => ({ ...prev, [taskId]: { ...prev[taskId], completedAt } }))

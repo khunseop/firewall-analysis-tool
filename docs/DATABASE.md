@@ -187,7 +187,7 @@
 | :--- | :--- | :--- | :--- |
 | `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
 | `device_id` | `INTEGER` | `FOREIGN KEY` | 장비 참조 |
-| `task_type` | `ENUM` | `NOT NULL` | 분석 유형 (redundancy, unused, impact, unreferenced_objects, risky_ports, over_permissive) |
+| `task_type` | `ENUM` | `NOT NULL` | 분석 유형 (redundancy, unused, impact, unreferenced_objects, risky_ports, over_permissive, deletion_workflow) |
 | `task_status` | `ENUM` | `NOT NULL` | 상태 (pending, in_progress, success, failure) |
 | `created_at` | `DATETIME` | `NOT NULL` | 생성 시간 |
 | `started_at` | `DATETIME` | `NULLABLE` | 분석 시작 시간 |
@@ -195,6 +195,8 @@
 | `error_message` | `VARCHAR` | `NULLABLE` | 실패 시 오류 메시지 |
 | `requested_by_user_id` | `INTEGER` | `NULLABLE` | 이 분석을 요청한 사용자 ID (FK 제약 없는 스냅샷) |
 | `requested_by_username` | `VARCHAR` | `NULLABLE` | 위 사용자의 username 스냅샷 (표시용) |
+| `pipeline_task_id` | `INTEGER` | `NULLABLE` | `deletion_workflow` 타입 전용: 파이프라인 단계 번호(0~19). 그 외 타입은 항상 NULL |
+| `deletion_workflow_project_id` | `INTEGER` | `FOREIGN KEY (deletion_workflow_projects.id), NULLABLE` | `deletion_workflow` 타입 전용: 소속 프로젝트 참조 (CASCADE). 그 외 타입은 항상 NULL |
 
 ### `analysis_results` Table (분석 결과)
 - 실행(`analysistasks`)마다 새 행이 쌓여 이력으로 보존된다 (device_id+analysis_type 기준으로 덮어쓰지 않음).
@@ -300,6 +302,12 @@
 
 ## 6. 삭제 워크플로우
 
+> 실행 오케스트레이션은 `analysistasks`/`AnalysisTask`에 흡수되어 있다(백그라운드 실행 + 상태 폴링).
+> 파이프라인 단계 1회 실행 = `analysistasks` 1행(`task_type='deletion_workflow'`, `pipeline_task_id`=0~19,
+> `deletion_workflow_project_id`=소속 프로젝트). 동시 실행 방지는 DB 락 컬럼이 아니라
+> 프로세스 메모리의 프로젝트별 `asyncio.Lock`(`app/services/deletion_workflow/tasks.py`)과
+> `analysistasks` IN_PROGRESS 조회 기반 409 사전 체크로 처리한다.
+
 ### `deletion_workflow_projects` Table (삭제 워크플로우 프로젝트)
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
@@ -308,9 +316,6 @@
 | `name` | `VARCHAR` | `NOT NULL` | 프로젝트 이름 |
 | `status` | `VARCHAR` | `DEFAULT 'draft'` | 상태 (draft, running, completed) |
 | `memo` | `VARCHAR` | `NULLABLE` | 메모 |
-| `running_task_id` | `INTEGER` | `NULLABLE` | 현재 실행 중인 태스크 번호 (없으면 NULL — 동시 실행 방지 락) |
-| `running_by_user_id` | `INTEGER` | `NULLABLE` | 위 태스크를 실행 중인 사용자 ID (FK 제약 없는 스냅샷) |
-| `running_by_username` | `VARCHAR` | `NULLABLE` | 위 사용자의 username 스냅샷 (표시용) |
 | `created_at` | `DATETIME` | `NOT NULL` | 생성 시간 |
 | `updated_at` | `DATETIME` | `NOT NULL` | 마지막 수정 시간 |
 
@@ -324,5 +329,6 @@
 | `filename` | `VARCHAR` | `NOT NULL` | 파일명 |
 | `file_data` | `BLOB` | `NOT NULL` | 파일 바이너리 데이터 |
 | `created_at` | `DATETIME` | `NOT NULL` | 생성 시간 |
+| `analysis_task_id` | `INTEGER` | `FOREIGN KEY (analysistasks.id), NULLABLE` | 이 파일을 생성한 실행(AnalysisTask) 참조 (SET NULL, 컬럼 추가 이전 데이터 호환을 위해 nullable) |
 
 > `(project_id, task_id, slot)` 조합이 UNIQUE 제약.
