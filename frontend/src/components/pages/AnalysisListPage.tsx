@@ -2,38 +2,18 @@ import { useEffect, useState, type MouseEvent } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Plus, Search, Copy, Clock, ArrowLeftRight, Unlink, ShieldAlert, Expand, Check, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
+import { Plus, Search, Check, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Select as ShadSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DeviceSelectorSingle } from '@/components/shared/DeviceSelector'
-import { PolicyGridPicker } from '@/components/shared/PolicyGridPicker'
-import Select from 'react-select'
-import { getPolicies } from '@/api/firewall'
-import { startAnalysis, listAnalysisTasks, deleteAnalysisTask, type StartAnalysisParams, type AnalysisTaskListItem } from '@/api/analysis'
+import { startAnalysis, listAnalysisTasks, deleteAnalysisTask, type AnalysisTaskListItem } from '@/api/analysis'
 import { formatDate } from '@/lib/utils'
-import type { LucideIcon } from 'lucide-react'
 import { queryKeys } from '@/api/queryKeys'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
+import { QUICK_MODULES } from './analysis-modules'
 
-interface AnalysisTypeOption {
-  value: string
-  label: string
-  icon: LucideIcon
-  description: string
-}
-
-const ANALYSIS_TYPES: AnalysisTypeOption[] = [
-  { value: 'redundancy',           label: '중복 정책 분석',      icon: Copy,          description: '동일하거나 포함 관계에 있는 정책을 탐지합니다. 상위/하위 정책 쌍으로 결과를 보여줍니다.' },
-  { value: 'unused',               label: '미사용 정책 분석',     icon: Clock,         description: '설정 기간 동안 트래픽이 발생하지 않은 정책을 탐지합니다.' },
-  { value: 'impact',               label: '정책 이동 영향 분석',  icon: ArrowLeftRight, description: '정책을 다른 순번으로 이동했을 때 차단·섀도우 영향을 사전 분석합니다.' },
-  { value: 'unreferenced_objects', label: '미참조 오브젝트 분석', icon: Unlink,        description: '어떤 정책에도 사용되지 않는 네트워크/서비스 객체를 탐지합니다.' },
-  { value: 'risky_ports',          label: '위험 포트 분석',       icon: ShieldAlert,   description: 'Well-known 위험 포트(예: Telnet, FTP)가 허용된 정책을 탐지합니다.' },
-  { value: 'over_permissive',      label: '과허용 정책 분석',     icon: Expand,        description: '출발지·목적지·서비스 범위가 과도하게 넓게 설정된 정책을 탐지합니다.' },
-]
-
-const ANALYSIS_TYPE_LABELS: Record<string, string> = Object.fromEntries(ANALYSIS_TYPES.map((t) => [t.value, t.label]))
+const ANALYSIS_TYPE_LABELS: Record<string, string> = Object.fromEntries(QUICK_MODULES.map((m) => [m.type, m.label]))
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   pending:     { label: '대기중', cls: 'bg-gray-100 text-gray-600' },
@@ -47,61 +27,33 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cfg.cls}`}>{cfg.label}</span>
 }
 
-function PolicyMultiSelect({ deviceId, value, onChange, placeholder }: {
-  deviceId: number | null; value: number[]; onChange: (ids: number[]) => void; placeholder?: string
-}) {
-  const { data: policies = [], isLoading } = useQuery({
-    queryKey: queryKeys.policiesRaw(deviceId),
-    queryFn: () => getPolicies(deviceId!),
-    enabled: !!deviceId, staleTime: 60_000,
-  })
-  const options = policies.map((p) => ({ value: p.id, label: `[${p.seq}] ${p.rule_name}` }))
-  return (
-    <Select
-      isMulti isLoading={isLoading} options={options}
-      value={options.filter((o) => value.includes(o.value))}
-      onChange={(vals) => onChange(vals.map((v) => v.value))}
-      placeholder={placeholder ?? '정책 선택…'} noOptionsMessage={() => '정책이 없습니다'}
-      styles={{
-        control: (b) => ({ ...b, fontSize: '14px', minHeight: '36px', borderColor: 'rgba(169,180,185,0.3)', backgroundColor: '#ffffff' }),
-        menu: (b) => ({ ...b, fontSize: '14px' }),
-      }}
-    />
-  )
-}
-
 function CreateAnalysisDialog({ open, onClose, initialDeviceId }: { open: boolean; onClose: () => void; initialDeviceId?: number | null }) {
   const queryClient = useQueryClient()
   const [deviceId, setDeviceId] = useState<number | null>(null)
-  const [analysisType, setAnalysisType] = useState('redundancy')
-  const [days, setDays] = useState('90')
-  const [targetPolicyIds, setTargetPolicyIds] = useState<number[]>([])
-  const [referencePolicyId, setReferencePolicyId] = useState<number | null>(null)
-  const [moveToEnd, setMoveToEnd] = useState(false)
-  const [moveDirection, setMoveDirection] = useState('below')
+  const [analysisType, setAnalysisType] = useState(QUICK_MODULES[0].type)
+  const [values, setValues] = useState<Record<string, unknown>>({})
+  const setValue = (key: string, value: unknown) => setValues((prev) => ({ ...prev, [key]: value }))
 
   // 다이얼로그가 열릴 때 입력값 초기화 (렌더 중 상태 조정 패턴 — effect 내 동기 setState 회피)
   const [prevOpen, setPrevOpen] = useState(open)
   if (open !== prevOpen) {
     setPrevOpen(open)
     if (open) {
-      setDeviceId(initialDeviceId ?? null); setAnalysisType('redundancy'); setDays('90')
-      setTargetPolicyIds([]); setReferencePolicyId(null); setMoveToEnd(false); setMoveDirection('below')
+      setDeviceId(initialDeviceId ?? null)
+      setAnalysisType(QUICK_MODULES[0].type)
+      setValues({})
     }
   }
 
   const startMutation = useMutation({
     mutationFn: () => {
       if (!deviceId) throw new Error('장비를 선택하세요.')
-      if (analysisType === 'impact' && targetPolicyIds.length === 0) throw new Error('이동할 정책을 선택하세요.')
-      if (analysisType === 'impact' && !moveToEnd && !referencePolicyId) throw new Error('기준 정책을 선택하거나 "맨 아래로 이동"을 선택하세요.')
-      const p: StartAnalysisParams = {
-        days: analysisType === 'unused' ? Number(days) : undefined,
-        targetPolicyIds: targetPolicyIds.length > 0 ? targetPolicyIds : undefined,
-        referencePolicyId: analysisType === 'impact' && !moveToEnd && referencePolicyId ? referencePolicyId : undefined,
-        moveDirection: analysisType === 'impact' ? moveDirection : undefined,
-      }
-      return startAnalysis(deviceId, analysisType, p)
+      const module = QUICK_MODULES.find((m) => m.type === analysisType)
+      if (!module) throw new Error(`알 수 없는 분석 유형: ${analysisType}`)
+      const ctx = { deviceId, values, setValue }
+      const validationError = module.validate?.(ctx)
+      if (validationError) throw new Error(validationError)
+      return startAnalysis(deviceId, analysisType, module.buildParams(ctx))
     },
     onSuccess: () => {
       toast.success('분석이 시작되었습니다. 목록에서 진행 상황을 확인하세요.')
@@ -110,9 +62,6 @@ function CreateAnalysisDialog({ open, onClose, initialDeviceId }: { open: boolea
     },
     onError: (e: Error) => toast.error(e.message),
   })
-
-  const needsPolicySelect = ['impact', 'risky_ports', 'over_permissive'].includes(analysisType)
-  const needsMoveTarget = analysisType === 'impact'
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -130,14 +79,14 @@ function CreateAnalysisDialog({ open, onClose, initialDeviceId }: { open: boolea
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">분석 유형</label>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {ANALYSIS_TYPES.map((t) => {
-                const Icon = t.icon
-                const selected = analysisType === t.value
+              {QUICK_MODULES.map((m) => {
+                const Icon = m.icon
+                const selected = analysisType === m.type
                 return (
                   <button
-                    key={t.value}
+                    key={m.type}
                     type="button"
-                    onClick={() => { setAnalysisType(t.value); setTargetPolicyIds([]); setReferencePolicyId(null); setMoveToEnd(false) }}
+                    onClick={() => { setAnalysisType(m.type); setValues({}) }}
                     className={`relative text-left p-3.5 rounded-xl border transition-all ${
                       selected
                         ? 'border-ds-primary bg-ds-primary/5 shadow-sm'
@@ -150,70 +99,15 @@ function CreateAnalysisDialog({ open, onClose, initialDeviceId }: { open: boolea
                       </span>
                     )}
                     <Icon className={`w-4 h-4 mb-2 ${selected ? 'text-ds-primary' : 'text-ds-on-surface-variant'}`} />
-                    <p className={`text-[13px] font-semibold leading-tight mb-1 ${selected ? 'text-ds-primary' : 'text-ds-on-surface'}`}>{t.label}</p>
-                    <p className="text-[11px] text-ds-on-surface-variant/70 leading-snug">{t.description}</p>
+                    <p className={`text-[13px] font-semibold leading-tight mb-1 ${selected ? 'text-ds-primary' : 'text-ds-on-surface'}`}>{m.label}</p>
+                    <p className="text-[11px] text-ds-on-surface-variant/70 leading-snug">{m.description}</p>
                   </button>
                 )
               })}
             </div>
           </div>
 
-          {analysisType === 'unused' && (
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">미사용 기준 (일)</label>
-              <input
-                type="number" value={days} onChange={(e) => setDays(e.target.value)} min="1"
-                className="w-32 h-9 px-3 text-sm bg-ds-surface-container-low border border-ds-outline-variant/30 rounded-md focus:outline-none focus:border-ds-tertiary"
-              />
-            </div>
-          )}
-
-          {needsPolicySelect && (
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">
-                {analysisType === 'impact' ? '이동할 정책 *' : '분석 대상 정책 (미선택 시 전체)'}
-              </label>
-              {analysisType === 'impact' ? (
-                <PolicyGridPicker
-                  mode="multi" deviceId={deviceId} value={targetPolicyIds} onChange={setTargetPolicyIds}
-                  placeholder="이동할 정책을 선택하세요…"
-                />
-              ) : (
-                <PolicyMultiSelect
-                  deviceId={deviceId} value={targetPolicyIds} onChange={setTargetPolicyIds}
-                  placeholder="전체 정책 분석"
-                />
-              )}
-            </div>
-          )}
-
-          {needsMoveTarget && (
-            <div className="space-y-3 max-w-md">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">기준 정책 *</label>
-                <PolicyGridPicker
-                  mode="single" deviceId={moveToEnd ? null : deviceId} value={referencePolicyId} onChange={setReferencePolicyId}
-                  placeholder="기준 정책을 선택하세요…"
-                />
-                <label className="flex items-center gap-2 text-[12px] text-ds-on-surface-variant cursor-pointer pt-0.5">
-                  <Checkbox checked={moveToEnd} onCheckedChange={(v) => setMoveToEnd(!!v)} />
-                  맨 아래로 이동
-                </label>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">이동 방향</label>
-                <ShadSelect value={moveDirection} onValueChange={setMoveDirection} disabled={moveToEnd}>
-                  <SelectTrigger className="bg-ds-surface-container-low border-ds-outline-variant/30 text-sm">
-                    <SelectValue placeholder="이동 방향 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="above">기준 정책 위로</SelectItem>
-                    <SelectItem value="below">기준 정책 아래로</SelectItem>
-                  </SelectContent>
-                </ShadSelect>
-              </div>
-            </div>
-          )}
+          {QUICK_MODULES.find((m) => m.type === analysisType)?.renderParams?.({ deviceId, values, setValue })}
         </div>
 
         <div className="flex justify-end gap-2 pt-2 border-t border-ds-outline-variant/10">
@@ -330,7 +224,7 @@ export function AnalysisListPage() {
           <SelectTrigger className="w-44 bg-white border-ds-outline-variant/30 text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">전체 유형</SelectItem>
-            {ANALYSIS_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+            {QUICK_MODULES.map((m) => <SelectItem key={m.type} value={m.type}>{m.label}</SelectItem>)}
           </SelectContent>
         </ShadSelect>
         <ShadSelect value={statusFilter} onValueChange={setStatusFilter}>
