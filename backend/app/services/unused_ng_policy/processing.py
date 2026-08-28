@@ -82,6 +82,7 @@ def merge_and_enrich(
     today = reference_date or datetime.date.today()
 
     # 1) 사용이력 병합 (Rule Name ↔ rule_name, 대소문자 정규화 후 매칭)
+    # 매칭 실패 행이나 벤더가 애초에 값을 못 채운 컬럼(NGF 등)은 빈 값 대신 '-'로 표시한다.
     usage = _normalize_usage_columns(usage_df)
     usage_cols = {
         'hit_count': 'Hit Count',
@@ -100,9 +101,11 @@ def merge_and_enrich(
             on='__merge_key__', how='left',
         )
         df = df.drop(columns=['__merge_key__'])
+        for col in usage_cols.values():
+            df[col] = df[col].fillna('-') if col in df.columns else '-'
     else:
         for col in usage_cols.values():
-            df[col] = None
+            df[col] = '-'
 
     # 2) 시작일 / 경과일 — End Date 다음 위치에 삽입
     start_dates = []
