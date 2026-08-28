@@ -6,6 +6,7 @@ import { unreferencedObjectsModule } from './unreferencedObjects'
 import { riskyPortsModule } from './riskyPorts'
 import { overPermissiveModule } from './overPermissive'
 import { deletionWorkflowModule } from './deletionWorkflow'
+import { unusedNgPolicyModule } from './unusedNgPolicy'
 
 export const ANALYSIS_MODULES: AnalysisModule[] = [
   redundancyModule,
@@ -15,6 +16,7 @@ export const ANALYSIS_MODULES: AnalysisModule[] = [
   riskyPortsModule,
   overPermissiveModule,
   deletionWorkflowModule,
+  unusedNgPolicyModule,
 ]
 
 export const QUICK_MODULES: QuickAnalysisModule[] = ANALYSIS_MODULES.filter(

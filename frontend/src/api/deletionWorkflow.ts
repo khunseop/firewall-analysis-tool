@@ -1,6 +1,5 @@
 import { apiClient } from './client'
 import { useAuthStore } from '@/store/authStore'
-import { getAnalysisTaskDetail, type AnalysisTask } from './analysis'
 
 // ── 프로젝트 실행 관련 타입 ──────────────────────────────────────────────────
 
@@ -118,21 +117,6 @@ export const runProjectTask = async (
     throw new Error(data.detail || `태스크 ${taskId} 실행 실패`)
   }
   return res.json()
-}
-
-const PIPELINE_TASK_POLL_INTERVAL_MS = 800
-
-/** 파이프라인 태스크 실행이 끝날 때까지 대기한다.
- * 파이프라인 단계는 대개 수 초 이내로 끝나므로, 먼저 즉시 1회 조회해 이미
- * 끝났으면 지연 없이 반환하고(빠른 경로), 아니면 800ms 간격으로 폴링한다. */
-export const waitForPipelineTask = async (analysisTaskId: number): Promise<AnalysisTask> => {
-  for (;;) {
-    const task = await getAnalysisTaskDetail(analysisTaskId)
-    if (task.task_status === 'success' || task.task_status === 'failure') {
-      return task
-    }
-    await new Promise((resolve) => setTimeout(resolve, PIPELINE_TASK_POLL_INTERVAL_MS))
-  }
 }
 
 export const uploadExternalFile = async (

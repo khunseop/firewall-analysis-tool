@@ -123,7 +123,7 @@ async def get_analysis_result_by_task_id(db: AsyncSession, *, task_id: int) -> O
 # list_analysis_tasks_paginated()가 명시적 타입 필터 없이 조회될 때(퀵 분석 이력 목록)
 # 이 타입들의 실행 행(파이프라인 단계별로 여러 개 쌓임)을 자동으로 제외한다 —
 # 이들은 프로젝트 단위로 별도 조회(analysis_projects 엔드포인트)된다.
-PROJECT_MODULE_TASK_TYPES = {"deletion_workflow"}
+PROJECT_MODULE_TASK_TYPES = {"deletion_workflow", "unused_ng_policy"}
 
 
 async def list_analysis_tasks_paginated(

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Play, Download, CheckCircle2, Loader2, RefreshCw } from 'lucide-react'
-import { runProjectTask, waitForPipelineTask, uploadExternalFile, downloadTaskFile } from '@/api/deletionWorkflow'
-import { getProjectPipelineTaskResult, type ProjectFileState } from '@/api/analysisProjects'
+import { runProjectTask, uploadExternalFile, downloadTaskFile } from '@/api/deletionWorkflow'
+import { getProjectPipelineTaskResult, waitForPipelineTask, type ProjectFileState } from '@/api/analysisProjects'
 import { triggerDownload, getOutputFiles, getExternalFile, formatElapsed, type TaskMeta } from './taskMeta'
 import { ExternalFileUpload } from './ExternalFileUpload'
 

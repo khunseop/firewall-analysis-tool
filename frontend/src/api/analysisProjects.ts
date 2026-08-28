@@ -1,4 +1,5 @@
 import { apiClient } from './client'
+import { getAnalysisTaskDetail, type AnalysisTask } from './analysis'
 
 export interface AnalysisProject {
   id: number
@@ -116,4 +117,20 @@ export const getProjectPipelineTaskResult = async (
     `/analysis/projects/${projectId}/tasks/${analysisTaskId}/result`
   )
   return res.data
+}
+
+const PIPELINE_TASK_POLL_INTERVAL_MS = 800
+
+/** 파이프라인 태스크 실행이 끝날 때까지 대기한다. 프로젝트형 모듈 공통으로 쓰이는
+ * 범용 폴링 함수 — 특정 모듈에 종속되지 않으므로 이 공용 파일에 둔다.
+ * 파이프라인 단계는 대개 수 초 이내로 끝나므로, 먼저 즉시 1회 조회해 이미
+ * 끝났으면 지연 없이 반환하고(빠른 경로), 아니면 800ms 간격으로 폴링한다. */
+export const waitForPipelineTask = async (analysisTaskId: number): Promise<AnalysisTask> => {
+  for (;;) {
+    const task = await getAnalysisTaskDetail(analysisTaskId)
+    if (task.task_status === 'success' || task.task_status === 'failure') {
+      return task
+    }
+    await new Promise((resolve) => setTimeout(resolve, PIPELINE_TASK_POLL_INTERVAL_MS))
+  }
 }
