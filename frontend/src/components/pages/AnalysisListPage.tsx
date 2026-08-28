@@ -397,13 +397,16 @@ export function AnalysisListPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {rows.map((row, idx) => (
                 <tr
                   key={row.id}
                   onClick={() => navigate(row.href)}
                   className="border-b border-ds-outline-variant/10 hover:bg-black/[0.02] cursor-pointer"
                 >
-                  <td className="py-2.5 px-4 text-ds-on-surface-variant text-xs">{row.raw.id}</td>
+                  {/* row.raw.id는 분석 실행(analysistasks)과 프로젝트(analysis_projects)가
+                      서로 다른 ID 시퀀스라 "전체" 병합 뷰에서 섞으면 숫자가 뒤섞여 보인다.
+                      화면상 순번(페이지 오프셋 포함)을 대신 표시해 항상 정렬된 것처럼 보이게 한다. */}
+                  <td className="py-2.5 px-4 text-ds-on-surface-variant text-xs">{(page - 1) * PAGE_SIZE + idx + 1}</td>
                   <td className="py-2.5 px-4">
                     <div className="font-medium text-ds-on-surface text-[13px]">{row.deviceName}</div>
                     <div className="text-[11px] text-ds-on-surface-variant">{row.deviceIp}</div>
