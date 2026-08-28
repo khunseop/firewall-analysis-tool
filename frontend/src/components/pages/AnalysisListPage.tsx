@@ -14,7 +14,7 @@ import { useConfirm } from '@/components/shared/ConfirmDialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { QUICK_MODULES, PROJECT_MODULES } from './analysis-modules'
-import { listAnalysisProjects, createAnalysisProject, type AnalysisProject } from '@/api/analysisProjects'
+import { listAnalysisProjects, createAnalysisProject, deleteAnalysisProject, type AnalysisProject } from '@/api/analysisProjects'
 
 /** 새 분석 다이얼로그에서 선택 가능한 모든 모듈 (quick 실행 + 프로젝트 생성). */
 const SELECTABLE_MODULES = [...QUICK_MODULES, ...PROJECT_MODULES]
@@ -63,10 +63,13 @@ function toUnifiedRow(item: AnalysisTaskListItem | AnalysisProject, kind: 'quick
   const cfg = PROJECT_STATUS_CONFIG[p.status] ?? { label: p.status, cls: 'bg-gray-100 text-gray-500' }
   const module = PROJECT_MODULES.find((m) => m.type === p.module_type)
   return {
+    // "생성일" 컬럼/정렬과 일치시키기 위해 updated_at이 아닌 created_at을 쓴다.
+    // updated_at을 쓰면 파이프라인 단계를 실행할 때마다 값이 바뀌어 "전체" 병합 뷰의
+    // 정렬 순서와 화면상 순번(#)이 계속 흔들리는 문제가 있었다.
     id: `project-${p.id}`, kind, label: module?.label ?? p.module_type,
     deviceName: p.device_name, deviceIp: p.device_ip,
     statusLabel: cfg.label, statusCls: cfg.cls,
-    timestamp: p.updated_at, href: `/analysis/projects/${p.module_type}/${p.id}`, raw: p,
+    timestamp: p.created_at, href: `/analysis/projects/${p.module_type}/${p.id}`, raw: p,
   }
 }
 
@@ -294,7 +297,9 @@ export function AnalysisListPage() {
   // 특정 quick 유형: 기존과 동일하게 백엔드 페이지네이션 그대로 사용(추가 슬라이스 없음).
   const allRows: UnifiedHistoryRow[] = (() => {
     if (isProjectFilter) {
-      return (projectQuery.data ?? []).map((p) => toUnifiedRow(p, 'project'))
+      return (projectQuery.data ?? [])
+        .map((p) => toUnifiedRow(p, 'project'))
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     }
     if (typeFilter !== 'all') {
       return (quickQuery.data?.items ?? []).map((t) => toUnifiedRow(t, 'quick'))
@@ -310,7 +315,7 @@ export function AnalysisListPage() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const rows = isMergedView ? allRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) : allRows
 
-  const deleteMutation = useMutation({
+  const deleteTaskMutation = useMutation({
     mutationFn: (taskId: number) => deleteAnalysisTask(taskId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.analysisTasks })
@@ -319,15 +324,37 @@ export function AnalysisListPage() {
     onError: (e: Error) => toast.error(e.message),
   })
 
-  const handleDelete = async (e: MouseEvent, task: AnalysisTaskListItem) => {
+  const deleteProjectMutation = useMutation({
+    mutationFn: (project: AnalysisProject) => deleteAnalysisProject(project.id),
+    onSuccess: (_data, project) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysisProjects(project.module_type) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.analysisProjects('all') })
+      toast.success('프로젝트가 삭제되었습니다.')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+  const handleDelete = async (e: MouseEvent, row: UnifiedHistoryRow) => {
     e.stopPropagation()
+    if (row.kind === 'quick') {
+      const task = row.raw as AnalysisTaskListItem
+      const ok = await confirm({
+        title: '분석 결과 삭제',
+        description: `[${ANALYSIS_TYPE_LABELS[task.task_type] ?? task.task_type}] ${task.device_name} 분석 결과를 삭제하시겠습니까?`,
+        variant: 'destructive',
+        confirmLabel: '삭제',
+      })
+      if (ok) deleteTaskMutation.mutate(task.id)
+      return
+    }
+    const project = row.raw as AnalysisProject
     const ok = await confirm({
-      title: '분석 결과 삭제',
-      description: `[${ANALYSIS_TYPE_LABELS[task.task_type] ?? task.task_type}] ${task.device_name} 분석 결과를 삭제하시겠습니까?`,
+      title: '프로젝트 삭제',
+      description: `"${project.name}" 프로젝트와 모든 저장 파일이 삭제됩니다.`,
       variant: 'destructive',
       confirmLabel: '삭제',
     })
-    if (ok) deleteMutation.mutate(task.id)
+    if (ok) deleteProjectMutation.mutate(project)
   }
 
   return (
@@ -418,16 +445,14 @@ export function AnalysisListPage() {
                     {row.kind === 'quick' && (row.raw as AnalysisTaskListItem).completed_at ? formatDate((row.raw as AnalysisTaskListItem).completed_at!) : '-'}
                   </td>
                   <td className="py-2.5 px-4">
-                    {row.kind === 'quick' && (
-                      <button
-                        onClick={(e) => handleDelete(e, row.raw as AnalysisTaskListItem)}
-                        disabled={(row.raw as AnalysisTaskListItem).task_status === 'in_progress'}
-                        className="p-1 rounded text-ds-on-surface-variant/60 hover:text-ds-error hover:bg-ds-error/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                        title="삭제"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    <button
+                      onClick={(e) => handleDelete(e, row)}
+                      disabled={row.kind === 'quick' && (row.raw as AnalysisTaskListItem).task_status === 'in_progress'}
+                      className="p-1 rounded text-ds-on-surface-variant/60 hover:text-ds-error hover:bg-ds-error/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      title="삭제"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </td>
                 </tr>
               ))}
