@@ -1,5 +1,7 @@
 # Analysis 페이지 모듈형 통합 Implementation Plan
 
+> **상태: 구현 완료 (2026-08-27~28).** 이 계획은 subagent-driven-development로 실행되지 않고 세션 내에서 직접 구현·검증·커밋됐다. 아래 체크박스는 사후 검증(실제 파일/라우트/레지스트리 존재 확인)을 거쳐 일괄 완료 처리한 것으로, 태스크별 개별 실행 로그는 남아있지 않다. 최신 아키텍처 설명은 이 문서가 아닌 프로젝트 루트 `CLAUDE.md`가 정본(source of truth)이다 — 이후 구조가 바뀌면 이 문서는 갱신하지 않고 CLAUDE.md만 갱신한다.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** deletion_workflow를 별도 메뉴에서 Analysis 페이지 안으로 완전히 통합하고, 6개 분석 유형 + deletion_workflow를 레지스트리 기반 "모듈"로 관리해 향후 신규 분석 모듈 추가가 파일 하나 + 레지스트리 등록만으로 끝나게 한다.
@@ -35,7 +37,7 @@
 - Produces: `AnalysisProject`(`analysis_projects` 테이블 — id, device_id, name, status, memo, reference_date, module_type, created_at, updated_at, `files` relationship), `AnalysisProjectFile`(`analysis_project_files` 테이블 — id, project_id, task_id, slot, filename, file_data, created_at, analysis_task_id, `project` relationship)
 - Produces: `AnalysisTask.analysis_project_id`(이전 `deletion_workflow_project_id`), `AnalysisTask.analysis_project` relationship(이전 `deletion_workflow_project`)
 
-- [ ] **Step 1: `app/models/deletion_workflow.py` 내용을 `app/models/analysis_project.py`로 이동하며 일반화**
+- [x] **Step 1: `app/models/deletion_workflow.py` 내용을 `app/models/analysis_project.py`로 이동하며 일반화**
 
 `backend/app/models/deletion_workflow.py`의 현재 내용(`DeletionWorkflowProject`/`DeletionWorkflowFile`)을 다음으로 바꿔 `backend/app/models/analysis_project.py`에 새로 작성:
 
@@ -92,13 +94,13 @@ class AnalysisProjectFile(Base):
     )
 ```
 
-- [ ] **Step 2: `backend/app/models/deletion_workflow.py` 삭제**
+- [x] **Step 2: `backend/app/models/deletion_workflow.py` 삭제**
 
 ```bash
 rm backend/app/models/deletion_workflow.py
 ```
 
-- [ ] **Step 3: `backend/app/models/__init__.py` import 갱신**
+- [x] **Step 3: `backend/app/models/__init__.py` import 갱신**
 
 `backend/app/models/__init__.py:15`의 다음 줄:
 ```python
@@ -109,7 +111,7 @@ from .deletion_workflow import DeletionWorkflowProject, DeletionWorkflowFile
 from .analysis_project import AnalysisProject, AnalysisProjectFile
 ```
 
-- [ ] **Step 4: `backend/app/models/analysis.py`의 `AnalysisTask` 필드 rename**
+- [x] **Step 4: `backend/app/models/analysis.py`의 `AnalysisTask` 필드 rename**
 
 `backend/app/models/analysis.py`에서 다음 두 줄:
 ```python
@@ -128,7 +130,7 @@ from .analysis_project import AnalysisProject, AnalysisProjectFile
     analysis_project = relationship("AnalysisProject")
 ```
 
-- [ ] **Step 5: 모델 임포트 검증**
+- [x] **Step 5: 모델 임포트 검증**
 
 ```bash
 source .venv/bin/activate && cd backend && python -c "
@@ -142,7 +144,7 @@ print('OK')
 ```
 Expected: `OK` 출력, `deletion_workflow` 문자열이 컬럼명에 없음.
 
-- [ ] **Step 6: 마이그레이션 작성 (autogenerate 대신 수동 작성 — rename은 autogenerate가 drop+create로 오인식)**
+- [x] **Step 6: 마이그레이션 작성 (autogenerate 대신 수동 작성 — rename은 autogenerate가 drop+create로 오인식)**
 
 ```bash
 source .venv/bin/activate && cd backend && python -m alembic revision -m "rename deletion_workflow tables to analysis_project"
@@ -196,7 +198,7 @@ def downgrade() -> None:
 
 `import sqlalchemy as sa`가 파일 상단에 있는지 확인(`alembic revision`이 기본 생성하는 템플릿에 이미 포함됨).
 
-- [ ] **Step 7: 마이그레이션 적용 및 스키마 확인**
+- [x] **Step 7: 마이그레이션 적용 및 스키마 확인**
 
 ```bash
 cd /Users/hoon/Code/firewall-analysis-tool && source .venv/bin/activate && python backend/migrate.py
@@ -205,7 +207,7 @@ sqlite3 backend/fat.db "select sql from sqlite_master where name='analysistasks'
 ```
 Expected: `analysis_projects`에 `module_type` 컬럼 존재, `analysistasks` 스키마에 `analysis_project_id` 컬럼과 `analysis_projects` 참조 FK 존재. `deletion_workflow_projects`/`deletion_workflow_files` 테이블은 더 이상 존재하지 않음(`.tables`로 확인).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add backend/app/models/analysis_project.py backend/app/models/__init__.py backend/app/models/analysis.py backend/alembic/versions/
@@ -227,7 +229,7 @@ git commit -m "refactor: deletion_workflow 테이블을 analysis_project로 일�
 - Produces: `crud_analysis_project.create_project(db, module_type, device_id, name, memo=None, reference_date=None)`, `.list_projects(db, module_type, device_id=None)`, `.get_project(db, project_id)`, `.delete_project(db, project_id)`, `.update_project_status(db, project, status)`, `.update_project(db, project, memo=_UNSET, reference_date=_UNSET)`, `.upsert_file(db, project_id, task_id, slot, filename, data, analysis_task_id=None)`, `.get_file(db, project_id, task_id, slot)`, `.get_project_files(db, project_id)`, `.clear_output_files(db, project_id, task_ids=None)`, `.clear_all_files(db, project_id)`
 - Produces: `crud_analysis.get_running_analysis_task_by_project(db, project_id)`(내부에서 `analysis_project_id` 참조), `crud_analysis.list_analysis_tasks_paginated(..., analysis_project_id=None)`(파라미터명 변경) — 그리고 신규로, 명시적 `task_type` 필터가 없을 때 프로젝트형 모듈의 task_type을 자동 제외하는 로직 추가
 
-- [ ] **Step 1: `crud_deletion_workflow.py`를 `crud_analysis_project.py`로 복사 후 일반화**
+- [x] **Step 1: `crud_deletion_workflow.py`를 `crud_analysis_project.py`로 복사 후 일반화**
 
 `backend/app/crud/crud_deletion_workflow.py`를 읽어(이미 알고 있는 현재 내용) 다음 변경을 적용해 `backend/app/crud/crud_analysis_project.py`로 새로 작성한다:
 
@@ -293,13 +295,13 @@ async def delete_project(db: AsyncSession, project_id: int) -> None:
 
 나머지 함수(`get_project`, `update_project_status`, `update_project`, `upsert_file`, `get_file`, `get_project_files`, `clear_output_files`, `clear_all_files`)는 클래스명 치환 외 로직 변경 없음.
 
-- [ ] **Step 2: `crud_deletion_workflow.py` 삭제**
+- [x] **Step 2: `crud_deletion_workflow.py` 삭제**
 
 ```bash
 rm backend/app/crud/crud_deletion_workflow.py
 ```
 
-- [ ] **Step 3: `crud_analysis.py` 필드/파라미터 rename + 프로젝트형 모듈 제외 로직 추가**
+- [x] **Step 3: `crud_analysis.py` 필드/파라미터 rename + 프로젝트형 모듈 제외 로직 추가**
 
 `backend/app/crud/crud_analysis.py`에서:
 
@@ -375,7 +377,7 @@ async def list_analysis_tasks_paginated(
     return tasks, total
 ```
 
-- [ ] **Step 4: 임포트 및 동작 검증**
+- [x] **Step 4: 임포트 및 동작 검증**
 
 ```bash
 source /Users/hoon/Code/firewall-analysis-tool/.venv/bin/activate && cd /Users/hoon/Code/firewall-analysis-tool/backend && python -c "
@@ -387,7 +389,7 @@ print('crud_analysis OK:', crud.analysis.get_running_analysis_task_by_project, c
 ```
 Expected: 에러 없이 함수 참조 출력.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/crud/crud_analysis_project.py backend/app/crud/crud_analysis.py
@@ -407,7 +409,7 @@ git commit -m "refactor: crud_deletion_workflow를 crud_analysis_project로 일�
 - Consumes: Task 2의 `crud_analysis_project` 함수들, `crud.analysis.list_analysis_tasks_paginated`
 - Produces: `GET/POST /api/v1/analysis/projects`, `GET/DELETE/PATCH /api/v1/analysis/projects/{project_id}`, `GET /api/v1/analysis/projects/{project_id}/tasks`, `GET /api/v1/analysis/projects/{project_id}/tasks/{analysis_task_id}/result`
 
-- [ ] **Step 1: 새 엔드포인트 파일 작성**
+- [x] **Step 1: 새 엔드포인트 파일 작성**
 
 `backend/app/api/api_v1/endpoints/analysis_projects.py`를 다음 내용으로 작성한다. 기존 `deletion_workflow.py`의 `list_projects`/`create_project`/`get_project`(상세)/`delete_project`/`update_project`/`list_project_pipeline_tasks`/`get_pipeline_task_result` 로직을 module_type 인자를 받도록 일반화해 옮긴 것이다:
 
@@ -612,7 +614,7 @@ async def get_pipeline_task_result(
     }
 ```
 
-- [ ] **Step 2: 라우터 등록**
+- [x] **Step 2: 라우터 등록**
 
 `backend/app/api/api_v1/api.py`에서 import 목록에 `analysis_projects` 추가:
 ```python
@@ -628,7 +630,7 @@ api_router.include_router(analysis.router, prefix="/analysis", tags=["analysis"]
 api_router.include_router(analysis_projects.router, prefix="/analysis/projects", tags=["analysis-projects"], dependencies=_auth)
 ```
 
-- [ ] **Step 3: 라우트 등록 검증**
+- [x] **Step 3: 라우트 등록 검증**
 
 ```bash
 source /Users/hoon/Code/firewall-analysis-tool/.venv/bin/activate && cd /Users/hoon/Code/firewall-analysis-tool/backend && python -c "
@@ -647,7 +649,7 @@ Expected:
 /api/v1/analysis/projects/{project_id}/tasks/{analysis_task_id}/result ['get']
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add backend/app/api/api_v1/endpoints/analysis_projects.py backend/app/api/api_v1/api.py
@@ -667,7 +669,7 @@ git commit -m "feat: 공용 analysis_projects 프로젝트 CRUD 엔드포인트 
 - Consumes: Task 2의 `crud_analysis_project`, Task 3의 신규 엔드포인트(프로젝트 CRUD는 이제 `/analysis/projects`로 이동했으므로 `deletion_workflow.py`에서 제거)
 - Produces: `deletion_workflow.py`에는 실행 전용 엔드포인트만 남음 — `POST /projects/{id}/extract`, `POST /projects/{id}/tasks/{task_id}/upload`, `POST /projects/{id}/tasks/{task_id}/run`, `GET /projects/{id}/tasks/{task_id}/download`, `POST /projects/{id}/reset-outputs`, `POST /projects/{id}/reset-all`, `POST /projects/{id}/clear-outputs`, `POST /projects/{id}/complete` (+ 레거시 `GET /tasks`, `POST /tasks/{id}/execute`, `POST /extract`, `GET /redundancy-export/{device_id}`)
 
-- [ ] **Step 1: `input_resolver.py` 타입 임포트 변경**
+- [x] **Step 1: `input_resolver.py` 타입 임포트 변경**
 
 `backend/app/services/deletion_workflow/core/input_resolver.py:37`의 다음 줄:
 ```python
@@ -679,7 +681,7 @@ from app.models.analysis_project import AnalysisProjectFile
 ```
 그리고 파일 내 `DeletionWorkflowFile` 타입 힌트 3곳(줄 50, 58, 62, 71, 79 부근)을 모두 `AnalysisProjectFile`로 치환한다.
 
-- [ ] **Step 2: `services/deletion_workflow/tasks.py` 임포트/필드명 갱신**
+- [x] **Step 2: `services/deletion_workflow/tasks.py` 임포트/필드명 갱신**
 
 `backend/app/services/deletion_workflow/tasks.py`에서:
 ```python
@@ -693,7 +695,7 @@ from app.crud import crud_analysis_project as dwcrud
 
 `_execute_pipeline_task` 내부에서 `project.device_id`/`project.status` 등 필드 접근은 컬럼명이 그대로이므로 변경 불필요. `dwcrud.get_project`/`dwcrud.upsert_file`/`dwcrud.get_project_files`/`dwcrud.update_project_status`/`dwcrud.clear_output_files` 호출부도 시그니처가 동일하므로 변경 불필요.
 
-- [ ] **Step 3: `endpoints/deletion_workflow.py`에서 이관된 프로젝트 CRUD 엔드포인트 제거**
+- [x] **Step 3: `endpoints/deletion_workflow.py`에서 이관된 프로젝트 CRUD 엔드포인트 제거**
 
 다음 라우트 핸들러 함수 전체를 삭제한다(Task 3에서 `analysis_projects.py`로 이미 옮겨졌으므로):
 - `@router.get("/projects")` `list_projects`
@@ -704,7 +706,7 @@ from app.crud import crud_analysis_project as dwcrud
 - `@router.get("/projects/{project_id}/tasks")` `list_project_pipeline_tasks`
 - `@router.get("/projects/{project_id}/tasks/{analysis_task_id}/result")` `get_pipeline_task_result`
 
-- [ ] **Step 4: 남은 실행 전용 엔드포인트들의 `crud_deletion_workflow` 참조를 `crud_analysis_project`로 교체**
+- [x] **Step 4: 남은 실행 전용 엔드포인트들의 `crud_deletion_workflow` 참조를 `crud_analysis_project`로 교체**
 
 파일 전체에서 `from app.crud import crud_deletion_workflow as dwcrud`(여러 함수 내부에 지역 임포트로 반복됨, 총 7곳: `project_extract`, `upload_external_file`, `run_project_task`, `list_project_pipeline_tasks`—Step3에서 삭제됨, `get_pipeline_task_result`—Step3에서 삭제됨, `download_task_file`, `reset_project_outputs`, `reset_all_project_files`, `clear_project_outputs`, `complete_project`)를 다음으로 일괄 교체:
 ```python
@@ -712,7 +714,7 @@ from app.crud import crud_analysis_project as dwcrud
 ```
 (변수명 `dwcrud`는 그대로 유지해 호출부 코드는 변경 불필요.)
 
-- [ ] **Step 5: `_schedule_pipeline_task` 헬퍼의 필드명 갱신**
+- [x] **Step 5: `_schedule_pipeline_task` 헬퍼의 필드명 갱신**
 
 파일 상단 `_schedule_pipeline_task` 함수 내:
 ```python
@@ -724,11 +726,11 @@ from app.crud import crud_analysis_project as dwcrud
 ```
 로 교체.
 
-- [ ] **Step 6: `run_project_task` 엔드포인트에서 프로젝트 조회 시 `dwcrud.get_project` 사용 확인**
+- [x] **Step 6: `run_project_task` 엔드포인트에서 프로젝트 조회 시 `dwcrud.get_project` 사용 확인**
 
 `run_project_task`(및 `project_extract`)는 이미 `dwcrud.get_project(db, project_id)`로 프로젝트를 조회하고 있으므로(Step 4에서 alias를 유지했으니) 추가 변경 불필요. 단, 함수 시그니처에서 `project = await dwcrud.get_project(db, project_id)`가 이제 `AnalysisProject` 인스턴스를 반환함을 주석 등으로 남기지 않아도 무방(타입은 동적).
 
-- [ ] **Step 7: 전체 임포트 및 라우트 검증**
+- [x] **Step 7: 전체 임포트 및 라우트 검증**
 
 ```bash
 source /Users/hoon/Code/firewall-analysis-tool/.venv/bin/activate && cd /Users/hoon/Code/firewall-analysis-tool/backend && python -c "
@@ -744,7 +746,7 @@ print('OK — project CRUD 엔드포인트가 deletion-workflow 라우터에서 
 ```
 Expected: `/api/v1/deletion-workflow/projects/{project_id}/extract`, `.../upload`, `.../run`, `.../download`, `/reset-outputs`, `/reset-all`, `/clear-outputs`, `/complete`, `/tasks`, `/tasks/{task_id}/execute`, `/extract`, `/redundancy-export/{device_id}`만 남고 `OK` 출력.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add backend/app/api/api_v1/endpoints/deletion_workflow.py backend/app/services/deletion_workflow/tasks.py backend/app/services/deletion_workflow/core/input_resolver.py
@@ -760,7 +762,7 @@ git commit -m "refactor: deletion_workflow 엔드포인트에서 이관된 프�
 **Interfaces:**
 - Consumes: Task 1~4의 모든 산출물
 
-- [ ] **Step 1: 프로젝트 생성 → Task 0 실행 → 결과 확인 → 삭제(고아 행 정리 포함) 스모크 스크립트 실행**
+- [x] **Step 1: 프로젝트 생성 → Task 0 실행 → 결과 확인 → 삭제(고아 행 정리 포함) 스모크 스크립트 실행**
 
 ```bash
 source /Users/hoon/Code/firewall-analysis-tool/.venv/bin/activate && cd /Users/hoon/Code/firewall-analysis-tool/backend && python3 -c "
@@ -806,7 +808,7 @@ asyncio.run(main())
 ```
 Expected: `pipeline run OK: ...`, `quick list exclusion OK (...)`, `orphan cleanup OK` 모두 출력, AssertionError 없음.
 
-- [ ] **Step 2: `python backend/migrate.py current`로 head 확인**
+- [x] **Step 2: `python backend/migrate.py current`로 head 확인**
 
 ```bash
 cd /Users/hoon/Code/firewall-analysis-tool && source .venv/bin/activate && python backend/migrate.py current
@@ -827,7 +829,7 @@ Expected: Task 1에서 만든 새 revision이 `(head)`로 표시됨.
 - Produces: `queryKeys.analysisProjects(moduleType)`, `queryKeys.analysisProject(projectId)`, `queryKeys.analysisProjectTasks(projectId)`
 - Produces: `QuickAnalysisModule`/`ProjectAnalysisModule`/`AnalysisModule` 타입 (다음 태스크들이 이 타입을 구현한다)
 
-- [ ] **Step 1: `frontend/src/api/analysisProjects.ts` 작성**
+- [x] **Step 1: `frontend/src/api/analysisProjects.ts` 작성**
 
 ```typescript
 import { apiClient } from './client'
@@ -953,7 +955,7 @@ export const getProjectPipelineTaskResult = async (
 
 주의: 기존 `frontend/src/api/deletionWorkflow.ts`의 form 전송 함수들은 `fetch()` + `useAuthStore` 토큰 헤더 수동 조립 패턴을 쓰지만, 이 파일은 이미 인증 헤더 인터셉터가 붙어있는 `apiClient`(axios 인스턴스)를 사용한다 — `src/api/client.ts`의 요청 인터셉터가 Bearer 토큰을 자동 주입하므로 더 짧고 이 프로젝트의 다른 신규 API 클라이언트(`api/analysis.ts`)와 일관된 스타일이다.
 
-- [ ] **Step 2: `frontend/src/api/queryKeys.ts`에 키 추가**
+- [x] **Step 2: `frontend/src/api/queryKeys.ts`에 키 추가**
 
 `frontend/src/api/queryKeys.ts`의 "삭제 워크플로우" 섹션 위(또는 "분석" 섹션 안)에 추가:
 ```typescript
@@ -962,7 +964,7 @@ export const getProjectPipelineTaskResult = async (
   analysisProjectTasks: (projectId: number | string | undefined) => ['analysis-project-tasks', projectId] as const,
 ```
 
-- [ ] **Step 3: `frontend/src/components/pages/analysis-modules/types.ts` 작성**
+- [x] **Step 3: `frontend/src/components/pages/analysis-modules/types.ts` 작성**
 
 ```typescript
 import type { ReactNode } from 'react'
@@ -1014,14 +1016,14 @@ export interface ProjectAnalysisModule {
 export type AnalysisModule = QuickAnalysisModule | ProjectAnalysisModule
 ```
 
-- [ ] **Step 4: 타입체크로 검증**
+- [x] **Step 4: 타입체크로 검증**
 
 ```bash
 cd /Users/hoon/Code/firewall-analysis-tool/frontend && npx tsc --noEmit -p . 2>&1 | head -40
 ```
 Expected: `analysisProjects.ts`/`types.ts` 관련 에러 없음(이 시점엔 아직 아무도 이 파일들을 사용하지 않으므로 기존 에러도 없어야 함).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/api/analysisProjects.ts frontend/src/api/queryKeys.ts frontend/src/components/pages/analysis-modules/types.ts
@@ -1043,7 +1045,7 @@ git commit -m "feat: 공용 analysisProjects API 클라이언트 + 분석 모듈
 
 이 태스크는 `AnalysisListPage.tsx`(현재 `ANALYSIS_TYPES` 배열, `CreateAnalysisDialog`의 유형별 분기)와 `AnalysisDetailPage.tsx`(현재 `getColumnDefs`/`ResultSummary`의 `analysisType === '...'` 분기, `buildPaloAltoMoveScript`)에 흩어진 로직을 유형별로 옮겨오는 작업이다. 기존 두 페이지 파일은 Task 9~10에서 이 모듈들을 소비하도록 리팩터되며, 이 태스크에서는 아직 어디서도 import되지 않으므로 기존 페이지 동작에는 영향이 없다.
 
-- [ ] **Step 1: `redundancy.tsx` 작성**
+- [x] **Step 1: `redundancy.tsx` 작성**
 
 ```tsx
 import { Copy, Check } from 'lucide-react'
@@ -1092,7 +1094,7 @@ export const redundancyModule: QuickAnalysisModule = {
 
 주의: 위 코드 블록 맨 아래 `Check` 관련 주석은 실수 방지용 메모다. 실제 작성 시 `import { Copy, Check } from 'lucide-react'`가 아니라 **`import { Copy } from 'lucide-react'`**로 `Check`를 빼고 작성한다(ESLint `no-unused-vars`에 걸림).
 
-- [ ] **Step 2: `unused.tsx` 작성**
+- [x] **Step 2: `unused.tsx` 작성**
 
 ```tsx
 import { Clock } from 'lucide-react'
@@ -1127,7 +1129,7 @@ export const unusedModule: QuickAnalysisModule = {
 }
 ```
 
-- [ ] **Step 3: `impact.tsx` 작성**
+- [x] **Step 3: `impact.tsx` 작성**
 
 이 모듈은 `PolicyGridPicker`(이동할 정책 다중선택)와 `기준 정책`/`이동 방향`/`맨 아래로 이동` 체크박스, 그리고 `AnalysisDetailPage`의 `ImpactMovePreviewDialog` 연동 및 `buildPaloAltoMoveScript`(팔로알토 이동 스크립트 다운로드)를 함께 옮긴다:
 
@@ -1306,7 +1308,7 @@ export const impactModule: QuickAnalysisModule = {
 }
 ```
 
-- [ ] **Step 4: `frontend/src/components/pages/analysis-modules/policyColumns.tsx` 공용 헬퍼 작성**
+- [x] **Step 4: `frontend/src/components/pages/analysis-modules/policyColumns.tsx` 공용 헬퍼 작성**
 
 기존 `AnalysisDetailPage.tsx`의 `pv`/`makePolicyCols`를 그대로 옮긴다(6개 모듈 모두가 공유):
 
@@ -1351,14 +1353,14 @@ export function makePolicyCols(onRuleNameClick?: (name: string) => void): ColDef
 ```
 (`redundancy.tsx`/`unused.tsx`/`impact.tsx`의 import 경로 `./policyColumns`가 이 파일을 가리킨다 — 위 Step 1~3의 예시 코드에서 이미 이 경로로 import하고 있으므로 별도 수정 불필요.)
 
-- [ ] **Step 5: 타입체크**
+- [x] **Step 5: 타입체크**
 
 ```bash
 cd /Users/hoon/Code/firewall-analysis-tool/frontend && npx tsc --noEmit -p . 2>&1 | head -60
 ```
 Expected: 새로 만든 4개 파일에서 에러 없음. (아직 아무도 import하지 않으므로 unused-export 경고는 tsc 기본 설정에서 발생하지 않음 — eslint의 `no-unused-vars`도 export된 심볼에는 적용되지 않으므로 문제 없음)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/src/components/pages/analysis-modules/redundancy.tsx frontend/src/components/pages/analysis-modules/unused.tsx frontend/src/components/pages/analysis-modules/impact.tsx frontend/src/components/pages/analysis-modules/policyColumns.tsx
@@ -1380,7 +1382,7 @@ git commit -m "feat: redundancy/unused/impact 분석 모듈 추출"
 - Consumes: Task 6의 타입, Task 7의 3개 모듈
 - Produces: `unreferencedObjectsModule`, `riskyPortsModule`, `overPermissiveModule`, `ANALYSIS_MODULES: AnalysisModule[]`, `QUICK_MODULES: QuickAnalysisModule[]`, `PROJECT_MODULES: ProjectAnalysisModule[]`, `getModule(type: string): AnalysisModule | undefined`
 
-- [ ] **Step 1: `PolicyMultiSelect.tsx` 작성 (기존 `AnalysisListPage.tsx`의 동명 컴포넌트 이동)**
+- [x] **Step 1: `PolicyMultiSelect.tsx` 작성 (기존 `AnalysisListPage.tsx`의 동명 컴포넌트 이동)**
 
 ```tsx
 import { useQuery } from '@tanstack/react-query'
@@ -1412,7 +1414,7 @@ export function PolicyMultiSelect({ deviceId, value, onChange, placeholder }: {
 }
 ```
 
-- [ ] **Step 2: `unreferencedObjects.tsx` 작성**
+- [x] **Step 2: `unreferencedObjects.tsx` 작성**
 
 ```tsx
 import { Unlink } from 'lucide-react'
@@ -1444,7 +1446,7 @@ export const unreferencedObjectsModule: QuickAnalysisModule = {
 }
 ```
 
-- [ ] **Step 3: `riskyPorts.tsx` 작성 (정책 선택 파라미터 포함)**
+- [x] **Step 3: `riskyPorts.tsx` 작성 (정책 선택 파라미터 포함)**
 
 ```tsx
 import { ShieldAlert } from 'lucide-react'
@@ -1491,7 +1493,7 @@ export const riskyPortsModule: QuickAnalysisModule = {
 }
 ```
 
-- [ ] **Step 4: `overPermissive.tsx` 작성**
+- [x] **Step 4: `overPermissive.tsx` 작성**
 
 ```tsx
 import { Expand } from 'lucide-react'
@@ -1532,7 +1534,7 @@ export const overPermissiveModule: QuickAnalysisModule = {
 }
 ```
 
-- [ ] **Step 5: `index.ts` 레지스트리 조립 (deletion_workflow는 Task 11에서 채움 — 지금은 quick 6종만)**
+- [x] **Step 5: `index.ts` 레지스트리 조립 (deletion_workflow는 Task 11에서 채움 — 지금은 quick 6종만)**
 
 ```typescript
 import type { AnalysisModule, QuickAnalysisModule, ProjectAnalysisModule } from './types'
@@ -1570,14 +1572,14 @@ export function getQuickModule(type: string): QuickAnalysisModule | undefined {
 }
 ```
 
-- [ ] **Step 6: 타입체크**
+- [x] **Step 6: 타입체크**
 
 ```bash
 cd /Users/hoon/Code/firewall-analysis-tool/frontend && npx tsc --noEmit -p . 2>&1 | head -60
 ```
 Expected: 에러 없음.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add frontend/src/components/pages/analysis-modules/
@@ -1595,7 +1597,7 @@ git commit -m "feat: 나머지 quick 모듈 추출 + 분석 모듈 레지스트�
 - Consumes: Task 8의 `QUICK_MODULES`, `getModule`
 - Produces: 동일한 페이지 동작(카드 목록, 파라미터 폼, 실행, 이력 목록) — 구현만 레지스트리 기반으로 교체. Task 11에서 프로젝트형 카드/미니폼이 추가될 자리를 남겨둔다.
 
-- [ ] **Step 1: `ANALYSIS_TYPES`/`ANALYSIS_TYPE_LABELS`를 레지스트리 기반으로 교체**
+- [x] **Step 1: `ANALYSIS_TYPES`/`ANALYSIS_TYPE_LABELS`를 레지스트리 기반으로 교체**
 
 `frontend/src/components/pages/AnalysisListPage.tsx` 상단의 다음 블록:
 ```typescript
@@ -1612,7 +1614,7 @@ const ANALYSIS_TYPE_LABELS: Record<string, string> = Object.fromEntries(QUICK_MO
 ```
 (기존 `PolicyMultiSelect` 컴포넌트 정의는 Task 8에서 `analysis-modules/PolicyMultiSelect.tsx`로 이동했으므로 이 파일에서 삭제한다. `getPolicies` import도 더 이상 여기서 쓰지 않으면 제거.)
 
-- [ ] **Step 2: `CreateAnalysisDialog`를 레지스트리 기반 파라미터 상태로 리팩터**
+- [x] **Step 2: `CreateAnalysisDialog`를 레지스트리 기반 파라미터 상태로 리팩터**
 
 기존:
 ```typescript
@@ -1724,7 +1726,7 @@ mutationFn: () => {
 {QUICK_MODULES.find((m) => m.type === analysisType)?.renderParams?.({ deviceId, values, setValue })}
 ```
 
-- [ ] **Step 3: 필터 드롭다운 갱신**
+- [x] **Step 3: 필터 드롭다운 갱신**
 
 유형 필터의:
 ```tsx
@@ -1736,25 +1738,25 @@ mutationFn: () => {
 ```
 로 교체.
 
-- [ ] **Step 4: 더 이상 쓰지 않는 import 정리**
+- [x] **Step 4: 더 이상 쓰지 않는 import 정리**
 
 `StartAnalysisParams` 타입 import는 `module.buildParams(ctx)`의 반환 타입 추론에 더 이상 명시적으로 필요 없다면 제거(사용 여부는 `startMutation` 파라미터 타입에서 결정 — `startAnalysis`가 이미 타입을 갖고 있으므로 명시 캐스팅 불필요, 미사용이면 제거). `DeviceSelectorSingle`, `Checkbox`, `ShadSelect`, `PolicyGridPicker`, `Select`(react-select), `getPolicies` 등 기존에 `impact`/`unused`/`risky_ports`/`over_permissive` 전용으로만 쓰이던 import는 이제 각 모듈 파일로 옮겨졌으므로 이 파일에서 미사용이면 제거한다.
 
-- [ ] **Step 5: 빌드 + lint 검증**
+- [x] **Step 5: 빌드 + lint 검증**
 
 ```bash
 cd /Users/hoon/Code/firewall-analysis-tool/frontend && npm run build 2>&1 | tail -20 && npm run lint 2>&1 | tail -40
 ```
 Expected: 빌드/lint 모두 에러 없음.
 
-- [ ] **Step 6: 수동 회귀 확인**
+- [x] **Step 6: 수동 회귀 확인**
 
 ```bash
 npm run dev &
 ```
 브라우저에서 `/analysis` 접속 → "새 분석 실행" 클릭 → 6개 카드가 그대로 보이는지, `unused`/`impact`/`risky_ports`/`over_permissive` 선택 시 기존과 동일한 파라미터 UI가 뜨는지, 실행이 정상 동작하는지 확인. 확인 후 `kill %1`로 dev 서버 종료.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add frontend/src/components/pages/AnalysisListPage.tsx
@@ -1771,7 +1773,7 @@ git commit -m "refactor: AnalysisListPage가 분석 모듈 레지스트리를 �
 **Interfaces:**
 - Consumes: Task 8의 `getQuickModule`
 
-- [ ] **Step 1: `getColumnDefs`/`ResultSummary`/`getRowStyle`/`buildPaloAltoMoveScript`/`makePolicyCols`/`pv` 제거하고 모듈 조회로 교체**
+- [x] **Step 1: `getColumnDefs`/`ResultSummary`/`getRowStyle`/`buildPaloAltoMoveScript`/`makePolicyCols`/`pv` 제거하고 모듈 조회로 교체**
 
 `frontend/src/components/pages/AnalysisDetailPage.tsx`에서 다음을 모두 삭제한다:
 - `pv` 함수, `makePolicyCols` 함수 (→ `analysis-modules/policyColumns.tsx`로 이미 이동됨)
@@ -1817,7 +1819,7 @@ function ResultSummary({
 }
 ```
 
-- [ ] **Step 2: 메인 컴포넌트에서 모듈 조회 후 사용**
+- [x] **Step 2: 메인 컴포넌트에서 모듈 조회 후 사용**
 
 `export function AnalysisDetailPage()` 본문에서 `if (taskQuery.isLoading) ...`/`if (!task) ...` 가드 이후, 기존:
 ```typescript
@@ -1879,7 +1881,7 @@ const rowStyleFn = module?.rowStyle
 
 `AgGridWrapper`의 `getRowStyle={rowStyleFn as ...}` prop은 `rowStyleFn`이 `undefined`일 수 있으므로 `getRowStyle={rowStyleFn}`으로 그대로 전달(AgGridWrapper가 `undefined`를 허용하는지 `frontend/src/components/shared/AgGridWrapper.tsx`의 `getRowStyle` prop 타입을 확인해 `optional`이 아니라면 `getRowStyle={rowStyleFn ?? undefined}`처럼 명시).
 
-- [ ] **Step 3: import 정리 및 신규 import 추가**
+- [x] **Step 3: import 정리 및 신규 import 추가**
 
 파일 상단에 추가:
 ```typescript
@@ -1887,18 +1889,18 @@ import { getQuickModule } from './analysis-modules'
 ```
 더 이상 쓰지 않는 `React`(cellRenderer에서 `React.createElement` 쓰던 부분이 모듈 파일로 이동했다면 미사용 가능성 있음 — `onRuleNameClick`은 이제 모듈에 전달만 하므로 이 파일에 남은 `React.createElement` 사용처가 있는지 확인 후 없으면 `import React from 'react'`를 `import { useMemo, useState } from 'react'`로 축소), `ImpactMovePreviewDialog`는 `task.task_type === 'impact'`일 때 그대로 쓰이므로 유지.
 
-- [ ] **Step 4: 빌드 + lint 검증**
+- [x] **Step 4: 빌드 + lint 검증**
 
 ```bash
 cd /Users/hoon/Code/firewall-analysis-tool/frontend && npm run build 2>&1 | tail -20 && npm run lint 2>&1 | tail -40
 ```
 Expected: 에러 없음.
 
-- [ ] **Step 5: 수동 회귀 확인**
+- [x] **Step 5: 수동 회귀 확인**
 
 `npm run dev` 후 브라우저에서 기존에 실행해둔 분석 결과(redundancy/impact 등) 상세 페이지를 열어 컬럼/요약/엑셀 다운로드/(팔로알토 장비라면) 이동 스크립트 다운로드가 기존과 동일하게 동작하는지 확인.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/src/components/pages/AnalysisDetailPage.tsx
@@ -1919,7 +1921,7 @@ git commit -m "refactor: AnalysisDetailPage가 분석 모듈 레지스트리를 
 - Consumes: Task 6의 `analysisProjects.ts` API 클라이언트, `ProjectAnalysisModule` 타입
 - Produces: `deletionWorkflowModule`(등록된 프로젝트형 모듈), `ProjectListPage`(라우트 `/analysis/projects/:moduleType`에서 사용, Task 13에서 연결)
 
-- [ ] **Step 1: `deletionWorkflow.ts` 모듈 디스크립터 작성**
+- [x] **Step 1: `deletionWorkflow.ts` 모듈 디스크립터 작성**
 
 ```typescript
 import { FileX2 } from 'lucide-react'
@@ -1934,7 +1936,7 @@ export const deletionWorkflowModule: ProjectAnalysisModule = {
 }
 ```
 
-- [ ] **Step 2: `index.ts`에 등록**
+- [x] **Step 2: `index.ts`에 등록**
 
 `frontend/src/components/pages/analysis-modules/index.ts`의 import/배열에 추가:
 ```typescript
@@ -1951,7 +1953,7 @@ export const ANALYSIS_MODULES: AnalysisModule[] = [
 ]
 ```
 
-- [ ] **Step 3: `ProjectListPage.tsx` 작성 (기존 `DeletionWorkflowListPage.tsx`를 모듈 파라미터화)**
+- [x] **Step 3: `ProjectListPage.tsx` 작성 (기존 `DeletionWorkflowListPage.tsx`를 모듈 파라미터화)**
 
 라우트 파라미터 `:moduleType`으로 레지스트리에서 라벨/생성 로직을 가져오는 범용 페이지. 기존 `DeletionWorkflowListPage.tsx`의 `CreateProjectDialog`/테이블 로직을 그대로 쓰되, `deletionWorkflow`의 project CRUD 대신 `analysisProjects.ts`의 공용 함수를 쓰고, `moduleType`을 라우트 파라미터로 받는다:
 
@@ -2165,21 +2167,21 @@ export default function ProjectListPage() {
 }
 ```
 
-- [ ] **Step 4: 기존 `DeletionWorkflowListPage.tsx` 삭제**
+- [x] **Step 4: 기존 `DeletionWorkflowListPage.tsx` 삭제**
 
 ```bash
 rm /Users/hoon/Code/firewall-analysis-tool/frontend/src/components/pages/DeletionWorkflowListPage.tsx
 ```
 (이 파일을 import하던 곳은 Task 13에서 라우팅을 정리할 때 함께 제거된다 — 이 태스크 시점에는 `App.tsx`가 아직 옛 파일을 참조하므로 **Task 13 이전에는 빌드가 깨질 수 있음**. 그래서 이 삭제 스텝은 Task 13의 라우팅 정리와 같은 커밋으로 묶어 진행한다 — 아래 Step 5 참고.)
 
-- [ ] **Step 5: 타입체크 (App.tsx 미반영 상태이므로 ProjectListPage 자체만 검증)**
+- [x] **Step 5: 타입체크 (App.tsx 미반영 상태이므로 ProjectListPage 자체만 검증)**
 
 ```bash
 cd /Users/hoon/Code/firewall-analysis-tool/frontend && npx tsc --noEmit -p . 2>&1 | grep -E "ProjectListPage|analysis-modules|DeletionWorkflowListPage"
 ```
 Expected: `DeletionWorkflowListPage`를 import하는 `App.tsx`에서만 에러가 나야 정상(파일이 삭제됐으므로) — 이 에러는 Task 13에서 해소된다. `ProjectListPage.tsx` 자체에는 에러가 없어야 한다. 이 태스크의 커밋은 `App.tsx` 반영 전이므로, **삭제(Step 4)는 실제로 Task 13에서 수행**하고 이 태스크에서는 `ProjectListPage.tsx`만 새로 추가하는 것으로 범위를 좁힌다 — 즉 Step 4는 이 태스크에서 건너뛰고 Task 13의 Step 1로 이동한다.
 
-- [ ] **Step 6: Commit (DeletionWorkflowListPage 삭제 제외)**
+- [x] **Step 6: Commit (DeletionWorkflowListPage 삭제 제외)**
 
 ```bash
 git add frontend/src/components/pages/analysis-modules/deletionWorkflow.ts frontend/src/components/pages/analysis-modules/index.ts frontend/src/components/pages/ProjectListPage.tsx
@@ -2200,7 +2202,7 @@ git commit -m "feat: deletion_workflow를 프로젝트형 모듈로 등록 + 공
 - Consumes: Task 6의 `analysisProjects.ts`(`getAnalysisProject`, `updateAnalysisProject`, `AnalysisProjectDetail`, `ProjectFileState`)
 - Produces: `deletionWorkflow.ts`에는 실행 전용 함수만 남음(프로젝트 CRUD 제거)
 
-- [ ] **Step 1: `frontend/src/api/deletionWorkflow.ts`에서 프로젝트 CRUD 제거**
+- [x] **Step 1: `frontend/src/api/deletionWorkflow.ts`에서 프로젝트 CRUD 제거**
 
 다음 항목을 삭제한다: `DeletionWorkflowProject` 인터페이스, `ProjectFileState` 인터페이스, `DeletionWorkflowProjectDetail` 인터페이스(→ `analysisProjects.ts`의 `AnalysisProject`/`ProjectFileState`/`AnalysisProjectDetail`로 대체), `listProjects`, `createProject`, `updateProject`, `getProject`, `deleteProject` 함수.
 
@@ -2220,7 +2222,7 @@ export const getPipelineTaskResult = async (
 ```
 (엔드포인트가 `apiClient`(axios) 기반이라면 그대로 두되, `fetch()` 기반이었다면 `apiClient.get`으로 통일한다 — 기존 `deletionWorkflow.ts`의 `getPipelineTaskResult`가 이미 `apiClient.get`을 쓰고 있었다면 URL 문자열만 교체.)
 
-- [ ] **Step 2: `DeletionWorkflowDetailPage.tsx` import 및 쿼리 갱신**
+- [x] **Step 2: `DeletionWorkflowDetailPage.tsx` import 및 쿼리 갱신**
 
 ```typescript
 import { getProject, runProjectExtract, runProjectTask, getPipelineTaskResult, waitForPipelineTask, resetAllProjectFiles, clearProjectOutputs, updateProject, completeProject, type DeletionWorkflowProjectDetail, type ProjectFileState } from '@/api/deletionWorkflow'
@@ -2237,7 +2239,7 @@ import { getAnalysisProject, updateAnalysisProject, type AnalysisProjectDetail, 
 
 `checkSync` 함수의 `projectRef: DeletionWorkflowProjectDetail` 파라미터 타입도 `AnalysisProjectDetail`로 교체.
 
-- [ ] **Step 3: `TaskCard.tsx`/`Task0Section.tsx`의 `ProjectFileState` import 경로 변경**
+- [x] **Step 3: `TaskCard.tsx`/`Task0Section.tsx`의 `ProjectFileState` import 경로 변경**
 
 두 파일의:
 ```typescript
@@ -2250,7 +2252,7 @@ import type { ProjectFileState } from '@/api/analysisProjects'
 ```
 로 교체(다른 실행 관련 함수 import는 그대로 `@/api/deletionWorkflow`에서 유지).
 
-- [ ] **Step 4: `frontend/src/api/queryKeys.ts`에서 `deletionWorkflowProjects`/`deletionWorkflowProject` 제거**
+- [x] **Step 4: `frontend/src/api/queryKeys.ts`에서 `deletionWorkflowProjects`/`deletionWorkflowProject` 제거**
 
 ```typescript
   deletionWorkflowProjects: ['deletion-workflow-projects'] as const,
@@ -2259,14 +2261,14 @@ import type { ProjectFileState } from '@/api/analysisProjects'
 ```
 두 줄을 삭제(Task 6에서 추가한 `analysisProjects`/`analysisProject`로 완전히 대체됨). `deletionWorkflowTasks`(태스크 메타), `deletionWorkflowConfig`(Settings 연동), `deletionWorkflowPipelineTask`(있다면)는 프로젝트 CRUD와 무관하므로 유지.
 
-- [ ] **Step 5: 타입체크**
+- [x] **Step 5: 타입체크**
 
 ```bash
 cd /Users/hoon/Code/firewall-analysis-tool/frontend && npx tsc --noEmit -p . 2>&1 | head -60
 ```
 Expected: `deletionWorkflowProject`/`getProject`/`updateProject`(deletionWorkflow.ts에서 삭제된 것) 관련 참조 에러가 모두 해소됨. (아직 `App.tsx`/`DeletionWorkflowListPage.tsx`는 Task 13에서 정리하므로 그쪽 에러는 이 시점엔 무시)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/src/api/deletionWorkflow.ts frontend/src/api/queryKeys.ts frontend/src/components/pages/DeletionWorkflowDetailPage.tsx frontend/src/components/pages/deletion-workflow/TaskCard.tsx frontend/src/components/pages/deletion-workflow/Task0Section.tsx
@@ -2285,13 +2287,13 @@ git commit -m "refactor: DeletionWorkflowDetailPage 프로젝트 CRUD를 공용 
 **Interfaces:**
 - Consumes: Task 11의 `ProjectListPage`, Task 12에서 정리된 `DeletionWorkflowDetailPage`
 
-- [ ] **Step 1: `DeletionWorkflowListPage.tsx` 삭제**
+- [x] **Step 1: `DeletionWorkflowListPage.tsx` 삭제**
 
 ```bash
 rm /Users/hoon/Code/firewall-analysis-tool/frontend/src/components/pages/DeletionWorkflowListPage.tsx
 ```
 
-- [ ] **Step 2: `App.tsx` 라우트 갱신**
+- [x] **Step 2: `App.tsx` 라우트 갱신**
 
 lazy import 블록에서:
 ```typescript
@@ -2331,7 +2333,7 @@ function DeletionWorkflowRedirect() {
 
 **주의:** `analysis/projects/:moduleType`과 `analysis/projects/deletion_workflow/:id`가 둘 다 `Route` 목록에 있을 때 React Router v6는 더 구체적인(정적 세그먼트가 많은) 경로를 우선 매칭하므로 순서와 무관하게 올바르게 라우팅된다 — 순서를 신경 쓰지 않아도 되지만, 가독성을 위해 위 예시처럼 구체적 경로를 먼저 적는다.
 
-- [ ] **Step 3: `Navbar.tsx`에서 "Deletion Workflow" 메뉴 제거**
+- [x] **Step 3: `Navbar.tsx`에서 "Deletion Workflow" 메뉴 제거**
 
 ```typescript
 const NAV_ITEMS = [
@@ -2347,7 +2349,7 @@ const NAV_ITEMS = [
 ```
 에서 마지막 줄(`{ to: '/deletion-workflow', label: 'Deletion Workflow' }`)을 삭제.
 
-- [ ] **Step 4: 빌드 + lint 검증**
+- [x] **Step 4: 빌드 + lint 검증**
 
 ```bash
 cd /Users/hoon/Code/firewall-analysis-tool/frontend && npm run build 2>&1 | tail -20 && npm run lint 2>&1 | tail -40
@@ -2358,7 +2360,7 @@ grep -rn "DeletionWorkflowListPage" frontend/src
 ```
 Expected: 결과 없음.
 
-- [ ] **Step 5: 수동 회귀 확인**
+- [x] **Step 5: 수동 회귀 확인**
 
 ```bash
 npm run dev &
@@ -2371,7 +2373,7 @@ npm run dev &
 
 `kill %1`로 dev 서버 종료.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/src/App.tsx frontend/src/components/layout/Navbar.tsx
@@ -2389,7 +2391,7 @@ git commit -m "refactor: deletion_workflow를 Analysis 페이지 라우트로 �
 **Interfaces:**
 - Consumes: Task 8의 `PROJECT_MODULES`, Task 6의 `listAnalysisProjects`
 
-- [ ] **Step 1: 통합 행 타입 정의 및 병합 헬퍼 추가**
+- [x] **Step 1: 통합 행 타입 정의 및 병합 헬퍼 추가**
 
 `AnalysisListPage.tsx` 상단(컴포넌트 함수 밖)에 추가:
 ```typescript
@@ -2439,7 +2441,7 @@ function toUnifiedRow(item: AnalysisTaskListItem | AnalysisProject, kind: 'quick
 }
 ```
 
-- [ ] **Step 2: `typeFilter`가 프로젝트형 모듈 값을 가질 수 있도록 상태/쿼리 분기 추가**
+- [x] **Step 2: `typeFilter`가 프로젝트형 모듈 값을 가질 수 있도록 상태/쿼리 분기 추가**
 
 기존:
 ```typescript
@@ -2506,7 +2508,7 @@ const rows: UnifiedHistoryRow[] = (() => {
 const total = isProjectFilter ? rows.length : (quickQuery.data?.total ?? 0)
 ```
 
-- [ ] **Step 3: 유형 필터 드롭다운에 프로젝트형 모듈 옵션 추가**
+- [x] **Step 3: 유형 필터 드롭다운에 프로젝트형 모듈 옵션 추가**
 
 ```tsx
 <SelectContent>
@@ -2523,7 +2525,7 @@ const total = isProjectFilter ? rows.length : (quickQuery.data?.total ?? 0)
 </SelectContent>
 ```
 
-- [ ] **Step 4: 테이블 렌더링을 `rows`(통합 행) 기반으로 교체**
+- [x] **Step 4: 테이블 렌더링을 `rows`(통합 행) 기반으로 교체**
 
 ```tsx
 {items.map((t: AnalysisTaskListItem) => (
@@ -2570,7 +2572,7 @@ const total = isProjectFilter ? rows.length : (quickQuery.data?.total ?? 0)
 ```
 `items.length === 0`(빈 상태 조건)와 하단 페이지네이션(`totalPages`)의 기준도 `items`→`rows`로 교체.
 
-- [ ] **Step 5: 페이지네이션을 프로젝트형/전체 뷰에서 비활성화**
+- [x] **Step 5: 페이지네이션을 프로젝트형/전체 뷰에서 비활성화**
 
 프로젝트형 필터나 "전체" 병합 뷰는 서버 페이지네이션이 아니므로, 페이지네이션 컨트롤은 quick 단일 유형 필터일 때만 노출한다:
 ```tsx
@@ -2580,18 +2582,18 @@ const total = isProjectFilter ? rows.length : (quickQuery.data?.total ?? 0)
 ```
 (`전체`/프로젝트형 뷰는 현재 페이지 하나에 모두 표시 — 데이터量이 적은 내부 도구 특성상 실사용 문제 없음을 스펙에서 이미 확인함.)
 
-- [ ] **Step 6: 빌드 + lint 검증**
+- [x] **Step 6: 빌드 + lint 검증**
 
 ```bash
 cd /Users/hoon/Code/firewall-analysis-tool/frontend && npm run build 2>&1 | tail -20 && npm run lint 2>&1 | tail -40
 ```
 Expected: 에러 없음.
 
-- [ ] **Step 7: 수동 회귀 확인**
+- [x] **Step 7: 수동 회귀 확인**
 
 `npm run dev` 후 `/analysis`에서: "전체" 필터에 quick 실행과 deletion_workflow 프로젝트가 날짜순으로 섞여 나오는지, "삭제 워크플로우" 필터를 선택하면 프로젝트 행만(1프로젝트=1행) 나오는지, 프로젝트 행 클릭 시 위저드로 이동하는지 확인. `kill %1`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add frontend/src/components/pages/AnalysisListPage.tsx
@@ -2608,7 +2610,7 @@ git commit -m "feat: 이력 목록에 프로젝트형 모듈 필터 + 전체 병
 
 **Interfaces:** 없음(문서 전용)
 
-- [ ] **Step 1: `CLAUDE.md` 갱신**
+- [x] **Step 1: `CLAUDE.md` 갱신**
 
 "핵심 서브시스템" 표의 "삭제 워크플로우" 행을 다음으로 교체:
 ```
@@ -2621,7 +2623,7 @@ git commit -m "feat: 이력 목록에 프로젝트형 모듈 필터 + 전체 병
 - **새 분석 모듈 추가(프로젝트형, deletion_workflow 참고)**: `models/analysis.py`의 `AnalysisTaskType`에 항목 추가, `AnalysisProject.module_type`에 새 값 사용(테이블/스키마 변경 불필요 — `analysis_projects`/`analysis_project_files`를 그대로 공유) → 모듈 전용 서비스 패키지(`app/services/<module>/`)에 파이프라인 로직 + `tasks.py`(백그라운드 실행, `services/deletion_workflow/tasks.py` 패턴 복제) 작성 → 모듈 전용 실행 엔드포인트(`endpoints/<module>.py`) 추가(프로젝트 CRUD는 공용 `endpoints/analysis_projects.py` 재사용, 라우트 추가 불필요) → 프론트 `analysis-modules/`에 `kind: 'project'` 모듈 파일 추가 후 레지스트리 등록 → 위저드 UI는 모듈 전용 컴포넌트로 직접 작성(공통화되어 있지 않음).
 ```
 
-- [ ] **Step 2: `docs/DATABASE.md` 갱신**
+- [x] **Step 2: `docs/DATABASE.md` 갱신**
 
 "6. 삭제 워크플로우" 섹션 제목과 설명을 다음으로 교체:
 ```markdown
@@ -2665,7 +2667,7 @@ git commit -m "feat: 이력 목록에 프로젝트형 모듈 필터 + 전체 병
 
 `analysistasks` 테이블 설명에서 `deletion_workflow_project_id` 언급이 있다면 `analysis_project_id`로 갱신(이전 세션에서 추가한 설명 참고).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add CLAUDE.md docs/DATABASE.md
