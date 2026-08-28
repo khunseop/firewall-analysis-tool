@@ -14,7 +14,7 @@ class AnalysisTaskType(str, enum.Enum):
     RISKY_PORTS = "risky_ports"             # 위험 포트 분석
     OVER_PERMISSIVE = "over_permissive"     # 과다 허용 정책 분석
     DELETION_WORKFLOW = "deletion_workflow" # 정책 삭제 워크플로우 파이프라인 단계 실행
-    UNUSED_NG_POLICY = "unused_ng_policy"   # 미사용 NG 정책 리포트 파이프라인 단계 실행
+    UNUSED_NG_POLICY = "unused_ng_policy"   # 미사용 NG 정책 분석 (quick, 사용이력 라이브 수집 포함)
 
 class AnalysisTaskStatus(str, enum.Enum):
     """분석 작업 상태 정의"""

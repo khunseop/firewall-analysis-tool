@@ -8,7 +8,7 @@
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 from typing import List, Optional
 from fastapi.encoders import jsonable_encoder
@@ -29,6 +29,7 @@ from .impact import ImpactAnalyzer
 from .unreferenced_objects import UnreferencedObjectsAnalyzer
 from .risky_ports import RiskyPortsAnalyzer
 from .over_permissive import OverPermissiveAnalyzer
+from .unused_ng_policy import UnusedNgPolicyAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -486,3 +487,73 @@ async def _run_over_permissive_analysis(db: AsyncSession, device_id: int, target
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
             await log_activity(db, title="과허용 정책 분석 실패", message=f"Device ID {device_id} 과허용 정책 분석 실패: {str(e)[:200]}", type="error", category="analysis", device_id=device_id)
+
+
+async def run_unused_ng_policy_analysis_task(device_id: int, reference_date: Optional[date] = None, requested_by_user_id: Optional[int] = None, requested_by_username: Optional[str] = None):
+    """미사용 NG 정책 분석 백그라운드 진입점. 자체 세션을 연다."""
+    async with SessionLocal() as db:
+        await _run_unused_ng_policy_analysis(db, device_id, reference_date, requested_by_user_id, requested_by_username)
+
+
+async def _run_unused_ng_policy_analysis(db: AsyncSession, device_id: int, reference_date: Optional[date] = None, requested_by_user_id: Optional[int] = None, requested_by_username: Optional[str] = None):
+    """
+    미사용 NG 정책 분석 작업을 실행합니다.
+    활성 정책 전량에 신청정보·사용이력(라이브 수집)·시작일/경과일·AD/NG 정책 여부를
+    부가한 리포트를 만듭니다(행 필터링 없음 — 판단은 사용자가 Excel에서 직접 함).
+    """
+    device_lock = _get_device_analysis_lock(device_id)
+    if device_lock.locked():
+        logger.warning(f"분석 작업이 이미 진행 중입니다. Device ID: {device_id}")
+        return
+
+    async with device_lock:
+        logger.info(f"미사용 NG 정책 분석 시작. Device ID: {device_id}, 기준일: {reference_date}")
+
+        task_create = AnalysisTaskCreate(
+            device_id=device_id,
+            task_type=AnalysisTaskType.UNUSED_NG_POLICY,
+            created_at=get_kst_now(),
+            requested_by_user_id=requested_by_user_id,
+            requested_by_username=requested_by_username,
+        )
+        task = await crud.analysis.create_analysis_task(db, obj_in=task_create)
+
+        task_update = AnalysisTaskUpdate(
+            started_at=get_kst_now(),
+            task_status='in_progress'
+        )
+        task = await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+        await log_activity(db, title="미사용 NG 정책 분석 시작", message=f"Device ID {device_id} 미사용 NG 정책 분석 시작", type="info", category="analysis", device_id=device_id)
+
+        try:
+            analyzer = UnusedNgPolicyAnalyzer(db_session=db, task=task, reference_date=reference_date)
+            results = await analyzer.analyze()
+
+            if results:
+                result_data_json = jsonable_encoder(results)
+
+                result_to_store = AnalysisResultCreate(
+                    device_id=device_id,
+                    analysis_type=AnalysisTaskType.UNUSED_NG_POLICY.value,
+                    result_data=result_data_json,
+                    task_id=task.id
+                )
+                await crud.analysis.create_or_update_analysis_result(db, obj_in=result_to_store)
+
+            task_update = AnalysisTaskUpdate(
+                completed_at=get_kst_now(),
+                task_status='success'
+            )
+            await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+            await log_activity(db, title="미사용 NG 정책 분석 완료", message=f"Device ID {device_id} 미사용 NG 정책 분석 완료", type="success", category="analysis", device_id=device_id)
+            logger.info(f"미사용 NG 정책 분석 성공. Task ID: {task.id}")
+
+        except Exception as e:
+            logger.error(f"미사용 NG 정책 분석 실패. Task ID: {task.id}, Error: {e}", exc_info=True)
+            task_update = AnalysisTaskUpdate(
+                completed_at=get_kst_now(),
+                task_status='failure',
+                error_message=str(e)
+            )
+            await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
+            await log_activity(db, title="미사용 NG 정책 분석 실패", message=f"Device ID {device_id} 미사용 NG 정책 분석 실패: {str(e)[:200]}", type="error", category="analysis", device_id=device_id)

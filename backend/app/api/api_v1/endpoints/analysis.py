@@ -1,4 +1,5 @@
 
+import datetime
 from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
@@ -14,7 +15,8 @@ from app.services.analysis.tasks import (
     run_impact_analysis_task,
     run_unreferenced_objects_analysis_task,
     run_risky_ports_analysis_task,
-    run_over_permissive_analysis_task
+    run_over_permissive_analysis_task,
+    run_unused_ng_policy_analysis_task,
 )
 
 router = APIRouter()
@@ -310,3 +312,29 @@ async def start_over_permissive_analysis(
     )
 
     return {"msg": "Over-permissive policy analysis has been started in the background."}
+
+@router.post("/unused-ng-policy/{device_id}", response_model=schemas.Msg)
+async def start_unused_ng_policy_analysis(
+    device_id: int,
+    reference_date: Optional[datetime.date] = None,
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """
+    지정된 장비에 대한 미사용 NG 정책 분석을 시작합니다.
+    reference_date 미지정 시 실행 시점(오늘)을 경과일 계산 기준으로 사용합니다.
+    """
+    device = await crud.device.get_device(db, device_id=device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    running_task = await crud.analysis.get_running_analysis_task(db, device_id=device_id)
+    if running_task:
+        raise HTTPException(status_code=409, detail=f"An analysis task (ID: {running_task.id}) is already in progress.")
+
+    background_tasks.add_task(
+        run_unused_ng_policy_analysis_task, device_id, reference_date, current_user.id, current_user.username
+    )
+
+    return {"msg": "Unused NG policy analysis has been started in the background."}

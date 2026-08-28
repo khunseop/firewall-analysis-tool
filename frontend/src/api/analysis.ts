@@ -52,6 +52,7 @@ export interface StartAnalysisParams {
   targetPolicyIds?: number[]
   referencePolicyId?: number
   moveDirection?: string
+  referenceDate?: string
 }
 
 export const startAnalysis = async (
@@ -99,6 +100,11 @@ export const startAnalysis = async (
       return res.data
     }
     const res = await apiClient.post(`/analysis/over-permissive/${deviceId}`)
+    return res.data
+  }
+  if (analysisType === 'unused_ng_policy') {
+    const url = `/analysis/unused-ng-policy/${deviceId}${params.referenceDate ? `?reference_date=${params.referenceDate}` : ''}`
+    const res = await apiClient.post(url)
     return res.data
   }
   throw new Error(`Unknown analysis type: ${analysisType}`)
