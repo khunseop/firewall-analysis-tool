@@ -158,7 +158,7 @@ async def _collect_usage_live(device, loop: asyncio.AbstractEventLoop) -> pd.Dat
     collector = create_collector_from_device(device)
 
     def _method():
-        return collector.export_last_hit_date_ssh(timeout=_USAGE_COLLECT_TIMEOUT) if use_ssh else collector.export_last_hit_date()
+        return collector.export_last_hit_date_ssh(timeout=_USAGE_COLLECT_TIMEOUT, os_version=device.os_version) if use_ssh else collector.export_last_hit_date()
 
     await loop.run_in_executor(IO_EXECUTOR, collector.connect)
     try:
@@ -180,7 +180,7 @@ async def _collect_usage_live(device, loop: asyncio.AbstractEventLoop) -> pd.Dat
         await loop.run_in_executor(IO_EXECUTOR, ha_collector.connect)
 
         def _ha_method():
-            return ha_collector.export_last_hit_date_ssh(timeout=_USAGE_COLLECT_TIMEOUT) if use_ssh else ha_collector.export_last_hit_date()
+            return ha_collector.export_last_hit_date_ssh(timeout=_USAGE_COLLECT_TIMEOUT, os_version=device.os_version) if use_ssh else ha_collector.export_last_hit_date()
 
         ha_df = await asyncio.wait_for(
             loop.run_in_executor(IO_EXECUTOR, _ha_method), timeout=_USAGE_COLLECT_TIMEOUT

@@ -150,7 +150,7 @@ async def _collect_hit_dates(
 ) -> pd.DataFrame:
     def _method():
         if use_ssh:
-            return collector.export_last_hit_date_ssh(timeout=timeout)
+            return collector.export_last_hit_date_ssh(timeout=timeout, os_version=device.os_version)
         return collector.export_last_hit_date()
 
     main_df: pd.DataFrame = await asyncio.wait_for(
@@ -167,7 +167,7 @@ async def _collect_hit_dates(
 
         def _ha_method():
             if use_ssh:
-                return ha_collector.export_last_hit_date_ssh(timeout=timeout)
+                return ha_collector.export_last_hit_date_ssh(timeout=timeout, os_version=device.os_version)
             return ha_collector.export_last_hit_date()
 
         ha_df = await loop.run_in_executor(IO_EXECUTOR, _ha_method)

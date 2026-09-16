@@ -345,8 +345,8 @@ async def _collect_last_hit_date_parallel(
             if device.use_ssh_for_last_hit_date:
                 logging.info("[orchestrator] Collecting main device last_hit_date via SSH.")
                 return await loop.run_in_executor(
-                    IO_EXECUTOR, 
-                    lambda: collector.export_last_hit_date_ssh(vsys=vsys_list)
+                    IO_EXECUTOR,
+                    lambda: collector.export_last_hit_date_ssh(vsys=vsys_list, os_version=device.os_version)
                 )
             else:
                 logging.info("[orchestrator] Collecting main device last_hit_date via API.")
@@ -376,7 +376,7 @@ async def _collect_last_hit_date_parallel(
             if device.use_ssh_for_last_hit_date:
                 hit_date_df = await loop.run_in_executor(
                     IO_EXECUTOR,
-                    lambda: ha_collector.export_last_hit_date_ssh(vsys=vsys_list)
+                    lambda: ha_collector.export_last_hit_date_ssh(vsys=vsys_list, os_version=device.os_version)
                 )
             else:
                 hit_date_df = await loop.run_in_executor(

@@ -394,24 +394,38 @@ class PaloAltoAPI(FirewallInterface):
 
         return pd.DataFrame(results)
 
-    def export_last_hit_date_ssh(self, vsys: list[str] | set[str] | None = None, timeout: int = 3600) -> pd.DataFrame:
+    def export_last_hit_date_ssh(
+        self,
+        vsys: list[str] | set[str] | None = None,
+        timeout: int = 3600,
+        os_version: str | None = None,
+    ) -> pd.DataFrame:
         """
         SSH 인터랙티브 쉘을 사용하여 정책 히트 정보를 정밀하게 추출합니다.
         API 응답이 부정확하거나 누락된 데이터가 있을 때 대안으로 사용됩니다.
-        
+
         주요 로직:
         1. Paramiko를 통한 SSH 세션 수립 및 인터랙티브 쉘(invoke_shell) 실행.
         2. 프롬프트('>', '#')가 나타날 때까지 버퍼를 읽는 `read_until_prompt` 구현.
         3. CLI 환경 설정을 조정: scripting-mode ON(파싱 최적화), pager OFF(중단 없는 출력).
         4. 정책 정보를 출력하는 CLI 명령 실행 및 수천 줄에 달하는 출력을 수집.
-        5. 복합 정규식(Regex)을 사용하여 정책 이름, 히트 수, 타임스탬프를 한 줄씩 파싱.
+        5. 정규식(Regex)을 사용하여 정책 이름, vsys, 히트 수, 타임스탬프를 한 줄씩 파싱.
            - 타임스탬프 포맷(예: Tue Nov 4 00:50:48 2025)을 정규화하여 처리.
+
+        PAN-OS 10 이상 장비는 `vsys vsys-name {vsys}` 명령에서 장비가 응답 없이 멈추는
+        문제가 있어, `vsys all`로 한 번에 조회하는 명령으로 대체한다(os_version으로 판단).
         """
+        major_version = None
+        if os_version:
+            match = re.match(r'^\s*(\d+)', os_version)
+            major_version = int(match.group(1)) if match else None
+        use_vsys_all_cmd = major_version is not None and major_version >= 10
+
         target_vsys_list: list[str] = ['vsys1']
         if vsys:
             target_vsys_list = [str(v) for v in vsys]
 
-        self.logger.info(f"Palo Alto SSH 기반 히트 정보 수집 시작 (VSYS: {target_vsys_list})")
+        self.logger.info(f"Palo Alto SSH 기반 히트 정보 수집 시작 (VSYS: {target_vsys_list}, os_version: {os_version})")
         all_results = []
 
         ssh = None
@@ -454,14 +468,39 @@ class PaloAltoAPI(FirewallInterface):
             channel.send("set cli pager off\n")
             read_until_prompt()
 
-            for vsys_name in target_vsys_list:
-                command = f"show rule-hit-count vsys vsys-name {vsys_name} rule-base security rules all\n"
-                self.logger.info(f"VSYS {vsys_name} 명령 실행: {command.strip()}")
+            def parse_timestamp(timestamp_str: str, rule_name: str) -> str | None:
+                if timestamp_str == '-':
+                    return None
+                try:
+                    # 날짜 사이의 중복 공백(한 자리 일자 대비)을 단일 공백으로 치환
+                    normalized_ts = re.sub(r'\s+', ' ', timestamp_str)
+                    # "%a %b %d %H:%M:%S %Y" 형식으로 파싱
+                    dt_obj = datetime.datetime.strptime(normalized_ts, '%a %b %d %H:%M:%S %Y')
+                    return dt_obj.strftime('%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    self.logger.warning(f"규칙 '{rule_name}'의 타임스탬프 파싱 실패: '{timestamp_str}'")
+                    return None
+
+            ts_or_dash = r'(?:[A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+\d{4}|-)'
+
+            if use_vsys_all_cmd:
+                # PAN-OS 10+: vsys-name 단위 명령에서 장비가 응답 없이 멈추는 이슈의 워크어라운드.
+                # "vsys all"로 전체 vsys를 한 번에 조회.
+                # 컬럼: Rule Name, Vsys, Hit Count, Last Hit Timestamp, Last Reset Timestamp,
+                #       First Hit Timestamp, Rule Create Timestamp, Rule Modify Timestamp, Rule UUID
+                command = "show rule-hit-count vsys all rule-base security rules all\n"
+                self.logger.info(f"명령 실행: {command.strip()}")
                 channel.send(command)
 
                 # 대량의 정책 정보 출력을 고려하여 긴 타임아웃 적용 (호출자가 지정, 기본 3600초)
                 output = read_until_prompt(timeout=timeout)
-                self.logger.info(f"VSYS {vsys_name} 데이터 수신 완료, 파싱 시작.")
+                self.logger.info("데이터 수신 완료, 파싱 시작.")
+
+                # Last Reset/First Hit/Rule Create/Rule Modify Timestamp, Rule UUID 등 뒤쪽 컬럼은
+                # 현재 스키마(hit_count/last_hit_date)에 쓰이지 않으므로 파싱하지 않고 무시한다.
+                row_pattern = re.compile(
+                    rf'^(\S+)\s+(\S+)\s+(\d+)\s+({ts_or_dash})'
+                )
 
                 lines = output.splitlines()
                 parsing_started = False
@@ -480,33 +519,66 @@ class PaloAltoAPI(FirewallInterface):
 
                     # 기본 정책이 나타나면 사용자 정의 정책 영역 종료로 간주
                     if 'intrazone-default' in line or 'interzone-default' in line:
-                        break
+                        continue
 
-                    # 정규식 패턴 분석: [룰이름] [히트수] [날짜문자열 또는 '-']
-                    # 날짜 예시: "Tue Nov  4 00:50:48 2025"
-                    match = re.match(r'^([a-zA-Z0-9/._-]+)\s+(\d+)\s+([A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+\d{4}|-)', line)
-                    if match:
-                        rule_name = match.group(1)
-                        hit_count = int(match.group(2))
-                        timestamp_str = match.group(3).strip()
+                    match = row_pattern.match(line)
+                    if not match:
+                        continue
 
-                        last_hit_date = None
-                        if timestamp_str != '-':
-                            try:
-                                # 날짜 사이의 중복 공백(한 자리 일자 대비)을 단일 공백으로 치환
-                                normalized_ts = re.sub(r'\s+', ' ', timestamp_str)
-                                # "%a %b %d %H:%M:%S %Y" 형식으로 파싱
-                                dt_obj = datetime.datetime.strptime(normalized_ts, '%a %b %d %H:%M:%S %Y')
-                                last_hit_date = dt_obj.strftime('%Y-%m-%d %H:%M:%S')
-                            except ValueError:
-                                self.logger.warning(f"규칙 '{rule_name}'의 타임스탬프 파싱 실패: '{timestamp_str}'")
+                    rule_name, vsys_name, hit_count_str, last_hit_ts = match.groups()
 
-                        all_results.append({
-                            "vsys": vsys_name,
-                            "rule_name": rule_name,
-                            "hit_count": hit_count,
-                            "last_hit_date": last_hit_date
-                        })
+                    if target_vsys_list and vsys_name not in target_vsys_list:
+                        continue
+
+                    all_results.append({
+                        "vsys": vsys_name,
+                        "rule_name": rule_name,
+                        "hit_count": int(hit_count_str),
+                        "last_hit_date": parse_timestamp(last_hit_ts, rule_name)
+                    })
+            else:
+                for vsys_name in target_vsys_list:
+                    command = f"show rule-hit-count vsys vsys-name {vsys_name} rule-base security rules all\n"
+                    self.logger.info(f"VSYS {vsys_name} 명령 실행: {command.strip()}")
+                    channel.send(command)
+
+                    # 대량의 정책 정보 출력을 고려하여 긴 타임아웃 적용 (호출자가 지정, 기본 3600초)
+                    output = read_until_prompt(timeout=timeout)
+                    self.logger.info(f"VSYS {vsys_name} 데이터 수신 완료, 파싱 시작.")
+
+                    lines = output.splitlines()
+                    parsing_started = False
+                    for line in lines:
+                        line = line.strip()
+                        if not line:
+                            continue
+
+                        # CLI 출력에서 데이터 섹션을 알리는 구분선(----------) 확인
+                        if '----------' in line:
+                            parsing_started = True
+                            continue
+
+                        if not parsing_started:
+                            continue
+
+                        # 기본 정책이 나타나면 사용자 정의 정책 영역 종료로 간주
+                        if 'intrazone-default' in line or 'interzone-default' in line:
+                            break
+
+                        # 정규식 패턴 분석: [룰이름] [히트수] [날짜문자열 또는 '-']
+                        # 날짜 예시: "Tue Nov  4 00:50:48 2025"
+                        match = re.match(rf'^([a-zA-Z0-9/._-]+)\s+(\d+)\s+({ts_or_dash})', line)
+                        if match:
+                            rule_name = match.group(1)
+                            hit_count = int(match.group(2))
+                            timestamp_str = match.group(3).strip()
+
+                            all_results.append({
+                                "vsys": vsys_name,
+                                "rule_name": rule_name,
+                                "hit_count": hit_count,
+                                "last_hit_date": parse_timestamp(timestamp_str, rule_name)
+                            })
 
         except paramiko.AuthenticationException:
             self.logger.error(f"SSH 인증 실패: {self.hostname}")
