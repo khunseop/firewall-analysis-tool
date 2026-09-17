@@ -21,7 +21,7 @@ export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
   const [source, setSource] = useState<'live' | 'db'>('live')
   const [merge, setMerge] = useState(false)
   const [useSsh, setUseSsh] = useState(false)
-  const [timeout, setTimeout_] = useState(600)
+  const [timeout, setTimeout_] = useState(6000)
   const [submitting, setSubmitting] = useState(false)
 
   // 열릴 때 초기값 재설정 (렌더 중 상태 조정 패턴)
@@ -33,7 +33,7 @@ export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
       setSource('live')
       setMerge(false)
       setUseSsh(devices.length === 1 ? devices[0].use_ssh_for_last_hit_date : false)
-      setTimeout_(600)
+      setTimeout_(6000)
       setSubmitting(false)
     }
   }

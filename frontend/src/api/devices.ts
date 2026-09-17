@@ -104,7 +104,7 @@ export const directExport = async (
   const res = await apiClient.post(`/devices/${device.id}/direct-export`, {
     export_type: exportType,
     use_ssh: options?.use_ssh ?? false,
-    timeout_seconds: options?.timeout_seconds ?? 600,
+    timeout_seconds: options?.timeout_seconds ?? 6000,
   })
   return res.data
 }
@@ -120,7 +120,7 @@ export const bulkExportDevices = async (
     source: options?.source ?? 'live',
     merge: options?.merge ?? false,
     use_ssh: options?.use_ssh ?? false,
-    timeout_seconds: options?.timeout_seconds ?? 600,
+    timeout_seconds: options?.timeout_seconds ?? 6000,
   })
   return res.data
 }

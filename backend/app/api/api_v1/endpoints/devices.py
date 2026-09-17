@@ -3,10 +3,11 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFi
 from fastapi.responses import StreamingResponse, FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import or_
 from io import BytesIO
 from pathlib import Path
 from urllib.parse import quote
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -27,7 +28,7 @@ from app.services.export.tasks import run_export_task
 class DirectExportRequest(BaseModel):
     export_type: Literal["policies", "objects", "hit_dates"]
     use_ssh: bool = False
-    timeout_seconds: int = Field(default=600, ge=30, le=7200)
+    timeout_seconds: int = Field(default=6000, ge=30, le=7200)
 
 
 class BulkExportRequest(BaseModel):
@@ -36,7 +37,7 @@ class BulkExportRequest(BaseModel):
     source: Literal["live", "db"] = "live"
     merge: bool = False
     use_ssh: bool = False
-    timeout_seconds: int = Field(default=600, ge=30, le=7200)
+    timeout_seconds: int = Field(default=6000, ge=30, le=7200)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -531,9 +532,16 @@ async def bulk_export_devices(
 
 @router.get("/export-tasks/active")
 async def list_active_export_tasks(db: AsyncSession = Depends(get_db)):
-    """진행 중(pending/in_progress)인 직접 추출 작업 목록을 반환합니다 (새로고침 시 상태 복구용)."""
+    """진행 중(pending/in_progress)이거나 최근(30분 이내) 완료된 직접 추출 작업 목록을 반환합니다
+    (새로고침·페이지 이동 후 상태·다운로드 링크 복구용)."""
+    recent_cutoff = _now_kst() - timedelta(minutes=30)
     result = await db.execute(
-        select(models.ExportTask).where(models.ExportTask.status.in_(["pending", "in_progress"]))
+        select(models.ExportTask).where(
+            or_(
+                models.ExportTask.status.in_(["pending", "in_progress"]),
+                models.ExportTask.completed_at >= recent_cutoff,
+            )
+        )
     )
     return result.scalars().all()
 
