@@ -101,6 +101,20 @@ export interface PreviewPolicyRow {
   pending_status: 'new' | 'modified' | 'deleted' | 'moved' | null
 }
 
+export interface PolicyFieldMismatch {
+  field: string
+  expected: string
+  actual: string
+}
+
+export interface PolicyVerifyResult {
+  rule_name: string
+  vsys: string | null
+  pending_status: 'new' | 'modified' | 'deleted' | 'moved'
+  status: 'match' | 'mismatch'
+  mismatches: PolicyFieldMismatch[]
+}
+
 export type PendingChangeType = 'create' | 'new_object' | 'modify' | 'delete' | 'move'
 
 export interface PendingPolicyChange {
@@ -175,6 +189,11 @@ export const cleanupOrphanNewObjects = async (deviceId: number, remainingChanges
 export const checkObjectGaps = async (deviceId: number, newPolicies: NewPolicyRow[]): Promise<ObjectGapItem[]> => {
   const res = await apiClient.post(`/policy-builder/${deviceId}/object-gaps`, { new_policies: newPolicies })
   return res.data.missing_objects
+}
+
+export const verifyAgainstDevice = async (deviceId: number): Promise<PolicyVerifyResult[]> => {
+  const res = await apiClient.get<PolicyVerifyResult[]>(`/policy-builder/${deviceId}/verify`)
+  return res.data
 }
 
 export const planBulkPolicy = async (

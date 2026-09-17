@@ -2,7 +2,7 @@ import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Download, SlidersHorizontal, AlertTriangle, X, Search, Bookmark, BookmarkPlus, Pencil, RotateCcw, Terminal } from 'lucide-react'
+import { Download, SlidersHorizontal, AlertTriangle, X, Search, Bookmark, BookmarkPlus, Pencil, RotateCcw, Terminal, ShieldCheck } from 'lucide-react'
 import type { CellValueChangedEvent, ColDef, RowClickedEvent } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { rowIdFromId } from '@/lib/utils'
@@ -28,15 +28,15 @@ import { queryKeys } from '@/api/queryKeys'
 import { diffMultiValueField, isFieldDiffEmpty } from '@/lib/policyDiff'
 import {
   listPendingChanges, addPendingChange, updatePendingChange, removePendingChange, clearPendingChanges, planBulkPolicy, getPreviewOrder,
-  cleanupOrphanNewObjects,
-  type BulkPolicyPlanResponse, type PreviewPolicyRow,
+  cleanupOrphanNewObjects, verifyAgainstDevice,
+  type BulkPolicyPlanResponse, type PreviewPolicyRow, type PolicyVerifyResult,
 } from '@/api/policyBuilder'
 import { CreatePolicyModal } from '@/components/pages/policy-builder/CreatePolicyModal'
 import { NewPolicyFormModal } from '@/components/pages/policy-builder/NewPolicyFormModal'
 import { EditActionMenu } from '@/components/pages/policy-builder/EditActionMenu'
 import { ModifyPolicyModal } from '@/components/pages/policy-builder/ModifyPolicyModal'
 import { MoveExistingDialog } from '@/components/pages/policy-builder/MoveExistingDialog'
-import { PlanResultPanel } from '@/components/pages/policy-builder/PlanResultPanel'
+import { PlanResultPanel, VerifyResultPanel } from '@/components/pages/policy-builder/PlanResultPanel'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 /** 편집모드에서 그리드 필드명 ↔ 백엔드(PendingPolicyChange payload) 필드명 매핑 (diff 대상 필드).
@@ -179,6 +179,8 @@ export function PoliciesPage() {
   const [showMoveDialog, setShowMoveDialog] = useState(false)
   const [planResult, setPlanResult] = useState<BulkPolicyPlanResponse | null>(null)
   const [planLoading, setPlanLoading] = useState(false)
+  const [verifyResult, setVerifyResult] = useState<PolicyVerifyResult[] | null>(null)
+  const [verifyLoading, setVerifyLoading] = useState(false)
   // 편집 내용(생성/수정/삭제/이동)을 대기중 변경사항에 반영하고 그리드가 최신 배치 순서를
   // 다시 조회하는 동안 표시할 로딩 상태 — 그리드는 마운트된 채 유지하고 스피너만 오버레이한다.
   const [applyingChanges, setApplyingChanges] = useState(false)
@@ -326,6 +328,19 @@ export function PoliciesPage() {
       toast.error((e as Error).message)
     } finally {
       setPlanLoading(false)
+    }
+  }
+
+  const handleVerifyAgainstDevice = async () => {
+    if (!editDeviceId) return
+    setVerifyLoading(true)
+    try {
+      const result = await verifyAgainstDevice(editDeviceId)
+      setVerifyResult(result)
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setVerifyLoading(false)
     }
   }
 
@@ -927,6 +942,13 @@ export function PoliciesPage() {
               </button>
             )}
             <button
+              onClick={handleVerifyAgainstDevice}
+              disabled={pendingChanges.length === 0 || verifyLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold text-ds-on-surface border border-ds-outline-variant/30 rounded-md disabled:opacity-50 hover:bg-ds-surface-container-low transition-colors"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" /> {verifyLoading ? '검증 중…' : '실제 장비 검증'}
+            </button>
+            <button
               onClick={handleGenerateCli}
               disabled={pendingChanges.length === 0 || planLoading}
               className="flex items-center gap-1.5 px-4 py-1.5 text-[13px] font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50"
@@ -1010,16 +1032,17 @@ export function PoliciesPage() {
         />
       )}
 
-      {planResult && (
-        <Dialog open onOpenChange={(open) => !open && setPlanResult(null)}>
+      {(planResult || verifyResult) && (
+        <Dialog open onOpenChange={(open) => { if (!open) { setPlanResult(null); setVerifyResult(null) } }}>
           {/* 삽입 충돌/명령어가 많아지면 금방 내용이 넘쳐 헤더까지 스크롤해야 하는 문제가 있었다 —
               높이를 뷰포트 기준으로 고정하고 헤더는 그대로 둔 채 본문만 스크롤되게 한다. */}
           <DialogContent className="max-w-6xl w-[92vw] h-[88vh] bg-ds-surface-container-lowest flex flex-col">
             <DialogHeader className="shrink-0">
-              <DialogTitle className="font-headline text-ds-on-surface">생성된 CLI</DialogTitle>
+              <DialogTitle className="font-headline text-ds-on-surface">{planResult ? '생성된 CLI' : '실제 장비 검증 결과'}</DialogTitle>
             </DialogHeader>
-            <div className="flex-1 min-h-0 overflow-y-auto pr-1">
-              <PlanResultPanel plan={planResult} />
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-4">
+              {planResult && <PlanResultPanel plan={planResult} />}
+              {verifyResult && <VerifyResultPanel results={verifyResult} />}
             </div>
           </DialogContent>
         </Dialog>

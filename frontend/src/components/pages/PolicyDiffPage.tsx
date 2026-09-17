@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ChevronDown, ChevronRight, Plus, Minus, Edit2, AlertCircle, Search, X, Clock, Zap, FileDown } from 'lucide-react'
@@ -521,6 +522,23 @@ export function PolicyDiffPage() {
   // DeviceSelectorSingle이 이미 같은 쿼리 키로 장비 목록을 받아와 있으므로 캐시를 그대로 재사용한다.
   const { data: devices = [] } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices })
   const isPaloAlto = devices.find((d) => d.id === selectedDeviceId)?.vendor?.toLowerCase() === 'paloalto'
+
+  // Devices 페이지의 "정책 비교" 바로가기에서 넘어온 경우 — 장비를 선택하고, Palo Alto라면
+  // Running/Candidate 실시간 비교를 바로 선택해준다. 장비 목록이 로드된 뒤에 판단해야 vendor를 알 수 있다.
+  const location = useLocation()
+  const navigate = useNavigate()
+  useEffect(() => {
+    const openDeviceId = (location.state as { openDeviceId?: number } | null)?.openDeviceId
+    if (openDeviceId == null || devices.length === 0) return
+    setSelectedDeviceId(openDeviceId)
+    const vendor = devices.find((d) => d.id === openDeviceId)?.vendor?.toLowerCase()
+    if (vendor === 'paloalto') {
+      setFromSyncId(LIVE_RUNNING_ID)
+      setToSyncId(LIVE_CANDIDATE_ID)
+    }
+    navigate(location.pathname, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, devices])
 
   // Palo Alto 장비에서는 From에 "Running(실시간)", To에 "Candidate(실시간)"를 한 항목씩 추가한다 —
   // 과거 sync 시점과는 짝지을 수 없으므로(스냅샷 미보관) 방향을 고정해 한쪽에만 넣는다.

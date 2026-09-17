@@ -130,3 +130,18 @@ class BulkPolicyPlanResponse(BaseModel):
     preview_before: List[PreviewRow]
     preview_after: List[PreviewRow]
     warnings: List[str]
+
+
+class PolicyFieldMismatch(BaseModel):
+    field: str
+    expected: str
+    actual: str
+
+
+class PolicyVerifyResult(BaseModel):
+    """대기중 변경사항 1건(정책 1행)이 의도한 최종 상태와 장비의 실제 candidate 설정을 비교한 결과."""
+    rule_name: str
+    vsys: Optional[str] = None
+    pending_status: Literal["new", "modified", "deleted", "moved"]
+    status: Literal["match", "mismatch"]
+    mismatches: List[PolicyFieldMismatch] = []

@@ -1,6 +1,6 @@
 import { Copy, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
-import type { BulkPolicyPlanResponse, GeneratedCommand } from '@/api/policyBuilder'
+import type { BulkPolicyPlanResponse, GeneratedCommand, PolicyVerifyResult } from '@/api/policyBuilder'
 
 function copyText(text: string) {
   navigator.clipboard.writeText(text)
@@ -112,6 +112,50 @@ export function PlanResultPanel({ plan }: { plan: BulkPolicyPlanResponse }) {
       <CommandSection title="정책 수정 명령어" commands={plan.modify_commands} />
       <CommandSection title="정책 삭제 명령어" commands={plan.delete_commands} />
       <CommandSection title="이동 명령어" commands={plan.move_commands} />
+    </div>
+  )
+}
+
+const PENDING_STATUS_LABEL: Record<PolicyVerifyResult['pending_status'], string> = {
+  new: '생성', modified: '수정', deleted: '삭제', moved: '이동',
+}
+
+export function VerifyResultPanel({ results }: { results: PolicyVerifyResult[] }) {
+  const matchCount = results.filter((r) => r.status === 'match').length
+  const mismatchCount = results.length - matchCount
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[12px] text-ds-on-surface-variant">
+        대기중 변경사항 {results.length}건 검증 · <span className="text-emerald-600 font-semibold">일치 {matchCount}건</span>
+        {mismatchCount > 0 && <span className="text-ds-error font-semibold"> · 불일치 {mismatchCount}건</span>}
+      </p>
+      <div className="space-y-1 max-h-[320px] overflow-y-auto">
+        {results.map((r, i) => (
+          <div
+            key={i}
+            className={`px-2.5 py-1.5 rounded-md text-[12px] ${
+              r.status === 'match' ? 'bg-emerald-50 text-emerald-700' : 'bg-ds-error/10 text-ds-error'
+            }`}
+          >
+            <div className="flex items-center gap-2 font-semibold">
+              <span>{r.status === 'match' ? '일치' : '불일치'}</span>
+              <span className="font-mono">{r.rule_name}</span>
+              <span className="text-[10px] font-normal opacity-70">({PENDING_STATUS_LABEL[r.pending_status]})</span>
+            </div>
+            {r.mismatches.length > 0 && (
+              <ul className="mt-1 ml-4 space-y-0.5">
+                {r.mismatches.map((m, j) => (
+                  <li key={j} className="font-mono text-[11px] break-all">
+                    {m.field}: {m.expected || '(없음)'} → {m.actual || '(없음)'}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+        {results.length === 0 && <p className="text-[12px] text-ds-on-surface-variant italic">대기중 변경사항이 없습니다.</p>}
+      </div>
     </div>
   )
 }

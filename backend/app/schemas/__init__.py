@@ -22,5 +22,5 @@ from .policy_builder import (
     NewObjectSpec, NewPolicyRow, MoveTarget,
     ObjectGapItem, ObjectGapCheckRequest, ObjectGapCheckResponse,
     BulkPolicyPlanRequest, GeneratedCommand, InsertionConflict, PreviewRow, PreviewPolicyRow,
-    BulkPolicyPlanResponse,
+    BulkPolicyPlanResponse, PolicyFieldMismatch, PolicyVerifyResult,
 )

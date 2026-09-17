@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, memo } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { Search, ListFilter, Boxes, BarChart3 } from 'lucide-react'
+import { Search, ListFilter, Boxes, BarChart3, GitCompare } from 'lucide-react'
 import { type Device } from '@/api/devices'
 import { useDeviceStore } from '@/store/deviceStore'
 import { usePolicySearchStore } from '@/store/policySearchStore'
@@ -47,6 +47,7 @@ export const DeviceNameCell = memo(function DeviceNameCell({ data, onShowDetail 
   }
   const goToObjects = () => { setSelectedIds([data.id]); setOpen(false); navigate('/objects') }
   const goToAnalysis = () => { setOpen(false); navigate('/analysis', { state: { openCreateWithDeviceId: data.id } }) }
+  const goToPolicyDiff = () => { setOpen(false); navigate('/policy-diff', { state: { openDeviceId: data.id } }) }
   const showDetail = () => { setOpen(false); onShowDetail(data) }
 
   const toggleOpen = (e: React.MouseEvent) => {
@@ -87,6 +88,10 @@ export const DeviceNameCell = memo(function DeviceNameCell({ data, onShowDetail 
           <button onClick={goToAnalysis} className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
             <BarChart3 className="w-3.5 h-3.5 text-ds-on-surface-variant" />
             분석 실행
+          </button>
+          <button onClick={goToPolicyDiff} className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+            <GitCompare className="w-3.5 h-3.5 text-ds-on-surface-variant" />
+            정책 비교
           </button>
         </div>,
         document.body

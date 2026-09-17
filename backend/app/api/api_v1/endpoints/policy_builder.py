@@ -26,6 +26,7 @@ from app.services.policy_builder.insertion_analyzer import (
     sort_modify_changes,
     sort_move_changes,
 )
+from app.services.policy_builder.live_verify import LiveVerifyError, verify_pending_changes_against_candidate
 from app.services.policy_builder.virtual_policy import resolve_virtual_policies, wrap_existing_policy_as_virtual
 
 router = APIRouter()
@@ -104,6 +105,22 @@ async def preview_order(
     """편집모드 그리드용 — 대기중 변경사항(생성/수정/삭제/이동)을 모두 적용한 최종 정책 순서를 반환합니다."""
     await _get_palo_alto_device(db, device_id)
     return await build_full_order(db, device_id)
+
+
+@router.get("/{device_id}/verify", response_model=List[schemas.PolicyVerifyResult])
+async def verify_against_device(
+    device_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """대기중 변경사항을 모두 적용한 계획된 최종 상태와, 장비의 실제 candidate 설정을 비교한다.
+    장비에 아무것도 쓰지 않는다 — 사용자가 이미 장비에서 직접 CLI를 실행했다는 가정 하에,
+    그 결과가 계획과 일치하는지만 확인한다."""
+    device = await _get_palo_alto_device(db, device_id)
+    try:
+        return await verify_pending_changes_against_candidate(db, device)
+    except LiveVerifyError as e:
+        raise HTTPException(status_code=502, detail=str(e))
 
 
 @router.delete("/{device_id}/pending-changes", response_model=schemas.Msg)
