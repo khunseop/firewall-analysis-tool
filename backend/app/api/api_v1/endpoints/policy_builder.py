@@ -19,7 +19,7 @@ from app.services.policy_builder.cli_generator import (
     generate_rule_delete_command,
     generate_service_object_command,
 )
-from app.services.policy_builder.insertion_analyzer import analyze_insertion, build_full_order
+from app.services.policy_builder.insertion_analyzer import analyze_insertion, build_full_order, sort_create_changes
 from app.services.policy_builder.virtual_policy import resolve_virtual_policies, wrap_existing_policy_as_virtual
 
 router = APIRouter()
@@ -173,7 +173,7 @@ async def plan_bulk_policy(
     warnings: list = []
 
     changes = await crud.pending_policy_change.get_by_device(db, device_id)
-    create_changes = [c for c in changes if c.change_type == "create"]
+    create_changes = sort_create_changes([c for c in changes if c.change_type == "create"])
     object_changes = [c for c in changes if c.change_type == "new_object"]
     modify_changes = [c for c in changes if c.change_type == "modify"]
     delete_changes = [c for c in changes if c.change_type == "delete"]

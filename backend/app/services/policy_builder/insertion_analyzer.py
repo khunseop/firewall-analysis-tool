@@ -28,6 +28,19 @@ _MODIFY_FIELD_MAP = {
 }
 
 
+def sort_create_changes(create_changes: list) -> list:
+    """create 유형 대기중 변경사항을 사용자가 실제로 붙여넣은 순서로 정렬한다.
+
+    여러 건을 한 번에 등록할 때 프론트(`CreatePolicyModal`/`NewPolicyFormModal`)가 `Promise.all`로
+    각 행의 POST 요청을 동시에 보내므로, DB에 부여되는 순서(id, 곧 `get_by_device`의 정렬 기준)는
+    완료된 네트워크 요청 순서일 뿐 붙여넣은 순서와 어긋날 수 있다. payload에는 프론트 파싱 시점에
+    매겨진 원래 순번(`row_index`)이 그대로 남아있으므로 이를 배치 내 정렬 기준으로 쓰고, 서로 다른
+    시점에 제출된 배치끼리는 `created_at`으로 구분한다(같은 배치 내 요청들의 완료 시각이 서로
+    뒤바뀌어도 `row_index`가 최종 순서를 결정하므로 영향이 없다).
+    """
+    return sorted(create_changes, key=lambda c: (c.created_at, (c.payload or {}).get("row_index", 0)))
+
+
 def _resolve_insertion_index(real_policies: list, move_target: MoveTarget) -> int:
     if move_target.position == "top":
         return 0
@@ -215,7 +228,7 @@ async def build_full_order(db: AsyncSession, device_id: int) -> List[Dict[str, A
     by_id = {item["id"]: item for item in items}
 
     move_changes = [c for c in changes if c.change_type == "move" and c.target_policy_id is not None]
-    create_changes = [c for c in changes if c.change_type == "create"]
+    create_changes = sort_create_changes([c for c in changes if c.change_type == "create"])
     modify_changes = [c for c in changes if c.change_type == "modify" and c.target_policy_id is not None]
     delete_ids = {c.target_policy_id for c in changes if c.change_type == "delete" and c.target_policy_id is not None}
 
