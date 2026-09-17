@@ -27,7 +27,7 @@ export function MoveExistingDialog({ deviceId, policyIds, pendingChanges, onClos
   const mutation = useMutation({
     mutationFn: async () => {
       const timestamp = Date.now()
-      await Promise.all(policyIds.map((policyId) => {
+      await Promise.all(policyIds.map((policyId, idx) => {
         if (policyId < 0) {
           // 신규 생성행(음수 id) — 아직 실제 정책이 아니므로 move가 아니라 create 변경사항의 배치 위치를 갱신한다.
           const change = pendingChanges.find((c) => c.change_type === 'create' && -c.id === policyId)
@@ -36,9 +36,12 @@ export function MoveExistingDialog({ deviceId, policyIds, pendingChanges, onClos
             position: moveTarget.position, reference_policy_id: moveTarget.reference_policy_id,
           })
         }
+        // batch_index: 여러 건을 동시에(Promise.all) 이동 예약할 때 DB 저장 순서(id)가 완료된
+        // 네트워크 요청 순서가 되어 선택 순서와 어긋날 수 있어, 선택 순서를 명시적으로 남겨둔다
+        // (백엔드 insertion_analyzer.sort_move_changes가 이 값을 정렬 기준으로 사용).
         return addPendingChange(deviceId, {
           change_type: 'move', target_policy_id: policyId, client_key: `move-${policyId}-${timestamp}`,
-          payload: { position: moveTarget.position, reference_policy_id: moveTarget.reference_policy_id },
+          payload: { position: moveTarget.position, reference_policy_id: moveTarget.reference_policy_id, batch_index: idx },
         })
       }))
     },

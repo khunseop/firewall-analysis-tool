@@ -19,7 +19,13 @@ from app.services.policy_builder.cli_generator import (
     generate_rule_delete_command,
     generate_service_object_command,
 )
-from app.services.policy_builder.insertion_analyzer import analyze_insertion, build_full_order, sort_create_changes
+from app.services.policy_builder.insertion_analyzer import (
+    analyze_insertion,
+    build_full_order,
+    sort_create_changes,
+    sort_modify_changes,
+    sort_move_changes,
+)
 from app.services.policy_builder.virtual_policy import resolve_virtual_policies, wrap_existing_policy_as_virtual
 
 router = APIRouter()
@@ -175,9 +181,9 @@ async def plan_bulk_policy(
     changes = await crud.pending_policy_change.get_by_device(db, device_id)
     create_changes = sort_create_changes([c for c in changes if c.change_type == "create"])
     object_changes = [c for c in changes if c.change_type == "new_object"]
-    modify_changes = [c for c in changes if c.change_type == "modify"]
+    modify_changes = sort_modify_changes([c for c in changes if c.change_type == "modify"])
     delete_changes = [c for c in changes if c.change_type == "delete"]
-    move_changes = [c for c in changes if c.change_type == "move"]
+    move_changes = sort_move_changes([c for c in changes if c.change_type == "move"])
 
     # --- 신규 생성 (create) --- payload에는 NewPolicyRow 필드 + position/reference_policy_id가
     # 함께 들어있으므로, 후자는 제거하고 NewPolicyRow를 재구성한다.

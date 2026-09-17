@@ -41,6 +41,37 @@ def sort_create_changes(create_changes: list) -> list:
     return sorted(create_changes, key=lambda c: (c.created_at, (c.payload or {}).get("row_index", 0)))
 
 
+def _trailing_sequence(client_key: str) -> int:
+    """client_key 끝의 '-' 구분 토큰을 정수 순번으로 파싱한다(실패 시 0)."""
+    try:
+        return int((client_key or "").rsplit("-", 1)[-1])
+    except ValueError:
+        return 0
+
+
+def sort_move_changes(move_changes: list) -> list:
+    """move 유형 대기중 변경사항을 사용자가 선택한 순서로 정렬한다.
+
+    여러 건을 한 번에 이동 예약할 때(`MoveExistingDialog`) 프론트가 `Promise.all`로 각 건의
+    POST 요청을 동시에 보내므로, DB id 순서가 선택 순서와 어긋날 수 있다. 같은 위치로 이동하는
+    건들끼리는 상대 순서가 그대로 최종 배치 순서가 되므로(먼저 실행된 "move ... before X"부터
+    차례로 X 앞에 쌓인다), 프론트가 payload에 남긴 선택 순번(`batch_index`)을 배치 내 정렬
+    기준으로 쓰고, 서로 다른 시점에 제출된 배치끼리는 `created_at`으로 구분한다.
+    """
+    return sorted(move_changes, key=lambda c: (c.created_at, (c.payload or {}).get("batch_index", 0)))
+
+
+def sort_modify_changes(modify_changes: list) -> list:
+    """modify 유형 대기중 변경사항을 사용자가 붙여넣은 순서로 정렬한다.
+
+    `ModifyPolicyModal`도 여러 행을 `Promise.all`로 동시에 제출하므로 DB id 순서가 붙여넣은
+    순서와 어긋날 수 있다. modify의 payload는 필드별 diff(`{added, removed}`)만 담는 범용
+    구조라 별도 순번 키를 추가하면 이를 그대로 순회하는 CLI 생성 로직이 깨지므로, client_key
+    끝에 이미 남아있는 원래 순번(`bulk-modify-...-{timestamp}-{row_index}`)을 파싱해 쓴다.
+    """
+    return sorted(modify_changes, key=lambda c: (c.created_at, _trailing_sequence(c.client_key)))
+
+
 def _resolve_insertion_index(real_policies: list, move_target: MoveTarget) -> int:
     if move_target.position == "top":
         return 0
@@ -210,12 +241,12 @@ async def build_full_order(db: AsyncSession, device_id: int) -> List[Dict[str, A
     최종 정책 순서를 계산한다. `/plan`이 CLI를 생성할 때 쓰는 것과 동일한 위치 계산
     (`_resolve_insertion_index`)을 재사용해 화면과 실제 CLI 생성 결과가 어긋나지 않도록 한다.
 
-    이동은 대기중 변경사항이 만들어진 순서(id순)대로 순차 적용한다 — 기준 정책은 항상 실제
-    정책(스키마상 reference_policy_id는 DB에 이미 존재하는 정책만 허용)이므로, 이전 이동으로
-    다른 항목의 위치가 바뀌어도 기준 정책 자체의 상대적 위치 계산에는 영향이 없다. 단, `/plan`은
-    각 이동을 매번 "원본 조회 결과"에서 독립적으로 계산하는 반면 여기서는 누적된 작업 리스트에
-    순차 적용한다는 차이가 있다 — 같은 기준 정책을 향해 여러 건을 동시에 이동하는 드문 경우에만
-    화면 표시 순서가 실제 CLI 실행 순서와 미세하게 다를 수 있다.
+    이동은 사용자가 선택/제출한 순서(id순이 아니라 `sort_move_changes` 기준)대로 순차 적용한다 —
+    기준 정책은 항상 실제 정책(스키마상 reference_policy_id는 DB에 이미 존재하는 정책만 허용)
+    이므로, 이전 이동으로 다른 항목의 위치가 바뀌어도 기준 정책 자체의 상대적 위치 계산에는
+    영향이 없다. 단, `/plan`은 각 이동을 매번 "원본 조회 결과"에서 독립적으로 계산하는 반면
+    여기서는 누적된 작업 리스트에 순차 적용한다는 차이가 있다 — 같은 기준 정책을 향해 여러 건을
+    동시에 이동하는 드문 경우에만 화면 표시 순서가 실제 CLI 실행 순서와 미세하게 다를 수 있다.
 
     신규 생성(create)행은 (기존 `/plan`과 동일하게) payload의 (position, reference_policy_id)가
     같은 것끼리 배치로 묶어 각 배치의 목표 위치에 독립적으로 삽입한다 — 서로 다른 시점에 다른
@@ -227,9 +258,9 @@ async def build_full_order(db: AsyncSession, device_id: int) -> List[Dict[str, A
     items: List[Dict[str, Any]] = [_policy_to_item(p) for p in real_policies]
     by_id = {item["id"]: item for item in items}
 
-    move_changes = [c for c in changes if c.change_type == "move" and c.target_policy_id is not None]
+    move_changes = sort_move_changes([c for c in changes if c.change_type == "move" and c.target_policy_id is not None])
     create_changes = sort_create_changes([c for c in changes if c.change_type == "create"])
-    modify_changes = [c for c in changes if c.change_type == "modify" and c.target_policy_id is not None]
+    modify_changes = sort_modify_changes([c for c in changes if c.change_type == "modify" and c.target_policy_id is not None])
     delete_ids = {c.target_policy_id for c in changes if c.change_type == "delete" and c.target_policy_id is not None}
 
     for c in modify_changes:
