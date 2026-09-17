@@ -28,48 +28,72 @@ _MODIFY_FIELD_MAP = {
 }
 
 
+# 아래 세 정렬 함수는 모두 같은 문제를 푼다: 여러 건을 한 번에 등록/이동/수정할 때 프론트가
+# `Promise.all`로 각 건의 POST 요청을 동시에 보내므로, DB id나 `created_at`(실제 INSERT 시각)은
+# "완료된 네트워크 요청 순서"일 뿐 사용자가 의도한 순서와 다를 수 있다 — 같은 배치 안에서도
+# 요청마다 서버 도착 시각이 밀리초 단위로 갈리기 때문에 `created_at`을 1차 정렬 기준으로 쓰면
+# row_index는 동점(tie)일 때만 작동하는 무력한 2차 키가 되어 버려서 원래 문제가 그대로 재현된다.
+# 그래서 `created_at` 대신, 한 번의 제출에서 모든 행이 공유하는 client_key의 타임스탬프
+# (JS의 `const timestamp = Date.now()` — 배치 전체가 동일한 값을 씀)를 1차 키로 쓴다. 이 값은
+# 네트워크 완료 순서와 무관하게 배치 단위로만 달라지므로, 완료 순서가 뒤바뀌어도 정렬에
+# 영향을 주지 않는다.
+
+def _trailing_int(client_key: str, index: int = -1) -> Optional[int]:
+    """client_key를 '-'로 나눈 뒤 지정한 위치의 토큰을 정수로 파싱한다(실패 시 None)."""
+    parts = (client_key or "").split("-")
+    if not parts:
+        return None
+    try:
+        return int(parts[index])
+    except (ValueError, IndexError):
+        return None
+
+
 def sort_create_changes(create_changes: list) -> list:
     """create 유형 대기중 변경사항을 사용자가 실제로 붙여넣은 순서로 정렬한다.
 
-    여러 건을 한 번에 등록할 때 프론트(`CreatePolicyModal`/`NewPolicyFormModal`)가 `Promise.all`로
-    각 행의 POST 요청을 동시에 보내므로, DB에 부여되는 순서(id, 곧 `get_by_device`의 정렬 기준)는
-    완료된 네트워크 요청 순서일 뿐 붙여넣은 순서와 어긋날 수 있다. payload에는 프론트 파싱 시점에
-    매겨진 원래 순번(`row_index`)이 그대로 남아있으므로 이를 배치 내 정렬 기준으로 쓰고, 서로 다른
-    시점에 제출된 배치끼리는 `created_at`으로 구분한다(같은 배치 내 요청들의 완료 시각이 서로
-    뒤바뀌어도 `row_index`가 최종 순서를 결정하므로 영향이 없다).
+    client_key가 `draft-{row_index}-{timestamp}`(붙여넣기 배치) 또는 `draft-form-{timestamp}`
+    (단건 폼) 형식이라 마지막 토큰이 항상 배치 공통 timestamp다. 이를 1차 키로, payload에 남아있는
+    붙여넣기 시점 순번(`row_index`)을 배치 내 2차 키로 쓴다. client_key를 파싱할 수 없는 예외적인
+    경우에만 DB id로 폴백한다.
     """
-    return sorted(create_changes, key=lambda c: (c.created_at, (c.payload or {}).get("row_index", 0)))
-
-
-def _trailing_sequence(client_key: str) -> int:
-    """client_key 끝의 '-' 구분 토큰을 정수 순번으로 파싱한다(실패 시 0)."""
-    try:
-        return int((client_key or "").rsplit("-", 1)[-1])
-    except ValueError:
-        return 0
+    def key(c):
+        timestamp = _trailing_int(c.client_key)
+        row_index = (c.payload or {}).get("row_index", 0)
+        return (timestamp, row_index) if timestamp is not None else (c.id, row_index)
+    return sorted(create_changes, key=key)
 
 
 def sort_move_changes(move_changes: list) -> list:
     """move 유형 대기중 변경사항을 사용자가 선택한 순서로 정렬한다.
 
-    여러 건을 한 번에 이동 예약할 때(`MoveExistingDialog`) 프론트가 `Promise.all`로 각 건의
-    POST 요청을 동시에 보내므로, DB id 순서가 선택 순서와 어긋날 수 있다. 같은 위치로 이동하는
-    건들끼리는 상대 순서가 그대로 최종 배치 순서가 되므로(먼저 실행된 "move ... before X"부터
-    차례로 X 앞에 쌓인다), 프론트가 payload에 남긴 선택 순번(`batch_index`)을 배치 내 정렬
-    기준으로 쓰고, 서로 다른 시점에 제출된 배치끼리는 `created_at`으로 구분한다.
+    같은 위치로 이동하는 건들끼리는 상대 순서가 그대로 최종 배치 순서가 되므로(먼저 실행된
+    "move ... before X"부터 차례로 X 앞에 쌓인다), client_key(`move-{policyId}-{timestamp}`)의
+    마지막 토큰인 배치 공통 timestamp를 1차 키로, 프론트가 payload에 남긴 선택 순번
+    (`batch_index`)을 배치 내 2차 키로 쓴다.
     """
-    return sorted(move_changes, key=lambda c: (c.created_at, (c.payload or {}).get("batch_index", 0)))
+    def key(c):
+        timestamp = _trailing_int(c.client_key)
+        batch_index = (c.payload or {}).get("batch_index", 0)
+        return (timestamp, batch_index) if timestamp is not None else (c.id, batch_index)
+    return sorted(move_changes, key=key)
 
 
 def sort_modify_changes(modify_changes: list) -> list:
     """modify 유형 대기중 변경사항을 사용자가 붙여넣은 순서로 정렬한다.
 
-    `ModifyPolicyModal`도 여러 행을 `Promise.all`로 동시에 제출하므로 DB id 순서가 붙여넣은
-    순서와 어긋날 수 있다. modify의 payload는 필드별 diff(`{added, removed}`)만 담는 범용
-    구조라 별도 순번 키를 추가하면 이를 그대로 순회하는 CLI 생성 로직이 깨지므로, client_key
-    끝에 이미 남아있는 원래 순번(`bulk-modify-...-{timestamp}-{row_index}`)을 파싱해 쓴다.
+    modify의 payload는 필드별 diff(`{added, removed}`)만 담는 범용 구조라 별도 순번 키를
+    추가하면 이를 그대로 순회하는 CLI 생성 로직이 깨지므로, client_key
+    (`bulk-modify-...-{timestamp}-{row_index}`) 끝의 두 토큰(배치 공통 timestamp, 배치 내
+    row_index)을 파싱해 쓴다.
     """
-    return sorted(modify_changes, key=lambda c: (c.created_at, _trailing_sequence(c.client_key)))
+    def key(c):
+        timestamp = _trailing_int(c.client_key, -2)
+        row_index = _trailing_int(c.client_key, -1)
+        if timestamp is None or row_index is None:
+            return (c.id, 0)
+        return (timestamp, row_index)
+    return sorted(modify_changes, key=key)
 
 
 def _resolve_insertion_index(real_policies: list, move_target: MoveTarget) -> int:
