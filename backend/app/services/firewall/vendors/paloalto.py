@@ -434,10 +434,13 @@ class PaloAltoAPI(FirewallInterface):
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             ssh.connect(
-                self.hostname, port=22, 
-                username=self.username, password=self._password, 
+                self.hostname, port=22,
+                username=self.username, password=self._password,
                 timeout=20, look_for_keys=False, allow_agent=False
             )
+            # vsys all 조회는 장비 연산 시간이 길어 응답 없는 구간이 생기는데, 그 사이 중간 장비의
+            # idle timeout으로 세션이 조용히 끊기는 걸 막기 위해 주기적으로 keepalive 패킷을 보낸다.
+            ssh.get_transport().set_keepalive(15)
 
             # 인터랙티브 쉘 채널 획득
             channel = ssh.invoke_shell()
@@ -453,6 +456,9 @@ class PaloAltoAPI(FirewallInterface):
                         # 프롬프트 기호(>, #)로 끝나면 수신 완료로 판단
                         if output.strip().endswith(('>', '#')):
                             return output
+                    elif channel.closed or channel.eof_received or not ssh.get_transport().is_active():
+                        # 연결이 끊겼는데 모르고 timeout까지 계속 기다리는 걸 방지 — 끊김을 감지하면 즉시 실패
+                        raise ConnectionError(f"SSH 세션이 응답 대기 중 끊어졌습니다. 현재까지 수신된 출력:\n{output}")
 
                     if time.time() - start_time > timeout:
                         raise TimeoutError(f"쉘 프롬프트 대기 시간 초과. 현재 출력:\n{output}")
