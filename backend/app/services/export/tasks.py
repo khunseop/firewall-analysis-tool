@@ -50,7 +50,7 @@ _POLICY_COL_MAP = {
 }
 
 _HIT_DATE_COL_MAP = {
-    "vsys": "VSYS",
+    "vsys": "Vsys",
     "seq": "#",
     "rule_name": "Rule Name",
     "hit_count": "Hit Count",
