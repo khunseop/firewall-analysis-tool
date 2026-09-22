@@ -214,7 +214,11 @@ async def sync_data_task(
                     # 2-2. 실제 주요 필드들의 변경 여부(is_dirty) 확인
                     fields_to_compare = set(update_data.keys())
                     if data_type == "policies":
-                        fields_to_compare -= {'seq', 'last_hit_date', 'hit_count'} # 순서와 히트 정보는 주요 변경에서 제외
+                        # 순서/히트 정보는 매 동기화마다 갱신되는 스냅샷 값이라 주요 변경 비교에서 제외
+                        fields_to_compare -= {
+                            'seq', 'last_hit_date', 'hit_count',
+                            'first_hit_date', 'unused_days', 'rule_create_date',
+                        }
 
                     is_dirty = any(
                         normalize_value(update_data.get(k)) != normalize_value(getattr(existing_item, k))
@@ -474,7 +478,9 @@ async def _update_status(device_id: int, step: str, status: str = "in_progress")
 
 
 def _merge_hit_dates(policies_df: pd.DataFrame, hit_date_df: pd.DataFrame) -> pd.DataFrame:
-    """수집된 히트 정보(last_hit_date/hit_count)를 정책 DataFrame에 병합합니다 (순수 pandas 연산)."""
+    """수집된 히트 정보(last_hit_date/hit_count/first_hit_date/unused_days/rule_create_date)를
+    정책 DataFrame에 병합합니다 (순수 pandas 연산). hit_date_df에 없는 컬럼은 건드리지 않는다
+    (예: API 경로는 rule_create_date가 없으므로 기존 policies_df 값을 그대로 유지)."""
     def normalize_rule_name(name):
         if pd.isna(name): return None
         s = str(name).strip()
@@ -501,10 +507,26 @@ def _merge_hit_dates(policies_df: pd.DataFrame, hit_date_df: pd.DataFrame) -> pd
     merge_keys = ['vsys_normalized', 'rule_name_normalized'] if 'vsys_normalized' in policies_df.columns and 'vsys_normalized' in hit_date_df.columns else ['rule_name_normalized']
 
     merge_cols = merge_keys + ['last_hit_date_new']
+
     has_hit_count = 'hit_count' in hit_date_df.columns
     if has_hit_count:
         hit_date_df = hit_date_df.rename(columns={'hit_count': 'hit_count_new'})
-        merge_cols = merge_keys + ['last_hit_date_new', 'hit_count_new']
+        merge_cols = merge_cols + ['hit_count_new']
+
+    has_first_hit = 'first_hit_date' in hit_date_df.columns
+    if has_first_hit:
+        hit_date_df['first_hit_date_new'] = pd.to_datetime(hit_date_df['first_hit_date'], errors='coerce')
+        merge_cols = merge_cols + ['first_hit_date_new']
+
+    has_rule_create = 'rule_create_date' in hit_date_df.columns
+    if has_rule_create:
+        hit_date_df['rule_create_date_new'] = pd.to_datetime(hit_date_df['rule_create_date'], errors='coerce')
+        merge_cols = merge_cols + ['rule_create_date_new']
+
+    has_unused_days = 'unused_days' in hit_date_df.columns
+    if has_unused_days:
+        hit_date_df = hit_date_df.rename(columns={'unused_days': 'unused_days_new'})
+        merge_cols = merge_cols + ['unused_days_new']
 
     merged_df = pd.merge(policies_df, hit_date_df[merge_cols], on=merge_keys, how="left")
 
@@ -514,11 +536,25 @@ def _merge_hit_dates(policies_df: pd.DataFrame, hit_date_df: pd.DataFrame) -> pd
             return new_val.to_pydatetime() if hasattr(new_val, 'to_pydatetime') else new_val
         return None
 
+    def to_pydatetime_or_none(v):
+        if pd.isna(v):
+            return None
+        return v.to_pydatetime() if hasattr(v, 'to_pydatetime') else v
+
     merged_df['last_hit_date'] = merged_df.apply(choose_latest, axis=1)
     drop_cols = ['last_hit_date_new', 'rule_name_normalized', 'vsys_normalized']
     if has_hit_count:
         merged_df['hit_count'] = merged_df['hit_count_new'].apply(lambda v: int(v) if pd.notna(v) else None)
         drop_cols.append('hit_count_new')
+    if has_first_hit:
+        merged_df['first_hit_date'] = merged_df['first_hit_date_new'].apply(to_pydatetime_or_none)
+        drop_cols.append('first_hit_date_new')
+    if has_rule_create:
+        merged_df['rule_create_date'] = merged_df['rule_create_date_new'].apply(to_pydatetime_or_none)
+        drop_cols.append('rule_create_date_new')
+    if has_unused_days:
+        merged_df['unused_days'] = merged_df['unused_days_new'].apply(lambda v: int(v) if pd.notna(v) else None)
+        drop_cols.append('unused_days_new')
     return merged_df.drop(columns=drop_cols, errors='ignore')
 
 
