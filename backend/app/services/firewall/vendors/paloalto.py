@@ -487,7 +487,31 @@ class PaloAltoAPI(FirewallInterface):
                     self.logger.warning(f"규칙 '{rule_name}'의 타임스탬프 파싱 실패: '{timestamp_str}'")
                     return None
 
+            def compute_unused_days(last_hit_date_str: str | None) -> int:
+                """API 버전(export_last_hit_date)과 동일한 규칙: 마지막 히트 이후 경과일.
+                히트 이력이 없으면(한 번도 안 쓰임) 99999로 표시."""
+                if not last_hit_date_str:
+                    return 99999
+                last_hit_dt = datetime.datetime.strptime(last_hit_date_str, '%Y-%m-%d %H:%M:%S')
+                return (datetime.datetime.now() - last_hit_dt).days
+
             ts_or_dash = r'(?:[A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+\d{4}|-)'
+
+            # 확장 포맷: Rule Name, Vsys, Hit Count, Last Hit, Last Reset(무시),
+            # First Hit, Rule Create [, Rule Modify, Rule UUID(끝까지 앵커링 안 하므로 무시)]
+            extended_row_pattern_all_vsys = re.compile(
+                rf'^(\S+)\s+(\S+)\s+(\d+)\s+({ts_or_dash})\s+({ts_or_dash})\s+({ts_or_dash})\s+({ts_or_dash})'
+            )
+            # 레거시(구버전) 포맷: Rule Name, Vsys, Hit Count, Last Hit Timestamp만 존재
+            legacy_row_pattern_all_vsys = re.compile(
+                rf'^(\S+)\s+(\S+)\s+(\d+)\s+({ts_or_dash})'
+            )
+            extended_row_pattern_per_vsys = re.compile(
+                rf'^([a-zA-Z0-9/._-]+)\s+(\d+)\s+({ts_or_dash})\s+({ts_or_dash})\s+({ts_or_dash})\s+({ts_or_dash})'
+            )
+            legacy_row_pattern_per_vsys = re.compile(
+                rf'^([a-zA-Z0-9/._-]+)\s+(\d+)\s+({ts_or_dash})'
+            )
 
             if use_vsys_all_cmd:
                 # PAN-OS 10+: vsys-name 단위 명령에서 장비가 응답 없이 멈추는 이슈의 워크어라운드.
@@ -501,12 +525,6 @@ class PaloAltoAPI(FirewallInterface):
                 # 대량의 정책 정보 출력을 고려하여 긴 타임아웃 적용 (호출자가 지정, 기본 3600초)
                 output = read_until_prompt(timeout=timeout)
                 self.logger.info("데이터 수신 완료, 파싱 시작.")
-
-                # Last Reset/First Hit/Rule Create/Rule Modify Timestamp, Rule UUID 등 뒤쪽 컬럼은
-                # 현재 스키마(hit_count/last_hit_date)에 쓰이지 않으므로 파싱하지 않고 무시한다.
-                row_pattern = re.compile(
-                    rf'^(\S+)\s+(\S+)\s+(\d+)\s+({ts_or_dash})'
-                )
 
                 lines = output.splitlines()
                 parsing_started = False
@@ -527,20 +545,28 @@ class PaloAltoAPI(FirewallInterface):
                     if 'intrazone-default' in line or 'interzone-default' in line:
                         continue
 
-                    match = row_pattern.match(line)
-                    if not match:
-                        continue
-
-                    rule_name, vsys_name, hit_count_str, last_hit_ts = match.groups()
+                    match = extended_row_pattern_all_vsys.match(line)
+                    if match:
+                        rule_name, vsys_name, hit_count_str, last_hit_ts, _last_reset_ts, first_hit_ts, rule_create_ts = match.groups()
+                    else:
+                        match = legacy_row_pattern_all_vsys.match(line)
+                        if not match:
+                            continue
+                        rule_name, vsys_name, hit_count_str, last_hit_ts = match.groups()
+                        first_hit_ts, rule_create_ts = None, None
 
                     if target_vsys_list and vsys_name not in target_vsys_list:
                         continue
 
+                    last_hit_date = parse_timestamp(last_hit_ts, rule_name)
                     all_results.append({
                         "vsys": vsys_name,
                         "rule_name": rule_name,
                         "hit_count": int(hit_count_str),
-                        "last_hit_date": parse_timestamp(last_hit_ts, rule_name)
+                        "first_hit_date": parse_timestamp(first_hit_ts, rule_name) if first_hit_ts is not None else None,
+                        "last_hit_date": last_hit_date,
+                        "rule_create_date": parse_timestamp(rule_create_ts, rule_name) if rule_create_ts is not None else None,
+                        "unused_days": compute_unused_days(last_hit_date),
                     })
             else:
                 for vsys_name in target_vsys_list:
@@ -571,20 +597,26 @@ class PaloAltoAPI(FirewallInterface):
                         if 'intrazone-default' in line or 'interzone-default' in line:
                             break
 
-                        # 정규식 패턴 분석: [룰이름] [히트수] [날짜문자열 또는 '-']
-                        # 날짜 예시: "Tue Nov  4 00:50:48 2025"
-                        match = re.match(rf'^([a-zA-Z0-9/._-]+)\s+(\d+)\s+({ts_or_dash})', line)
+                        match = extended_row_pattern_per_vsys.match(line)
                         if match:
-                            rule_name = match.group(1)
-                            hit_count = int(match.group(2))
-                            timestamp_str = match.group(3).strip()
+                            rule_name, hit_count_str, last_hit_ts, _last_reset_ts, first_hit_ts, rule_create_ts = match.groups()
+                        else:
+                            match = legacy_row_pattern_per_vsys.match(line)
+                            if not match:
+                                continue
+                            rule_name, hit_count_str, last_hit_ts = match.groups()
+                            first_hit_ts, rule_create_ts = None, None
 
-                            all_results.append({
-                                "vsys": vsys_name,
-                                "rule_name": rule_name,
-                                "hit_count": hit_count,
-                                "last_hit_date": parse_timestamp(timestamp_str, rule_name)
-                            })
+                        last_hit_date = parse_timestamp(last_hit_ts.strip(), rule_name)
+                        all_results.append({
+                            "vsys": vsys_name,
+                            "rule_name": rule_name,
+                            "hit_count": int(hit_count_str),
+                            "first_hit_date": parse_timestamp(first_hit_ts, rule_name) if first_hit_ts is not None else None,
+                            "last_hit_date": last_hit_date,
+                            "rule_create_date": parse_timestamp(rule_create_ts, rule_name) if rule_create_ts is not None else None,
+                            "unused_days": compute_unused_days(last_hit_date),
+                        })
 
         except paramiko.AuthenticationException:
             self.logger.error(f"SSH 인증 실패: {self.hostname}")
