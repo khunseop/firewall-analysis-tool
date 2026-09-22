@@ -49,6 +49,26 @@ _POLICY_COL_MAP = {
     "last_hit_date": "마지막 사용일",
 }
 
+_HIT_DATE_COL_MAP = {
+    "vsys": "VSYS",
+    "seq": "#",
+    "rule_name": "Rule Name",
+    "hit_count": "Hit Count",
+    "first_hit_date": "First Hit Date",
+    "last_hit_date": "Last Hit Date",
+    "unused_days": "Unused Days",
+}
+
+
+def _normalize_hit_dates_df(df: pd.DataFrame) -> pd.DataFrame:
+    """hit_dates 엑셀 컬럼을 deletion workflow 호환 이름으로 정규화한다.
+    'Rule Name'/'Unused Days' 철자는 policy_usage_processor.py의 폴백 로직이
+    정확히 이 이름을 찾으므로 절대 바꾸면 안 된다."""
+    df = df.copy()
+    cols_in_order = [c for c in ["vsys", "seq", "rule_name", "hit_count", "first_hit_date", "last_hit_date", "unused_days"] if c in df.columns]
+    df = df[cols_in_order]
+    return df.rename(columns={k: v for k, v in _HIT_DATE_COL_MAP.items() if k in df.columns})
+
 
 def _now_kst() -> datetime:
     return datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
@@ -135,9 +155,35 @@ async def _collect_db_objects(db, device_id: int) -> dict[str, pd.DataFrame]:
     return _normalize_object_dfs(net_obj_df, net_grp_df, svc_obj_df, svc_grp_df)
 
 
+async def _enrich_hit_dates_with_seq(db, device_id: int, df: pd.DataFrame) -> pd.DataFrame:
+    """SSH/API로 받아온 사용이력 결과에 이미 동기화된 Policy의 seq를 매칭해 붙이고
+    (vsys, seq) 순으로 정렬한다. 장비 출력 자체엔 seq가 없어서 DB의 기존 정책과
+    (vsys, rule_name)으로 조인한다. 매칭되는 정책이 없으면(신규 장비 등) seq 없이
+    원래 순서를 유지한 채 정렬 시 뒤로 보낸다."""
+    if df.empty:
+        return df
+    policies = await crud.policy.get_policies_by_device(db, device_id=device_id)
+    seq_map = {
+        (str(p.vsys or '').strip().lower(), str(p.rule_name or '').strip()): p.seq
+        for p in policies
+    }
+    df = df.reset_index(drop=True).copy()
+    df['seq'] = df.apply(
+        lambda row: seq_map.get((str(row.get('vsys') or '').strip().lower(), str(row.get('rule_name') or '').strip())),
+        axis=1,
+    )
+    df = df.sort_values(by=['vsys', 'seq'], na_position='last', kind='stable')
+    return df.reset_index(drop=True)
+
+
 async def _collect_db_hit_dates(db, device_id: int) -> pd.DataFrame:
     policies = await crud.policy.get_policies_by_device(db, device_id=device_id)
-    rows = [{"vsys": p.vsys, "rule_name": p.rule_name, "last_hit_date": p.last_hit_date} for p in policies]
+    policies = sorted(policies, key=lambda p: (p.vsys or '', p.seq if p.seq is not None else float('inf')))
+    rows = [{
+        "vsys": p.vsys, "seq": p.seq, "rule_name": p.rule_name, "hit_count": p.hit_count,
+        "first_hit_date": p.first_hit_date, "last_hit_date": p.last_hit_date,
+        "unused_days": p.unused_days,
+    } for p in policies]
     return pd.DataFrame(rows)
 
 
@@ -328,9 +374,14 @@ async def run_export_task(task_id: int) -> None:
                     elif export_type == "objects":
                         per_device_data[device.id] = await _collect_db_objects(db, device.id)
                     else:
-                        per_device_data[device.id] = await _collect_db_hit_dates(db, device.id)
+                        per_device_data[device.id] = _normalize_hit_dates_df(await _collect_db_hit_dates(db, device.id))
             else:
-                per_device_data[device.id] = await _collect_live_export(device, export_type, use_ssh, loop, timeout)
+                data = await _collect_live_export(device, export_type, use_ssh, loop, timeout)
+                if export_type == "hit_dates":
+                    async with SessionLocal() as db:
+                        data = await _enrich_hit_dates_with_seq(db, device.id, data)
+                    data = _normalize_hit_dates_df(data)
+                per_device_data[device.id] = data
             await _update_export_task(task_id, progress_current=idx)
 
         await _update_export_task(task_id, step="엑셀 생성 중...")
