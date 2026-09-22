@@ -35,6 +35,9 @@ class PolicyBase(BaseModel):
     description: Optional[str] = None
     last_hit_date: Optional[datetime] = None
     hit_count: Optional[int] = None
+    first_hit_date: Optional[datetime] = None
+    unused_days: Optional[int] = None
+    rule_create_date: Optional[datetime] = None
     from_zone: Optional[str] = None
     to_zone: Optional[str] = None
     log_setting: Optional[str] = None

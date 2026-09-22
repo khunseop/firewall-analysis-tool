@@ -50,7 +50,13 @@ class Policy(Base):
     last_hit_date = Column(DateTime, nullable=True)
     # 정책 히트 횟수 (Palo Alto 전용, 동기화 시 수집)
     hit_count = Column(Integer, nullable=True)
-    
+    # 최초 히트 시간 (API/SSH 모두 지원, Palo Alto 전용)
+    first_hit_date = Column(DateTime, nullable=True)
+    # 마지막 히트 이후 경과일수 (동기화 시점 기준 스냅샷, Palo Alto 전용)
+    unused_days = Column(Integer, nullable=True)
+    # 정책 생성 시각 (SSH 기반 수집만 지원, API/NGF/MF2는 NULL)
+    rule_create_date = Column(DateTime, nullable=True)
+
     # 논리적 삭제 및 활성 상태 관리
     is_active = Column(Boolean, default=True, nullable=False)
     
