@@ -19,7 +19,7 @@
 | 1 | 로그인 무차별 대입 방지 (rate limit/lockout) | 높음 | 완료 | `2026-09-30-security-quick-wins.md` |
 | 2 | `/docs`, `/redoc`, OpenAPI 스키마 운영 환경 비공개 | 높음 | 완료 | `2026-09-30-security-quick-wins.md` |
 | 3 | 백엔드 로그 영속화 (파일 로테이션) | 높음 | 완료 | `2026-09-30-logging-persistence.md` |
-| 4 | 헬스체크 엔드포인트 (`/api/v1/health`) | 중간 | 대기 | 미작성 |
+| 4 | 헬스체크 엔드포인트 (`/api/v1/health`) | 중간 | 완료 | `2026-09-30-health-check-endpoint.md` |
 | 5 | SQLite 백업 전략 (운영 문서/스크립트) | 중간 | 대기 | 미작성 |
 | 6 | 핵심 모듈(파서/인덱서/삭제 워크플로우) 테스트 추가 | 중간 | 대기 | 미작성 |
 | 7 | 인증 토큰 저장 방식 강화 (httpOnly 쿠키 전환) | 낮음 (보류) | 보류 | 아래 "재평가" 참고 |
