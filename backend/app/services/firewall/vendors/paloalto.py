@@ -445,8 +445,17 @@ class PaloAltoAPI(FirewallInterface):
             # 인터랙티브 쉘 채널 획득
             channel = ssh.invoke_shell()
 
-            def read_until_prompt(prompt_pattern: str = r'>\s*$', timeout: int = 10) -> str:
-                """쉘 프롬프트가 나타날 때까지 데이터를 계속해서 읽어들입니다."""
+            def read_until_prompt(prompt_pattern: str = r'>\s*$', timeout: int = 10, salvage_on_disconnect: bool = False) -> str:
+                """쉘 프롬프트가 나타날 때까지 데이터를 계속해서 읽어들입니다.
+
+                PAN-OS의 idle-timeout은 마지막 키 입력 이후 경과 시간 기준으로 동작하는 경우가
+                있어서, 대용량 show 명령의 출력을 다 보낸 직후(또는 도중) 세션을 끊어버리고
+                프롬프트를 아예 안 보내는 경우가 있다 — 이 경우 실제 데이터는 이미 output에 전부
+                들어있는데 프롬프트 문자만 못 받아서 지금까지는 통째로 실패 처리했다.
+                salvage_on_disconnect=True면, 끊김을 감지했을 때 데이터 구간 시작을 알리는
+                구분선('----------')이 이미 수신됐다면 그 출력을 그대로 반환한다(연결 끊김
+                자체는 로그로만 남김) — 데이터가 하나도 없는 상태에서 끊겼을 때는 여전히
+                예외를 던진다."""
                 output = ""
                 start_time = time.time()
                 while True:
@@ -457,6 +466,11 @@ class PaloAltoAPI(FirewallInterface):
                         if output.strip().endswith(('>', '#')):
                             return output
                     elif channel.closed or channel.eof_received or not ssh.get_transport().is_active():
+                        if salvage_on_disconnect and '----------' in output:
+                            self.logger.warning(
+                                "SSH 세션이 끊겼지만 데이터 구간은 이미 수신됨 — 받은 출력으로 계속 진행합니다."
+                            )
+                            return output
                         # 연결이 끊겼는데 모르고 timeout까지 계속 기다리는 걸 방지 — 끊김을 감지하면 즉시 실패
                         raise ConnectionError(f"SSH 세션이 응답 대기 중 끊어졌습니다. 현재까지 수신된 출력:\n{output}")
 
@@ -523,7 +537,9 @@ class PaloAltoAPI(FirewallInterface):
                 channel.send(command)
 
                 # 대량의 정책 정보 출력을 고려하여 긴 타임아웃 적용 (호출자가 지정, 기본 3600초)
-                output = read_until_prompt(timeout=timeout)
+                # salvage_on_disconnect: 데이터를 다 받은 직후 장비가 idle-timeout 등으로
+                # 세션을 끊어버려도(프롬프트 없이) 이미 받은 데이터는 버리지 않는다.
+                output = read_until_prompt(timeout=timeout, salvage_on_disconnect=True)
                 self.logger.info("데이터 수신 완료, 파싱 시작.")
 
                 lines = output.splitlines()
@@ -575,7 +591,9 @@ class PaloAltoAPI(FirewallInterface):
                     channel.send(command)
 
                     # 대량의 정책 정보 출력을 고려하여 긴 타임아웃 적용 (호출자가 지정, 기본 3600초)
-                    output = read_until_prompt(timeout=timeout)
+                    # salvage_on_disconnect: 이 VSYS 데이터를 다 받은 직후 세션이 끊겨도 버리지 않는다.
+                    # (다음 VSYS 반복에서 끊긴 채널에 send()하면 예외가 나서 자연스럽게 상위로 전파된다.)
+                    output = read_until_prompt(timeout=timeout, salvage_on_disconnect=True)
                     self.logger.info(f"VSYS {vsys_name} 데이터 수신 완료, 파싱 시작.")
 
                     lines = output.splitlines()
