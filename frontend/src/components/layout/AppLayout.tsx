@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom'
 import { Navbar } from './Navbar'
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 
 export function AppLayout() {
   return (
@@ -9,7 +10,9 @@ export function AppLayout() {
       </div>
       <main className="mt-13">
         <div className="px-4 py-4 md:px-8 md:py-8">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </div>
       </main>
     </div>
