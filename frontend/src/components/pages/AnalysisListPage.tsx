@@ -292,12 +292,21 @@ export function AnalysisListPage() {
 
   const isLoading = quickQuery.isLoading || projectQuery.isLoading
 
+  // 프로젝트형 목록 API(listAnalysisProjects)는 검색 파라미터를 지원하지 않으므로
+  // 장비명 검색은 여기서 클라이언트 측으로 적용한다(quick 태스크는 서버에서 이미 필터링됨).
+  const matchesSearch = (p: AnalysisProject) => {
+    if (!search) return true
+    const q = search.toLowerCase()
+    return p.device_name.toLowerCase().includes(q) || p.device_ip.toLowerCase().includes(q)
+  }
+
   // "전체": quick(최대 MERGE_FETCH_SIZE건) + 모든 프로젝트를 합쳐 날짜순 정렬 후 클라이언트에서 페이지네이션.
   // 특정 프로젝트형 유형: 프로젝트 목록 전체를 클라이언트에서 페이지네이션.
   // 특정 quick 유형: 기존과 동일하게 백엔드 페이지네이션 그대로 사용(추가 슬라이스 없음).
   const allRows: UnifiedHistoryRow[] = (() => {
     if (isProjectFilter) {
       return (projectQuery.data ?? [])
+        .filter(matchesSearch)
         .map((p) => toUnifiedRow(p, 'project'))
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     }
@@ -305,7 +314,7 @@ export function AnalysisListPage() {
       return (quickQuery.data?.items ?? []).map((t) => toUnifiedRow(t, 'quick'))
     }
     const quickRows = (quickQuery.data?.items ?? []).map((t) => toUnifiedRow(t, 'quick'))
-    const projectRows = (projectQuery.data ?? []).map((p) => toUnifiedRow(p, 'project'))
+    const projectRows = (projectQuery.data ?? []).filter(matchesSearch).map((p) => toUnifiedRow(p, 'project'))
     return [...quickRows, ...projectRows].sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     )
