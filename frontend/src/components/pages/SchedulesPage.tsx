@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { queryKeys } from '@/api/queryKeys'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { Button } from '@/components/ui/button'
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -107,9 +108,9 @@ function ScheduleFormDialog({ open, onClose, initial, onSubmit, isPending }: {
           </label>
           <DialogFooter>
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">취소</button>
-            <button type="submit" disabled={isPending} className="px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50">
+            <Button type="submit" variant="gradient" size="auto" disabled={isPending} className="px-5 py-2 text-sm font-bold rounded-md">
               {isPending ? '저장 중…' : '저장'}
-            </button>
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -164,13 +165,15 @@ export function SchedulesPage() {
       <PageHeader
         title="Schedules"
         actions={
-          <button
+          <Button
+            variant="gradient"
+            size="auto"
             onClick={() => { setEditTarget(null); setFormOpen(true) }}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold btn-primary-gradient text-ds-on-tertiary rounded-lg shadow-sm hover:opacity-90 transition-all"
+            className="gap-1.5 px-3 py-1.5 text-[13px] font-semibold rounded-lg"
           >
             <Plus className="w-3.5 h-3.5" />
             스케줄 추가
-          </button>
+          </Button>
         }
       />
 

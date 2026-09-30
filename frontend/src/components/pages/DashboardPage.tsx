@@ -8,6 +8,7 @@ import ReactApexChart from 'react-apexcharts'
 import type { ApexOptions } from 'apexcharts'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { Button } from '@/components/ui/button'
 import { rowIdFromId } from '@/lib/utils'
 import { getDashboardStats, type DeviceStats } from '@/api/devices'
 import { getChangeStats, getObjectCountHistory, type ChangeStatCategory } from '@/api/firewall'
@@ -321,13 +322,15 @@ export function DashboardPage() {
       <PageHeader
         title="Dashboard"
         actions={
-          <button
+          <Button
+            variant="subtle"
+            size="auto"
             onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats })}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-ds-on-surface-variant bg-white rounded-lg shadow-sm border border-ds-outline-variant/10 hover:text-ds-on-surface hover:bg-ds-surface-container-low transition-all"
+            className="gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-lg"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             갱신
-          </button>
+          </Button>
         }
       />
 
@@ -345,12 +348,14 @@ export function DashboardPage() {
               </p>
             </div>
           </div>
-          <button
+          <Button
+            variant="destructive"
+            size="auto"
             onClick={() => navigate('/devices')}
-            className="px-3 py-1.5 bg-ds-error text-white text-[12px] font-semibold rounded-lg hover:brightness-110 transition-all shrink-0"
+            className="px-3 py-1.5 text-[12px] font-semibold rounded-lg shrink-0"
           >
             장비 확인
-          </button>
+          </Button>
         </div>
       )}
 
@@ -365,12 +370,14 @@ export function DashboardPage() {
               </span>
               <span className="text-[11px] text-ds-on-surface-variant/50 tabular-nums">{highCapacityDevices.length}대</span>
             </div>
-            <button
+            <Button
+              variant="secondary"
+              size="auto"
               onClick={() => navigate('/devices')}
-              className="px-3 py-1.5 bg-ds-surface-container-low text-ds-on-surface-variant text-[12px] font-semibold rounded-lg hover:bg-ds-surface-container-high transition-all shrink-0"
+              className="px-3 py-1.5 text-[12px] font-semibold rounded-lg shrink-0 hover:bg-ds-surface-container-high"
             >
               장비 확인
-            </button>
+            </Button>
           </div>
           <div className="divide-y divide-ds-outline-variant/10">
             {highCapacityDevices.map(({ device, metrics }) => (

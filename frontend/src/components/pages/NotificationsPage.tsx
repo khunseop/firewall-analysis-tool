@@ -7,6 +7,7 @@ import { TableSkeleton } from '@/components/shared/Skeleton'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { queryKeys } from '@/api/queryKeys'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { Button } from '@/components/ui/button'
 
 const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; label: string }> = {
   success: { icon: CheckCircle2,  color: 'text-green-600',     label: '성공' },
@@ -152,12 +153,9 @@ export function NotificationsPage() {
           >
             초기화
           </button>
-          <button
-            onClick={handleApply}
-            className="h-8 px-4 text-[12px] font-semibold btn-primary-gradient text-ds-on-tertiary rounded-lg shadow-sm hover:opacity-90 transition-all"
-          >
+          <Button variant="gradient" size="auto" onClick={handleApply} className="h-8 px-4 text-[12px] font-semibold rounded-lg">
             검색
-          </button>
+          </Button>
         </div>
       </div>
 

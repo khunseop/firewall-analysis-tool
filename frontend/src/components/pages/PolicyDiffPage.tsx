@@ -11,6 +11,7 @@ import { exportStyledToExcel, type StyledExcelPayload, type ExcelSheet } from '@
 import { diffMultiValueField, isFieldDiffEmpty } from '@/lib/policyDiff'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { Button } from '@/components/ui/button'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -667,13 +668,15 @@ export function PolicyDiffPage() {
       {/* 실행 버튼 */}
       {selectedDeviceId != null && (syncHistory.length > 0 || isPaloAlto) && (
         <div className="flex items-center gap-4">
-          <button
+          <Button
+            variant="gradient"
+            size="auto"
             onClick={() => canCompare && refetch()}
             disabled={!canCompare || diffLoading}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white btn-primary-gradient rounded-lg disabled:opacity-50 transition-all"
+            className="gap-2 px-5 py-2 text-sm font-bold rounded-lg"
           >
             {diffLoading ? '비교 중…' : '비교하기'}
-          </button>
+          </Button>
           {fromSyncId === toSyncId && fromSyncId != null && (
             <span className="text-[12px] text-ds-error/80">동일한 시점은 비교할 수 없습니다.</span>
           )}

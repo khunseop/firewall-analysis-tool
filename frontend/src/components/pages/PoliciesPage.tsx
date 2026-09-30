@@ -39,6 +39,7 @@ import { MoveExistingDialog } from '@/components/pages/policy-builder/MoveExisti
 import { PlanResultPanel, VerifyResultPanel } from '@/components/pages/policy-builder/PlanResultPanel'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { Button } from '@/components/ui/button'
 
 /** 편집모드에서 그리드 필드명 ↔ 백엔드(PendingPolicyChange payload) 필드명 매핑 (diff 대상 필드).
  *  from_zone/to_zone은 Palo Alto만 수집하는 필드라 다른 벤더 정책은 항상 빈 값으로 시작함. */
@@ -830,13 +831,15 @@ export function PoliciesPage() {
             <button onClick={handleReset} className="text-[12px] font-medium text-ds-on-surface-variant hover:text-ds-on-surface px-2.5 py-1.5 rounded-lg hover:bg-ds-surface-container-low transition-colors">
               초기화
             </button>
-            <button
+            <Button
+              variant="gradient"
+              size="auto"
               onClick={handleSearch}
               disabled={deviceIds.length === 0 || searchQuery.isFetching}
-              className="btn-primary-gradient text-ds-on-tertiary text-[12px] font-semibold px-4 py-1.5 rounded-lg shadow-sm hover:opacity-90 transition-all disabled:opacity-50"
+              className="text-[12px] font-semibold px-4 py-1.5 rounded-lg"
             >
               {searchQuery.isFetching ? '검색 중…' : '검색'}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -950,13 +953,15 @@ export function PoliciesPage() {
             >
               <ShieldCheck className="w-3.5 h-3.5" /> {verifyLoading ? '검증 중…' : '실제 장비 검증'}
             </button>
-            <button
+            <Button
+              variant="gradient"
+              size="auto"
               onClick={handleGenerateCli}
               disabled={pendingChanges.length === 0 || planLoading}
-              className="flex items-center gap-1.5 px-4 py-1.5 text-[13px] font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50"
+              className="gap-1.5 px-4 py-1.5 text-[13px] font-bold rounded-md"
             >
               <Terminal className="w-3.5 h-3.5" /> {planLoading ? 'CLI 생성 중…' : 'CLI 생성'}
-            </button>
+            </Button>
           </div>
         </div>
       )}

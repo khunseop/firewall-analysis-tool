@@ -21,6 +21,7 @@ import { DirectExportDialog } from './devices/DirectExportDialog'
 import { buildColumnDefs } from './devices/deviceColumns'
 import { useDeviceSearchStore } from '@/store/deviceSearchStore'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { Button } from '@/components/ui/button'
 
 interface ExportTaskInfo {
   // WebSocket 메시지가 onTasksStarted 등록보다 먼저 도착하면 종류를 알 수 없어 null일 수 있음
@@ -356,24 +357,28 @@ export function DevicesPage() {
         title="Devices"
         actions={
           <>
-            <button
+            <Button
+              variant="subtle"
+              size="auto"
               onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.devices })}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-ds-on-surface-variant bg-white rounded-lg shadow-sm border border-ds-outline-variant/10 hover:text-ds-on-surface hover:bg-ds-surface-container-low transition-all"
+              className="gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-lg"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               갱신
-            </button>
+            </Button>
 
             {/* 장비 추가 드롭다운 */}
             <div className="relative" ref={addMenuRef}>
-              <button
+              <Button
+                variant="gradient"
+                size="auto"
                 onClick={() => setAddMenuOpen((v) => !v)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold btn-primary-gradient text-ds-on-tertiary rounded-lg shadow-sm hover:opacity-90 transition-all"
+                className="gap-1.5 px-3 py-1.5 text-[13px] font-semibold rounded-lg"
               >
                 <Plus className="w-3.5 h-3.5" />
                 장비 추가
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${addMenuOpen ? 'rotate-180' : ''}`} />
-              </button>
+              </Button>
 
               {addMenuOpen && (
                 <div className="absolute right-0 top-full mt-1.5 w-44 bg-white rounded-xl shadow-lg border border-ds-outline-variant/15 py-1 z-50">
@@ -753,13 +758,15 @@ export function DevicesPage() {
           </div>
           <DialogFooter>
             <button onClick={() => setBulkOpen(false)} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">취소</button>
-            <button
+            <Button
+              variant="gradient"
+              size="auto"
               disabled={!bulkFile || bulkImportMutation.isPending}
               onClick={() => bulkFile && bulkImportMutation.mutate(bulkFile)}
-              className="px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50"
+              className="px-5 py-2 text-sm font-bold rounded-md"
             >
               {bulkImportMutation.isPending ? '등록 중…' : '등록'}
-            </button>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
