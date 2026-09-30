@@ -15,6 +15,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.api_v1.api import api_router as api_v1_router
 from app.core.auth import decode_token
+from app.core.config import settings
 from app.services.scheduler import sync_scheduler
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ logger = logging.getLogger(__name__)
 SWAGGER_UI_HTML_PATH = "/docs"
 REDOC_HTML_PATH = "/redoc"
 SWAGGER_OAUTH2_REDIRECT_PATH = "/docs/oauth2-redirect"
+_DOCS_ENABLED = settings.ENVIRONMENT != "production"
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 REACT_DIST_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
@@ -84,7 +86,7 @@ app = FastAPI(
     version="0.1.0",
     docs_url=None,
     redoc_url=None,
-    openapi_url="/api/v1/openapi.json",
+    openapi_url="/api/v1/openapi.json" if _DOCS_ENABLED else None,
     lifespan=lifespan,
 )
 
@@ -102,29 +104,28 @@ if REACT_DIST_DIR.exists():
         app.mount("/fonts", StaticFiles(directory=str(_fonts)), name="react-fonts")
 
 
-@app.get(SWAGGER_UI_HTML_PATH, include_in_schema=False)
-async def custom_swagger_ui_html():
-    return get_swagger_ui_html(
-        openapi_url=app.openapi_url,
-        title=f"{app.title} - Swagger UI",
-        oauth2_redirect_url=SWAGGER_OAUTH2_REDIRECT_PATH,
-        swagger_js_url="/static/swagger-ui-bundle.js",
-        swagger_css_url="/static/swagger-ui.css",
-    )
+if _DOCS_ENABLED:
+    @app.get(SWAGGER_UI_HTML_PATH, include_in_schema=False)
+    async def custom_swagger_ui_html():
+        return get_swagger_ui_html(
+            openapi_url=app.openapi_url,
+            title=f"{app.title} - Swagger UI",
+            oauth2_redirect_url=SWAGGER_OAUTH2_REDIRECT_PATH,
+            swagger_js_url="/static/swagger-ui-bundle.js",
+            swagger_css_url="/static/swagger-ui.css",
+        )
 
+    @app.get(SWAGGER_OAUTH2_REDIRECT_PATH, include_in_schema=False)
+    async def swagger_ui_redirect():
+        return get_swagger_ui_oauth2_redirect_html()
 
-@app.get(SWAGGER_OAUTH2_REDIRECT_PATH, include_in_schema=False)
-async def swagger_ui_redirect():
-    return get_swagger_ui_oauth2_redirect_html()
-
-
-@app.get(REDOC_HTML_PATH, include_in_schema=False)
-async def redoc_html():
-    return get_redoc_html(
-        openapi_url=app.openapi_url,
-        title=f"{app.title} - ReDoc",
-        redoc_js_url="/static/redoc.standalone.js",
-    )
+    @app.get(REDOC_HTML_PATH, include_in_schema=False)
+    async def redoc_html():
+        return get_redoc_html(
+            openapi_url=app.openapi_url,
+            title=f"{app.title} - ReDoc",
+            redoc_js_url="/static/redoc.standalone.js",
+        )
 
 
 app.include_router(api_v1_router, prefix="/api/v1")
