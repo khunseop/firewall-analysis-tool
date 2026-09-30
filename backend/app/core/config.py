@@ -72,6 +72,7 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 hours
+    ENVIRONMENT: str = "development"  # "production"일 때 /docs, /redoc, OpenAPI 스키마 비활성화
 
     class Config:
         env_file = str(ENV_PATH)
