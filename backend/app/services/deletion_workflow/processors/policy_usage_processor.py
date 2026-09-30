@@ -45,16 +45,21 @@ class PolicyUsageProcessor(BaseProcessor):
                 policy_df['미사용여부'] = ''
 
             if 'Rule Name' not in usage_df.columns:
-                logger.error("미사용 정보 파일에 'Rule Name' 컬럼이 없습니다.")
-                return False
+                raise ValueError("미사용 정보 파일에 'Rule Name' 컬럼이 없습니다.")
 
             # 미사용여부 없으면 Unused Days로 계산 (DB 추출 usage 시트 형식 대응)
             if '미사용여부' not in usage_df.columns:
                 if 'Unused Days' not in usage_df.columns:
-                    logger.error("미사용 정보 파일에 '미사용여부' 또는 'Unused Days' 컬럼이 없습니다.")
-                    return False
+                    raise ValueError("미사용 정보 파일에 '미사용여부' 또는 'Unused Days' 컬럼이 없습니다.")
                 threshold = self.config.get('analysis_criteria.unused_threshold_days', 90)
                 unused_days_numeric = pd.to_numeric(usage_df['Unused Days'], errors='coerce')
+                # Unused Days가 전부 비어있으면 히트카운트 동기화가 안 된 것 — 전부
+                # '미사용'으로 잘못 분류하지 않도록 여기서 명확히 에러 처리한다.
+                if unused_days_numeric.isna().all():
+                    raise ValueError(
+                        "이 장비는 사용이력(히트카운트) 데이터가 없습니다. "
+                        "먼저 사용이력을 동기화하거나 사용이력 파일을 업로드한 뒤 다시 실행하세요."
+                    )
                 usage_df['미사용여부'] = unused_days_numeric.apply(
                     lambda x: '미사용' if pd.isna(x) or x > threshold else '사용'
                 )
@@ -74,6 +79,8 @@ class PolicyUsageProcessor(BaseProcessor):
             policy_df.to_excel(output_file, index=False, engine='openpyxl')
             logger.info(f"미사용여부 {updated_count}개 추가 완료: '{output_file}'")
             return True
+        except ValueError:
+            raise
         except Exception as e:
             logger.exception(f"미사용여부 추가 오류: {e}")
             return False
