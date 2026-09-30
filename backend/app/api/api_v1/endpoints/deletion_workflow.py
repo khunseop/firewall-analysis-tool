@@ -282,6 +282,10 @@ async def upload_external_file(
     data = await file.read()
     await dwcrud.upsert_file(db, project_id=project_id, task_id=task_id, slot=slot,
                              filename=file.filename, data=data)
+    # 완료된 프로젝트에서 파일을 교체하면 결과가 갱신되므로
+    # 완료 상태를 해제해 다시 완료 처리(결과 저장)할 수 있게 한다.
+    if project.status == "completed":
+        await dwcrud.update_project_status(db, project, "running")
     await db.commit()
     return {"ok": True, "filename": file.filename, "task_id": task_id, "slot": slot}
 
