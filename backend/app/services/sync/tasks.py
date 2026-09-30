@@ -29,6 +29,15 @@ from app.services.audit_log import log_activity
 # 동적 세마포어를 위한 전역 변수
 _device_sync_semaphore: asyncio.Semaphore | None = None
 
+# SQLite 바인딩 변수 한도를 넘지 않도록 대량 삭제 시 IN절을 청킹 (policy_indexer.py와 동일 기준)
+_SQLITE_IN_CHUNK = 800
+
+
+def _chunked(items: list, size: int):
+    """items를 size 단위 리스트로 잘라서 순서대로 내놓는다."""
+    for i in range(0, len(items), size):
+        yield items[i:i + size]
+
 
 async def get_sync_semaphore() -> asyncio.Semaphore:
     """
@@ -271,19 +280,22 @@ async def sync_data_task(
             # 4-1. 삭제 처리 (정책 삭제 시 연관된 멤버 정보부터 삭제)
             if ids_to_delete:
                 if data_type == "policies":
-                    await db.execute(delete(PolicyAddressMember).where(PolicyAddressMember.policy_id.in_(ids_to_delete)))
-                    await db.execute(delete(PolicyServiceMember).where(PolicyServiceMember.policy_id.in_(ids_to_delete)))
+                    for chunk in _chunked(ids_to_delete, _SQLITE_IN_CHUNK):
+                        await db.execute(delete(PolicyAddressMember).where(PolicyAddressMember.policy_id.in_(chunk)))
+                        await db.execute(delete(PolicyServiceMember).where(PolicyServiceMember.policy_id.in_(chunk)))
                     # SQLite는 PRAGMA foreign_keys=ON이 아니라서 ondelete="CASCADE"가 실제로
                     # 동작하지 않는다. 명시적으로 지우지 않으면 중복분석 결과가 삭제된
                     # policy_id를 참조하는 고아 행으로 남아 이후 export에서 조용히 누락된다.
                     # 단, policy_id만 지우면 같은 set_number의 짝(상위/하위 정책)이 남아
                     # 파트너 없는 singleton 세트가 되어 "항상 유지"로 오분류되므로,
                     # 삭제된 정책이 속한 세트(task_id, set_number) 전체를 함께 지운다.
-                    orphan_set_keys = (await db.execute(
-                        select(RedundancyPolicySet.task_id, RedundancyPolicySet.set_number)
-                        .where(RedundancyPolicySet.policy_id.in_(ids_to_delete))
-                        .distinct()
-                    )).all()
+                    orphan_set_keys = []
+                    for chunk in _chunked(ids_to_delete, _SQLITE_IN_CHUNK):
+                        orphan_set_keys.extend((await db.execute(
+                            select(RedundancyPolicySet.task_id, RedundancyPolicySet.set_number)
+                            .where(RedundancyPolicySet.policy_id.in_(chunk))
+                            .distinct()
+                        )).all())
                     if orphan_set_keys:
                         sets_by_task: Dict[int, set] = {}
                         for task_id_, set_number_ in orphan_set_keys:
@@ -295,7 +307,8 @@ async def sync_data_task(
                                     RedundancyPolicySet.set_number.in_(set_numbers),
                                 )
                             )
-                await db.execute(delete(model).where(model.id.in_(ids_to_delete)))
+                for chunk in _chunked(ids_to_delete, _SQLITE_IN_CHUNK):
+                    await db.execute(delete(model).where(model.id.in_(chunk)))
 
             # 4-2. 대량 생성 (Bulk Insert)
             if items_to_create:
