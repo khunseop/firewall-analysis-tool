@@ -5,6 +5,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import verify_password, create_access_token, get_current_user
+from app.core.rate_limit import login_rate_limiter
 from app.crud.crud_user import get_user_by_username
 from app.db.session import get_db
 from app.models.user import User
@@ -19,8 +20,16 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
 ):
+    rate_limit_key = form_data.username.strip().lower()
+    if login_rate_limiter.is_locked(rate_limit_key):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="로그인 시도 횟수를 초과했습니다. 잠시 후 다시 시도해주세요.",
+        )
+
     user = await get_user_by_username(db, form_data.username)
     if not user or not verify_password(form_data.password, user.hashed_password):
+        login_rate_limiter.record_failure(rate_limit_key)
         await log_activity(
             db,
             title="로그인 실패",
@@ -46,6 +55,7 @@ async def login(
         )
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="비활성화된 계정입니다")
 
+    login_rate_limiter.record_success(rate_limit_key)
     user.last_login_at = datetime.now(timezone.utc)
     await db.commit()
 
