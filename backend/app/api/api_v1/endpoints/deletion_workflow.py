@@ -13,7 +13,6 @@ import io
 import logging
 import zipfile
 import datetime
-from zoneinfo import ZoneInfo
 from urllib.parse import quote
 from typing import List, Optional, Tuple
 
@@ -23,6 +22,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user
+from app.core.time_utils import get_kst_now
 from app.db.session import get_db
 from app.models.analysis import AnalysisTaskType
 from app.models.user import User
@@ -40,7 +40,7 @@ from app.services.deletion_workflow.config_bridge import load_config_dict
 
 
 def _kst_now() -> datetime.datetime:
-    return datetime.datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
+    return get_kst_now()
 
 
 async def _schedule_pipeline_task(

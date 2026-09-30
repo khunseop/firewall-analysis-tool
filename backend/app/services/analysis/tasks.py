@@ -8,15 +8,12 @@
 
 import asyncio
 import logging
-from datetime import date, datetime
-from zoneinfo import ZoneInfo
+from datetime import date
 from typing import List, Optional
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 
-def get_kst_now():
-    """한국 시간(KST) 현재 시간 반환"""
-    return datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
+from app.core.time_utils import get_kst_now
 
 from app import crud
 from app.db.session import SessionLocal

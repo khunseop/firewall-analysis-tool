@@ -13,14 +13,13 @@ analysis 6종과 달리 AnalysisTask(PENDING) 생성은 API 엔드포인트에�
 
 import asyncio
 import logging
-from datetime import datetime
-from zoneinfo import ZoneInfo
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud
 from app.core.executors import IO_EXECUTOR
+from app.core.time_utils import get_kst_now
 from app.crud import crud_analysis_project as dwcrud
 from app.db.session import SessionLocal
 from app.schemas.analysis import AnalysisTaskUpdate
@@ -44,11 +43,6 @@ from app.services.deletion_workflow.export_service import (
 from app.services.deletion_workflow.task_meta import TASK_META
 
 logger = logging.getLogger(__name__)
-
-
-def get_kst_now():
-    """한국 시간(KST) 현재 시간 반환"""
-    return datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
 
 
 # 프로젝트별로 파이프라인 태스크가 동시 실행되지 않도록 보장하는 프로젝트별 비동기 락.
