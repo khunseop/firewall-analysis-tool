@@ -16,8 +16,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.api.api_v1.api import api_router as api_v1_router
 from app.core.auth import decode_token
 from app.core.config import settings
+from app.core.logging_config import setup_logging
 from app.services.scheduler import sync_scheduler
 
+setup_logging()
 logger = logging.getLogger(__name__)
 
 SWAGGER_UI_HTML_PATH = "/docs"
