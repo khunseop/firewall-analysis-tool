@@ -13,10 +13,6 @@ from ..exceptions import FirewallAuthenticationError
 # SSL 인증서 경고 비활성화: 자체 서명된 인증서를 사용하는 방화벽 장비와의 통신을 위함입니다.
 requests.packages.urllib3.disable_warnings()
 
-# 로깅 설정
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
-
 class NGFClient:
     """
     SECUI NGF REST API 연동 클라이언트입니다.
