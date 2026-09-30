@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Save } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { getSettings, updateSetting } from '@/api/settings'
 import { queryKeys } from '@/api/queryKeys'
 
@@ -89,14 +90,16 @@ export function PolicyDefaultsSettings() {
       </div>
 
       <div className="flex items-center gap-2">
-        <button
+        <Button
+          variant="gradient"
+          size="auto"
           onClick={() => saveMutation.mutate()}
           disabled={!dirty || saveMutation.isPending}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold text-ds-on-tertiary btn-primary-gradient rounded-lg shadow-sm disabled:opacity-50 transition-all"
+          className="gap-1.5 px-3 py-1.5 text-[13px] font-semibold rounded-lg"
         >
           <Save className="w-3.5 h-3.5" />
           저장
-        </button>
+        </Button>
         {dirty && <span className="text-[11px] text-amber-600 font-semibold">저장되지 않은 변경사항이 있습니다</span>}
       </div>
     </div>

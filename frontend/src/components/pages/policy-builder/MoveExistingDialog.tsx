@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { AlertTriangle } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { MoveTargetPicker } from '@/components/pages/policy-builder/MoveTargetPicker'
 import { addPendingChange, updatePendingChange, type MoveTarget, type PendingPolicyChange } from '@/api/policyBuilder'
 
@@ -71,14 +72,16 @@ export function MoveExistingDialog({ deviceId, policyIds, pendingChanges, onClos
 
         <DialogFooter>
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">취소</button>
-          <button
+          <Button
             type="button"
+            variant="gradient"
+            size="auto"
             disabled={!canSubmit || mutation.isPending}
             onClick={() => mutation.mutate()}
-            className="px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50"
+            className="px-5 py-2 text-sm font-bold rounded-md"
           >
             {mutation.isPending ? '추가 중…' : '이동 예약'}
-          </button>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

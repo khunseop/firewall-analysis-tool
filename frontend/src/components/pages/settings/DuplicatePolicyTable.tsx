@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { parseYamlToJson } from '@/api/settings'
 import { type Device } from '@/api/devices'
 import { EX_PAGE_SIZE } from './ExceptionTable'
@@ -245,13 +246,15 @@ export function DuplicatePolicyTable({
             className="w-full px-3 py-2 text-[12px] font-mono leading-relaxed bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary resize-y"
           />
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="gradient"
+              size="auto"
               onClick={handleYamlAdd}
               disabled={!yamlInput.trim() || parsing}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-ds-on-tertiary btn-primary-gradient rounded-lg shadow-sm disabled:opacity-50 transition-all"
+              className="gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg"
             >
               {parsing ? '파싱 중…' : '추가'}
-            </button>
+            </Button>
             <button
               onClick={() => { setYamlOpen(false); setYamlInput('') }}
               className="px-3 py-1.5 text-[12px] text-ds-on-surface-variant hover:text-ds-on-surface transition-colors"

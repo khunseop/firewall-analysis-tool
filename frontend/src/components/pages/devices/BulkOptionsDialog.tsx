@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 export function BulkOptionsDialog({ open, onClose, count, initial, onSubmit }: {
   open: boolean; onClose: () => void; count: number
@@ -33,7 +34,7 @@ export function BulkOptionsDialog({ open, onClose, count, initial, onSubmit }: {
         </div>
         <DialogFooter>
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">취소</button>
-          <button onClick={() => onSubmit(form)} className="px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md">적용</button>
+          <Button variant="gradient" size="auto" onClick={() => onSubmit(form)} className="px-5 py-2 text-sm font-bold rounded-md">적용</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

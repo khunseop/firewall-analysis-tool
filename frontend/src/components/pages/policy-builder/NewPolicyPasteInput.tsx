@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Trash2, Copy, AlertTriangle, ClipboardList } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { Textarea } from '@/components/ui/textarea'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -102,14 +103,16 @@ export function NewPolicyPasteInput({ rows, onChange }: {
         className="font-mono text-[12px]"
       />
       <div className="flex items-center justify-between">
-        <button
+        <Button
           type="button"
+          variant="gradient"
+          size="auto"
           onClick={handleParse}
           disabled={!text.trim()}
-          className="px-4 py-1.5 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50"
+          className="px-4 py-1.5 text-sm font-bold rounded-md"
         >
           파싱
-        </button>
+        </Button>
         {unknownColumns.length > 0 && (
           <span className="text-[12px] text-amber-600">알 수 없는 컬럼(무시됨): {unknownColumns.join(', ')}</span>
         )}

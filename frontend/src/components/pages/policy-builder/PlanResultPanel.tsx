@@ -1,4 +1,5 @@
 import { Copy, AlertTriangle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import type { BulkPolicyPlanResponse, GeneratedCommand, PolicyVerifyResult } from '@/api/policyBuilder'
 
@@ -73,13 +74,15 @@ export function PlanResultPanel({ plan }: { plan: BulkPolicyPlanResponse }) {
           {totalErrors > 0 && <span className="text-ds-error font-semibold"> · 오류 {totalErrors}건</span>}
         </p>
         {allSuccessCommands.length > 0 && (
-          <button
+          <Button
             type="button"
+            variant="gradient"
+            size="auto"
             onClick={() => copyText(allSuccessCommands.map((c) => c.command).join('\n'))}
-            className="text-[12px] font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-md text-ds-on-tertiary btn-primary-gradient"
+            className="text-[12px] font-semibold gap-1.5 px-3 py-1.5 rounded-md"
           >
             <Copy className="w-3.5 h-3.5" /> 전체 명령어 한번에 복사
-          </button>
+          </Button>
         )}
       </div>
 

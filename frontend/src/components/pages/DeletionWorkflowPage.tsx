@@ -10,6 +10,7 @@ import {
   type DeletionTaskMeta
 } from '@/api/deletionWorkflow'
 import { listDevices, type Device } from '@/api/devices'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { queryKeys } from '@/api/queryKeys'
 
@@ -122,14 +123,16 @@ function ExtractionPanel({ devices, onExtracted }: ExtractionPanelProps) {
 
       {/* 액션 버튼들 */}
       <div className="flex flex-wrap gap-2">
-        <button
+        <Button
+          variant="gradient"
+          size="auto"
           onClick={handleExtract}
           disabled={!deviceId || extractLoading}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold btn-primary-gradient text-white rounded-lg shadow-sm disabled:opacity-40 hover:opacity-90 transition-all"
+          className="gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg"
         >
           {extractLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
           정책 데이터 추출
-        </button>
+        </Button>
         <button
           onClick={handleRedundancyExport}
           disabled={!deviceId || redundancyLoading}
@@ -373,17 +376,19 @@ function TaskCard({ meta, state, prevResult, onFilesChange, onRun, onDownload }:
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="gradient"
+            size="auto"
             onClick={() => onRun(needsVendor ? vendor : undefined)}
             disabled={!canRun}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold btn-primary-gradient text-white rounded-lg shadow-sm disabled:opacity-40 hover:opacity-90 transition-all"
+            className="gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg"
           >
             {state.status === 'running' ? (
               <><Loader2 className="w-3 h-3 animate-spin" /> 실행 중…</>
             ) : (
               <><Play className="w-3 h-3" /> 실행</>
             )}
-          </button>
+          </Button>
           {state.status === 'done' && (
             <button
               onClick={onDownload}

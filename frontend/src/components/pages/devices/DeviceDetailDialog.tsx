@@ -1,4 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { Pencil } from 'lucide-react'
 import type { Device } from '@/api/devices'
 import { capacityLevel, CAPACITY_LEVEL_BAR_COLOR, CAPACITY_LEVEL_TEXT_COLOR } from '@/lib/deviceCapacity'
@@ -93,14 +94,16 @@ export function DeviceDetailDialog({ device, onClose, onEdit }: {
         <DialogFooter>
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">닫기</button>
           {device && (
-            <button
+            <Button
               type="button"
+              variant="gradient"
+              size="auto"
               onClick={() => onEdit(device)}
-              className="flex items-center gap-1.5 px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md"
+              className="gap-1.5 px-5 py-2 text-sm font-bold rounded-md"
             >
               <Pencil className="w-3.5 h-3.5" />
               수정
-            </button>
+            </Button>
           )}
         </DialogFooter>
       </DialogContent>

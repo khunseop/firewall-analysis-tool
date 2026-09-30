@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select as ShadSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { VENDOR_OPTIONS, DEFAULT_FORM, type DeviceFormData } from './constants'
 
@@ -191,9 +192,9 @@ export function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }
           </Tabs>
           <DialogFooter>
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">취소</button>
-            <button type="submit" disabled={isPending} className="px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50">
+            <Button type="submit" variant="gradient" size="auto" disabled={isPending} className="px-5 py-2 text-sm font-bold rounded-md">
               {isPending ? '처리중…' : '저장'}
-            </button>
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

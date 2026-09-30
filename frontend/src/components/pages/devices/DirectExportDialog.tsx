@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { directExport, bulkExportDevices, type Device, type DirectExportType } from '@/api/devices'
 
 const EXPORT_TYPE_OPTIONS: { type: DirectExportType; label: string; desc: string }[] = [
@@ -190,13 +191,15 @@ export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">
             취소
           </button>
-          <button
+          <Button
+            variant="gradient"
+            size="auto"
             onClick={handleExport}
             disabled={submitting}
-            className="flex items-center gap-1.5 px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50"
+            className="gap-1.5 px-5 py-2 text-sm font-bold rounded-md"
           >
             <FileDown className="w-3.5 h-3.5" />추출 시작
-          </button>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

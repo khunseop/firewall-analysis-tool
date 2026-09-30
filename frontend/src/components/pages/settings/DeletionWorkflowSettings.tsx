@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Save, ChevronDown, ChevronUp, Download, Upload } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { getDeletionWorkflowConfig, updateDeletionWorkflowConfig, exportDeletionWorkflowConfig, importDeletionWorkflowConfig, getDeletionWorkflowConfigYaml, updateDeletionWorkflowConfigYaml } from '@/api/settings'
 import { listDevices } from '@/api/devices'
 import { queryKeys } from '@/api/queryKeys'
@@ -232,14 +233,16 @@ export function DeletionWorkflowSettings() {
               className="w-full px-3 py-2 text-[12px] font-mono leading-relaxed bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary resize-y"
             />
             <div className="flex items-center gap-3">
-              <button
+              <Button
+                variant="gradient"
+                size="auto"
                 onClick={handleYamlSave}
                 disabled={!yamlDirty || yamlSaving}
-                className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold text-ds-on-tertiary btn-primary-gradient rounded-lg shadow-sm disabled:opacity-50 transition-all"
+                className="gap-1.5 px-4 py-2 text-[13px] font-semibold rounded-lg"
               >
                 <Save className="w-3.5 h-3.5" />
                 {yamlSaving ? '저장 중…' : 'YAML 저장'}
-              </button>
+              </Button>
               {yamlDirty && (
                 <span className="text-[11px] text-amber-600">저장되지 않은 변경사항이 있습니다.</span>
               )}
@@ -250,14 +253,16 @@ export function DeletionWorkflowSettings() {
 
       {/* 저장 / 백업 / 복구 */}
       <div className="flex items-center gap-3 flex-wrap">
-        <button
+        <Button
+          variant="gradient"
+          size="auto"
           onClick={() => saveMutation.mutate()}
           disabled={!dirty || saveMutation.isPending}
-          className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold text-ds-on-tertiary btn-primary-gradient rounded-lg shadow-sm disabled:opacity-50 transition-all"
+          className="gap-1.5 px-4 py-2 text-[13px] font-semibold rounded-lg"
         >
           <Save className="w-3.5 h-3.5" />
           {saveMutation.isPending ? '저장 중…' : '저장'}
-        </button>
+        </Button>
         <div className="h-5 w-px bg-ds-outline-variant/30" />
         <button
           onClick={handleExport}

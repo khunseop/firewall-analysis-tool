@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Save } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { getSettings, updateSetting } from '@/api/settings'
 import { queryKeys } from '@/api/queryKeys'
 
@@ -47,14 +48,16 @@ export function GeneralSettings() {
               onChange={(e) => setValues((prev) => ({ ...prev, [s.key]: e.target.value }))}
               className="flex-1 max-w-sm h-8 px-3 text-[12px] bg-white border border-ds-outline-variant/30 rounded-lg focus:outline-none focus:border-ds-tertiary"
             />
-            <button
+            <Button
+              variant="gradient"
+              size="auto"
               onClick={() => updateMutation.mutate({ key: s.key, value: values[s.key] ?? '' })}
               disabled={updateMutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-on-tertiary btn-primary-gradient rounded-lg shadow-sm disabled:opacity-50"
+              className="gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-lg"
             >
               <Save className="w-3 h-3" />
               저장
-            </button>
+            </Button>
           </div>
         </div>
       ))}

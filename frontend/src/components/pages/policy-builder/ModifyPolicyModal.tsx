@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { AlertTriangle } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { getPolicies } from '@/api/firewall'
@@ -132,14 +133,16 @@ export function ModifyPolicyModal({ deviceId, onClose, onApplied }: {
             rows={6}
             className="font-mono text-[12px]"
           />
-          <button
+          <Button
             type="button"
+            variant="gradient"
+            size="auto"
             onClick={handleParse}
             disabled={!text.trim()}
-            className="px-4 py-1.5 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50"
+            className="px-4 py-1.5 text-sm font-bold rounded-md"
           >
             파싱
-          </button>
+          </Button>
 
           {rows.length > 0 && (
             <div className="border border-ds-outline-variant/20 rounded-lg max-h-[320px] overflow-y-auto">
@@ -181,14 +184,16 @@ export function ModifyPolicyModal({ deviceId, onClose, onApplied }: {
 
         <DialogFooter>
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">취소</button>
-          <button
+          <Button
             type="button"
+            variant="gradient"
+            size="auto"
             disabled={validRows.length === 0 || mutation.isPending}
             onClick={() => mutation.mutate()}
-            className="px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50"
+            className="px-5 py-2 text-sm font-bold rounded-md"
           >
             {mutation.isPending ? '적용 중…' : `대기중 변경사항으로 추가 (${validRows.length}건)`}
-          </button>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

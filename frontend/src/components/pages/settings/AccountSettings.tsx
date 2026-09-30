@@ -5,6 +5,7 @@ import { Plus, Trash2, KeyRound, UserCheck, UserX } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
 import { getUsers, createUser, changeUserPassword, toggleUserActive, deleteUser, type User } from '@/api/users'
 import { queryKeys } from '@/api/queryKeys'
@@ -59,13 +60,15 @@ export function AccountSettings() {
       {ConfirmDialogElement}
       <div className="flex justify-between items-center">
         <p className="text-[12px] text-ds-on-surface-variant">시스템 계정을 관리합니다.</p>
-        <button
+        <Button
+          variant="gradient"
+          size="auto"
           onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold btn-primary-gradient text-ds-on-tertiary rounded-lg shadow-sm hover:opacity-90 transition-all"
+          className="gap-1.5 px-3 py-1.5 text-[13px] font-semibold rounded-lg"
         >
           <Plus className="w-3.5 h-3.5" />
           계정 추가
-        </button>
+        </Button>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-ds-outline-variant/8">
@@ -155,9 +158,9 @@ export function AccountSettings() {
             </label>
             <DialogFooter>
               <button type="button" onClick={() => setCreateOpen(false)} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">취소</button>
-              <button type="submit" disabled={createMutation.isPending} className="px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50">
+              <Button type="submit" variant="gradient" size="auto" disabled={createMutation.isPending} className="px-5 py-2 text-sm font-bold rounded-md">
                 {createMutation.isPending ? '생성 중…' : '생성'}
-              </button>
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -183,9 +186,9 @@ export function AccountSettings() {
               </div>
               <DialogFooter>
                 <button type="button" onClick={() => setPwDialog(null)} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">취소</button>
-                <button type="submit" disabled={pwMutation.isPending} className="px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50">
+                <Button type="submit" variant="gradient" size="auto" disabled={pwMutation.isPending} className="px-5 py-2 text-sm font-bold rounded-md">
                   {pwMutation.isPending ? '변경 중…' : '변경'}
-                </button>
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>

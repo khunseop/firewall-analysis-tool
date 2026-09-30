@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ObjectGapPanel } from '@/components/pages/policy-builder/ObjectGapPanel'
@@ -100,14 +101,16 @@ export function NewPolicyFormModal({ deviceId, onClose, onCreated }: {
 
         <DialogFooter>
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">취소</button>
-          <button
+          <Button
             type="button"
+            variant="gradient"
+            size="auto"
             disabled={!canSubmit || mutation.isPending}
             onClick={() => mutation.mutate()}
-            className="px-5 py-2 text-sm font-bold text-ds-on-tertiary btn-primary-gradient rounded-md disabled:opacity-50"
+            className="px-5 py-2 text-sm font-bold rounded-md"
           >
             {mutation.isPending ? '추가 중…' : '대기중 변경사항으로 추가'}
-          </button>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
