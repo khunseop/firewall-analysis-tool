@@ -214,7 +214,9 @@ async def get_deletion_workflow_config(db: AsyncSession = Depends(get_db)):
             stored = json.loads(setting.value)
             return _deep_merge(_default_config(), stored)
         except Exception:
-            pass
+            logger.exception(
+                "삭제 워크플로우 설정 파싱 실패 (key=%s) — fpat.yaml 기본값으로 폴백", _SETTINGS_KEY
+            )
     return _load_fpat_yaml()
 
 
