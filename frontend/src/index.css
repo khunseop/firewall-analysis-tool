@@ -88,6 +88,13 @@
 
 @layer utilities {
   /* Precision Sentinel utility classes */
+  .nav-scroll {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .nav-scroll::-webkit-scrollbar {
+    display: none;
+  }
   .ambient-shadow {
     box-shadow: 0 12px 32px rgba(42, 52, 57, 0.06);
   }

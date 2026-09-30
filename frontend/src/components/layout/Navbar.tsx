@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
@@ -15,6 +16,29 @@ const NAV_ITEMS = [
 export function Navbar() {
   const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
+  const navRef = useRef<HTMLElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  const updateScrollHints = useCallback(() => {
+    const el = navRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 0)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1)
+  }, [])
+
+  useEffect(() => {
+    const el = navRef.current
+    if (!el) return
+    updateScrollHints()
+    const resizeObserver = new ResizeObserver(updateScrollHints)
+    resizeObserver.observe(el)
+    el.addEventListener('scroll', updateScrollHints, { passive: true })
+    return () => {
+      resizeObserver.disconnect()
+      el.removeEventListener('scroll', updateScrollHints)
+    }
+  }, [updateScrollHints])
 
   const handleLogout = () => {
     logout()
@@ -29,26 +53,43 @@ export function Navbar() {
       </span>
 
       {/* Nav */}
-      <nav className="flex items-center flex-1 overflow-x-auto min-w-0 h-full">
-        {NAV_ITEMS.map(({ to, label, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            className={({ isActive }) =>
-              cn(
-                'relative flex items-center h-full px-3.5 text-[13px] font-medium whitespace-nowrap transition-colors',
-                'after:absolute after:bottom-0 after:left-3 after:right-3 after:h-[2px] after:rounded-full after:transition-all',
-                isActive
-                  ? 'text-ds-tertiary after:bg-ds-tertiary'
-                  : 'text-ds-on-surface-variant hover:text-ds-on-surface after:bg-transparent'
-              )
-            }
-          >
-            {label}
-          </NavLink>
-        ))}
-      </nav>
+      <div className="relative flex-1 min-w-0 h-full">
+        <nav ref={navRef} className="nav-scroll flex items-center overflow-x-auto min-w-0 h-full">
+          {NAV_ITEMS.map(({ to, label, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) =>
+                cn(
+                  'relative flex items-center h-full px-3.5 text-[13px] font-medium whitespace-nowrap transition-colors',
+                  'after:absolute after:bottom-0 after:left-3 after:right-3 after:h-[2px] after:rounded-full after:transition-all',
+                  isActive
+                    ? 'text-ds-tertiary after:bg-ds-tertiary'
+                    : 'text-ds-on-surface-variant hover:text-ds-on-surface after:bg-transparent'
+                )
+              }
+            >
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+        {/* 스크롤 가능함을 알리는 좌우 페이드 힌트 */}
+        <div
+          aria-hidden
+          className={cn(
+            'pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white to-transparent transition-opacity',
+            canScrollLeft ? 'opacity-100' : 'opacity-0'
+          )}
+        />
+        <div
+          aria-hidden
+          className={cn(
+            'pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white to-transparent transition-opacity',
+            canScrollRight ? 'opacity-100' : 'opacity-0'
+          )}
+        />
+      </div>
 
       {/* Right */}
       <div className="flex items-center gap-0.5 shrink-0">
