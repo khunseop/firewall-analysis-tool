@@ -21,6 +21,22 @@ class LiveVerifyError(Exception):
     """실제 장비 검증 중 발생한 오류(장비 연결 실패 등)."""
 
 
+def _normalize_diff_value(field: str, value: Any) -> str:
+    """DIFF_FIELDS 비교 전 값을 문자열로 정규화한다.
+
+    계획된 정책 행(row)의 ``enable``은 DB 컬럼(Policy.enable)에서 온
+    Python bool/None인 반면, 장비에서 조회한 candidate 행의 ``enable``은
+    Palo Alto 파서가 만드는 "Y"/"N" 문자열이다. 그냥 str()로 캐스팅하면
+    str(True) == "True" != "Y"라서 실제 값이 같아도 항상 불일치로
+    오판하는 버그가 있었다 — 여기서 형식을 맞춘 뒤 비교한다.
+    """
+    if value is None:
+        return ""
+    if field == "enable" and isinstance(value, bool):
+        return "Y" if value else "N"
+    return str(value)
+
+
 def _candidate_indices(candidate_df: pd.DataFrame) -> tuple[Dict[tuple, Dict[str, Any]], Dict[str, List[Dict[str, Any]]]]:
     records = candidate_df.to_dict(orient="records") if not candidate_df.empty else []
     by_key: Dict[tuple, Dict[str, Any]] = {}
@@ -104,8 +120,8 @@ async def verify_pending_changes_against_candidate(db: AsyncSession, device: Dev
 
         mismatches = []
         for field in DIFF_FIELDS:
-            expected = str(row.get(field, "")) if row.get(field) is not None else ""
-            actual = str(candidate_row.get(field, "")) if candidate_row.get(field) is not None else ""
+            expected = _normalize_diff_value(field, row.get(field))
+            actual = _normalize_diff_value(field, candidate_row.get(field))
             if expected != actual:
                 mismatches.append({"field": field, "expected": expected, "actual": actual})
 
