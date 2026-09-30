@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { checkObjectGaps, type NewObjectSpec, type NewPolicyRow } from '@/api/policyBuilder'
+import { queryKeys } from '@/api/queryKeys'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
@@ -20,7 +21,7 @@ export function ObjectGapPanel({ deviceId, rows, newObjects, onChange }: {
   onChange: (objects: NewObjectSpec[]) => void
 }) {
   const { data: missing = [], isFetching } = useQuery({
-    queryKey: ['policy-builder-object-gaps', deviceId, rows],
+    queryKey: queryKeys.policyBuilderObjectGaps(deviceId, rows),
     queryFn: () => checkObjectGaps(deviceId!, rows),
     enabled: !!deviceId && rows.length > 0,
     staleTime: 0,
