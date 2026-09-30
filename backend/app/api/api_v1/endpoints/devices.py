@@ -22,7 +22,7 @@ from app.services import device_service
 from app.core.auth import get_current_user
 from app.models.user import User
 from app.services.audit_log import log_activity
-from app.services.export.tasks import run_export_task
+from app.services.export.tasks import run_export_task, cancel_export_task
 
 
 class DirectExportRequest(BaseModel):
@@ -553,6 +553,19 @@ async def get_export_task(task_id: int, db: AsyncSession = Depends(get_db)):
     if not task:
         raise HTTPException(status_code=404, detail="Export task not found")
     return task
+
+
+@router.post("/export-tasks/{task_id}/cancel")
+async def cancel_export_task_endpoint(task_id: int, db: AsyncSession = Depends(get_db)):
+    """진행 중인 직접 추출 작업을 취소합니다. 실행 중인 네트워크 호출을 즉시 끊지는
+    못하지만, 작업을 즉시 실패 처리하고 다음 장비로 넘어가기 전에 스스로 멈추게 합니다."""
+    task = await db.get(models.ExportTask, task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Export task not found")
+    cancelled = await cancel_export_task(task_id)
+    if not cancelled:
+        raise HTTPException(status_code=409, detail="이미 완료되었거나 실패한 작업입니다.")
+    return {"cancelled": True}
 
 
 @router.get("/export-tasks/{task_id}/download")

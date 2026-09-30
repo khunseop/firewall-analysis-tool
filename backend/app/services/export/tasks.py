@@ -27,6 +27,29 @@ logger = logging.getLogger(__name__)
 
 EXPORT_TYPE_LABEL = {"policies": "정책", "objects": "객체", "hit_dates": "사용이력"}
 EXPORT_DIR = PROJECT_ROOT / "exports"
+CANCELLED_MESSAGE = "사용자가 취소했습니다."
+
+
+async def cancel_export_task(task_id: int) -> bool:
+    """진행 중인 추출 작업을 취소한다. 이미 끝난 작업이면 아무 것도 하지 않고 False를 반환한다.
+
+    실행 중인 백그라운드 태스크를 강제 종료하지는 않는다(장비 접속 중인 네트워크 호출을
+    안전하게 즉시 끊을 방법이 없음) — 대신 DB 상태를 먼저 failure로 바꿔 UI가 즉시
+    반응하게 하고, 실행 루프(run_export_task)가 다음 장비로 넘어가기 전 이 상태를
+    확인해 스스로 멈추게 한다(협조적 취소).
+    """
+    async with SessionLocal() as db:
+        task = await db.get(models.ExportTask, task_id)
+        if not task or task.status not in ("pending", "in_progress"):
+            return False
+    await _update_export_task(task_id, status="failure", error_message=CANCELLED_MESSAGE)
+    return True
+
+
+async def _is_cancelled(task_id: int) -> bool:
+    async with SessionLocal() as db:
+        task = await db.get(models.ExportTask, task_id)
+        return bool(task and task.status == "failure" and task.error_message == CANCELLED_MESSAGE)
 
 _HEADER_FILL = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
 _HEADER_FONT = Font(bold=True, color="FFFFFF", size=11)
@@ -366,6 +389,9 @@ async def run_export_task(task_id: int) -> None:
 
     try:
         for idx, device in enumerate(devices, start=1):
+            if await _is_cancelled(task_id):
+                logger.info(f"[export] 작업 취소됨 task_id={task_id}")
+                return
             await _update_export_task(task_id, step=f"{device.name} 처리 중 ({idx}/{len(devices)})")
             if source == "db":
                 async with SessionLocal() as db:
@@ -383,6 +409,10 @@ async def run_export_task(task_id: int) -> None:
                     data = _normalize_hit_dates_df(data)
                 per_device_data[device.id] = data
             await _update_export_task(task_id, progress_current=idx)
+
+        if await _is_cancelled(task_id):
+            logger.info(f"[export] 작업 취소됨 task_id={task_id}")
+            return
 
         await _update_export_task(task_id, step="엑셀 생성 중...")
         today = date.today().strftime("%Y-%m-%d")
