@@ -62,7 +62,7 @@ export const DeviceNameCell = memo(function DeviceNameCell({ data, onShowDetail 
       <button
         ref={buttonRef}
         onClick={toggleOpen}
-        className="text-[12px] font-semibold text-ds-on-surface hover:text-ds-tertiary transition-colors truncate max-w-full text-left"
+        className="text-xs font-semibold text-ds-on-surface hover:text-ds-tertiary transition-colors truncate max-w-full text-left"
         title={data.name}
       >
         {data.name}
@@ -73,23 +73,23 @@ export const DeviceNameCell = memo(function DeviceNameCell({ data, onShowDetail 
           style={{ position: 'fixed', top: menuPos.top, left: menuPos.left }}
           className="w-40 bg-white rounded-lg shadow-lg border border-ds-outline-variant/15 py-1 z-50"
         >
-          <button onClick={showDetail} className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+          <button onClick={showDetail} className="flex items-center gap-2 w-full px-3 py-1.5 text-xs font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
             <Search className="w-3.5 h-3.5 text-ds-on-surface-variant" />
             상세보기
           </button>
-          <button onClick={goToPolicies} className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+          <button onClick={goToPolicies} className="flex items-center gap-2 w-full px-3 py-1.5 text-xs font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
             <ListFilter className="w-3.5 h-3.5 text-ds-on-surface-variant" />
             정책 조회
           </button>
-          <button onClick={goToObjects} className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+          <button onClick={goToObjects} className="flex items-center gap-2 w-full px-3 py-1.5 text-xs font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
             <Boxes className="w-3.5 h-3.5 text-ds-on-surface-variant" />
             객체 조회
           </button>
-          <button onClick={goToAnalysis} className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+          <button onClick={goToAnalysis} className="flex items-center gap-2 w-full px-3 py-1.5 text-xs font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
             <BarChart3 className="w-3.5 h-3.5 text-ds-on-surface-variant" />
             분석 실행
           </button>
-          <button onClick={goToPolicyDiff} className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
+          <button onClick={goToPolicyDiff} className="flex items-center gap-2 w-full px-3 py-1.5 text-xs font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors">
             <GitCompare className="w-3.5 h-3.5 text-ds-on-surface-variant" />
             정책 비교
           </button>
@@ -111,12 +111,12 @@ export const ResourceWarningBadge = memo(function ResourceWarningBadge({ data }:
   ]
   const hasAnyThreshold = data.policy_threshold != null || data.network_object_threshold != null
     || data.network_group_threshold != null || data.service_threshold != null || data.service_group_threshold != null
-  if (!hasAnyThreshold) return <span className="text-[12px] text-ds-on-surface-variant/40">—</span>
+  if (!hasAnyThreshold) return <span className="text-xs text-ds-on-surface-variant/40">—</span>
   if (levels.includes('danger')) {
-    return <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-50 text-ds-error border border-red-100">위험</span>
+    return <span className="inline-flex px-1.5 py-0.5 rounded text-9 font-bold bg-red-50 text-ds-error border border-red-100">위험</span>
   }
   if (levels.includes('warning')) {
-    return <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-100">경고</span>
+    return <span className="inline-flex px-1.5 py-0.5 rounded text-9 font-bold bg-amber-50 text-amber-700 border border-amber-100">경고</span>
   }
-  return <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">정상</span>
+  return <span className="inline-flex px-1.5 py-0.5 rounded text-9 font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">정상</span>
 })

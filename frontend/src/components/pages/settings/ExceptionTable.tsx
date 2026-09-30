@@ -64,7 +64,7 @@ export function ExceptionTable({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[12px] font-semibold text-ds-on-surface shrink-0">{title}</p>
+        <p className="text-xs font-semibold text-ds-on-surface shrink-0">{title}</p>
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-ds-on-surface-variant/50 pointer-events-none" />
@@ -72,14 +72,14 @@ export function ExceptionTable({
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(0) }}
               placeholder="검색"
-              className="h-7 pl-6 pr-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary w-32"
+              className="h-7 pl-6 pr-2 text-11 bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary w-32"
             />
           </div>
           {category && (
             <>
               <button
                 onClick={handleTemplateDownload}
-                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/30 rounded-lg hover:bg-ds-surface-container-high transition-colors shrink-0"
+                className="flex items-center gap-1 px-2.5 py-1 text-11 font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/30 rounded-lg hover:bg-ds-surface-container-high transition-colors shrink-0"
               >
                 <Download className="w-3 h-3" />
                 서식 다운로드
@@ -87,7 +87,7 @@ export function ExceptionTable({
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={importing}
-                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/30 rounded-lg hover:bg-ds-surface-container-high disabled:opacity-50 transition-colors shrink-0"
+                className="flex items-center gap-1 px-2.5 py-1 text-11 font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/30 rounded-lg hover:bg-ds-surface-container-high disabled:opacity-50 transition-colors shrink-0"
               >
                 <Upload className="w-3 h-3" />
                 {importing ? '업로드 중…' : '엑셀 업로드'}
@@ -103,7 +103,7 @@ export function ExceptionTable({
           )}
           <button
             onClick={onAdd}
-            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-ds-tertiary bg-ds-tertiary/8 border border-ds-tertiary/20 rounded-lg hover:bg-ds-tertiary/12 transition-colors shrink-0"
+            className="flex items-center gap-1 px-2.5 py-1 text-11 font-medium text-ds-tertiary bg-ds-tertiary/8 border border-ds-tertiary/20 rounded-lg hover:bg-ds-tertiary/12 transition-colors shrink-0"
           >
             <Plus className="w-3 h-3" />
             추가
@@ -114,10 +114,10 @@ export function ExceptionTable({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-ds-outline-variant/8 bg-ds-surface-container-low/30">
-              <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">{keyPlaceholder}</th>
-              <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">사유</th>
-              <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-28">시작일</th>
-              <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-28">만료일</th>
+              <th className="px-3 py-2 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">{keyPlaceholder}</th>
+              <th className="px-3 py-2 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">사유</th>
+              <th className="px-3 py-2 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-28">시작일</th>
+              <th className="px-3 py-2 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-28">만료일</th>
               <th className="px-3 py-2 w-10"></th>
             </tr>
           </thead>
@@ -129,7 +129,7 @@ export function ExceptionTable({
                     value={(item[keyField] as string) ?? ''}
                     onChange={(e) => onUpdate(i, { [keyField]: e.target.value })}
                     placeholder={keyPlaceholder}
-                    className="w-full h-7 px-2 text-[12px] font-mono bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                    className="w-full h-7 px-2 text-xs font-mono bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
                   />
                 </td>
                 <td className="px-3 py-1.5">
@@ -137,7 +137,7 @@ export function ExceptionTable({
                     value={item.reason ?? ''}
                     onChange={(e) => onUpdate(i, { reason: e.target.value })}
                     placeholder="예외 사유"
-                    className="w-full h-7 px-2 text-[12px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                    className="w-full h-7 px-2 text-xs bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
                   />
                 </td>
                 <td className="px-3 py-1.5">
@@ -145,7 +145,7 @@ export function ExceptionTable({
                     type="date"
                     value={item.start ?? ''}
                     onChange={(e) => onUpdate(i, { start: e.target.value || undefined })}
-                    className="w-full h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                    className="w-full h-7 px-2 text-11 bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
                   />
                 </td>
                 <td className="px-3 py-1.5">
@@ -153,7 +153,7 @@ export function ExceptionTable({
                     type="date"
                     value={item.until ?? ''}
                     onChange={(e) => onUpdate(i, { until: e.target.value || undefined })}
-                    className="w-full h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                    className="w-full h-7 px-2 text-11 bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
                   />
                 </td>
                 <td className="px-3 py-1.5 text-right">
@@ -165,7 +165,7 @@ export function ExceptionTable({
             ))}
             {paged.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-[12px] text-ds-on-surface-variant italic">
+                <td colSpan={5} className="px-4 py-6 text-center text-xs text-ds-on-surface-variant italic">
                   {search ? '검색 결과가 없습니다.' : '등록된 항목이 없습니다.'}
                 </td>
               </tr>
@@ -173,7 +173,7 @@ export function ExceptionTable({
           </tbody>
         </table>
       </div>
-      <div className="flex items-center justify-between text-[11px] text-ds-on-surface-variant">
+      <div className="flex items-center justify-between text-11 text-ds-on-surface-variant">
         <span>{filtered.length}개 항목</span>
         {totalPages > 1 && (
           <div className="flex items-center gap-1">

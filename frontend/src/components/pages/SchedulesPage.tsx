@@ -60,14 +60,14 @@ function ScheduleFormDialog({ open, onClose, initial, onSubmit, isPending }: {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">스케줄명 *</label>
+            <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">스케줄명 *</label>
             <input
               value={form.name} onChange={(e) => set('name', e.target.value)} required
               className="w-full h-9 px-3 text-sm bg-ds-surface-container-low border border-ds-outline-variant/30 rounded-md focus:outline-none focus:border-ds-tertiary"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">실행 요일 *</label>
+            <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">실행 요일 *</label>
             <div className="flex gap-1.5">
               {DAYS.map((label, idx) => (
                 <button
@@ -85,18 +85,18 @@ function ScheduleFormDialog({ open, onClose, initial, onSubmit, isPending }: {
             </div>
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">실행 시각 *</label>
+            <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">실행 시각 *</label>
             <input
               type="time" value={form.time} onChange={(e) => set('time', e.target.value)} required
               className="w-32 h-9 px-3 text-sm bg-ds-surface-container-low border border-ds-outline-variant/30 rounded-md focus:outline-none focus:border-ds-tertiary"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">장비 *</label>
+            <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">장비 *</label>
             <GroupedDeviceMultiSelect devices={devices} value={form.device_ids} onChange={(ids) => set('device_ids', ids)} />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">설명</label>
+            <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">설명</label>
             <input
               value={form.description} onChange={(e) => set('description', e.target.value)}
               className="w-full h-9 px-3 text-sm bg-ds-surface-container-low border border-ds-outline-variant/30 rounded-md focus:outline-none focus:border-ds-tertiary"
@@ -169,7 +169,7 @@ export function SchedulesPage() {
             variant="gradient"
             size="auto"
             onClick={() => { setEditTarget(null); setFormOpen(true) }}
-            className="gap-1.5 px-3 py-1.5 text-[13px] font-semibold rounded-lg"
+            className="gap-1.5 px-3 py-1.5 text-13 font-semibold rounded-lg"
           >
             <Plus className="w-3.5 h-3.5" />
             스케줄 추가
@@ -180,13 +180,13 @@ export function SchedulesPage() {
       {/* Schedule list */}
       <div className="card rounded-xl overflow-hidden">
         <div className="px-5 py-3 flex items-center gap-3">
-          <span className="text-[13px] font-semibold text-ds-on-surface">등록된 스케줄</span>
+          <span className="text-13 font-semibold text-ds-on-surface">등록된 스케줄</span>
           {schedules.length > 0 && (
-            <span className="text-[11px] text-ds-on-surface-variant/50 tabular-nums">{schedules.length}개</span>
+            <span className="text-11 text-ds-on-surface-variant/50 tabular-nums">{schedules.length}개</span>
           )}
         </div>
         {isLoading ? (
-          <div className="py-16 text-center text-[13px] text-ds-on-surface-variant">로딩 중…</div>
+          <div className="py-16 text-center text-13 text-ds-on-surface-variant">로딩 중…</div>
         ) : schedules.length === 0 ? (
           <EmptyState title="등록된 스케줄이 없습니다." />
         ) : (
@@ -195,17 +195,17 @@ export function SchedulesPage() {
               <div key={s.id} className="px-5 py-4 flex items-center justify-between hover:bg-ds-surface-container-low/20 transition-colors">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[13px] font-semibold text-ds-on-surface">{s.name}</span>
-                    <span className={`flex items-center gap-1 text-[11px] font-semibold ${s.enabled ? 'text-emerald-700' : 'text-ds-on-surface-variant'}`}>
+                    <span className="text-13 font-semibold text-ds-on-surface">{s.name}</span>
+                    <span className={`flex items-center gap-1 text-11 font-semibold ${s.enabled ? 'text-emerald-700' : 'text-ds-on-surface-variant'}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${s.enabled ? 'bg-emerald-500' : 'bg-ds-outline'}`} />
                       {s.enabled ? '활성' : '비활성'}
                     </span>
                   </div>
-                  <p className="text-[11px] text-ds-on-surface-variant">
+                  <p className="text-11 text-ds-on-surface-variant">
                     {formatDays(s.days_of_week)} · {s.time} · 장비 {s.device_ids.length}개
                   </p>
                   {s.last_run_at && (
-                    <p className="text-[11px] text-ds-on-surface-variant/60">
+                    <p className="text-11 text-ds-on-surface-variant/60">
                       마지막 실행: {formatDate(s.last_run_at)}
                       {s.last_run_status && (
                         <span className={cn('ml-1 font-semibold', s.last_run_status === 'success' ? 'text-emerald-600' : 'text-ds-error')}>
@@ -214,7 +214,7 @@ export function SchedulesPage() {
                       )}
                     </p>
                   )}
-                  {s.description && <p className="text-[11px] text-ds-on-surface-variant/60">{s.description}</p>}
+                  {s.description && <p className="text-11 text-ds-on-surface-variant/60">{s.description}</p>}
                 </div>
                 <div className="flex items-center gap-0.5">
                   <button

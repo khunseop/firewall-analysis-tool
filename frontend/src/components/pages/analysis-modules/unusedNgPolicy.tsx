@@ -17,7 +17,7 @@ export const unusedNgPolicyModule: QuickAnalysisModule = {
   description: '전체 정책에 신청정보·사용이력(라이브 수집)·AD/NG 정책 여부·경과일을 부가한 검토용 리포트를 생성합니다.',
   renderParams: (ctx: QuickModuleParamsContext) => (
     <div className="space-y-1.5">
-      <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">기준일 (경과일 계산 기준)</label>
+      <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">기준일 (경과일 계산 기준)</label>
       <input
         type="date"
         value={String(ctx.values.referenceDate ?? todayIso())}

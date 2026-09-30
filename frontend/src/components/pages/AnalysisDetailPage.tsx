@@ -76,9 +76,9 @@ function ResultSummary({
       <div className="flex items-center gap-3">
         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
         <div>
-          <p className="text-[13px] font-semibold text-ds-on-surface">{summary}</p>
+          <p className="text-13 font-semibold text-ds-on-surface">{summary}</p>
           {completedAt && (
-            <p className="text-[11px] text-ds-on-surface-variant/60 mt-0.5">분석 완료: {formatRelativeTime(completedAt)}</p>
+            <p className="text-11 text-ds-on-surface-variant/60 mt-0.5">분석 완료: {formatRelativeTime(completedAt)}</p>
           )}
         </div>
       </div>
@@ -86,7 +86,7 @@ function ResultSummary({
         {onDownloadScript && (
           <button
             onClick={onDownloadScript}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
           >
             <Download className="w-3 h-3" />
             이동 스크립트(PaloAlto)
@@ -94,7 +94,7 @@ function ResultSummary({
         )}
         <button
           onClick={onExport}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
         >
           <Download className="w-3 h-3" />
           Excel
@@ -177,11 +177,11 @@ export function AnalysisDetailPage() {
   )
 
   if (taskQuery.isLoading) {
-    return <div className="py-16 text-center text-[13px] text-ds-on-surface-variant">로딩 중…</div>
+    return <div className="py-16 text-center text-13 text-ds-on-surface-variant">로딩 중…</div>
   }
 
   if (!task) {
-    return <div className="py-16 text-center text-[13px] text-ds-on-surface-variant">분석 작업을 찾을 수 없습니다.</div>
+    return <div className="py-16 text-center text-13 text-ds-on-surface-variant">분석 작업을 찾을 수 없습니다.</div>
   }
 
   const currentStatus = STATUS_LABELS[task.task_status] ?? null
@@ -203,7 +203,7 @@ export function AnalysisDetailPage() {
             <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">
               {module?.label ?? task.task_type}
             </h1>
-            <p className="text-[12px] text-ds-on-surface-variant mt-0.5">
+            <p className="text-xs text-ds-on-surface-variant mt-0.5">
               {device ? `${device.name} (${device.ip_address})` : `장비 ID ${task.device_id}`}
             </p>
           </div>
@@ -211,7 +211,7 @@ export function AnalysisDetailPage() {
         <button
           onClick={handleDelete}
           disabled={task.task_status === 'in_progress'}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-on-surface-variant hover:text-ds-error hover:bg-ds-error/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ds-on-surface-variant hover:text-ds-error hover:bg-ds-error/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Trash2 className="w-3.5 h-3.5" />
           삭제
@@ -221,18 +221,18 @@ export function AnalysisDetailPage() {
       <div className="flex items-center gap-4">
         {currentStatus && (
           <div className="flex flex-col gap-0.5">
-            <span className={`flex items-center gap-1.5 text-[12px] font-semibold ${currentStatus.text}`}>
+            <span className={`flex items-center gap-1.5 text-xs font-semibold ${currentStatus.text}`}>
               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${currentStatus.dot}`} />
               {currentStatus.label}
             </span>
             {task.task_status === 'failure' && task.error_message && (
-              <span className="text-[11px] text-ds-error/80 font-mono max-w-lg truncate" title={task.error_message}>
+              <span className="text-11 text-ds-error/80 font-mono max-w-lg truncate" title={task.error_message}>
                 {task.error_message}
               </span>
             )}
           </div>
         )}
-        <div className="text-[11px] text-ds-on-surface-variant/70 space-y-0.5">
+        <div className="text-11 text-ds-on-surface-variant/70 space-y-0.5">
           <p>생성: {formatDate(task.created_at)}</p>
           {task.completed_at && <p>완료: {formatDate(task.completed_at)}</p>}
         </div>
@@ -240,9 +240,9 @@ export function AnalysisDetailPage() {
 
       {task.task_status === 'success' && (
         resultQuery.isLoading ? (
-          <div className="py-16 text-center text-[13px] text-ds-on-surface-variant">결과 로딩 중…</div>
+          <div className="py-16 text-center text-13 text-ds-on-surface-variant">결과 로딩 중…</div>
         ) : !resultQuery.data ? (
-          <div className="card rounded-xl py-16 text-center text-[13px] text-ds-on-surface-variant">
+          <div className="card rounded-xl py-16 text-center text-13 text-ds-on-surface-variant">
             저장된 분석 결과가 없습니다 (탐지된 항목이 없을 수 있습니다).
           </div>
         ) : (
@@ -262,8 +262,8 @@ export function AnalysisDetailPage() {
             />
             <div className="card rounded-xl">
               <div className="flex items-center justify-between px-5 py-3">
-                <span className="text-[13px] font-semibold text-ds-on-surface">분석 결과 상세</span>
-                <span className="text-[11px] text-ds-on-surface-variant/60 tabular-nums">{results.length.toLocaleString()}건</span>
+                <span className="text-13 font-semibold text-ds-on-surface">분석 결과 상세</span>
+                <span className="text-11 text-ds-on-surface-variant/60 tabular-nums">{results.length.toLocaleString()}건</span>
               </div>
               <AgGridWrapper
                 columnDefs={columnDefs}

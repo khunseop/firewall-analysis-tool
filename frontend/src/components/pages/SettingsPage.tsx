@@ -33,7 +33,7 @@ export function SettingsPage() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 text-[13px] font-semibold tracking-tight transition-colors duration-200 border-b-2 -mb-px ${
+              className={`px-4 py-2 text-13 font-semibold tracking-tight transition-colors duration-200 border-b-2 -mb-px ${
                 activeTab === tab.key
                   ? 'text-ds-tertiary border-ds-tertiary'
                   : 'text-ds-on-surface-variant border-transparent hover:text-ds-on-surface hover:border-ds-outline-variant/30'

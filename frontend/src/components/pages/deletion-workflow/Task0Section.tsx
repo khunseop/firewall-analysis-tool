@@ -89,7 +89,7 @@ export function Task0Section({
             <span className="text-sm font-medium text-ds-on-surface">
               데이터 추출 및 사용이력 병합
             </span>
-            <span className="px-1.5 py-0.5 text-[10px] rounded bg-ds-surface-container text-ds-on-surface-variant font-mono">
+            <span className="px-1.5 py-0.5 text-10 rounded bg-ds-surface-container text-ds-on-surface-variant font-mono">
               P0
             </span>
           </div>
@@ -137,15 +137,15 @@ export function Task0Section({
                 <span className="text-xs font-medium text-ds-on-surface">
                   HA Secondary 히트카운트 병합
                 </span>
-                <span className="px-1.5 py-0.5 text-[10px] rounded bg-ds-surface-container text-ds-on-surface-variant font-mono">
+                <span className="px-1.5 py-0.5 text-10 rounded bg-ds-surface-container text-ds-on-surface-variant font-mono">
                   선택
                 </span>
               </div>
-              <p className="text-[11px] text-ds-on-surface-variant mt-0.5 ml-5">
+              <p className="text-11 text-ds-on-surface-variant mt-0.5 ml-5">
                 HA Secondary 장비의 히트카운트를 병합합니다.
               </p>
               {task1done && (
-                <p className="text-[11px] text-emerald-600 mt-0.5 ml-5">✓ {task1file?.filename}</p>
+                <p className="text-11 text-emerald-600 mt-0.5 ml-5">✓ {task1file?.filename}</p>
               )}
             </div>
             <button

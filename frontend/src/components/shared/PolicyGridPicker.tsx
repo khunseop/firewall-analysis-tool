@@ -17,7 +17,7 @@ function buildColumnDefs(warnIds?: Set<number>): ColDef<Policy>[] {
         warnIds?.has(p.data.id) ? (
           <span className="flex items-center gap-1">
             {p.value}
-            <span className="text-[10px] font-semibold text-ds-error" title="이 정책은 삭제 대기중입니다.">삭제예정</span>
+            <span className="text-10 font-semibold text-ds-error" title="이 정책은 삭제 대기중입니다.">삭제예정</span>
           </span>
         ) : p.value,
     },
@@ -121,7 +121,7 @@ export function PolicyGridPicker(props: PolicyGridPickerProps) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="정책명, 출발지, 목적지 검색…"
-              className="flex-1 text-[13px] bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/50"
+              className="flex-1 text-13 bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/50"
             />
           </div>
 

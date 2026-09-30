@@ -157,22 +157,22 @@ export function TaskCard({
                 : <div className="w-4 h-4 rounded-full border-2 border-ds-outline-variant/40 shrink-0" />
             }
             <span className="text-sm font-medium text-ds-on-surface">{task.name}</span>
-            <span className="px-1.5 py-0.5 text-[10px] rounded bg-ds-surface-container text-ds-on-surface-variant font-mono shrink-0">
+            <span className="px-1.5 py-0.5 text-10 rounded bg-ds-surface-container text-ds-on-surface-variant font-mono shrink-0">
               {stepLabel}
             </span>
             {task.autoFromDb && (
-              <span className="px-1.5 py-0.5 text-[10px] rounded bg-blue-50 text-blue-600 font-medium shrink-0">
+              <span className="px-1.5 py-0.5 text-10 rounded bg-blue-50 text-blue-600 font-medium shrink-0">
                 FAT DB 자동
               </span>
             )}
             {/* 소요 시간 표시 */}
             {isBlinking && effectiveStartedAt !== null && (
-              <span className="text-[10px] text-ds-tertiary/80 font-mono shrink-0">
+              <span className="text-10 text-ds-tertiary/80 font-mono shrink-0">
                 {formatElapsed(elapsedMs)}
               </span>
             )}
             {!isBlinking && displayCompletedMs != null && (
-              <span className="text-[10px] text-emerald-600/70 font-mono shrink-0">
+              <span className="text-10 text-emerald-600/70 font-mono shrink-0">
                 완료 · {formatElapsed(displayCompletedMs)}
               </span>
             )}
@@ -180,7 +180,7 @@ export function TaskCard({
           <p className="text-xs text-ds-on-surface-variant mt-0.5 ml-6">{task.description}</p>
           {/* Task 7 GSAMS 안내 */}
           {task.id === 7 && !getExternalFile(files, 7, 'external_1') && (
-            <p className="text-[11px] text-amber-700 bg-amber-50 rounded px-2 py-1 mt-1 ml-6">
+            <p className="text-11 text-amber-700 bg-amber-50 rounded px-2 py-1 mt-1 ml-6">
               Phase 1 완료 후 외부에서 GSAMS Excel을 수령하여 업로드하면 자동실행이 계속됩니다.
             </p>
           )}
@@ -206,12 +206,12 @@ export function TaskCard({
                 onUploaded={onRefresh}
               />
               {!inp.required && inp.slot === 'external_1' && !getExternalFile(files, task.id, inp.slot) && task.id === 12 && (
-                <p className="text-[11px] text-ds-on-surface-variant/70 mt-1 ml-1">
+                <p className="text-11 text-ds-on-surface-variant/70 mt-1 ml-1">
                   ℹ️ 파일 없으면 Task 1 출력(히트카운트 병합)을 자동 사용합니다. 별도 사용이력 파일이 있으면 업로드하세요.
                 </p>
               )}
               {!inp.required && inp.slot === 'external_1' && !getExternalFile(files, task.id, inp.slot) && task.id === 5 && (
-                <p className="text-[11px] text-ds-on-surface-variant/70 mt-1 ml-1">
+                <p className="text-11 text-ds-on-surface-variant/70 mt-1 ml-1">
                   ℹ️ 파일 없으면 이 단계를 건너뛰고 정책 파싱 결과를 그대로 다음 단계에서 사용합니다.
                 </p>
               )}

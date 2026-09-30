@@ -105,7 +105,7 @@ export function NotificationsPage() {
       <div className="card rounded-xl px-5 py-4 flex flex-wrap gap-3 items-end shrink-0">
         {/* 검색어 */}
         <div className="flex-1 min-w-48 space-y-1">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant">검색</label>
+          <label className="text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant">검색</label>
           <div className="flex items-center gap-2 bg-ds-surface-container-low rounded-md px-3 py-1.5 border border-ds-outline-variant/20">
             <Search className="w-3.5 h-3.5 text-ds-outline shrink-0" />
             <input
@@ -125,7 +125,7 @@ export function NotificationsPage() {
 
         {/* 날짜 시작 */}
         <div className="space-y-1">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant">시작일</label>
+          <label className="text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant">시작일</label>
           <input
             type="date"
             value={dateFrom}
@@ -136,7 +136,7 @@ export function NotificationsPage() {
 
         {/* 날짜 종료 */}
         <div className="space-y-1">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant">종료일</label>
+          <label className="text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant">종료일</label>
           <input
             type="date"
             value={dateTo}
@@ -153,7 +153,7 @@ export function NotificationsPage() {
           >
             초기화
           </button>
-          <Button variant="gradient" size="auto" onClick={handleApply} className="h-8 px-4 text-[12px] font-semibold rounded-lg">
+          <Button variant="gradient" size="auto" onClick={handleApply} className="h-8 px-4 text-xs font-semibold rounded-lg">
             검색
           </Button>
         </div>
@@ -168,7 +168,7 @@ export function NotificationsPage() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-4 py-2.5 text-[13px] font-semibold tracking-tight transition-colors duration-200 border-b-2 -mb-px ${
+                className={`px-4 py-2.5 text-13 font-semibold tracking-tight transition-colors duration-200 border-b-2 -mb-px ${
                   activeTab === tab.key
                     ? 'text-ds-tertiary border-ds-tertiary'
                     : 'text-ds-on-surface-variant border-transparent hover:text-ds-on-surface'
@@ -180,7 +180,7 @@ export function NotificationsPage() {
           </div>
           <div className="flex items-center gap-3 pb-2">
             {hasActiveFilter && (
-              <span className="text-[10px] font-bold text-ds-tertiary bg-ds-tertiary/10 px-2 py-0.5 rounded">필터 적용됨</span>
+              <span className="text-10 font-bold text-ds-tertiary bg-ds-tertiary/10 px-2 py-0.5 rounded">필터 적용됨</span>
             )}
             {total > 0 && (
               <span className="text-xs text-ds-on-surface-variant">총 {total.toLocaleString()}건</span>
@@ -198,13 +198,13 @@ export function NotificationsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-ds-outline-variant/8 bg-ds-surface-container-low/30">
-                  <th className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">시간</th>
-                  <th className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">구분</th>
-                  <th className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">타입</th>
-                  <th className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">제목</th>
-                  <th className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">장비</th>
-                  <th className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">사용자</th>
-                  <th className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">메시지</th>
+                  <th className="px-5 py-2.5 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">시간</th>
+                  <th className="px-5 py-2.5 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">구분</th>
+                  <th className="px-5 py-2.5 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">타입</th>
+                  <th className="px-5 py-2.5 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">제목</th>
+                  <th className="px-5 py-2.5 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">장비</th>
+                  <th className="px-5 py-2.5 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">사용자</th>
+                  <th className="px-5 py-2.5 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">메시지</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ds-outline-variant/8">
@@ -219,13 +219,13 @@ export function NotificationsPage() {
                       </td>
                       <td className="px-5 py-3">
                         {n.category && (
-                          <span className="text-[10px] font-bold text-ds-on-surface-variant uppercase tracking-wide">
+                          <span className="text-10 font-bold text-ds-on-surface-variant uppercase tracking-wide">
                             {CATEGORY_LABEL[n.category] ?? n.category}
                           </span>
                         )}
                       </td>
                       <td className="px-5 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tight ${TYPE_BADGE[n.type] ?? TYPE_BADGE.info}`}>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-10 font-bold uppercase tracking-tight ${TYPE_BADGE[n.type] ?? TYPE_BADGE.info}`}>
                           <Icon className="w-2.5 h-2.5" />
                           {typeConf.label}
                         </span>

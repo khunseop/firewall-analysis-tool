@@ -10,7 +10,7 @@ function JoinToggle({ value, onToggle }: { value: 'AND' | 'OR'; onToggle: () => 
   return (
     <button
       onClick={onToggle}
-      className={`text-[10px] font-bold px-2 py-0.5 rounded border transition-colors ${
+      className={`text-10 font-bold px-2 py-0.5 rounded border transition-colors ${
         value === 'OR'
           ? 'bg-ds-tertiary/10 text-ds-tertiary border-ds-tertiary/30 hover:bg-ds-tertiary/20'
           : 'bg-ds-surface-container text-ds-on-surface-variant border-ds-outline-variant/20 hover:border-ds-tertiary/30 hover:text-ds-tertiary'
@@ -171,12 +171,12 @@ export function QueryBuilder({ tree, onTreeChange }: QueryBuilderProps) {
                           />
                         )}
                         {invalidTokens.length > 0 && (
-                          <div className="text-[10px] text-ds-error mt-0.5">
+                          <div className="text-10 text-ds-error mt-0.5">
                             IP/CIDR 형식이 올바르지 않습니다: {invalidTokens.join(', ')}
                           </div>
                         )}
                         {invalidTokens.length === 0 && showExactHint && (
-                          <div className="text-[10px] text-ds-on-surface-variant mt-0.5">
+                          <div className="text-10 text-ds-on-surface-variant mt-0.5">
                             다른 대역이 섞여 있어도 매칭됩니다.{' '}
                             <button
                               onClick={() => addExactWithinCondition(groupIdx, condIdx)}
@@ -218,7 +218,7 @@ export function QueryBuilder({ tree, onTreeChange }: QueryBuilderProps) {
                 {multiGroup && (
                   <button
                     onClick={() => removeGroup(groupIdx)}
-                    className="flex items-center gap-1 text-[11px] text-ds-on-surface-variant hover:text-ds-error transition-colors"
+                    className="flex items-center gap-1 text-11 text-ds-on-surface-variant hover:text-ds-error transition-colors"
                   >
                     <X className="w-3 h-3" />
                     그룹 삭제

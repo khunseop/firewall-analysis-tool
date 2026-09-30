@@ -97,17 +97,17 @@ function ExtractionPanel({ devices, onExtracted }: ExtractionPanelProps) {
     <div className="bg-white rounded-xl border border-ds-outline-variant/8 shadow-sm p-4 space-y-4">
       <div className="flex items-center gap-2">
         <Database className="w-4 h-4 text-ds-tertiary" />
-        <span className="text-[13px] font-semibold text-ds-on-surface">데이터 추출 (Task 0)</span>
-        <span className="text-[10px] text-ds-on-surface-variant/60 ml-1">FAT DB 동기화 데이터 기반</span>
+        <span className="text-13 font-semibold text-ds-on-surface">데이터 추출 (Task 0)</span>
+        <span className="text-10 text-ds-on-surface-variant/60 ml-1">FAT DB 동기화 데이터 기반</span>
       </div>
 
       {/* 장비 선택 */}
       <div className="space-y-1 max-w-sm">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">장비</p>
+        <p className="text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">장비</p>
         <select
           value={deviceId}
           onChange={(e) => setDeviceId(e.target.value ? Number(e.target.value) : '')}
-          className="w-full h-8 px-2 text-[12px] bg-ds-surface-container-low border border-ds-outline-variant/20 rounded-lg focus:outline-none focus:border-ds-tertiary"
+          className="w-full h-8 px-2 text-xs bg-ds-surface-container-low border border-ds-outline-variant/20 rounded-lg focus:outline-none focus:border-ds-tertiary"
         >
           <option value="">장비 선택…</option>
           {devices.map((d) => (
@@ -115,7 +115,7 @@ function ExtractionPanel({ devices, onExtracted }: ExtractionPanelProps) {
           ))}
         </select>
         {selectedDevice?.last_sync_at && (
-          <p className="text-[11px] text-ds-on-surface-variant/60">
+          <p className="text-11 text-ds-on-surface-variant/60">
             마지막 동기화: <span className="text-ds-on-surface">{new Date(selectedDevice.last_sync_at).toLocaleString('ko-KR')}</span>
           </p>
         )}
@@ -128,7 +128,7 @@ function ExtractionPanel({ devices, onExtracted }: ExtractionPanelProps) {
           size="auto"
           onClick={handleExtract}
           disabled={!deviceId || extractLoading}
-          className="gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg"
+          className="gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg"
         >
           {extractLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
           정책 데이터 추출
@@ -136,7 +136,7 @@ function ExtractionPanel({ devices, onExtracted }: ExtractionPanelProps) {
         <button
           onClick={handleRedundancyExport}
           disabled={!deviceId || redundancyLoading}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/20 rounded-lg disabled:opacity-40 hover:bg-ds-surface-container-high transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/20 rounded-lg disabled:opacity-40 hover:bg-ds-surface-container-high transition-colors"
         >
           {redundancyLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
           중복분석 내보내기
@@ -171,7 +171,7 @@ function PhaseStepper({ phase }: { phase: Phase | 'checkpoint' }) {
               isActive && 'bg-ds-tertiary/8',
             )}>
               <div className={cn(
-                'w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold mb-1',
+                'w-6 h-6 rounded-full flex items-center justify-center text-11 font-bold mb-1',
                 isDone ? 'bg-emerald-500 text-white' :
                 isActive ? 'bg-ds-tertiary text-white' :
                 'bg-ds-surface-container text-ds-on-surface-variant'
@@ -179,10 +179,10 @@ function PhaseStepper({ phase }: { phase: Phase | 'checkpoint' }) {
                 {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : i + 1}
               </div>
               <span className={cn(
-                'text-[12px] font-semibold',
+                'text-xs font-semibold',
                 isActive ? 'text-ds-tertiary' : isDone ? 'text-emerald-600' : 'text-ds-on-surface-variant'
               )}>{step.label}</span>
-              <span className="text-[10px] text-ds-on-surface-variant/60 mt-0.5">{step.sub}</span>
+              <span className="text-10 text-ds-on-surface-variant/60 mt-0.5">{step.sub}</span>
             </div>
             {i < steps.length - 1 && (
               <ChevronRight className="w-4 h-4 text-ds-outline-variant/60 mx-1 shrink-0" />
@@ -218,11 +218,11 @@ function FileDropzone({ label, file, onFile, onClear, accept = '.xlsx,.xls,.csv'
 
   return (
     <div className="flex-1 min-w-0">
-      {label && <p className="text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60 mb-1.5">{label}</p>}
+      {label && <p className="text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60 mb-1.5">{label}</p>}
       {file ? (
         <div className="flex items-center gap-2 px-3 py-2 bg-ds-tertiary/5 border border-ds-tertiary/20 rounded-lg">
           <FileText className="w-3.5 h-3.5 text-ds-tertiary shrink-0" />
-          <span className="text-[12px] text-ds-on-surface truncate flex-1">{file.name}</span>
+          <span className="text-xs text-ds-on-surface truncate flex-1">{file.name}</span>
           <button
             onClick={onClear}
             className="p-0.5 rounded hover:bg-ds-surface-container-high text-ds-on-surface-variant hover:text-ds-error transition-colors shrink-0"
@@ -238,7 +238,7 @@ function FileDropzone({ label, file, onFile, onClear, accept = '.xlsx,.xls,.csv'
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
           className={cn(
-            'w-full flex items-center justify-center gap-2 px-3 py-2.5 border border-dashed rounded-lg text-[12px] transition-colors',
+            'w-full flex items-center justify-center gap-2 px-3 py-2.5 border border-dashed rounded-lg text-xs transition-colors',
             dragging
               ? 'border-ds-tertiary bg-ds-tertiary/5 text-ds-tertiary'
               : 'border-ds-outline-variant/30 text-ds-on-surface-variant hover:border-ds-tertiary/40 hover:text-ds-tertiary hover:bg-ds-tertiary/3'
@@ -306,7 +306,7 @@ function TaskCard({ meta, state, prevResult, onFilesChange, onRun, onDownload }:
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-2.5 border-b border-ds-outline-variant/8">
         <div className={cn(
-          'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0',
+          'w-6 h-6 rounded-full flex items-center justify-center text-10 font-bold shrink-0',
           state.status === 'done' ? 'bg-emerald-100 text-emerald-700' :
           state.status === 'error' ? 'bg-red-50 text-ds-error' :
           state.status === 'running' ? 'bg-ds-tertiary/10 text-ds-tertiary' :
@@ -318,11 +318,11 @@ function TaskCard({ meta, state, prevResult, onFilesChange, onRun, onDownload }:
            meta.id}
         </div>
         <div className="flex-1 min-w-0">
-          <span className="text-[13px] font-semibold text-ds-on-surface">{meta.name}</span>
-          <span className="text-[11px] text-ds-on-surface-variant/60 ml-2">{meta.description}</span>
+          <span className="text-13 font-semibold text-ds-on-surface">{meta.name}</span>
+          <span className="text-11 text-ds-on-surface-variant/60 ml-2">{meta.description}</span>
         </div>
         {meta.input_count > 1 && (
-          <span className="text-[10px] font-bold text-ds-on-surface-variant/40 uppercase tracking-wide">파일 {meta.input_count}개</span>
+          <span className="text-10 font-bold text-ds-on-surface-variant/40 uppercase tracking-wide">파일 {meta.input_count}개</span>
         )}
       </div>
 
@@ -345,7 +345,7 @@ function TaskCard({ meta, state, prevResult, onFilesChange, onRun, onDownload }:
         {prevResult && !state.files[0] && (
           <button
             onClick={handleUsePrev}
-            className="flex items-center gap-1.5 text-[11px] text-ds-tertiary hover:text-ds-tertiary/80 transition-colors"
+            className="flex items-center gap-1.5 text-11 text-ds-tertiary hover:text-ds-tertiary/80 transition-colors"
           >
             <ArrowRight className="w-3 h-3" />
             이전 태스크 결과 사용 ({prevResult.name})
@@ -355,11 +355,11 @@ function TaskCard({ meta, state, prevResult, onFilesChange, onRun, onDownload }:
         {/* Vendor selector */}
         {needsVendor && (
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">벤더</span>
+            <span className="text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">벤더</span>
             <select
               value={vendor}
               onChange={(e) => setVendor(e.target.value)}
-              className="h-7 px-2 text-[12px] bg-ds-surface-container-low border border-ds-outline-variant/20 rounded-lg focus:outline-none focus:border-ds-tertiary"
+              className="h-7 px-2 text-xs bg-ds-surface-container-low border border-ds-outline-variant/20 rounded-lg focus:outline-none focus:border-ds-tertiary"
             >
               <option value="paloalto">PaloAlto</option>
               <option value="secui">SECUI</option>
@@ -369,7 +369,7 @@ function TaskCard({ meta, state, prevResult, onFilesChange, onRun, onDownload }:
 
         {/* Error message */}
         {state.status === 'error' && state.error && (
-          <p className="text-[11px] text-ds-error bg-red-50 px-3 py-2 rounded-lg border border-ds-error/15">
+          <p className="text-11 text-ds-error bg-red-50 px-3 py-2 rounded-lg border border-ds-error/15">
             {state.error}
           </p>
         )}
@@ -381,7 +381,7 @@ function TaskCard({ meta, state, prevResult, onFilesChange, onRun, onDownload }:
             size="auto"
             onClick={() => onRun(needsVendor ? vendor : undefined)}
             disabled={!canRun}
-            className="gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg"
+            className="gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg"
           >
             {state.status === 'running' ? (
               <><Loader2 className="w-3 h-3 animate-spin" /> 실행 중…</>
@@ -392,7 +392,7 @@ function TaskCard({ meta, state, prevResult, onFilesChange, onRun, onDownload }:
           {state.status === 'done' && (
             <button
               onClick={onDownload}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-tertiary bg-ds-tertiary/8 border border-ds-tertiary/20 rounded-lg hover:bg-ds-tertiary/12 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ds-tertiary bg-ds-tertiary/8 border border-ds-tertiary/20 rounded-lg hover:bg-ds-tertiary/12 transition-colors"
             >
               <Download className="w-3 h-3" />
               {state.resultName ?? '결과 다운로드'}
@@ -413,8 +413,8 @@ function GsamsCheckpoint({ onProceed }: { onProceed: () => void }) {
       <div className="flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
         <div>
-          <p className="text-[13px] font-semibold text-amber-800">Checkpoint — GSAMS 신청정보 수령 대기</p>
-          <p className="text-[11px] text-amber-700/80 mt-1 leading-relaxed">
+          <p className="text-13 font-semibold text-amber-800">Checkpoint — GSAMS 신청정보 수령 대기</p>
+          <p className="text-11 text-amber-700/80 mt-1 leading-relaxed">
             Phase 1이 완료되었습니다. 생성된 신청번호 파일을 타부서에 전달하고,<br />
             GSAMS 신청정보 파일을 수령한 후 Phase 2를 시작하세요.
           </p>
@@ -422,7 +422,7 @@ function GsamsCheckpoint({ onProceed }: { onProceed: () => void }) {
       </div>
       <button
         onClick={onProceed}
-        className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors shrink-0 whitespace-nowrap"
+        className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors shrink-0 whitespace-nowrap"
       >
         Phase 2 시작
         <ChevronRight className="w-3.5 h-3.5" />
@@ -438,17 +438,17 @@ function SectionHeader({ phase, done }: { phase: 1 | 2; done: boolean }) {
   return (
     <div className="flex items-center gap-3">
       <div className={cn(
-        'px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide',
+        'px-3 py-1 rounded-full text-11 font-bold uppercase tracking-wide',
         done ? 'bg-emerald-100 text-emerald-700' : 'bg-ds-tertiary/10 text-ds-tertiary'
       )}>
         Phase {phase}
       </div>
-      <p className="text-[12px] text-ds-on-surface-variant">
+      <p className="text-xs text-ds-on-surface-variant">
         {phase === 1
           ? '데이터 수집, 파싱, 신청번호 추출'
           : '신청정보 매핑, 예외처리, 중복/미사용 분류'}
       </p>
-      {done && <span className="text-[11px] font-semibold text-emerald-600">완료</span>}
+      {done && <span className="text-11 font-semibold text-emerald-600">완료</span>}
     </div>
   )
 }
@@ -547,7 +547,7 @@ export function DeletionWorkflowPage() {
         <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface font-headline">정책 삭제 워크플로우</h1>
         <div className="flex items-center gap-3 bg-red-50 border border-ds-error/15 rounded-xl px-5 py-4">
           <AlertTriangle className="w-4 h-4 text-ds-error shrink-0" />
-          <p className="text-[13px] text-ds-error">{(error as Error).message}</p>
+          <p className="text-13 text-ds-error">{(error as Error).message}</p>
         </div>
       </div>
     )
@@ -570,7 +570,7 @@ export function DeletionWorkflowPage() {
       <div className="flex items-center justify-between shrink-0">
         <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface font-headline">정책 삭제 워크플로우</h1>
         {data?.fpat_yaml && !data.fpat_yaml.includes('없음') && (
-          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">
+          <span className="text-10 font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">
             fpat.yaml 로드됨
           </span>
         )}

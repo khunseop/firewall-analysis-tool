@@ -131,7 +131,7 @@ export function DeletionWorkflowSettings() {
     <div className="space-y-6">
       {/* 예외 설정 */}
       <div className="space-y-4">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">예외 설정</p>
+        <p className="text-11 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">예외 설정</p>
         <ExceptionTable
           title="신청번호 예외"
           items={getExceptions('request_ids')}
@@ -158,7 +158,7 @@ export function DeletionWorkflowSettings() {
 
       {/* 중복정책 예외 (장비별, Task 17 자동 주입) */}
       <div className="space-y-4">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">중복정책 예외</p>
+        <p className="text-11 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">중복정책 예외</p>
         <DuplicatePolicyTable
           items={(getExceptions('duplicate_policies') as unknown as DuplicatePolicyItem[])}
           devices={devices}
@@ -186,26 +186,26 @@ export function DeletionWorkflowSettings() {
 
       {/* 분석 기준 */}
       <div className="space-y-3">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">분석 기준</p>
+        <p className="text-11 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">분석 기준</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="bg-ds-surface-container-low/50 rounded-lg border border-ds-outline-variant/8 px-4 py-3">
-            <p className="text-[12px] font-semibold text-ds-on-surface">신규정책 기준 (일)</p>
-            <p className="text-[11px] text-ds-on-surface-variant/70 mt-0.5 mb-2">이 기간 이내에 생성된 정책은 신규정책으로 분류됩니다.</p>
+            <p className="text-xs font-semibold text-ds-on-surface">신규정책 기준 (일)</p>
+            <p className="text-11 text-ds-on-surface-variant/70 mt-0.5 mb-2">이 기간 이내에 생성된 정책은 신규정책으로 분류됩니다.</p>
             <input
               type="number" min={1} max={3650}
               value={getCriteria().recent_policy_days ?? 90}
               onChange={(e) => setCriteria({ recent_policy_days: Number(e.target.value) })}
-              className="w-24 h-8 px-3 text-[12px] text-center bg-white border border-ds-outline-variant/30 rounded-lg focus:outline-none focus:border-ds-tertiary"
+              className="w-24 h-8 px-3 text-xs text-center bg-white border border-ds-outline-variant/30 rounded-lg focus:outline-none focus:border-ds-tertiary"
             />
           </div>
           <div className="bg-ds-surface-container-low/50 rounded-lg border border-ds-outline-variant/8 px-4 py-3">
-            <p className="text-[12px] font-semibold text-ds-on-surface">미사용 기준 (일)</p>
-            <p className="text-[11px] text-ds-on-surface-variant/70 mt-0.5 mb-2">이 기간 동안 hit가 없는 정책은 미사용으로 분류됩니다.</p>
+            <p className="text-xs font-semibold text-ds-on-surface">미사용 기준 (일)</p>
+            <p className="text-11 text-ds-on-surface-variant/70 mt-0.5 mb-2">이 기간 동안 hit가 없는 정책은 미사용으로 분류됩니다.</p>
             <input
               type="number" min={1} max={3650}
               value={getCriteria().unused_threshold_days ?? 90}
               onChange={(e) => setCriteria({ unused_threshold_days: Number(e.target.value) })}
-              className="w-24 h-8 px-3 text-[12px] text-center bg-white border border-ds-outline-variant/30 rounded-lg focus:outline-none focus:border-ds-tertiary"
+              className="w-24 h-8 px-3 text-xs text-center bg-white border border-ds-outline-variant/30 rounded-lg focus:outline-none focus:border-ds-tertiary"
             />
           </div>
         </div>
@@ -217,12 +217,12 @@ export function DeletionWorkflowSettings() {
           onClick={() => setAdvancedOpen((v) => !v)}
           className="w-full flex items-center justify-between px-4 py-3 bg-ds-surface-container-low/30 hover:bg-ds-surface-container-low/50 transition-colors text-left"
         >
-          <span className="text-[12px] font-semibold text-ds-on-surface-variant">고급 설정 (YAML 직접 편집)</span>
+          <span className="text-xs font-semibold text-ds-on-surface-variant">고급 설정 (YAML 직접 편집)</span>
           {advancedOpen ? <ChevronUp className="w-4 h-4 text-ds-on-surface-variant" /> : <ChevronDown className="w-4 h-4 text-ds-on-surface-variant" />}
         </button>
         {advancedOpen && (
           <div className="p-4 space-y-3 border-t border-ds-outline-variant/8">
-            <p className="text-[11px] text-ds-on-surface-variant/70">
+            <p className="text-11 text-ds-on-surface-variant/70">
               전체 설정을 YAML로 직접 편집합니다. 저장하면 fpat.yaml과 DB에 동시에 반영됩니다.
             </p>
             <textarea
@@ -230,7 +230,7 @@ export function DeletionWorkflowSettings() {
               onChange={(e) => { setYamlText(e.target.value); setYamlDirty(true) }}
               spellCheck={false}
               rows={30}
-              className="w-full px-3 py-2 text-[12px] font-mono leading-relaxed bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary resize-y"
+              className="w-full px-3 py-2 text-xs font-mono leading-relaxed bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary resize-y"
             />
             <div className="flex items-center gap-3">
               <Button
@@ -238,13 +238,13 @@ export function DeletionWorkflowSettings() {
                 size="auto"
                 onClick={handleYamlSave}
                 disabled={!yamlDirty || yamlSaving}
-                className="gap-1.5 px-4 py-2 text-[13px] font-semibold rounded-lg"
+                className="gap-1.5 px-4 py-2 text-13 font-semibold rounded-lg"
               >
                 <Save className="w-3.5 h-3.5" />
                 {yamlSaving ? '저장 중…' : 'YAML 저장'}
               </Button>
               {yamlDirty && (
-                <span className="text-[11px] text-amber-600">저장되지 않은 변경사항이 있습니다.</span>
+                <span className="text-11 text-amber-600">저장되지 않은 변경사항이 있습니다.</span>
               )}
             </div>
           </div>
@@ -258,7 +258,7 @@ export function DeletionWorkflowSettings() {
           size="auto"
           onClick={() => saveMutation.mutate()}
           disabled={!dirty || saveMutation.isPending}
-          className="gap-1.5 px-4 py-2 text-[13px] font-semibold rounded-lg"
+          className="gap-1.5 px-4 py-2 text-13 font-semibold rounded-lg"
         >
           <Save className="w-3.5 h-3.5" />
           {saveMutation.isPending ? '저장 중…' : '저장'}
@@ -266,7 +266,7 @@ export function DeletionWorkflowSettings() {
         <div className="h-5 w-px bg-ds-outline-variant/30" />
         <button
           onClick={handleExport}
-          className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/30 rounded-lg hover:bg-ds-surface-container-high transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/30 rounded-lg hover:bg-ds-surface-container-high transition-colors"
         >
           <Download className="w-3.5 h-3.5" />
           백업
@@ -274,13 +274,13 @@ export function DeletionWorkflowSettings() {
         <button
           onClick={() => importRef.current?.click()}
           disabled={importing}
-          className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/30 rounded-lg hover:bg-ds-surface-container-high disabled:opacity-50 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/30 rounded-lg hover:bg-ds-surface-container-high disabled:opacity-50 transition-colors"
         >
           <Upload className="w-3.5 h-3.5" />
           {importing ? '복구 중…' : '복구'}
         </button>
         <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
-        {dirty && <span className="text-[11px] text-amber-600 font-semibold">저장되지 않은 변경사항이 있습니다</span>}
+        {dirty && <span className="text-11 text-amber-600 font-semibold">저장되지 않은 변경사항이 있습니다</span>}
       </div>
     </div>
   )

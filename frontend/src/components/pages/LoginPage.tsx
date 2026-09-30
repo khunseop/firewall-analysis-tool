@@ -36,7 +36,7 @@ export function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-6">
           <span className="text-lg font-extrabold tracking-tight text-ds-tertiary font-headline">FAT</span>
-          <p className="text-[13px] text-ds-on-surface-variant/70 mt-1">Firewall Analysis Tool</p>
+          <p className="text-13 text-ds-on-surface-variant/70 mt-1">Firewall Analysis Tool</p>
         </div>
         <div className="card rounded-2xl px-6 py-8">
           <form onSubmit={handleSubmit} className="space-y-4">

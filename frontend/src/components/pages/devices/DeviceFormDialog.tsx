@@ -43,12 +43,12 @@ export function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }
                   { label: '그룹', key: 'group' as const },
                 ].map(({ label, key, required }) => (
                   <div key={key} className="space-y-1">
-                    <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
+                    <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
                     <Input value={form[key] as string} onChange={(e) => set(key, e.target.value)} required={required} className="bg-white border-ds-outline-variant/30 text-sm" />
                   </div>
                 ))}
                 <div className="space-y-1">
-                  <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">벤더 *</Label>
+                  <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">벤더 *</Label>
                   <ShadSelect value={form.vendor} onValueChange={(v) => set('vendor', v)}>
                     <SelectTrigger className="bg-white border-ds-outline-variant/30 text-sm">
                       <SelectValue />
@@ -59,20 +59,20 @@ export function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }
                   </ShadSelect>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">
+                  <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">
                     비밀번호 {!initial?.name && '*'}
                   </Label>
                   <Input type="password" value={form.password} onChange={(e) => set('password', e.target.value)} required={!initial?.name} className="bg-white border-ds-outline-variant/30 text-sm" />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">
+                  <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">
                     비밀번호 확인 {!initial?.name && '*'}
                   </Label>
                   <Input type="password" value={form.password_confirm} onChange={(e) => set('password_confirm', e.target.value)} required={!initial?.name} className="bg-white border-ds-outline-variant/30 text-sm" />
                 </div>
               </div>
               <div className="space-y-1">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">설명</Label>
+                <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">설명</Label>
                 <Input value={form.description} onChange={(e) => set('description', e.target.value)} className="bg-white border-ds-outline-variant/30 text-sm" />
               </div>
               <div className="flex gap-4 pt-1">
@@ -88,7 +88,7 @@ export function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }
             </TabsContent>
 
             <TabsContent value="detail" className="space-y-3">
-              <p className="text-[11px] text-ds-on-surface-variant">
+              <p className="text-11 text-ds-on-surface-variant">
                 "수동등록"을 체크하면 값을 직접 입력할 수 있습니다. 체크하지 않으면 Palo Alto 동기화 시 장비에서 조회한 값(show system info)이 자동으로 채워집니다.
               </p>
               <div className="grid grid-cols-2 gap-3">
@@ -101,8 +101,8 @@ export function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }
                 ].map(({ label, key, manualKey }) => (
                   <div key={key} className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
-                      <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-ds-on-surface-variant">
+                      <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
+                      <label className="flex items-center gap-1.5 text-11 cursor-pointer text-ds-on-surface-variant">
                         <Checkbox checked={form[manualKey]} onCheckedChange={(v) => set(manualKey, !!v)} />
                         수동등록
                       </label>
@@ -116,15 +116,15 @@ export function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }
                   </div>
                 ))}
                 <div className="space-y-1">
-                  <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">Uptime</Label>
+                  <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">Uptime</Label>
                   <Input value={form.uptime} disabled className="bg-white border-ds-outline-variant/30 text-sm disabled:bg-ds-surface-container disabled:text-ds-on-surface-variant" />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">OS명</Label>
+                  <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">OS명</Label>
                   <Input value={form.os_name} onChange={(e) => set('os_name', e.target.value)} className="bg-white border-ds-outline-variant/30 text-sm" />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">도입일</Label>
+                  <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">도입일</Label>
                   <Input type="date" value={form.install_date} onChange={(e) => set('install_date', e.target.value)} className="bg-white border-ds-outline-variant/30 text-sm" />
                 </div>
               </div>
@@ -139,7 +139,7 @@ export function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }
                   { label: 'Room', key: 'location_room' as const },
                 ].map(({ label, key }) => (
                   <div key={key} className="space-y-1">
-                    <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
+                    <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
                     <Input value={form[key] as string} onChange={(e) => set(key, e.target.value)} className="bg-white border-ds-outline-variant/30 text-sm" />
                   </div>
                 ))}
@@ -151,7 +151,7 @@ export function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }
                   { label: '좌표 Z', key: 'location_z' as const },
                 ].map(({ label, key }) => (
                   <div key={key} className="space-y-1">
-                    <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
+                    <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
                     <Input value={form[key] as string} onChange={(e) => set(key, e.target.value)} className="bg-white border-ds-outline-variant/30 text-sm" />
                   </div>
                 ))}
@@ -159,7 +159,7 @@ export function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }
             </TabsContent>
 
             <TabsContent value="resource" className="space-y-3">
-              <p className="text-[11px] text-ds-on-surface-variant">
+              <p className="text-11 text-ds-on-surface-variant">
                 "수동등록"을 체크하면 값을 직접 입력할 수 있습니다. 체크하지 않으면 Palo Alto 동기화 시 장비의 실제 한도 값이 자동으로 채워집니다.
               </p>
               <div className="grid grid-cols-2 gap-3">
@@ -172,8 +172,8 @@ export function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }
                 ].map(({ label, key, manualKey }) => (
                   <div key={key} className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
-                      <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-ds-on-surface-variant">
+                      <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">{label}</Label>
+                      <label className="flex items-center gap-1.5 text-11 cursor-pointer text-ds-on-surface-variant">
                         <Checkbox checked={form[manualKey]} onCheckedChange={(v) => set(manualKey, !!v)} />
                         수동등록
                       </label>

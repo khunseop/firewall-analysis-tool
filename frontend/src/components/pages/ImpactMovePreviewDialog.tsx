@@ -95,19 +95,19 @@ export function ImpactMovePreviewDialog({
         </DialogHeader>
 
         {isLoading ? (
-          <div className="py-10 text-center text-[13px] text-ds-on-surface-variant">불러오는 중…</div>
+          <div className="py-10 text-center text-13 text-ds-on-surface-variant">불러오는 중…</div>
         ) : feasibility === 'blocked' ? (
-          <div className="py-10 text-center text-[13px] text-ds-on-surface-variant">
+          <div className="py-10 text-center text-13 text-ds-on-surface-variant">
             이동이 불가능하여 순서가 변경되지 않습니다.
           </div>
         ) : !windows ? (
-          <div className="py-10 text-center text-[13px] text-ds-on-surface-variant">
+          <div className="py-10 text-center text-13 text-ds-on-surface-variant">
             미리보기를 계산할 수 없습니다 (정책 정보를 찾을 수 없음).
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-[11px] font-semibold text-ds-on-surface-variant mb-1.5 px-1">이동 전</p>
+              <p className="text-11 font-semibold text-ds-on-surface-variant mb-1.5 px-1">이동 전</p>
               <div className="border border-ds-outline-variant/20 rounded-lg p-1 space-y-0.5 max-h-[420px] overflow-y-auto">
                 {windows.before.map((p) => (
                   <PolicyMiniRow key={p.id} ruleName={p.rule_name} action={p.action} seq={p.seq} isMoved={p.id === simulation!.targetId} />
@@ -115,7 +115,7 @@ export function ImpactMovePreviewDialog({
               </div>
             </div>
             <div>
-              <p className="text-[11px] font-semibold text-ds-on-surface-variant mb-1.5 px-1">
+              <p className="text-11 font-semibold text-ds-on-surface-variant mb-1.5 px-1">
                 이동 후 {feasibility === 'partial' && <span className="text-amber-600">(요청 위치까지는 불가 — 최대 안전 위치 기준)</span>}
               </p>
               <div className="border border-ds-outline-variant/20 rounded-lg p-1 space-y-0.5 max-h-[420px] overflow-y-auto">

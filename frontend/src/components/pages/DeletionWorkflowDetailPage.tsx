@@ -493,7 +493,7 @@ export default function DeletionWorkflowDetailPage() {
                 {refDateInput && (
                   <button
                     onClick={() => { setRefDateInput(''); refDateMutation.mutate(null) }}
-                    className="text-[10px] text-ds-on-surface-variant/60 hover:text-ds-error underline"
+                    className="text-10 text-ds-on-surface-variant/60 hover:text-ds-error underline"
                   >
                     해제
                   </button>
@@ -566,10 +566,10 @@ export default function DeletionWorkflowDetailPage() {
               style={{ width: `${progressPct}%` }}
             />
           </div>
-          <span className="text-[11px] font-medium text-ds-on-surface-variant whitespace-nowrap">
+          <span className="text-11 font-medium text-ds-on-surface-variant whitespace-nowrap">
             {totalDone} / {totalTasks} 완료
           </span>
-          <span className="text-[11px] text-ds-on-surface-variant/60 whitespace-nowrap">
+          <span className="text-11 text-ds-on-surface-variant/60 whitespace-nowrap">
             Phase1 {phase1Done}/{PHASE1_TASKS.length}
             {phase1Done === PHASE1_TASKS.length && <span className="text-emerald-500 ml-1">✓</span>}
             &nbsp;·&nbsp;
@@ -580,13 +580,13 @@ export default function DeletionWorkflowDetailPage() {
             {phase3Done === PHASE3_TASKS.length && <span className="text-emerald-500 ml-1">✓</span>}
           </span>
           {autoRunning && autoRunCurrentTaskId !== null && (
-            <span className="text-[11px] text-ds-tertiary flex items-center gap-1 whitespace-nowrap">
+            <span className="text-11 text-ds-tertiary flex items-center gap-1 whitespace-nowrap">
               <Loader2 className="w-3 h-3 animate-spin" />
               {ALL_TASK_META.find((t) => t.id === autoRunCurrentTaskId)?.name ?? `Task ${autoRunCurrentTaskId}`} 실행 중
             </span>
           )}
           {!autoRunning && autoRunBlockedMeta && (
-            <span className="text-[11px] text-amber-700 whitespace-nowrap">
+            <span className="text-11 text-amber-700 whitespace-nowrap">
               ⏸ {autoRunBlockedMeta.name} — 파일 업로드 필요
             </span>
           )}

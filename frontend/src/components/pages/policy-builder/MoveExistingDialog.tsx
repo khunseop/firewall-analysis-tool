@@ -65,7 +65,7 @@ export function MoveExistingDialog({ deviceId, policyIds, pendingChanges, onClos
 
         <MoveTargetPicker deviceId={deviceId} value={moveTarget} onChange={setMoveTarget} deletedPolicyIds={deletedPolicyIds} />
         {referenceIsPendingDelete && (
-          <p className="flex items-center gap-1.5 text-[12px] text-ds-error">
+          <p className="flex items-center gap-1.5 text-xs text-ds-error">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> 선택한 기준 정책은 삭제 대기중입니다. 위치 계산에는 문제없지만, 참고용으로 다른 기준을 고려해보세요.
           </p>
         )}

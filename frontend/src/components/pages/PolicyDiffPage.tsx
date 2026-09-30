@@ -103,18 +103,18 @@ const SNAPSHOT_FIELDS = ['action', 'enable', 'source', 'destination', 'service',
 function ActionBadge({ action }: { action: DiffEntry['action'] }) {
   if (action === 'created')
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-emerald-50 text-emerald-700 border border-emerald-100">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-10 font-bold uppercase tracking-wide bg-emerald-50 text-emerald-700 border border-emerald-100">
         <Plus className="w-2.5 h-2.5" />추가
       </span>
     )
   if (action === 'deleted')
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-red-50 text-red-600 border border-red-100">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-10 font-bold uppercase tracking-wide bg-red-50 text-red-600 border border-red-100">
         <Minus className="w-2.5 h-2.5" />삭제
       </span>
     )
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-amber-50 text-amber-700 border border-amber-100">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-10 font-bold uppercase tracking-wide bg-amber-50 text-amber-700 border border-amber-100">
       <Edit2 className="w-2.5 h-2.5" />수정
     </span>
   )
@@ -123,7 +123,7 @@ function ActionBadge({ action }: { action: DiffEntry['action'] }) {
 function FieldDiffTable({ changes }: { changes: FieldChange[] }) {
   return (
     <div className="rounded-lg overflow-hidden border border-ds-outline-variant/20 bg-white/60">
-      <div className="grid grid-cols-[140px_1fr_1fr] text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60 px-3 py-2 bg-ds-surface-container border-b border-ds-outline-variant/20">
+      <div className="grid grid-cols-[140px_1fr_1fr] text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60 px-3 py-2 bg-ds-surface-container border-b border-ds-outline-variant/20">
         <span>필드</span>
         <span className="flex items-center gap-1"><Minus className="w-2.5 h-2.5 text-red-400" />이전 값</span>
         <span className="flex items-center gap-1"><Plus className="w-2.5 h-2.5 text-emerald-500" />이후 값</span>
@@ -132,12 +132,12 @@ function FieldDiffTable({ changes }: { changes: FieldChange[] }) {
         const tokenDiff = LIST_FIELDS.has(fc.field) ? diffMultiValueField(fc.before ?? '', fc.after ?? '') : null
         return (
           <div key={i} className="px-3 py-2 border-b border-ds-outline-variant/10 last:border-0 space-y-1.5">
-            <div className="grid grid-cols-[140px_1fr_1fr] gap-2 text-[12px]">
+            <div className="grid grid-cols-[140px_1fr_1fr] gap-2 text-xs">
               <span className="font-medium text-ds-on-surface-variant">{FIELD_LABELS[fc.field] ?? fc.field}</span>
-              <div className="bg-red-50 rounded px-2 py-1 font-mono text-[11px] text-red-700 break-all">
+              <div className="bg-red-50 rounded px-2 py-1 font-mono text-11 text-red-700 break-all">
                 {fc.before || <span className="italic text-ds-on-surface-variant/30">없음</span>}
               </div>
-              <div className="bg-emerald-50 rounded px-2 py-1 font-mono text-[11px] text-emerald-700 break-all">
+              <div className="bg-emerald-50 rounded px-2 py-1 font-mono text-11 text-emerald-700 break-all">
                 {fc.after || <span className="italic text-ds-on-surface-variant/30">없음</span>}
               </div>
             </div>
@@ -145,10 +145,10 @@ function FieldDiffTable({ changes }: { changes: FieldChange[] }) {
             {tokenDiff && !isFieldDiffEmpty(tokenDiff) && (
               <div className="pl-[148px] flex flex-wrap gap-1">
                 {tokenDiff.added.map((t) => (
-                  <span key={`+${t}`} className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-100 text-emerald-700">+{t}</span>
+                  <span key={`+${t}`} className="px-1.5 py-0.5 rounded text-10 font-mono bg-emerald-100 text-emerald-700">+{t}</span>
                 ))}
                 {tokenDiff.removed.map((t) => (
-                  <span key={`-${t}`} className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-red-100 text-red-700">-{t}</span>
+                  <span key={`-${t}`} className="px-1.5 py-0.5 rounded text-10 font-mono bg-red-100 text-red-700">-{t}</span>
                 ))}
               </div>
             )}
@@ -175,7 +175,7 @@ function PolicySnapshotDetail({
 
   return (
     <div className={`rounded-lg ${bg} border ${border} p-3`}>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[12px]">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
         {SNAPSHOT_FIELDS.map((f) => {
           const v = data[f]
           if (v == null || v === '') return null
@@ -217,20 +217,20 @@ function DiffRow({ entry }: { entry: DiffEntry }) {
           <ActionBadge action={entry.action} />
         </td>
         <td className="px-3 py-3">
-          <span className="font-mono text-[13px] font-medium text-ds-on-surface">{entry.rule_name}</span>
+          <span className="font-mono text-13 font-medium text-ds-on-surface">{entry.rule_name}</span>
           {entry.vsys && (
-            <span className="ml-2 text-[11px] text-ds-on-surface-variant/60">({entry.vsys})</span>
+            <span className="ml-2 text-11 text-ds-on-surface-variant/60">({entry.vsys})</span>
           )}
         </td>
         <td className="px-3 py-3 text-center">
           {entry.action === 'updated' && entry.field_changes.length > 0
-            ? <span className="text-[12px] text-ds-on-surface-variant">{entry.field_changes.length}개 필드</span>
-            : <span className="text-[12px] text-ds-on-surface-variant/30">—</span>}
+            ? <span className="text-xs text-ds-on-surface-variant">{entry.field_changes.length}개 필드</span>
+            : <span className="text-xs text-ds-on-surface-variant/30">—</span>}
         </td>
         <td className="px-3 py-3 text-center">
           {entry.change_count > 1
-            ? <span className="text-[12px] text-ds-on-surface-variant">{entry.change_count}회</span>
-            : <span className="text-[12px] text-ds-on-surface-variant/30">—</span>}
+            ? <span className="text-xs text-ds-on-surface-variant">{entry.change_count}회</span>
+            : <span className="text-xs text-ds-on-surface-variant/30">—</span>}
         </td>
       </tr>
       {expanded && (
@@ -293,7 +293,7 @@ function SyncPointSelector({
 
   return (
     <div className="space-y-1.5 flex-1 min-w-[220px]" ref={containerRef}>
-      <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">{label}</label>
+      <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">{label}</label>
       <div className="relative">
         <button
           onClick={() => setOpen((v) => !v)}
@@ -322,7 +322,7 @@ function SyncPointSelector({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="시점 검색…"
-                  className="flex-1 text-[11px] bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/50 min-w-0"
+                  className="flex-1 text-11 bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/50 min-w-0"
                   autoFocus
                 />
                 {search && (
@@ -334,7 +334,7 @@ function SyncPointSelector({
             </div>
             <div className="max-h-[240px] overflow-y-auto px-2 pb-2">
               {filtered.length === 0 ? (
-                <p className="text-[10px] text-ds-on-surface-variant text-center py-3 italic">검색 결과 없음</p>
+                <p className="text-10 text-ds-on-surface-variant text-center py-3 italic">검색 결과 없음</p>
               ) : (
                 filtered.map((p) => (
                   <button
@@ -342,7 +342,7 @@ function SyncPointSelector({
                     disabled={p.id === disabledId}
                     onClick={() => handleSelect(p.id)}
                     className={cn(
-                      'w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors text-[11px]',
+                      'w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors text-11',
                       p.id === disabledId
                         ? 'opacity-30 cursor-not-allowed'
                         : p.id === value
@@ -359,7 +359,7 @@ function SyncPointSelector({
                     {p.isLive && <Zap className="w-3 h-3 shrink-0 text-amber-500" />}
                     <span className={cn('truncate leading-tight', p.isLive ? 'font-semibold' : 'font-mono')}>{pointLabel(p)}</span>
                     {!p.isLive && p.total_policies != null && (
-                      <span className="ml-auto text-[10px] text-ds-on-surface-variant/50 shrink-0">{p.total_policies.toLocaleString()}개</span>
+                      <span className="ml-auto text-10 text-ds-on-surface-variant/50 shrink-0">{p.total_policies.toLocaleString()}개</span>
                     )}
                   </button>
                 ))
@@ -622,21 +622,21 @@ export function PolicyDiffPage() {
       {/* 카드: 비교 설정 */}
       <div className="card rounded-xl">
         <div className="px-5 py-3 border-b border-ds-outline-variant/10">
-          <span className="text-[13px] font-semibold text-ds-on-surface">비교 설정</span>
+          <span className="text-13 font-semibold text-ds-on-surface">비교 설정</span>
         </div>
         <div className="px-5 py-5 space-y-5">
           {/* 장비 선택 */}
           <div className="space-y-1.5 max-w-sm">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">장비</label>
+            <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">장비</label>
             <DeviceSelectorSingle value={selectedDeviceId} onChange={handleDeviceChange} />
           </div>
 
           {/* 동기화 시점 선택 */}
           {selectedDeviceId != null && (
             historyLoading ? (
-              <p className="text-[13px] text-ds-on-surface-variant/60">동기화 이력 로딩 중...</p>
+              <p className="text-13 text-ds-on-surface-variant/60">동기화 이력 로딩 중...</p>
             ) : syncHistory.length === 0 && !isPaloAlto ? (
-              <div className="flex items-center gap-2 text-[13px] text-ds-on-surface-variant/70">
+              <div className="flex items-center gap-2 text-13 text-ds-on-surface-variant/70">
                 <AlertCircle className="w-4 h-4 shrink-0 text-amber-500" />
                 이 장비에 대한 동기화 이력이 없습니다. 동기화를 먼저 실행해주세요.
               </div>
@@ -678,14 +678,14 @@ export function PolicyDiffPage() {
             {diffLoading ? '비교 중…' : '비교하기'}
           </Button>
           {fromSyncId === toSyncId && fromSyncId != null && (
-            <span className="text-[12px] text-ds-error/80">동일한 시점은 비교할 수 없습니다.</span>
+            <span className="text-xs text-ds-error/80">동일한 시점은 비교할 수 없습니다.</span>
           )}
         </div>
       )}
 
       {/* 에러 */}
       {diffError && (
-        <div className="card rounded-xl px-5 py-3 flex items-center gap-2 text-[13px] text-ds-error">
+        <div className="card rounded-xl px-5 py-3 flex items-center gap-2 text-13 text-ds-error">
           <AlertCircle className="w-4 h-4 shrink-0" />
           {(diffError as Error).message}
         </div>
@@ -695,7 +695,7 @@ export function PolicyDiffPage() {
       {diffResult && (
         <>
           {/* 기간 정보 */}
-          <div className="card rounded-xl px-5 py-3 flex flex-wrap items-center gap-2 text-[13px]">
+          <div className="card rounded-xl px-5 py-3 flex flex-wrap items-center gap-2 text-13">
             {diffResult.from_sync.id === LIVE_RUNNING_ID && <Zap className="w-3.5 h-3.5 shrink-0 text-amber-500" />}
             <span className="w-1.5 h-1.5 rounded-full bg-ds-tertiary shrink-0" />
             <span className="font-semibold text-ds-on-surface">
@@ -706,7 +706,7 @@ export function PolicyDiffPage() {
               {diffResult.to_sync.id === LIVE_CANDIDATE_ID ? 'Candidate (실시간)' : fmt(diffResult.to_sync.sync_at)}
             </span>
             {diffResult.from_sync.total_policies != null && diffResult.to_sync.total_policies != null && (
-              <span className="ml-2 text-[12px] text-ds-on-surface-variant/60">
+              <span className="ml-2 text-xs text-ds-on-surface-variant/60">
                 정책 수: {diffResult.from_sync.total_policies.toLocaleString()} → {diffResult.to_sync.total_policies.toLocaleString()}
                 {' '}
                 <span className={diffResult.to_sync.total_policies - diffResult.from_sync.total_policies >= 0 ? 'text-emerald-600' : 'text-red-500'}>
@@ -727,7 +727,7 @@ export function PolicyDiffPage() {
             ].map(({ label, value, valueClass }) => (
               <div key={label} className="card rounded-xl px-5 py-4">
                 <div className={`text-[28px] font-bold leading-none ${valueClass}`}>{value.toLocaleString()}</div>
-                <div className="text-[12px] text-ds-on-surface-variant/70 mt-1">{label}</div>
+                <div className="text-xs text-ds-on-surface-variant/70 mt-1">{label}</div>
               </div>
             ))}
           </div>
@@ -751,7 +751,7 @@ export function PolicyDiffPage() {
                   <button
                     key={key}
                     onClick={() => setFilterTab(key)}
-                    className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-colors ${
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
                       filterTab === key
                         ? 'bg-ds-primary text-white'
                         : 'bg-ds-surface-container text-ds-on-surface-variant hover:bg-ds-surface-container-high'
@@ -765,7 +765,7 @@ export function PolicyDiffPage() {
                   onClick={handleExport}
                   disabled={searchFilteredChanges.length === 0}
                   title="요약/추가/삭제/변경 시트로 나눠 저장합니다 (상태 필터는 적용되지 않고, 검색어만 반영됩니다)"
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold bg-ds-surface-container text-ds-on-surface-variant hover:bg-ds-surface-container-high transition-colors disabled:opacity-40"
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-ds-surface-container text-ds-on-surface-variant hover:bg-ds-surface-container-high transition-colors disabled:opacity-40"
                 >
                   <FileDown className="w-3.5 h-3.5" /> 엑셀로 저장
                 </button>
@@ -774,7 +774,7 @@ export function PolicyDiffPage() {
                   placeholder="정책명 검색…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="ml-auto h-8 w-44 px-3 text-[12px] bg-ds-surface-container-low border border-ds-outline-variant/30 rounded-md focus:outline-none focus:border-ds-tertiary"
+                  className="ml-auto h-8 w-44 px-3 text-xs bg-ds-surface-container-low border border-ds-outline-variant/30 rounded-md focus:outline-none focus:border-ds-tertiary"
                 />
               </div>
 
@@ -784,16 +784,16 @@ export function PolicyDiffPage() {
                   <thead>
                     <tr className="border-b border-ds-outline-variant/10">
                       <th className="w-8 pl-4" />
-                      <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-20">상태</th>
-                      <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">정책명</th>
-                      <th className="px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-28">변경 필드</th>
-                      <th className="px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-24">변경 횟수</th>
+                      <th className="px-3 py-2.5 text-left text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-20">상태</th>
+                      <th className="px-3 py-2.5 text-left text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">정책명</th>
+                      <th className="px-3 py-2.5 text-center text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-28">변경 필드</th>
+                      <th className="px-3 py-2.5 text-center text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-24">변경 횟수</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredChanges.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-5 py-10 text-center text-[13px] text-ds-on-surface-variant/60">
+                        <td colSpan={5} className="px-5 py-10 text-center text-13 text-ds-on-surface-variant/60">
                           해당 조건에 맞는 변경사항이 없습니다.
                         </td>
                       </tr>

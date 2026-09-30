@@ -72,7 +72,7 @@ export function DeviceSearchSelect({
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="w-full h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary flex items-center justify-between gap-1 text-left"
+        className="w-full h-7 px-2 text-11 bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary flex items-center justify-between gap-1 text-left"
       >
         <span className={`truncate ${selected ? 'text-ds-on-surface' : 'text-ds-on-surface-variant/50'}`}>
           {selected ? `${selected.name} (${selected.ip_address})` : placeholder}
@@ -89,7 +89,7 @@ export function DeviceSearchSelect({
                 value={q}
                 onChange={e => setQ(e.target.value)}
                 placeholder="이름, IP 검색"
-                className="w-full h-6 pl-6 pr-2 text-[11px] border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary bg-ds-surface-container-low/30"
+                className="w-full h-6 pl-6 pr-2 text-11 border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary bg-ds-surface-container-low/30"
               />
             </div>
           </div>
@@ -99,20 +99,20 @@ export function DeviceSearchSelect({
                 <button
                   type="button"
                   onClick={() => { onChange(''); setOpen(false) }}
-                  className="w-full px-3 py-1.5 text-left text-[11px] text-ds-on-surface-variant/60 hover:bg-ds-surface-container-low/50 transition-colors"
+                  className="w-full px-3 py-1.5 text-left text-11 text-ds-on-surface-variant/60 hover:bg-ds-surface-container-low/50 transition-colors"
                 >
                   {placeholder}
                 </button>
               </li>
             )}
             {filtered.length === 0 ? (
-              <li className="px-3 py-2 text-[11px] text-ds-on-surface-variant/50">검색 결과 없음</li>
+              <li className="px-3 py-2 text-11 text-ds-on-surface-variant/50">검색 결과 없음</li>
             ) : filtered.map(d => (
               <li key={d.id}>
                 <button
                   type="button"
                   onClick={() => { onChange(d.id); setOpen(false) }}
-                  className={`w-full px-3 py-1.5 text-left text-[11px] hover:bg-ds-surface-container-low/50 transition-colors ${value === d.id ? 'text-ds-tertiary font-medium bg-ds-tertiary/5' : 'text-ds-on-surface'}`}
+                  className={`w-full px-3 py-1.5 text-left text-11 hover:bg-ds-surface-container-low/50 transition-colors ${value === d.id ? 'text-ds-tertiary font-medium bg-ds-tertiary/5' : 'text-ds-on-surface'}`}
                 >
                   <span className="font-medium">{d.name}</span>
                   <span className="text-ds-on-surface-variant/60 ml-1">({d.ip_address})</span>
@@ -185,20 +185,20 @@ export function DuplicatePolicyTable({
       {/* 행1: 제목 + 액션 버튼 */}
       <div className="flex items-center justify-between gap-2">
         <div className="shrink-0">
-          <p className="text-[12px] font-semibold text-ds-on-surface">중복정책 예외</p>
-          <p className="text-[11px] text-ds-on-surface-variant/70 mt-0.5">Task 17 실행 시 해당 장비의 유효한 예외가 자동 적용됩니다.</p>
+          <p className="text-xs font-semibold text-ds-on-surface">중복정책 예외</p>
+          <p className="text-11 text-ds-on-surface-variant/70 mt-0.5">Task 17 실행 시 해당 장비의 유효한 예외가 자동 적용됩니다.</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setYamlOpen(v => !v)}
-            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/30 rounded-lg hover:bg-ds-surface-container-high transition-colors shrink-0"
+            className="flex items-center gap-1 px-2.5 py-1 text-11 font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/30 rounded-lg hover:bg-ds-surface-container-high transition-colors shrink-0"
           >
             YAML 일괄 추가
             {yamlOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           </button>
           <button
             onClick={onAdd}
-            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-ds-tertiary bg-ds-tertiary/8 border border-ds-tertiary/20 rounded-lg hover:bg-ds-tertiary/12 transition-colors shrink-0"
+            className="flex items-center gap-1 px-2.5 py-1 text-11 font-medium text-ds-tertiary bg-ds-tertiary/8 border border-ds-tertiary/20 rounded-lg hover:bg-ds-tertiary/12 transition-colors shrink-0"
           >
             <Plus className="w-3 h-3" />
             추가
@@ -220,10 +220,10 @@ export function DuplicatePolicyTable({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="정책명, 사유 검색"
-            className="h-7 w-full pl-6 pr-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+            className="h-7 w-full pl-6 pr-2 text-11 bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
           />
         </div>
-        <label className="flex items-center gap-1.5 text-[11px] text-ds-on-surface-variant cursor-pointer select-none shrink-0">
+        <label className="flex items-center gap-1.5 text-11 text-ds-on-surface-variant cursor-pointer select-none shrink-0">
           <input
             type="checkbox"
             checked={hideExpired}
@@ -236,14 +236,14 @@ export function DuplicatePolicyTable({
 
       {yamlOpen && (
         <div className="border border-ds-tertiary/20 bg-ds-tertiary/4 rounded-lg p-3 space-y-2">
-          <p className="text-[11px] text-ds-on-surface-variant/70">아래 형식으로 입력 후 추가하면 기존 목록에 병합됩니다.</p>
+          <p className="text-11 text-ds-on-surface-variant/70">아래 형식으로 입력 후 추가하면 기존 목록에 병합됩니다.</p>
           <textarea
             value={yamlInput}
             onChange={(e) => setYamlInput(e.target.value)}
             placeholder={YAML_EXAMPLE}
             spellCheck={false}
             rows={8}
-            className="w-full px-3 py-2 text-[12px] font-mono leading-relaxed bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary resize-y"
+            className="w-full px-3 py-2 text-xs font-mono leading-relaxed bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary resize-y"
           />
           <div className="flex items-center gap-2">
             <Button
@@ -251,13 +251,13 @@ export function DuplicatePolicyTable({
               size="auto"
               onClick={handleYamlAdd}
               disabled={!yamlInput.trim() || parsing}
-              className="gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg"
+              className="gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg"
             >
               {parsing ? '파싱 중…' : '추가'}
             </Button>
             <button
               onClick={() => { setYamlOpen(false); setYamlInput('') }}
-              className="px-3 py-1.5 text-[12px] text-ds-on-surface-variant hover:text-ds-on-surface transition-colors"
+              className="px-3 py-1.5 text-xs text-ds-on-surface-variant hover:text-ds-on-surface transition-colors"
             >
               취소
             </button>
@@ -269,11 +269,11 @@ export function DuplicatePolicyTable({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-ds-outline-variant/8 bg-ds-surface-container-low/30">
-              <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-40">장비</th>
-              <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">정책명</th>
-              <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">사유</th>
-              <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-28">등록일</th>
-              <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-28">만료일</th>
+              <th className="px-3 py-2 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-40">장비</th>
+              <th className="px-3 py-2 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">정책명</th>
+              <th className="px-3 py-2 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">사유</th>
+              <th className="px-3 py-2 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-28">등록일</th>
+              <th className="px-3 py-2 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-28">만료일</th>
               <th className="px-3 py-2 w-10"></th>
             </tr>
           </thead>
@@ -294,7 +294,7 @@ export function DuplicatePolicyTable({
                       value={item.name ?? ''}
                       onChange={(e) => onUpdate(i, { name: e.target.value })}
                       placeholder="정책명"
-                      className="w-full h-7 px-2 text-[12px] font-mono bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                      className="w-full h-7 px-2 text-xs font-mono bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
                     />
                   </td>
                   <td className="px-3 py-1.5">
@@ -302,7 +302,7 @@ export function DuplicatePolicyTable({
                       value={item.reason ?? ''}
                       onChange={(e) => onUpdate(i, { reason: e.target.value })}
                       placeholder="예외 사유"
-                      className="w-full h-7 px-2 text-[12px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                      className="w-full h-7 px-2 text-xs bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
                     />
                   </td>
                   <td className="px-3 py-1.5">
@@ -310,7 +310,7 @@ export function DuplicatePolicyTable({
                       type="date"
                       value={item.registered_at ?? ''}
                       onChange={(e) => onUpdate(i, { registered_at: e.target.value })}
-                      className="w-full h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                      className="w-full h-7 px-2 text-11 bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
                     />
                   </td>
                   <td className="px-3 py-1.5">
@@ -319,9 +319,9 @@ export function DuplicatePolicyTable({
                         type="date"
                         value={item.expires_at ?? ''}
                         onChange={(e) => onUpdate(i, { expires_at: e.target.value })}
-                        className="w-full h-7 px-2 text-[11px] bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                        className="w-full h-7 px-2 text-11 bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
                       />
-                      {expired && <span className="text-[10px] text-ds-error shrink-0">만료</span>}
+                      {expired && <span className="text-10 text-ds-error shrink-0">만료</span>}
                     </div>
                   </td>
                   <td className="px-3 py-1.5 text-right">
@@ -334,7 +334,7 @@ export function DuplicatePolicyTable({
             })}
             {paged.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-[12px] text-ds-on-surface-variant italic">
+                <td colSpan={6} className="px-4 py-6 text-center text-xs text-ds-on-surface-variant italic">
                   {search ? '검색 결과가 없습니다.' : '등록된 항목이 없습니다.'}
                 </td>
               </tr>
@@ -342,7 +342,7 @@ export function DuplicatePolicyTable({
           </tbody>
         </table>
       </div>
-      <div className="flex items-center justify-between text-[11px] text-ds-on-surface-variant">
+      <div className="flex items-center justify-between text-11 text-ds-on-surface-variant">
         <span>
           {filtered.length}개 항목
           {(filterDeviceId !== '' || hideExpired || search) && (

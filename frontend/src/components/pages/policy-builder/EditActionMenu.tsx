@@ -39,7 +39,7 @@ export function EditActionMenu({
             <button
               type="button"
               onClick={() => setCreateMenuOpen((v) => !v)}
-              className="flex items-center gap-2 w-40 px-3 py-2 text-[12px] font-semibold text-ds-tertiary bg-ds-tertiary/10 rounded-lg hover:bg-ds-tertiary/15 transition-colors"
+              className="flex items-center gap-2 w-40 px-3 py-2 text-xs font-semibold text-ds-tertiary bg-ds-tertiary/10 rounded-lg hover:bg-ds-tertiary/15 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> 정책 생성
             </button>
@@ -48,14 +48,14 @@ export function EditActionMenu({
                 <button
                   type="button"
                   onClick={() => { setCreateMenuOpen(false); setOpen(false); onCreateForm() }}
-                  className="flex items-center gap-2 w-full px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface rounded-lg hover:bg-ds-surface-container-low transition-colors"
+                  className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs font-medium text-ds-on-surface rounded-lg hover:bg-ds-surface-container-low transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" /> 폼으로 추가
                 </button>
                 <button
                   type="button"
                   onClick={() => { setCreateMenuOpen(false); setOpen(false); onCreatePaste() }}
-                  className="flex items-center gap-2 w-full px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface rounded-lg hover:bg-ds-surface-container-low transition-colors"
+                  className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs font-medium text-ds-on-surface rounded-lg hover:bg-ds-surface-container-low transition-colors"
                 >
                   <ClipboardPaste className="w-3.5 h-3.5" /> 붙여넣기로 일괄 추가
                 </button>
@@ -66,7 +66,7 @@ export function EditActionMenu({
           <button
             type="button"
             onClick={() => { setOpen(false); onModify() }}
-            className="flex items-center gap-2 w-40 px-3 py-2 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg hover:text-ds-on-surface transition-colors"
+            className="flex items-center gap-2 w-40 px-3 py-2 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg hover:text-ds-on-surface transition-colors"
           >
             <Pencil className="w-3.5 h-3.5" /> 정책 수정
           </button>
@@ -75,7 +75,7 @@ export function EditActionMenu({
             type="button"
             onClick={() => { setOpen(false); onMove() }}
             disabled={selectedCount === 0}
-            className="flex items-center gap-2 w-40 px-3 py-2 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg hover:text-ds-on-surface transition-colors disabled:opacity-40"
+            className="flex items-center gap-2 w-40 px-3 py-2 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg hover:text-ds-on-surface transition-colors disabled:opacity-40"
           >
             <ArrowLeftRight className="w-3.5 h-3.5" /> 선택 이동 {selectedCount > 0 && `(${selectedCount})`}
           </button>
@@ -84,7 +84,7 @@ export function EditActionMenu({
             type="button"
             onClick={() => { setOpen(false); onDelete() }}
             disabled={selectedCount === 0}
-            className="flex items-center gap-2 w-40 px-3 py-2 text-[12px] font-medium text-ds-error bg-ds-error/5 rounded-lg hover:bg-ds-error/10 transition-colors disabled:opacity-40"
+            className="flex items-center gap-2 w-40 px-3 py-2 text-xs font-medium text-ds-error bg-ds-error/5 rounded-lg hover:bg-ds-error/10 transition-colors disabled:opacity-40"
           >
             <Trash2 className="w-3.5 h-3.5" /> 선택 삭제 {selectedCount > 0 && `(${selectedCount})`}
           </button>
@@ -94,7 +94,7 @@ export function EditActionMenu({
       <button
         type="button"
         onClick={() => { setOpen((v) => !v); setCreateMenuOpen(false) }}
-        className={`flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg border transition-colors ${
+        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
           open ? 'text-ds-tertiary bg-ds-tertiary/10 border-ds-tertiary/20' : 'text-ds-on-surface-variant bg-ds-surface-container-low border-ds-outline-variant/10 hover:text-ds-on-surface'
         }`}
       >

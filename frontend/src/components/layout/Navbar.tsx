@@ -62,7 +62,7 @@ export function Navbar() {
               end={end}
               className={({ isActive }) =>
                 cn(
-                  'relative flex items-center h-full px-3.5 text-[13px] font-medium whitespace-nowrap transition-colors',
+                  'relative flex items-center h-full px-3.5 text-13 font-medium whitespace-nowrap transition-colors',
                   'after:absolute after:bottom-0 after:left-3 after:right-3 after:h-[2px] after:rounded-full after:transition-all',
                   isActive
                     ? 'text-ds-tertiary after:bg-ds-tertiary'
@@ -99,7 +99,7 @@ export function Navbar() {
           to="/notifications"
           className={({ isActive }) =>
             cn(
-              'px-3 py-1.5 text-[13px] font-medium rounded-lg transition-colors',
+              'px-3 py-1.5 text-13 font-medium rounded-lg transition-colors',
               isActive ? 'text-ds-tertiary bg-ds-tertiary/8' : 'text-ds-on-surface-variant hover:bg-black/5 hover:text-ds-on-surface'
             )
           }
@@ -111,7 +111,7 @@ export function Navbar() {
           to="/settings"
           className={({ isActive }) =>
             cn(
-              'px-3 py-1.5 text-[13px] font-medium rounded-lg transition-colors',
+              'px-3 py-1.5 text-13 font-medium rounded-lg transition-colors',
               isActive ? 'text-ds-tertiary bg-ds-tertiary/8' : 'text-ds-on-surface-variant hover:bg-black/5 hover:text-ds-on-surface'
             )
           }
@@ -123,7 +123,7 @@ export function Navbar() {
 
         <button
           onClick={handleLogout}
-          className="px-3 py-1.5 text-[13px] font-medium rounded-lg transition-colors text-ds-on-surface-variant/60 hover:bg-ds-error/8 hover:text-ds-error"
+          className="px-3 py-1.5 text-13 font-medium rounded-lg transition-colors text-ds-on-surface-variant/60 hover:bg-ds-error/8 hover:text-ds-error"
         >
           Logout
         </button>

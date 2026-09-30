@@ -22,9 +22,9 @@ export function BulkGroupDialog({ open, onClose, count, existingGroups, initial,
         <DialogHeader>
           <DialogTitle className="font-headline text-ds-on-surface">그룹 일괄 설정</DialogTitle>
         </DialogHeader>
-        <p className="text-[12px] text-ds-on-surface-variant">선택된 {count}개 장비에 동일하게 적용됩니다.</p>
+        <p className="text-xs text-ds-on-surface-variant">선택된 {count}개 장비에 동일하게 적용됩니다.</p>
         <div className="space-y-1 py-2">
-          <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">그룹명</Label>
+          <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">그룹명</Label>
           <Input
             value={group}
             onChange={(e) => setGroup(e.target.value)}
@@ -44,7 +44,7 @@ export function BulkGroupDialog({ open, onClose, count, existingGroups, initial,
                   key={g}
                   type="button"
                   onClick={() => setGroup(g)}
-                  className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-ds-tertiary/10 text-ds-tertiary hover:bg-ds-tertiary/20 transition-colors"
+                  className="inline-flex px-2 py-0.5 rounded text-10 font-bold bg-ds-tertiary/10 text-ds-tertiary hover:bg-ds-tertiary/20 transition-colors"
                 >
                   {g}
                 </button>

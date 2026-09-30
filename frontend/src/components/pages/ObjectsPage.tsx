@@ -59,7 +59,7 @@ function SearchPolicyButton({ onClick }: { onClick: () => void }) {
     <button
       onClick={(e) => { e.stopPropagation(); onClick() }}
       title="정책에서 검색"
-      className="ml-1 opacity-0 group-hover:opacity-100 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold text-ds-tertiary/70 hover:text-ds-tertiary hover:bg-ds-tertiary/10 transition-all"
+      className="ml-1 opacity-0 group-hover:opacity-100 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-10 font-semibold text-ds-tertiary/70 hover:text-ds-tertiary hover:bg-ds-tertiary/10 transition-all"
     >
       <ArrowRight className="w-2.5 h-2.5" />
       정책
@@ -157,7 +157,7 @@ export function ObjectsPage() {
     pinned: 'left' as const,
     valueGetter: (p) => deviceNameMap.get((p.data as T)?.device_id ?? -1) ?? String((p.data as T)?.device_id ?? '-'),
     cellRenderer: (p: { value: string }) => (
-      <span className="text-[11px] font-semibold text-ds-tertiary font-mono">{p.value}</span>
+      <span className="text-11 font-semibold text-ds-tertiary font-mono">{p.value}</span>
     ),
   })
 
@@ -169,9 +169,9 @@ export function ObjectsPage() {
     valueGetter: (p) => usageMap.get(`${(p.data as T)?.device_id}_${(p.data as T)?.name}`) ?? 0,
     cellRenderer: (p: { value: number }) => {
       if (p.value === 0) {
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600">미사용</span>
+        return <span className="inline-flex items-center px-2 py-0.5 rounded text-10 font-bold bg-red-100 text-red-600">미사용</span>
       }
-      return <span className="text-[12px] font-semibold tabular-nums text-ds-on-surface">{p.value}</span>
+      return <span className="text-xs font-semibold tabular-nums text-ds-on-surface">{p.value}</span>
     },
   })
 
@@ -193,7 +193,7 @@ export function ObjectsPage() {
     },
     usageCol<NetworkObject>(addrUsageMap) as ColDef<NetworkObject>,
     { field: 'ip_address', headerName: 'IP 주소', filter: 'agTextColumnFilter', width: 180, cellRenderer: (p: { value: string }) => <span className="font-mono text-xs text-ds-on-surface-variant">{p.value ?? '-'}</span> },
-    { field: 'type', headerName: '타입', filter: 'agTextColumnFilter', width: 100, cellRenderer: (p: { value: string }) => <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-ds-surface-container text-ds-on-surface-variant uppercase">{p.value}</span> },
+    { field: 'type', headerName: '타입', filter: 'agTextColumnFilter', width: 100, cellRenderer: (p: { value: string }) => <span className="inline-flex items-center px-2 py-0.5 rounded text-10 font-semibold bg-ds-surface-container text-ds-on-surface-variant uppercase">{p.value}</span> },
     { field: 'description', headerName: '설명', filter: 'agTextColumnFilter', flex: 1 },
   ]
 
@@ -218,16 +218,16 @@ export function ObjectsPage() {
       field: 'members', headerName: '멤버', filter: 'agTextColumnFilter', flex: 1,
       cellRenderer: (p: { value: string }) => {
         const members = (p.value ?? '').split(',').map((m: string) => m.trim()).filter(Boolean)
-        if (members.length === 0) return <span className="text-[11px] text-ds-on-surface-variant">-</span>
+        if (members.length === 0) return <span className="text-11 text-ds-on-surface-variant">-</span>
         const MAX = 3
         const visible = members.slice(0, MAX)
         const extra = members.length - MAX
         return (
           <div className="flex items-center gap-1 overflow-hidden">
             {visible.map((m, i) => (
-              <span key={i} className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono bg-ds-secondary-container text-ds-tertiary whitespace-nowrap shrink-0">{m}</span>
+              <span key={i} className="inline-flex items-center px-1.5 py-0.5 rounded text-11 font-mono bg-ds-secondary-container text-ds-tertiary whitespace-nowrap shrink-0">{m}</span>
             ))}
-            {extra > 0 && <span className="text-[10px] font-semibold text-ds-on-surface-variant whitespace-nowrap shrink-0">+{extra}</span>}
+            {extra > 0 && <span className="text-10 font-semibold text-ds-on-surface-variant whitespace-nowrap shrink-0">+{extra}</span>}
           </div>
         )
       },
@@ -252,7 +252,7 @@ export function ObjectsPage() {
       ),
     },
     usageCol<Service>(svcUsageMap) as ColDef<Service>,
-    { field: 'protocol', headerName: '프로토콜', filter: 'agTextColumnFilter', width: 110, cellRenderer: (p: { value: string }) => <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-ds-surface-container text-ds-on-surface-variant uppercase">{p.value}</span> },
+    { field: 'protocol', headerName: '프로토콜', filter: 'agTextColumnFilter', width: 110, cellRenderer: (p: { value: string }) => <span className="inline-flex items-center px-2 py-0.5 rounded text-10 font-semibold bg-ds-surface-container text-ds-on-surface-variant uppercase">{p.value}</span> },
     { field: 'port', headerName: '포트', filter: 'agTextColumnFilter', width: 140, cellRenderer: (p: { value: string }) => <span className="font-mono text-xs text-ds-on-surface-variant">{p.value ?? '-'}</span> },
     { field: 'description', headerName: '설명', filter: 'agTextColumnFilter', flex: 1 },
   ]
@@ -278,16 +278,16 @@ export function ObjectsPage() {
       field: 'members', headerName: '멤버', filter: 'agTextColumnFilter', flex: 1,
       cellRenderer: (p: { value: string }) => {
         const members = (p.value ?? '').split(',').map((m: string) => m.trim()).filter(Boolean)
-        if (members.length === 0) return <span className="text-[11px] text-ds-on-surface-variant">-</span>
+        if (members.length === 0) return <span className="text-11 text-ds-on-surface-variant">-</span>
         const MAX = 3
         const visible = members.slice(0, MAX)
         const extra = members.length - MAX
         return (
           <div className="flex items-center gap-1 overflow-hidden">
             {visible.map((m, i) => (
-              <span key={i} className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono bg-ds-surface-container text-ds-on-surface-variant whitespace-nowrap shrink-0">{m}</span>
+              <span key={i} className="inline-flex items-center px-1.5 py-0.5 rounded text-11 font-mono bg-ds-surface-container text-ds-on-surface-variant whitespace-nowrap shrink-0">{m}</span>
             ))}
-            {extra > 0 && <span className="text-[10px] font-semibold text-ds-on-surface-variant whitespace-nowrap shrink-0">+{extra}</span>}
+            {extra > 0 && <span className="text-10 font-semibold text-ds-on-surface-variant whitespace-nowrap shrink-0">+{extra}</span>}
           </div>
         )
       },
@@ -316,7 +316,7 @@ export function ObjectsPage() {
             <button
               key={tab.key}
               onClick={() => handleTabChange(tab.key)}
-              className={`px-4 py-1.5 text-[13px] font-semibold tracking-tight transition-colors duration-150 border-b-2 -mb-px ${
+              className={`px-4 py-1.5 text-13 font-semibold tracking-tight transition-colors duration-150 border-b-2 -mb-px ${
                 activeTab === tab.key
                   ? 'text-ds-tertiary border-ds-tertiary'
                   : 'text-ds-on-surface-variant border-transparent hover:text-ds-on-surface hover:border-ds-outline-variant/30'
@@ -324,7 +324,7 @@ export function ObjectsPage() {
             >
               {tab.label}
               {tabContent[tab.key].data.length > 0 && (
-                <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full font-bold ${activeTab === tab.key ? 'bg-ds-tertiary/10 text-ds-tertiary' : 'bg-ds-surface-container text-ds-on-surface-variant'}`}>
+                <span className={`ml-1.5 text-10 px-1.5 py-0.5 rounded-full font-bold ${activeTab === tab.key ? 'bg-ds-tertiary/10 text-ds-tertiary' : 'bg-ds-surface-container text-ds-on-surface-variant'}`}>
                   {tabContent[tab.key].data.length.toLocaleString()}
                 </span>
               )}
@@ -339,14 +339,14 @@ export function ObjectsPage() {
                 placeholder="검색…"
                 value={quickFilter}
                 onChange={(e) => setQuickFilter(e.target.value)}
-                className="text-[12px] bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/40 w-40"
+                className="text-xs bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/40 w-40"
               />
             </div>
-            <span className="text-[11px] text-ds-on-surface-variant/60 whitespace-nowrap tabular-nums">{current.data.length.toLocaleString()}건</span>
+            <span className="text-11 text-ds-on-surface-variant/60 whitespace-nowrap tabular-nums">{current.data.length.toLocaleString()}건</span>
             <button
               onClick={() => handleExport(current.data, current.filename)}
               disabled={current.data.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface disabled:opacity-40 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface disabled:opacity-40 transition-colors"
             >
               <Download className="w-3 h-3" />
               Excel

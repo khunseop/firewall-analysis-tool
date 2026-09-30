@@ -61,19 +61,19 @@ export function ObjectGapPanel({ deviceId, rows, newObjects, onChange }: {
 
   return (
     <div className="space-y-2">
-      <p className="text-[12px] font-semibold text-ds-on-surface-variant">
+      <p className="text-xs font-semibold text-ds-on-surface-variant">
         부족한 오브젝트 {isFetching ? '(확인 중…)' : `(${missing.length}건)`}
       </p>
       {missing.length === 0 && !isFetching && (
-        <p className="text-[12px] text-emerald-600">신규 정책이 참조하는 오브젝트가 모두 장비에 존재합니다.</p>
+        <p className="text-xs text-emerald-600">신규 정책이 참조하는 오브젝트가 모두 장비에 존재합니다.</p>
       )}
       <div className="space-y-2">
         {missing.map((item) => {
           const spec = specByName.get(item.name)
           return (
             <div key={`${item.object_kind}:${item.name}`} className="flex items-center gap-2 bg-ds-surface-container-low rounded-lg px-3 py-2">
-              <span className="text-[10px] font-bold uppercase w-14 shrink-0 text-ds-on-surface-variant">{item.object_kind === 'address' ? '주소' : '서비스'}</span>
-              <span className="text-[13px] font-mono w-40 shrink-0 truncate" title={item.referenced_by_rule_names.join(', ')}>{item.name}</span>
+              <span className="text-10 font-bold uppercase w-14 shrink-0 text-ds-on-surface-variant">{item.object_kind === 'address' ? '주소' : '서비스'}</span>
+              <span className="text-13 font-mono w-40 shrink-0 truncate" title={item.referenced_by_rule_names.join(', ')}>{item.name}</span>
 
               {item.object_kind === 'address' ? (
                 <>
@@ -81,7 +81,7 @@ export function ObjectGapPanel({ deviceId, rows, newObjects, onChange }: {
                     value={spec?.address_type ?? 'ip-mask'}
                     onValueChange={(v) => updateSpec(item.name, 'address', { address_type: v as NewObjectSpec['address_type'] })}
                   >
-                    <SelectTrigger className="w-28 h-8 text-[12px]"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-28 h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ip-mask">ip-netmask</SelectItem>
                       <SelectItem value="ip-range">ip-range</SelectItem>
@@ -92,7 +92,7 @@ export function ObjectGapPanel({ deviceId, rows, newObjects, onChange }: {
                     placeholder="예: 10.0.0.5/32"
                     value={spec?.ip_address ?? ''}
                     onChange={(e) => updateSpec(item.name, 'address', { ip_address: e.target.value })}
-                    className="h-8 text-[12px] flex-1"
+                    className="h-8 text-xs flex-1"
                   />
                 </>
               ) : (
@@ -101,7 +101,7 @@ export function ObjectGapPanel({ deviceId, rows, newObjects, onChange }: {
                     value={spec?.protocol ?? 'tcp'}
                     onValueChange={(v) => updateSpec(item.name, 'service', { protocol: v as NewObjectSpec['protocol'] })}
                   >
-                    <SelectTrigger className="w-24 h-8 text-[12px]"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-24 h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="tcp">tcp</SelectItem>
                       <SelectItem value="udp">udp</SelectItem>
@@ -111,7 +111,7 @@ export function ObjectGapPanel({ deviceId, rows, newObjects, onChange }: {
                     placeholder="예: 8443"
                     value={spec?.port ?? ''}
                     onChange={(e) => updateSpec(item.name, 'service', { port: e.target.value })}
-                    className="h-8 text-[12px] flex-1"
+                    className="h-8 text-xs flex-1"
                   />
                 </>
               )}

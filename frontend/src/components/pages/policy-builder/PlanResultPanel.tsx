@@ -13,12 +13,12 @@ function CommandSection({ title, commands }: { title: string; commands: Generate
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <p className="text-[12px] font-semibold text-ds-on-surface-variant">{title} ({commands.length}건)</p>
+        <p className="text-xs font-semibold text-ds-on-surface-variant">{title} ({commands.length}건)</p>
         {successCommands.length > 0 && (
           <button
             type="button"
             onClick={() => copyText(successCommands.map((c) => c.command).join('\n'))}
-            className="text-[11px] flex items-center gap-1 text-ds-tertiary hover:underline"
+            className="text-11 flex items-center gap-1 text-ds-tertiary hover:underline"
           >
             <Copy className="w-3 h-3" /> 성공한 명령어 전체 복사
           </button>
@@ -28,7 +28,7 @@ function CommandSection({ title, commands }: { title: string; commands: Generate
         {commands.map((c, idx) => (
           <div
             key={idx}
-            className={`flex items-start gap-2 px-2.5 py-1.5 rounded-md text-[12px] font-mono ${
+            className={`flex items-start gap-2 px-2.5 py-1.5 rounded-md text-xs font-mono ${
               c.error ? 'bg-ds-error/10 text-ds-error' : 'bg-ds-surface-container-low text-ds-on-surface'
             }`}
           >
@@ -43,7 +43,7 @@ function CommandSection({ title, commands }: { title: string; commands: Generate
                   <span className="flex-1 break-all">{c.command}</span>
                 </div>
                 {c.counts && Object.keys(c.counts).length > 0 && (
-                  <p className="text-[10px] text-ds-on-surface-variant mt-1 ml-5">
+                  <p className="text-10 text-ds-on-surface-variant mt-1 ml-5">
                     {Object.entries(c.counts).map(([field, n]) => `${field}:${n}`).join(' · ')}
                   </p>
                 )}
@@ -51,7 +51,7 @@ function CommandSection({ title, commands }: { title: string; commands: Generate
             )}
           </div>
         ))}
-        {commands.length === 0 && <p className="text-[12px] text-ds-on-surface-variant italic">없음</p>}
+        {commands.length === 0 && <p className="text-xs text-ds-on-surface-variant italic">없음</p>}
       </div>
     </div>
   )
@@ -69,7 +69,7 @@ export function PlanResultPanel({ plan }: { plan: BulkPolicyPlanResponse }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <p className="text-[12px] text-ds-on-surface-variant">
+        <p className="text-xs text-ds-on-surface-variant">
           총 {allSuccessCommands.length}건의 명령어
           {totalErrors > 0 && <span className="text-ds-error font-semibold"> · 오류 {totalErrors}건</span>}
         </p>
@@ -79,7 +79,7 @@ export function PlanResultPanel({ plan }: { plan: BulkPolicyPlanResponse }) {
             variant="gradient"
             size="auto"
             onClick={() => copyText(allSuccessCommands.map((c) => c.command).join('\n'))}
-            className="text-[12px] font-semibold gap-1.5 px-3 py-1.5 rounded-md"
+            className="text-xs font-semibold gap-1.5 px-3 py-1.5 rounded-md"
           >
             <Copy className="w-3.5 h-3.5" /> 전체 명령어 한번에 복사
           </Button>
@@ -89,7 +89,7 @@ export function PlanResultPanel({ plan }: { plan: BulkPolicyPlanResponse }) {
       {plan.warnings.length > 0 && (
         <div className="space-y-1">
           {plan.warnings.map((w, i) => (
-            <div key={i} className="flex items-start gap-1.5 text-[12px] text-amber-600 bg-amber-50 rounded-md px-2.5 py-1.5">
+            <div key={i} className="flex items-start gap-1.5 text-xs text-amber-600 bg-amber-50 rounded-md px-2.5 py-1.5">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
               <span>{w}</span>
             </div>
@@ -99,10 +99,10 @@ export function PlanResultPanel({ plan }: { plan: BulkPolicyPlanResponse }) {
 
       {plan.conflicts.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-[12px] font-semibold text-ds-error">삽입 충돌 ({plan.conflicts.length}건)</p>
+          <p className="text-xs font-semibold text-ds-error">삽입 충돌 ({plan.conflicts.length}건)</p>
           <div className="space-y-1 max-h-[220px] overflow-y-auto">
             {plan.conflicts.map((c, i) => (
-              <div key={i} className="text-[12px] bg-ds-error/10 text-ds-error rounded-md px-2.5 py-1.5">
+              <div key={i} className="text-xs bg-ds-error/10 text-ds-error rounded-md px-2.5 py-1.5">
                 [{c.conflict_type === 'blocking' ? '차단' : '가려짐'}] {c.reason}
               </div>
             ))}
@@ -129,7 +129,7 @@ export function VerifyResultPanel({ results }: { results: PolicyVerifyResult[] }
 
   return (
     <div className="space-y-1.5">
-      <p className="text-[12px] text-ds-on-surface-variant">
+      <p className="text-xs text-ds-on-surface-variant">
         대기중 변경사항 {results.length}건 검증 · <span className="text-emerald-600 font-semibold">일치 {matchCount}건</span>
         {mismatchCount > 0 && <span className="text-ds-error font-semibold"> · 불일치 {mismatchCount}건</span>}
       </p>
@@ -137,19 +137,19 @@ export function VerifyResultPanel({ results }: { results: PolicyVerifyResult[] }
         {results.map((r, i) => (
           <div
             key={i}
-            className={`px-2.5 py-1.5 rounded-md text-[12px] ${
+            className={`px-2.5 py-1.5 rounded-md text-xs ${
               r.status === 'match' ? 'bg-emerald-50 text-emerald-700' : 'bg-ds-error/10 text-ds-error'
             }`}
           >
             <div className="flex items-center gap-2 font-semibold">
               <span>{r.status === 'match' ? '일치' : '불일치'}</span>
               <span className="font-mono">{r.rule_name}</span>
-              <span className="text-[10px] font-normal opacity-70">({PENDING_STATUS_LABEL[r.pending_status]})</span>
+              <span className="text-10 font-normal opacity-70">({PENDING_STATUS_LABEL[r.pending_status]})</span>
             </div>
             {r.mismatches.length > 0 && (
               <ul className="mt-1 ml-4 space-y-0.5">
                 {r.mismatches.map((m, j) => (
-                  <li key={j} className="font-mono text-[11px] break-all">
+                  <li key={j} className="font-mono text-11 break-all">
                     {m.field}: {m.expected || '(없음)'} → {m.actual || '(없음)'}
                   </li>
                 ))}
@@ -157,7 +157,7 @@ export function VerifyResultPanel({ results }: { results: PolicyVerifyResult[] }
             )}
           </div>
         ))}
-        {results.length === 0 && <p className="text-[12px] text-ds-on-surface-variant italic">대기중 변경사항이 없습니다.</p>}
+        {results.length === 0 && <p className="text-xs text-ds-on-surface-variant italic">대기중 변경사항이 없습니다.</p>}
       </div>
     </div>
   )

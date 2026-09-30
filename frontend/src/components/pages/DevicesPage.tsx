@@ -361,7 +361,7 @@ export function DevicesPage() {
               variant="subtle"
               size="auto"
               onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.devices })}
-              className="gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-lg"
+              className="gap-1.5 px-3 py-1.5 text-13 font-medium rounded-lg"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               갱신
@@ -373,7 +373,7 @@ export function DevicesPage() {
                 variant="gradient"
                 size="auto"
                 onClick={() => setAddMenuOpen((v) => !v)}
-                className="gap-1.5 px-3 py-1.5 text-[13px] font-semibold rounded-lg"
+                className="gap-1.5 px-3 py-1.5 text-13 font-semibold rounded-lg"
               >
                 <Plus className="w-3.5 h-3.5" />
                 장비 추가
@@ -384,21 +384,21 @@ export function DevicesPage() {
                 <div className="absolute right-0 top-full mt-1.5 w-44 bg-white rounded-xl shadow-lg border border-ds-outline-variant/15 py-1 z-50">
                   <button
                     onClick={() => { setAddMenuOpen(false); setEditTarget(null); setFormOpen(true) }}
-                    className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[13px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
+                    className="flex items-center gap-2.5 w-full px-3.5 py-2 text-13 font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5 text-ds-on-surface-variant" />
                     장비 추가
                   </button>
                   <button
                     onClick={() => { setAddMenuOpen(false); setBulkOpen(true) }}
-                    className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[13px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
+                    className="flex items-center gap-2.5 w-full px-3.5 py-2 text-13 font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
                   >
                     <Upload className="w-3.5 h-3.5 text-ds-on-surface-variant" />
                     일괄 등록
                   </button>
                   <button
                     onClick={() => { setAddMenuOpen(false); downloadDeviceTemplate() }}
-                    className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[13px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
+                    className="flex items-center gap-2.5 w-full px-3.5 py-2 text-13 font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
                   >
                     <Download className="w-3.5 h-3.5 text-ds-on-surface-variant" />
                     템플릿 다운로드
@@ -413,32 +413,32 @@ export function DevicesPage() {
       {/* KPI 컴팩트 스트립 */}
       <div className="shrink-0 card rounded-xl px-4 py-2.5 flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-ds-on-surface-variant/60 font-medium">전체</span>
-          <span className="text-[13px] font-bold tabular-nums text-ds-on-surface">{isLoading ? '…' : syncCounts.total}대</span>
+          <span className="text-11 text-ds-on-surface-variant/60 font-medium">전체</span>
+          <span className="text-13 font-bold tabular-nums text-ds-on-surface">{isLoading ? '…' : syncCounts.total}대</span>
         </div>
         <div className="flex items-center gap-2 min-w-[120px]">
           <div className="w-20 h-1.5 bg-ds-surface-container-high rounded-full overflow-hidden">
             <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${syncPct}%` }} />
           </div>
-          <span className="text-[11px] font-semibold tabular-nums text-ds-on-surface-variant">{syncPct}%</span>
+          <span className="text-11 font-semibold tabular-nums text-ds-on-surface-variant">{syncPct}%</span>
         </div>
         <div className="w-px h-3 bg-ds-outline-variant/20 shrink-0" />
         <div className="flex items-center gap-1.5">
           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-          <span className="text-[11px] text-ds-on-surface-variant/60">완료</span>
-          <span className="text-[13px] font-bold tabular-nums text-emerald-600">{isLoading ? '…' : syncCounts.synced}</span>
+          <span className="text-11 text-ds-on-surface-variant/60">완료</span>
+          <span className="text-13 font-bold tabular-nums text-emerald-600">{isLoading ? '…' : syncCounts.synced}</span>
         </div>
         <div className="w-px h-3 bg-ds-outline-variant/20 shrink-0" />
         <div className="flex items-center gap-1.5">
           <Loader2 className={`w-3.5 h-3.5 shrink-0 ${syncCounts.syncing > 0 ? 'text-ds-tertiary animate-spin' : 'text-ds-on-surface-variant/30'}`} />
-          <span className="text-[11px] text-ds-on-surface-variant/60">진행</span>
-          <span className={`text-[13px] font-bold tabular-nums ${syncCounts.syncing > 0 ? 'text-ds-tertiary' : 'text-ds-on-surface-variant/40'}`}>{isLoading ? '…' : syncCounts.syncing}</span>
+          <span className="text-11 text-ds-on-surface-variant/60">진행</span>
+          <span className={`text-13 font-bold tabular-nums ${syncCounts.syncing > 0 ? 'text-ds-tertiary' : 'text-ds-on-surface-variant/40'}`}>{isLoading ? '…' : syncCounts.syncing}</span>
         </div>
         <div className="w-px h-3 bg-ds-outline-variant/20 shrink-0" />
         <div className="flex items-center gap-1.5">
           <AlertCircle className={`w-3.5 h-3.5 shrink-0 ${syncCounts.error > 0 ? 'text-ds-error' : 'text-ds-on-surface-variant/30'}`} />
-          <span className="text-[11px] text-ds-on-surface-variant/60">오류</span>
-          <span className={`text-[13px] font-bold tabular-nums ${syncCounts.error > 0 ? 'text-ds-error' : 'text-ds-on-surface-variant/40'}`}>{isLoading ? '…' : syncCounts.error}</span>
+          <span className="text-11 text-ds-on-surface-variant/60">오류</span>
+          <span className={`text-13 font-bold tabular-nums ${syncCounts.error > 0 ? 'text-ds-error' : 'text-ds-on-surface-variant/40'}`}>{isLoading ? '…' : syncCounts.error}</span>
         </div>
       </div>
 
@@ -452,13 +452,13 @@ export function DevicesPage() {
               return (
                 <div key={t.id} className="flex items-center gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
-                  <span className="text-[11px] text-ds-on-surface-variant flex-1 truncate">
+                  <span className="text-11 text-ds-on-surface-variant flex-1 truncate">
                     {t.deviceLabel && <span className="font-semibold text-ds-on-surface">{t.deviceLabel}</span>} {label} 추출 완료
                     {t.timeLabel && <span className="ml-1 text-ds-on-surface-variant/60">({t.timeLabel})</span>}
                   </span>
                   <button
                     onClick={() => downloadExportResult(t.id, downloadName)}
-                    className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold text-ds-primary hover:bg-ds-primary/10 transition-colors shrink-0"
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-md text-11 font-semibold text-ds-primary hover:bg-ds-primary/10 transition-colors shrink-0"
                   >
                     <FileDown className="w-3 h-3" />다운로드
                   </button>
@@ -472,10 +472,10 @@ export function DevicesPage() {
               return (
                 <div key={t.id} className="flex items-center gap-2">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0 text-ds-error" />
-                  <span className="text-[11px] text-ds-on-surface-variant shrink-0">
+                  <span className="text-11 text-ds-on-surface-variant shrink-0">
                     {t.deviceLabel && <span className="font-semibold">{t.deviceLabel}</span>} {exportTypeLabel(t.exportType)} 추출 실패
                   </span>
-                  <span className="text-[11px] text-ds-error/80 truncate flex-1">{t.errorMessage ?? '알 수 없는 오류'}</span>
+                  <span className="text-11 text-ds-error/80 truncate flex-1">{t.errorMessage ?? '알 수 없는 오류'}</span>
                   <button onClick={() => handleDismissExportTask(t.id)} className="shrink-0 text-ds-on-surface-variant/50 hover:text-ds-on-surface">
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -485,17 +485,17 @@ export function DevicesPage() {
             return (
               <div key={t.id} className="flex items-center gap-2">
                 <Loader2 className="w-3.5 h-3.5 shrink-0 text-ds-tertiary animate-spin" />
-                <span className="text-[11px] text-ds-on-surface-variant shrink-0">
+                <span className="text-11 text-ds-on-surface-variant shrink-0">
                   {t.deviceLabel && <span className="font-semibold">{t.deviceLabel}</span>} {exportTypeLabel(t.exportType)} 추출
                 </span>
-                <span className="text-[11px] text-ds-on-surface-variant/70 truncate flex-1">{t.step ?? '대기 중...'}</span>
-                <span className="text-[11px] font-semibold tabular-nums text-ds-on-surface-variant shrink-0">
+                <span className="text-11 text-ds-on-surface-variant/70 truncate flex-1">{t.step ?? '대기 중...'}</span>
+                <span className="text-11 font-semibold tabular-nums text-ds-on-surface-variant shrink-0">
                   {t.progressCurrent} / {t.progressTotal}
                 </span>
                 <button
                   onClick={() => cancelExportMutation.mutate(t.id)}
                   disabled={cancelExportMutation.isPending}
-                  className="shrink-0 text-[11px] font-semibold text-ds-error hover:bg-ds-error/10 rounded-md px-2 py-0.5 transition-colors disabled:opacity-50"
+                  className="shrink-0 text-11 font-semibold text-ds-error hover:bg-ds-error/10 rounded-md px-2 py-0.5 transition-colors disabled:opacity-50"
                 >
                   취소
                 </button>
@@ -512,9 +512,9 @@ export function DevicesPage() {
           <div className="flex items-center justify-between gap-3">
             {/* 좌측: 제목 + 장비 수 */}
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[13px] font-semibold text-ds-on-surface shrink-0">등록된 장비</span>
+              <span className="text-13 font-semibold text-ds-on-surface shrink-0">등록된 장비</span>
               {devices.length > 0 && (
-                <span className="text-[11px] text-ds-on-surface-variant/50 tabular-nums shrink-0">{devices.length}대</span>
+                <span className="text-11 text-ds-on-surface-variant/50 tabular-nums shrink-0">{devices.length}대</span>
               )}
             </div>
 
@@ -523,54 +523,54 @@ export function DevicesPage() {
             {/* 선택 시 작업 버튼 */}
             {sel > 0 && (
               <>
-                <span className="text-[11px] font-semibold text-ds-tertiary tabular-nums shrink-0">{sel}개 선택</span>
+                <span className="text-11 font-semibold text-ds-tertiary tabular-nums shrink-0">{sel}개 선택</span>
                 <button
                   onClick={handleEdit}
                   disabled={!isSingle}
                   title={isSingle ? '수정' : '단일 장비만 수정 가능'}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   <Pencil className="w-3 h-3" />
                   수정
                 </button>
                 <button
                   onClick={() => setBulkOptionsOpen(true)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
                 >
                   <Settings2 className="w-3 h-3" />
                   수집 옵션
                 </button>
                 <button
                   onClick={() => setBulkGroupOpen(true)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
                 >
                   <Tag className="w-3 h-3" />
                   그룹 설정
                 </button>
                 <button
                   onClick={handleBulkSync}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
                 >
                   <RefreshCw className="w-3 h-3" />
                   동기화
                 </button>
                 <button
                   onClick={handleBulkTestConnection}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
                 >
                   <Wifi className="w-3 h-3" />
                   연결 테스트
                 </button>
                 <button
                   onClick={() => setDirectExportOpen(true)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
                 >
                   <FileDown className="w-3 h-3" />
                   직접 추출
                 </button>
                 <button
                   onClick={handleBulkDelete}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium rounded-lg border border-ds-error/20 bg-ds-error/5 text-ds-error hover:bg-ds-error/10 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-ds-error/20 bg-ds-error/5 text-ds-error hover:bg-ds-error/10 transition-colors"
                 >
                   <Trash2 className="w-3 h-3" />
                   삭제
@@ -585,7 +585,7 @@ export function DevicesPage() {
                 value={quickFilter}
                 onChange={(e) => setQuickFilter(e.target.value)}
                 placeholder="장비명, IP, 그룹, 설명 검색"
-                className="text-[12px] bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/40 w-72"
+                className="text-xs bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/40 w-72"
               />
               {quickFilter && (
                 <button onClick={() => setQuickFilter('')}>
@@ -601,7 +601,7 @@ export function DevicesPage() {
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
               <button
                 onClick={() => setGroupFilter(null)}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors ${groupFilter === null ? 'bg-ds-primary/10 text-ds-primary border-ds-primary/30' : 'bg-ds-surface-container-low text-ds-on-surface-variant border-ds-outline-variant/20 hover:border-ds-outline-variant/40'}`}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-11 font-semibold border transition-colors ${groupFilter === null ? 'bg-ds-primary/10 text-ds-primary border-ds-primary/30' : 'bg-ds-surface-container-low text-ds-on-surface-variant border-ds-outline-variant/20 hover:border-ds-outline-variant/40'}`}
               >
                 전체
                 <span className="tabular-nums opacity-60">{devices.length}</span>
@@ -610,7 +610,7 @@ export function DevicesPage() {
                 <button
                   key={g}
                   onClick={() => setGroupFilter(groupFilter === g ? null : g)}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors ${groupFilter === g ? 'bg-ds-primary/10 text-ds-primary border-ds-primary/30' : 'bg-ds-surface-container-low text-ds-on-surface-variant border-ds-outline-variant/20 hover:border-ds-outline-variant/40'}`}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-11 font-semibold border transition-colors ${groupFilter === g ? 'bg-ds-primary/10 text-ds-primary border-ds-primary/30' : 'bg-ds-surface-container-low text-ds-on-surface-variant border-ds-outline-variant/20 hover:border-ds-outline-variant/40'}`}
                 >
                   {g}
                   <span className="tabular-nums opacity-60">{groupCounts[g] ?? 0}</span>
@@ -619,7 +619,7 @@ export function DevicesPage() {
               {hasUngrouped && (
                 <button
                   onClick={() => setGroupFilter(groupFilter === '__ungrouped__' ? null : '__ungrouped__')}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors ${groupFilter === '__ungrouped__' ? 'bg-ds-primary/10 text-ds-primary border-ds-primary/30' : 'bg-ds-surface-container-low text-ds-on-surface-variant border-ds-outline-variant/20 hover:border-ds-outline-variant/40'}`}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-11 font-semibold border transition-colors ${groupFilter === '__ungrouped__' ? 'bg-ds-primary/10 text-ds-primary border-ds-primary/30' : 'bg-ds-surface-container-low text-ds-on-surface-variant border-ds-outline-variant/20 hover:border-ds-outline-variant/40'}`}
                 >
                   미분류
                   <span className="tabular-nums opacity-60">{groupCounts['__ungrouped__'] ?? 0}</span>

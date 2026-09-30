@@ -94,19 +94,19 @@ function formatCSVField(value: string | null | undefined): string {
 /** 그리드 셀용 인라인 태그 (고정 높이, 최대 2개 + 개수) */
 function InlineTagCell({ value }: { value: string }) {
   const names = (value ?? '').split(',').map((s) => s.trim()).filter(Boolean)
-  if (names.length === 0) return <span className="text-[11px] text-ds-on-surface-variant">-</span>
+  if (names.length === 0) return <span className="text-11 text-ds-on-surface-variant">-</span>
   const MAX = 2
   const visible = names.slice(0, MAX)
   const extra = names.length - MAX
   return (
     <div className="flex items-center gap-1 overflow-hidden">
       {visible.map((name, i) => (
-        <span key={i} className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono bg-ds-surface-container text-ds-on-surface whitespace-nowrap shrink-0">
+        <span key={i} className="inline-flex items-center px-1.5 py-0.5 rounded text-11 font-mono bg-ds-surface-container text-ds-on-surface whitespace-nowrap shrink-0">
           {name}
         </span>
       ))}
       {extra > 0 && (
-        <span className="text-[10px] font-semibold text-ds-on-surface-variant whitespace-nowrap shrink-0">+{extra}</span>
+        <span className="text-10 font-semibold text-ds-on-surface-variant whitespace-nowrap shrink-0">+{extra}</span>
       )}
     </div>
   )
@@ -114,18 +114,18 @@ function InlineTagCell({ value }: { value: string }) {
 
 /** 마지막 사용일 스마트 렌더 */
 function LastHitCell({ value }: { value: string | null }) {
-  if (!value) return <span className="text-[11px] font-medium text-amber-600">사용 기록 없음</span>
+  if (!value) return <span className="text-11 font-medium text-amber-600">사용 기록 없음</span>
   const days = daysSinceHit(value)
-  if (days === null) return <span className="text-[11px] text-ds-on-surface-variant">-</span>
+  if (days === null) return <span className="text-11 text-ds-on-surface-variant">-</span>
   if (days >= 90) {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ds-error">
+      <span className="inline-flex items-center gap-1 text-11 font-semibold text-ds-error">
         <AlertTriangle className="w-3 h-3" />{days}일 미사용
       </span>
     )
   }
-  if (days >= 30) return <span className="text-[11px] font-medium text-amber-600">{days}일 전</span>
-  return <span className="text-[11px] text-ds-on-surface-variant">{days}일 전</span>
+  if (days >= 30) return <span className="text-11 font-medium text-amber-600">{days}일 전</span>
+  return <span className="text-11 text-ds-on-surface-variant">{days}일 전</span>
 }
 
 const GRID_DEFAULT_COL_DEF_OVERRIDE = { filter: false }
@@ -594,7 +594,7 @@ export function PoliciesPage() {
       pinned: 'left',
       valueGetter: (p) => deviceNameMap.get(p.data?.device_id ?? -1) ?? String(p.data?.device_id ?? '-'),
       cellRenderer: (p: { value: string }) => (
-        <span className="text-[11px] font-semibold text-ds-tertiary font-mono">{p.value}</span>
+        <span className="text-11 font-semibold text-ds-tertiary font-mono">{p.value}</span>
       ),
     },
     {
@@ -627,13 +627,13 @@ export function PoliciesPage() {
       field: 'action', headerName: '액션', width: 72, suppressSizeToFit: true,
       cellRenderer: (p: { value: string }) => {
         const cls = ACTION_BADGE[p.value?.toLowerCase()] ?? 'bg-ds-surface-container text-ds-on-surface-variant'
-        return <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${cls}`}>{p.value}</span>
+        return <span className={`inline-flex items-center px-2 py-0.5 rounded text-10 font-bold uppercase ${cls}`}>{p.value}</span>
       },
     },
     {
       field: 'enable', headerName: '활성', width: 62, suppressSizeToFit: true,
       cellRenderer: (p: { value: boolean }) => (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${p.value ? 'bg-green-100 text-green-700' : 'bg-ds-surface-container text-ds-on-surface-variant'}`}>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-10 font-bold ${p.value ? 'bg-green-100 text-green-700' : 'bg-ds-surface-container text-ds-on-surface-variant'}`}>
           {p.value ? '활성' : '비활성'}
         </span>
       ),
@@ -644,7 +644,7 @@ export function PoliciesPage() {
     {
       field: 'user', headerName: '사용자', width: 110, minWidth: 100, maxWidth: 160, suppressSizeToFit: true, editable: isRowEditable,
       cellRenderer: (p: { value: string | null }) => {
-        if (!p.value) return <span className="text-[11px] text-ds-on-surface-variant">-</span>
+        if (!p.value) return <span className="text-11 text-ds-on-surface-variant">-</span>
         const users = parseCSVTokens(p.value)
         const first = users[0]
         const extra = users.length - 1
@@ -662,12 +662,12 @@ export function PoliciesPage() {
     {
       field: 'security_profile', headerName: '보안 프로파일', width: 130, suppressSizeToFit: true,
       cellRenderer: (p: { value: string | null }) =>
-        p.value ? <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-700">{p.value}</span> : <span className="text-[11px] text-ds-on-surface-variant">-</span>,
+        p.value ? <span className="inline-flex items-center px-1.5 py-0.5 rounded text-10 font-semibold bg-purple-100 text-purple-700">{p.value}</span> : <span className="text-11 text-ds-on-surface-variant">-</span>,
     },
     {
       field: 'category', headerName: '카테고리', width: 100, suppressSizeToFit: true,
       cellRenderer: (p: { value: string | null }) =>
-        p.value ? <span className="text-[11px] text-ds-on-surface-variant">{p.value}</span> : <span className="text-[11px] text-ds-on-surface-variant">-</span>,
+        p.value ? <span className="text-11 text-ds-on-surface-variant">{p.value}</span> : <span className="text-11 text-ds-on-surface-variant">-</span>,
     },
     {
       field: 'description', headerName: '설명', flex: 1, minWidth: 120,
@@ -682,7 +682,7 @@ export function PoliciesPage() {
     {
       field: 'hit_count', headerName: '히트 횟수', width: 100, suppressSizeToFit: true,
       cellRenderer: (p: { value: number | null }) => (
-        <span className="text-[11px] text-ds-on-surface-variant">{p.value ?? '-'}</span>
+        <span className="text-11 text-ds-on-surface-variant">{p.value ?? '-'}</span>
       ),
     },
     { field: 'vsys', headerName: 'VSYS', width: 72, hide: true },
@@ -701,7 +701,7 @@ export function PoliciesPage() {
               onClick={() => setEditMode((v) => !v)}
               disabled={!editDeviceId}
               title={editDeviceId ? undefined : '편집모드는 장비를 1개만 선택했을 때 사용할 수 있습니다.'}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold rounded-lg border transition-colors disabled:opacity-40 ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition-colors disabled:opacity-40 ${
                 editMode ? 'text-ds-tertiary bg-ds-tertiary/10 border-ds-tertiary/20' : 'text-ds-on-surface-variant bg-ds-surface-container-low border-ds-outline-variant/10 hover:text-ds-on-surface'
               }`}
             >
@@ -712,7 +712,7 @@ export function PoliciesPage() {
         }
       />
       {editMode && (
-        <p className="text-[12px] text-amber-600 -mt-2 shrink-0">
+        <p className="text-xs text-amber-600 -mt-2 shrink-0">
           편집모드에서 만든 변경사항은 CLI 텍스트로만 생성되며 실제 장비나 DB에는 반영되지 않습니다. 검토 후 직접 실행하세요.
         </p>
       )}
@@ -723,7 +723,7 @@ export function PoliciesPage() {
         <div className="flex items-center gap-2 px-4 py-2.5">
           <button
             onClick={() => setFiltersOpen(!filtersOpen)}
-            className={`flex items-center gap-1.5 text-[12px] font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${
+            className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${
               filtersOpen || hasConditions
                 ? 'text-ds-tertiary bg-ds-tertiary/10'
                 : 'text-ds-on-surface-variant bg-ds-surface-container-low hover:text-ds-tertiary border border-ds-outline-variant/10'
@@ -732,7 +732,7 @@ export function PoliciesPage() {
             <SlidersHorizontal className="w-3.5 h-3.5" />
             상세 검색
             {hasConditions && (
-              <span className="ml-1 bg-ds-tertiary text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">
+              <span className="ml-1 bg-ds-tertiary text-white rounded-full w-4 h-4 flex items-center justify-center text-10 font-bold">
                 {allConditions.filter(c => c.value.trim()).length}
               </span>
             )}
@@ -747,9 +747,9 @@ export function PoliciesPage() {
                   const opLabel = OP_LABELS[c.operator as keyof typeof OP_LABELS] ?? c.operator
                   const isNot = c.operator === 'not_equals' || c.operator === 'not_contains'
                   return (
-                    <span key={`${gi}-${ci}`} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold ${isNot ? 'bg-ds-error/10 text-ds-error' : 'bg-ds-tertiary/10 text-ds-tertiary'}`}>
+                    <span key={`${gi}-${ci}`} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-11 font-semibold ${isNot ? 'bg-ds-error/10 text-ds-error' : 'bg-ds-tertiary/10 text-ds-tertiary'}`}>
                       {gi > 0 && ci === 0 && (
-                        <span className="opacity-50 mr-0.5 text-[10px]">{filterTree[gi - 1].joinOperator}</span>
+                        <span className="opacity-50 mr-0.5 text-10">{filterTree[gi - 1].joinOperator}</span>
                       )}
                       {fieldLabel} <span className="opacity-60">{opLabel}</span> {c.value}
                     </span>
@@ -770,7 +770,7 @@ export function PoliciesPage() {
                     setPresetMenuPos(r ? { top: r.bottom + 4, right: window.innerWidth - r.right } : null)
                     setPresetDropdownOpen(o => !o)
                   }}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
                 >
                   <Bookmark className="w-3 h-3" /> 프리셋
                 </button>
@@ -783,7 +783,7 @@ export function PoliciesPage() {
                     >
                       {presets.map(p => (
                         <div key={p.name} className="flex items-center justify-between px-3 py-1.5 hover:bg-ds-surface-container-low gap-2">
-                          <button className="text-[12px] text-ds-on-surface truncate flex-1 text-left" onClick={() => { loadPreset(p); setPresetDropdownOpen(false) }}>{p.name}</button>
+                          <button className="text-xs text-ds-on-surface truncate flex-1 text-left" onClick={() => { loadPreset(p); setPresetDropdownOpen(false) }}>{p.name}</button>
                           <button className="text-ds-error hover:text-ds-error/70 shrink-0" onClick={() => deletePreset(p.name)}><X className="w-3 h-3" /></button>
                         </div>
                       ))}
@@ -795,7 +795,7 @@ export function PoliciesPage() {
             {hasConditions && !showPresetInput && (
               <button
                 onClick={() => setShowPresetInput(true)}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
               >
                 <BookmarkPlus className="w-3 h-3" /> 저장
               </button>
@@ -808,14 +808,14 @@ export function PoliciesPage() {
                   onChange={e => setPresetNameInput(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') savePreset(); if (e.key === 'Escape') setShowPresetInput(false) }}
                   placeholder="프리셋 이름"
-                  className="h-7 px-2 text-[12px] border border-ds-outline-variant/30 rounded-md focus:outline-none focus:border-ds-tertiary w-28"
+                  className="h-7 px-2 text-xs border border-ds-outline-variant/30 rounded-md focus:outline-none focus:border-ds-tertiary w-28"
                 />
-                <button onClick={savePreset} className="text-[12px] font-semibold text-ds-tertiary px-2 py-1 rounded hover:bg-ds-tertiary/10 transition-colors">저장</button>
-                <button onClick={() => setShowPresetInput(false)} className="text-[12px] text-ds-on-surface-variant px-1 py-1 rounded hover:bg-ds-surface-container-low transition-colors"><X className="w-3 h-3" /></button>
+                <button onClick={savePreset} className="text-xs font-semibold text-ds-tertiary px-2 py-1 rounded hover:bg-ds-tertiary/10 transition-colors">저장</button>
+                <button onClick={() => setShowPresetInput(false)} className="text-xs text-ds-on-surface-variant px-1 py-1 rounded hover:bg-ds-surface-container-low transition-colors"><X className="w-3 h-3" /></button>
               </div>
             )}
             {policies.length > 0 && (
-              <button onClick={handleExport} className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors">
+              <button onClick={handleExport} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors">
                 <Download className="w-3 h-3" /> Excel
               </button>
             )}
@@ -823,12 +823,12 @@ export function PoliciesPage() {
               <button
                 onClick={handleExportUsage}
                 title="자동 사용이력 수집이 실패했을 때, Deletion Workflow의 사용이력 반영 태스크에 그대로 업로드할 수 있는 형식(Rule Name / Unused Days)으로 내보냅니다."
-                className="flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
               >
                 <Download className="w-3 h-3" /> 사용이력
               </button>
             )}
-            <button onClick={handleReset} className="text-[12px] font-medium text-ds-on-surface-variant hover:text-ds-on-surface px-2.5 py-1.5 rounded-lg hover:bg-ds-surface-container-low transition-colors">
+            <button onClick={handleReset} className="text-xs font-medium text-ds-on-surface-variant hover:text-ds-on-surface px-2.5 py-1.5 rounded-lg hover:bg-ds-surface-container-low transition-colors">
               초기화
             </button>
             <Button
@@ -836,7 +836,7 @@ export function PoliciesPage() {
               size="auto"
               onClick={handleSearch}
               disabled={deviceIds.length === 0 || searchQuery.isFetching}
-              className="text-[12px] font-semibold px-4 py-1.5 rounded-lg"
+              className="text-xs font-semibold px-4 py-1.5 rounded-lg"
             >
               {searchQuery.isFetching ? '검색 중…' : '검색'}
             </Button>
@@ -846,7 +846,7 @@ export function PoliciesPage() {
         {/* 쿼리 빌더 패널 */}
         {filtersOpen && (
           <div className="border-t border-ds-outline-variant/10 bg-ds-surface-container-low/30 px-4 py-3">
-            <p className="text-[10px] text-ds-on-surface-variant mb-2">조건을 추가하고 검색하세요. AND/OR 토글로 조건을 결합하고, 그룹 추가로 괄호 묶음을 만들 수 있습니다.</p>
+            <p className="text-10 text-ds-on-surface-variant mb-2">조건을 추가하고 검색하세요. AND/OR 토글로 조건을 결합하고, 그룹 추가로 괄호 묶음을 만들 수 있습니다.</p>
             <QueryBuilder tree={filterTree} onTreeChange={setFilterTree} />
           </div>
         )}
@@ -889,12 +889,12 @@ export function PoliciesPage() {
             </div>
             <button
               onClick={handleApplyQuickFilter}
-              className="shrink-0 px-3 py-1.5 text-[12px] font-semibold rounded-lg bg-ds-surface-container text-ds-on-surface-variant hover:text-ds-on-surface border border-ds-outline-variant/15 transition-colors"
+              className="shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg bg-ds-surface-container text-ds-on-surface-variant hover:text-ds-on-surface border border-ds-outline-variant/15 transition-colors"
             >
               필터
             </button>
             {quickFilterText && (
-              <span className="text-[11px] text-ds-tertiary font-semibold shrink-0">"{quickFilterText}" 필터 중</span>
+              <span className="text-11 text-ds-tertiary font-semibold shrink-0">"{quickFilterText}" 필터 중</span>
             )}
           </div>
         )}
@@ -929,7 +929,7 @@ export function PoliciesPage() {
 
       {editMode && editDeviceId && (
         <div className="card rounded-xl px-4 py-3 flex items-center gap-3 shrink-0 sticky bottom-4 shadow-lg">
-          <span className="text-[13px] font-semibold text-ds-on-surface">
+          <span className="text-13 font-semibold text-ds-on-surface">
             대기중 변경사항: 생성 {pendingCounts.create} · 수정 {pendingCounts.modify} · 삭제 {pendingCounts.delete} · 이동 {pendingCounts.move}
           </span>
           <div className="flex items-center gap-2 ml-auto">
@@ -942,14 +942,14 @@ export function PoliciesPage() {
               onDelete={handleDeleteSelected}
             />
             {pendingChanges.length > 0 && (
-              <button onClick={handleClearPending} className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-on-surface-variant hover:text-ds-error transition-colors">
+              <button onClick={handleClearPending} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ds-on-surface-variant hover:text-ds-error transition-colors">
                 <RotateCcw className="w-3.5 h-3.5" /> 전체 취소
               </button>
             )}
             <button
               onClick={handleVerifyAgainstDevice}
               disabled={pendingChanges.length === 0 || verifyLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold text-ds-on-surface border border-ds-outline-variant/30 rounded-md disabled:opacity-50 hover:bg-ds-surface-container-low transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-13 font-semibold text-ds-on-surface border border-ds-outline-variant/30 rounded-md disabled:opacity-50 hover:bg-ds-surface-container-low transition-colors"
             >
               <ShieldCheck className="w-3.5 h-3.5" /> {verifyLoading ? '검증 중…' : '실제 장비 검증'}
             </button>
@@ -958,7 +958,7 @@ export function PoliciesPage() {
               size="auto"
               onClick={handleGenerateCli}
               disabled={pendingChanges.length === 0 || planLoading}
-              className="gap-1.5 px-4 py-1.5 text-[13px] font-bold rounded-md"
+              className="gap-1.5 px-4 py-1.5 text-13 font-bold rounded-md"
             >
               <Terminal className="w-3.5 h-3.5" /> {planLoading ? 'CLI 생성 중…' : 'CLI 생성'}
             </Button>

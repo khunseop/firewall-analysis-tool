@@ -51,7 +51,7 @@ function DiffTable({ entry }: { entry: PolicyHistoryEntry }) {
     const rows = Object.entries(after).filter(([k, v]) => !SKIP.has(k) && v !== null && v !== '')
     if (rows.length === 0) return <p className="text-xs text-gray-400">상세 정보 없음</p>
     return (
-      <table className="w-full text-[11px]">
+      <table className="w-full text-11">
         <tbody>
           {rows.map(([k, v]) => (
             <tr key={k} className="border-b border-gray-50">
@@ -68,7 +68,7 @@ function DiffTable({ entry }: { entry: PolicyHistoryEntry }) {
     const rows = Object.entries(before).filter(([k, v]) => !SKIP.has(k) && v !== null && v !== '')
     if (rows.length === 0) return <p className="text-xs text-gray-400">상세 정보 없음</p>
     return (
-      <table className="w-full text-[11px]">
+      <table className="w-full text-11">
         <tbody>
           {rows.map(([k, v]) => (
             <tr key={k} className="border-b border-gray-50">
@@ -90,9 +90,9 @@ function DiffTable({ entry }: { entry: PolicyHistoryEntry }) {
   })
   if (rows.length === 0) return <p className="text-xs text-gray-400">변경된 필드 없음</p>
   return (
-    <table className="w-full text-[11px]">
+    <table className="w-full text-11">
       <thead>
-        <tr className="text-[10px] text-gray-400 border-b border-gray-100">
+        <tr className="text-10 text-gray-400 border-b border-gray-100">
           <th className="pb-1 pr-3 text-left font-semibold w-32">필드</th>
           <th className="pb-1 pr-3 text-left font-semibold text-red-500">변경 전</th>
           <th className="pb-1 text-left font-semibold text-emerald-600">변경 후</th>
@@ -133,7 +133,7 @@ export function PolicyHistoryModal({ deviceId, ruleName, onClose }: PolicyHistor
           <DialogTitle className="text-base font-bold font-headline">
             변경 이력
           </DialogTitle>
-          <p className="text-[11px] font-mono text-ds-on-surface-variant mt-0.5">{ruleName}</p>
+          <p className="text-11 font-mono text-ds-on-surface-variant mt-0.5">{ruleName}</p>
         </DialogHeader>
 
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
@@ -157,10 +157,10 @@ export function PolicyHistoryModal({ deviceId, ruleName, onClose }: PolicyHistor
             return (
               <div key={log.id} className="border-l-2 border-ds-outline-variant/20 pl-4 space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${meta.bg} ${meta.color}`}>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-11 font-bold ${meta.bg} ${meta.color}`}>
                     {meta.label}
                   </span>
-                  <span className="text-[11px] text-ds-on-surface-variant">{date}</span>
+                  <span className="text-11 text-ds-on-surface-variant">{date}</span>
                 </div>
                 <DiffTable entry={log} />
               </div>

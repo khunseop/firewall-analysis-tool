@@ -21,7 +21,7 @@ export function BulkOptionsDialog({ open, onClose, count, initial, onSubmit }: {
         <DialogHeader>
           <DialogTitle className="font-headline text-ds-on-surface">수집 옵션 일괄 변경</DialogTitle>
         </DialogHeader>
-        <p className="text-[12px] text-ds-on-surface-variant">선택된 {count}개 장비에 동일하게 적용됩니다.</p>
+        <p className="text-xs text-ds-on-surface-variant">선택된 {count}개 장비에 동일하게 적용됩니다.</p>
         <div className="flex flex-col gap-3 py-2">
           <label className="flex items-center gap-2 text-sm cursor-pointer text-ds-on-surface-variant">
             <Checkbox checked={form.collect_last_hit_date} onCheckedChange={(v) => setForm(f => ({ ...f, collect_last_hit_date: !!v }))} />

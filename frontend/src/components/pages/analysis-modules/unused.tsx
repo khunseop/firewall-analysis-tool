@@ -11,7 +11,7 @@ export const unusedModule: QuickAnalysisModule = {
   description: '설정 기간 동안 트래픽이 발생하지 않은 정책을 탐지합니다.',
   renderParams: (ctx: QuickModuleParamsContext) => (
     <div className="space-y-1.5">
-      <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">미사용 기준 (일)</label>
+      <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">미사용 기준 (일)</label>
       <input
         type="number" min="1"
         value={String(ctx.values.days ?? '90')}

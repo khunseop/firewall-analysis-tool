@@ -21,7 +21,7 @@ export function MoveTargetPicker({ deviceId, value, onChange, deletedPolicyIds }
     <div className="space-y-2">
       <div className="flex items-center gap-3 flex-wrap">
         {POSITION_OPTIONS.map((opt) => (
-          <label key={opt.value} className="flex items-center gap-1.5 text-[13px] cursor-pointer">
+          <label key={opt.value} className="flex items-center gap-1.5 text-13 cursor-pointer">
             <input
               type="radio"
               name="move-position"
@@ -34,7 +34,7 @@ export function MoveTargetPicker({ deviceId, value, onChange, deletedPolicyIds }
       </div>
       {needsReference && (
         <div className="space-y-1">
-          <p className="text-[11px] text-ds-on-surface-variant">
+          <p className="text-11 text-ds-on-surface-variant">
             before = 기준 정책 바로 위로 · after = 기준 정책 바로 아래로
           </p>
           <PolicyGridPicker

@@ -10,6 +10,14 @@ export default {
         label: ['Inter', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
+      fontSize: {
+        // 앱 전역에서 쓰이던 임의값(text-[Npx])을 명명된 스케일로 치환.
+        // 값은 그대로 두고 line-height는 지정하지 않아(문자열 값) 기존 동작과 동일.
+        9: '9px',
+        10: '10px',
+        11: '11px',
+        13: '13px',
+      },
       colors: {
         // shadcn/ui CSS variable bridge (preserved for component compatibility)
         border: 'hsl(var(--border))',

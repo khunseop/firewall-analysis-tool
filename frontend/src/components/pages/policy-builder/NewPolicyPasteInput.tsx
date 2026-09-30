@@ -30,7 +30,7 @@ function MultiValueCell({ value }: { value: string }) {
   return (
     <span className="inline-flex items-center gap-1">
       <span className="truncate max-w-[220px] inline-block align-bottom">{value}</span>
-      {count > 1 && <span className="text-[10px] text-ds-on-surface-variant shrink-0">({count})</span>}
+      {count > 1 && <span className="text-10 text-ds-on-surface-variant shrink-0">({count})</span>}
     </span>
   )
 }
@@ -83,14 +83,14 @@ export function NewPolicyPasteInput({ rows, onChange }: {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[12px] text-ds-on-surface-variant">
+        <p className="text-xs text-ds-on-surface-variant">
           엑셀에서 첫 줄에 헤더(정책명/액션/비활성화/출발지존/출발지/사용자/목적지존/목적지/서비스/애플리케이션/설명/log_end/log_setting 등)를
           포함해 복사한 뒤 붙여넣으세요. 정책명이 비어 있는 행은 바로 위 정책의 연속(다중값 이어붙임)으로 처리됩니다.
         </p>
         <button
           type="button"
           onClick={handleCopyTemplate}
-          className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
+          className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
         >
           <Copy className="w-3.5 h-3.5" /> 템플릿 복사
         </button>
@@ -100,7 +100,7 @@ export function NewPolicyPasteInput({ rows, onChange }: {
         onChange={(e) => setText(e.target.value)}
         placeholder={TEMPLATE}
         rows={8}
-        className="font-mono text-[12px]"
+        className="font-mono text-xs"
       />
       <div className="flex items-center justify-between">
         <Button
@@ -114,16 +114,16 @@ export function NewPolicyPasteInput({ rows, onChange }: {
           파싱
         </Button>
         {unknownColumns.length > 0 && (
-          <span className="text-[12px] text-amber-600">알 수 없는 컬럼(무시됨): {unknownColumns.join(', ')}</span>
+          <span className="text-xs text-amber-600">알 수 없는 컬럼(무시됨): {unknownColumns.join(', ')}</span>
         )}
       </div>
 
       {skippedLines.length > 0 && (
         <div className="rounded-lg border border-ds-error/30 bg-ds-error/5 px-3 py-2 space-y-1">
-          <p className="flex items-center gap-1.5 text-[12px] font-semibold text-ds-error">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-ds-error">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> 파싱하지 못한 줄 {skippedLines.length}건 — 헤더 매핑이 어긋났거나 정책명 없이 단독으로 붙여넣힌 줄입니다.
           </p>
-          <ul className="text-[11px] text-ds-error/80 font-mono space-y-0.5 max-h-24 overflow-y-auto">
+          <ul className="text-11 text-ds-error/80 font-mono space-y-0.5 max-h-24 overflow-y-auto">
             {skippedLines.map((s) => (
               <li key={s.line} className="truncate">#{s.line}: {s.raw || '(빈 줄)'}</li>
             ))}
@@ -134,11 +134,11 @@ export function NewPolicyPasteInput({ rows, onChange }: {
       {rows.length > 0 && (
         <>
           <div className="flex items-center justify-between">
-            <span className="text-[12px] font-semibold text-ds-on-surface">파싱된 정책 {rows.length}건</span>
+            <span className="text-xs font-semibold text-ds-on-surface">파싱된 정책 {rows.length}건</span>
             <button
               type="button"
               onClick={handleCopyCounts}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
             >
               <ClipboardList className="w-3.5 h-3.5" /> 객체 수 복사
             </button>

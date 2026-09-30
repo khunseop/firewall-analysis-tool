@@ -43,7 +43,7 @@ function PageFallback() {
     <div className="flex h-full min-h-40 items-center justify-center">
       <div className="page-fallback-enter loading-pill ambient-shadow-md flex items-center gap-2.5 rounded-full px-4 py-2.5">
         <Spinner size="sm" />
-        <span className="text-[12px] font-semibold text-ds-on-surface-variant">페이지를 불러오는 중…</span>
+        <span className="text-xs font-semibold text-ds-on-surface-variant">페이지를 불러오는 중…</span>
       </div>
     </div>
   )

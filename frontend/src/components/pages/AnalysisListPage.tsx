@@ -151,12 +151,12 @@ function CreateAnalysisDialog({ open, onClose, initialDeviceId }: { open: boolea
 
         <div className="space-y-5 py-2">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">장비 *</label>
+            <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">장비 *</label>
             <DeviceSelectorSingle value={deviceId} onChange={setDeviceId} />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">분석 유형</label>
+            <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">분석 유형</label>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {SELECTABLE_MODULES.map((m) => {
                 const Icon = m.icon
@@ -178,8 +178,8 @@ function CreateAnalysisDialog({ open, onClose, initialDeviceId }: { open: boolea
                       </span>
                     )}
                     <Icon className={`w-4 h-4 mb-2 ${selected ? 'text-ds-primary' : 'text-ds-on-surface-variant'}`} />
-                    <p className={`text-[13px] font-semibold leading-tight mb-1 ${selected ? 'text-ds-primary' : 'text-ds-on-surface'}`}>{m.label}</p>
-                    <p className="text-[11px] text-ds-on-surface-variant/70 leading-snug">{m.description}</p>
+                    <p className={`text-13 font-semibold leading-tight mb-1 ${selected ? 'text-ds-primary' : 'text-ds-on-surface'}`}>{m.label}</p>
+                    <p className="text-11 text-ds-on-surface-variant/70 leading-snug">{m.description}</p>
                   </button>
                 )
               })}
@@ -391,7 +391,7 @@ export function AnalysisListPage() {
           <input
             value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
             placeholder="장비명 검색…"
-            className="flex-1 text-[13px] bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/50"
+            className="flex-1 text-13 bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/50"
           />
         </div>
         <ShadSelect value={typeFilter} onValueChange={setTypeFilter}>
@@ -417,7 +417,7 @@ export function AnalysisListPage() {
       {/* 목록 */}
       <div className="card rounded-xl overflow-hidden">
         {isLoading ? (
-          <div className="py-16 text-center text-[13px] text-ds-on-surface-variant">로딩 중…</div>
+          <div className="py-16 text-center text-13 text-ds-on-surface-variant">로딩 중…</div>
         ) : rows.length === 0 ? (
           <EmptyState title="실행된 분석이 없습니다." />
         ) : (
@@ -445,10 +445,10 @@ export function AnalysisListPage() {
                       화면상 순번(페이지 오프셋 포함)을 대신 표시해 항상 정렬된 것처럼 보이게 한다. */}
                   <td className="py-2.5 px-4 text-ds-on-surface-variant text-xs">{(page - 1) * PAGE_SIZE + idx + 1}</td>
                   <td className="py-2.5 px-4">
-                    <div className="font-medium text-ds-on-surface text-[13px]">{row.deviceName}</div>
-                    <div className="text-[11px] text-ds-on-surface-variant">{row.deviceIp}</div>
+                    <div className="font-medium text-ds-on-surface text-13">{row.deviceName}</div>
+                    <div className="text-11 text-ds-on-surface-variant">{row.deviceIp}</div>
                   </td>
-                  <td className="py-2.5 px-4 text-[13px] text-ds-on-surface">{row.label}</td>
+                  <td className="py-2.5 px-4 text-13 text-ds-on-surface">{row.label}</td>
                   <td className="py-2.5 px-4"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${row.statusCls}`}>{row.statusLabel}</span></td>
                   <td className="py-2.5 px-4 text-ds-on-surface-variant text-xs">{formatDate(row.timestamp)}</td>
                   <td className="py-2.5 px-4 text-ds-on-surface-variant text-xs">
@@ -481,7 +481,7 @@ export function AnalysisListPage() {
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="text-[12px] text-ds-on-surface-variant tabular-nums">{page} / {totalPages} 페이지 (총 {total.toLocaleString()}건)</span>
+          <span className="text-xs text-ds-on-surface-variant tabular-nums">{page} / {totalPages} 페이지 (총 {total.toLocaleString()}건)</span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}

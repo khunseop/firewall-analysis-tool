@@ -79,7 +79,7 @@ export function PolicyDefaultsSettings() {
       <div className="grid grid-cols-2 gap-3 max-w-2xl">
         {FIELD_LABELS.map(({ key, label }) => (
           <div key={key} className="space-y-1">
-            <label className="text-[11px] font-semibold text-ds-on-surface-variant">{label}</label>
+            <label className="text-11 font-semibold text-ds-on-surface-variant">{label}</label>
             <input
               value={values[key]}
               onChange={(e) => update(key, e.target.value)}
@@ -95,12 +95,12 @@ export function PolicyDefaultsSettings() {
           size="auto"
           onClick={() => saveMutation.mutate()}
           disabled={!dirty || saveMutation.isPending}
-          className="gap-1.5 px-3 py-1.5 text-[13px] font-semibold rounded-lg"
+          className="gap-1.5 px-3 py-1.5 text-13 font-semibold rounded-lg"
         >
           <Save className="w-3.5 h-3.5" />
           저장
         </Button>
-        {dirty && <span className="text-[11px] text-amber-600 font-semibold">저장되지 않은 변경사항이 있습니다</span>}
+        {dirty && <span className="text-11 text-amber-600 font-semibold">저장되지 않은 변경사항이 있습니다</span>}
       </div>
     </div>
   )

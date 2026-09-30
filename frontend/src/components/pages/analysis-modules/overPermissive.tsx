@@ -13,7 +13,7 @@ export const overPermissiveModule: QuickAnalysisModule = {
   description: '출발지·목적지·서비스 범위가 과도하게 넓게 설정된 정책을 탐지합니다.',
   renderParams: (ctx: QuickModuleParamsContext) => (
     <div className="space-y-1.5">
-      <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">분석 대상 정책 (미선택 시 전체)</label>
+      <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">분석 대상 정책 (미선택 시 전체)</label>
       <PolicyMultiSelect
         deviceId={ctx.deviceId}
         value={(ctx.values.targetPolicyIds as number[] | undefined) ?? []}

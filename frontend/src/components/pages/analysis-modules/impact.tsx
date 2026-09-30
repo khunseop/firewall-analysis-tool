@@ -26,7 +26,7 @@ export const impactModule: QuickAnalysisModule = {
     return (
       <div className="space-y-5">
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">이동할 정책 *</label>
+          <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">이동할 정책 *</label>
           <PolicyGridPicker
             mode="multi" deviceId={ctx.deviceId} value={targetPolicyIds}
             onChange={(ids) => ctx.setValue('targetPolicyIds', ids)}
@@ -35,19 +35,19 @@ export const impactModule: QuickAnalysisModule = {
         </div>
         <div className="space-y-3 max-w-md">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">기준 정책 *</label>
+            <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">기준 정책 *</label>
             <PolicyGridPicker
               mode="single" deviceId={moveToEnd ? null : ctx.deviceId} value={referencePolicyId}
               onChange={(id) => ctx.setValue('referencePolicyId', id)}
               placeholder="기준 정책을 선택하세요…"
             />
-            <label className="flex items-center gap-2 text-[12px] text-ds-on-surface-variant cursor-pointer pt-0.5">
+            <label className="flex items-center gap-2 text-xs text-ds-on-surface-variant cursor-pointer pt-0.5">
               <Checkbox checked={moveToEnd} onCheckedChange={(v) => ctx.setValue('moveToEnd', !!v)} />
               맨 아래로 이동
             </label>
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">이동 방향</label>
+            <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">이동 방향</label>
             <ShadSelect value={moveDirection} onValueChange={(v) => ctx.setValue('moveDirection', v)} disabled={moveToEnd}>
               <SelectTrigger className="bg-ds-surface-container-low border-ds-outline-variant/30 text-sm">
                 <SelectValue placeholder="이동 방향 선택" />
@@ -102,7 +102,7 @@ export const impactModule: QuickAnalysisModule = {
       cellRenderer: (p: { data?: Record<string, unknown> }) => {
         if (p.data?.impact_type !== '최대 안전 이동 위치') return null
         return (
-          <button className="text-ds-primary underline-offset-2 hover:underline text-[12px]" onClick={() => onPreviewClick(p.data!)}>
+          <button className="text-ds-primary underline-offset-2 hover:underline text-xs" onClick={() => onPreviewClick(p.data!)}>
             순서 보기
           </button>
         )

@@ -61,13 +61,13 @@ export function NewPolicyFormModal({ deviceId, onClose, onCreated }: {
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-ds-on-surface-variant">정책명 *</label>
-              <Input value={row.rule_name} onChange={(e) => update({ rule_name: e.target.value })} className="h-8 text-[12px]" />
+              <label className="text-11 font-semibold text-ds-on-surface-variant">정책명 *</label>
+              <Input value={row.rule_name} onChange={(e) => update({ rule_name: e.target.value })} className="h-8 text-xs" />
             </div>
             <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-ds-on-surface-variant">액션</label>
+              <label className="text-11 font-semibold text-ds-on-surface-variant">액션</label>
               <Select value={row.rule_action} onValueChange={(v) => update({ rule_action: v })}>
-                <SelectTrigger className="h-8 text-[12px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="allow">allow</SelectItem>
                   <SelectItem value="deny">deny</SelectItem>
@@ -80,20 +80,20 @@ export function NewPolicyFormModal({ deviceId, onClose, onCreated }: {
           <div className="grid grid-cols-2 gap-3">
             {FIELD_LABELS.map(({ key, label, placeholder }) => (
               <div key={key} className="space-y-1">
-                <label className="text-[11px] font-semibold text-ds-on-surface-variant">{label}</label>
+                <label className="text-11 font-semibold text-ds-on-surface-variant">{label}</label>
                 <Input
                   value={row[key] as string}
                   onChange={(e) => update({ [key]: e.target.value })}
                   placeholder={placeholder}
-                  className="h-8 text-[12px] font-mono"
+                  className="h-8 text-xs font-mono"
                 />
               </div>
             ))}
           </div>
 
           <div className="space-y-1">
-            <label className="text-[11px] font-semibold text-ds-on-surface-variant">설명</label>
-            <Input value={row.description} onChange={(e) => update({ description: e.target.value })} className="h-8 text-[12px]" />
+            <label className="text-11 font-semibold text-ds-on-surface-variant">설명</label>
+            <Input value={row.description} onChange={(e) => update({ description: e.target.value })} className="h-8 text-xs" />
           </div>
 
           <ObjectGapPanel deviceId={deviceId} rows={canSubmit ? [row] : []} newObjects={newObjects} onChange={setNewObjects} />

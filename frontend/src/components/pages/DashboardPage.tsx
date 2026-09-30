@@ -71,13 +71,13 @@ function transformDeviceStats(d: DeviceStats): DeviceRow {
 }
 
 function CapacityCell({ usage, threshold }: { usage: number | null; threshold: number | null }) {
-  if (usage == null && threshold == null) return <span className="text-[12px] text-ds-on-surface-variant/40">—</span>
+  if (usage == null && threshold == null) return <span className="text-xs text-ds-on-surface-variant/40">—</span>
   const level = capacityLevel(usage, threshold)
   const pct = usage != null && threshold != null && threshold > 0 ? Math.round((usage / threshold) * 100) : 0
   const barPct = Math.min(100, pct)
   return (
     <div className="flex flex-col justify-center gap-0.5 py-1">
-      <span className={`text-[11px] font-semibold tabular-nums ${CAPACITY_LEVEL_TEXT_COLOR[level]}`}>
+      <span className={`text-11 font-semibold tabular-nums ${CAPACITY_LEVEL_TEXT_COLOR[level]}`}>
         {usage != null ? `${usage}개` : '—'} / {threshold != null ? `${threshold}개` : '—'}
         {threshold != null && usage != null && ` (${pct}%)`}
       </span>
@@ -112,9 +112,9 @@ const COLUMN_DEFS: ColDef<DeviceRow>[] = [
     field: 'name', headerName: '장비명', flex: 1, minWidth: 140,
     cellRenderer: (p: { data: DeviceRow }) => (
       <div className="flex flex-col justify-center leading-tight">
-        <span className="text-[12px] font-semibold text-ds-on-surface">{p.data.name}</span>
+        <span className="text-xs font-semibold text-ds-on-surface">{p.data.name}</span>
         {p.data.ip_address && (
-          <span className="text-[10px] text-ds-on-surface-variant/60 font-mono mt-0.5">{p.data.ip_address}</span>
+          <span className="text-10 text-ds-on-surface-variant/60 font-mono mt-0.5">{p.data.ip_address}</span>
         )}
       </div>
     ),
@@ -124,7 +124,7 @@ const COLUMN_DEFS: ColDef<DeviceRow>[] = [
     cellRenderer: (p: { value: string }) => {
       const cls = VENDOR_BADGE[p.value?.toLowerCase()] ?? 'bg-gray-50 text-gray-500 border border-gray-100'
       return (
-        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${cls}`}>
+        <span className={`inline-flex px-2 py-0.5 rounded text-10 font-bold uppercase tracking-wide ${cls}`}>
           {VENDOR_LABELS[p.value?.toLowerCase()] ?? p.value}
         </span>
       )
@@ -326,7 +326,7 @@ export function DashboardPage() {
             variant="subtle"
             size="auto"
             onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats })}
-            className="gap-1.5 px-3 py-1.5 text-[13px] font-medium rounded-lg"
+            className="gap-1.5 px-3 py-1.5 text-13 font-medium rounded-lg"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             갱신
@@ -340,10 +340,10 @@ export function DashboardPage() {
           <div className="flex items-center gap-3">
             <AlertTriangle className="w-4 h-4 text-ds-error shrink-0" />
             <div>
-              <p className="text-[13px] font-semibold text-ds-error">
+              <p className="text-13 font-semibold text-ds-error">
                 {errorDevices.length}개 장비 동기화 오류
               </p>
-              <p className="text-[11px] text-ds-error/60 mt-0.5">
+              <p className="text-11 text-ds-error/60 mt-0.5">
                 {errorDevices.map(d => d.name).join(', ')}
               </p>
             </div>
@@ -352,7 +352,7 @@ export function DashboardPage() {
             variant="destructive"
             size="auto"
             onClick={() => navigate('/devices')}
-            className="px-3 py-1.5 text-[12px] font-semibold rounded-lg shrink-0"
+            className="px-3 py-1.5 text-xs font-semibold rounded-lg shrink-0"
           >
             장비 확인
           </Button>
@@ -365,16 +365,16 @@ export function DashboardPage() {
           <div className="flex items-center justify-between px-5 py-3 border-b border-ds-outline-variant/10">
             <div className="flex items-center gap-2">
               <Gauge className={`w-4 h-4 shrink-0 ${hasDangerCapacity ? 'text-ds-error' : 'text-amber-600'}`} />
-              <span className={`text-[13px] font-semibold ${hasDangerCapacity ? 'text-ds-error' : 'text-amber-700'}`}>
+              <span className={`text-13 font-semibold ${hasDangerCapacity ? 'text-ds-error' : 'text-amber-700'}`}>
                 임계치 80% 이상 사용 중인 장비
               </span>
-              <span className="text-[11px] text-ds-on-surface-variant/50 tabular-nums">{highCapacityDevices.length}대</span>
+              <span className="text-11 text-ds-on-surface-variant/50 tabular-nums">{highCapacityDevices.length}대</span>
             </div>
             <Button
               variant="secondary"
               size="auto"
               onClick={() => navigate('/devices')}
-              className="px-3 py-1.5 text-[12px] font-semibold rounded-lg shrink-0 hover:bg-ds-surface-container-high"
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg shrink-0 hover:bg-ds-surface-container-high"
             >
               장비 확인
             </Button>
@@ -382,12 +382,12 @@ export function DashboardPage() {
           <div className="divide-y divide-ds-outline-variant/10">
             {highCapacityDevices.map(({ device, metrics }) => (
               <div key={device.id} className="flex items-center justify-between gap-3 px-5 py-2.5">
-                <span className="text-[12px] font-semibold text-ds-on-surface shrink-0">{device.name}</span>
+                <span className="text-xs font-semibold text-ds-on-surface shrink-0">{device.name}</span>
                 <div className="flex items-center gap-2 flex-wrap justify-end">
                   {metrics.map(m => (
                     <span
                       key={m.label}
-                      className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold border ${
+                      className={`inline-flex px-2 py-0.5 rounded text-10 font-bold border ${
                         m.level === 'danger'
                           ? 'bg-red-50 text-ds-error border-red-100'
                           : 'bg-amber-50 text-amber-700 border-amber-100'
@@ -406,7 +406,7 @@ export function DashboardPage() {
       {/* KPI */}
       <div className="shrink-0 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
         <div className="card rounded-xl px-4 py-3.5">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-ds-on-surface-variant/60">장비</p>
+          <p className="text-10 font-semibold uppercase tracking-widest text-ds-on-surface-variant/60">장비</p>
           <p className="text-2xl font-bold tabular-nums text-ds-on-surface mt-1.5">
             {isLoading ? '…' : formatNumber(totalDevices)}
           </p>
@@ -414,13 +414,13 @@ export function DashboardPage() {
             <div className="flex-1 h-1 bg-ds-surface-container-high rounded-full overflow-hidden">
               <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${syncPct}%` }} />
             </div>
-            <span className="text-[10px] font-semibold tabular-nums text-ds-on-surface-variant">{syncPct}%</span>
+            <span className="text-10 font-semibold tabular-nums text-ds-on-surface-variant">{syncPct}%</span>
           </div>
-          <p className="text-[10px] text-ds-on-surface-variant/60 mt-1">{successDevices}대 동기화 완료</p>
+          <p className="text-10 text-ds-on-surface-variant/60 mt-1">{successDevices}대 동기화 완료</p>
         </div>
 
         <div className="card rounded-xl px-4 py-3.5">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-ds-on-surface-variant/60">정책</p>
+          <p className="text-10 font-semibold uppercase tracking-widest text-ds-on-surface-variant/60">정책</p>
           <p className="text-2xl font-bold tabular-nums text-ds-on-surface mt-1.5">
             {isLoading ? '…' : formatNumber(totalPolicies)}
           </p>
@@ -428,9 +428,9 @@ export function DashboardPage() {
             <div className="flex-1 h-1 bg-ds-surface-container-high rounded-full overflow-hidden">
               <div className="h-full bg-ds-tertiary rounded-full" style={{ width: `${activePct}%` }} />
             </div>
-            <span className="text-[10px] font-semibold tabular-nums text-ds-on-surface-variant">{activePct}%</span>
+            <span className="text-10 font-semibold tabular-nums text-ds-on-surface-variant">{activePct}%</span>
           </div>
-          <p className="text-[10px] text-ds-on-surface-variant/60 mt-1">{formatNumber(activePolicies)}개 활성</p>
+          <p className="text-10 text-ds-on-surface-variant/60 mt-1">{formatNumber(activePolicies)}개 활성</p>
         </div>
 
         {[
@@ -440,7 +440,7 @@ export function DashboardPage() {
           { label: '서비스 그룹',  value: stats?.total_service_groups ?? 0 },
         ].map((s) => (
           <div key={s.label} className="card rounded-xl px-4 py-3.5">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-ds-on-surface-variant/60">{s.label}</p>
+            <p className="text-10 font-semibold uppercase tracking-widest text-ds-on-surface-variant/60">{s.label}</p>
             <p className="text-2xl font-bold tabular-nums text-ds-on-surface mt-1.5">
               {isLoading ? '…' : formatNumber(s.value)}
             </p>
@@ -452,8 +452,8 @@ export function DashboardPage() {
       {chartData.categories.length > 0 && (
         <div className="card rounded-xl shrink-0">
           <div className="px-5 py-3 border-b border-ds-outline-variant/10">
-            <span className="text-[13px] font-semibold text-ds-on-surface">주간 정책 변경 추이</span>
-            <span className="text-[11px] text-ds-on-surface-variant/60 ml-2">최근 12주</span>
+            <span className="text-13 font-semibold text-ds-on-surface">주간 정책 변경 추이</span>
+            <span className="text-11 text-ds-on-surface-variant/60 ml-2">최근 12주</span>
           </div>
           <div className="px-4 py-3">
             <ReactApexChart
@@ -470,8 +470,8 @@ export function DashboardPage() {
       <div className="card rounded-xl shrink-0">
         <div className="flex items-center justify-between gap-3 flex-wrap px-5 py-3 border-b border-ds-outline-variant/10">
           <div>
-            <span className="text-[13px] font-semibold text-ds-on-surface">장비별 객체 증감 추이</span>
-            <span className="text-[11px] text-ds-on-surface-variant/60 ml-2">최근 12주</span>
+            <span className="text-13 font-semibold text-ds-on-surface">장비별 객체 증감 추이</span>
+            <span className="text-11 text-ds-on-surface-variant/60 ml-2">최근 12주</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-52">
@@ -482,7 +482,7 @@ export function DashboardPage() {
                 <button
                   key={opt.value}
                   onClick={() => setTrendCategory(opt.value)}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+                  className={`px-2.5 py-1 rounded-md text-11 font-semibold transition-colors ${
                     trendCategory === opt.value
                       ? 'bg-white text-ds-on-surface shadow-sm'
                       : 'text-ds-on-surface-variant hover:text-ds-on-surface'
@@ -496,9 +496,9 @@ export function DashboardPage() {
         </div>
         <div className="px-4 py-3">
           {trendDeviceId == null ? (
-            <p className="text-[12px] text-ds-on-surface-variant/60 text-center py-10">장비를 선택하면 추이를 확인할 수 있습니다.</p>
+            <p className="text-xs text-ds-on-surface-variant/60 text-center py-10">장비를 선택하면 추이를 확인할 수 있습니다.</p>
           ) : trendChartData.categories.length === 0 ? (
-            <p className="text-[12px] text-ds-on-surface-variant/60 text-center py-10">최근 12주간 동기화 이력이 없습니다.</p>
+            <p className="text-xs text-ds-on-surface-variant/60 text-center py-10">최근 12주간 동기화 이력이 없습니다.</p>
           ) : (
             <ReactApexChart
               type="line"
@@ -514,9 +514,9 @@ export function DashboardPage() {
       <div className="card rounded-xl flex flex-col overflow-hidden">
         <div className="shrink-0 flex items-center justify-between px-5 py-3">
           <div className="flex items-center gap-3">
-            <span className="text-[13px] font-semibold text-ds-on-surface">장비 현황</span>
+            <span className="text-13 font-semibold text-ds-on-surface">장비 현황</span>
             {rowData.length > 0 && (
-              <span className="text-[11px] text-ds-on-surface-variant/50 tabular-nums">{rowData.length}대</span>
+              <span className="text-11 text-ds-on-surface-variant/50 tabular-nums">{rowData.length}대</span>
             )}
           </div>
           <div className="flex items-center gap-3">
@@ -526,7 +526,7 @@ export function DashboardPage() {
                 value={gridSearch}
                 onChange={(e) => handleGridSearchChange(e.target.value)}
                 placeholder="장비명, IP 검색"
-                className="text-[12px] bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/40 w-36"
+                className="text-xs bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/40 w-36"
               />
               {gridSearch && (
                 <button onClick={() => handleGridSearchChange('')}>

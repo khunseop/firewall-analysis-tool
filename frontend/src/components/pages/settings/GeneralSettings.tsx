@@ -40,20 +40,20 @@ export function GeneralSettings() {
     <div className="space-y-3">
       {generalSettings.map((s) => (
         <div key={s.key} className="bg-ds-surface-container-low/50 rounded-lg border border-ds-outline-variant/8 px-4 py-3.5">
-          <p className="text-[12px] font-semibold text-ds-on-surface">{s.key}</p>
-          {s.description && <p className="text-[11px] text-ds-on-surface-variant/70 mt-0.5 mb-3">{s.description}</p>}
+          <p className="text-xs font-semibold text-ds-on-surface">{s.key}</p>
+          {s.description && <p className="text-11 text-ds-on-surface-variant/70 mt-0.5 mb-3">{s.description}</p>}
           <div className="flex gap-2 mt-2">
             <input
               value={values[s.key] ?? ''}
               onChange={(e) => setValues((prev) => ({ ...prev, [s.key]: e.target.value }))}
-              className="flex-1 max-w-sm h-8 px-3 text-[12px] bg-white border border-ds-outline-variant/30 rounded-lg focus:outline-none focus:border-ds-tertiary"
+              className="flex-1 max-w-sm h-8 px-3 text-xs bg-white border border-ds-outline-variant/30 rounded-lg focus:outline-none focus:border-ds-tertiary"
             />
             <Button
               variant="gradient"
               size="auto"
               onClick={() => updateMutation.mutate({ key: s.key, value: values[s.key] ?? '' })}
               disabled={updateMutation.isPending}
-              className="gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-lg"
+              className="gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg"
             >
               <Save className="w-3 h-3" />
               저장

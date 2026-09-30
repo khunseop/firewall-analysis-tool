@@ -63,7 +63,7 @@ export function GroupedDeviceMultiSelect({ devices, value, onChange }: GroupedDe
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="장비 검색…"
-          className="flex-1 text-[12px] bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/50 min-w-0"
+          className="flex-1 text-xs bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/50 min-w-0"
         />
         {search && (
           <button type="button" onClick={() => setSearch('')} className="shrink-0">
@@ -74,7 +74,7 @@ export function GroupedDeviceMultiSelect({ devices, value, onChange }: GroupedDe
 
       <div className="max-h-[200px] overflow-y-auto px-2 py-1.5">
         {filtered.length === 0 ? (
-          <p className="text-[11px] text-ds-on-surface-variant text-center py-3 italic">
+          <p className="text-11 text-ds-on-surface-variant text-center py-3 italic">
             {devices.length === 0 ? '장비가 없습니다' : '검색 결과 없음'}
           </p>
         ) : (
@@ -84,11 +84,11 @@ export function GroupedDeviceMultiSelect({ devices, value, onChange }: GroupedDe
             return (
               <div key={groupName} className="mb-1.5 last:mb-0">
                 <div className="flex items-center justify-between px-1 py-0.5">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-ds-on-surface-variant/50">{groupName}</span>
+                  <span className="text-9 font-bold uppercase tracking-widest text-ds-on-surface-variant/50">{groupName}</span>
                   <button
                     type="button"
                     onClick={() => toggleGroup(groupDevices)}
-                    className="text-[9px] font-semibold text-ds-tertiary hover:underline"
+                    className="text-9 font-semibold text-ds-tertiary hover:underline"
                   >
                     {groupAllSelected ? '그룹 해제' : '그룹 선택'}
                   </button>
@@ -101,7 +101,7 @@ export function GroupedDeviceMultiSelect({ devices, value, onChange }: GroupedDe
                       type="button"
                       onClick={() => toggle(d.id)}
                       className={cn(
-                        'w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors text-[11px]',
+                        'w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors text-11',
                         selected
                           ? 'bg-ds-tertiary/8 text-ds-tertiary'
                           : 'text-ds-on-surface-variant hover:bg-ds-surface-container-high hover:text-ds-on-surface'
@@ -125,13 +125,13 @@ export function GroupedDeviceMultiSelect({ devices, value, onChange }: GroupedDe
       </div>
 
       <div className="flex items-center gap-1 px-2 pb-2 pt-1 border-t border-ds-outline-variant/10">
-        <span className="flex-1 text-[10px] text-ds-on-surface-variant px-1">
+        <span className="flex-1 text-10 text-ds-on-surface-variant px-1">
           {value.length > 0 ? `${value.length}개 선택됨` : '선택된 장비 없음'}
         </span>
         <button
           type="button"
           onClick={() => onChange(isAllSelected ? [] : allIds)}
-          className="text-[10px] font-semibold text-ds-on-surface-variant hover:text-ds-tertiary transition-colors py-1 px-2 rounded hover:bg-ds-tertiary/5"
+          className="text-10 font-semibold text-ds-on-surface-variant hover:text-ds-tertiary transition-colors py-1 px-2 rounded hover:bg-ds-tertiary/5"
         >
           {isAllSelected ? '전체 해제' : '전체 선택'}
         </button>

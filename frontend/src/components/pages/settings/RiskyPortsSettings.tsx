@@ -55,9 +55,9 @@ export function RiskyPortsSettings() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-ds-outline-variant/8 bg-ds-surface-container-low/30">
-              <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-28">프로토콜</th>
-              <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-36">포트</th>
-              <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">설명</th>
+              <th className="px-4 py-2.5 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-28">프로토콜</th>
+              <th className="px-4 py-2.5 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-36">포트</th>
+              <th className="px-4 py-2.5 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">설명</th>
               <th className="px-4 py-2.5 w-12"></th>
             </tr>
           </thead>
@@ -108,7 +108,7 @@ export function RiskyPortsSettings() {
       <div className="flex items-center gap-2">
         <button
           onClick={addRow}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ds-tertiary bg-ds-tertiary/10 rounded-lg border border-ds-tertiary/20 hover:bg-ds-tertiary/15 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ds-tertiary bg-ds-tertiary/10 rounded-lg border border-ds-tertiary/20 hover:bg-ds-tertiary/15 transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
           포트 추가
@@ -118,12 +118,12 @@ export function RiskyPortsSettings() {
           size="auto"
           onClick={() => saveMutation.mutate()}
           disabled={!dirty || saveMutation.isPending}
-          className="gap-1.5 px-3 py-1.5 text-[13px] font-semibold rounded-lg"
+          className="gap-1.5 px-3 py-1.5 text-13 font-semibold rounded-lg"
         >
           <Save className="w-3.5 h-3.5" />
           저장
         </Button>
-        {dirty && <span className="text-[11px] text-amber-600 font-semibold">저장되지 않은 변경사항이 있습니다</span>}
+        {dirty && <span className="text-11 text-amber-600 font-semibold">저장되지 않은 변경사항이 있습니다</span>}
       </div>
     </div>
   )

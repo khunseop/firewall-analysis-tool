@@ -51,7 +51,7 @@ export function CreatePolicyModal({ deviceId, onClose, onCreated }: {
         <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
           <NewPolicyPasteInput rows={rows} onChange={setRows} />
           <ObjectGapPanel deviceId={deviceId} rows={rows} newObjects={newObjects} onChange={setNewObjects} />
-          <p className="text-[12px] text-ds-on-surface-variant">
+          <p className="text-xs text-ds-on-surface-variant">
             생성된 정책은 일단 최하단에 추가됩니다. 배치 위치는 추가 후 그리드에서 행을 선택해 "선택 이동"으로 지정하세요.
           </p>
         </div>

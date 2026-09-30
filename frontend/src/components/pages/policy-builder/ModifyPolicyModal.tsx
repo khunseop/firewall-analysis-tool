@@ -121,7 +121,7 @@ export function ModifyPolicyModal({ deviceId, onClose, onApplied }: {
         </DialogHeader>
 
         <div className="space-y-3">
-          <p className="text-[12px] text-ds-on-surface-variant">
+          <p className="text-xs text-ds-on-surface-variant">
             첫 줄에 헤더(정책명/필드/동작/값)를 포함해 붙여넣으세요. 필드는 {FIELD_OPTIONS.map((f) => f.label).join(', ')} 중 하나,
             동작은 "추가" 또는 "삭제", 값은 콤마로 여러 개 입력할 수 있습니다(삭제는 값 1개당 별도 delete 명령으로 자동 분리됩니다).
             개별 건만 추가하려면 1줄만 붙여넣으면 됩니다.
@@ -131,7 +131,7 @@ export function ModifyPolicyModal({ deviceId, onClose, onApplied }: {
             onChange={(e) => setText(e.target.value)}
             placeholder={`${SAMPLE_HEADER}\nRule_1\t출발지\t추가\t10.0.0.5,10.0.0.6\nRule_2\t서비스\t삭제\tSvc_8080`}
             rows={6}
-            className="font-mono text-[12px]"
+            className="font-mono text-xs"
           />
           <Button
             type="button"
@@ -165,9 +165,9 @@ export function ModifyPolicyModal({ deviceId, onClose, onApplied }: {
                       <TableCell className="max-w-[220px] truncate">{row.values.join(', ')}</TableCell>
                       <TableCell>
                         {row.error ? (
-                          <span className="flex items-center gap-1 text-[11px] text-ds-error"><AlertTriangle className="w-3 h-3" />{row.error}</span>
+                          <span className="flex items-center gap-1 text-11 text-ds-error"><AlertTriangle className="w-3 h-3" />{row.error}</span>
                         ) : (
-                          <span className="text-[11px] text-emerald-600">확인됨</span>
+                          <span className="text-11 text-emerald-600">확인됨</span>
                         )}
                       </TableCell>
                     </TableRow>
@@ -177,7 +177,7 @@ export function ModifyPolicyModal({ deviceId, onClose, onApplied }: {
             </div>
           )}
           {errorRows.length > 0 && (
-            <p className="text-[12px] text-ds-error">오류가 있는 {errorRows.length}건은 제외하고 나머지만 적용됩니다.</p>
+            <p className="text-xs text-ds-error">오류가 있는 {errorRows.length}건은 제외하고 나머지만 적용됩니다.</p>
           )}
           <ObjectGapPanel deviceId={deviceId} rows={gapRows} newObjects={newObjects} onChange={setNewObjects} />
         </div>

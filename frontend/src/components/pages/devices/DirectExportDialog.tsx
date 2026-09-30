@@ -102,11 +102,11 @@ export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
         <DialogHeader>
           <DialogTitle className="font-headline text-ds-on-surface">직접 추출</DialogTitle>
         </DialogHeader>
-        <p className="text-[12px] text-ds-on-surface-variant">
+        <p className="text-xs text-ds-on-surface-variant">
           {devices.length === 1
             ? <>
                 <span className="font-semibold text-ds-on-surface">{devices[0].name}</span>
-                {devices[0].ha_peer_ip && <span className="ml-1.5 text-[10px] text-ds-tertiary font-semibold">HA</span>}
+                {devices[0].ha_peer_ip && <span className="ml-1.5 text-10 text-ds-tertiary font-semibold">HA</span>}
               </>
             : <><span className="font-semibold text-ds-on-surface">{devices.length}개 장비</span>에서 백그라운드로 추출</>
           }
@@ -121,25 +121,25 @@ export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
             >
               <span className={`mt-0.5 w-3.5 h-3.5 rounded-full border-2 shrink-0 ${exportType === type ? 'border-ds-primary bg-ds-primary' : 'border-ds-outline-variant'}`} />
               <span>
-                <span className="text-[13px] font-semibold text-ds-on-surface">{label}</span>
-                <span className="block text-[11px] text-ds-on-surface-variant mt-0.5">{desc}</span>
+                <span className="text-13 font-semibold text-ds-on-surface">{label}</span>
+                <span className="block text-11 text-ds-on-surface-variant mt-0.5">{desc}</span>
               </span>
             </button>
           ))}
         </div>
 
         <div className="flex items-center gap-2 px-1">
-          <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary shrink-0">추출 방식</Label>
+          <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary shrink-0">추출 방식</Label>
           <div className="flex gap-1.5">
             <button
               type="button" onClick={() => setSource('live')}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors ${source === 'live' ? 'border-ds-primary bg-ds-primary/5 text-ds-primary' : 'border-ds-outline-variant/30 text-ds-on-surface-variant hover:bg-ds-surface-container-low'}`}
+              className={`px-2.5 py-1 rounded-md text-11 font-semibold border transition-colors ${source === 'live' ? 'border-ds-primary bg-ds-primary/5 text-ds-primary' : 'border-ds-outline-variant/30 text-ds-on-surface-variant hover:bg-ds-surface-container-low'}`}
             >
               실시간(장비 접속)
             </button>
             <button
               type="button" onClick={() => setSource('db')}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors ${source === 'db' ? 'border-ds-primary bg-ds-primary/5 text-ds-primary' : 'border-ds-outline-variant/30 text-ds-on-surface-variant hover:bg-ds-surface-container-low'}`}
+              className={`px-2.5 py-1 rounded-md text-11 font-semibold border transition-colors ${source === 'db' ? 'border-ds-primary bg-ds-primary/5 text-ds-primary' : 'border-ds-outline-variant/30 text-ds-on-surface-variant hover:bg-ds-surface-container-low'}`}
             >
               DB(동기화 데이터)
             </button>
@@ -149,7 +149,7 @@ export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
         {devices.length > 1 && (
           <div className="flex items-center gap-2 px-1">
             <Checkbox id="merge-export" checked={merge} onCheckedChange={(v) => setMerge(!!v)} />
-            <label htmlFor="merge-export" className="text-[12px] text-ds-on-surface-variant cursor-pointer select-none">
+            <label htmlFor="merge-export" className="text-xs text-ds-on-surface-variant cursor-pointer select-none">
               하나의 엑셀로 합치기
             </label>
           </div>
@@ -162,7 +162,7 @@ export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
               checked={useSsh}
               onCheckedChange={(v) => setUseSsh(!!v)}
             />
-            <label htmlFor="use-ssh" className="text-[12px] text-ds-on-surface-variant cursor-pointer select-none">
+            <label htmlFor="use-ssh" className="text-xs text-ds-on-surface-variant cursor-pointer select-none">
               SSH로 수집 (API 대신)
             </label>
           </div>
@@ -170,7 +170,7 @@ export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
 
         {needsTimeout && (
           <div className="flex items-center gap-2 px-1">
-            <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary shrink-0">타임아웃</Label>
+            <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary shrink-0">타임아웃</Label>
             <Input
               type="number"
               min={30}
@@ -179,11 +179,11 @@ export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
               onChange={(e) => setTimeout_(Number(e.target.value))}
               className="bg-white border-ds-outline-variant/30 text-sm w-24 text-right"
             />
-            <span className="text-[11px] text-ds-on-surface-variant">초 / 장비 (최대 2시간)</span>
+            <span className="text-11 text-ds-on-surface-variant">초 / 장비 (최대 2시간)</span>
           </div>
         )}
 
-        <p className="px-1 text-[11px] text-ds-on-surface-variant">
+        <p className="px-1 text-11 text-ds-on-surface-variant">
           추출은 백그라운드에서 진행되며, 완료되면 알림으로 다운로드 링크가 표시됩니다.
         </p>
 

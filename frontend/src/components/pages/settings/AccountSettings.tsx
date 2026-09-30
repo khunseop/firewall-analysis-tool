@@ -59,12 +59,12 @@ export function AccountSettings() {
     <div className="space-y-4">
       {ConfirmDialogElement}
       <div className="flex justify-between items-center">
-        <p className="text-[12px] text-ds-on-surface-variant">시스템 계정을 관리합니다.</p>
+        <p className="text-xs text-ds-on-surface-variant">시스템 계정을 관리합니다.</p>
         <Button
           variant="gradient"
           size="auto"
           onClick={() => setCreateOpen(true)}
-          className="gap-1.5 px-3 py-1.5 text-[13px] font-semibold rounded-lg"
+          className="gap-1.5 px-3 py-1.5 text-13 font-semibold rounded-lg"
         >
           <Plus className="w-3.5 h-3.5" />
           계정 추가
@@ -75,11 +75,11 @@ export function AccountSettings() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-ds-outline-variant/8 bg-ds-surface-container-low/30">
-              <th className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">사용자명</th>
-              <th className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">권한</th>
-              <th className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">상태</th>
-              <th className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">생성일</th>
-              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/60">작업</th>
+              <th className="px-5 py-2.5 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">사용자명</th>
+              <th className="px-5 py-2.5 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">권한</th>
+              <th className="px-5 py-2.5 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">상태</th>
+              <th className="px-5 py-2.5 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">생성일</th>
+              <th className="px-5 py-2.5 text-right text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">작업</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-ds-outline-variant/10">
@@ -89,12 +89,12 @@ export function AccountSettings() {
                   <span className="font-mono text-sm font-semibold text-ds-on-surface">{user.username}</span>
                 </td>
                 <td className="px-5 py-4">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${user.is_admin ? 'bg-amber-100 text-amber-700' : 'bg-ds-surface-container text-ds-on-surface-variant'}`}>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-10 font-bold uppercase ${user.is_admin ? 'bg-amber-100 text-amber-700' : 'bg-ds-surface-container text-ds-on-surface-variant'}`}>
                     {user.is_admin ? '관리자' : '일반'}
                   </span>
                 </td>
                 <td className="px-5 py-4">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${user.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-10 font-bold ${user.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     {user.is_active ? '활성' : '비활성'}
                   </span>
                 </td>
@@ -145,11 +145,11 @@ export function AccountSettings() {
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate() }} className="space-y-3 pt-1">
             <div className="space-y-1">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">사용자명 *</Label>
+              <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">사용자명 *</Label>
               <Input value={newUser.username} onChange={(e) => setNewUser(p => ({ ...p, username: e.target.value }))} required className="bg-white border-ds-outline-variant/30 text-sm" />
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">비밀번호 *</Label>
+              <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">비밀번호 *</Label>
               <Input type="password" value={newUser.password} onChange={(e) => setNewUser(p => ({ ...p, password: e.target.value }))} required className="bg-white border-ds-outline-variant/30 text-sm" />
             </div>
             <label className="flex items-center gap-2 text-sm cursor-pointer text-ds-on-surface-variant">
@@ -175,7 +175,7 @@ export function AccountSettings() {
             </DialogHeader>
             <form onSubmit={(e) => { e.preventDefault(); pwMutation.mutate({ userId: pwDialog.user.id, password: pwDialog.password }) }} className="space-y-3 pt-1">
               <div className="space-y-1">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-ds-primary">새 비밀번호 *</Label>
+                <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">새 비밀번호 *</Label>
                 <Input
                   type="password"
                   value={pwDialog.password}

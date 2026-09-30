@@ -18,7 +18,7 @@ export function PageHeader({
     <div className={cn('flex items-center justify-between shrink-0 gap-4', className)}>
       <div>
         <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">{title}</h1>
-        {description && <p className="text-[13px] text-ds-on-surface-variant/70 mt-0.5">{description}</p>}
+        {description && <p className="text-13 text-ds-on-surface-variant/70 mt-0.5">{description}</p>}
       </div>
       {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
     </div>

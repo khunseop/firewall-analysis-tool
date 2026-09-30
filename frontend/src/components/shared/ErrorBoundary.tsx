@@ -42,7 +42,7 @@ export class ErrorBoundary extends Component<Props, State> {
           </p>
           <button
             onClick={this.handleReload}
-            className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-ds-tertiary rounded-lg border border-ds-outline-variant/30 hover:bg-ds-tertiary/10 transition-colors"
+            className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-ds-tertiary rounded-lg border border-ds-outline-variant/30 hover:bg-ds-tertiary/10 transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             새로고침

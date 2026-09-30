@@ -7,8 +7,8 @@ import { capacityLevel, CAPACITY_LEVEL_BAR_COLOR, CAPACITY_LEVEL_TEXT_COLOR } fr
 function Field({ label, value }: { label: string; value: string | null | undefined }) {
   return (
     <div className="space-y-0.5">
-      <div className="text-[10px] font-bold uppercase tracking-widest text-ds-primary/70">{label}</div>
-      <div className="text-[13px] text-ds-on-surface">{value || '—'}</div>
+      <div className="text-10 font-bold uppercase tracking-widest text-ds-primary/70">{label}</div>
+      <div className="text-13 text-ds-on-surface">{value || '—'}</div>
     </div>
   )
 }
@@ -18,7 +18,7 @@ function CapacityRow({ label, usage, threshold }: { label: string; usage: number
   const pct = usage != null && threshold != null && threshold > 0 ? Math.min(100, Math.round((usage / threshold) * 100)) : 0
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between text-[12px]">
+      <div className="flex items-center justify-between text-xs">
         <span className="font-semibold text-ds-on-surface">{label}</span>
         <span className={`font-bold tabular-nums ${CAPACITY_LEVEL_TEXT_COLOR[level]}`}>
           {usage != null ? `${usage}개` : '—'} / {threshold != null ? `${threshold}개` : '—'}
@@ -45,7 +45,7 @@ export function DeviceDetailDialog({ device, onClose, onEdit }: {
         {device && (
           <div className="space-y-5">
             <div>
-              <div className="text-[11px] font-bold text-ds-on-surface-variant/60 mb-2">기본정보</div>
+              <div className="text-11 font-bold text-ds-on-surface-variant/60 mb-2">기본정보</div>
               <div className="grid grid-cols-3 gap-3">
                 <Field label="IP 주소" value={device.ip_address} />
                 <Field label="HA Peer IP" value={device.ha_peer_ip} />
@@ -57,7 +57,7 @@ export function DeviceDetailDialog({ device, onClose, onEdit }: {
             </div>
 
             <div>
-              <div className="text-[11px] font-bold text-ds-on-surface-variant/60 mb-2">상세정보</div>
+              <div className="text-11 font-bold text-ds-on-surface-variant/60 mb-2">상세정보</div>
               <div className="grid grid-cols-3 gap-3">
                 <Field label="시리얼 번호" value={device.serial_number} />
                 <Field label="OS명" value={device.os_name} />
@@ -67,7 +67,7 @@ export function DeviceDetailDialog({ device, onClose, onEdit }: {
             </div>
 
             <div>
-              <div className="text-[11px] font-bold text-ds-on-surface-variant/60 mb-2">설치정보</div>
+              <div className="text-11 font-bold text-ds-on-surface-variant/60 mb-2">설치정보</div>
               <div className="grid grid-cols-3 gap-3">
                 <Field label="지역" value={device.location_region} />
                 <Field label="설치동" value={device.location_building} />
@@ -80,7 +80,7 @@ export function DeviceDetailDialog({ device, onClose, onEdit }: {
             </div>
 
             <div>
-              <div className="text-[11px] font-bold text-ds-on-surface-variant/60 mb-2">객체 수 임계치 현황</div>
+              <div className="text-11 font-bold text-ds-on-surface-variant/60 mb-2">객체 수 임계치 현황</div>
               <div className="space-y-2.5">
                 <CapacityRow label="정책" usage={device.cached_policies} threshold={device.policy_threshold} />
                 <CapacityRow label="네트워크 객체" usage={device.cached_network_objects} threshold={device.network_object_threshold} />

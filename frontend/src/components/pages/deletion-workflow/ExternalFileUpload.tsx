@@ -50,7 +50,7 @@ export function ExternalFileUpload({
       <input ref={fileRef} type="file" className="hidden"
         onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
       {hint && !existingFile && (
-        <span className="w-full text-[10px] text-ds-on-surface-variant/70 ml-1">ℹ️ {hint}</span>
+        <span className="w-full text-10 text-ds-on-surface-variant/70 ml-1">ℹ️ {hint}</span>
       )}
     </div>
   )

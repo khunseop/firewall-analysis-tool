@@ -31,7 +31,7 @@ function ObjectFields({ obj }: { obj: NetworkObject }) {
   return (
     <div className="mt-1 ml-4 bg-ds-surface-container-lowest rounded p-2 space-y-1 border border-ds-outline-variant/15">
       {fields.map(f => (
-        <div key={f.key} className="flex gap-2 text-[11px]">
+        <div key={f.key} className="flex gap-2 text-11">
           <span className="text-ds-primary/60 font-bold uppercase tracking-wider min-w-[60px] shrink-0">{f.label}</span>
           <span className="font-mono text-ds-on-surface break-all">{String(f.value)}</span>
         </div>
@@ -56,11 +56,11 @@ function MemberNode({
       <div style={{ marginLeft: depth * 12 }}>
         <button
           onClick={() => setExpanded(v => !v)}
-          className="flex items-center gap-1 py-0.5 text-[11px] font-mono font-semibold text-ds-tertiary hover:underline"
+          className="flex items-center gap-1 py-0.5 text-11 font-mono font-semibold text-ds-tertiary hover:underline"
         >
           {expanded ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
           {name}
-          <span className="ml-1 text-[9px] font-bold uppercase bg-ds-secondary-container text-ds-tertiary px-1 rounded">그룹 {members.length}</span>
+          <span className="ml-1 text-9 font-bold uppercase bg-ds-secondary-container text-ds-tertiary px-1 rounded">그룹 {members.length}</span>
         </button>
         {expanded && (
           <div className="mt-0.5 ml-2 pl-2 border-l border-ds-outline-variant/20">
@@ -77,7 +77,7 @@ function MemberNode({
     <div style={{ marginLeft: depth * 12 }}>
       <button
         onClick={() => setExpanded(v => !v)}
-        className="flex items-center gap-1 py-0.5 text-[11px] font-mono text-ds-on-surface hover:text-ds-tertiary transition-colors"
+        className="flex items-center gap-1 py-0.5 text-11 font-mono text-ds-on-surface hover:text-ds-tertiary transition-colors"
       >
         {obj
           ? (expanded
@@ -94,7 +94,7 @@ function MemberNode({
       </button>
       {expanded && obj && <ObjectFields obj={obj} />}
       {expanded && !obj && (
-        <p className="ml-4 text-[11px] text-ds-on-surface-variant italic">객체 정보를 찾을 수 없습니다.</p>
+        <p className="ml-4 text-11 text-ds-on-surface-variant italic">객체 정보를 찾을 수 없습니다.</p>
       )}
     </div>
   )
@@ -162,10 +162,10 @@ function ObjectPanel({
     <div className="flex flex-col h-full border-l border-ds-outline-variant/15">
       <div className="px-4 pt-4 pb-3 border-b border-ds-outline-variant/10 flex items-start justify-between gap-2 shrink-0">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/50 mb-1">객체 상세</p>
+          <p className="text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/50 mb-1">객체 상세</p>
           <p className="text-sm font-bold font-mono text-ds-on-surface break-all">{name}</p>
           {isGroup && (
-            <span className="inline-block mt-1 text-[9px] font-bold uppercase bg-ds-secondary-container text-ds-tertiary px-1.5 py-0.5 rounded">그룹</span>
+            <span className="inline-block mt-1 text-9 font-bold uppercase bg-ds-secondary-container text-ds-tertiary px-1.5 py-0.5 rounded">그룹</span>
           )}
         </div>
         <button onClick={onClose} className="shrink-0 p-1 rounded hover:bg-ds-surface-container text-ds-on-surface-variant transition-colors">
@@ -184,7 +184,7 @@ function ObjectPanel({
               .filter(([k]) => !SKIP.includes(k))
               .map(([k, v]) => (
                 <div key={k} className="flex gap-3">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-ds-primary min-w-[70px] shrink-0 mt-0.5">
+                  <span className="text-10 font-bold uppercase tracking-widest text-ds-primary min-w-[70px] shrink-0 mt-0.5">
                     {LABELS[k] ?? k}
                   </span>
                   <span className="text-xs text-ds-on-surface font-mono break-all">{String(v ?? '-')}</span>
@@ -195,7 +195,7 @@ function ObjectPanel({
 
         {isGroup && members.length > 0 && (
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-ds-primary mb-2">
+            <p className="text-10 font-bold uppercase tracking-widest text-ds-primary mb-2">
               멤버 ({members.length}개)
             </p>
             <div className="bg-ds-surface-container-low rounded-lg p-3">
@@ -205,7 +205,7 @@ function ObjectPanel({
         )}
 
         <div className="space-y-2 pt-1">
-          <p className="text-[10px] text-ds-on-surface-variant font-medium uppercase tracking-wider">이 객체를 포함하는 정책</p>
+          <p className="text-10 text-ds-on-surface-variant font-medium uppercase tracking-wider">이 객체를 포함하는 정책</p>
           <div className="grid grid-cols-1 gap-1.5">
             {kind === 'service' ? (
               <button
@@ -275,7 +275,7 @@ function ChipList({ value, isClickable, onClickName, onRemove, onAdd }: {
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="필터..."
-            className="w-full pl-6 pr-2 py-1 text-[11px] rounded border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface placeholder:text-ds-on-surface-variant/40 focus:outline-none focus:border-ds-primary/40"
+            className="w-full pl-6 pr-2 py-1 text-11 rounded border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface placeholder:text-ds-on-surface-variant/40 focus:outline-none focus:border-ds-primary/40"
           />
         </div>
       )}
@@ -286,7 +286,7 @@ function ChipList({ value, isClickable, onClickName, onRemove, onAdd }: {
           return (
             <span
               key={i}
-              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-mono leading-tight ${
+              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-11 font-mono leading-tight ${
                 clickable
                   ? 'bg-ds-secondary-container text-ds-tertiary'
                   : 'bg-ds-surface-container text-ds-on-surface'
@@ -312,7 +312,7 @@ function ChipList({ value, isClickable, onClickName, onRemove, onAdd }: {
       {needsCollapse && (
         <button
           onClick={() => setExpanded(v => !v)}
-          className="inline-flex items-center gap-1 text-[10px] font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors"
+          className="inline-flex items-center gap-1 text-10 font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors"
         >
           {expanded
             ? <><ChevronUp className="w-3 h-3" />접기</>
@@ -326,7 +326,7 @@ function ChipList({ value, isClickable, onClickName, onRemove, onAdd }: {
             onChange={(e) => setAddValue(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submitAdd() } }}
             placeholder="추가할 값 입력..."
-            className="flex-1 px-2 py-1 text-[11px] rounded border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface placeholder:text-ds-on-surface-variant/40 focus:outline-none focus:border-ds-primary/40"
+            className="flex-1 px-2 py-1 text-11 rounded border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface placeholder:text-ds-on-surface-variant/40 focus:outline-none focus:border-ds-primary/40"
           />
           <button type="button" onClick={submitAdd} className="shrink-0 p-1 rounded bg-ds-tertiary/10 text-ds-tertiary hover:bg-ds-tertiary/20">
             <Plus className="w-3 h-3" />
@@ -344,10 +344,10 @@ function Section({ label, count, children, className = '' }: {
 }) {
   return (
     <div className={className}>
-      <p className="text-[10px] font-bold uppercase tracking-widest text-ds-on-surface-variant/50 mb-1.5 flex items-center gap-1.5">
+      <p className="text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/50 mb-1.5 flex items-center gap-1.5">
         {label}
         {count != null && count > 0 && (
-          <span className="px-1.5 py-0.5 rounded bg-ds-surface-container text-[9px] font-semibold text-ds-on-surface-variant normal-case tracking-normal">
+          <span className="px-1.5 py-0.5 rounded bg-ds-surface-container text-9 font-semibold text-ds-on-surface-variant normal-case tracking-normal">
             {count}
           </span>
         )}
@@ -430,14 +430,14 @@ export function PolicyDetailModal({
                 <div className="min-w-0 flex-1">
                   <p className="text-base font-bold font-headline font-mono break-all leading-snug">{policy.rule_name}</p>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <span className="text-[11px] font-semibold text-ds-tertiary font-mono">{deviceName}</span>
+                    <span className="text-11 font-semibold text-ds-tertiary font-mono">{deviceName}</span>
                     <span className="text-ds-outline-variant/30">·</span>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${actionCls}`}>{policy.action}</span>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${policy.enable ? 'bg-green-100 text-green-700' : 'bg-ds-surface-container text-ds-on-surface-variant'}`}>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-10 font-bold uppercase ${actionCls}`}>{policy.action}</span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-10 font-bold ${policy.enable ? 'bg-green-100 text-green-700' : 'bg-ds-surface-container text-ds-on-surface-variant'}`}>
                       {policy.enable ? '활성' : '비활성'}
                     </span>
                     {policy.seq != null && (
-                      <span className="text-[10px] text-ds-on-surface-variant font-mono">#{policy.seq}</span>
+                      <span className="text-10 text-ds-on-surface-variant font-mono">#{policy.seq}</span>
                     )}
                   </div>
                 </div>
@@ -509,7 +509,7 @@ export function PolicyDetailModal({
                   )}
                   {policy.security_profile && (
                     <Section label="보안 프로파일">
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-700">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-10 font-semibold bg-purple-100 text-purple-700">
                         {policy.security_profile}
                       </span>
                     </Section>
@@ -536,15 +536,15 @@ export function PolicyDetailModal({
                 )}
                 <Section label="마지막 사용일">
                   {!policy.last_hit_date ? (
-                    <span className="text-[11px] font-medium text-amber-600">사용 기록 없음</span>
+                    <span className="text-11 font-medium text-amber-600">사용 기록 없음</span>
                   ) : days === null ? (
                     <span className="text-xs text-ds-on-surface-variant">{policy.last_hit_date}</span>
                   ) : days >= 90 ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ds-error">
+                    <span className="inline-flex items-center gap-1 text-11 font-semibold text-ds-error">
                       <AlertTriangle className="w-3 h-3" />{days}일 미사용 ({policy.last_hit_date})
                     </span>
                   ) : (
-                    <span className="text-[11px] text-ds-on-surface-variant">{days}일 전 ({policy.last_hit_date})</span>
+                    <span className="text-11 text-ds-on-surface-variant">{days}일 전 ({policy.last_hit_date})</span>
                   )}
                 </Section>
                 <Section label="히트 횟수">
@@ -554,7 +554,7 @@ export function PolicyDetailModal({
 
               {/* 객체 패널 힌트 */}
               {!showPanel && validObjectNames.size > 0 && (
-                <p className="text-[10px] text-ds-on-surface-variant/50 text-center pt-2">
+                <p className="text-10 text-ds-on-surface-variant/50 text-center pt-2">
                   파란색 칩을 클릭하면 객체 상세를 확인할 수 있습니다
                 </p>
               )}
