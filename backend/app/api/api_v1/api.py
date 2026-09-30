@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from app.api.api_v1.endpoints import (
     devices, firewall_sync, firewall_query, export, analysis, analysis_projects,
     websocket, sync_schedule, settings, notifications, deletion_workflow,
-    users, policy_builder,
+    users, policy_builder, health,
 )
 from app.api.api_v1.endpoints import auth
 from app.core.auth import get_current_user
@@ -11,6 +11,8 @@ api_router = APIRouter()
 
 # Public: auth endpoints (no authentication required)
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+# Public: 헬스체크 (모니터링 도구가 토큰 없이 호출)
+api_router.include_router(health.router, tags=["health"])
 
 # Protected: all other endpoints require a valid JWT
 _auth = [Depends(get_current_user)]
