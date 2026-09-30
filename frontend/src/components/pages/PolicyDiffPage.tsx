@@ -10,6 +10,7 @@ import { listDevices } from '@/api/devices'
 import { exportStyledToExcel, type StyledExcelPayload, type ExcelSheet } from '@/api/firewall'
 import { diffMultiValueField, isFieldDiffEmpty } from '@/lib/policyDiff'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -607,14 +608,15 @@ export function PolicyDiffPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Page header */}
-      <div className="shrink-0">
-        <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">정책 변경 비교 (Diff)</h1>
-        <p className="text-[13px] text-ds-on-surface-variant/70 mt-0.5">
-          두 동기화 시점을 선택하여 정책 변경사항을 필드 레벨까지 상세히 비교합니다.
-          {isPaloAlto && ' Palo Alto 장비는 From/To에서 Running/Candidate를 골라 실시간으로도 비교할 수 있습니다.'}
-        </p>
-      </div>
+      <PageHeader
+        title="정책 변경 비교 (Diff)"
+        description={
+          <>
+            두 동기화 시점을 선택하여 정책 변경사항을 필드 레벨까지 상세히 비교합니다.
+            {isPaloAlto && ' Palo Alto 장비는 From/To에서 Running/Candidate를 골라 실시간으로도 비교할 수 있습니다.'}
+          </>
+        }
+      />
 
       {/* 카드: 비교 설정 */}
       <div className="card rounded-xl">

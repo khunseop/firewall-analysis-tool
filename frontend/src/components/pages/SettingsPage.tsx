@@ -5,6 +5,7 @@ import { AccountSettings } from './settings/AccountSettings'
 import { LogSettings } from './settings/LogSettings'
 import { DeletionWorkflowSettings } from './settings/DeletionWorkflowSettings'
 import { PolicyDefaultsSettings } from './settings/PolicyDefaultsSettings'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 type Tab = 'general' | 'risky_ports' | 'policy_defaults' | 'accounts' | 'log' | 'deletion_workflow'
 
@@ -22,10 +23,7 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Page header */}
-      <div className="flex items-center justify-between shrink-0">
-        <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">Settings</h1>
-      </div>
+      <PageHeader title="Settings" />
 
       {/* Settings panel */}
       <div className="card rounded-xl overflow-hidden">

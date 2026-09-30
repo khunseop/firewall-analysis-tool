@@ -7,6 +7,7 @@ import type { GridApi } from '@ag-grid-community/core'
 import ReactApexChart from 'react-apexcharts'
 import type { ApexOptions } from 'apexcharts'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
+import { PageHeader } from '@/components/shared/PageHeader'
 import { rowIdFromId } from '@/lib/utils'
 import { getDashboardStats, type DeviceStats } from '@/api/devices'
 import { getChangeStats, getObjectCountHistory, type ChangeStatCategory } from '@/api/firewall'
@@ -317,17 +318,18 @@ export function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between shrink-0">
-        <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">Dashboard</h1>
-        <button
-          onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats })}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-ds-on-surface-variant bg-white rounded-lg shadow-sm border border-ds-outline-variant/10 hover:text-ds-on-surface hover:bg-ds-surface-container-low transition-all"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          갱신
-        </button>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        actions={
+          <button
+            onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats })}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-ds-on-surface-variant bg-white rounded-lg shadow-sm border border-ds-outline-variant/10 hover:text-ds-on-surface hover:bg-ds-surface-container-low transition-all"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            갱신
+          </button>
+        }
+      />
 
       {/* 오류 배너 */}
       {errorDevices.length > 0 && (

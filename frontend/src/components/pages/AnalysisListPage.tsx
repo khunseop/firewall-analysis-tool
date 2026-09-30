@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { QUICK_MODULES, PROJECT_MODULES } from './analysis-modules'
 import { listAnalysisProjects, createAnalysisProject, deleteAnalysisProject, type AnalysisProject } from '@/api/analysisProjects'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 /** 새 분석 다이얼로그에서 선택 가능한 모든 모듈 (quick 실행 + 프로젝트 생성). */
 const SELECTABLE_MODULES = [...QUICK_MODULES, ...PROJECT_MODULES]
@@ -369,19 +370,19 @@ export function AnalysisListPage() {
   return (
     <div className="flex flex-col gap-6">
       {ConfirmDialogElement}
-      <div className="flex items-center justify-between shrink-0">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">정책 분석</h1>
-          <p className="text-[12px] text-ds-on-surface-variant mt-0.5">장비별 정책 분석 작업을 실행하고 이력을 관리합니다.</p>
-        </div>
-        <button
-          onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold btn-primary-gradient text-ds-on-tertiary rounded-lg shadow-sm hover:opacity-90 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          새 분석 실행
-        </button>
-      </div>
+      <PageHeader
+        title="정책 분석"
+        description="장비별 정책 분석 작업을 실행하고 이력을 관리합니다."
+        actions={
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold btn-primary-gradient text-ds-on-tertiary rounded-lg shadow-sm hover:opacity-90 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            새 분석 실행
+          </button>
+        }
+      />
 
       {/* 필터 바 */}
       <div className="flex items-center gap-3">

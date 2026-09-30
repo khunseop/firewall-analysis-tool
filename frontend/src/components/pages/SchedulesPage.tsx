@@ -15,6 +15,7 @@ import { formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { queryKeys } from '@/api/queryKeys'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -160,17 +161,18 @@ export function SchedulesPage() {
     <div className="flex flex-col gap-6">
       {ConfirmDialogElement}
 
-      {/* Page header */}
-      <div className="flex items-center justify-between shrink-0">
-        <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">Schedules</h1>
-        <button
-          onClick={() => { setEditTarget(null); setFormOpen(true) }}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold btn-primary-gradient text-ds-on-tertiary rounded-lg shadow-sm hover:opacity-90 transition-all"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          스케줄 추가
-        </button>
-      </div>
+      <PageHeader
+        title="Schedules"
+        actions={
+          <button
+            onClick={() => { setEditTarget(null); setFormOpen(true) }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold btn-primary-gradient text-ds-on-tertiary rounded-lg shadow-sm hover:opacity-90 transition-all"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            스케줄 추가
+          </button>
+        }
+      />
 
       {/* Schedule list */}
       <div className="card rounded-xl overflow-hidden">

@@ -20,6 +20,7 @@ import { BulkGroupDialog } from './devices/BulkGroupDialog'
 import { DirectExportDialog } from './devices/DirectExportDialog'
 import { buildColumnDefs } from './devices/deviceColumns'
 import { useDeviceSearchStore } from '@/store/deviceSearchStore'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 interface ExportTaskInfo {
   // WebSocket 메시지가 onTasksStarted 등록보다 먼저 도착하면 종류를 알 수 없어 null일 수 있음
@@ -351,57 +352,58 @@ export function DevicesPage() {
     <div className="flex flex-col gap-6">
       {ConfirmDialogElement}
 
-      {/* 헤더 */}
-      <div className="flex items-center justify-between shrink-0">
-        <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">Devices</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.devices })}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-ds-on-surface-variant bg-white rounded-lg shadow-sm border border-ds-outline-variant/10 hover:text-ds-on-surface hover:bg-ds-surface-container-low transition-all"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            갱신
-          </button>
-
-          {/* 장비 추가 드롭다운 */}
-          <div className="relative" ref={addMenuRef}>
+      <PageHeader
+        title="Devices"
+        actions={
+          <>
             <button
-              onClick={() => setAddMenuOpen((v) => !v)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold btn-primary-gradient text-ds-on-tertiary rounded-lg shadow-sm hover:opacity-90 transition-all"
+              onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.devices })}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-ds-on-surface-variant bg-white rounded-lg shadow-sm border border-ds-outline-variant/10 hover:text-ds-on-surface hover:bg-ds-surface-container-low transition-all"
             >
-              <Plus className="w-3.5 h-3.5" />
-              장비 추가
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${addMenuOpen ? 'rotate-180' : ''}`} />
+              <RefreshCw className="w-3.5 h-3.5" />
+              갱신
             </button>
 
-            {addMenuOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-44 bg-white rounded-xl shadow-lg border border-ds-outline-variant/15 py-1 z-50">
-                <button
-                  onClick={() => { setAddMenuOpen(false); setEditTarget(null); setFormOpen(true) }}
-                  className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[13px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5 text-ds-on-surface-variant" />
-                  장비 추가
-                </button>
-                <button
-                  onClick={() => { setAddMenuOpen(false); setBulkOpen(true) }}
-                  className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[13px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
-                >
-                  <Upload className="w-3.5 h-3.5 text-ds-on-surface-variant" />
-                  일괄 등록
-                </button>
-                <button
-                  onClick={() => { setAddMenuOpen(false); downloadDeviceTemplate() }}
-                  className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[13px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
-                >
-                  <Download className="w-3.5 h-3.5 text-ds-on-surface-variant" />
-                  템플릿 다운로드
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+            {/* 장비 추가 드롭다운 */}
+            <div className="relative" ref={addMenuRef}>
+              <button
+                onClick={() => setAddMenuOpen((v) => !v)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold btn-primary-gradient text-ds-on-tertiary rounded-lg shadow-sm hover:opacity-90 transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                장비 추가
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${addMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {addMenuOpen && (
+                <div className="absolute right-0 top-full mt-1.5 w-44 bg-white rounded-xl shadow-lg border border-ds-outline-variant/15 py-1 z-50">
+                  <button
+                    onClick={() => { setAddMenuOpen(false); setEditTarget(null); setFormOpen(true) }}
+                    className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[13px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-ds-on-surface-variant" />
+                    장비 추가
+                  </button>
+                  <button
+                    onClick={() => { setAddMenuOpen(false); setBulkOpen(true) }}
+                    className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[13px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-ds-on-surface-variant" />
+                    일괄 등록
+                  </button>
+                  <button
+                    onClick={() => { setAddMenuOpen(false); downloadDeviceTemplate() }}
+                    className="flex items-center gap-2.5 w-full px-3.5 py-2 text-[13px] font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5 text-ds-on-surface-variant" />
+                    템플릿 다운로드
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        }
+      />
 
       {/* KPI 컴팩트 스트립 */}
       <div className="shrink-0 card rounded-xl px-4 py-2.5 flex items-center gap-4 flex-wrap">

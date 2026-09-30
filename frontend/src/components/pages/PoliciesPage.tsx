@@ -38,6 +38,7 @@ import { ModifyPolicyModal } from '@/components/pages/policy-builder/ModifyPolic
 import { MoveExistingDialog } from '@/components/pages/policy-builder/MoveExistingDialog'
 import { PlanResultPanel, VerifyResultPanel } from '@/components/pages/policy-builder/PlanResultPanel'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 /** 편집모드에서 그리드 필드명 ↔ 백엔드(PendingPolicyChange payload) 필드명 매핑 (diff 대상 필드).
  *  from_zone/to_zone은 Palo Alto만 수집하는 필드라 다른 벤더 정책은 항상 빈 값으로 시작함. */
@@ -691,23 +692,24 @@ export function PoliciesPage() {
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Page header */}
-      <div className="flex items-center justify-between shrink-0">
-        <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">Policies</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setEditMode((v) => !v)}
-            disabled={!editDeviceId}
-            title={editDeviceId ? undefined : '편집모드는 장비를 1개만 선택했을 때 사용할 수 있습니다.'}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold rounded-lg border transition-colors disabled:opacity-40 ${
-              editMode ? 'text-ds-tertiary bg-ds-tertiary/10 border-ds-tertiary/20' : 'text-ds-on-surface-variant bg-ds-surface-container-low border-ds-outline-variant/10 hover:text-ds-on-surface'
-            }`}
-          >
-            <Pencil className="w-3.5 h-3.5" /> {editMode ? '편집모드 종료' : '편집모드'}
-          </button>
-          <DeviceSelector disabled={editMode} />
-        </div>
-      </div>
+      <PageHeader
+        title="Policies"
+        actions={
+          <>
+            <button
+              onClick={() => setEditMode((v) => !v)}
+              disabled={!editDeviceId}
+              title={editDeviceId ? undefined : '편집모드는 장비를 1개만 선택했을 때 사용할 수 있습니다.'}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold rounded-lg border transition-colors disabled:opacity-40 ${
+                editMode ? 'text-ds-tertiary bg-ds-tertiary/10 border-ds-tertiary/20' : 'text-ds-on-surface-variant bg-ds-surface-container-low border-ds-outline-variant/10 hover:text-ds-on-surface'
+              }`}
+            >
+              <Pencil className="w-3.5 h-3.5" /> {editMode ? '편집모드 종료' : '편집모드'}
+            </button>
+            <DeviceSelector disabled={editMode} />
+          </>
+        }
+      />
       {editMode && (
         <p className="text-[12px] text-amber-600 -mt-2 shrink-0">
           편집모드에서 만든 변경사항은 CLI 텍스트로만 생성되며 실제 장비나 DB에는 반영되지 않습니다. 검토 후 직접 실행하세요.

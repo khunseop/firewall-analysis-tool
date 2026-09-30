@@ -15,6 +15,7 @@ import {
   type NetworkObject, type NetworkGroup, type Service, type ServiceGroup,
 } from '@/api/firewall'
 import { queryKeys } from '@/api/queryKeys'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 const objectRowId = (p: { data: unknown }) => String((p.data as Record<string, unknown>)['id'])
 
@@ -305,11 +306,7 @@ export function ObjectsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Page header */}
-      <div className="flex items-center justify-between shrink-0">
-        <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">Objects</h1>
-        <DeviceSelector />
-      </div>
+      <PageHeader title="Objects" actions={<DeviceSelector />} />
 
       {/* Tabs + Grid */}
       <div className="card rounded-xl overflow-hidden">
