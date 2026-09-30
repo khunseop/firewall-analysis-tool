@@ -64,6 +64,10 @@
 - 헤드리스 Playwright에서 Sonner 모듈을 수동 `import`해 `toast.error()`를 직접 호출했을 때 화면에 아무것도 안 뜨는 것처럼 보였으나, 실제 Chrome에서 앱의 실제 코드 경로로 트리거하면 정상 동작 — 테스트 방법론상의 오탐이었음(수동 import가 앱과 다른 모듈 인스턴스를 만든 것으로 추정).
 - React Router v7 future-flag 경고 2건은 매 페이지 로드마다 콘솔에 찍히지만 기능 영향 없는 사전 안내성 경고 — 저우선순위, 원하면 `<BrowserRouter future={{...}}>`로 조기 옵트인 가능.
 
+### 사용자 보고 버그 수정 (2026-09-30)
+
+- **수정 완료** (→ `2026-09-30-live-verify-enable-mismatch-fix.md`): Policy Builder(Policies 편집모드)의 "실제 장비 검증"에서 `enable`(활성여부) 필드가 실제 값과 무관하게 항상 불일치로 표시되던 버그. 계획된 정책 행의 `enable`은 DB 컬럼에서 온 Python bool인 반면 장비에서 조회한 candidate 값은 `"Y"`/`"N"` 문자열이라, 단순 `str()` 캐스팅 비교 시 `"True" != "Y"`가 되어 상시 오탐이 발생했다. `_normalize_diff_value()` 헬퍼로 형식을 맞춰 해결.
+
 ## 참고: 이미 잘 되어 있는 부분 (재작업 불필요)
 
 - 라우터 단위 `Depends(get_current_user)` 일괄 적용으로 API 인증 누락 없음 (`backend/app/api/api_v1/api.py`).
