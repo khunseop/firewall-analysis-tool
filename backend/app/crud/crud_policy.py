@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import delete, update, func, or_, and_
@@ -12,6 +14,8 @@ from typing import List, Union, Optional
 
 from app import models, schemas
 from app.services.normalize import parse_ipv4_numeric, parse_port_numeric
+
+logger = logging.getLogger(__name__)
 
 def _escape_like(value: str) -> str:
     """ILIKE 패턴에서 %, _, \\ 를 리터럴로 취급하도록 이스케이프 (SQLite에서 _ 는 단일문자 와일드카드)."""
@@ -392,7 +396,9 @@ async def search_policies(db: AsyncSession, req: schemas.PolicySearchRequest) ->
             try:
                 dt = dt.astimezone(ZoneInfo("Asia/Seoul"))
             except Exception:
-                pass
+                logger.exception(
+                    "last_hit_date 필터: tzinfo 변환 실패 — 원본 tzinfo 그대로 naive 처리 (%r)", dt
+                )
             dt = dt.replace(tzinfo=None)
         return dt
     frm = _naive_seoul(req.last_hit_date_from)
