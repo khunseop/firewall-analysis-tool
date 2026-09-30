@@ -18,10 +18,10 @@
 |---|---|---|---|---|
 | 1 | 로그인 무차별 대입 방지 (rate limit/lockout) | 높음 | 완료 | `2026-09-30-security-quick-wins.md` |
 | 2 | `/docs`, `/redoc`, OpenAPI 스키마 운영 환경 비공개 | 높음 | 완료 | `2026-09-30-security-quick-wins.md` |
-| 3 | 백엔드 로그 영속화 (파일 로테이션) | 높음 | 대기 | 미작성 |
+| 3 | 백엔드 로그 영속화 (파일 로테이션) | 높음 | 완료 | `2026-09-30-logging-persistence.md` |
 | 4 | 헬스체크 엔드포인트 (`/api/v1/health`) | 중간 | 대기 | 미작성 |
 | 5 | SQLite 백업 전략 (운영 문서/스크립트) | 중간 | 대기 | 미작성 |
-| 6 | 백엔드 테스트 인프라 구축 + 핵심 모듈 테스트 | 중간 | 대기 | 미작성 |
+| 6 | 핵심 모듈(파서/인덱서/삭제 워크플로우) 테스트 추가 | 중간 | 대기 | 미작성 |
 | 7 | 인증 토큰 저장 방식 강화 (httpOnly 쿠키 전환) | 낮음 (보류) | 보류 | 아래 "재평가" 참고 |
 | 8 | 자잘한 버그 / UX·UI 점검 (상시 병행) | 상시 | 진행 예정 | 각 항목 작업 중 함께 수행 |
 
@@ -29,12 +29,15 @@
 
 최초 검토 시 "쿠키가 `httpOnly`가 아니라서 XSS 시 토큰 탈취 위험이 있다"는 점을 높은 우선순위로 판단했으나, 실제 코드에서 `dangerouslySetInnerHTML`, `eval`, `new Function` 등 XSS 진입점이 전혀 없는 것을 확인했다(`frontend/src`). React가 기본적으로 이스케이프하므로 현재 시점에서 실제 위험도는 낮다. 반면 httpOnly 전환은 `apiClient`, `downloadBlob`, `downloadBlobPost`, `useWebSocket`, `deletionWorkflow.ts` 등 7개 파일에서 Bearer 헤더 방식을 걷어내는 구조 변경이 필요해 비용 대비 효과가 낮다고 재평가했다. **우선순위를 낮추고, 실제 XSS 벡터가 새로 생기는 시점(예: 사용자 입력을 HTML로 렌더링하는 기능 추가)에 재검토한다.**
 
-또한 최초 검토 시 "백엔드 테스트 1개 존재"로 기록했으나 재확인 결과 `pytest` 자체가 설치되어 있지 않고 테스트 파일도 0개다(오검색이었음). 항목 6은 테스트를 "추가"하는 게 아니라 인프라부터 새로 구축하는 작업임을 반영했다.
+또한 최초 검토 시 "백엔드 테스트 1개 존재"로 기록했으나 재확인 결과 `pytest` 자체가 설치되어 있지 않고 테스트 파일도 0개다(오검색이었음). 항목 1·3 작업 중 `pytest` 도입 + `backend/tests/` + `backend/pytest.ini`로 인프라 자체는 이미 마련되었으므로, 항목 6은 "인프라 구축"이 아니라 핵심 모듈에 대한 테스트를 추가하는 작업으로 범위를 좁혔다.
 
 ## 발견된 추가 이슈 (진행 중 계속 추가)
 
 - `ENVIRONMENT=production` 설정이 실제 배포 시 누락되지 않도록 `docs/DEVELOPMENT.md`(또는 별도 배포 문서)에 운영 배포 체크리스트로 반영 필요 (항목 2 작업 중 발견, 아직 미착수).
-- **실행 환경 버그**: CLAUDE.md/README가 안내하는 `uvicorn app.main:app --reload --app-dir backend` 명령을 시스템 Python(`/opt/homebrew/bin/uvicorn`, greenlet 미설치)으로 실행하면 `ValueError: the greenlet library is required...`로 앱 시작 자체가 실패한다. 프로젝트 루트의 `.venv`로 실행하면 정상 동작한다. 문서에 `.venv` 활성화 단계가 빠져 있어 신규 환경에서 재현 가능성이 높음 — 항목 3(로깅) 작업 시 또는 별도로 `README.md`/`docs/DEVELOPMENT.md`에 `.venv` 사용법을 명시하는 작업 필요 (아직 미착수).
+- **실행 환경 버그**: CLAUDE.md/README가 안내하는 `uvicorn app.main:app --reload --app-dir backend` 명령을 시스템 Python(`/opt/homebrew/bin/uvicorn`, greenlet 미설치)으로 실행하면 `ValueError: the greenlet library is required...`로 앱 시작 자체가 실패한다. 프로젝트 루트의 `.venv`로 실행하면 정상 동작한다. 문서에 `.venv` 활성화 단계가 빠져 있어 신규 환경에서 재현 가능성이 높음 — `README.md`/`docs/DEVELOPMENT.md`에 `.venv` 사용법을 명시하는 작업 필요 (아직 미착수).
+- **버그 발견 및 수정 완료**: `backend/app/services/firewall/vendors/ngf.py`가 모듈 임포트 시점에 `logging.basicConfig(...)`를 호출해 애플리케이션 전체 루트 로거 설정을 암묵적으로 확정시키고 있었다. 어떤 모듈이 먼저 임포트되느냐에 따라 로그 포맷/핸들러가 달라질 수 있는 재현 어려운 버그의 원인 — 항목 3 작업 중 제거함.
+- **버그 발견 및 수정 완료**: `uvicorn.error` 로거는 기본적으로 `propagate=True`라 부모 `uvicorn` 로거로 레코드가 전파된다. 파일 핸들러를 두 로거 모두에 직접 붙이면 로그 한 줄이 두 번 기록되는 버그가 실제 서버 구동 검증 중 발견됨 (`Application shutdown complete.`가 중복 출력) — `uvicorn.error`에는 핸들러를 붙이지 않고 `uvicorn`/`uvicorn.access`의 `propagate`를 명시적으로 `False`로 고정해 해결.
+- **버그 발견 및 수정 완료**: `backend/smoke_test.py`(레거시 수동 점검 스크립트)가 pytest 기본 collection 패턴(`*_test.py`)에 걸려, `pytest` 실행 시마다 `fixture 'client' not found` 에러로 실패하고 있었다. `backend/pytest.ini`에 `testpaths = tests`를 지정해 의도한 `tests/` 디렉터리만 수집하도록 해결.
 
 ## 참고: 이미 잘 되어 있는 부분 (재작업 불필요)
 
