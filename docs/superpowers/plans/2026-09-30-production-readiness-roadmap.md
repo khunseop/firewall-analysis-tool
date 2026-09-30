@@ -23,7 +23,7 @@
 | 5 | SQLite 백업 전략 (운영 문서/스크립트) | 중간 | 대기 | 미작성 |
 | 6 | 핵심 모듈(파서/인덱서/삭제 워크플로우) 테스트 추가 | 중간 | 대기 | 미작성 |
 | 7 | 인증 토큰 저장 방식 강화 (httpOnly 쿠키 전환) | 낮음 (보류) | 보류 | 아래 "재평가" 참고 |
-| 8 | 자잘한 버그 / UX·UI 점검 (상시 병행) | 상시 | 진행 중 | `2026-09-30-bug-fixes-batch-1.md` (1차 조사분) |
+| 8 | 자잘한 버그 / UX·UI 점검 (상시 병행) | 상시 | 1차 조사분 완료 | `2026-09-30-bug-fixes-batch-1.md`, `2026-09-30-bug-fixes-batch-2.md` |
 
 ## 재평가된 항목
 
@@ -45,11 +45,11 @@
 - **(중간~높음, 백엔드)** `app/services/sync/tasks.py`의 삭제 대상 ID를 `.in_(ids_to_delete)` 4곳에서 청킹 없이 사용 — `policy_indexer.py`는 이미 800개 단위로 청킹하는데 여기만 빠져 있어, 대량 삭제(800개↑)가 포함된 재동기화에서 SQLite 바인딩 변수 한도 초과로 동기화 태스크 전체가 실패할 수 있었다.
 - **(높음, 프론트)** `App.tsx`가 `ErrorBoundary`로 `Routes` 전체(로그인 페이지, 네비게이션 포함)를 감싸고 있어, 페이지 하나의 렌더 에러로 네비게이션까지 포함한 화면 전체가 멈추고 강제 새로고침 외엔 우회 방법이 없었다. `ErrorBoundary.tsx` 주석/CLAUDE.md가 말하는 "라우트 레벨" 동작과 실제 구현이 불일치했음.
 
-**백로그 (아직 미착수, 심각도 낮음~중간이라 이번 배치에서 보류)**:
-- `app/api/api_v1/endpoints/settings.py:210-217` — 저장된 설정 JSON 파싱 실패를 `except Exception: pass`로 로그 없이 침묵 처리, 기본값으로 조용히 폴백 — 설정이 왜 반영 안 되는지 디버깅 불가능.
-- `app/crud/crud_policy.py:390-396`(추정) — `_naive_seoul` 헬퍼의 `astimezone` 실패 시 원본 tzinfo로 조용히 폴백 — 실패 조건이 불분명해 재현성 낮음.
-- `get_kst_now()`/`_kst_now()` 동일 로직이 `analysis/tasks.py`, `deletion_workflow/tasks.py`, `deletion_workflow.py` 세 곳에 중복 구현 — 한 곳만 고치면 나머지와 조용히 불일치할 구조적 위험.
-- `frontend/src/components/pages/policy-builder/ObjectGapPanel.tsx:23` — React Query 쿼리키가 `queryKeys.ts` 팩토리 대신 하드코딩됨 (`staleTime: 0`이라 실질적 캐시 무효화 위험은 낮음, 컨벤션 일관성 이슈).
+**백로그 4건도 수정 완료** (→ `2026-09-30-bug-fixes-batch-2.md`):
+- `app/api/api_v1/endpoints/settings.py:210-217` — 저장된 설정 JSON 파싱 실패를 `except Exception: pass`로 로그 없이 침묵 처리하던 것을 `logger.exception(...)`으로 남기도록 수정.
+- `app/crud/crud_policy.py:390-396` — `_naive_seoul` 헬퍼의 `astimezone` 실패 시 로그 없이 원본 tzinfo로 폴백하던 것을 `logger.exception(...)`으로 남기도록 수정.
+- `get_kst_now()`/`_kst_now()` 3중 중복 구현을 `app/core/time_utils.py`로 통합 (analysis/tasks.py, deletion_workflow/tasks.py, deletion_workflow.py 엔드포인트 세 곳 모두 이 공유 함수를 사용하도록 교체).
+- `frontend/src/components/pages/policy-builder/ObjectGapPanel.tsx:23` — 하드코딩된 쿼리키를 `queryKeys.ts`의 `policyBuilderObjectGaps` 팩토리로 이동.
 
 ## 참고: 이미 잘 되어 있는 부분 (재작업 불필요)
 
