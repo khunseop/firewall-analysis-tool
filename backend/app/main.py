@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 import logging
 
 from fastapi import FastAPI, Request
@@ -73,8 +75,36 @@ class AuthMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+async def _recover_orphaned_export_tasks() -> None:
+    """이전 프로세스가 비정상 종료돼 in_progress/pending으로 멈춘 ExportTask를 failure로 정리한다.
+
+    BackgroundTasks로 실행되는 추출 작업은 서버 프로세스에 묶여 있어, 프로세스가 죽으면
+    DB의 status가 마지막 값(in_progress)에 그대로 멈춘 채 남는다. 정리하지 않으면
+    GET /devices/export-tasks/active가 이 행을 시간 제한 없이 계속 반환해 UI에 진행중
+    스피너가 영구히 떠 있는 버그로 이어진다.
+    """
+    from sqlalchemy import select
+    from app.db.session import SessionLocal
+    from app.models.export_task import ExportTask
+
+    async with SessionLocal() as db:
+        result = await db.execute(
+            select(ExportTask).where(ExportTask.status.in_(["pending", "in_progress"]))
+        )
+        orphaned = result.scalars().all()
+        if not orphaned:
+            return
+        for task in orphaned:
+            task.status = "failure"
+            task.error_message = "서버가 재시작되어 작업이 중단되었습니다. 다시 시도해주세요."
+            task.completed_at = datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
+        await db.commit()
+        logger.info(f"고아 ExportTask {len(orphaned)}건을 failure로 정리했습니다.")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await _recover_orphaned_export_tasks()
     sync_scheduler.start()
     await sync_scheduler.load_schedules()
     logger.info("Application started and scheduler initialized")
