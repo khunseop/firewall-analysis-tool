@@ -3,8 +3,16 @@ import { toast } from 'sonner'
 import { Play, Download, CheckCircle2, Loader2, RefreshCw } from 'lucide-react'
 import { runProjectTask, uploadExternalFile, downloadTaskFile } from '@/api/deletionWorkflow'
 import { getProjectPipelineTaskResult, waitForPipelineTask, type ProjectFileState } from '@/api/analysisProjects'
-import { triggerDownload, getOutputFiles, getExternalFile, formatElapsed, type TaskMeta } from './taskMeta'
+import { triggerDownload, getOutputFiles, getExternalFile, formatElapsed, getDownstreamTaskIds, ALL_TASK_META, type TaskMeta } from './taskMeta'
 import { ExternalFileUpload } from './ExternalFileUpload'
+import { useConfirm } from '@/components/shared/ConfirmDialog'
+
+function downstreamWarning(taskId: number): string | null {
+  const downstreamIds = getDownstreamTaskIds(taskId)
+  if (downstreamIds.length === 0) return null
+  const names = downstreamIds.map((id) => ALL_TASK_META.find((t) => t.id === id)?.name ?? `Task ${id}`)
+  return `이후 단계(${names.join(', ')})의 저장된 출력 파일 ${downstreamIds.length}개가 삭제되고 다시 실행해야 합니다.`
+}
 
 export function TaskCard({
   task, projectId, files, phase, autoRunCurrentTaskId,
@@ -23,6 +31,7 @@ export function TaskCard({
   const [manualStartedAt, setManualStartedAt] = useState<number | null>(null)
   const [manualCompletedMs, setManualCompletedMs] = useState<number | null>(null)
   const [elapsedMs, setElapsedMs] = useState(0)
+  const { confirm, ConfirmDialogElement } = useConfirm()
 
   const outputs = getOutputFiles(files, task.id)
   const done = outputs.length > 0
@@ -50,6 +59,18 @@ export function TaskCard({
 
   const handleRun = async () => {
     const isRerun = done
+    if (isRerun) {
+      const warning = downstreamWarning(task.id)
+      if (warning) {
+        const ok = await confirm({
+          title: `${task.name} 재실행`,
+          description: warning,
+          confirmLabel: '재실행',
+          variant: 'destructive',
+        })
+        if (!ok) return
+      }
+    }
     const startMs = Date.now()
     setManualStartedAt(startMs)
     setManualCompletedMs(null)
@@ -95,6 +116,16 @@ export function TaskCard({
   }
 
   const handleReplaceOutput = async (slot: string, file: File) => {
+    const warning = downstreamWarning(task.id)
+    if (warning) {
+      const ok = await confirm({
+        title: `${task.name} 출력 파일 교체`,
+        description: warning,
+        confirmLabel: '교체',
+        variant: 'destructive',
+      })
+      if (!ok) return
+    }
     setReplacingSlot(slot)
     try {
       await uploadExternalFile(projectId, task.id, slot, file)
@@ -110,6 +141,8 @@ export function TaskCard({
   const stepLabel = `P${phase}-${task.step}`
 
   return (
+    <>
+    {ConfirmDialogElement}
     <div className={`rounded-xl border p-4 space-y-3 transition-all ${
       isBlinking ? 'border-ds-tertiary/50 bg-ds-tertiary/4 shadow-sm' :
       done ? 'border-emerald-200 bg-emerald-50/30' : 'border-ds-outline-variant/30 bg-white'
@@ -230,6 +263,7 @@ export function TaskCard({
         </div>
       )}
     </div>
+    </>
   )
 }
 
