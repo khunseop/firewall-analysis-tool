@@ -16,8 +16,8 @@
 
 | # | 항목 | 우선순위 | 상태 | 상세 계획 |
 |---|---|---|---|---|
-| 1 | 로그인 무차별 대입 방지 (rate limit/lockout) | 높음 | 대기 | `2026-09-30-security-quick-wins.md` |
-| 2 | `/docs`, `/redoc`, OpenAPI 스키마 운영 환경 비공개 | 높음 | 대기 | `2026-09-30-security-quick-wins.md` |
+| 1 | 로그인 무차별 대입 방지 (rate limit/lockout) | 높음 | 완료 | `2026-09-30-security-quick-wins.md` |
+| 2 | `/docs`, `/redoc`, OpenAPI 스키마 운영 환경 비공개 | 높음 | 완료 | `2026-09-30-security-quick-wins.md` |
 | 3 | 백엔드 로그 영속화 (파일 로테이션) | 높음 | 대기 | 미작성 |
 | 4 | 헬스체크 엔드포인트 (`/api/v1/health`) | 중간 | 대기 | 미작성 |
 | 5 | SQLite 백업 전략 (운영 문서/스크립트) | 중간 | 대기 | 미작성 |
@@ -34,6 +34,7 @@
 ## 발견된 추가 이슈 (진행 중 계속 추가)
 
 - `ENVIRONMENT=production` 설정이 실제 배포 시 누락되지 않도록 `docs/DEVELOPMENT.md`(또는 별도 배포 문서)에 운영 배포 체크리스트로 반영 필요 (항목 2 작업 중 발견, 아직 미착수).
+- **실행 환경 버그**: CLAUDE.md/README가 안내하는 `uvicorn app.main:app --reload --app-dir backend` 명령을 시스템 Python(`/opt/homebrew/bin/uvicorn`, greenlet 미설치)으로 실행하면 `ValueError: the greenlet library is required...`로 앱 시작 자체가 실패한다. 프로젝트 루트의 `.venv`로 실행하면 정상 동작한다. 문서에 `.venv` 활성화 단계가 빠져 있어 신규 환경에서 재현 가능성이 높음 — 항목 3(로깅) 작업 시 또는 별도로 `README.md`/`docs/DEVELOPMENT.md`에 `.venv` 사용법을 명시하는 작업 필요 (아직 미착수).
 
 ## 참고: 이미 잘 되어 있는 부분 (재작업 불필요)
 
