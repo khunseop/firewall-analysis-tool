@@ -23,7 +23,7 @@
 | 5 | SQLite 백업 전략 (운영 문서/스크립트) | 중간 | 완료 | `2026-09-30-sqlite-backup.md` |
 | 6 | 핵심 모듈(파서/인덱서/삭제 워크플로우) 테스트 추가 | 중간 | 완료 | `2026-09-30-core-module-tests.md` |
 | 7 | 인증 토큰 저장 방식 강화 (httpOnly 쿠키 전환) | 낮음 (보류) | 보류 | 아래 "재평가" 참고 |
-| 8 | 자잘한 버그 / UX·UI 점검 (상시 병행) | 상시 | 1차 조사분 완료 | `2026-09-30-bug-fixes-batch-1.md`, `2026-09-30-bug-fixes-batch-2.md` |
+| 8 | 자잘한 버그 / UX·UI 점검 (상시 병행) | 상시 | 2차 점검 완료 | `2026-09-30-bug-fixes-batch-1.md`, `2026-09-30-bug-fixes-batch-2.md`, `2026-09-30-frontend-ux-review-round2.md` |
 
 ## 재평가된 항목
 
@@ -50,6 +50,19 @@
 - `app/crud/crud_policy.py:390-396` — `_naive_seoul` 헬퍼의 `astimezone` 실패 시 로그 없이 원본 tzinfo로 폴백하던 것을 `logger.exception(...)`으로 남기도록 수정.
 - `get_kst_now()`/`_kst_now()` 3중 중복 구현을 `app/core/time_utils.py`로 통합 (analysis/tasks.py, deletion_workflow/tasks.py, deletion_workflow.py 엔드포인트 세 곳 모두 이 공유 함수를 사용하도록 교체).
 - `frontend/src/components/pages/policy-builder/ObjectGapPanel.tsx:23` — 하드코딩된 쿼리키를 `queryKeys.ts`의 `policyBuilderObjectGaps` 팩토리로 이동.
+
+### 항목 8 2차 점검 (프론트엔드 UX, 실제 dev 서버 + 실제 Chrome, 2026-09-30)
+
+**수정 완료** (→ `2026-09-30-frontend-ux-review-round2.md`):
+- **(높음)** `api/auth.ts`의 `login()`이 `apiClient`를 거치지 않는 원시 axios 호출이라 백엔드가 보내는 한국어 실패 사유(아이디/비밀번호 불일치, 비활성 계정, rate limit 등)가 버려지고 axios 제네릭 영어 메시지("Request failed with status code 401")만 토스트에 노출되고 있었다. 실제 Chrome에서 재현·스크린샷 확인 후 수정.
+
+**재현했으나 원인 미확정 — 후속 조사 필요 (수정 안 함)**:
+- 로그아웃 상태에서 처음 로그인할 때 간헐적으로, 대시보드가 정상 렌더링되는 것과 동시에 "Request failed with status code 401" 토스트가 한 번 나타남. 동일 조건 재시도 시 재현 안 됨(React Query 캐시 재사용 추정). 로그인 직후 인증 헤더 없이 나가는 초기 REST 요청이 있는 것으로 의심되나 간헐적이라 근본 원인 미확정 — 매번 스토리지/캐시를 완전히 비운 새 탭에서 재현 시도 필요.
+
+**확인했으나 버그 아님 (참고용)**:
+- 모든 401 응답마다 Chrome이 자동으로 남기는 "Failed to load resource: 401" 콘솔 오류는 브라우저 표준 동작이라 억제 불가 — 사용자가 원래 언급한 "콘솔에 가끔 오류가 보인다"의 상당 부분이 이것일 가능성.
+- 헤드리스 Playwright에서 Sonner 모듈을 수동 `import`해 `toast.error()`를 직접 호출했을 때 화면에 아무것도 안 뜨는 것처럼 보였으나, 실제 Chrome에서 앱의 실제 코드 경로로 트리거하면 정상 동작 — 테스트 방법론상의 오탐이었음(수동 import가 앱과 다른 모듈 인스턴스를 만든 것으로 추정).
+- React Router v7 future-flag 경고 2건은 매 페이지 로드마다 콘솔에 찍히지만 기능 영향 없는 사전 안내성 경고 — 저우선순위, 원하면 `<BrowserRouter future={{...}}>`로 조기 옵트인 가능.
 
 ## 참고: 이미 잘 되어 있는 부분 (재작업 불필요)
 
