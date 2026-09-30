@@ -8,7 +8,7 @@ import { rowIdFromId } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
-import { listDevices, createDevice, updateDevice, deleteDevice, testConnection, syncAll, downloadDeviceTemplate, bulkImportDevices, getActiveExportTasks, downloadExportResult, type Device, type DeviceCreate, type DeviceUpdate, type DirectExportType } from '@/api/devices'
+import { listDevices, createDevice, updateDevice, deleteDevice, testConnection, syncAll, downloadDeviceTemplate, bulkImportDevices, getActiveExportTasks, downloadExportResult, cancelExportTask, type Device, type DeviceCreate, type DeviceUpdate, type DirectExportType } from '@/api/devices'
 import { useSyncStatusWebSocket, type SyncWebSocketMessage } from '@/hooks/useWebSocket'
 import { notify } from '@/lib/notify'
 import { createNotification } from '@/api/notifications'
@@ -133,6 +133,10 @@ export function DevicesPage() {
   const syncMutation = useMutation({
     mutationFn: (id: number) => syncAll(id),
     onSuccess: () => toast.success('동기화가 시작되었습니다.'),
+    onError: (e: Error) => toast.error(e.message),
+  })
+  const cancelExportMutation = useMutation({
+    mutationFn: (taskId: number) => cancelExportTask(taskId),
     onError: (e: Error) => toast.error(e.message),
   })
 
@@ -481,6 +485,13 @@ export function DevicesPage() {
                 <span className="text-[11px] font-semibold tabular-nums text-ds-on-surface-variant shrink-0">
                   {t.progressCurrent} / {t.progressTotal}
                 </span>
+                <button
+                  onClick={() => cancelExportMutation.mutate(t.id)}
+                  disabled={cancelExportMutation.isPending}
+                  className="shrink-0 text-[11px] font-semibold text-ds-error hover:bg-ds-error/10 rounded-md px-2 py-0.5 transition-colors disabled:opacity-50"
+                >
+                  취소
+                </button>
               </div>
             )
           })}

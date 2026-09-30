@@ -138,3 +138,7 @@ export const getExportTaskStatus = async (taskId: number): Promise<ExportTask> =
 export const downloadExportResult = async (taskId: number, filename: string): Promise<void> => {
   await downloadBlob(`/api/v1/devices/export-tasks/${taskId}/download`, filename)
 }
+
+export const cancelExportTask = async (taskId: number): Promise<void> => {
+  await apiClient.post(`/devices/export-tasks/${taskId}/cancel`)
+}
