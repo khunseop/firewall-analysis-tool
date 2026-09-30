@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -33,13 +32,13 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30">
-      <Card className="w-full max-w-sm shadow-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl text-primary">FAT</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">Firewall Analysis Tool</p>
-        </CardHeader>
-        <CardContent>
+    <div className="min-h-screen flex items-center justify-center bg-ds-surface">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-6">
+          <span className="text-lg font-extrabold tracking-tight text-ds-tertiary font-headline">FAT</span>
+          <p className="text-[13px] text-ds-on-surface-variant/70 mt-1">Firewall Analysis Tool</p>
+        </div>
+        <div className="card rounded-2xl px-6 py-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="username">아이디</Label>
@@ -65,8 +64,8 @@ export function LoginPage() {
               {isPending ? '로그인 중...' : '로그인'}
             </Button>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { formatRelativeTime } from '@/lib/utils'
 import { TableSkeleton } from '@/components/shared/Skeleton'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { queryKeys } from '@/api/queryKeys'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; label: string }> = {
   success: { icon: CheckCircle2,  color: 'text-green-600',     label: '성공' },
@@ -97,10 +98,7 @@ export function NotificationsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
-      <div className="flex items-center justify-between shrink-0">
-        <h1 className="text-xl font-semibold tracking-tight text-ds-on-surface">Notifications</h1>
-      </div>
+      <PageHeader title="Notifications" />
 
       {/* Search / date filter bar */}
       <div className="card rounded-xl px-5 py-4 flex flex-wrap gap-3 items-end shrink-0">
