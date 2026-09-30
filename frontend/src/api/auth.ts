@@ -10,8 +10,16 @@ export async function login(username: string, password: string): Promise<LoginRe
   params.append('username', username)
   params.append('password', password)
 
-  const res = await axios.post<LoginResponse>('/api/v1/auth/login', params, {
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-  })
-  return res.data
+  try {
+    const res = await axios.post<LoginResponse>('/api/v1/auth/login', params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
+    return res.data
+  } catch (err) {
+    if (axios.isAxiosError(err)) {
+      const detail = err.response?.data?.detail ?? err.response?.data?.msg ?? err.message
+      throw new Error(detail)
+    }
+    throw err
+  }
 }
