@@ -35,6 +35,25 @@ def get_policy_ranges(policy) -> Tuple[Set[Tuple[int, int]], Set[Tuple[int, int]
     return src_ranges, dst_ranges, services
 
 
+def get_policy_addr_tokens(policy) -> Tuple[Set[str], Set[str]]:
+    """
+    숫자 범위로 해소되지 않는 주소 토큰(FQDN, 빈 그룹 등)을 방향별로 추출합니다.
+
+    IP 범위가 없다고 해서 'any'인 것은 아니며, FQDN처럼 범위 비교가
+    불가능한 구체적 주소일 수 있으므로 별도로 취급합니다.
+    """
+    src_tokens = set()
+    dst_tokens = set()
+    for member in policy.address_members:
+        if member.ip_start is not None or not member.token or member.token_type != 'unknown':
+            continue
+        if member.direction == 'source':
+            src_tokens.add(member.token)
+        elif member.direction == 'destination':
+            dst_tokens.add(member.token)
+    return src_tokens, dst_tokens
+
+
 def ranges_overlap(range1: Tuple[int, int], range2: Tuple[int, int]) -> bool:
     """두 수치 범위(IP 또는 Port)가 서로 겹치는지 확인합니다."""
     return not (range1[1] < range2[0] or range2[1] < range1[0])
@@ -63,6 +82,27 @@ def applications_overlap(app1: str, app2: str) -> bool:
     return len(apps1 & apps2) > 0
 
 
+def _addr_dimension_overlap(
+    ranges1: Set[Tuple[int, int]], tokens1: Set[str],
+    ranges2: Set[Tuple[int, int]], tokens2: Set[str],
+) -> bool:
+    """한 방향(source 또는 destination)의 주소 조건이 서로 겹치는지 확인합니다.
+
+    IP 범위는 숫자 겹침으로, FQDN 등 토큰 주소는 정확히 일치하는 경우에만 겹치는 것으로 본다.
+    양쪽 모두 아무 주소 조건이 없으면(순수 'any') 겹치는 것으로 간주한다.
+    """
+    if not ranges1 and not tokens1:
+        return True  # policy1이 해당 방향에 대해 'any'
+    if not ranges2 and not tokens2:
+        return True  # policy2가 해당 방향에 대해 'any'
+
+    if ranges1 and ranges2 and any(ranges_overlap(r1, r2) for r1 in ranges1 for r2 in ranges2):
+        return True
+    if tokens1 & tokens2:
+        return True
+    return False
+
+
 def policies_overlap(policy1, policy2) -> bool:
     """
     두 정책의 조건(출발지, 목적지, 서비스, 애플리케이션)이 모두 중첩되는지 확인합니다.
@@ -70,21 +110,15 @@ def policies_overlap(policy1, policy2) -> bool:
     """
     src1, dst1, svc1 = get_policy_ranges(policy1)
     src2, dst2, svc2 = get_policy_ranges(policy2)
+    src1_tokens, dst1_tokens = get_policy_addr_tokens(policy1)
+    src2_tokens, dst2_tokens = get_policy_addr_tokens(policy2)
 
-    src_overlap = len(src1) > 0 and len(src2) > 0 and any(
-        ranges_overlap(r1, r2) for r1 in src1 for r2 in src2
-    )
-    dst_overlap = len(dst1) > 0 and len(dst2) > 0 and any(
-        ranges_overlap(r1, r2) for r1 in dst1 for r2 in dst2
-    )
+    src_overlap = _addr_dimension_overlap(src1, src1_tokens, src2, src2_tokens)
+    dst_overlap = _addr_dimension_overlap(dst1, dst1_tokens, dst2, dst2_tokens)
+
     svc_overlap = len(svc1) > 0 and len(svc2) > 0 and any(
         services_overlap(s1, s2) for s1 in svc1 for s2 in svc2
     )
-
-    if not src1 or not src2:
-        src_overlap = True
-    if not dst1 or not dst2:
-        dst_overlap = True
     if not svc1 or not svc2:
         svc_overlap = True
 

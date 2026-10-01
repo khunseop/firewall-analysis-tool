@@ -230,6 +230,16 @@ class RedundancyAnalyzer:
             if m.direction == direction and m.ip_start is not None and m.ip_end is not None
         ]
 
+    def _get_addr_tokens(
+        self, members: list, direction: str
+    ) -> set:
+        """지정 방향의 숫자 범위로 해소되지 않은 주소 토큰(FQDN, 빈 그룹 등) 집합을 반환합니다."""
+        return {
+            m.token
+            for m in members
+            if m.direction == direction and m.ip_start is None and m.token and m.token_type == 'unknown'
+        }
+
     def _get_svc_ranges(
         self, members: list
     ) -> List[Tuple[Optional[str], int, int]]:
@@ -244,15 +254,26 @@ class RedundancyAnalyzer:
         self,
         small: List[Tuple[int, int]],
         large: List[Tuple[int, int]],
+        small_tokens: Optional[set] = None,
+        large_tokens: Optional[set] = None,
     ) -> bool:
-        """small의 모든 IP 범위가 large의 어느 하나에 포함되는지 확인합니다."""
-        if not large:
+        """small의 모든 IP 범위/주소 토큰(FQDN 등)이 large에 포함되는지 확인합니다.
+
+        FQDN처럼 숫자 범위로 해소되지 않는 주소는 범위 포함 관계를 판단할 수 없으므로
+        토큰 문자열이 large에 정확히 존재하는 경우에만 포함된 것으로 간주합니다.
+        """
+        small_tokens = small_tokens or set()
+        large_tokens = large_tokens or set()
+
+        if not large and not large_tokens:
             return True   # large는 'any' — 모든 주소 포함
-        if not small:
+        if not small and not small_tokens:
             return False  # small은 'any'이지만 large는 구체적 — small이 더 넓음
         for s_start, s_end in small:
             if not any(l_start <= s_start and s_end <= l_end for l_start, l_end in large):
                 return False
+        if not small_tokens.issubset(large_tokens):
+            return False
         return True
 
     def _is_svc_subset(
@@ -305,13 +326,17 @@ class RedundancyAnalyzer:
         # 1. 소스 주소
         small_src = self._get_addr_ranges(small.address_members, 'source')
         large_src = self._get_addr_ranges(large.address_members, 'source')
-        if not self._is_addr_subset(small_src, large_src):
+        small_src_tokens = self._get_addr_tokens(small.address_members, 'source')
+        large_src_tokens = self._get_addr_tokens(large.address_members, 'source')
+        if not self._is_addr_subset(small_src, large_src, small_src_tokens, large_src_tokens):
             return False
 
         # 2. 목적지 주소
         small_dst = self._get_addr_ranges(small.address_members, 'destination')
         large_dst = self._get_addr_ranges(large.address_members, 'destination')
-        if not self._is_addr_subset(small_dst, large_dst):
+        small_dst_tokens = self._get_addr_tokens(small.address_members, 'destination')
+        large_dst_tokens = self._get_addr_tokens(large.address_members, 'destination')
+        if not self._is_addr_subset(small_dst, large_dst, small_dst_tokens, large_dst_tokens):
             return False
 
         # 3. 서비스
