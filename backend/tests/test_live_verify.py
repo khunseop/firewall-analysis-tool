@@ -29,3 +29,37 @@ def test_true_and_Y_are_now_treated_as_equal_after_normalization():
     # str(True) == "True" != "Y" 라서 항상 불일치로 오판했다.
     assert _normalize_diff_value("enable", True) == _normalize_diff_value("enable", "Y")
     assert _normalize_diff_value("enable", False) == _normalize_diff_value("enable", "N")
+
+
+from app.services.policy_builder.live_verify import _apply_create_defaults, _compare_field
+
+
+def test_create_row_empty_fields_filled_with_defaults():
+    # 버그 재현: 신규 정책의 빈 필드는 CLI 생성 시 policy_builder_defaults로 채워져 장비엔 any가
+    # 들어가는데, 기대값은 빈값 그대로라 "FAT 빈값 vs 장비 any" 불일치로 오판했다.
+    row = {"rule_name": "r1", "source": "", "destination": "10.0.0.1", "user": None, "log_setting": None}
+    defaults = {"source": "any", "source_user": "any", "destination": "any", "log_setting": "fwd"}
+    expected = _apply_create_defaults(row, defaults)
+    assert expected["source"] == "any"
+    assert expected["user"] == "any"
+    assert expected["destination"] == "10.0.0.1"  # 값이 있으면 기본값을 덮어쓰지 않는다
+    assert expected["log_setting"] == "fwd"
+    assert expected["category"] == "any"
+    assert _compare_field("source", expected["source"], "any")["match"]
+
+
+def test_multi_value_compare_is_order_insensitive_with_counts():
+    result = _compare_field("source", "a,b,c", "c,a,b")
+    assert result["match"]
+    assert result["expected_count"] == 3 and result["actual_count"] == 3
+
+
+def test_multi_value_compare_detects_missing_member():
+    result = _compare_field("destination", "a,b", "a")
+    assert not result["match"]
+    assert (result["expected_count"], result["actual_count"]) == (2, 1)
+
+
+def test_single_value_field_has_no_count():
+    result = _compare_field("action", "allow", "allow")
+    assert result["match"] and result["expected_count"] is None

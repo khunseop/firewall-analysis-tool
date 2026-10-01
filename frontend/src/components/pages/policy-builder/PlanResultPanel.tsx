@@ -123,6 +123,17 @@ const PENDING_STATUS_LABEL: Record<PolicyVerifyResult['pending_status'], string>
   new: '생성', modified: '수정', deleted: '삭제', moved: '이동',
 }
 
+const VERIFY_FIELD_LABEL: Record<string, string> = {
+  enable: '활성화', action: '액션', from_zone: '출발지 존', source: '출발지', user: '사용자',
+  to_zone: '목적지 존', destination: '목적지', service: '서비스', application: '애플리케이션',
+  description: '설명', log_setting: '로그 설정', security_profile: '보안 프로필', category: '카테고리',
+}
+
+function formatCompareValue(value: string, count: number | null) {
+  const text = value || '(없음)'
+  return count === null ? text : `${count}개 · ${text}`
+}
+
 export function VerifyResultPanel({ results }: { results: PolicyVerifyResult[] }) {
   const matchCount = results.filter((r) => r.status === 'match').length
   const mismatchCount = results.length - matchCount
@@ -133,27 +144,43 @@ export function VerifyResultPanel({ results }: { results: PolicyVerifyResult[] }
         대기중 변경사항 {results.length}건 검증 · <span className="text-emerald-600 font-semibold">일치 {matchCount}건</span>
         {mismatchCount > 0 && <span className="text-ds-error font-semibold"> · 불일치 {mismatchCount}건</span>}
       </p>
-      <div className="space-y-1 max-h-[320px] overflow-y-auto">
+      <div className="space-y-2">
         {results.map((r, i) => (
           <div
             key={i}
-            className={`px-2.5 py-1.5 rounded-md text-xs ${
-              r.status === 'match' ? 'bg-emerald-50 text-emerald-700' : 'bg-ds-error/10 text-ds-error'
+            className={`px-2.5 py-1.5 rounded-md text-xs border ${
+              r.status === 'match' ? 'border-emerald-200 bg-emerald-50/50' : 'border-ds-error/30 bg-ds-error/5'
             }`}
           >
-            <div className="flex items-center gap-2 font-semibold">
+            <div className={`flex items-center gap-2 font-semibold ${r.status === 'match' ? 'text-emerald-700' : 'text-ds-error'}`}>
               <span>{r.status === 'match' ? '일치' : '불일치'}</span>
               <span className="font-mono">{r.rule_name}</span>
               <span className="text-10 font-normal opacity-70">({PENDING_STATUS_LABEL[r.pending_status]})</span>
             </div>
-            {r.mismatches.length > 0 && (
-              <ul className="mt-1 ml-4 space-y-0.5">
-                {r.mismatches.map((m, j) => (
-                  <li key={j} className="font-mono text-11 break-all">
-                    {m.field}: {m.expected || '(없음)'} → {m.actual || '(없음)'}
-                  </li>
-                ))}
-              </ul>
+            {r.fields.length > 0 && (
+              <table className="mt-1.5 w-full table-fixed text-11">
+                <thead>
+                  <tr className="text-left text-ds-on-surface-variant">
+                    <th className="w-24 font-medium py-0.5">컬럼</th>
+                    <th className="font-medium py-0.5">기대값 (FAT)</th>
+                    <th className="font-medium py-0.5">실제값 (장비)</th>
+                    <th className="w-12 font-medium py-0.5">결과</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {r.fields.map((f) => (
+                    <tr
+                      key={f.field}
+                      className={`border-t border-ds-outline-variant/30 align-top ${f.match ? 'text-ds-on-surface' : 'text-ds-error font-semibold'}`}
+                    >
+                      <td className="py-0.5">{VERIFY_FIELD_LABEL[f.field] ?? f.field}</td>
+                      <td className="py-0.5 pr-2 font-mono break-all">{formatCompareValue(f.expected, f.expected_count)}</td>
+                      <td className="py-0.5 pr-2 font-mono break-all">{formatCompareValue(f.actual, f.actual_count)}</td>
+                      <td className={`py-0.5 ${f.match ? 'text-emerald-600' : 'text-ds-error'}`}>{f.match ? '일치' : '불일치'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         ))}

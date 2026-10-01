@@ -4,6 +4,7 @@ Policies 편집모드의 대기중 변경사항을 사용자가 실제 장비에
 candidate 설정을 조회해서 비교만 한다. 실제 CLI 실행은 사용자가 장비에서 직접 한다.
 """
 import asyncio
+import re
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -13,12 +14,60 @@ from app.core.executors import IO_EXECUTOR
 from app.core.security import decrypt
 from app.models.device import Device
 from app.services.firewall.factory import FirewallCollectorFactory
-from app.services.live_policy_diff import DIFF_FIELDS
 from app.services.policy_builder.insertion_analyzer import build_full_order
 
 
 class LiveVerifyError(Exception):
     """실제 장비 검증 중 발생한 오류(장비 연결 실패 등)."""
+
+
+# 정책 1건에 대해 비교하는 전체 컬럼(표시 순서 그대로). 다중값 컬럼은 순서와 무관하게 집합으로 비교한다.
+VERIFY_FIELDS = [
+    "enable", "action", "from_zone", "source", "user", "to_zone", "destination",
+    "service", "application", "description", "log_setting", "security_profile", "category",
+]
+_MULTI_VALUE_FIELDS = {"from_zone", "source", "user", "to_zone", "destination", "service", "application", "category"}
+
+# 신규 생성 행의 그리드 필드 → Settings(policy_builder_defaults) 키. CLI 생성
+# (`cli_generator.generate_policy_set_command`)이 빈 필드를 이 기본값으로 채워 장비에 반영하므로,
+# 기대값에도 똑같이 채워야 "FAT은 빈값, 장비는 any"로 오판하지 않는다.
+_DEFAULT_KEY_BY_FIELD = {
+    "from_zone": "from_zone", "source": "source", "user": "source_user", "to_zone": "to_zone",
+    "destination": "destination", "service": "service", "application": "application",
+    "log_setting": "log_setting",
+}
+
+
+def _split_values(value: str) -> List[str]:
+    return [v.strip().strip('"') for v in re.split(r"[,\n]", value) if v.strip().strip('"')]
+
+
+def _apply_create_defaults(row: Dict[str, Any], defaults: Dict[str, str]) -> Dict[str, Any]:
+    """신규 생성 행의 빈 필드를 CLI 생성과 동일한 기본값으로 채운 기대값 행을 만든다.
+    FAT이 설정하지 않는 category/security_profile은 PAN-OS 기본 상태(any/없음)를 기대값으로 한다."""
+    expected = dict(row)
+    for field, key in _DEFAULT_KEY_BY_FIELD.items():
+        if not _split_values(str(expected.get(field) or "")):
+            expected[field] = (defaults.get(key) or "").strip()
+    expected["category"] = expected.get("category") or "any"
+    expected["security_profile"] = expected.get("security_profile") or ""
+    return expected
+
+
+def _compare_field(field: str, expected_raw: Any, actual_raw: Any) -> Dict[str, Any]:
+    expected = _normalize_diff_value(field, expected_raw)
+    actual = _normalize_diff_value(field, actual_raw)
+    if field in _MULTI_VALUE_FIELDS:
+        expected_items, actual_items = _split_values(expected), _split_values(actual)
+        return {
+            "field": field, "expected": ",".join(expected_items), "actual": ",".join(actual_items),
+            "expected_count": len(expected_items), "actual_count": len(actual_items),
+            "match": sorted(expected_items) == sorted(actual_items),
+        }
+    return {
+        "field": field, "expected": expected, "actual": actual,
+        "expected_count": None, "actual_count": None, "match": expected.strip() == actual.strip(),
+    }
 
 
 def _normalize_diff_value(field: str, value: Any) -> str:
@@ -64,8 +113,11 @@ def _match_candidate(
     return candidates[0] if len(candidates) == 1 else None
 
 
-async def verify_pending_changes_against_candidate(db: AsyncSession, device: Device) -> List[Dict[str, Any]]:
-    """대기중 변경사항을 모두 적용한 계획된 최종 상태와, 장비의 실제 candidate 설정을 비교한다."""
+async def verify_pending_changes_against_candidate(
+    db: AsyncSession, device: Device, defaults: Dict[str, str],
+) -> List[Dict[str, Any]]:
+    """대기중 변경사항을 모두 적용한 계획된 최종 상태와, 장비의 실제 candidate 설정을 비교한다.
+    정책마다 전체 컬럼의 기대값/실제값/일치 여부를 모두 반환한다(불일치 컬럼만이 아니라)."""
     planned_rows = await build_full_order(db, device.id)
     changed_rows = [r for r in planned_rows if r.get("pending_status")]
     if not changed_rows:
@@ -103,10 +155,14 @@ async def verify_pending_changes_against_candidate(db: AsyncSession, device: Dev
         candidate_row = _match_candidate(row, by_key, by_name)
 
         if pending_status == "deleted":
-            status = "mismatch" if candidate_row is not None else "match"
+            exists = candidate_row is not None
             results.append({
                 "rule_name": row["rule_name"], "vsys": row.get("vsys"),
-                "pending_status": pending_status, "status": status, "mismatches": [],
+                "pending_status": pending_status, "status": "mismatch" if exists else "match",
+                "fields": [{
+                    "field": "존재 여부", "expected": "없음", "actual": "존재" if exists else "없음",
+                    "expected_count": None, "actual_count": None, "match": not exists,
+                }],
             })
             continue
 
@@ -114,22 +170,21 @@ async def verify_pending_changes_against_candidate(db: AsyncSession, device: Dev
             results.append({
                 "rule_name": row["rule_name"], "vsys": row.get("vsys"),
                 "pending_status": pending_status, "status": "mismatch",
-                "mismatches": [{"field": "존재 여부", "expected": "존재", "actual": "없음"}],
+                "fields": [{
+                    "field": "존재 여부", "expected": "존재", "actual": "없음",
+                    "expected_count": None, "actual_count": None, "match": False,
+                }],
             })
             continue
 
-        mismatches = []
-        for field in DIFF_FIELDS:
-            expected = _normalize_diff_value(field, row.get(field))
-            actual = _normalize_diff_value(field, candidate_row.get(field))
-            if expected != actual:
-                mismatches.append({"field": field, "expected": expected, "actual": actual})
+        expected_row = _apply_create_defaults(row, defaults) if pending_status == "new" else row
+        fields = [_compare_field(f, expected_row.get(f), candidate_row.get(f)) for f in VERIFY_FIELDS]
 
         results.append({
             "rule_name": row["rule_name"], "vsys": row.get("vsys"),
             "pending_status": pending_status,
-            "status": "match" if not mismatches else "mismatch",
-            "mismatches": mismatches,
+            "status": "match" if all(f["match"] for f in fields) else "mismatch",
+            "fields": fields,
         })
 
     return results

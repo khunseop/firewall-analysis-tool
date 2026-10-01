@@ -118,7 +118,7 @@ async def verify_against_device(
     그 결과가 계획과 일치하는지만 확인한다."""
     device = await _get_palo_alto_device(db, device_id)
     try:
-        return await verify_pending_changes_against_candidate(db, device)
+        return await verify_pending_changes_against_candidate(db, device, await _load_defaults(db))
     except LiveVerifyError as e:
         raise HTTPException(status_code=502, detail=str(e))
 

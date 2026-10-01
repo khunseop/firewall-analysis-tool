@@ -101,10 +101,13 @@ export interface PreviewPolicyRow {
   pending_status: 'new' | 'modified' | 'deleted' | 'moved' | null
 }
 
-export interface PolicyFieldMismatch {
+export interface PolicyFieldCompare {
   field: string
   expected: string
   actual: string
+  expected_count: number | null
+  actual_count: number | null
+  match: boolean
 }
 
 export interface PolicyVerifyResult {
@@ -112,7 +115,7 @@ export interface PolicyVerifyResult {
   vsys: string | null
   pending_status: 'new' | 'modified' | 'deleted' | 'moved'
   status: 'match' | 'mismatch'
-  mismatches: PolicyFieldMismatch[]
+  fields: PolicyFieldCompare[]
 }
 
 export type PendingChangeType = 'create' | 'new_object' | 'modify' | 'delete' | 'move'

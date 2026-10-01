@@ -132,10 +132,14 @@ class BulkPolicyPlanResponse(BaseModel):
     warnings: List[str]
 
 
-class PolicyFieldMismatch(BaseModel):
+class PolicyFieldCompare(BaseModel):
+    """정책 1건의 컬럼 1개에 대한 기대값(FAT) vs 실제값(장비) 비교. 다중값 컬럼만 *_count가 채워진다."""
     field: str
     expected: str
     actual: str
+    expected_count: Optional[int] = None
+    actual_count: Optional[int] = None
+    match: bool
 
 
 class PolicyVerifyResult(BaseModel):
@@ -144,4 +148,4 @@ class PolicyVerifyResult(BaseModel):
     vsys: Optional[str] = None
     pending_status: Literal["new", "modified", "deleted", "moved"]
     status: Literal["match", "mismatch"]
-    mismatches: List[PolicyFieldMismatch] = []
+    fields: List[PolicyFieldCompare] = []
