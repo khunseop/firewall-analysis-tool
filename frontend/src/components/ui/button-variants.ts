@@ -15,7 +15,7 @@ export const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
         // Precision Sentinel 전용 — 기존 .btn-primary-gradient 인라인 스타일을 컴포넌트화
-        gradient: "btn-primary-gradient text-ds-on-tertiary shadow-sm hover:opacity-90 [&_svg]:size-auto",
+        gradient: "btn-primary-gradient text-white shadow-sm hover:opacity-90 [&_svg]:size-auto",
         // Precision Sentinel 전용 — 카드형 아웃라인 버튼(갱신 등)을 컴포넌트화
         subtle:
           "bg-white text-ds-on-surface-variant border border-ds-outline-variant/10 shadow-sm hover:text-ds-on-surface hover:bg-ds-surface-container-low [&_svg]:size-auto",

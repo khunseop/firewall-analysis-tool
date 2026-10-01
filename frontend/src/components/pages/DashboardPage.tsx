@@ -11,7 +11,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { rowIdFromId } from '@/lib/utils'
 import { getDashboardStats, type DeviceStats } from '@/api/devices'
-import { getChangeStats, getObjectCountHistory, type ChangeStatCategory } from '@/api/firewall'
+import { getObjectCountHistory, type ChangeStatCategory } from '@/api/firewall'
 import { useSyncStatusWebSocket, type SyncWebSocketMessage } from '@/hooks/useWebSocket'
 import { notify } from '@/lib/notify'
 import { formatNumber, formatRelativeTime } from '@/lib/utils'
@@ -86,6 +86,12 @@ function CapacityCell({ usage, threshold }: { usage: number | null; threshold: n
       </div>
     </div>
   )
+}
+
+// 임계치 컬럼 정렬용 — 임계치 미설정 장비는 항상 맨 아래로 보냄
+function capacityPct(usage: number | null | undefined, threshold: number | null | undefined): number {
+  if (usage == null || threshold == null || threshold <= 0) return -1
+  return usage / threshold
 }
 
 interface CapacityMetric { label: string; usage: number; threshold: number; pct: number; level: 'warning' | 'danger' }
@@ -163,23 +169,28 @@ const COLUMN_DEFS: ColDef<DeviceRow>[] = [
     valueFormatter: (p) => formatRelativeTime(p.value),
   },
   {
-    headerName: '정책 임계치', minWidth: 110, sortable: false, filter: false,
+    headerName: '정책 임계치', minWidth: 110,
+    valueGetter: (p) => capacityPct(p.data?.policies, p.data?.policy_threshold),
     cellRenderer: (p: { data: DeviceRow }) => <CapacityCell usage={p.data.policies} threshold={p.data.policy_threshold} />,
   },
   {
-    headerName: '네트워크 객체 임계치', minWidth: 130, sortable: false, filter: false,
+    headerName: '네트워크 객체 임계치', minWidth: 130,
+    valueGetter: (p) => capacityPct(p.data?.network_objects, p.data?.network_object_threshold),
     cellRenderer: (p: { data: DeviceRow }) => <CapacityCell usage={p.data.network_objects} threshold={p.data.network_object_threshold} />,
   },
   {
-    headerName: '네트워크 그룹 임계치', minWidth: 130, sortable: false, filter: false,
+    headerName: '네트워크 그룹 임계치', minWidth: 130,
+    valueGetter: (p) => capacityPct(p.data?.network_groups, p.data?.network_group_threshold),
     cellRenderer: (p: { data: DeviceRow }) => <CapacityCell usage={p.data.network_groups} threshold={p.data.network_group_threshold} />,
   },
   {
-    headerName: '서비스 객체 임계치', minWidth: 130, sortable: false, filter: false,
+    headerName: '서비스 객체 임계치', minWidth: 130,
+    valueGetter: (p) => capacityPct(p.data?.services, p.data?.service_threshold),
     cellRenderer: (p: { data: DeviceRow }) => <CapacityCell usage={p.data.services} threshold={p.data.service_threshold} />,
   },
   {
-    headerName: '서비스 그룹 임계치', minWidth: 130, sortable: false, filter: false,
+    headerName: '서비스 그룹 임계치', minWidth: 130,
+    valueGetter: (p) => capacityPct(p.data?.service_groups, p.data?.service_group_threshold),
     cellRenderer: (p: { data: DeviceRow }) => <CapacityCell usage={p.data.service_groups} threshold={p.data.service_group_threshold} />,
   },
 ]
@@ -232,42 +243,6 @@ export function DashboardPage() {
     gridRef.current?.gridApi?.setGridOption('quickFilterText', value)
   }
 
-  const deviceIds = stats?.device_stats.map(d => d.id) ?? []
-
-  const { data: changeStats = [] } = useQuery({
-    queryKey: queryKeys.changeStats(deviceIds),
-    queryFn: () => getChangeStats(deviceIds),
-    enabled: deviceIds.length > 0,
-    staleTime: 60_000,
-  })
-
-  const chartData = useMemo(() => {
-    const weeks = [...new Set(changeStats.map(s => s.week))].sort()
-    const get = (week: string, action: string) => changeStats.find(s => s.week === week && s.action === action)?.count ?? 0
-    return {
-      categories: weeks.map(w => {
-        const [y, wn] = w.split('-')
-        return `${y}-W${wn}`
-      }),
-      series: [
-        { name: '신규', data: weeks.map(w => get(w, 'created')), color: '#22c55e' },
-        { name: '변경', data: weeks.map(w => get(w, 'updated')), color: '#f59e0b' },
-        { name: '삭제', data: weeks.map(w => get(w, 'deleted')), color: '#ef4444' },
-      ],
-    }
-  }, [changeStats])
-
-  const chartOptions: ApexOptions = {
-    chart: { type: 'bar', stacked: true, toolbar: { show: false }, background: 'transparent' },
-    plotOptions: { bar: { columnWidth: '55%', borderRadius: 2 } },
-    xaxis: { categories: chartData.categories, labels: { style: { fontSize: '11px' } } },
-    yaxis: { labels: { style: { fontSize: '11px' } }, min: 0 },
-    legend: { position: 'top', fontSize: '12px' },
-    dataLabels: { enabled: false },
-    tooltip: { shared: true, intersect: false },
-    grid: { borderColor: 'rgba(0,0,0,0.05)' },
-  }
-
   const [trendDeviceId, setTrendDeviceId] = useState<number | null>(null)
   const [trendCategory, setTrendCategory] = useState<ChangeStatCategory>('policies')
 
@@ -280,14 +255,23 @@ export function DashboardPage() {
 
   const trendChartData = useMemo(() => {
     const weeks = trendCountHistory.map(s => s.week)
+    const counts = trendCountHistory.map(s => s.count)
+    // 실제 데이터 범위에 여유분만 더해 y축을 타이트하게 맞춘다 —
+    // min을 항상 0으로 고정하면 작은 증감이 그래프상 평평하게 뭉개져 보이는 문제가 있었음.
+    const dataMin = counts.length ? Math.min(...counts) : 0
+    const dataMax = counts.length ? Math.max(...counts) : 0
+    const range = dataMax - dataMin
+    const padding = range > 0 ? range * 0.15 : Math.max(1, dataMax * 0.05)
     return {
       categories: weeks.map(w => {
         const [y, wn] = w.split('-')
         return `${y}-W${wn}`
       }),
       series: [
-        { name: '실제 개수', data: trendCountHistory.map(s => s.count), color: '#3b82f6' },
+        { name: '실제 개수', data: counts, color: '#3b82f6' },
       ],
+      yMin: Math.max(0, Math.floor(dataMin - padding)),
+      yMax: Math.ceil(dataMax + padding),
     }
   }, [trendCountHistory])
 
@@ -296,7 +280,11 @@ export function DashboardPage() {
     stroke: { curve: 'smooth', width: 2 },
     markers: { size: 4 },
     xaxis: { categories: trendChartData.categories, labels: { style: { fontSize: '11px' } } },
-    yaxis: { labels: { style: { fontSize: '11px' } }, min: 0 },
+    yaxis: {
+      labels: { style: { fontSize: '11px' } },
+      min: trendChartData.yMin,
+      max: trendChartData.yMax,
+    },
     legend: { show: false },
     dataLabels: { enabled: false },
     tooltip: { shared: true, intersect: false },
@@ -336,23 +324,21 @@ export function DashboardPage() {
 
       {/* 오류 배너 */}
       {errorDevices.length > 0 && (
-        <div className="shrink-0 flex items-center justify-between bg-ds-error/4 border border-ds-error/15 rounded-xl px-5 py-3">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="w-4 h-4 text-ds-error shrink-0" />
-            <div>
-              <p className="text-13 font-semibold text-ds-error">
-                {errorDevices.length}개 장비 동기화 오류
-              </p>
-              <p className="text-11 text-ds-error/60 mt-0.5">
-                {errorDevices.map(d => d.name).join(', ')}
-              </p>
-            </div>
+        <div className="shrink-0 flex items-center justify-between gap-3 bg-ds-error/4 border border-ds-error/15 rounded-lg px-3.5 py-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <AlertTriangle className="w-3.5 h-3.5 text-ds-error shrink-0" />
+            <span className="text-xs font-semibold text-ds-error shrink-0">
+              {errorDevices.length}개 장비 동기화 오류
+            </span>
+            <span className="text-11 text-ds-error/60 truncate">
+              {errorDevices.map(d => d.name).join(', ')}
+            </span>
           </div>
           <Button
             variant="destructive"
             size="auto"
             onClick={() => navigate('/devices')}
-            className="px-3 py-1.5 text-xs font-semibold rounded-lg shrink-0"
+            className="px-2.5 py-1 text-11 font-semibold rounded-md shrink-0"
           >
             장비 확인
           </Button>
@@ -361,11 +347,11 @@ export function DashboardPage() {
 
       {/* 임계치 80% 이상 장비 섹션 */}
       {highCapacityDevices.length > 0 && (
-        <div className={`shrink-0 card rounded-xl border ${hasDangerCapacity ? 'border-ds-error/20' : 'border-amber-200'}`}>
-          <div className="flex items-center justify-between px-5 py-3 border-b border-ds-outline-variant/10">
-            <div className="flex items-center gap-2">
-              <Gauge className={`w-4 h-4 shrink-0 ${hasDangerCapacity ? 'text-ds-error' : 'text-amber-600'}`} />
-              <span className={`text-13 font-semibold ${hasDangerCapacity ? 'text-ds-error' : 'text-amber-700'}`}>
+        <div className={`shrink-0 card rounded-lg border ${hasDangerCapacity ? 'border-ds-error/20' : 'border-amber-200'}`}>
+          <div className="flex items-center justify-between px-3.5 py-2 border-b border-ds-outline-variant/10">
+            <div className="flex items-center gap-1.5">
+              <Gauge className={`w-3.5 h-3.5 shrink-0 ${hasDangerCapacity ? 'text-ds-error' : 'text-amber-600'}`} />
+              <span className={`text-xs font-semibold ${hasDangerCapacity ? 'text-ds-error' : 'text-amber-700'}`}>
                 임계치 80% 이상 사용 중인 장비
               </span>
               <span className="text-11 text-ds-on-surface-variant/50 tabular-nums">{highCapacityDevices.length}대</span>
@@ -374,20 +360,20 @@ export function DashboardPage() {
               variant="secondary"
               size="auto"
               onClick={() => navigate('/devices')}
-              className="px-3 py-1.5 text-xs font-semibold rounded-lg shrink-0 hover:bg-ds-surface-container-high"
+              className="px-2.5 py-1 text-11 font-semibold rounded-md shrink-0 hover:bg-ds-surface-container-high"
             >
               장비 확인
             </Button>
           </div>
           <div className="divide-y divide-ds-outline-variant/10">
             {highCapacityDevices.map(({ device, metrics }) => (
-              <div key={device.id} className="flex items-center justify-between gap-3 px-5 py-2.5">
-                <span className="text-xs font-semibold text-ds-on-surface shrink-0">{device.name}</span>
-                <div className="flex items-center gap-2 flex-wrap justify-end">
+              <div key={device.id} className="flex items-center justify-between gap-3 px-3.5 py-1.5">
+                <span className="text-11 font-semibold text-ds-on-surface shrink-0">{device.name}</span>
+                <div className="flex items-center gap-1.5 flex-wrap justify-end">
                   {metrics.map(m => (
                     <span
                       key={m.label}
-                      className={`inline-flex px-2 py-0.5 rounded text-10 font-bold border ${
+                      className={`inline-flex px-1.5 py-0.5 rounded text-10 font-bold border ${
                         m.level === 'danger'
                           ? 'bg-red-50 text-ds-error border-red-100'
                           : 'bg-amber-50 text-amber-700 border-amber-100'
@@ -447,24 +433,6 @@ export function DashboardPage() {
           </div>
         ))}
       </div>
-
-      {/* 주간 정책 변경 추이 */}
-      {chartData.categories.length > 0 && (
-        <div className="card rounded-xl shrink-0">
-          <div className="px-5 py-3 border-b border-ds-outline-variant/10">
-            <span className="text-13 font-semibold text-ds-on-surface">주간 정책 변경 추이</span>
-            <span className="text-11 text-ds-on-surface-variant/60 ml-2">최근 12주</span>
-          </div>
-          <div className="px-4 py-3">
-            <ReactApexChart
-              type="bar"
-              height={200}
-              series={chartData.series}
-              options={chartOptions}
-            />
-          </div>
-        </div>
-      )}
 
       {/* 장비별 객체 증감 추이 */}
       <div className="card rounded-xl shrink-0">
@@ -545,7 +513,7 @@ export function DashboardPage() {
           height={gridHeight}
           loading={isLoading}
           noRowsText="등록된 장비가 없습니다."
-          defaultColDefOverride={{ resizable: true, sortable: true }}
+          defaultColDefOverride={{ resizable: true, sortable: true, filter: false }}
           fitColumns
         />
       </div>
