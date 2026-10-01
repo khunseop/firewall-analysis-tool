@@ -126,12 +126,23 @@ def compute_policy_member_rows(
         ip_members = {m for m in members if not m.startswith(GROUP_MARKER_PREFIX)}
         group_markers = {m for m in members if m.startswith(GROUP_MARKER_PREFIX)}
 
-        merged_ranges = merge_ip_ranges(ip_members)
+        parsable_ip_members = {m for m in ip_members if _ip_str_to_numeric_range(m) is not None}
+        unparsable_members = ip_members - parsable_ip_members
+
+        merged_ranges = merge_ip_ranges(parsable_ip_members)
         for start_ip, end_ip in merged_ranges:
             addr_rows.append({
                 "direction": direction,
                 "token_type": 'ipv4_range',
                 "ip_start": start_ip, "ip_end": end_ip,
+            })
+
+        for value in unparsable_members:
+            addr_rows.append({
+                "direction": direction,
+                "token": value,
+                "token_type": 'unknown',
+                "ip_start": None, "ip_end": None,
             })
 
         for marker in group_markers:
