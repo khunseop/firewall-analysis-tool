@@ -63,3 +63,33 @@ def test_multi_value_compare_detects_missing_member():
 def test_single_value_field_has_no_count():
     result = _compare_field("action", "allow", "allow")
     assert result["match"] and result["expected_count"] is None
+
+
+from app.services.policy_builder.live_verify import _compare_position
+
+
+def _planned(*names, deleted=()):
+    return [{"rule_name": n, "vsys": "vsys1", "pending_status": "deleted" if n in deleted else None} for n in names]
+
+
+def test_position_match_when_neighbors_equal():
+    planned = _planned("a", "moved", "b", "c", deleted=("c",))
+    candidate = [{"rule_name": n, "vsys": "vsys1"} for n in ("a", "moved", "b")]
+    result = _compare_position("moved", "vsys1", planned, candidate)
+    assert result["match"]
+    assert result["expected"] == "이전: a / 다음: b"
+
+
+def test_position_mismatch_when_move_not_applied():
+    planned = _planned("moved", "a", "b")
+    candidate = [{"rule_name": n, "vsys": "vsys1"} for n in ("a", "b", "moved")]
+    result = _compare_position("moved", "vsys1", planned, candidate)
+    assert not result["match"]
+    assert result["expected"] == "이전: (맨 위) / 다음: a"
+    assert result["actual"] == "이전: b / 다음: (맨 아래)"
+
+
+def test_position_ignores_other_vsys_and_includes_new_rows_without_vsys():
+    planned = _planned("a") + [{"rule_name": "new1", "vsys": None, "pending_status": "new"}] + _planned("b")
+    candidate = [{"rule_name": "x", "vsys": "vsys2"}] + [{"rule_name": n, "vsys": "vsys1"} for n in ("a", "new1", "b")]
+    assert _compare_position("new1", "vsys1", planned, candidate)["match"]

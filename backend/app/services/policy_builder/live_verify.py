@@ -113,6 +113,33 @@ def _match_candidate(
     return candidates[0] if len(candidates) == 1 else None
 
 
+def _neighbors(names: List[str], name: str) -> tuple[Optional[str], Optional[str]]:
+    idx = names.index(name)
+    return (names[idx - 1] if idx > 0 else None), (names[idx + 1] if idx + 1 < len(names) else None)
+
+
+def _format_position(prev_name: Optional[str], next_name: Optional[str]) -> str:
+    return f"이전: {prev_name or '(맨 위)'} / 다음: {next_name or '(맨 아래)'}"
+
+
+def _compare_position(
+    name: str, vsys: Optional[str], planned_rows: List[Dict[str, Any]], candidate_records: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """이동/신규 정책이 계획한 위치에 들어갔는지, 바로 앞·뒤 정책 이름을 계획 순서와 장비 순서에서 비교한다.
+    앞·뒤 정책이 같으면 순서가 맞다고 본다. 신규 생성행은 vsys가 없으므로 같은 vsys 범위로 간주한다."""
+    expected_names = [
+        r["rule_name"] for r in planned_rows
+        if r.get("pending_status") != "deleted" and r.get("vsys") in (None, vsys)
+    ]
+    actual_names = [r.get("rule_name") for r in candidate_records if r.get("vsys") == vsys]
+    expected = _neighbors(expected_names, name)
+    actual = _neighbors(actual_names, name)
+    return {
+        "field": "position", "expected": _format_position(*expected), "actual": _format_position(*actual),
+        "expected_count": None, "actual_count": None, "match": expected == actual,
+    }
+
+
 async def verify_pending_changes_against_candidate(
     db: AsyncSession, device: Device, defaults: Dict[str, str],
 ) -> List[Dict[str, Any]]:
@@ -148,6 +175,7 @@ async def verify_pending_changes_against_candidate(
         await loop.run_in_executor(IO_EXECUTOR, collector.disconnect)
 
     by_key, by_name = _candidate_indices(candidate_df)
+    candidate_records = candidate_df.to_dict(orient="records") if not candidate_df.empty else []
 
     results: List[Dict[str, Any]] = []
     for row in changed_rows:
@@ -179,6 +207,8 @@ async def verify_pending_changes_against_candidate(
 
         expected_row = _apply_create_defaults(row, defaults) if pending_status == "new" else row
         fields = [_compare_field(f, expected_row.get(f), candidate_row.get(f)) for f in VERIFY_FIELDS]
+        if pending_status in ("new", "moved"):
+            fields.append(_compare_position(row["rule_name"], candidate_row.get("vsys"), planned_rows, candidate_records))
 
         results.append({
             "rule_name": row["rule_name"], "vsys": row.get("vsys"),

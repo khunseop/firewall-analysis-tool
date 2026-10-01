@@ -127,6 +127,7 @@ const VERIFY_FIELD_LABEL: Record<string, string> = {
   enable: '활성화', action: '액션', from_zone: '출발지 존', source: '출발지', user: '사용자',
   to_zone: '목적지 존', destination: '목적지', service: '서비스', application: '애플리케이션',
   description: '설명', log_setting: '로그 설정', security_profile: '보안 프로필', category: '카테고리',
+  position: '위치',
 }
 
 function formatCompareValue(value: string, count: number | null) {
