@@ -6,7 +6,6 @@ import { ArrowLeft, AlertCircle, Loader2, Zap, RotateCcw, Square, CalendarDays, 
 import { runProjectExtract, runProjectTask, resetAllProjectFiles, clearProjectOutputs, completeProject } from '@/api/deletionWorkflow'
 import { getAnalysisProject, updateAnalysisProject, getProjectPipelineTaskResult, waitForPipelineTask, type AnalysisProjectDetail, type ProjectFileState } from '@/api/analysisProjects'
 import { getDevice, syncAll, getSyncStatus } from '@/api/devices'
-import { startAnalysis, getAnalysisStatus } from '@/api/analysis'
 import { queryKeys } from '@/api/queryKeys'
 import { PHASE1_TASKS, PHASE2_TASKS, PHASE3_TASKS, EXECUTION_ORDER, ALL_TASK_META, triggerDownload, hasOutput, getExternalFile, getDownstreamTaskIds } from './deletion-workflow/taskMeta'
 import { TaskCard } from './deletion-workflow/TaskCard'
@@ -157,53 +156,6 @@ export default function DeletionWorkflowDetailPage() {
     return decision !== 'cancel'
   }
 
-  // ── 중복정책 분석 자동 실행 ───────────────────────────────────────────────
-
-  const ensureRedundancyAnalysis = async (deviceId: number): Promise<boolean> => {
-    try {
-      const latest = await getAnalysisStatus(deviceId)
-      if (latest.task_status === 'success') return true
-      if (latest.task_status === 'in_progress' || latest.task_status === 'pending') {
-        // 이미 진행 중 — 완료 대기
-        toast.info('중복정책 분석이 진행 중입니다. 완료를 기다립니다...')
-        for (let i = 0; i < 120; i++) {
-          await new Promise((r) => setTimeout(r, 3000))
-          const s = await getAnalysisStatus(deviceId).catch(() => null)
-          if (!s) break
-          if (s.task_status === 'success') return true
-          if (s.task_status !== 'in_progress' && s.task_status !== 'pending') break
-        }
-        return false
-      }
-    } catch {
-      // 분석 결과 없음 → 신규 실행
-    }
-
-    toast.info('중복정책 분석 결과가 없습니다. 자동으로 분석을 시작합니다...')
-    try {
-      await startAnalysis(deviceId, 'redundancy')
-    } catch (e: unknown) {
-      toast.error(`중복정책 분석 시작 실패: ${(e as Error).message}`)
-      return false
-    }
-
-    for (let i = 0; i < 120; i++) {
-      await new Promise((r) => setTimeout(r, 3000))
-      const s = await getAnalysisStatus(deviceId).catch(() => null)
-      if (!s) break
-      if (s.task_status === 'success') {
-        toast.success('중복정책 분석 완료 — 워크플로우를 계속합니다.')
-        return true
-      }
-      if (s.task_status !== 'in_progress' && s.task_status !== 'pending') {
-        toast.error('중복정책 분석 실패')
-        return false
-      }
-    }
-    toast.error('중복정책 분석 타임아웃')
-    return false
-  }
-
   // ── 자동실행 ──────────────────────────────────────────────────────────────
 
   const startAutoRunFrom = async (fromTaskId?: number) => {
@@ -285,23 +237,6 @@ export default function DeletionWorkflowDetailPage() {
       // Task 5(MIS ID 매핑): CSV 없으면 건너뛰고 Task 2 결과를 그대로 다음 태스크에서 사용
       if (taskId === 5 && !getExternalFile(currentFiles, 5, 'external_1')) {
         continue
-      }
-
-      // Task 3(중복정책 분석): FAT DB에 분석 결과가 없으면 자동 실행
-      if (taskId === 3) {
-        const cachedProject2 = qc.getQueryData<AnalysisProjectDetail>(
-          queryKeys.analysisProject(projectId),
-        )
-        const deviceId = cachedProject2?.device_id
-        if (deviceId) {
-          setAutoRunCurrentTaskId(3) // 분석 중 스피너 표시
-          const ok = await ensureRedundancyAnalysis(deviceId)
-          if (!autoRunRef.current) break
-          if (!ok) {
-            autoRunRef.current = false
-            break
-          }
-        }
       }
 
       setTaskTimings((prev) => ({ ...prev, [taskId]: { startedAt: Date.now() } }))

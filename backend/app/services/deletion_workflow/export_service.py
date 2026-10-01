@@ -28,6 +28,10 @@ class ExportDataError(ValueError):
     """내보낼 데이터가 없을 때 발생합니다 (엔드포인트에서 404로 매핑)."""
 
 
+class RedundancyResultMissingError(ExportDataError):
+    """기준일에 완료된 중복 분석 결과가 없을 때 발생합니다 (분석을 새로 실행하면 해소 가능)."""
+
+
 def df_to_xlsx_bytes(sheets: dict) -> bytes:
     """sheets = {sheet_name: DataFrame} → in-memory xlsx bytes (동기 — executor에서 호출)."""
     buf = io.BytesIO()
@@ -136,14 +140,14 @@ async def build_redundancy_export(
     )
     task = result.scalar_one_or_none()
     if not task:
-        raise ExportDataError(
+        raise RedundancyResultMissingError(
             "FAT DB에 완료된 중복 분석 결과가 없습니다. 분석 → 중복 분석을 먼저 실행하세요."
         )
 
     required_date = reference_date or datetime.date.today()
     completed_date = task.completed_at.date() if task.completed_at else None
     if completed_date != required_date:
-        raise ExportDataError(
+        raise RedundancyResultMissingError(
             f"중복 분석 결과가 최신이 아닙니다 (마지막 분석 완료일: "
             f"{completed_date.isoformat() if completed_date else '알 수 없음'}, "
             f"기준일: {required_date.isoformat()}). "

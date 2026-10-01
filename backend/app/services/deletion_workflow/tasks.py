@@ -23,6 +23,7 @@ from app.core.time_utils import get_kst_now
 from app.crud import crud_analysis_project as dwcrud
 from app.db.session import SessionLocal
 from app.schemas.analysis import AnalysisTaskUpdate
+from app.services.analysis.tasks import _get_device_analysis_lock, _run_redundancy_analysis
 from app.services.audit_log import log_activity
 from app.services.deletion_workflow.core.input_resolver import (
     MissingInputError,
@@ -37,6 +38,7 @@ from app.services.deletion_workflow.config_bridge import (
 )
 from app.services.deletion_workflow.export_service import (
     ExportDataError,
+    RedundancyResultMissingError,
     build_device_export,
     build_redundancy_export,
 )
@@ -123,7 +125,10 @@ async def _run_pipeline_task(
         )
 
         try:
-            saved = await _execute_pipeline_task(db, project_id, pipeline_task_id, analysis_task_id)
+            saved = await _execute_pipeline_task(
+                db, project_id, pipeline_task_id, analysis_task_id,
+                requested_by_user_id, requested_by_username,
+            )
 
             await crud.analysis.update_analysis_task(
                 db, db_obj=task,
@@ -150,8 +155,42 @@ async def _run_pipeline_task(
             )
 
 
+async def _build_redundancy_export_with_auto_analysis(
+    db: AsyncSession, project, device,
+    requested_by_user_id: Optional[int] = None,
+    requested_by_username: Optional[str] = None,
+):
+    """기준일 중복 분석 결과가 없으면 중복 분석을 직접 실행한 뒤 export합니다."""
+    export = lambda: build_redundancy_export(
+        db, project.device_id, device, reference_date=project.reference_date)
+    try:
+        return await export()
+    except RedundancyResultMissingError as e:
+        logger.info(f"Project {project.id}: {e} → 중복 분석 자동 실행")
+
+    # 같은 장비에서 다른 분석이 진행 중이면 끝날 때까지 기다린 뒤 결과를 다시 확인한다
+    # (진행 중이던 것이 중복 분석이었다면 그 결과를 그대로 사용).
+    device_lock = _get_device_analysis_lock(project.device_id)
+    if device_lock.locked():
+        async with device_lock:
+            pass
+        try:
+            return await export()
+        except RedundancyResultMissingError:
+            pass
+
+    await _run_redundancy_analysis(
+        db, project.device_id, requested_by_user_id, requested_by_username)
+    try:
+        return await export()
+    except RedundancyResultMissingError as e:
+        raise ExportDataError(f"중복 분석 자동 실행 후에도 결과를 사용할 수 없습니다: {e}")
+
+
 async def _execute_pipeline_task(
     db: AsyncSession, project_id: int, pipeline_task_id: int, analysis_task_id: int,
+    requested_by_user_id: Optional[int] = None,
+    requested_by_username: Optional[str] = None,
 ) -> list:
     """실제 태스크 실행 로직. 성공 시 저장된 [{slot, filename}, ...] 목록을 반환하고,
     실패 시 예외를 발생시킨다(호출부에서 AnalysisTask.error_message로 기록).
@@ -183,8 +222,8 @@ async def _execute_pipeline_task(
     # ── Task 3: FAT DB 중복분석 결과 → Excel 변환 ──────────────────────────
     if pipeline_task_id == 3:
         try:
-            content, filename = await build_redundancy_export(
-                db, project.device_id, device, reference_date=project.reference_date)
+            content, filename = await _build_redundancy_export_with_auto_analysis(
+                db, project, device, requested_by_user_id, requested_by_username)
         except ExportDataError as e:
             raise ValueError(str(e))
 
