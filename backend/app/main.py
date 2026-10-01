@@ -176,6 +176,16 @@ async def serve_favicon():
     return FileResponse(REACT_DIST_DIR / "favicon.svg", media_type="image/svg+xml")
 
 
+@app.get("/ssh-handler.reg", include_in_schema=False)
+async def serve_ssh_handler_reg():
+    """Devices 페이지 SSH 바로가기용 Windows ssh:// 프로토콜 핸들러 등록 파일."""
+    return FileResponse(
+        REACT_DIST_DIR / "ssh-handler.reg",
+        media_type="application/octet-stream",
+        filename="ssh-handler.reg",
+    )
+
+
 @app.exception_handler(StarletteHTTPException)
 async def spa_fallback_handler(request: Request, exc: StarletteHTTPException):
     """SPA catch-all: 등록되지 않은 GET 경로의 404는 React index.html로 폴백.

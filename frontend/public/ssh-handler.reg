@@ -1,0 +1,11 @@
+Windows Registry Editor Version 5.00
+
+; FAT: open ssh:// links with built-in Windows OpenSSH (ssh.exe)
+; Registers for current user only (HKCU), no admin rights needed
+
+[HKEY_CURRENT_USER\Software\Classes\ssh]
+@="URL:SSH Protocol"
+"URL Protocol"=""
+
+[HKEY_CURRENT_USER\Software\Classes\ssh\shell\open\command]
+@="\"C:\\Windows\\System32\\OpenSSH\\ssh.exe\" \"%1\""

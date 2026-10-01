@@ -4,6 +4,7 @@ import type { ColDef } from '@ag-grid-community/core'
 import { type Device } from '@/api/devices'
 import { VENDOR_OPTIONS, VENDOR_BADGE, STATUS_CONFIG, STATUS_ORDER } from './constants'
 import { DeviceNameCell, ResourceWarningBadge } from './DeviceGridCells'
+import { SshLinkButton } from './SshLinkButton'
 
 export function buildColumnDefs(onShowDetail: (device: Device) => void): ColDef<Device>[] {
   return [
@@ -48,6 +49,7 @@ export function buildColumnDefs(onShowDetail: (device: Device) => void): ColDef<
             <ExternalLink className="w-2.5 h-2.5" />
           </a>
         )}
+        {p.data?.ip_address && <SshLinkButton host={p.data.ip_address} />}
       </div>
     ),
   },
@@ -67,6 +69,7 @@ export function buildColumnDefs(onShowDetail: (device: Device) => void): ColDef<
         >
           <ExternalLink className="w-2.5 h-2.5" />
         </a>
+        <SshLinkButton host={p.data.ha_peer_ip} />
       </div>
     ) : <span className="text-xs text-ds-on-surface-variant/40">—</span>,
   },
