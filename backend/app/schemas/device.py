@@ -140,6 +140,8 @@ class DeviceStats(BaseModel):
     name: str
     vendor: str
     ip_address: str
+    model: Optional[str] = None
+    os_version: Optional[str] = None
     policies: int = 0
     active_policies: int = 0
     disabled_policies: int = 0

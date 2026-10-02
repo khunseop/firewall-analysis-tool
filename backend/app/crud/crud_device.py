@@ -208,6 +208,7 @@ async def get_dashboard_stats(db: AsyncSession) -> DashboardStatsResponse:
 
         device_stats_list.append(DeviceStats(
             id=d.id, name=d.name, vendor=d.vendor, ip_address=d.ip_address,
+            model=d.model, os_version=d.os_version,
             policies=p, active_policies=pa, disabled_policies=pd,
             network_objects=no, network_groups=ng,
             services=sv, service_groups=sg,

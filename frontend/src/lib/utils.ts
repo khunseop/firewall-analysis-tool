@@ -1,5 +1,16 @@
 import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+import { extendTailwindMerge } from 'tailwind-merge'
+
+// tailwind.config.js의 fontSize 커스텀 스케일(9/10/11/13)을 twMerge에 알려주지 않으면,
+// 숫자만 있는 text-13 등이 text-color 그룹으로 오인되어 text-white 같은 색상 클래스와
+// 충돌 처리(제거)되는 문제가 있었음 — 버튼 글자색이 의도와 다르게 사라지는 원인이었음.
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      'font-size': [{ text: ['9', '10', '11', '13'] }],
+    },
+  },
+})
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

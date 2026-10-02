@@ -144,6 +144,8 @@ export interface DeviceStats {
   name: string
   vendor: string
   ip_address?: string
+  model?: string | null
+  os_version?: string | null
   sync_time: string | null
   sync_status: string | null
   sync_step: string | null

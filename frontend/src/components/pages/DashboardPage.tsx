@@ -38,6 +38,7 @@ const VENDOR_LABELS: Record<string, string> = {
 
 interface DeviceRow {
   id: number; name: string; vendor: string; ip_address?: string
+  model?: string | null; os_version?: string | null
   policies: number; active_policies: number; disabled_policies: number
   network_objects: number; network_groups: number
   services: number; service_groups: number
@@ -52,6 +53,7 @@ interface DeviceRow {
 function transformDeviceStats(d: DeviceStats): DeviceRow {
   return {
     id: d.id, name: d.name, vendor: d.vendor, ip_address: d.ip_address,
+    model: d.model, os_version: d.os_version,
     policies: d.policies ?? 0,
     active_policies: d.active_policies ?? 0,
     disabled_policies: d.disabled_policies ?? 0,
@@ -111,6 +113,15 @@ function getHighCapacityMetrics(row: DeviceRow): CapacityMetric[] {
     metrics.push({ label: c.label, usage: c.usage, threshold: c.threshold, pct: Math.round((c.usage / c.threshold) * 100), level })
   }
   return metrics
+}
+
+function countBy(rows: DeviceRow[], pick: (r: DeviceRow) => string | null | undefined): [string, number][] {
+  const counts = new Map<string, number>()
+  for (const r of rows) {
+    const key = pick(r) || '미확인'
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])
 }
 
 const COLUMN_DEFS: ColDef<DeviceRow>[] = [
@@ -205,7 +216,7 @@ export function DashboardPage() {
     queryKey: queryKeys.dashboardStats, queryFn: getDashboardStats, staleTime: 60_000,
   })
 
-  const rowData: DeviceRow[] = stats?.device_stats.map(transformDeviceStats) ?? []
+  const rowData: DeviceRow[] = useMemo(() => stats?.device_stats.map(transformDeviceStats) ?? [], [stats])
 
   const handleSyncMessage = useCallback(
     (msg: SyncWebSocketMessage) => {
@@ -291,6 +302,10 @@ export function DashboardPage() {
     grid: { borderColor: 'rgba(0,0,0,0.05)' },
   }
 
+  const vendorCounts = useMemo(() => countBy(rowData, d => d.vendor?.toLowerCase()), [rowData])
+  const modelCounts = useMemo(() => countBy(rowData, d => d.model), [rowData])
+  const osCounts = useMemo(() => countBy(rowData, d => d.os_version), [rowData])
+
   const errorDevices = rowData.filter(d => d.sync_status === 'failure' || d.sync_status === 'error')
   const highCapacityDevices = rowData
     .map(d => ({ device: d, metrics: getHighCapacityMetrics(d) }))
@@ -322,70 +337,40 @@ export function DashboardPage() {
         }
       />
 
-      {/* 오류 배너 */}
-      {errorDevices.length > 0 && (
-        <div className="shrink-0 flex items-center justify-between gap-3 bg-ds-error/4 border border-ds-error/15 rounded-lg px-3.5 py-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <AlertTriangle className="w-3.5 h-3.5 text-ds-error shrink-0" />
-            <span className="text-xs font-semibold text-ds-error shrink-0">
-              {errorDevices.length}개 장비 동기화 오류
-            </span>
-            <span className="text-11 text-ds-error/60 truncate">
-              {errorDevices.map(d => d.name).join(', ')}
-            </span>
-          </div>
-          <Button
-            variant="destructive"
-            size="auto"
-            onClick={() => navigate('/devices')}
-            className="px-2.5 py-1 text-11 font-semibold rounded-md shrink-0"
-          >
-            장비 확인
-          </Button>
-        </div>
-      )}
-
-      {/* 임계치 80% 이상 장비 섹션 */}
-      {highCapacityDevices.length > 0 && (
-        <div className={`shrink-0 card rounded-lg border ${hasDangerCapacity ? 'border-ds-error/20' : 'border-amber-200'}`}>
-          <div className="flex items-center justify-between px-3.5 py-2 border-b border-ds-outline-variant/10">
-            <div className="flex items-center gap-1.5">
-              <Gauge className={`w-3.5 h-3.5 shrink-0 ${hasDangerCapacity ? 'text-ds-error' : 'text-amber-600'}`} />
-              <span className={`text-xs font-semibold ${hasDangerCapacity ? 'text-ds-error' : 'text-amber-700'}`}>
-                임계치 80% 이상 사용 중인 장비
-              </span>
-              <span className="text-11 text-ds-on-surface-variant/50 tabular-nums">{highCapacityDevices.length}대</span>
-            </div>
-            <Button
-              variant="secondary"
-              size="auto"
+      {/* 오류 / 임계치 경보 카드 */}
+      {(errorDevices.length > 0 || highCapacityDevices.length > 0) && (
+        <div className="shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {errorDevices.length > 0 && (
+            <button
               onClick={() => navigate('/devices')}
-              className="px-2.5 py-1 text-11 font-semibold rounded-md shrink-0 hover:bg-ds-surface-container-high"
+              className="card rounded-xl px-4 py-3 text-left border border-ds-error/20 hover:shadow-md transition-shadow"
             >
-              장비 확인
-            </Button>
-          </div>
-          <div className="divide-y divide-ds-outline-variant/10">
-            {highCapacityDevices.map(({ device, metrics }) => (
-              <div key={device.id} className="flex items-center justify-between gap-3 px-3.5 py-1.5">
-                <span className="text-11 font-semibold text-ds-on-surface shrink-0">{device.name}</span>
-                <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                  {metrics.map(m => (
-                    <span
-                      key={m.label}
-                      className={`inline-flex px-1.5 py-0.5 rounded text-10 font-bold border ${
-                        m.level === 'danger'
-                          ? 'bg-red-50 text-ds-error border-red-100'
-                          : 'bg-amber-50 text-amber-700 border-amber-100'
-                      }`}
-                    >
-                      {m.label} {m.pct}%
-                    </span>
-                  ))}
-                </div>
+              <div className="flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 text-ds-error shrink-0" />
+                <span className="text-xs font-semibold text-ds-error">동기화 오류</span>
+                <span className="text-11 text-ds-on-surface-variant/50 tabular-nums ml-auto">{errorDevices.length}대</span>
               </div>
-            ))}
-          </div>
+              <p className="text-11 text-ds-error/70 truncate mt-1">
+                {errorDevices.map(d => d.name).join(', ')}
+              </p>
+            </button>
+          )}
+
+          {highCapacityDevices.length > 0 && (
+            <button
+              onClick={() => navigate('/devices')}
+              className={`card rounded-xl px-4 py-3 text-left border hover:shadow-md transition-shadow ${hasDangerCapacity ? 'border-ds-error/20' : 'border-amber-200'}`}
+            >
+              <div className="flex items-center gap-1.5">
+                <Gauge className={`w-3.5 h-3.5 shrink-0 ${hasDangerCapacity ? 'text-ds-error' : 'text-amber-600'}`} />
+                <span className={`text-xs font-semibold ${hasDangerCapacity ? 'text-ds-error' : 'text-amber-700'}`}>임계치 80% 이상</span>
+                <span className="text-11 text-ds-on-surface-variant/50 tabular-nums ml-auto">{highCapacityDevices.length}대</span>
+              </div>
+              <p className={`text-11 truncate mt-1 ${hasDangerCapacity ? 'text-ds-error/70' : 'text-amber-700/70'}`}>
+                {highCapacityDevices.map(x => x.device.name).join(', ')}
+              </p>
+            </button>
+          )}
         </div>
       )}
 
@@ -432,6 +417,48 @@ export function DashboardPage() {
             </p>
           </div>
         ))}
+      </div>
+
+      {/* 벤더/모델/OS별 현황 */}
+      <div className="shrink-0 grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="card rounded-xl px-4 py-3.5">
+          <p className="text-10 font-semibold uppercase tracking-widest text-ds-on-surface-variant/60 mb-2">벤더별 현황</p>
+          <div className="flex flex-wrap gap-1.5">
+            {vendorCounts.map(([vendor, count]) => (
+              <span
+                key={vendor}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-10 font-bold uppercase tracking-wide ${VENDOR_BADGE[vendor] ?? 'bg-gray-50 text-gray-500 border border-gray-100'}`}
+              >
+                {VENDOR_LABELS[vendor] ?? vendor}
+                <span className="tabular-nums">{count}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="card rounded-xl px-4 py-3.5">
+          <p className="text-10 font-semibold uppercase tracking-widest text-ds-on-surface-variant/60 mb-2">모델별 현황</p>
+          <div className="flex flex-wrap gap-1.5">
+            {modelCounts.map(([model, count]) => (
+              <span key={model} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-10 font-bold bg-ds-surface-container-low text-ds-on-surface-variant border border-ds-outline-variant/10">
+                {model}
+                <span className="tabular-nums">{count}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="card rounded-xl px-4 py-3.5">
+          <p className="text-10 font-semibold uppercase tracking-widest text-ds-on-surface-variant/60 mb-2">OS별 현황</p>
+          <div className="flex flex-wrap gap-1.5">
+            {osCounts.map(([os, count]) => (
+              <span key={os} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-10 font-bold bg-ds-surface-container-low text-ds-on-surface-variant border border-ds-outline-variant/10">
+                {os}
+                <span className="tabular-nums">{count}</span>
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* 장비별 객체 증감 추이 */}
