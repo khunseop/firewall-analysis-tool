@@ -239,6 +239,7 @@ export function SchedulesPage() {
       </div>
 
       <ScheduleFormDialog
+        key={editTarget?.id ?? 'new'}
         open={formOpen}
         onClose={() => { setFormOpen(false); setEditTarget(null) }}
         initial={editTarget ? {
