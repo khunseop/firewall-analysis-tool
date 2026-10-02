@@ -4,22 +4,25 @@ import { toast } from 'sonner'
 import type { BulkPolicyPlanResponse, GeneratedCommand, PolicyVerifyResult } from '@/api/policyBuilder'
 
 // HTTP(비보안 컨텍스트)로 접속한 경우 navigator.clipboard 자체가 존재하지 않아
-// 외부 접속 사용자는 execCommand 폴백이 없으면 복사가 조용히 실패한다.
+// execCommand 폴백이 필요하다. 이 버튼은 Radix Dialog(포커스 트랩) 안에 있으므로
+// 새 엘리먼트에 focus()를 주는 방식(hidden textarea + select)은 Dialog의 FocusScope가
+// 포커스를 모달 안으로 되돌리면서 execCommand가 의도한 텍스트가 아닌 걸 복사해간다
+// (반환값은 true라 토스트는 성공으로 뜨지만 실제 클립보드는 달라짐).
+// 포커스를 전혀 바꾸지 않도록 copy 이벤트를 가로채 clipboardData를 직접 주입한다.
 function legacyCopy(text: string): boolean {
-  const textarea = document.createElement('textarea')
-  textarea.value = text
-  textarea.style.position = 'fixed'
-  textarea.style.opacity = '0'
-  document.body.appendChild(textarea)
-  textarea.focus()
-  textarea.select()
+  const handler = (e: ClipboardEvent) => {
+    e.preventDefault()
+    e.clipboardData?.setData('text/plain', text)
+  }
+  document.addEventListener('copy', handler)
   let ok = false
   try {
     ok = document.execCommand('copy')
   } catch {
     ok = false
+  } finally {
+    document.removeEventListener('copy', handler)
   }
-  document.body.removeChild(textarea)
   return ok
 }
 
