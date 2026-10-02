@@ -107,9 +107,9 @@ echo        완료.
 
 echo.
 echo [5/5] 서버 실행 중...
-echo   uvicorn app.main:app --app-dir backend
+echo   uvicorn app.main:app --app-dir backend --host 0.0.0.0
 echo ============================================
-uvicorn app.main:app --app-dir backend
+uvicorn app.main:app --app-dir backend --host 0.0.0.0
 goto :end
 
 :fail
