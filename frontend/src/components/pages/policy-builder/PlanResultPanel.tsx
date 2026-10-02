@@ -3,9 +3,37 @@ import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import type { BulkPolicyPlanResponse, GeneratedCommand, PolicyVerifyResult } from '@/api/policyBuilder'
 
-function copyText(text: string) {
-  navigator.clipboard.writeText(text)
-  toast.success('복사되었습니다')
+// HTTP(비보안 컨텍스트)로 접속한 경우 navigator.clipboard 자체가 존재하지 않아
+// 외부 접속 사용자는 execCommand 폴백이 없으면 복사가 조용히 실패한다.
+function legacyCopy(text: string): boolean {
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  textarea.focus()
+  textarea.select()
+  let ok = false
+  try {
+    ok = document.execCommand('copy')
+  } catch {
+    ok = false
+  }
+  document.body.removeChild(textarea)
+  return ok
+}
+
+async function copyText(text: string) {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+    } else if (!legacyCopy(text)) {
+      throw new Error('clipboard unavailable')
+    }
+    toast.success('복사되었습니다')
+  } catch {
+    toast.error('복사에 실패했습니다. 브라우저 클립보드 권한을 확인해주세요.')
+  }
 }
 
 function CommandSection({ title, commands }: { title: string; commands: GeneratedCommand[] }) {
