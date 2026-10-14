@@ -331,13 +331,15 @@ export function PoliciesPage() {
 
   // 컬럼 정의(useMemo)에서 최신 핸들러를 부르기 위한 ref — 행 1건의 모든 대기중 변경사항을 취소한다.
   const revertRowRef = useRef<(policyId: number) => void>(() => {})
-  revertRowRef.current = (policyId) => {
-    if (!editDeviceId) return
-    runEditAction(async () => {
-      await revertPolicyPendingChanges(editDeviceId, policyId)
-      await cleanupOrphanNewObjects(editDeviceId, pendingChanges.filter((c) => c.target_policy_id !== policyId))
-    })
-  }
+  useEffect(() => {
+    revertRowRef.current = (policyId) => {
+      if (!editDeviceId) return
+      runEditAction(async () => {
+        await revertPolicyPendingChanges(editDeviceId, policyId)
+        await cleanupOrphanNewObjects(editDeviceId, pendingChanges.filter((c) => c.target_policy_id !== policyId))
+      })
+    }
+  })
 
   const handleOpenMove = () => {
     // 이미 삭제 대기중인 행은 이동 대상에서 제외 — 삭제 예정 정책의 위치를 옮기는 move

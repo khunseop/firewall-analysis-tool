@@ -393,6 +393,11 @@ async def plan_bulk_policy(
             continue
         command, error = generate_rule_disable_command(target_policy.rule_name, bool((c.payload or {}).get("disabled", True)), vsys)
         disable_commands.append(schemas.GeneratedCommand(row_index=c.id, kind="disable", command=command, error=error))
+    if disable_commands:
+        warnings.append(
+            "비활성화/활성화 대기중인 정책은 삽입·이동 충돌 분석에 반영되지 않습니다 — "
+            "비활성화될 정책도 분석에서는 활성 정책으로 취급되어 충돌로 표시될 수 있습니다."
+        )
 
     return schemas.BulkPolicyPlanResponse(
         missing_objects=missing_objects,

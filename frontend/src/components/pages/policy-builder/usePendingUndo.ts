@@ -47,12 +47,16 @@ export function usePendingUndo({ active, deviceId, ready, pendingChanges, runAct
       target = remaining[remaining.length - 1].filter((id) => currentIds.has(id))
       remaining = remaining.slice(0, -1)
     }
-    setHistory({ scope, stack: remaining })
-    if (target.length === 0) return
+    if (target.length === 0) {
+      setHistory({ scope, stack: remaining })
+      return
+    }
     await runAction(async () => {
       await Promise.all(target.map((id) => removePendingChange(deviceId, id)))
       const removedCreate = pendingChanges.some((c) => target.includes(c.id) && c.change_type === 'create')
       if (removedCreate) await cleanupOrphanNewObjects(deviceId, pendingChanges.filter((c) => !target.includes(c.id)))
+      // 서버 작업이 성공했을 때만 스택에서 제거 — 실패하면 같은 항목을 다시 시도할 수 있다.
+      setHistory({ scope, stack: remaining })
     })
   }, [deviceId, pendingChanges, stack, scope, runAction])
 
