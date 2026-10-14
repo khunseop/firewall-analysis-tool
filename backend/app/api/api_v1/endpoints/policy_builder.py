@@ -383,7 +383,10 @@ async def plan_bulk_policy(
     # --- 기존 정책 비활성화/활성화 (disable) --- 같은 정책은 마지막 변경만 반영
     disable_commands = []
     last_disable_by_policy = {c.target_policy_id: c for c in changes if c.change_type == "disable" and c.target_policy_id}
+    deleted_policy_ids = {c.target_policy_id for c in delete_changes}
     for c in last_disable_by_policy.values():
+        if c.target_policy_id in deleted_policy_ids:
+            continue  # 삭제 예정 정책에 set을 실행하면 삭제된 룰이 빈 껍데기로 되살아난다
         target_policy = await crud.policy.get_policy(db, policy_id=c.target_policy_id)
         if not target_policy:
             warnings.append(f"비활성화 대상 정책(ID {c.target_policy_id})을 찾을 수 없어 건너뜁니다.")

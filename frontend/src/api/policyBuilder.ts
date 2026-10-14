@@ -179,14 +179,17 @@ export const clearPendingChanges = async (deviceId: number): Promise<void> => {
  */
 export const cleanupOrphanNewObjects = async (deviceId: number, remainingChanges: PendingPolicyChange[]): Promise<void> => {
   const referencedNames = new Set<string>()
+  const addName = (raw: string) => {
+    for (const token of raw.split(',')) {
+      const name = token.trim().replace(/^"|"$/g, '')
+      if (name) referencedNames.add(name)
+    }
+  }
   for (const c of remainingChanges) {
-    if (c.change_type !== 'create') continue
     for (const field of ['source', 'destination', 'service']) {
-      const raw = String(c.payload[field] ?? '')
-      for (const token of raw.split(',')) {
-        const name = token.trim().replace(/^"|"$/g, '')
-        if (name) referencedNames.add(name)
-      }
+      if (c.change_type === 'create') addName(String(c.payload[field] ?? ''))
+      // 정책 수정(modify)이 추가하는 토큰도 신규 오브젝트를 참조할 수 있다.
+      else if (c.change_type === 'modify') addName(((c.payload[field] as { added?: string[] } | undefined)?.added ?? []).join(','))
     }
   }
   const orphaned = remainingChanges.filter(

@@ -51,7 +51,8 @@ export function usePendingUndo({ active, deviceId, ready, pendingChanges, runAct
     if (target.length === 0) return
     await runAction(async () => {
       await Promise.all(target.map((id) => removePendingChange(deviceId, id)))
-      await cleanupOrphanNewObjects(deviceId, pendingChanges.filter((c) => !target.includes(c.id)))
+      const removedCreate = pendingChanges.some((c) => target.includes(c.id) && c.change_type === 'create')
+      if (removedCreate) await cleanupOrphanNewObjects(deviceId, pendingChanges.filter((c) => !target.includes(c.id)))
     })
   }, [deviceId, pendingChanges, stack, scope, runAction])
 

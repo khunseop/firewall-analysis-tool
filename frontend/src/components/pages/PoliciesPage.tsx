@@ -333,7 +333,10 @@ export function PoliciesPage() {
   const revertRowRef = useRef<(policyId: number) => void>(() => {})
   revertRowRef.current = (policyId) => {
     if (!editDeviceId) return
-    runEditAction(() => revertPolicyPendingChanges(editDeviceId, policyId))
+    runEditAction(async () => {
+      await revertPolicyPendingChanges(editDeviceId, policyId)
+      await cleanupOrphanNewObjects(editDeviceId, pendingChanges.filter((c) => c.target_policy_id !== policyId))
+    })
   }
 
   const handleOpenMove = () => {
