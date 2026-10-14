@@ -54,6 +54,18 @@ async def delete_by_id(db: AsyncSession, db_obj: PendingPolicyChange) -> None:
     await db.commit()
 
 
+async def delete_by_target_policy(db: AsyncSession, device_id: int, policy_id: int) -> int:
+    """기존 정책 1건에 걸린 modify/delete/move/disable 대기중 변경사항을 모두 삭제한다."""
+    result = await db.execute(
+        delete(PendingPolicyChange).where(
+            PendingPolicyChange.device_id == device_id,
+            PendingPolicyChange.target_policy_id == policy_id,
+        )
+    )
+    await db.commit()
+    return result.rowcount or 0
+
+
 async def clear_by_device(db: AsyncSession, device_id: int) -> None:
     await db.execute(delete(PendingPolicyChange).where(PendingPolicyChange.device_id == device_id))
     await db.commit()

@@ -155,6 +155,17 @@ def generate_rule_delete_command(rule_name: str, vsys: Optional[str]) -> Tuple[O
     return " ".join(parts), None
 
 
+def generate_rule_disable_command(rule_name: str, disabled: bool, vsys: Optional[str]) -> Tuple[Optional[str], Optional[str]]:
+    """정책을 비활성화/활성화하는 `set rulebase security rules "X" disabled yes|no` 명령을 생성합니다."""
+    if not rule_name.strip():
+        return None, "rule_name이 비어 있습니다."
+    parts = ["set"]
+    if vsys:
+        parts += ["vsys", vsys]
+    parts += ["rulebase", "security", "rules", _quote_if_needed(rule_name.strip()), "disabled", "yes" if disabled else "no"]
+    return " ".join(parts), None
+
+
 def generate_move_command(rule_name: str, move_target: MoveTarget, reference_rule_name: Optional[str], vsys: Optional[str]) -> Tuple[Optional[str], Optional[str]]:
     """`move rulebase security rules ...` 명령을 생성합니다."""
     if not rule_name.strip():

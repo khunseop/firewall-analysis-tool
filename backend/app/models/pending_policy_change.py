@@ -22,7 +22,7 @@ class PendingPolicyChange(Base):
     id = Column(Integer, primary_key=True, index=True)
     device_id = Column(Integer, ForeignKey("devices.id"), nullable=False)
 
-    # 'create' | 'modify' | 'delete' | 'move'
+    # 'create' | 'new_object' | 'modify' | 'delete' | 'move' | 'disable'(payload={"disabled": bool})
     change_type = Column(String, nullable=False)
 
     # modify/delete/move 대상 기존 정책 (create는 NULL)

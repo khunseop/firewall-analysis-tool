@@ -17,6 +17,7 @@ from app.services.policy_builder.cli_generator import (
     generate_move_command,
     generate_policy_set_command,
     generate_rule_delete_command,
+    generate_rule_disable_command,
     generate_service_object_command,
 )
 from app.services.policy_builder.insertion_analyzer import (
@@ -94,6 +95,19 @@ async def remove_pending_change(
         raise HTTPException(status_code=404, detail="변경사항을 찾을 수 없습니다.")
     await crud.pending_policy_change.delete_by_id(db, change)
     return {"msg": "삭제되었습니다."}
+
+
+@router.delete("/{device_id}/pending-changes/policy/{policy_id}", response_model=schemas.Msg)
+async def revert_policy_pending_changes(
+    device_id: int,
+    policy_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """기존 정책 1건에 쌓인 대기중 변경사항(수정/삭제/이동/비활성화)을 모두 취소합니다."""
+    await _get_palo_alto_device(db, device_id)
+    await crud.pending_policy_change.delete_by_target_policy(db, device_id, policy_id)
+    return {"msg": "해당 정책의 변경사항을 취소했습니다."}
 
 
 @router.get("/{device_id}/preview-order", response_model=List[schemas.PreviewPolicyRow])
@@ -366,6 +380,17 @@ async def plan_bulk_policy(
         command, error = generate_rule_delete_command(target_policy.rule_name, vsys)
         delete_commands.append(schemas.GeneratedCommand(row_index=c.id, kind="delete", command=command, error=error))
 
+    # --- 기존 정책 비활성화/활성화 (disable) --- 같은 정책은 마지막 변경만 반영
+    disable_commands = []
+    last_disable_by_policy = {c.target_policy_id: c for c in changes if c.change_type == "disable" and c.target_policy_id}
+    for c in last_disable_by_policy.values():
+        target_policy = await crud.policy.get_policy(db, policy_id=c.target_policy_id)
+        if not target_policy:
+            warnings.append(f"비활성화 대상 정책(ID {c.target_policy_id})을 찾을 수 없어 건너뜁니다.")
+            continue
+        command, error = generate_rule_disable_command(target_policy.rule_name, bool((c.payload or {}).get("disabled", True)), vsys)
+        disable_commands.append(schemas.GeneratedCommand(row_index=c.id, kind="disable", command=command, error=error))
+
     return schemas.BulkPolicyPlanResponse(
         missing_objects=missing_objects,
         object_commands=object_commands,
@@ -373,6 +398,7 @@ async def plan_bulk_policy(
         move_commands=move_commands,
         modify_commands=modify_commands,
         delete_commands=delete_commands,
+        disable_commands=disable_commands,
         conflicts=conflicts,
         preview_before=preview_before,
         preview_after=preview_after,

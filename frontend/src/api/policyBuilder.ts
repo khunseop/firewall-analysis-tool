@@ -40,7 +40,7 @@ export interface ObjectGapItem {
 
 export interface GeneratedCommand {
   row_index: number
-  kind: 'object' | 'policy' | 'move'
+  kind: 'object' | 'policy' | 'move' | 'modify' | 'delete' | 'disable'
   command: string | null
   error: string | null
   counts: Record<string, number> | null
@@ -69,6 +69,7 @@ export interface BulkPolicyPlanResponse {
   move_commands: GeneratedCommand[]
   modify_commands: GeneratedCommand[]
   delete_commands: GeneratedCommand[]
+  disable_commands: GeneratedCommand[]
   conflicts: InsertionConflict[]
   preview_before: PreviewRow[]
   preview_after: PreviewRow[]
@@ -118,7 +119,7 @@ export interface PolicyVerifyResult {
   fields: PolicyFieldCompare[]
 }
 
-export type PendingChangeType = 'create' | 'new_object' | 'modify' | 'delete' | 'move'
+export type PendingChangeType = 'create' | 'new_object' | 'modify' | 'delete' | 'move' | 'disable'
 
 export interface PendingPolicyChange {
   id: number
@@ -160,6 +161,11 @@ export const removePendingChange = async (deviceId: number, changeId: number): P
 export const getPreviewOrder = async (deviceId: number): Promise<PreviewPolicyRow[]> => {
   const res = await apiClient.get<PreviewPolicyRow[]>(`/policy-builder/${deviceId}/preview-order`)
   return res.data
+}
+
+/** 기존 정책 1건에 쌓인 수정/삭제/이동/비활성화 대기중 변경사항을 모두 취소한다. */
+export const revertPolicyPendingChanges = async (deviceId: number, policyId: number): Promise<void> => {
+  await apiClient.delete(`/policy-builder/${deviceId}/pending-changes/policy/${policyId}`)
 }
 
 export const clearPendingChanges = async (deviceId: number): Promise<void> => {

@@ -293,6 +293,13 @@ async def build_full_order(db: AsyncSession, device_id: int) -> List[Dict[str, A
             _apply_modify_overlay(item, c.payload or {})
             item["pending_status"] = item.get("pending_status") or "modified"
 
+    # 같은 정책에 disable 변경이 여러 건이면 마지막(id가 큰) 것만 유효하다.
+    for c in sorted((c for c in changes if c.change_type == "disable" and c.target_policy_id is not None), key=lambda c: c.id):
+        item = by_id.get(c.target_policy_id)
+        if item is not None:
+            item["enable"] = not (c.payload or {}).get("disabled", True)
+            item["pending_status"] = item.get("pending_status") or "modified"
+
     for policy_id in delete_ids:
         item = by_id.get(policy_id)
         if item is not None:

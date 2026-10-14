@@ -92,7 +92,7 @@ export function PlanResultPanel({ plan }: { plan: BulkPolicyPlanResponse }) {
   // 오브젝트 생성 → 정책 생성/수정/삭제 → 이동 순서는 CLI를 그대로 순서대로 붙여넣어도
   // 참조 오류 없이 동작하도록 맞춘 순서다 — "전체 복사"도 같은 순서를 따른다.
   const allSections = [
-    plan.object_commands, plan.policy_commands, plan.modify_commands, plan.delete_commands, plan.move_commands,
+    plan.object_commands, plan.policy_commands, plan.modify_commands, plan.delete_commands, plan.disable_commands, plan.move_commands,
   ]
   const allSuccessCommands = allSections.flat().filter((c) => c.command)
   const totalErrors = allSections.flat().filter((c) => c.error).length
@@ -145,6 +145,7 @@ export function PlanResultPanel({ plan }: { plan: BulkPolicyPlanResponse }) {
       <CommandSection title="정책 생성 명령어" commands={plan.policy_commands} />
       <CommandSection title="정책 수정 명령어" commands={plan.modify_commands} />
       <CommandSection title="정책 삭제 명령어" commands={plan.delete_commands} />
+      <CommandSection title="정책 비활성화/활성화 명령어" commands={plan.disable_commands} />
       <CommandSection title="이동 명령어" commands={plan.move_commands} />
     </div>
   )

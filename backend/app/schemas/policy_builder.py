@@ -67,7 +67,7 @@ class FieldDiff(BaseModel):
 
 class GeneratedCommand(BaseModel):
     row_index: int
-    kind: Literal["object", "policy", "move", "modify", "delete"]
+    kind: Literal["object", "policy", "move", "modify", "delete", "disable"]
     command: Optional[str] = None
     error: Optional[str] = None
     counts: Optional[Dict[str, int]] = None
@@ -126,6 +126,7 @@ class BulkPolicyPlanResponse(BaseModel):
     move_commands: List[GeneratedCommand]
     modify_commands: List[GeneratedCommand] = []
     delete_commands: List[GeneratedCommand] = []
+    disable_commands: List[GeneratedCommand] = []
     conflicts: List[InsertionConflict]
     preview_before: List[PreviewRow]
     preview_after: List[PreviewRow]

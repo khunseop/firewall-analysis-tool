@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Plus, Pencil, ArrowLeftRight, Trash2, ChevronUp, ClipboardPaste, SlidersHorizontal } from 'lucide-react'
+import { Plus, Pencil, ArrowLeftRight, Trash2, ChevronUp, ClipboardPaste, SlidersHorizontal, Power } from 'lucide-react'
 
 /**
  * 편집모드 액션 메뉴 — "대기중 변경사항" 바(CLI 생성 버튼 왼쪽)에 인라인으로 붙어,
@@ -7,7 +7,7 @@ import { Plus, Pencil, ArrowLeftRight, Trash2, ChevronUp, ClipboardPaste, Slider
  * "붙여넣기로 일괄 생성"처럼 대량 처리용 변형은 정책 생성 버튼의 서브 메뉴로 둔다.
  */
 export function EditActionMenu({
-  selectedCount, onCreateForm, onCreatePaste, onModify, onMove, onDelete,
+  selectedCount, onCreateForm, onCreatePaste, onModify, onMove, onDelete, onToggleDisable,
 }: {
   selectedCount: number
   onCreateForm: () => void
@@ -15,6 +15,7 @@ export function EditActionMenu({
   onModify: () => void
   onMove: () => void
   onDelete: () => void
+  onToggleDisable: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [createMenuOpen, setCreateMenuOpen] = useState(false)
@@ -78,6 +79,15 @@ export function EditActionMenu({
             className="flex items-center gap-2 w-40 px-3 py-2 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg hover:text-ds-on-surface transition-colors disabled:opacity-40"
           >
             <ArrowLeftRight className="w-3.5 h-3.5" /> 선택 이동 {selectedCount > 0 && `(${selectedCount})`}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onToggleDisable() }}
+            disabled={selectedCount === 0}
+            className="flex items-center gap-2 w-40 px-3 py-2 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg hover:text-ds-on-surface transition-colors disabled:opacity-40"
+          >
+            <Power className="w-3.5 h-3.5" /> 비활성화/활성화 {selectedCount > 0 && `(${selectedCount})`}
           </button>
 
           <button

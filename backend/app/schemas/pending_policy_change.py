@@ -4,7 +4,7 @@ from typing import Any, Dict, Literal, Optional
 from pydantic import BaseModel, ConfigDict
 
 
-ChangeType = Literal["create", "new_object", "modify", "delete", "move"]
+ChangeType = Literal["create", "new_object", "modify", "delete", "move", "disable"]
 
 
 class PendingPolicyChangeCreate(BaseModel):

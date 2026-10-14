@@ -2,7 +2,7 @@ import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Download, SlidersHorizontal, AlertTriangle, X, Search, Bookmark, BookmarkPlus, Pencil, RotateCcw, Terminal, ShieldCheck } from 'lucide-react'
+import { Download, SlidersHorizontal, AlertTriangle, X, Search, Bookmark, BookmarkPlus, Pencil, RotateCcw, Terminal, ShieldCheck, Undo2 } from 'lucide-react'
 import type { CellValueChangedEvent, ColDef, RowClickedEvent } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { rowIdFromId } from '@/lib/utils'
@@ -28,12 +28,14 @@ import { queryKeys } from '@/api/queryKeys'
 import { diffMultiValueField, isFieldDiffEmpty } from '@/lib/policyDiff'
 import {
   listPendingChanges, addPendingChange, updatePendingChange, removePendingChange, clearPendingChanges, planBulkPolicy, getPreviewOrder,
-  cleanupOrphanNewObjects, verifyAgainstDevice,
+  cleanupOrphanNewObjects, verifyAgainstDevice, revertPolicyPendingChanges,
   type BulkPolicyPlanResponse, type PreviewPolicyRow, type PolicyVerifyResult,
 } from '@/api/policyBuilder'
 import { CreatePolicyModal } from '@/components/pages/policy-builder/CreatePolicyModal'
 import { NewPolicyFormModal } from '@/components/pages/policy-builder/NewPolicyFormModal'
 import { EditActionMenu } from '@/components/pages/policy-builder/EditActionMenu'
+import { setPoliciesDisabled } from '@/components/pages/policy-builder/disableToggle'
+import { usePendingUndo } from '@/components/pages/policy-builder/usePendingUndo'
 import { ModifyPolicyModal } from '@/components/pages/policy-builder/ModifyPolicyModal'
 import { MoveExistingDialog } from '@/components/pages/policy-builder/MoveExistingDialog'
 import { PlanResultPanel, VerifyResultPanel } from '@/components/pages/policy-builder/PlanResultPanel'
@@ -229,6 +231,12 @@ export function PoliciesPage() {
     }
   }
 
+  const { canUndo, undoLast } = usePendingUndo({
+    active: editMode, deviceId: editDeviceId,
+    ready: pendingChangesQuery.isSuccess && !pendingChangesQuery.isFetching,
+    pendingChanges, runAction: runEditAction,
+  })
+
   // 생성/수정/이동 모달은 자체적으로 pending change 추가를 이미 끝낸 뒤 이 콜백을 호출한다 —
   // 여기서는 그리드가 최신 배치 순서를 다시 받아올 때까지만 로딩 오버레이를 띄운다.
   const handleModalApplied = () => {
@@ -303,6 +311,29 @@ export function PoliciesPage() {
     } finally {
       setApplyingChanges(false)
     }
+  }
+
+  // 선택 정책 중 하나라도 활성이면 활성 정책을 모두 비활성화, 전부 비활성이면 모두 활성화한다.
+  const handleToggleDisable = () => {
+    if (!editDeviceId) return
+    const rows = mergedPolicies.filter((r) => selectedPolicyIds.includes(r.id) && r.id > 0 && !deletedRowIds.has(r.id))
+    if (rows.length === 0) {
+      toast.warning('비활성화할 기존 정책을 선택하세요. (신규 생성행·삭제 예정 정책은 제외됩니다)')
+      return
+    }
+    const disable = rows.some((r) => r.enable !== false)
+    const ids = rows.filter((r) => (r.enable !== false) === disable).map((r) => r.id)
+    runEditAction(async () => {
+      await setPoliciesDisabled(editDeviceId, ids, disable, pendingChanges)
+      toast.success(`정책 ${ids.length}건 ${disable ? '비활성화' : '활성화'}가 대기중 변경사항으로 추가되었습니다.`)
+    })
+  }
+
+  // 컬럼 정의(useMemo)에서 최신 핸들러를 부르기 위한 ref — 행 1건의 모든 대기중 변경사항을 취소한다.
+  const revertRowRef = useRef<(policyId: number) => void>(() => {})
+  revertRowRef.current = (policyId) => {
+    if (!editDeviceId) return
+    runEditAction(() => revertPolicyPendingChanges(editDeviceId, policyId))
   }
 
   const handleOpenMove = () => {
@@ -403,7 +434,7 @@ export function PoliciesPage() {
   )
 
   const pendingCounts = useMemo(() => {
-    const counts = { create: 0, modify: 0, delete: 0, move: 0 }
+    const counts = { create: 0, modify: 0, delete: 0, move: 0, disable: 0 }
     for (const c of pendingChanges) {
       if (c.change_type === 'create') {
         counts.create++
@@ -605,7 +636,7 @@ export function PoliciesPage() {
     },
     {
       field: 'rule_name', headerName: '정책명', width: 220, maxWidth: 260, suppressSizeToFit: true,
-      cellRenderer: (p: { value: string; data: Policy }) => {
+      cellRenderer: (p: { value: string; data: EditablePolicyRow }) => {
         return (
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="font-mono text-xs font-semibold text-ds-on-surface truncate">{p.value ?? '-'}</span>
@@ -617,6 +648,16 @@ export function PoliciesPage() {
                 className="shrink-0 text-ds-on-surface-variant hover:text-ds-tertiary transition-colors"
               >
                 <Pencil className="w-3 h-3" />
+              </button>
+            )}
+            {editMode && p.data?._pendingStatus && p.data.id > 0 && (
+              <button
+                type="button"
+                title="이 정책의 대기중 변경사항 취소"
+                onClick={(e) => { e.stopPropagation(); revertRowRef.current(p.data.id) }}
+                className="shrink-0 text-ds-on-surface-variant hover:text-ds-error transition-colors"
+              >
+                <RotateCcw className="w-3 h-3" />
               </button>
             )}
           </div>
@@ -930,7 +971,7 @@ export function PoliciesPage() {
       {editMode && editDeviceId && (
         <div className="card rounded-xl px-4 py-3 flex items-center gap-3 shrink-0 sticky bottom-4 shadow-lg">
           <span className="text-13 font-semibold text-ds-on-surface">
-            대기중 변경사항: 생성 {pendingCounts.create} · 수정 {pendingCounts.modify} · 삭제 {pendingCounts.delete} · 이동 {pendingCounts.move}
+            대기중 변경사항: 생성 {pendingCounts.create} · 수정 {pendingCounts.modify} · 삭제 {pendingCounts.delete} · 이동 {pendingCounts.move} · 비활성화 {pendingCounts.disable}
           </span>
           <div className="flex items-center gap-2 ml-auto">
             <EditActionMenu
@@ -940,7 +981,13 @@ export function PoliciesPage() {
               onModify={() => setShowModifyModal(true)}
               onMove={handleOpenMove}
               onDelete={handleDeleteSelected}
+              onToggleDisable={handleToggleDisable}
             />
+            {canUndo && (
+              <button onClick={() => void undoLast()} title="마지막 편집 취소 (Ctrl/⌘+Z)" className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ds-on-surface-variant hover:text-ds-tertiary transition-colors">
+                <Undo2 className="w-3.5 h-3.5" /> 실행 취소
+              </button>
+            )}
             {pendingChanges.length > 0 && (
               <button onClick={handleClearPending} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ds-on-surface-variant hover:text-ds-error transition-colors">
                 <RotateCcw className="w-3.5 h-3.5" /> 전체 취소
