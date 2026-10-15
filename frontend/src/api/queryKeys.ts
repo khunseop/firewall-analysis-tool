@@ -15,6 +15,9 @@ export const queryKeys = {
   networkGroups: (deviceIds: number[]) => ['network-groups', ...deviceIds] as const,
   services: (deviceIds: number[]) => ['services', ...deviceIds] as const,
   serviceGroups: (deviceIds: number[]) => ['service-groups', ...deviceIds] as const,
+  // Objects 페이지 전용 — ObjectDetailModal/PolicyDetailModal이 networkObjects([id])에 배열을 그대로 캐시하므로 키를 분리한다.
+  objectsList: (tab: string, deviceIds: number[]) => ['objects-list', tab, ...deviceIds] as const,
+  objectSearch: (tab: string, expr: string, deviceIds: number[]) => ['object-search', tab, expr, ...deviceIds] as const,
   objectUsageCounts: (deviceIds: number[]) => ['object-usage-counts', ...deviceIds] as const,
   objectDetail: (deviceId: number, name: string) => ['object-detail', deviceId, name] as const,
 

@@ -18,9 +18,11 @@ function DeviceItem({ d, selected, single, onSelect }: {
 }) {
   return (
     <button
+      type="button"
       onClick={onSelect}
+      aria-pressed={selected}
       className={cn(
-        'w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors text-11',
+        'w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors text-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ds-tertiary/40',
         selected
           ? 'bg-ds-tertiary/8 text-ds-tertiary'
           : 'text-ds-on-surface-variant hover:bg-ds-surface-container-low hover:text-ds-on-surface'
@@ -67,6 +69,7 @@ function DeviceDropdownBase({
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
 
   const { data: devices = [] } = useQuery({
     queryKey: queryKeys.devices,
@@ -131,8 +134,19 @@ function DeviceDropdownBase({
   )
 
   return (
-    <div ref={containerRef} className="relative">
+    <div
+      ref={containerRef}
+      className="relative"
+      onKeyDown={(e) => {
+        // Esc로 닫고 트리거로 포커스를 돌려준다
+        if (e.key === 'Escape' && open) { e.stopPropagation(); setOpen(false); triggerRef.current?.focus() }
+      }}
+    >
       <button
+        ref={triggerRef}
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="true"
         onClick={() => !disabled && setOpen((v) => !v)}
         disabled={disabled}
         title={disabled ? '편집모드 중에는 장비 선택을 변경할 수 없습니다 — 먼저 편집모드를 종료하세요.' : undefined}
@@ -155,18 +169,22 @@ function DeviceDropdownBase({
           </span>
         )}
         {showClearInTrigger && selectedIds.length > 0 && !disabled && (
-          <button
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label="선택 해제"
             onClick={(e) => { e.stopPropagation(); onClear() }}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onClear() } }}
             className="shrink-0 hover:text-ds-error transition-colors"
           >
             <X className="w-3 h-3" />
-          </button>
+          </span>
         )}
         <ChevronDown className={cn('w-3.5 h-3.5 transition-transform opacity-60', open && 'rotate-180')} />
       </button>
 
       {open && !disabled && (
-        <div className="absolute right-0 top-full mt-2 w-72 bg-white/90 backdrop-blur-xl rounded-xl border border-white/60 shadow-ambient-md z-50">
+        <div role="group" aria-label="장비 선택" className="absolute right-0 top-full mt-2 w-72 bg-white/90 backdrop-blur-xl rounded-xl border border-white/60 shadow-ambient-md z-50">
           <div className="px-3 pt-3 pb-1.5">
             <p className="text-9 font-bold uppercase tracking-widest text-ds-on-surface-variant/60 mb-2">
               Device Selection
@@ -177,10 +195,11 @@ function DeviceDropdownBase({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="장비 검색…"
+                aria-label="장비 검색"
                 className="flex-1 text-11 bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/50 min-w-0"
               />
               {search && (
-                <button onClick={() => setSearch('')} className="shrink-0">
+                <button type="button" onClick={() => setSearch('')} aria-label="검색어 지우기" className="shrink-0">
                   <X className="w-3 h-3 text-ds-on-surface-variant hover:text-ds-on-surface" />
                 </button>
               )}
