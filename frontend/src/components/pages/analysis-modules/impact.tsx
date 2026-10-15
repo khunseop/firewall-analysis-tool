@@ -18,6 +18,17 @@ export const impactModule: QuickAnalysisModule = {
   label: '정책 이동 영향 분석',
   icon: ArrowLeftRight,
   description: '정책을 다른 순번으로 이동했을 때 차단·섀도우 영향을 사전 분석합니다.',
+  describeParams: (p) => {
+    const ids = Array.isArray(p.target_policy_ids) ? p.target_policy_ids : []
+    const toEnd = p.reference_policy_id == null
+    return `정책 ${ids.length}개 이동${toEnd ? ' (맨 아래로)' : ''}`
+  },
+  paramsToValues: (p) => ({
+    targetPolicyIds: Array.isArray(p.target_policy_ids) ? p.target_policy_ids : [],
+    referencePolicyId: p.reference_policy_id ?? null,
+    moveToEnd: p.reference_policy_id == null,
+    moveDirection: (p.move_direction as string | undefined) ?? 'below',
+  }),
   renderParams: (ctx: QuickModuleParamsContext) => {
     const targetPolicyIds = (ctx.values.targetPolicyIds as number[] | undefined) ?? []
     const referencePolicyId = (ctx.values.referencePolicyId as number | null | undefined) ?? null

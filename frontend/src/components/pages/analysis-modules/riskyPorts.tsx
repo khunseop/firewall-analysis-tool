@@ -10,6 +10,11 @@ export const riskyPortsModule: QuickAnalysisModule = {
   label: '위험 포트 분석',
   icon: ShieldAlert,
   description: 'Well-known 위험 포트(예: Telnet, FTP)가 허용된 정책을 탐지합니다.',
+  describeParams: (p) => {
+    const ids = Array.isArray(p.target_policy_ids) ? p.target_policy_ids : []
+    return ids.length > 0 ? `정책 ${ids.length}개 대상` : '전체 정책 대상'
+  },
+  paramsToValues: (p) => ({ targetPolicyIds: Array.isArray(p.target_policy_ids) ? p.target_policy_ids : [] }),
   renderParams: (ctx: QuickModuleParamsContext) => (
     <div className="space-y-1.5">
       <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">분석 대상 정책 (미선택 시 전체)</label>

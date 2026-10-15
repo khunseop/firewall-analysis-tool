@@ -10,6 +10,7 @@ export const redundancyModule: QuickAnalysisModule = {
   label: '중복 정책 분석',
   icon: Copy,
   description: '동일하거나 포함 관계에 있는 정책을 탐지합니다. 상위/하위 정책 쌍으로 결과를 보여줍니다.',
+  multiDevice: true,
   buildParams: () => ({}),
   columns: (onRuleNameClick): ColDef[] => [
     { field: 'set_number', headerName: '중복번호', filter: 'agNumberColumnFilter', pinned: 'left', width: 100, valueFormatter: (p) => formatNumber(p.value) },

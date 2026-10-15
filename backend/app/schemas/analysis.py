@@ -1,7 +1,7 @@
 
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, Any, List
+from typing import Optional, Any, List, Dict
 from app.models.analysis import AnalysisTaskStatus, AnalysisTaskType, RedundancyPolicySetType
 from .policy import Policy
 
@@ -14,6 +14,7 @@ class AnalysisTaskBase(BaseModel):
 
 class AnalysisTaskCreate(AnalysisTaskBase):
     created_at: datetime
+    params: Optional[Dict[str, Any]] = None
     requested_by_user_id: Optional[int] = None
     requested_by_username: Optional[str] = None
 
@@ -22,6 +23,7 @@ class AnalysisTaskUpdate(BaseModel):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     error_message: Optional[str] = None
+    result_count: Optional[int] = None
 
 class AnalysisTask(AnalysisTaskBase):
     id: int
@@ -32,6 +34,8 @@ class AnalysisTask(AnalysisTaskBase):
     error_message: Optional[str] = None
     requested_by_user_id: Optional[int] = None
     requested_by_username: Optional[str] = None
+    params: Optional[Dict[str, Any]] = None
+    result_count: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -89,6 +93,9 @@ class AnalysisTaskListItem(BaseModel):
     completed_at: Optional[datetime] = None
     error_message: Optional[str] = None
     requested_by_username: Optional[str] = None
+    # 실행 시점 파라미터와 결과 건수 — 이 컬럼 추가 이전 실행분은 None(기록 없음)
+    params: Optional[Dict[str, Any]] = None
+    result_count: Optional[int] = None
 
 class AnalysisTaskListResponse(BaseModel):
     items: List[AnalysisTaskListItem]

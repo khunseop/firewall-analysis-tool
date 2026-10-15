@@ -39,6 +39,22 @@ def _get_device_analysis_lock(device_id: int) -> asyncio.Lock:
     return _device_analysis_locks.setdefault(device_id, asyncio.Lock())
 
 
+async def _stored_result_count(db: AsyncSession, task_id: int, task_type: AnalysisTaskType) -> int:
+    """저장된 분석 결과에서 이력 목록에 보여줄 "결과 건수"를 계산한다.
+
+    결과가 아예 저장되지 않은 실행(탐지 0건)은 0이다. 프론트 모듈의 요약 문구와 같은 기준을 쓴다:
+    중복 정책은 "세트 수", 영향도 분석은 "이동 대상 수", 그 외는 결과 행 수.
+    """
+    stored = await crud.analysis.get_analysis_result_by_task_id(db, task_id=task_id)
+    data = stored.result_data if stored else None
+    rows = [r for r in data if isinstance(r, dict)] if isinstance(data, list) else []
+    if task_type == AnalysisTaskType.REDUNDANCY:
+        return len({r.get("set_number") for r in rows})
+    if task_type == AnalysisTaskType.IMPACT:
+        return sum(1 for r in rows if r.get("impact_type") == "최대 안전 이동 위치")
+    return len(rows)
+
+
 async def run_redundancy_analysis_task(device_id: int, requested_by_user_id: Optional[int] = None, requested_by_username: Optional[str] = None):
     """중복 정책 분석 백그라운드 진입점.
 
@@ -71,6 +87,7 @@ async def _run_redundancy_analysis(db: AsyncSession, device_id: int, requested_b
             device_id=device_id,
             task_type=AnalysisTaskType.REDUNDANCY,
             created_at=get_kst_now(),
+            params={},
             requested_by_user_id=requested_by_user_id,
             requested_by_username=requested_by_username,
         )
@@ -110,7 +127,8 @@ async def _run_redundancy_analysis(db: AsyncSession, device_id: int, requested_b
             # [단계 5] 성공 상태로 종료
             task_update = AnalysisTaskUpdate(
                 completed_at=get_kst_now(),
-                task_status='success'
+                task_status='success',
+                result_count=await _stored_result_count(db, task.id, AnalysisTaskType.REDUNDANCY),
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
             await log_activity(db, title="중복 정책 분석 완료", message=f"Device ID {device_id} 중복 정책 분석 완료", type="success", category="analysis", device_id=device_id)
@@ -150,6 +168,7 @@ async def _run_unused_analysis(db: AsyncSession, device_id: int, days: int = 90,
             device_id=device_id,
             task_type=AnalysisTaskType.UNUSED,
             created_at=get_kst_now(),
+            params={"days": days},
             requested_by_user_id=requested_by_user_id,
             requested_by_username=requested_by_username,
         )
@@ -181,7 +200,8 @@ async def _run_unused_analysis(db: AsyncSession, device_id: int, days: int = 90,
 
             task_update = AnalysisTaskUpdate(
                 completed_at=get_kst_now(),
-                task_status='success'
+                task_status='success',
+                result_count=await _stored_result_count(db, task.id, AnalysisTaskType.UNUSED),
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
             await log_activity(db, title="미사용 정책 분석 완료", message=f"Device ID {device_id} 미사용 정책 분석 완료", type="success", category="analysis", device_id=device_id)
@@ -222,6 +242,7 @@ async def _run_impact_analysis(db: AsyncSession, device_id: int, target_policy_i
             device_id=device_id,
             task_type=AnalysisTaskType.IMPACT,
             created_at=get_kst_now(),
+            params={"target_policy_ids": target_policy_ids, "reference_policy_id": reference_policy_id, "move_direction": move_direction},
             requested_by_user_id=requested_by_user_id,
             requested_by_username=requested_by_username,
         )
@@ -258,7 +279,8 @@ async def _run_impact_analysis(db: AsyncSession, device_id: int, target_policy_i
 
             task_update = AnalysisTaskUpdate(
                 completed_at=get_kst_now(),
-                task_status='success'
+                task_status='success',
+                result_count=await _stored_result_count(db, task.id, AnalysisTaskType.IMPACT),
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
             await log_activity(db, title="영향도 분석 완료", message=f"Device ID {device_id} 정책 이동 영향도 분석 완료", type="success", category="analysis", device_id=device_id)
@@ -298,6 +320,7 @@ async def _run_unreferenced_objects_analysis(db: AsyncSession, device_id: int, r
             device_id=device_id,
             task_type=AnalysisTaskType.UNREFERENCED_OBJECTS,
             created_at=get_kst_now(),
+            params={},
             requested_by_user_id=requested_by_user_id,
             requested_by_username=requested_by_username,
         )
@@ -328,7 +351,8 @@ async def _run_unreferenced_objects_analysis(db: AsyncSession, device_id: int, r
 
             task_update = AnalysisTaskUpdate(
                 completed_at=get_kst_now(),
-                task_status='success'
+                task_status='success',
+                result_count=await _stored_result_count(db, task.id, AnalysisTaskType.UNREFERENCED_OBJECTS),
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
             await log_activity(db, title="미참조 객체 분석 완료", message=f"Device ID {device_id} 미참조 객체 분석 완료", type="success", category="analysis", device_id=device_id)
@@ -369,6 +393,7 @@ async def _run_risky_ports_analysis(db: AsyncSession, device_id: int, target_pol
             device_id=device_id,
             task_type=AnalysisTaskType.RISKY_PORTS,
             created_at=get_kst_now(),
+            params={"target_policy_ids": target_policy_ids},
             requested_by_user_id=requested_by_user_id,
             requested_by_username=requested_by_username,
         )
@@ -399,7 +424,8 @@ async def _run_risky_ports_analysis(db: AsyncSession, device_id: int, target_pol
 
             task_update = AnalysisTaskUpdate(
                 completed_at=get_kst_now(),
-                task_status='success'
+                task_status='success',
+                result_count=await _stored_result_count(db, task.id, AnalysisTaskType.RISKY_PORTS),
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
             await log_activity(db, title="위험 포트 분석 완료", message=f"Device ID {device_id} 위험 포트 분석 완료", type="success", category="analysis", device_id=device_id)
@@ -439,6 +465,7 @@ async def _run_over_permissive_analysis(db: AsyncSession, device_id: int, target
             device_id=device_id,
             task_type=AnalysisTaskType.OVER_PERMISSIVE,
             created_at=get_kst_now(),
+            params={"target_policy_ids": target_policy_ids},
             requested_by_user_id=requested_by_user_id,
             requested_by_username=requested_by_username,
         )
@@ -469,7 +496,8 @@ async def _run_over_permissive_analysis(db: AsyncSession, device_id: int, target
 
             task_update = AnalysisTaskUpdate(
                 completed_at=get_kst_now(),
-                task_status='success'
+                task_status='success',
+                result_count=await _stored_result_count(db, task.id, AnalysisTaskType.OVER_PERMISSIVE),
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
             await log_activity(db, title="과허용 정책 분석 완료", message=f"Device ID {device_id} 과허용 정책 분석 완료", type="success", category="analysis", device_id=device_id)
@@ -510,6 +538,7 @@ async def _run_unused_ng_policy_analysis(db: AsyncSession, device_id: int, refer
             device_id=device_id,
             task_type=AnalysisTaskType.UNUSED_NG_POLICY,
             created_at=get_kst_now(),
+            params={"reference_date": reference_date.isoformat() if reference_date else None},
             requested_by_user_id=requested_by_user_id,
             requested_by_username=requested_by_username,
         )
@@ -539,7 +568,8 @@ async def _run_unused_ng_policy_analysis(db: AsyncSession, device_id: int, refer
 
             task_update = AnalysisTaskUpdate(
                 completed_at=get_kst_now(),
-                task_status='success'
+                task_status='success',
+                result_count=await _stored_result_count(db, task.id, AnalysisTaskType.UNUSED_NG_POLICY),
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
             await log_activity(db, title="미사용 NG 정책 분석 완료", message=f"Device ID {device_id} 미사용 NG 정책 분석 완료", type="success", category="analysis", device_id=device_id)

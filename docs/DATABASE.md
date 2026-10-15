@@ -195,6 +195,8 @@
 | `error_message` | `VARCHAR` | `NULLABLE` | 실패 시 오류 메시지 |
 | `requested_by_user_id` | `INTEGER` | `NULLABLE` | 이 분석을 요청한 사용자 ID (FK 제약 없는 스냅샷) |
 | `requested_by_username` | `VARCHAR` | `NULLABLE` | 위 사용자의 username 스냅샷 (표시용) |
+| `params` | `JSON` | `NULLABLE` | 실행 시점 파라미터 스냅샷 (예: `{"days": 90}`). 컬럼 추가 이전 실행분은 NULL("기록 없음") |
+| `result_count` | `INTEGER` | `NULLABLE` | 결과 건수 (중복 정책은 세트 수, 영향도 분석은 이동 대상 수, 그 외는 결과 행 수). 성공했지만 결과가 저장되지 않은 실행은 0. 컬럼 추가 이전 실행분은 연결된 결과가 있는 것만 채우고 나머지는 NULL |
 | `pipeline_task_id` | `INTEGER` | `NULLABLE` | 프로젝트형 분석 모듈 전용: 파이프라인 단계 번호(0~19). 그 외 타입은 항상 NULL |
 | `analysis_project_id` | `INTEGER` | `FOREIGN KEY (analysis_projects.id), NULLABLE` | 프로젝트형 분석 모듈 전용: 소속 프로젝트 참조 (CASCADE). 그 외 타입은 항상 NULL |
 

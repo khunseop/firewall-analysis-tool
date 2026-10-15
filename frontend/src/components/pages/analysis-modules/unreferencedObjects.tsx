@@ -8,6 +8,7 @@ export const unreferencedObjectsModule: QuickAnalysisModule = {
   label: '미참조 오브젝트 분석',
   icon: Unlink,
   description: '어떤 정책에도 사용되지 않는 네트워크/서비스 객체를 탐지합니다.',
+  multiDevice: true,
   buildParams: () => ({}),
   columns: (): ColDef[] => [
     { field: 'object_name', headerName: '객체명', filter: 'agTextColumnFilter', pinned: 'left', width: 200 },

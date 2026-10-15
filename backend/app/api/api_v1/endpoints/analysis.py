@@ -135,6 +135,8 @@ async def list_analysis_tasks(
             completed_at=t.completed_at,
             error_message=t.error_message,
             requested_by_username=t.requested_by_username,
+            params=t.params,
+            result_count=t.result_count,
         )
         for t in tasks
     ]

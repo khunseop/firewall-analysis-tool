@@ -15,6 +15,10 @@ export const unusedNgPolicyModule: QuickAnalysisModule = {
   label: '미사용 NG 정책',
   icon: FileSearch2,
   description: '전체 정책에 신청정보·사용이력(라이브 수집)·AD/NG 정책 여부·경과일을 부가한 검토용 리포트를 생성합니다.',
+  multiDevice: true,
+  liveConnect: true,
+  describeParams: (p) => (p.reference_date ? `기준일 ${String(p.reference_date)}` : null),
+  paramsToValues: (p) => (p.reference_date ? { referenceDate: String(p.reference_date) } : {}),
   renderParams: (ctx: QuickModuleParamsContext) => (
     <div className="space-y-1.5">
       <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">기준일 (경과일 계산 기준)</label>

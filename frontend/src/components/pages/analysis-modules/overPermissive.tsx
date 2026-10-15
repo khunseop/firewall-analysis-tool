@@ -11,6 +11,11 @@ export const overPermissiveModule: QuickAnalysisModule = {
   label: '과허용 정책 분석',
   icon: Expand,
   description: '출발지·목적지·서비스 범위가 과도하게 넓게 설정된 정책을 탐지합니다.',
+  describeParams: (p) => {
+    const ids = Array.isArray(p.target_policy_ids) ? p.target_policy_ids : []
+    return ids.length > 0 ? `정책 ${ids.length}개 대상` : '전체 정책 대상'
+  },
+  paramsToValues: (p) => ({ targetPolicyIds: Array.isArray(p.target_policy_ids) ? p.target_policy_ids : [] }),
   renderParams: (ctx: QuickModuleParamsContext) => (
     <div className="space-y-1.5">
       <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">분석 대상 정책 (미선택 시 전체)</label>

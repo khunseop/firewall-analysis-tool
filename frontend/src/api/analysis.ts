@@ -9,6 +9,11 @@ export interface AnalysisTask {
   started_at: string | null
   completed_at: string | null
   error_message: string | null
+  requested_by_username: string | null
+  /** 실행 시점 파라미터 — 이 필드가 추가되기 전에 실행된 작업은 null("기록 없음") */
+  params: Record<string, unknown> | null
+  /** 결과 건수 — 성공했지만 결과가 저장되지 않은 실행은 0, 기록 이전 실행분은 null */
+  result_count: number | null
 }
 
 export interface AnalysisResult {
@@ -30,6 +35,9 @@ export interface AnalysisTaskListItem {
   started_at: string | null
   completed_at: string | null
   error_message: string | null
+  requested_by_username: string | null
+  params: Record<string, unknown> | null
+  result_count: number | null
 }
 
 export interface AnalysisTaskListResponse {
@@ -146,6 +154,14 @@ export const getAnalysisTaskDetail = async (taskId: number): Promise<AnalysisTas
 export const getAnalysisTaskResult = async (taskId: number): Promise<AnalysisResult> => {
   const res = await apiClient.get<AnalysisResult>(`/analysis/tasks/${taskId}/result`)
   return res.data
+}
+
+/** 결과가 저장돼 있지 않으면(404) null — 조회 실패(네트워크·서버 오류)와 구분한다. */
+export const getAnalysisTaskResultOrNull = async (taskId: number): Promise<AnalysisResult | null> => {
+  const res = await apiClient.get<AnalysisResult>(`/analysis/tasks/${taskId}/result`, {
+    validateStatus: (s) => (s >= 200 && s < 300) || s === 404,
+  })
+  return res.status === 404 ? null : res.data
 }
 
 export const deleteAnalysisTask = async (taskId: number): Promise<{ msg: string }> => {

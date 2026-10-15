@@ -51,6 +51,11 @@ class AnalysisTask(Base):
     requested_by_user_id = Column(Integer, nullable=True)
     requested_by_username = Column(String, nullable=True)
 
+    # 이력 표시용 스냅샷 — 실행 시점의 파라미터(예: {"days": 90})와 결과 건수.
+    # 이 컬럼 추가 이전에 실행된 기존 작업은 params가 NULL("기록 없음"), result_count는 마이그레이션에서 채운다.
+    params = Column(JSON, nullable=True)
+    result_count = Column(Integer, nullable=True)
+
     # DELETION_WORKFLOW 타입 전용 필드 (그 외 타입은 항상 NULL).
     # 어느 파이프라인 단계(0~19)의 실행인지, 어느 프로젝트에 속하는지를 나타낸다.
     pipeline_task_id = Column(Integer, nullable=True)

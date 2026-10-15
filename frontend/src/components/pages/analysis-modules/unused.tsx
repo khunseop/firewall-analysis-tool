@@ -9,6 +9,9 @@ export const unusedModule: QuickAnalysisModule = {
   label: '미사용 정책 분석',
   icon: Clock,
   description: '설정 기간 동안 트래픽이 발생하지 않은 정책을 탐지합니다.',
+  multiDevice: true,
+  describeParams: (p) => (p.days != null ? `${p.days}일 이상 미사용` : null),
+  paramsToValues: (p) => ({ days: String(p.days ?? '90') }),
   renderParams: (ctx: QuickModuleParamsContext) => (
     <div className="space-y-1.5">
       <label className="text-10 font-bold uppercase tracking-widest text-ds-primary">미사용 기준 (일)</label>
