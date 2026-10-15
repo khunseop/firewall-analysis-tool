@@ -587,11 +587,11 @@ export function PoliciesPage() {
 
   // 편집모드 그리드 — 장비 전체 배치 순서(mergedPolicies) 중 "검색 결과에 포함된 정책"만 보여준다.
   // 신규 생성행과 변경이 걸린 행은 검색 조건과 무관하게 항상 표시해, 계획에 든 항목이 사라지지 않게 한다.
-  const { editRows, editScopeCount } = useMemo(() => {
+  const { editRows, editScopeCount, editScopeDisabledCount } = useMemo(() => {
     const searchIds = searched ? new Set(policies.map((p) => p.id)) : null
     const scoped = mergedPolicies.filter((r) => !(searchIds && r.id > 0 && !r._pendingStatus && !searchIds.has(r.id)))
     const rows = summaryFilter ? scoped.filter((r) => r._pendingStatus != null || matchesSummary(r, summaryFilter)) : scoped
-    return { editRows: rows, editScopeCount: scoped.length }
+    return { editRows: rows, editScopeCount: scoped.length, editScopeDisabledCount: scoped.filter((r) => r.id > 0 && r.enable === false).length }
   }, [mergedPolicies, policies, searched, summaryFilter])
 
   const policyNameById = useMemo(() => new Map(mergedPolicies.map((r) => [r.id, r.rule_name ?? ''])), [mergedPolicies])
@@ -602,8 +602,9 @@ export function PoliciesPage() {
   }, [editMode])
 
   // 편집모드면 기존 정책(양수 id)/신규 생성행(음수 id) 모두 그리드에서 직접 편집 가능.
+  // 단, 비활성 기존 정책은 셀 수정을 막는다 — 삭제·활성화·이동만 허용(수정은 활성화한 뒤에).
   const isRowEditable = useCallback(
-    (params: { data?: EditablePolicyRow }) => editMode && params.data?.id != null,
+    (params: { data?: EditablePolicyRow }) => editMode && params.data?.id != null && (params.data.id < 0 || params.data.enable !== false),
     [editMode]
   )
 
@@ -793,9 +794,14 @@ export function PoliciesPage() {
               <span className="font-mono">{deviceName}</span>
               <span className="tabular-nums">
                 · {searched
-                  ? `검색 결과 ${policies.length.toLocaleString()}건 중 ${editScopeCount.toLocaleString()}건 편집 가능${editScopeCount < policies.length ? ' (비활성 정책은 편집모드에서 표시되지 않음)' : ''}`
-                  : `장비 전체 ${editScopeCount.toLocaleString()}건 (비활성 정책 제외)`}
+                  ? `검색 결과 ${editScopeCount.toLocaleString()}건`
+                  : `장비 전체 ${editScopeCount.toLocaleString()}건`}
               </span>
+              {editScopeDisabledCount > 0 && (
+                <span className="tabular-nums font-semibold">
+                  · 비활성 {editScopeDisabledCount.toLocaleString()}건은 삭제·활성화·이동만 가능 (셀 수정 불가)
+                </span>
+              )}
               {!showPanel && (
                 <button
                   type="button"
@@ -853,9 +859,10 @@ export function PoliciesPage() {
             rowSelection={editMode ? { mode: 'multiRow', checkboxes: true, headerCheckbox: true } : undefined}
             onSelectionChanged={editMode ? (rows) => setSelectedPolicyIds(rows.map((r) => r.id)) : undefined}
             onCellValueChanged={editMode ? handleCellValueChanged : undefined}
-            getRowStyle={editMode ? (p) => {
+            getRowStyle={editMode ? (p): Record<string, string> | undefined => {
               const status = p.data?._pendingStatus
-              if (!status) return undefined
+              // 비활성 기존 정책은 수정할 수 없다는 신호로 옅은 회색 바탕을 준다(대기중 변경이 있으면 그 틴트가 우선).
+              if (!status) return p.data && p.data.id > 0 && p.data.enable === false ? { backgroundColor: 'rgba(169, 180, 185, 0.14)' } : undefined
               return { backgroundColor: PENDING_STATUS_META[status].tint, textDecoration: status === 'deleted' ? 'line-through' : 'none' }
             } : undefined}
             skipAutoSizeOnDataChange={editMode}
@@ -917,7 +924,7 @@ export function PoliciesPage() {
           policy={detailModal}
           deviceName={deviceNameMap.get(detailModal.device_id) ?? String(detailModal.device_id)}
           validObjectNames={validObjectNames}
-          editable={editMode}
+          editable={editMode && detailModal.enable !== false}
           onFieldChange={(field, newValue) => {
             const oldValue = String((detailModal as unknown as Record<string, string>)[field] ?? '')
             applyFieldChange(detailModal.id, field, oldValue, newValue)

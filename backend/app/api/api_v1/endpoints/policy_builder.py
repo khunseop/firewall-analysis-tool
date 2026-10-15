@@ -8,7 +8,6 @@ from app import crud, schemas
 from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models.user import User
-from app.services.analysis.common import load_active_policies_with_members
 from app.services.policy_builder import object_gap
 from app.services.policy_builder.cli_generator import (
     generate_address_object_command,
@@ -23,6 +22,7 @@ from app.services.policy_builder.cli_generator import (
 from app.services.policy_builder.insertion_analyzer import (
     analyze_insertion,
     build_full_order,
+    load_policies_for_builder,
     sort_create_changes,
     sort_modify_changes,
     sort_move_changes,
@@ -329,7 +329,7 @@ async def plan_bulk_policy(
 
     # --- 기존 정책 이동 (move) ---
     for c in move_changes:
-        real_policies = await load_active_policies_with_members(db, device_id)
+        real_policies = await load_policies_for_builder(db, device_id)
         target_policy = next((p for p in real_policies if p.id == c.target_policy_id), None)
         if not target_policy:
             warnings.append(f"이동 대상 정책(ID {c.target_policy_id})을 찾을 수 없어 건너뜁니다.")
@@ -345,6 +345,11 @@ async def plan_bulk_policy(
             )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
+        if not target_policy.enable:
+            # 비활성 정책은 트래픽에 영향이 없으므로 이동으로 인한 충돌·가림은 의미가 없다.
+            # (같은 계획에서 활성화하더라도 현재 DB 상태 기준으로 판정한다.)
+            move_conflicts = []
+            move_warnings = move_warnings + [f"'{target_policy.rule_name}'은(는) 현재 비활성 정책이라 이동 충돌 검사를 생략합니다."]
         conflicts += move_conflicts
         preview_before += move_before
         preview_after += move_after

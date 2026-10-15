@@ -9,15 +9,35 @@ DB에는 아무 것도 쓰지 않습니다 — `ImpactAnalyzer`(기존 정책 �
 
 from typing import Any, Dict, List, Optional, Tuple
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app import crud
+from app.models.policy import Policy
 from app.services.analysis import policy_overlap
-from app.services.analysis.common import load_active_policies_with_members
 from app.schemas.policy_builder import InsertionConflict, MoveTarget, PreviewRow
 from app.services.policy_builder.virtual_policy import VirtualPolicy
 
 CONTEXT_RADIUS = 4
+
+
+async def load_policies_for_builder(db: AsyncSession, device_id: int) -> List[Policy]:
+    """
+    정책 빌더용 — 비활성(enable=False) 정책까지 포함한 장비 전체 정책을 seq 순으로 조회한다.
+
+    분석 엔진용 `load_active_policies_with_members`는 enable=True만 돌려주므로(트래픽에 영향을
+    주는 정책만 비교하기 위함) 정책 빌더의 "배치 순서/기준 정책 위치"에는 쓸 수 없다 — 비활성
+    정책도 장비의 룰 순서에는 존재하고, 사용자가 삭제·활성화·기준 정책으로 지정할 수 있다.
+    충돌 판정만은 트래픽에 영향이 없는 비활성 정책을 제외하고 `p.enable`로 걸러 쓴다.
+    """
+    stmt = (
+        select(Policy)
+        .where(Policy.device_id == device_id, Policy.is_active == True)  # noqa: E712
+        .options(selectinload(Policy.address_members), selectinload(Policy.service_members))
+        .order_by(Policy.seq)
+    )
+    return list((await db.execute(stmt)).scalars().all())
 
 # modify pending change의 payload 키(백엔드 필드명) -> 정책/그리드 표시 필드명.
 # frontend PoliciesPage.tsx의 EDITABLE_FIELD_MAP과 반드시 동기화되어야 한다.
@@ -106,7 +126,7 @@ def _resolve_insertion_index(real_policies: list, move_target: MoveTarget) -> in
         raise ValueError("before/after 위치에는 기준 정책(reference_policy_id)이 필요합니다.")
     idx = next((i for i, p in enumerate(real_policies) if p.id == move_target.reference_policy_id), None)
     if idx is None:
-        raise ValueError(f"기준 정책 ID {move_target.reference_policy_id}를 찾을 수 없습니다 (활성 정책 중에 없음).")
+        raise ValueError(f"기준 정책 ID {move_target.reference_policy_id}를 찾을 수 없습니다 (장비 정책 중에 없음).")
     return idx if move_target.position == "before" else idx + 1
 
 
@@ -190,13 +210,17 @@ async def analyze_insertion(
     `exclude_policy_ids`: 기존 정책을 "이동"시킬 때, 그 정책 자신을 real_policies에서 제외하기
     위한 용도(자기 자신과의 충돌 오탐 방지, `wrap_existing_policy_as_virtual` 참고).
     """
-    real_policies = await load_active_policies_with_members(db, device_id)
+    all_policies = await load_policies_for_builder(db, device_id)
     if exclude_policy_ids:
-        real_policies = [p for p in real_policies if p.id not in exclude_policy_ids]
-    insertion_index = _resolve_insertion_index(real_policies, move_target)
+        all_policies = [p for p in all_policies if p.id not in exclude_policy_ids]
+    # 삽입 위치는 비활성 정책을 포함한 장비 전체 순서로 계산한다(기준 정책이 비활성일 수 있음).
+    insertion_index = _resolve_insertion_index(all_policies, move_target)
 
-    conflicts = _find_conflicts(real_policies, virtual_policies, insertion_index)
-    preview_before, preview_after = _build_previews(real_policies, virtual_policies, insertion_index)
+    # 충돌 판정은 트래픽에 영향을 주는 활성 정책끼리만 — 인덱스도 활성 목록 기준으로 환산한다.
+    enabled_policies = [p for p in all_policies if p.enable]
+    enabled_insertion_index = sum(1 for p in all_policies[:insertion_index] if p.enable)
+    conflicts = _find_conflicts(enabled_policies, virtual_policies, enabled_insertion_index)
+    preview_before, preview_after = _build_previews(all_policies, virtual_policies, insertion_index)
 
     warnings = [
         "신규 정책끼리는 서로 충돌 여부를 검사하지 않습니다 (입력한 순서를 그대로 신뢰합니다).",
@@ -215,7 +239,7 @@ def _resolve_insertion_index_dict(items: List[Dict[str, Any]], move_target: Move
         raise ValueError("before/after 위치에는 기준 정책(reference_policy_id)이 필요합니다.")
     idx = next((i for i, it in enumerate(items) if it["id"] == move_target.reference_policy_id), None)
     if idx is None:
-        raise ValueError(f"기준 정책 ID {move_target.reference_policy_id}를 찾을 수 없습니다 (활성 정책 중에 없음).")
+        raise ValueError(f"기준 정책 ID {move_target.reference_policy_id}를 찾을 수 없습니다 (장비 정책 중에 없음).")
     return idx if move_target.position == "before" else idx + 1
 
 
@@ -276,7 +300,7 @@ async def build_full_order(db: AsyncSession, device_id: int) -> List[Dict[str, A
     같은 것끼리 배치로 묶어 각 배치의 목표 위치에 독립적으로 삽입한다 — 서로 다른 시점에 다른
     기준 정책으로 생성한 배치끼리는 서로의 위치를 강제하지 않는다.
     """
-    real_policies = await load_active_policies_with_members(db, device_id)
+    real_policies = await load_policies_for_builder(db, device_id)
     changes = await crud.pending_policy_change.get_by_device(db, device_id)
 
     items: List[Dict[str, Any]] = [_policy_to_item(p) for p in real_policies]
