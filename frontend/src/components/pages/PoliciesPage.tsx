@@ -2,7 +2,7 @@ import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Download, SlidersHorizontal, AlertTriangle, X, Search, Bookmark, BookmarkPlus, Pencil, RotateCcw, Terminal, ShieldCheck, Undo2 } from 'lucide-react'
+import { X, Search, Pencil, RotateCcw, PanelRightOpen } from 'lucide-react'
 import type { CellValueChangedEvent, ColDef, RowClickedEvent } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { rowIdFromId } from '@/lib/utils'
@@ -15,10 +15,8 @@ import { daysSinceHit } from '@/lib/utils'
 import { ObjectDetailModal } from '@/components/shared/ObjectDetailModal'
 import { PolicyHistoryModal } from '@/components/shared/PolicyHistoryModal'
 import { PolicyDetailModal } from '@/components/shared/PolicyDetailModal'
-import { QueryBuilder } from '@/components/shared/QueryBuilder'
 import {
   buildRequestFromFilterTree, conditionsToFilterTree, generateId,
-  QB_FIELDS, OP_LABELS,
   type FilterTree,
 } from '@/components/shared/queryBuilderModel'
 import { DeviceSelector } from '@/components/shared/DeviceSelector'
@@ -29,11 +27,10 @@ import { diffMultiValueField, isFieldDiffEmpty } from '@/lib/policyDiff'
 import {
   listPendingChanges, addPendingChange, updatePendingChange, removePendingChange, clearPendingChanges, planBulkPolicy, getPreviewOrder,
   cleanupOrphanNewObjects, verifyAgainstDevice, revertPolicyPendingChanges,
-  type BulkPolicyPlanResponse, type PreviewPolicyRow, type PolicyVerifyResult,
+  type BulkPolicyPlanResponse, type PreviewPolicyRow, type PolicyVerifyResult, type PendingPolicyChange,
 } from '@/api/policyBuilder'
 import { CreatePolicyModal } from '@/components/pages/policy-builder/CreatePolicyModal'
 import { NewPolicyFormModal } from '@/components/pages/policy-builder/NewPolicyFormModal'
-import { EditActionMenu } from '@/components/pages/policy-builder/EditActionMenu'
 import { setPoliciesDisabled } from '@/components/pages/policy-builder/disableToggle'
 import { usePendingUndo } from '@/components/pages/policy-builder/usePendingUndo'
 import { ModifyPolicyModal } from '@/components/pages/policy-builder/ModifyPolicyModal'
@@ -41,7 +38,14 @@ import { MoveExistingDialog } from '@/components/pages/policy-builder/MoveExisti
 import { PlanResultPanel, VerifyResultPanel } from '@/components/pages/policy-builder/PlanResultPanel'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { PageHeader } from '@/components/shared/PageHeader'
-import { Button } from '@/components/ui/button'
+import { useConfirm } from '@/components/shared/ConfirmDialog'
+import { PolicySearchToolbar } from '@/components/pages/policies/PolicySearchToolbar'
+import { PolicySummaryBar, type SummaryFilter } from '@/components/pages/policies/PolicySummaryBar'
+import { EditChangesPanel } from '@/components/pages/policies/EditChangesPanel'
+import { InlineTagCell, LastHitCell } from '@/components/pages/policies/policyCells'
+import {
+  ACTION_BADGE, PENDING_STATUS_META, parseCSVTokens, formatCSVField, type PendingStatus,
+} from '@/components/pages/policies/policyCellUtils'
 
 /** 편집모드에서 그리드 필드명 ↔ 백엔드(PendingPolicyChange payload) 필드명 매핑 (diff 대상 필드).
  *  from_zone/to_zone은 Palo Alto만 수집하는 필드라 다른 벤더 정책은 항상 빈 값으로 시작함. */
@@ -52,82 +56,7 @@ const EDITABLE_FIELD_MAP: Record<string, string> = {
 }
 
 interface EditablePolicyRow extends Policy {
-  _pendingStatus?: 'new' | 'modified' | 'deleted' | 'moved'
-}
-
-const ACTION_BADGE: Record<string, string> = {
-  allow:  'bg-green-100 text-green-700',
-  deny:   'bg-red-100 text-red-700',
-  drop:   'bg-red-100 text-red-700',
-  reject: 'bg-orange-100 text-orange-700',
-}
-
-/**
- * 콤마 구분 문자열을 파싱합니다. LDAP DN처럼 값 내부에 콤마가 있는 경우
- * list_to_string이 생성한 quoted CSV 형식("v1,v2","v3,v4")을 올바르게 처리합니다.
- */
-function parseCSVTokens(value: string): string[] {
-  const tokens: string[] = []
-  let current = ''
-  let inQuotes = false
-  for (const ch of value) {
-    if (ch === '"') {
-      inQuotes = !inQuotes
-    } else if (ch === ',' && !inQuotes) {
-      const trimmed = current.trim()
-      if (trimmed) tokens.push(trimmed)
-      current = ''
-    } else {
-      current += ch
-    }
-  }
-  const trimmed = current.trim()
-  if (trimmed) tokens.push(trimmed)
-  return tokens
-}
-
-/** parseCSVTokens로 파싱한 뒤, 콤마를 포함한 토큰을 따옴표로 재감싸 list_to_string 형식으로 복원합니다. */
-function formatCSVField(value: string | null | undefined): string {
-  if (!value) return ''
-  const tokens = parseCSVTokens(value)
-  return tokens.map(t => t.includes(',') ? `"${t}"` : t).join(',')
-}
-
-/** 그리드 셀용 인라인 태그 (고정 높이, 최대 2개 + 개수) */
-function InlineTagCell({ value }: { value: string }) {
-  const names = (value ?? '').split(',').map((s) => s.trim()).filter(Boolean)
-  if (names.length === 0) return <span className="text-11 text-ds-on-surface-variant">-</span>
-  const MAX = 2
-  const visible = names.slice(0, MAX)
-  const extra = names.length - MAX
-  return (
-    <div className="flex items-center gap-1 overflow-hidden">
-      {visible.map((name, i) => (
-        <span key={i} className="inline-flex items-center px-1.5 py-0.5 rounded text-11 font-mono bg-ds-surface-container text-ds-on-surface whitespace-nowrap shrink-0">
-          {name}
-        </span>
-      ))}
-      {extra > 0 && (
-        <span className="text-10 font-semibold text-ds-on-surface-variant whitespace-nowrap shrink-0">+{extra}</span>
-      )}
-    </div>
-  )
-}
-
-/** 마지막 사용일 스마트 렌더 */
-function LastHitCell({ value }: { value: string | null }) {
-  if (!value) return <span className="text-11 font-medium text-amber-600">사용 기록 없음</span>
-  const days = daysSinceHit(value)
-  if (days === null) return <span className="text-11 text-ds-on-surface-variant">-</span>
-  if (days >= 90) {
-    return (
-      <span className="inline-flex items-center gap-1 text-11 font-semibold text-ds-error">
-        <AlertTriangle className="w-3 h-3" />{days}일 미사용
-      </span>
-    )
-  }
-  if (days >= 30) return <span className="text-11 font-medium text-amber-600">{days}일 전</span>
-  return <span className="text-11 text-ds-on-surface-variant">{days}일 전</span>
+  _pendingStatus?: PendingStatus
 }
 
 const GRID_DEFAULT_COL_DEF_OVERRIDE = { filter: false }
@@ -172,6 +101,15 @@ export function PoliciesPage() {
   const [historyModal, setHistoryModal] = useState<{ deviceId: number; ruleName: string } | null>(null)
   const [detailModal, setDetailModal] = useState<Policy | null>(null)
   const [quickFilterInput, setQuickFilterInput] = useState(quickFilterText)
+  const [summaryFilter, setSummaryFilter] = useState<SummaryFilter | null>(null)
+  const [panelOpen, setPanelOpen] = useState(true)
+  const { confirm, ConfirmDialogElement } = useConfirm()
+
+  // 결과 내 검색은 입력 즉시(디바운스) 반영한다 — 별도 Enter/버튼 없이 타이핑만으로 그리드가 좁혀진다.
+  useEffect(() => {
+    const t = setTimeout(() => setQuickFilterText(quickFilterInput), 200)
+    return () => clearTimeout(t)
+  }, [quickFilterInput, setQuickFilterText])
 
   // 편집모드 — 단일 장비 선택 시에만 가능 (대기중 변경사항은 장비 1개 단위로 저장됨)
   const [editMode, setEditMode] = useState(false)
@@ -281,6 +219,12 @@ export function PoliciesPage() {
       toast.warning('선택한 정책이 모두 이미 삭제 예정입니다.')
       return
     }
+    const ok = await confirm({
+      title: `선택한 정책 ${targetIds.length}건을 삭제 대상으로 추가할까요?`,
+      description: '장비에서 바로 삭제되지는 않으며, 대기중 변경사항으로 추가됩니다. 변경 목록에서 언제든 되돌릴 수 있습니다.',
+      confirmLabel: '삭제 대상에 추가', variant: 'destructive',
+    })
+    if (!ok) return
     const timestamp = Date.now()
     setApplyingChanges(true)
     try {
@@ -341,6 +285,32 @@ export function PoliciesPage() {
     }
   })
 
+  const revertSingleChange = (change: PendingPolicyChange) => {
+    if (!editDeviceId) return
+    runEditAction(async () => {
+      await removePendingChange(editDeviceId, change.id)
+      await cleanupOrphanNewObjects(editDeviceId, pendingChanges.filter((c) => c.id !== change.id))
+    })
+  }
+
+  const jumpToRow = (policyId: number) => {
+    const api = gridRef.current?.gridApi
+    const node = api?.getRowNode(String(policyId))
+    if (!api || !node) { toast.info('현재 그리드에서 해당 정책 행을 찾을 수 없습니다.'); return }
+    api.ensureNodeVisible(node, 'middle')
+    api.flashCells({ rowNodes: [node] })
+  }
+
+  const toggleEditMode = () => {
+    if (editMode) {
+      const remaining = pendingChanges.filter((c) => c.change_type !== 'new_object').length
+      if (remaining > 0) toast.info(`대기중 변경사항 ${remaining}건은 저장되어 있습니다. 다시 편집모드에 들어오면 이어서 작업할 수 있습니다.`)
+    } else {
+      setPanelOpen(true)
+    }
+    setEditMode((v) => !v)
+  }
+
   const handleOpenMove = () => {
     // 이미 삭제 대기중인 행은 이동 대상에서 제외 — 삭제 예정 정책의 위치를 옮기는 move
     // pending change가 쌓이는 것을 막는다.
@@ -384,6 +354,12 @@ export function PoliciesPage() {
 
   const handleClearPending = async () => {
     if (!editDeviceId) return
+    const ok = await confirm({
+      title: `대기중 변경사항 ${pendingChanges.filter((c) => c.change_type !== 'new_object').length}건을 모두 취소할까요?`,
+      description: '저장된 변경 계획이 삭제되며 되돌릴 수 없습니다. 장비에는 영향이 없습니다.',
+      confirmLabel: '모두 취소', variant: 'destructive',
+    })
+    if (!ok) return
     setApplyingChanges(true)
     try {
       await clearPendingChanges(editDeviceId)
@@ -455,42 +431,6 @@ export function PoliciesPage() {
     return counts
   }, [pendingChanges])
 
-  // 검색 조건 프리셋 (localStorage)
-  type Preset = { name: string; tree: FilterTree }
-  const PRESET_KEY = 'fat_policy_presets'
-  const [presets, setPresets] = useState<Preset[]>(() => {
-    try { return JSON.parse(localStorage.getItem(PRESET_KEY) ?? '[]') } catch { return [] }
-  })
-  const [presetNameInput, setPresetNameInput] = useState('')
-  const [showPresetInput, setShowPresetInput] = useState(false)
-  const [presetDropdownOpen, setPresetDropdownOpen] = useState(false)
-  // 드롭다운 위치는 열 때 측정해 저장 (렌더 중 ref 접근 회피)
-  const [presetMenuPos, setPresetMenuPos] = useState<{ top: number; right: number } | null>(null)
-  const presetBtnRef = useRef<HTMLButtonElement>(null)
-
-  const savePreset = () => {
-    const name = presetNameInput.trim()
-    if (!name) return
-    const updated = [...presets.filter(p => p.name !== name), { name, tree: filterTree }]
-    setPresets(updated)
-    localStorage.setItem(PRESET_KEY, JSON.stringify(updated))
-    setPresetNameInput('')
-    setShowPresetInput(false)
-    toast.success(`프리셋 "${name}" 저장됨`)
-  }
-
-  const loadPreset = (preset: Preset) => {
-    setFilterTree(preset.tree)
-    setFiltersOpen(true)
-    toast.info(`프리셋 "${preset.name}" 불러옴`)
-  }
-
-  const deletePreset = (name: string) => {
-    const updated = presets.filter(p => p.name !== name)
-    setPresets(updated)
-    localStorage.setItem(PRESET_KEY, JSON.stringify(updated))
-  }
-
   const { data: devices = [] } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices })
 
   const deviceNameMap = useMemo(
@@ -556,10 +496,9 @@ export function PoliciesPage() {
   const handleReset = () => {
     resetStore()
     setQuickFilterInput('')
+    setSummaryFilter(null)
     gridRef.current?.gridApi?.setFilterModel(null)
   }
-
-  const handleApplyQuickFilter = () => setQuickFilterText(quickFilterInput)
 
   const handleExport = async () => {
     if (policies.length === 0) { toast.warning('내보낼 데이터가 없습니다.'); return }
@@ -611,6 +550,22 @@ export function PoliciesPage() {
   }, [policies, searched])
 
 
+  const displayedPolicies = useMemo(() => {
+    if (!summaryFilter) return policies
+    return policies.filter((p) => {
+      const days = daysSinceHit(p.last_hit_date)
+      switch (summaryFilter) {
+        case 'allow': return p.action?.toLowerCase() === 'allow'
+        case 'deny': return ['deny', 'drop', 'reject'].includes(p.action?.toLowerCase() ?? '')
+        case 'disabled': return !p.enable
+        case 'stale': return days !== null && days >= 90
+        case 'noHit': return !p.last_hit_date
+      }
+    })
+  }, [policies, summaryFilter])
+
+  const policyNameById = useMemo(() => new Map(mergedPolicies.map((r) => [r.id, r.rule_name ?? ''])), [mergedPolicies])
+
   const handleRowClick = useCallback((event: RowClickedEvent<Policy>) => {
     if (editMode) return // 편집모드에서는 행 클릭이 상세 모달 대신 셀 편집/체크박스 선택에 쓰임
     if (event.data) setDetailModal(event.data)
@@ -636,7 +591,7 @@ export function PoliciesPage() {
     {
       field: 'seq', headerName: '#', width: 52, suppressSizeToFit: true,
       cellRenderer: (p: { value: number }) => (
-        <span className="font-mono text-xs text-ds-on-surface-variant">{p.value}</span>
+        <span className="font-mono text-xs text-ds-on-surface-variant tabular-nums">{p.value}</span>
       ),
     },
     {
@@ -644,11 +599,17 @@ export function PoliciesPage() {
       cellRenderer: (p: { value: string; data: EditablePolicyRow }) => {
         return (
           <div className="flex items-center gap-1.5 min-w-0">
+            {editMode && p.data?._pendingStatus && (
+              <span className={`shrink-0 px-1 rounded text-11 font-bold ${PENDING_STATUS_META[p.data._pendingStatus].badge}`}>
+                {PENDING_STATUS_META[p.data._pendingStatus].label}
+              </span>
+            )}
             <span className="font-mono text-xs font-semibold text-ds-on-surface truncate">{p.value ?? '-'}</span>
             {editMode && (
               <button
                 type="button"
                 title="상세보기(필드 편집)"
+                aria-label={`${p.value ?? '정책'} 상세보기·필드 편집`}
                 onClick={(e) => { e.stopPropagation(); setDetailModal(p.data) }}
                 className="shrink-0 text-ds-on-surface-variant hover:text-ds-tertiary transition-colors"
               >
@@ -659,6 +620,7 @@ export function PoliciesPage() {
               <button
                 type="button"
                 title="이 정책의 대기중 변경사항 취소"
+                aria-label={`${p.value ?? '정책'}의 대기중 변경사항 취소`}
                 onClick={(e) => { e.stopPropagation(); revertRowRef.current(p.data.id) }}
                 className="shrink-0 text-ds-on-surface-variant hover:text-ds-error transition-colors"
               >
@@ -673,13 +635,13 @@ export function PoliciesPage() {
       field: 'action', headerName: '액션', width: 72, suppressSizeToFit: true,
       cellRenderer: (p: { value: string }) => {
         const cls = ACTION_BADGE[p.value?.toLowerCase()] ?? 'bg-ds-surface-container text-ds-on-surface-variant'
-        return <span className={`inline-flex items-center px-2 py-0.5 rounded text-10 font-bold uppercase ${cls}`}>{p.value}</span>
+        return <span className={`inline-flex items-center px-2 py-0.5 rounded text-11 font-bold uppercase ${cls}`}>{p.value}</span>
       },
     },
     {
       field: 'enable', headerName: '활성', width: 62, suppressSizeToFit: true,
       cellRenderer: (p: { value: boolean }) => (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-10 font-bold ${p.value ? 'bg-green-100 text-green-700' : 'bg-ds-surface-container text-ds-on-surface-variant'}`}>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-11 font-bold ${p.value ? 'bg-green-100 text-green-700' : 'bg-ds-surface-container text-ds-on-surface-variant'}`}>
           {p.value ? '활성' : '비활성'}
         </span>
       ),
@@ -708,7 +670,7 @@ export function PoliciesPage() {
     {
       field: 'security_profile', headerName: '보안 프로파일', width: 130, suppressSizeToFit: true,
       cellRenderer: (p: { value: string | null }) =>
-        p.value ? <span className="inline-flex items-center px-1.5 py-0.5 rounded text-10 font-semibold bg-purple-100 text-purple-700">{p.value}</span> : <span className="text-11 text-ds-on-surface-variant">-</span>,
+        p.value ? <span className="inline-flex items-center px-1.5 py-0.5 rounded text-11 font-semibold bg-purple-100 text-purple-700">{p.value}</span> : <span className="text-11 text-ds-on-surface-variant">-</span>,
     },
     {
       field: 'category', headerName: '카테고리', width: 100, suppressSizeToFit: true,
@@ -728,27 +690,34 @@ export function PoliciesPage() {
     {
       field: 'hit_count', headerName: '히트 횟수', width: 100, suppressSizeToFit: true,
       cellRenderer: (p: { value: number | null }) => (
-        <span className="text-11 text-ds-on-surface-variant">{p.value ?? '-'}</span>
+        <span className="text-11 text-ds-on-surface-variant tabular-nums">{p.value ?? '-'}</span>
       ),
     },
     { field: 'vsys', headerName: 'VSYS', width: 72, hide: true },
   ], [deviceNameMap, editMode, isRowEditable])
 
-  const allConditions = filterTree.flatMap(g => g.conditions)
-  const hasConditions = allConditions.some(c => c.value.trim())
+  const editDevice = devices.find((d) => d.id === editDeviceId)
+  const canEdit = !!editDeviceId && (editDevice?.vendor ?? '').toLowerCase() === 'paloalto'
+  const editBlockedReason = deviceIds.length !== 1
+    ? '편집모드는 장비를 1개만 선택했을 때 사용할 수 있습니다.'
+    : !canEdit ? '편집모드는 Palo Alto 장비에서만 사용할 수 있습니다.' : null
+  const pendingLoadError = pendingChangesQuery.error ? (pendingChangesQuery.error as Error).message : null
+  const deviceName = editDeviceId ? (deviceNameMap.get(editDeviceId) ?? String(editDeviceId)) : ''
+  const pendingTotal = pendingChanges.filter((c) => c.change_type !== 'new_object').length
+  const showPanel = editMode && !!editDeviceId && panelOpen
 
   return (
     <div className="flex flex-col gap-3">
       <PageHeader
-        title="Policies"
+        title="정책"
+        description={searched ? `장비 ${deviceIds.length}대 대상` : '장비를 선택하고 검색하세요'}
         actions={
           <>
             <button
-              onClick={() => setEditMode((v) => !v)}
-              disabled={!editDeviceId}
-              title={editDeviceId ? undefined : '편집모드는 장비를 1개만 선택했을 때 사용할 수 있습니다.'}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition-colors disabled:opacity-40 ${
-                editMode ? 'text-ds-tertiary bg-ds-tertiary/10 border-ds-tertiary/20' : 'text-ds-on-surface-variant bg-ds-surface-container-low border-ds-outline-variant/10 hover:text-ds-on-surface'
+              onClick={toggleEditMode}
+              disabled={!canEdit && !editMode}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition-colors disabled:opacity-60 ${
+                editMode ? 'text-amber-900 bg-amber-100 border-amber-300' : 'text-ds-on-surface-variant bg-ds-surface-container-low border-ds-outline-variant/10 hover:text-ds-on-surface'
               }`}
             >
               <Pencil className="w-3.5 h-3.5" /> {editMode ? '편집모드 종료' : '편집모드'}
@@ -757,266 +726,134 @@ export function PoliciesPage() {
           </>
         }
       />
-      {editMode && (
-        <p className="text-xs text-amber-600 -mt-2 shrink-0">
-          편집모드에서 만든 변경사항은 CLI 텍스트로만 생성되며 실제 장비나 DB에는 반영되지 않습니다. 검토 후 직접 실행하세요.
-        </p>
+      {!editMode && editBlockedReason && deviceIds.length > 0 && (
+        <p className="text-11 text-ds-on-surface-variant -mt-2 shrink-0">{editBlockedReason}</p>
       )}
 
-      {/* Filter panel */}
-      <div className="card rounded-xl overflow-hidden shrink-0">
-        {/* 툴바 */}
-        <div className="flex items-center gap-2 px-4 py-2.5">
-          <button
-            onClick={() => setFiltersOpen(!filtersOpen)}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${
-              filtersOpen || hasConditions
-                ? 'text-ds-tertiary bg-ds-tertiary/10'
-                : 'text-ds-on-surface-variant bg-ds-surface-container-low hover:text-ds-tertiary border border-ds-outline-variant/10'
-            }`}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            상세 검색
-            {hasConditions && (
-              <span className="ml-1 bg-ds-tertiary text-white rounded-full w-4 h-4 flex items-center justify-center text-10 font-bold">
-                {allConditions.filter(c => c.value.trim()).length}
-              </span>
-            )}
-          </button>
+      <PolicySearchToolbar
+        filterTree={filterTree}
+        onFilterTreeChange={setFilterTree}
+        filtersOpen={filtersOpen}
+        onFiltersOpenChange={setFiltersOpen}
+        hasResults={policies.length > 0}
+        onExport={handleExport}
+        onExportUsage={handleExportUsage}
+        onReset={handleReset}
+        onSearch={handleSearch}
+        searchDisabled={deviceIds.length === 0}
+        searching={searchQuery.isFetching}
+      />
 
-          {/* 활성 조건 태그 (패널 닫혔을 때) */}
-          {!filtersOpen && hasConditions && (
-            <div className="flex flex-wrap gap-1.5 flex-1">
-              {filterTree.map((group, gi) => (
-                group.conditions.filter(c => c.value.trim()).map((c, ci) => {
-                  const fieldLabel = QB_FIELDS.find(f => f.key === c.field)?.label ?? c.field
-                  const opLabel = OP_LABELS[c.operator as keyof typeof OP_LABELS] ?? c.operator
-                  const isNot = c.operator === 'not_equals' || c.operator === 'not_contains'
-                  return (
-                    <span key={`${gi}-${ci}`} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-11 font-semibold ${isNot ? 'bg-ds-error/10 text-ds-error' : 'bg-ds-tertiary/10 text-ds-tertiary'}`}>
-                      {gi > 0 && ci === 0 && (
-                        <span className="opacity-50 mr-0.5 text-10">{filterTree[gi - 1].joinOperator}</span>
-                      )}
-                      {fieldLabel} <span className="opacity-60">{opLabel}</span> {c.value}
-                    </span>
-                  )
-                })
-              ))}
-            </div>
-          )}
+      {summary && !editMode && <PolicySummaryBar summary={summary} active={summaryFilter} onChange={setSummaryFilter} />}
 
-          <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-            {/* 프리셋 */}
-            {presets.length > 0 && (
-              <div className="relative">
+      <div className="flex items-start gap-3">
+        <div className={`card rounded-xl overflow-hidden min-w-0 flex-1 ${editMode ? 'border-amber-300/70' : ''}`}>
+          {editMode && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border-b border-amber-200 text-11 text-amber-900">
+              <span className="font-bold">편집모드</span>
+              <span className="font-mono">{deviceName}</span>
+              <span className="hidden xl:inline">· 장비에는 반영되지 않고 CLI만 생성됩니다</span>
+              {!showPanel && (
                 <button
-                  ref={presetBtnRef}
-                  onClick={() => {
-                    const r = presetBtnRef.current?.getBoundingClientRect()
-                    setPresetMenuPos(r ? { top: r.bottom + 4, right: window.innerWidth - r.right } : null)
-                    setPresetDropdownOpen(o => !o)
-                  }}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
+                  type="button"
+                  onClick={() => setPanelOpen(true)}
+                  className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded font-semibold hover:bg-amber-100"
                 >
-                  <Bookmark className="w-3 h-3" /> 프리셋
-                </button>
-                {presetDropdownOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setPresetDropdownOpen(false)} />
-                    <div
-                      className="fixed z-50 bg-white border border-ds-outline-variant/20 rounded-lg shadow-xl min-w-44 py-1"
-                      style={{ top: presetMenuPos?.top ?? 0, right: presetMenuPos?.right ?? 0 }}
-                    >
-                      {presets.map(p => (
-                        <div key={p.name} className="flex items-center justify-between px-3 py-1.5 hover:bg-ds-surface-container-low gap-2">
-                          <button className="text-xs text-ds-on-surface truncate flex-1 text-left" onClick={() => { loadPreset(p); setPresetDropdownOpen(false) }}>{p.name}</button>
-                          <button className="text-ds-error hover:text-ds-error/70 shrink-0" onClick={() => deletePreset(p.name)}><X className="w-3 h-3" /></button>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-            {hasConditions && !showPresetInput && (
-              <button
-                onClick={() => setShowPresetInput(true)}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
-              >
-                <BookmarkPlus className="w-3 h-3" /> 저장
-              </button>
-            )}
-            {showPresetInput && (
-              <div className="flex items-center gap-1">
-                <input
-                  autoFocus
-                  value={presetNameInput}
-                  onChange={e => setPresetNameInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') savePreset(); if (e.key === 'Escape') setShowPresetInput(false) }}
-                  placeholder="프리셋 이름"
-                  className="h-7 px-2 text-xs border border-ds-outline-variant/30 rounded-md focus:outline-none focus:border-ds-tertiary w-28"
-                />
-                <button onClick={savePreset} className="text-xs font-semibold text-ds-tertiary px-2 py-1 rounded hover:bg-ds-tertiary/10 transition-colors">저장</button>
-                <button onClick={() => setShowPresetInput(false)} className="text-xs text-ds-on-surface-variant px-1 py-1 rounded hover:bg-ds-surface-container-low transition-colors"><X className="w-3 h-3" /></button>
-              </div>
-            )}
-            {policies.length > 0 && (
-              <button onClick={handleExport} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors">
-                <Download className="w-3 h-3" /> Excel
-              </button>
-            )}
-            {policies.length > 0 && (
-              <button
-                onClick={handleExportUsage}
-                title="자동 사용이력 수집이 실패했을 때, Deletion Workflow의 사용이력 반영 태스크에 그대로 업로드할 수 있는 형식(Rule Name / Unused Days)으로 내보냅니다."
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
-              >
-                <Download className="w-3 h-3" /> 사용이력
-              </button>
-            )}
-            <button onClick={handleReset} className="text-xs font-medium text-ds-on-surface-variant hover:text-ds-on-surface px-2.5 py-1.5 rounded-lg hover:bg-ds-surface-container-low transition-colors">
-              초기화
-            </button>
-            <Button
-              variant="gradient"
-              size="auto"
-              onClick={handleSearch}
-              disabled={deviceIds.length === 0 || searchQuery.isFetching}
-              className="text-xs font-semibold px-4 py-1.5 rounded-lg"
-            >
-              {searchQuery.isFetching ? '검색 중…' : '검색'}
-            </Button>
-          </div>
-        </div>
-
-        {/* 쿼리 빌더 패널 */}
-        {filtersOpen && (
-          <div className="border-t border-ds-outline-variant/10 bg-ds-surface-container-low/30 px-4 py-3">
-            <p className="text-10 text-ds-on-surface-variant mb-2">조건을 추가하고 검색하세요. AND/OR 토글로 조건을 결합하고, 그룹 추가로 괄호 묶음을 만들 수 있습니다.</p>
-            <QueryBuilder tree={filterTree} onTreeChange={setFilterTree} />
-          </div>
-        )}
-      </div>
-
-      {/* Summary banner */}
-      {summary && (
-        <div className="card rounded-xl px-4 py-2.5 flex flex-wrap items-center gap-x-5 gap-y-1.5 shrink-0">
-          <span className="text-sm font-bold text-ds-on-surface">총 {summary.total.toLocaleString()}건</span>
-          <span className="flex items-center gap-1 text-xs font-semibold text-green-700"><span className="w-2 h-2 rounded-full bg-green-500" />허용 {summary.allow.toLocaleString()}</span>
-          <span className="flex items-center gap-1 text-xs font-semibold text-red-700"><span className="w-2 h-2 rounded-full bg-red-500" />차단 {summary.deny.toLocaleString()}</span>
-          {summary.disabled > 0 && <span className="flex items-center gap-1 text-xs text-ds-on-surface-variant"><span className="w-2 h-2 rounded-full bg-gray-400" />비활성 {summary.disabled.toLocaleString()}</span>}
-          {summary.stale > 0 && <span className="flex items-center gap-1 text-xs font-semibold text-amber-700"><AlertTriangle className="w-3 h-3" />90일+ 미사용 {summary.stale.toLocaleString()}</span>}
-          {summary.noHit > 0 && <span className="text-xs text-ds-on-surface-variant">사용 기록 없음 {summary.noHit.toLocaleString()}</span>}
-        </div>
-      )}
-
-      {/* Results grid */}
-      <div className="card rounded-xl overflow-hidden">
-        {searched && (
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-ds-outline-variant/10 shrink-0">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ds-on-surface-variant pointer-events-none" />
-              <input
-                type="text"
-                value={quickFilterInput}
-                onChange={e => setQuickFilterInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleApplyQuickFilter()}
-                placeholder="결과 내 검색 (Enter)…"
-                className="w-full pl-8 pr-8 py-1.5 text-xs bg-ds-surface-container-low border border-ds-outline-variant/20 rounded-lg focus:outline-none focus:border-ds-tertiary focus:ring-1 focus:ring-ds-tertiary placeholder:text-ds-on-surface-variant/50"
-              />
-              {quickFilterInput && (
-                <button
-                  onClick={() => { setQuickFilterInput(''); setQuickFilterText('') }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-ds-on-surface-variant hover:text-ds-on-surface transition-colors"
-                >
-                  <X className="w-3 h-3" />
+                  <PanelRightOpen className="w-3.5 h-3.5" /> 변경 목록 열기 <span className="tabular-nums">({pendingTotal})</span>
                 </button>
               )}
             </div>
-            <button
-              onClick={handleApplyQuickFilter}
-              className="shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg bg-ds-surface-container text-ds-on-surface-variant hover:text-ds-on-surface border border-ds-outline-variant/15 transition-colors"
-            >
-              필터
-            </button>
-            {quickFilterText && (
-              <span className="text-11 text-ds-tertiary font-semibold shrink-0">"{quickFilterText}" 필터 중</span>
-            )}
-          </div>
+          )}
+          {searched && (
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-ds-outline-variant/10 shrink-0">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ds-on-surface-variant pointer-events-none" />
+                <input
+                  type="text"
+                  value={quickFilterInput}
+                  onChange={e => setQuickFilterInput(e.target.value)}
+                  aria-label="결과 내 검색"
+                  placeholder="결과 내 검색…"
+                  className="w-full pl-8 pr-8 py-1.5 text-xs bg-ds-surface-container-low border border-ds-outline-variant/20 rounded-lg focus:outline-none focus:border-ds-tertiary focus:ring-1 focus:ring-ds-tertiary placeholder:text-ds-on-surface-variant/70"
+                />
+                {quickFilterInput && (
+                  <button
+                    onClick={() => setQuickFilterInput('')}
+                    aria-label="결과 내 검색어 지우기"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-ds-on-surface-variant hover:text-ds-on-surface transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+              {summaryFilter && (
+                <button onClick={() => setSummaryFilter(null)} className="shrink-0 flex items-center gap-1 text-11 font-semibold text-ds-tertiary px-2 py-1 rounded hover:bg-ds-tertiary/10">
+                  요약 필터 해제 <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          )}
+          <AgGridWrapper<EditablePolicyRow>
+            ref={gridRef}
+            columnDefs={columnDefs}
+            rowData={editMode ? mergedPolicies : displayedPolicies}
+            getRowId={rowIdFromId}
+            height={editMode ? 'calc(100vh - 330px)' : 'calc(100vh - 300px)'}
+            loading={editMode ? applyingChanges : searchQuery.isFetching}
+            loadingLabel={editMode ? '변경사항 적용 중…' : '정책 검색 중…'}
+            noRowsText="장비를 선택하고 검색 버튼을 클릭하세요."
+            defaultColDefOverride={GRID_DEFAULT_COL_DEF_OVERRIDE}
+            fitColumns
+            quickFilterText={quickFilterText}
+            onRowClicked={handleRowClick}
+            rowHeight={34}
+            rowSelection={editMode ? { mode: 'multiRow', checkboxes: true, headerCheckbox: true } : undefined}
+            onSelectionChanged={editMode ? (rows) => setSelectedPolicyIds(rows.map((r) => r.id)) : undefined}
+            onCellValueChanged={editMode ? handleCellValueChanged : undefined}
+            getRowStyle={editMode ? (p) => {
+              const status = p.data?._pendingStatus
+              if (status === 'new') return { backgroundColor: 'rgba(16,185,129,0.10)', textDecoration: 'none' }
+              if (status === 'modified') return { backgroundColor: 'rgba(245,158,11,0.10)', textDecoration: 'none' }
+              if (status === 'deleted') return { backgroundColor: 'rgba(239,68,68,0.10)', textDecoration: 'line-through' }
+              if (status === 'moved') return { backgroundColor: 'rgba(59,130,246,0.10)', textDecoration: 'none' }
+              return undefined
+            } : undefined}
+            skipAutoSizeOnDataChange={editMode}
+          />
+        </div>
+
+        {showPanel && editDeviceId && (
+          <EditChangesPanel
+            deviceName={deviceName}
+            changes={pendingChanges}
+            nameById={policyNameById}
+            counts={pendingCounts}
+            selectedCount={selectedPolicyIds.length}
+            canUndo={canUndo}
+            onUndo={() => void undoLast()}
+            onRevertChange={revertSingleChange}
+            onJumpTo={jumpToRow}
+            onClearAll={handleClearPending}
+            onVerify={handleVerifyAgainstDevice}
+            onGenerate={handleGenerateCli}
+            verifyLoading={verifyLoading}
+            planLoading={planLoading}
+            loadError={pendingLoadError}
+            onCollapse={() => setPanelOpen(false)}
+            menuProps={{
+              selectedCount: selectedPolicyIds.length,
+              onCreateForm: () => setShowFormModal(true),
+              onCreatePaste: () => setShowCreateModal(true),
+              onModify: () => setShowModifyModal(true),
+              onMove: handleOpenMove,
+              onDelete: handleDeleteSelected,
+              onToggleDisable: handleToggleDisable,
+            }}
+          />
         )}
-        <AgGridWrapper<EditablePolicyRow>
-          ref={gridRef}
-          columnDefs={columnDefs}
-          rowData={editMode ? mergedPolicies : policies}
-          getRowId={rowIdFromId}
-          height="calc(100vh - 300px)"
-          loading={editMode ? applyingChanges : searchQuery.isFetching}
-          loadingLabel={editMode ? '변경사항 적용 중…' : '정책 검색 중…'}
-          noRowsText="장비를 선택하고 검색 버튼을 클릭하세요."
-          defaultColDefOverride={GRID_DEFAULT_COL_DEF_OVERRIDE}
-          fitColumns
-          quickFilterText={quickFilterText}
-          onRowClicked={handleRowClick}
-          rowHeight={34}
-          rowSelection={editMode ? { mode: 'multiRow', checkboxes: true, headerCheckbox: true } : undefined}
-          onSelectionChanged={editMode ? (rows) => setSelectedPolicyIds(rows.map((r) => r.id)) : undefined}
-          onCellValueChanged={editMode ? handleCellValueChanged : undefined}
-          getRowStyle={editMode ? (p) => {
-            const status = p.data?._pendingStatus
-            if (status === 'new') return { backgroundColor: 'rgba(16,185,129,0.10)', textDecoration: 'none' }
-            if (status === 'modified') return { backgroundColor: 'rgba(245,158,11,0.10)', textDecoration: 'none' }
-            if (status === 'deleted') return { backgroundColor: 'rgba(239,68,68,0.10)', textDecoration: 'line-through' }
-            if (status === 'moved') return { backgroundColor: 'rgba(59,130,246,0.10)', textDecoration: 'none' }
-            return undefined
-          } : undefined}
-          skipAutoSizeOnDataChange={editMode}
-        />
       </div>
 
-      {editMode && editDeviceId && (
-        <div className="card rounded-xl px-4 py-3 flex items-center gap-3 shrink-0 sticky bottom-4 shadow-lg">
-          <span className="text-13 font-semibold text-ds-on-surface">
-            대기중 변경사항: 생성 {pendingCounts.create} · 수정 {pendingCounts.modify} · 삭제 {pendingCounts.delete} · 이동 {pendingCounts.move} · 비활성화 {pendingCounts.disable}
-          </span>
-          <div className="flex items-center gap-2 ml-auto">
-            <EditActionMenu
-              selectedCount={selectedPolicyIds.length}
-              onCreateForm={() => setShowFormModal(true)}
-              onCreatePaste={() => setShowCreateModal(true)}
-              onModify={() => setShowModifyModal(true)}
-              onMove={handleOpenMove}
-              onDelete={handleDeleteSelected}
-              onToggleDisable={handleToggleDisable}
-            />
-            {canUndo && (
-              <button onClick={() => void undoLast()} title="마지막 편집 취소 (Ctrl/⌘+Z)" className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ds-on-surface-variant hover:text-ds-tertiary transition-colors">
-                <Undo2 className="w-3.5 h-3.5" /> 실행 취소
-              </button>
-            )}
-            {pendingChanges.length > 0 && (
-              <button onClick={handleClearPending} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ds-on-surface-variant hover:text-ds-error transition-colors">
-                <RotateCcw className="w-3.5 h-3.5" /> 전체 취소
-              </button>
-            )}
-            <button
-              onClick={handleVerifyAgainstDevice}
-              disabled={pendingChanges.length === 0 || verifyLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-13 font-semibold text-ds-on-surface border border-ds-outline-variant/30 rounded-md disabled:opacity-50 hover:bg-ds-surface-container-low transition-colors"
-            >
-              <ShieldCheck className="w-3.5 h-3.5" /> {verifyLoading ? '검증 중…' : '실제 장비 검증'}
-            </button>
-            <Button
-              variant="gradient"
-              size="auto"
-              onClick={handleGenerateCli}
-              disabled={pendingChanges.length === 0 || planLoading}
-              className="gap-1.5 px-4 py-1.5 text-13 font-bold rounded-md"
-            >
-              <Terminal className="w-3.5 h-3.5" /> {planLoading ? 'CLI 생성 중…' : 'CLI 생성'}
-            </Button>
-          </div>
-        </div>
-      )}
+      {ConfirmDialogElement}
 
       {objectModal && (
         <ObjectDetailModal

@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { Plus, Pencil, ArrowLeftRight, Trash2, ChevronUp, ClipboardPaste, SlidersHorizontal, Power } from 'lucide-react'
 
 /**
- * 편집모드 액션 메뉴 — "대기중 변경사항" 바(CLI 생성 버튼 왼쪽)에 인라인으로 붙어,
- * 클릭하면 위쪽으로 정책 생성/수정/이동/삭제 4개 주요 액션이 펼쳐진다.
+ * 편집모드 액션 메뉴 — 변경 계획 패널 상단에 붙어,
+ * 클릭하면 아래쪽으로 정책 생성/수정/이동/삭제 4개 주요 액션이 펼쳐진다.
  * "붙여넣기로 일괄 생성"처럼 대량 처리용 변형은 정책 생성 버튼의 서브 메뉴로 둔다.
  */
 export function EditActionMenu({
@@ -35,7 +35,7 @@ export function EditActionMenu({
   return (
     <div ref={rootRef} className="relative">
       {open && (
-        <div className="absolute bottom-full right-0 mb-2 flex flex-col items-end gap-1.5 bg-ds-surface-container-lowest rounded-2xl shadow-2xl ambient-shadow border border-ds-outline-variant/10 p-2 z-40">
+        <div className="absolute top-full left-0 mt-2 flex flex-col items-start gap-1.5 bg-ds-surface-container-lowest rounded-2xl shadow-2xl ambient-shadow border border-ds-outline-variant/10 p-2 z-40">
           <div className="relative">
             <button
               type="button"
@@ -45,7 +45,7 @@ export function EditActionMenu({
               <Plus className="w-3.5 h-3.5" /> 정책 생성
             </button>
             {createMenuOpen && (
-              <div className="absolute right-full top-0 mr-1.5 w-44 bg-ds-surface-container-lowest rounded-xl shadow-2xl ambient-shadow border border-ds-outline-variant/10 p-1">
+              <div className="absolute left-full top-0 ml-1.5 w-44 bg-ds-surface-container-lowest rounded-xl shadow-2xl ambient-shadow border border-ds-outline-variant/10 p-1">
                 <button
                   type="button"
                   onClick={() => { setCreateMenuOpen(false); setOpen(false); onCreateForm() }}
@@ -90,6 +90,7 @@ export function EditActionMenu({
             <Power className="w-3.5 h-3.5" /> 비활성화/활성화 {selectedCount > 0 && `(${selectedCount})`}
           </button>
 
+          <div className="w-full border-t border-ds-outline-variant/15 my-0.5" />
           <button
             type="button"
             onClick={() => { setOpen(false); onDelete() }}
@@ -103,6 +104,8 @@ export function EditActionMenu({
 
       <button
         type="button"
+        aria-expanded={open}
+        aria-haspopup="menu"
         onClick={() => { setOpen((v) => !v); setCreateMenuOpen(false) }}
         className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
           open ? 'text-ds-tertiary bg-ds-tertiary/10 border-ds-tertiary/20' : 'text-ds-on-surface-variant bg-ds-surface-container-low border-ds-outline-variant/10 hover:text-ds-on-surface'
