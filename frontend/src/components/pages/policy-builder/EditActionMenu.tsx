@@ -20,6 +20,8 @@ export function EditActionMenu({
   const [open, setOpen] = useState(false)
   const [createMenuOpen, setCreateMenuOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -32,22 +34,44 @@ export function EditActionMenu({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // 메뉴가 열리면 첫 항목으로 포커스를 옮기고, 방향키/Home/End로 항목을 순회, Escape로 닫고 트리거로 포커스를 돌려준다.
+  useEffect(() => {
+    if (open) menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]:not(:disabled)')?.focus()
+  }, [open])
+
+  const close = () => { setOpen(false); setCreateMenuOpen(false); triggerRef.current?.focus() }
+  const handleMenuKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); return }
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return
+    const items = Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)') ?? [])
+    if (items.length === 0) return
+    e.preventDefault()
+    const idx = items.indexOf(document.activeElement as HTMLElement)
+    const next = e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1
+      : e.key === 'ArrowDown' ? (idx + 1) % items.length : (idx - 1 + items.length) % items.length
+    items[next].focus()
+  }
+
   return (
     <div ref={rootRef} className="relative">
       {open && (
-        <div className="absolute top-full left-0 mt-2 flex flex-col items-start gap-1.5 bg-ds-surface-container-lowest rounded-2xl shadow-2xl ambient-shadow border border-ds-outline-variant/10 p-2 z-40">
+        <div ref={menuRef} role="menu" aria-label="편집 메뉴" onKeyDown={handleMenuKeyDown} className="absolute top-full left-0 mt-2 flex flex-col items-start gap-1.5 bg-white rounded-xl shadow-ambient-md border border-ds-outline-variant/10 p-2 z-40">
           <div className="relative">
             <button
               type="button"
+              role="menuitem"
+              aria-haspopup="menu"
+              aria-expanded={createMenuOpen}
               onClick={() => setCreateMenuOpen((v) => !v)}
               className="flex items-center gap-2 w-40 px-3 py-2 text-xs font-semibold text-ds-tertiary bg-ds-tertiary/10 rounded-lg hover:bg-ds-tertiary/15 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> 정책 생성
             </button>
             {createMenuOpen && (
-              <div className="absolute left-full top-0 ml-1.5 w-44 bg-ds-surface-container-lowest rounded-xl shadow-2xl ambient-shadow border border-ds-outline-variant/10 p-1">
+              <div role="menu" aria-label="정책 생성 방식" className="absolute left-full top-0 ml-1.5 w-44 bg-white rounded-xl shadow-ambient-md border border-ds-outline-variant/10 p-1">
                 <button
                   type="button"
+                  role="menuitem"
                   onClick={() => { setCreateMenuOpen(false); setOpen(false); onCreateForm() }}
                   className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs font-medium text-ds-on-surface rounded-lg hover:bg-ds-surface-container-low transition-colors"
                 >
@@ -55,6 +79,7 @@ export function EditActionMenu({
                 </button>
                 <button
                   type="button"
+                  role="menuitem"
                   onClick={() => { setCreateMenuOpen(false); setOpen(false); onCreatePaste() }}
                   className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs font-medium text-ds-on-surface rounded-lg hover:bg-ds-surface-container-low transition-colors"
                 >
@@ -66,6 +91,7 @@ export function EditActionMenu({
 
           <button
             type="button"
+            role="menuitem"
             onClick={() => { setOpen(false); onModify() }}
             className="flex items-center gap-2 w-40 px-3 py-2 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg hover:text-ds-on-surface transition-colors"
           >
@@ -74,6 +100,7 @@ export function EditActionMenu({
 
           <button
             type="button"
+            role="menuitem"
             onClick={() => { setOpen(false); onMove() }}
             disabled={selectedCount === 0}
             className="flex items-center gap-2 w-40 px-3 py-2 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg hover:text-ds-on-surface transition-colors disabled:opacity-40"
@@ -83,6 +110,7 @@ export function EditActionMenu({
 
           <button
             type="button"
+            role="menuitem"
             onClick={() => { setOpen(false); onToggleDisable() }}
             disabled={selectedCount === 0}
             className="flex items-center gap-2 w-40 px-3 py-2 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg hover:text-ds-on-surface transition-colors disabled:opacity-40"
@@ -93,6 +121,7 @@ export function EditActionMenu({
           <div className="w-full border-t border-ds-outline-variant/15 my-0.5" />
           <button
             type="button"
+            role="menuitem"
             onClick={() => { setOpen(false); onDelete() }}
             disabled={selectedCount === 0}
             className="flex items-center gap-2 w-40 px-3 py-2 text-xs font-medium text-ds-error bg-ds-error/5 rounded-lg hover:bg-ds-error/10 transition-colors disabled:opacity-40"
@@ -103,6 +132,7 @@ export function EditActionMenu({
       )}
 
       <button
+        ref={triggerRef}
         type="button"
         aria-expanded={open}
         aria-haspopup="menu"

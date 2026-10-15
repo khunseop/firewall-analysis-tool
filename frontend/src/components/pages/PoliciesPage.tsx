@@ -59,6 +59,17 @@ interface EditablePolicyRow extends Policy {
   _pendingStatus?: PendingStatus
 }
 
+function matchesSummary(p: Policy, filter: SummaryFilter): boolean {
+  const days = daysSinceHit(p.last_hit_date)
+  switch (filter) {
+    case 'allow': return p.action?.toLowerCase() === 'allow'
+    case 'deny': return ['deny', 'drop', 'reject'].includes(p.action?.toLowerCase() ?? '')
+    case 'disabled': return !p.enable
+    case 'stale': return days !== null && days >= 90
+    case 'noHit': return !p.last_hit_date
+  }
+}
+
 const GRID_DEFAULT_COL_DEF_OVERRIDE = { filter: false }
 
 export function PoliciesPage() {
@@ -114,6 +125,9 @@ export function PoliciesPage() {
   // 편집모드 — 단일 장비 선택 시에만 가능 (대기중 변경사항은 장비 1개 단위로 저장됨)
   const [editMode, setEditMode] = useState(false)
   const editDeviceId = deviceIds.length === 1 ? deviceIds[0] : null
+  const { data: devices = [] } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices })
+  const editDevice = devices.find((d) => d.id === editDeviceId)
+  const canEdit = !!editDeviceId && (editDevice?.vendor ?? '').toLowerCase() === 'paloalto'
   const [selectedPolicyIds, setSelectedPolicyIds] = useState<number[]>([])
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showFormModal, setShowFormModal] = useState(false)
@@ -135,7 +149,7 @@ export function PoliciesPage() {
   const pendingChangesQuery = useQuery({
     queryKey: queryKeys.policyBuilderPendingChanges(editDeviceId),
     queryFn: () => listPendingChanges(editDeviceId!),
-    enabled: editMode && !!editDeviceId,
+    enabled: canEdit,
   })
   const pendingChanges = useMemo(() => pendingChangesQuery.data ?? [], [pendingChangesQuery.data])
 
@@ -146,6 +160,18 @@ export function PoliciesPage() {
     queryKey: queryKeys.policyBuilderPreviewOrder(editDeviceId),
     queryFn: () => getPreviewOrder(editDeviceId!),
     enabled: editMode && !!editDeviceId,
+  })
+
+  // CLI 생성 전 사전 위험 요약 — 변경 계획이 바뀔 때마다 /plan을 읽기 전용으로 한 번 계산해 충돌·경고 건수만 쓴다.
+  const planSignature = pendingChanges.map((c) => c.id).join(',')
+  const planRiskQuery = useQuery({
+    queryKey: queryKeys.policyBuilderPlanRisk(editDeviceId, planSignature),
+    queryFn: async () => {
+      const plan = await planBulkPolicy(editDeviceId!)
+      return { conflicts: plan.conflicts.length, warnings: plan.warnings.length }
+    },
+    enabled: editMode && canEdit && pendingChanges.some((c) => c.change_type !== 'new_object'),
+    staleTime: 60_000,
   })
 
   // invalidateQueries는 기본적으로 활성 쿼리를 즉시 다시 조회하고, 그 refetch가 끝나야 resolve되는
@@ -221,8 +247,8 @@ export function PoliciesPage() {
     }
     const ok = await confirm({
       title: `선택한 정책 ${targetIds.length}건을 삭제 대상으로 추가할까요?`,
-      description: '장비에서 바로 삭제되지는 않으며, 대기중 변경사항으로 추가됩니다. 변경 목록에서 언제든 되돌릴 수 있습니다.',
-      confirmLabel: '삭제 대상에 추가', variant: 'destructive',
+      description: '장비에서 바로 삭제되지는 않으며, 변경 계획에 추가됩니다. 변경 목록에서 언제든 되돌릴 수 있습니다.',
+      confirmLabel: '삭제 대상에 추가',
     })
     if (!ok) return
     const timestamp = Date.now()
@@ -247,7 +273,7 @@ export function PoliciesPage() {
         const remainingChanges = (pendingChangesQuery.data ?? []).filter((c) => !removedCreateChangeIds.includes(c.id))
         await cleanupOrphanNewObjects(editDeviceId, remainingChanges)
       }
-      toast.success(`정책 ${targetIds.length}건 삭제가 대기중 변경사항으로 추가되었습니다.${skipped > 0 ? ` (이미 삭제 예정 ${skipped}건 제외)` : ''}`)
+      toast.success(`정책 ${targetIds.length}건 삭제가 변경 계획에 추가되었습니다.${skipped > 0 ? ` (이미 삭제 예정 ${skipped}건 제외)` : ''}`)
       setSelectedPolicyIds([])
       await refetchPendingChanges()
     } catch (e) {
@@ -258,7 +284,7 @@ export function PoliciesPage() {
   }
 
   // 선택 정책 중 하나라도 활성이면 활성 정책을 모두 비활성화, 전부 비활성이면 모두 활성화한다.
-  const handleToggleDisable = () => {
+  const handleToggleDisable = async () => {
     if (!editDeviceId) return
     const rows = mergedPolicies.filter((r) => selectedPolicyIds.includes(r.id) && r.id > 0 && !deletedRowIds.has(r.id))
     if (rows.length === 0) {
@@ -267,9 +293,15 @@ export function PoliciesPage() {
     }
     const disable = rows.some((r) => r.enable !== false)
     const ids = rows.filter((r) => (r.enable !== false) === disable).map((r) => r.id)
+    const ok = await confirm({
+      title: `정책 ${ids.length}건을 ${disable ? '비활성화' : '활성화'} 대상으로 추가할까요?`,
+      description: '장비에서 바로 바뀌지는 않으며, 변경 계획에 추가됩니다. 변경 목록에서 언제든 되돌릴 수 있습니다.',
+      confirmLabel: disable ? '비활성화 대상에 추가' : '활성화 대상에 추가',
+    })
+    if (!ok) return
     runEditAction(async () => {
       await setPoliciesDisabled(editDeviceId, ids, disable, pendingChanges)
-      toast.success(`정책 ${ids.length}건 ${disable ? '비활성화' : '활성화'}가 대기중 변경사항으로 추가되었습니다.`)
+      toast.success(`정책 ${ids.length}건 ${disable ? '비활성화' : '활성화'}가 변경 계획에 추가되었습니다.`)
     })
   }
 
@@ -304,7 +336,7 @@ export function PoliciesPage() {
   const toggleEditMode = () => {
     if (editMode) {
       const remaining = pendingChanges.filter((c) => c.change_type !== 'new_object').length
-      if (remaining > 0) toast.info(`대기중 변경사항 ${remaining}건은 저장되어 있습니다. 다시 편집모드에 들어오면 이어서 작업할 수 있습니다.`)
+      if (remaining > 0) toast.info(`변경 계획 ${remaining}건이 저장되어 있습니다. 다시 편집모드에 들어오면 이어서 작업할 수 있습니다.`)
     } else {
       setPanelOpen(true)
     }
@@ -355,7 +387,7 @@ export function PoliciesPage() {
   const handleClearPending = async () => {
     if (!editDeviceId) return
     const ok = await confirm({
-      title: `대기중 변경사항 ${pendingChanges.filter((c) => c.change_type !== 'new_object').length}건을 모두 취소할까요?`,
+      title: `변경 계획 ${pendingChanges.filter((c) => c.change_type !== 'new_object').length}건을 모두 취소할까요?`,
       description: '저장된 변경 계획이 삭제되며 되돌릴 수 없습니다. 장비에는 영향이 없습니다.',
       confirmLabel: '모두 취소', variant: 'destructive',
     })
@@ -363,7 +395,7 @@ export function PoliciesPage() {
     setApplyingChanges(true)
     try {
       await clearPendingChanges(editDeviceId)
-      toast.success('대기중 변경사항을 모두 초기화했습니다.')
+      toast.success('변경 계획을 모두 초기화했습니다.')
       await refetchPendingChanges()
     } catch (e) {
       toast.error((e as Error).message)
@@ -430,8 +462,6 @@ export function PoliciesPage() {
     }
     return counts
   }, [pendingChanges])
-
-  const { data: devices = [] } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices })
 
   const deviceNameMap = useMemo(
     () => new Map(devices.map(d => [d.id, d.name])),
@@ -550,19 +580,19 @@ export function PoliciesPage() {
   }, [policies, searched])
 
 
-  const displayedPolicies = useMemo(() => {
-    if (!summaryFilter) return policies
-    return policies.filter((p) => {
-      const days = daysSinceHit(p.last_hit_date)
-      switch (summaryFilter) {
-        case 'allow': return p.action?.toLowerCase() === 'allow'
-        case 'deny': return ['deny', 'drop', 'reject'].includes(p.action?.toLowerCase() ?? '')
-        case 'disabled': return !p.enable
-        case 'stale': return days !== null && days >= 90
-        case 'noHit': return !p.last_hit_date
-      }
-    })
-  }, [policies, summaryFilter])
+  const displayedPolicies = useMemo(
+    () => (summaryFilter ? policies.filter((p) => matchesSummary(p, summaryFilter)) : policies),
+    [policies, summaryFilter],
+  )
+
+  // 편집모드 그리드 — 장비 전체 배치 순서(mergedPolicies) 중 "검색 결과에 포함된 정책"만 보여준다.
+  // 신규 생성행과 변경이 걸린 행은 검색 조건과 무관하게 항상 표시해, 계획에 든 항목이 사라지지 않게 한다.
+  const { editRows, editScopeCount } = useMemo(() => {
+    const searchIds = searched ? new Set(policies.map((p) => p.id)) : null
+    const scoped = mergedPolicies.filter((r) => !(searchIds && r.id > 0 && !r._pendingStatus && !searchIds.has(r.id)))
+    const rows = summaryFilter ? scoped.filter((r) => r._pendingStatus != null || matchesSummary(r, summaryFilter)) : scoped
+    return { editRows: rows, editScopeCount: scoped.length }
+  }, [mergedPolicies, policies, searched, summaryFilter])
 
   const policyNameById = useMemo(() => new Map(mergedPolicies.map((r) => [r.id, r.rule_name ?? ''])), [mergedPolicies])
 
@@ -598,7 +628,7 @@ export function PoliciesPage() {
       field: 'rule_name', headerName: '정책명', width: 220, maxWidth: 260, suppressSizeToFit: true,
       cellRenderer: (p: { value: string; data: EditablePolicyRow }) => {
         return (
-          <div className="flex items-center gap-1.5 min-w-0">
+          <div className="group/row flex items-center gap-1.5 min-w-0">
             {editMode && p.data?._pendingStatus && (
               <span className={`shrink-0 px-1 rounded text-11 font-bold ${PENDING_STATUS_META[p.data._pendingStatus].badge}`}>
                 {PENDING_STATUS_META[p.data._pendingStatus].label}
@@ -611,20 +641,20 @@ export function PoliciesPage() {
                 title="상세보기(필드 편집)"
                 aria-label={`${p.value ?? '정책'} 상세보기·필드 편집`}
                 onClick={(e) => { e.stopPropagation(); setDetailModal(p.data) }}
-                className="shrink-0 text-ds-on-surface-variant hover:text-ds-tertiary transition-colors"
+                className="shrink-0 p-1 -m-1 text-ds-on-surface-variant hover:text-ds-tertiary transition-all opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 [.ag-row-selected_&]:opacity-100"
               >
-                <Pencil className="w-3 h-3" />
+                <Pencil className="w-3.5 h-3.5" />
               </button>
             )}
             {editMode && p.data?._pendingStatus && p.data.id > 0 && (
               <button
                 type="button"
-                title="이 정책의 대기중 변경사항 취소"
-                aria-label={`${p.value ?? '정책'}의 대기중 변경사항 취소`}
+                title="이 정책의 변경 취소"
+                aria-label={`${p.value ?? '정책'}의 변경 취소`}
                 onClick={(e) => { e.stopPropagation(); revertRowRef.current(p.data.id) }}
-                className="shrink-0 text-ds-on-surface-variant hover:text-ds-error transition-colors"
+                className="shrink-0 p-1 -m-1 text-ds-on-surface-variant hover:text-ds-error transition-colors"
               >
-                <RotateCcw className="w-3 h-3" />
+                <RotateCcw className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
@@ -696,8 +726,6 @@ export function PoliciesPage() {
     { field: 'vsys', headerName: 'VSYS', width: 72, hide: true },
   ], [deviceNameMap, editMode, isRowEditable])
 
-  const editDevice = devices.find((d) => d.id === editDeviceId)
-  const canEdit = !!editDeviceId && (editDevice?.vendor ?? '').toLowerCase() === 'paloalto'
   const editBlockedReason = deviceIds.length !== 1
     ? '편집모드는 장비를 1개만 선택했을 때 사용할 수 있습니다.'
     : !canEdit ? '편집모드는 Palo Alto 장비에서만 사용할 수 있습니다.' : null
@@ -722,7 +750,18 @@ export function PoliciesPage() {
             >
               <Pencil className="w-3.5 h-3.5" /> {editMode ? '편집모드 종료' : '편집모드'}
             </button>
-            <DeviceSelector disabled={editMode} />
+            {!editMode && canEdit && pendingTotal > 0 && (
+              <button
+                onClick={toggleEditMode}
+                title="저장된 변경 계획이 있습니다. 편집모드에서 이어서 작업할 수 있습니다."
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 transition-colors"
+              >
+                {`변경 계획 ${pendingTotal}건 대기 중`}
+              </button>
+            )}
+            <span title={editMode ? '편집모드 중에는 장비를 바꿀 수 없습니다. 먼저 편집모드를 종료하세요.' : undefined}>
+              <DeviceSelector disabled={editMode} />
+            </span>
           </>
         }
       />
@@ -744,7 +783,7 @@ export function PoliciesPage() {
         searching={searchQuery.isFetching}
       />
 
-      {summary && !editMode && <PolicySummaryBar summary={summary} active={summaryFilter} onChange={setSummaryFilter} />}
+      {summary && <PolicySummaryBar summary={summary} active={summaryFilter} onChange={setSummaryFilter} />}
 
       <div className="flex items-start gap-3">
         <div className={`card rounded-xl overflow-hidden min-w-0 flex-1 ${editMode ? 'border-amber-300/70' : ''}`}>
@@ -752,7 +791,11 @@ export function PoliciesPage() {
             <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border-b border-amber-200 text-11 text-amber-900">
               <span className="font-bold">편집모드</span>
               <span className="font-mono">{deviceName}</span>
-              <span className="hidden xl:inline">· 장비에는 반영되지 않고 CLI만 생성됩니다</span>
+              <span className="tabular-nums">
+                · {searched
+                  ? `검색 결과 ${policies.length.toLocaleString()}건 중 ${editScopeCount.toLocaleString()}건 편집 가능${editScopeCount < policies.length ? ' (비활성 정책은 편집모드에서 표시되지 않음)' : ''}`
+                  : `장비 전체 ${editScopeCount.toLocaleString()}건 (비활성 정책 제외)`}
+              </span>
               {!showPanel && (
                 <button
                   type="button"
@@ -796,7 +839,7 @@ export function PoliciesPage() {
           <AgGridWrapper<EditablePolicyRow>
             ref={gridRef}
             columnDefs={columnDefs}
-            rowData={editMode ? mergedPolicies : displayedPolicies}
+            rowData={editMode ? editRows : displayedPolicies}
             getRowId={rowIdFromId}
             height={editMode ? 'calc(100vh - 330px)' : 'calc(100vh - 300px)'}
             loading={editMode ? applyingChanges : searchQuery.isFetching}
@@ -812,11 +855,8 @@ export function PoliciesPage() {
             onCellValueChanged={editMode ? handleCellValueChanged : undefined}
             getRowStyle={editMode ? (p) => {
               const status = p.data?._pendingStatus
-              if (status === 'new') return { backgroundColor: 'rgba(16,185,129,0.10)', textDecoration: 'none' }
-              if (status === 'modified') return { backgroundColor: 'rgba(245,158,11,0.10)', textDecoration: 'none' }
-              if (status === 'deleted') return { backgroundColor: 'rgba(239,68,68,0.10)', textDecoration: 'line-through' }
-              if (status === 'moved') return { backgroundColor: 'rgba(59,130,246,0.10)', textDecoration: 'none' }
-              return undefined
+              if (!status) return undefined
+              return { backgroundColor: PENDING_STATUS_META[status].tint, textDecoration: status === 'deleted' ? 'line-through' : 'none' }
             } : undefined}
             skipAutoSizeOnDataChange={editMode}
           />
@@ -839,6 +879,7 @@ export function PoliciesPage() {
             verifyLoading={verifyLoading}
             planLoading={planLoading}
             loadError={pendingLoadError}
+            risk={planRiskQuery.isError ? 'error' : planRiskQuery.isFetching ? 'loading' : planRiskQuery.data ?? null}
             onCollapse={() => setPanelOpen(false)}
             menuProps={{
               selectedCount: selectedPolicyIds.length,

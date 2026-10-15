@@ -27,6 +27,7 @@ export const queryKeys = {
   syncHistory: (deviceId: number | null) => ['sync-history', deviceId] as const,
   policyBuilderPreviewOrder: (deviceId: number | null | undefined) => ['policy-builder-preview-order', deviceId] as const,
   policyBuilderPendingChanges: (deviceId: number | null | undefined) => ['policy-builder-pending-changes', deviceId] as const,
+  policyBuilderPlanRisk: (deviceId: number | null | undefined, signature: string) => ['policy-builder-plan-risk', deviceId, signature] as const,
   policyBuilderObjectGaps: (deviceId: number | null, rows: unknown) => ['policy-builder-object-gaps', deviceId, rows] as const,
 
   // 분석

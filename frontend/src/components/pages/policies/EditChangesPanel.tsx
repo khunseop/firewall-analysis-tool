@@ -1,4 +1,4 @@
-import { RotateCcw, Terminal, ShieldCheck, Undo2, X, PanelRightClose } from 'lucide-react'
+import { RotateCcw, Terminal, ShieldCheck, Undo2, X, PanelRightClose, AlertTriangle } from 'lucide-react'
 import type { PendingPolicyChange } from '@/api/policyBuilder'
 import { Button } from '@/components/ui/button'
 import { EditActionMenu } from '@/components/pages/policy-builder/EditActionMenu'
@@ -35,7 +35,7 @@ function describeChange(c: PendingPolicyChange, nameById: Map<number, string>) {
 export function EditChangesPanel({
   deviceName, changes, nameById, counts, selectedCount,
   canUndo, onUndo, onRevertChange, onJumpTo, onClearAll, onVerify, onGenerate, verifyLoading, planLoading,
-  loadError, onCollapse, menuProps,
+  loadError, risk, onCollapse, menuProps,
 }: {
   deviceName: string
   changes: PendingPolicyChange[]
@@ -52,6 +52,7 @@ export function EditChangesPanel({
   verifyLoading: boolean
   planLoading: boolean
   loadError: string | null
+  risk: 'loading' | 'error' | { conflicts: number; warnings: number } | null
   onCollapse: () => void
   menuProps: React.ComponentProps<typeof EditActionMenu>
 }) {
@@ -61,7 +62,7 @@ export function EditChangesPanel({
     .filter((k) => counts[k] > 0)
 
   return (
-    <aside aria-label="대기중 변경사항" className="card rounded-xl flex flex-col w-[360px] shrink-0 border-amber-300/60">
+    <aside aria-label="변경 계획" className="card rounded-xl flex flex-col w-[360px] shrink-0 border-amber-300/60">
       <div className="px-4 py-3 border-b border-ds-outline-variant/10 bg-amber-50/70 rounded-t-xl">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -78,7 +79,7 @@ export function EditChangesPanel({
 
       <div className="px-4 py-2.5 border-b border-ds-outline-variant/10 flex items-center gap-2">
         <EditActionMenu {...menuProps} />
-        {canUndo && (
+        {canUndo && total > 0 && (
           <button type="button" onClick={onUndo} title="마지막 편집 취소 (Ctrl/⌘+Z)" className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-ds-on-surface-variant hover:text-ds-tertiary rounded-lg hover:bg-ds-surface-container-low transition-colors">
             <Undo2 className="w-3.5 h-3.5" /> 실행 취소
           </button>
@@ -89,7 +90,7 @@ export function EditChangesPanel({
       </div>
 
       <div className="px-4 pt-3 pb-2 flex flex-wrap items-center gap-1.5">
-        <span className="text-xs font-semibold text-ds-on-surface tabular-nums mr-1">대기중 {total}건</span>
+        <span className="text-xs font-semibold text-ds-on-surface tabular-nums mr-1">변경 {total}건</span>
         {chips.map((k) => {
           const meta = TYPE_META[k]
           const dot = meta.status === 'disable' ? 'bg-gray-400' : PENDING_STATUS_META[meta.status].dot
@@ -100,6 +101,22 @@ export function EditChangesPanel({
           )
         })}
       </div>
+
+      {total > 0 && (
+        <div className="px-4 pb-2 text-11" aria-live="polite">
+          {risk === 'loading' || risk === null ? (
+            <span className="text-ds-on-surface-variant">충돌 검사 중…</span>
+          ) : risk === 'error' ? (
+            <span className="text-ds-on-surface-variant">충돌 검사를 건너뛰었습니다. CLI 생성 시 다시 확인합니다.</span>
+          ) : risk.conflicts + risk.warnings > 0 ? (
+            <span className="inline-flex items-center gap-1 font-semibold text-amber-900 bg-amber-100 rounded px-1.5 py-0.5">
+              <AlertTriangle className="w-3 h-3" />삽입 충돌 {risk.conflicts}건 · 경고 {risk.warnings}건 — CLI 생성 후 확인하세요
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 font-semibold text-emerald-800">충돌·경고 없음</span>
+          )}
+        </div>
+      )}
 
       <ul className="flex-1 min-h-40 overflow-y-auto px-2 pb-2 divide-y divide-ds-outline-variant/8">
         {loadError && (
@@ -153,7 +170,7 @@ export function EditChangesPanel({
           disabled={total === 0 || planLoading}
           className="w-full justify-center gap-1.5 px-4 py-2 text-13 font-bold rounded-md"
         >
-          <Terminal className="w-3.5 h-3.5" /> {planLoading ? 'CLI 생성 중…' : 'CLI 생성'}
+          <Terminal className="w-3.5 h-3.5" /> {planLoading ? 'CLI 생성 중…' : `CLI 생성 (${total}건)`}
         </Button>
         <div className="flex items-center gap-2">
           <button

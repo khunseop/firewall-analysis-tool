@@ -8,11 +8,11 @@ export const ACTION_BADGE: Record<string, string> = {
 export type PendingStatus = 'new' | 'modified' | 'deleted' | 'moved'
 
 /** 편집모드 행 상태 — 색(행 틴트)에만 의존하지 않도록 라벨 배지와 패널 범례에서 같이 쓴다. */
-export const PENDING_STATUS_META: Record<PendingStatus, { label: string; badge: string; dot: string }> = {
-  new:      { label: '신규', badge: 'bg-emerald-100 text-emerald-800', dot: 'bg-emerald-500' },
-  modified: { label: '수정', badge: 'bg-amber-100 text-amber-900',     dot: 'bg-amber-500' },
-  deleted:  { label: '삭제', badge: 'bg-red-100 text-red-800',         dot: 'bg-red-500' },
-  moved:    { label: '이동', badge: 'bg-blue-100 text-blue-800',       dot: 'bg-blue-500' },
+export const PENDING_STATUS_META: Record<PendingStatus, { label: string; badge: string; dot: string; tint: string }> = {
+  new:      { label: '신규', badge: 'bg-emerald-100 text-emerald-800', dot: 'bg-emerald-500', tint: 'rgba(16,185,129,0.10)' },
+  modified: { label: '수정', badge: 'bg-amber-100 text-amber-900',     dot: 'bg-amber-500', tint: 'rgba(245,158,11,0.10)' },
+  deleted:  { label: '삭제', badge: 'bg-red-100 text-red-800',         dot: 'bg-red-500', tint: 'rgba(239,68,68,0.10)' },
+  moved:    { label: '이동', badge: 'bg-blue-100 text-blue-800',       dot: 'bg-blue-500', tint: 'rgba(59,130,246,0.10)' },
 }
 
 /**

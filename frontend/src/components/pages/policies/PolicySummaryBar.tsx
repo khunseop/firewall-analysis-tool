@@ -46,7 +46,7 @@ export function PolicySummaryBar({
       {chip('allow', summary.allow, 'font-semibold text-green-700', <><span className="w-2 h-2 rounded-full bg-green-500" />허용 <span className="tabular-nums">{summary.allow.toLocaleString()}</span></>)}
       {chip('deny', summary.deny, 'font-semibold text-red-700', <><span className="w-2 h-2 rounded-full bg-red-500" />차단 <span className="tabular-nums">{summary.deny.toLocaleString()}</span></>)}
       {chip('disabled', summary.disabled, 'text-ds-on-surface-variant', <><span className="w-2 h-2 rounded-full bg-gray-400" />비활성 <span className="tabular-nums">{summary.disabled.toLocaleString()}</span></>)}
-      {chip('stale', summary.stale, 'font-semibold text-amber-800', <><AlertTriangle className="w-3 h-3" />90일+ 미사용 <span className="tabular-nums">{summary.stale.toLocaleString()}</span></>)}
+      {chip('stale', summary.stale, 'font-semibold text-ds-error', <><AlertTriangle className="w-3 h-3" />90일+ 미사용 <span className="tabular-nums">{summary.stale.toLocaleString()}</span></>)}
       {chip('noHit', summary.noHit, 'text-ds-on-surface-variant', <>사용 기록 없음 <span className="tabular-nums">{summary.noHit.toLocaleString()}</span></>)}
     </div>
   )
