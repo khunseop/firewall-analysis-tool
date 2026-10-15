@@ -2,7 +2,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { DecisionTree } from './DecisionTree'
 import { FlowDiagram } from './FlowDiagram'
 import { PhaseCard } from './PhaseCard'
-import { EXCEPTION_ORDER, FAQS, OUTCOMES, PHASES, TERMS } from './guideContent'
+import { EXCEPTION_ORDER, OUTCOMES, PHASES, TERMS } from './guideContent'
 
 function Section({ title, desc, children }: { title: string; desc?: string; children: React.ReactNode }) {
   return (
@@ -77,17 +77,6 @@ export function DeletionWorkflowGuidePage() {
             </div>
           ))}
         </dl>
-      </Section>
-
-      <Section title="자주 겪는 문제">
-        <div className="space-y-2">
-          {FAQS.map((f) => (
-            <details key={f.q} className="rounded-xl border border-ds-outline-variant/30 bg-ds-surface-container-lowest p-3">
-              <summary className="cursor-pointer text-13 font-semibold text-ds-on-surface">{f.q}</summary>
-              <p className="mt-2 text-xs text-ds-on-surface-variant">{f.a}</p>
-            </details>
-          ))}
-        </div>
       </Section>
 
       <p className="pb-4 text-11 text-ds-on-surface-variant/60">
