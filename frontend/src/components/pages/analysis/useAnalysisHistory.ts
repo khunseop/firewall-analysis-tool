@@ -46,14 +46,14 @@ function toRow(item: AnalysisTaskListItem | AnalysisProject, kind: 'quick' | 'pr
 
 const byNewest = (a: HistoryRow, b: HistoryRow) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
 
-export interface HistoryFilters { search: string; typeFilter: string; statusFilter: StatusGroup | 'all' }
+export interface HistoryFilters { search: string; typeFilter: string; statusFilter: StatusGroup | 'all'; periodDays: number | null }
 
 /**
  * 분석 실행(quick)과 프로젝트(삭제 워크플로우 등)를 하나의 이력으로 합쳐 돌려준다.
  * 두 조회는 따로 실패할 수 있으므로 오류를 각각 노출해, 한쪽이 실패해도 다른 쪽 이력은 보여주고 빠진 종류를 알릴 수 있게 한다.
  * 진행 중인 작업이 있는 동안에만 3초마다 자동 갱신한다.
  */
-export function useAnalysisHistory({ search, typeFilter, statusFilter }: HistoryFilters) {
+export function useAnalysisHistory({ search, typeFilter, statusFilter, periodDays }: HistoryFilters) {
   const isProjectType = PROJECT_MODULES.some((m) => m.type === typeFilter)
   const quickTypeFilter = typeFilter === 'all' || isProjectType ? undefined : typeFilter
 
@@ -83,10 +83,13 @@ export function useAnalysisHistory({ search, typeFilter, statusFilter }: History
       .filter((p) => !q || p.device_name.toLowerCase().includes(q) || p.device_ip.toLowerCase().includes(q) || p.name.toLowerCase().includes(q))
       .map((p) => toRow(p, 'project'))
     const quickRows = (quick.data?.items ?? []).map((t) => toRow(t, 'quick'))
+    // 기간 기준 시각은 마지막 조회 시각 — 렌더 중 Date.now()를 부르지 않고, 재조회될 때마다 갱신된다.
+    const since = periodDays ? Math.max(quick.dataUpdatedAt, projects.dataUpdatedAt) - periodDays * 86_400_000 : null
     return [...quickRows, ...projectRows]
       .filter((r) => statusFilter === 'all' || r.status.group === statusFilter)
+      .filter((r) => since == null || new Date(r.timestamp).getTime() >= since)
       .sort(byNewest)
-  }, [quick.data, projects.data, search, statusFilter])
+  }, [quick.data, quick.dataUpdatedAt, projects.data, projects.dataUpdatedAt, search, statusFilter, periodDays])
 
   const quickEnabled = !isProjectType
   const projectsEnabled = typeFilter === 'all' || isProjectType

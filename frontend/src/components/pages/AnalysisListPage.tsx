@@ -45,6 +45,7 @@ export function AnalysisListPage() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState<StatusGroup | 'all'>('all')
+  const [periodFilter, setPeriodFilter] = useState('all')
   const [page, setPage] = useState(1)
 
   const openStart = (initial: StartAnalysisInitial | null) => { setStartInitial(initial); setStartOpen(true) }
@@ -63,9 +64,9 @@ export function AnalysisListPage() {
     return () => clearTimeout(id)
   }, [searchInput])
 
-  useEffect(() => { setPage(1) }, [search, typeFilter, statusFilter])
+  useEffect(() => { setPage(1) }, [search, typeFilter, statusFilter, periodFilter])
 
-  const history = useAnalysisHistory({ search, typeFilter, statusFilter })
+  const history = useAnalysisHistory({ search, typeFilter, statusFilter, periodDays: periodFilter === 'all' ? null : Number(periodFilter) })
   const recent = useRecentTasks()
 
   const runningRows = useMemo(() => history.rows.filter((r) => r.status.group === 'running'), [history.rows])
@@ -77,7 +78,7 @@ export function AnalysisListPage() {
 
   const totalPages = Math.max(1, Math.ceil(history.rows.length / PAGE_SIZE))
   const pageRows = history.rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const filtersActive = !!search || typeFilter !== 'all' || statusFilter !== 'all'
+  const filtersActive = !!search || typeFilter !== 'all' || statusFilter !== 'all' || periodFilter !== 'all'
 
   const deleteTaskMutation = useMutation({
     mutationFn: (taskId: number) => deleteAnalysisTask(taskId),
@@ -190,6 +191,15 @@ export function AnalysisListPage() {
             {(Object.keys(STATUS_GROUP_LABEL) as StatusGroup[]).map((g) => <SelectItem key={g} value={g}>{STATUS_GROUP_LABEL[g]}</SelectItem>)}
           </SelectContent>
         </ShadSelect>
+        <ShadSelect value={periodFilter} onValueChange={setPeriodFilter}>
+          <SelectTrigger aria-label="기간 필터" className="w-32 bg-white border-ds-outline-variant/30 text-sm"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">전체 기간</SelectItem>
+            <SelectItem value="7">최근 7일</SelectItem>
+            <SelectItem value="30">최근 30일</SelectItem>
+            <SelectItem value="90">최근 90일</SelectItem>
+          </SelectContent>
+        </ShadSelect>
       </div>
 
       {/* 한쪽만 실패 — 성공한 쪽 이력은 보여주되 빠진 종류를 알린다 */}
@@ -209,7 +219,7 @@ export function AnalysisListPage() {
       )}
       {history.truncated && (
         <p className="text-11 text-ds-on-surface-variant">
-          분석 실행 이력이 많아 최근 {HISTORY_FETCH_SIZE}건만 표시 중입니다(전체 {history.quickTotal.toLocaleString()}건). 종류나 장비로 좁혀서 보세요.
+          분석 실행 이력이 많아 최근 {HISTORY_FETCH_SIZE}건만 표시 중입니다(전체 {history.quickTotal.toLocaleString()}건). 종류나 장비명 검색으로 좁혀서 보세요.
         </p>
       )}
 
@@ -233,7 +243,7 @@ export function AnalysisListPage() {
             <EmptyState
               title="조건에 맞는 이력이 없습니다"
               description="검색어나 필터를 바꿔 보세요."
-              action={<Button variant="subtle" size="auto" onClick={() => { setSearchInput(''); setTypeFilter('all'); setStatusFilter('all') }} className="px-3 py-1.5 text-xs font-semibold rounded-lg">필터 초기화</Button>}
+              action={<Button variant="subtle" size="auto" onClick={() => { setSearchInput(''); setTypeFilter('all'); setStatusFilter('all'); setPeriodFilter('all') }} className="px-3 py-1.5 text-xs font-semibold rounded-lg">필터 초기화</Button>}
             />
           ) : (
             <EmptyState

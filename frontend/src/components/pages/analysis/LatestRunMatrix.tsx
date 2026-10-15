@@ -1,14 +1,17 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, XCircle, Clock } from 'lucide-react'
 import type { AnalysisTaskListItem } from '@/api/analysis'
 import { formatRelativeTime } from '@/lib/utils'
 import { QUICK_MODULES } from '../analysis-modules'
-import { describeTaskResult } from './analysisModel'
+import { describeTaskResult, isActiveTask } from './analysisModel'
 
 /** 이 일수 이상 지난 결과는 "오래됨"으로 표시해, 최신처럼 보이는 낡은 값으로 오인되지 않게 한다. */
 export const STALE_RESULT_DAYS = 30
 const DAY_MS = 86_400_000
+
+const isStale = (t: AnalysisTaskListItem) =>
+  !isActiveTask(t) && Math.floor((Date.now() - new Date(t.created_at).getTime()) / DAY_MS) >= STALE_RESULT_DAYS
 
 const shortLabel = (label: string) => label.replace(/ 분석$/, '')
 
@@ -26,7 +29,7 @@ export function LatestRunMatrix({
   onRetry?: () => void
 }) {
   const [open, setOpen] = useState<boolean>(() => {
-    try { return localStorage.getItem('fat_analysis_matrix_open') === '1' } catch { return false }
+    try { return localStorage.getItem('fat_analysis_matrix_open') !== '0' } catch { return true }
   })
   const toggle = () => setOpen((v) => {
     try { localStorage.setItem('fat_analysis_matrix_open', v ? '0' : '1') } catch { /* 저장 실패는 무시 */ }
@@ -47,6 +50,20 @@ export function LatestRunMatrix({
     }
   }, [tasks])
 
+  // 접힌 상태에서도 "조치가 필요한 셀"이 몇 개인지 보이도록 마지막 결과 기준으로 센다.
+  const attention = useMemo(() => {
+    let failed = 0, stale = 0
+    for (const d of latest.values()) {
+      for (const t of d.cells.values()) {
+        const res = describeTaskResult(t)
+        if (res.kind === 'running') continue
+        if (res.kind === 'failure') failed += 1
+        else if (isStale(t)) stale += 1
+      }
+    }
+    return { failed, stale }
+  }, [latest])
+
   return (
     <section aria-label="마지막 실행 현황">
       <button
@@ -55,7 +72,19 @@ export function LatestRunMatrix({
       >
         <ChevronDown className={`w-4 h-4 transition-transform ${open ? '' : '-rotate-90'}`} aria-hidden="true" />
         마지막 실행 현황 {open ? '접기' : '보기'}
-        {!open && <span className="text-11 font-normal">장비별·분석 유형별 가장 최근 결과{error ? '' : ` (${devices.length}대)`}</span>}
+        {!error && devices.length > 0 && (
+          <span className="flex items-center gap-2 text-11 font-semibold">
+            {attention.failed === 0 && attention.stale === 0 ? (
+              <span className="text-emerald-800">실패·오래됨 없음</span>
+            ) : (
+              <>
+                {attention.failed > 0 && <span className="inline-flex items-center gap-1 text-ds-error"><XCircle className="w-3.5 h-3.5" aria-hidden="true" />실패 {attention.failed}</span>}
+                {attention.stale > 0 && <span className="inline-flex items-center gap-1 text-amber-800"><Clock className="w-3.5 h-3.5" aria-hidden="true" />오래됨 {attention.stale}</span>}
+              </>
+            )}
+            {!open && <span className="font-normal text-ds-on-surface-variant">장비 {devices.length}대 · 마지막 실행 기준</span>}
+          </span>
+        )}
       </button>
 
       {open && (
@@ -92,18 +121,19 @@ export function LatestRunMatrix({
                     <th scope="row" className="text-left px-4 py-2 font-mono font-semibold text-ds-on-surface whitespace-nowrap">{d.name}</th>
                     {QUICK_MODULES.map((m) => {
                       const t = latest.get(deviceId)?.cells.get(m.type)
-                      if (!t) return <td key={m.type} className="px-3 py-2 text-ds-on-surface-variant">—</td>
+                      if (!t) return <td key={m.type} className="px-3 py-2 text-ds-on-surface-variant">미실행</td>
                       const res = describeTaskResult(t)
-                      const ageDays = Math.floor((Date.now() - new Date(t.created_at).getTime()) / DAY_MS)
-                      const stale = res.kind !== 'running' && ageDays >= STALE_RESULT_DAYS
+                      const stale = res.kind !== 'failure' && isStale(t)
                       return (
                         <td key={m.type} className="px-3 py-2 align-top">
                           <Link to={`/analysis/${t.id}`} className="block hover:underline">
-                            <span className={`block font-semibold ${res.kind === 'failure' ? 'text-ds-error' : 'text-ds-on-surface'}`}>
+                            <span className={`flex items-center gap-1 font-semibold ${res.kind === 'failure' ? 'text-ds-error' : 'text-ds-on-surface'}`}>
+                              {res.kind === 'failure' && <XCircle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />}
                               {res.kind === 'failure' ? '실패' : res.kind === 'running' ? '진행 중' : res.kind === 'unknown' ? '건수 기록 없음'
                                 : `${(t.result_count ?? 0).toLocaleString()}건`}
                             </span>
-                            <span className={`block tabular-nums ${stale ? 'text-amber-800 font-semibold' : 'text-ds-on-surface-variant'}`}>
+                            <span className={`flex items-center gap-1 tabular-nums ${stale ? 'text-amber-800 font-semibold' : 'text-ds-on-surface-variant'}`}>
+                              {stale && <Clock className="w-3 h-3 shrink-0" aria-hidden="true" />}
                               {formatRelativeTime(t.created_at)}{stale ? ' · 오래됨' : ''}
                             </span>
                           </Link>
