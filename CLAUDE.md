@@ -91,7 +91,7 @@ ORM Models     (backend/app/models/)  ──►  SQLite fat.db (via Alembic)
 - **API 레이어**: `src/api/client.ts` — axios 인스턴스. 요청 인터셉터에서 Bearer 토큰 주입, 401 응답 시 자동 로그아웃 및 `/login` 리다이렉트. 파일 다운로드는 `saveBlob`/`downloadBlob`/`downloadBlobPost` 헬퍼로 일원화
 - **실시간 통신**: `src/hooks/useWebSocket.ts` — `useSyncStatusWebSocket` 훅. 쿠키 기반 인증, 지수 백오프(1s→최대 30s) 재연결, `isConnected` 반환
 - **UI 컴포넌트**: `src/components/ui/` (Radix UI 기반 shadcn 스타일), `src/components/shared/` (도메인 공유 — `ErrorBoundary`, `EmptyState`, `DeviceSelector` 등)
-- **페이지 하위 구조**: 대형 페이지는 디렉터리로 분해 — `pages/settings/`(탭별), `pages/devices/`(다이얼로그·그리드 셀), `pages/deletion-workflow/`(태스크 카드)
+- **페이지 하위 구조**: 대형 페이지는 디렉터리로 분해 — `pages/settings/`(탭별), `pages/devices/`(다이얼로그·그리드 셀), `pages/deletion-workflow/`(태스크 카드), `components/pages/guide/`(삭제 워크플로우 설명 페이지 `/guide/deletion-workflow` — 문구는 `guideContent.ts`에 분리, 파이프라인 로직이 바뀌면 함께 갱신)
 - **그리드**: Ag-Grid Community Edition (`AgGridWrapper.tsx`). `getRowId`는 렌더마다 새 함수가 생기지 않도록 모듈 레벨로 정의 (`lib/utils.ts`의 `rowIdFromId`)
 
 ### FastAPI SPA 서빙 방식

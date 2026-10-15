@@ -23,6 +23,7 @@ const PolicyDiffPage = lazy(() => import('@/components/pages/PolicyDiffPage').th
 const DeletionWorkflowPage = lazy(() => import('@/components/pages/DeletionWorkflowPage').then((m) => ({ default: m.DeletionWorkflowPage })))
 const ProjectListPage = lazy(() => import('@/components/pages/ProjectListPage'))
 const DeletionWorkflowDetailPage = lazy(() => import('@/components/pages/DeletionWorkflowDetailPage'))
+const DeletionWorkflowGuidePage = lazy(() => import('@/components/pages/guide/DeletionWorkflowGuidePage').then((m) => ({ default: m.DeletionWorkflowGuidePage })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -71,6 +72,7 @@ export default function App() {
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="analysis/projects/:moduleType" element={<ProjectListPage />} />
                 <Route path="analysis/projects/deletion_workflow/:id" element={<DeletionWorkflowDetailPage />} />
+                <Route path="guide/deletion-workflow" element={<DeletionWorkflowGuidePage />} />
                 <Route path="deletion-workflow/legacy" element={<DeletionWorkflowPage />} />
                 <Route path="deletion-workflow" element={<Navigate to="/analysis/projects/deletion_workflow" replace />} />
                 <Route path="deletion-workflow/:id" element={<DeletionWorkflowRedirect />} />
