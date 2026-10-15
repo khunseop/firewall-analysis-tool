@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Plus, Upload, Download, RefreshCw, Pencil, Trash2, Wifi, Search, XCircle, ChevronDown, Settings2, Tag, CheckCircle2, AlertCircle, Loader2, FileDown, X } from 'lucide-react'
+import { Plus, Upload, Download, RefreshCw, Search, XCircle, CheckCircle2, AlertCircle, Loader2, FileDown, X } from 'lucide-react'
 import type { IRowNode } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { rowIdFromId } from '@/lib/utils'
@@ -19,6 +19,13 @@ import { BulkOptionsDialog } from './devices/BulkOptionsDialog'
 import { BulkGroupDialog } from './devices/BulkGroupDialog'
 import { DirectExportDialog } from './devices/DirectExportDialog'
 import { buildColumnDefs } from './devices/deviceColumns'
+import { BulkResultDialog } from './devices/BulkResultDialog'
+import { useBulkRun } from './devices/useBulkRun'
+import { DeviceStatusStrip, type DeviceStatusFilter } from './devices/DeviceStatusStrip'
+import { DeviceSelectionActions } from './devices/DeviceSelectionActions'
+import { ColumnChooser } from './devices/ColumnChooser'
+import { DEFAULT_HIDDEN_COLUMNS } from './devices/constants'
+import { ActionMenu } from '@/components/shared/ActionMenu'
 import { useDeviceSearchStore } from '@/store/deviceSearchStore'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -49,27 +56,39 @@ export function DevicesPage() {
   const [bulkOpen, setBulkOpen] = useState(false)
   const [bulkFile, setBulkFile] = useState<File | null>(null)
   const [selectedDevices, setSelectedDevices] = useState<Device[]>([])
-  const [addMenuOpen, setAddMenuOpen] = useState(false)
   const [bulkOptionsOpen, setBulkOptionsOpen] = useState(false)
   const [bulkGroupOpen, setBulkGroupOpen] = useState(false)
   const [directExportOpen, setDirectExportOpen] = useState(false)
   const [detailTarget, setDetailTarget] = useState<Device | null>(null)
   const [exportTasks, setExportTasks] = useState<Record<number, ExportTaskInfo>>({})
-  const addMenuRef = useRef<HTMLDivElement>(null)
+  const [statusFilter, setStatusFilter] = useState<DeviceStatusFilter | null>(null)
+  // 폼은 열 때마다 새로 마운트해(키 변경) 이전 입력이 남지 않게 한다.
+  const [formSession, setFormSession] = useState(0)
+  const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('fat_device_hidden_columns')
+      return new Set<string>(saved ? JSON.parse(saved) : DEFAULT_HIDDEN_COLUMNS)
+    } catch { return new Set(DEFAULT_HIDDEN_COLUMNS) }
+  })
   const { confirm, ConfirmDialogElement } = useConfirm()
+  const { bulkState, runBulk, closeBulk } = useBulkRun()
 
-  const columnDefs = useMemo(() => buildColumnDefs(setDetailTarget), [])
+  const columnDefs = useMemo(() => buildColumnDefs(setDetailTarget, hiddenColumns), [hiddenColumns])
 
-  useEffect(() => {
-    if (!addMenuOpen) return
-    const handleClickOutside = (e: MouseEvent) => {
-      if (addMenuRef.current && !addMenuRef.current.contains(e.target as Node)) {
-        setAddMenuOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [addMenuOpen])
+  const toggleColumn = useCallback((id: string, visible: boolean) => {
+    setHiddenColumns((prev) => {
+      const next = new Set(prev)
+      if (visible) next.delete(id); else next.add(id)
+      try { localStorage.setItem('fat_device_hidden_columns', JSON.stringify([...next])) } catch { /* 저장 실패는 무시 */ }
+      return next
+    })
+  }, [])
+
+  const openForm = useCallback((device: Device | null) => {
+    setEditTarget(device)
+    setFormSession((n) => n + 1)
+    setFormOpen(true)
+  }, [])
 
   const { data: devices = [], isLoading } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices })
 
@@ -100,13 +119,18 @@ export function DevicesPage() {
 
   useEffect(() => {
     gridRef.current?.gridApi?.onFilterChanged()
-  }, [groupFilter])
+  }, [groupFilter, statusFilter])
 
-  const isExternalFilterPresent = useCallback(() => groupFilter !== null, [groupFilter])
+  const isExternalFilterPresent = useCallback(() => groupFilter !== null || statusFilter !== null, [groupFilter, statusFilter])
   const doesExternalFilterPass = useCallback((node: IRowNode<Device>) => {
-    if (groupFilter === '__ungrouped__') return node.data?.group == null
-    return node.data?.group === groupFilter
-  }, [groupFilter])
+    if (groupFilter === '__ungrouped__' && node.data?.group != null) return false
+    if (groupFilter !== null && groupFilter !== '__ungrouped__' && node.data?.group !== groupFilter) return false
+    const st = node.data?.last_sync_status
+    if (statusFilter === 'success') return st === 'success'
+    if (statusFilter === 'syncing') return st === 'in_progress' || st === 'pending'
+    if (statusFilter === 'error') return st === 'failure' || st === 'error'
+    return true
+  }, [groupFilter, statusFilter])
 
   const syncCounts = useMemo(() => ({
     total:   devices.length,
@@ -114,8 +138,6 @@ export function DevicesPage() {
     syncing: devices.filter(d => d.last_sync_status === 'in_progress' || d.last_sync_status === 'pending').length,
     error:   devices.filter(d => d.last_sync_status === 'failure' || d.last_sync_status === 'error').length,
   }), [devices])
-
-  const syncPct = syncCounts.total > 0 ? Math.round(syncCounts.synced / syncCounts.total * 100) : 0
 
   const createMutation = useMutation({
     mutationFn: (data: DeviceCreate) => createDevice(data),
@@ -125,16 +147,6 @@ export function DevicesPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: DeviceUpdate }) => updateDevice(id, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: queryKeys.devices }); setFormOpen(false); setEditTarget(null); toast.success('장비가 수정되었습니다.') },
-    onError: (e: Error) => toast.error(e.message),
-  })
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => deleteDevice(id),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: queryKeys.devices }); toast.success('장비가 삭제되었습니다.') },
-    onError: (e: Error) => toast.error(e.message),
-  })
-  const syncMutation = useMutation({
-    mutationFn: (id: number) => syncAll(id),
-    onSuccess: () => toast.success('동기화가 시작되었습니다.'),
     onError: (e: Error) => toast.error(e.message),
   })
   const cancelExportMutation = useMutation({
@@ -285,42 +297,44 @@ export function DevicesPage() {
     onError: (e: Error) => toast.error(e.message),
   })
 
+  // 확인 문구에 장비 이름을 전부 나열하면 수십 대일 때 읽을 수 없으므로 앞 5대만 보이고 나머지는 "외 N대"로 줄인다.
+  const namePreview = (list: Device[]) => {
+    const head = list.slice(0, 5).map((d) => d.name).join(', ')
+    return list.length > 5 ? `${head} 외 ${list.length - 5}대` : head
+  }
+
   const handleBulkDelete = useCallback(async () => {
     if (selectedDevices.length === 0) return
-    const names = selectedDevices.map(d => d.name).join(', ')
+    const targets = selectedDevices
     const ok = await confirm({
-      title: '장비 삭제',
-      description: `${selectedDevices.length}개 장비를 삭제하시겠습니까?\n(${names})`,
+      title: `장비 ${targets.length}대를 삭제할까요?`,
+      description: `${namePreview(targets)}. 각 장비에 수집된 정책·객체·서비스, 분석 결과, 변경 이력, 알림 기록이 함께 삭제되며 복구할 수 없습니다.`,
       variant: 'destructive',
-      confirmLabel: '삭제',
+      confirmLabel: `${targets.length}대 삭제`,
     })
-    if (ok) {
-      for (const d of selectedDevices) deleteMutation.mutate(d.id)
-      setSelectedDevices([])
-    }
-  }, [selectedDevices, confirm, deleteMutation])
+    if (!ok) return
+    await runBulk('장비 삭제 결과', targets, async (d) => { await deleteDevice(d.id); return '삭제됨' }, {
+      onSettled: () => { queryClient.invalidateQueries({ queryKey: queryKeys.devices }); gridRef.current?.gridApi?.deselectAll(); setSelectedDevices([]) },
+      onAllOk: () => toast.success(`장비 ${targets.length}대를 삭제했습니다.`),
+    })
+  }, [selectedDevices, confirm, runBulk, queryClient])
 
   const handleBulkSync = useCallback(async () => {
     if (selectedDevices.length === 0) return
-    const names = selectedDevices.map(d => d.name).join(', ')
+    const targets = selectedDevices
     const ok = await confirm({
-      title: '동기화 확인',
-      description: `${selectedDevices.length}개 장비를 동기화하시겠습니까?\n(${names})`,
-      confirmLabel: '동기화',
+      title: `장비 ${targets.length}대에 동기화를 요청할까요?`,
+      description: `${namePreview(targets)}. 장비에 접속해 정책과 객체를 새로 수집합니다. 진행 상황은 목록의 상태 컬럼에서 확인할 수 있습니다.`,
+      confirmLabel: '동기화 요청',
     })
     if (!ok) return
-    selectedDevices.forEach(d => syncMutation.mutate(d.id))
-    toast.info(`${selectedDevices.length}개 장비 동기화를 시작합니다.`)
-  }, [selectedDevices, syncMutation, confirm])
+    await runBulk('동기화 요청 결과', targets, async (d) => { await syncAll(d.id); return '요청됨 — 진행 상황은 목록의 상태에서 확인하세요.' })
+  }, [selectedDevices, confirm, runBulk])
 
   const handleBulkTestConnection = useCallback(async () => {
     if (selectedDevices.length === 0) return
-    toast.info(`${selectedDevices.length}개 장비 연결 테스트 중…`)
-    for (const d of selectedDevices) {
-      try { toast.success(`[${d.name}] ${(await testConnection(d.id)).message}`) }
-      catch (e: unknown) { toast.error(`[${d.name}] ${(e as Error).message}`) }
-    }
-  }, [selectedDevices])
+    await runBulk('연결 테스트 결과', selectedDevices, async (d) => (await testConnection(d.id)).message)
+  }, [selectedDevices, runBulk])
 
   const handleBulkSetOptions = useCallback(async (opts: Pick<DeviceUpdate, 'collect_last_hit_date' | 'use_ssh_for_last_hit_date'>) => {
     setBulkOptionsOpen(false)
@@ -342,19 +356,23 @@ export function DevicesPage() {
 
   const handleEdit = useCallback(() => {
     if (selectedDevices.length !== 1) return
-    setEditTarget(selectedDevices[0])
-    setFormOpen(true)
-  }, [selectedDevices])
+    openForm(selectedDevices[0])
+  }, [selectedDevices, openForm])
 
   const sel = selectedDevices.length
   const isSingle = sel === 1
+  const addItems = [
+    { key: 'new', label: '직접 입력', icon: <Plus className="w-3.5 h-3.5 text-ds-on-surface-variant" />, onSelect: () => openForm(null) },
+    { key: 'bulk', label: 'Excel로 일괄 등록', icon: <Upload className="w-3.5 h-3.5 text-ds-on-surface-variant" />, onSelect: () => setBulkOpen(true) },
+    { key: 'template', label: '템플릿 다운로드', icon: <Download className="w-3.5 h-3.5 text-ds-on-surface-variant" />, onSelect: () => downloadDeviceTemplate() },
+  ]
 
   return (
     <div className="flex flex-col gap-6">
       {ConfirmDialogElement}
 
       <PageHeader
-        title="Devices"
+        title="장비"
         actions={
           <>
             <Button
@@ -363,84 +381,21 @@ export function DevicesPage() {
               onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.devices })}
               className="gap-1.5 px-3 py-1.5 text-13 font-medium rounded-lg"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshCw className="!w-3.5 !h-3.5" />
               갱신
             </Button>
-
-            {/* 장비 추가 드롭다운 */}
-            <div className="relative" ref={addMenuRef}>
-              <Button
-                variant="gradient"
-                size="auto"
-                onClick={() => setAddMenuOpen((v) => !v)}
-                className="gap-1.5 px-3 py-1.5 text-13 font-semibold rounded-lg"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                장비 추가
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${addMenuOpen ? 'rotate-180' : ''}`} />
-              </Button>
-
-              {addMenuOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-44 bg-white rounded-xl shadow-lg border border-ds-outline-variant/15 py-1 z-50">
-                  <button
-                    onClick={() => { setAddMenuOpen(false); setEditTarget(null); setFormOpen(true) }}
-                    className="flex items-center gap-2.5 w-full px-3.5 py-2 text-13 font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5 text-ds-on-surface-variant" />
-                    장비 추가
-                  </button>
-                  <button
-                    onClick={() => { setAddMenuOpen(false); setBulkOpen(true) }}
-                    className="flex items-center gap-2.5 w-full px-3.5 py-2 text-13 font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
-                  >
-                    <Upload className="w-3.5 h-3.5 text-ds-on-surface-variant" />
-                    일괄 등록
-                  </button>
-                  <button
-                    onClick={() => { setAddMenuOpen(false); downloadDeviceTemplate() }}
-                    className="flex items-center gap-2.5 w-full px-3.5 py-2 text-13 font-medium text-ds-on-surface hover:bg-ds-surface-container-low transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5 text-ds-on-surface-variant" />
-                    템플릿 다운로드
-                  </button>
-                </div>
-              )}
-            </div>
+            <ActionMenu
+              label="장비 등록"
+              variant="gradient"
+              icon={<Plus className="!w-3.5 !h-3.5" />}
+              className="font-semibold"
+              items={addItems}
+            />
           </>
         }
       />
 
-      {/* KPI 컴팩트 스트립 */}
-      <div className="shrink-0 card rounded-xl px-4 py-2.5 flex items-center gap-4 flex-wrap">
-        <div className="flex items-center gap-2">
-          <span className="text-11 text-ds-on-surface-variant/60 font-medium">전체</span>
-          <span className="text-13 font-bold tabular-nums text-ds-on-surface">{isLoading ? '…' : syncCounts.total}대</span>
-        </div>
-        <div className="flex items-center gap-2 min-w-[120px]">
-          <div className="w-20 h-1.5 bg-ds-surface-container-high rounded-full overflow-hidden">
-            <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${syncPct}%` }} />
-          </div>
-          <span className="text-11 font-semibold tabular-nums text-ds-on-surface-variant">{syncPct}%</span>
-        </div>
-        <div className="w-px h-3 bg-ds-outline-variant/20 shrink-0" />
-        <div className="flex items-center gap-1.5">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-          <span className="text-11 text-ds-on-surface-variant/60">완료</span>
-          <span className="text-13 font-bold tabular-nums text-emerald-600">{isLoading ? '…' : syncCounts.synced}</span>
-        </div>
-        <div className="w-px h-3 bg-ds-outline-variant/20 shrink-0" />
-        <div className="flex items-center gap-1.5">
-          <Loader2 className={`w-3.5 h-3.5 shrink-0 ${syncCounts.syncing > 0 ? 'text-ds-tertiary animate-spin' : 'text-ds-on-surface-variant/30'}`} />
-          <span className="text-11 text-ds-on-surface-variant/60">진행</span>
-          <span className={`text-13 font-bold tabular-nums ${syncCounts.syncing > 0 ? 'text-ds-tertiary' : 'text-ds-on-surface-variant/40'}`}>{isLoading ? '…' : syncCounts.syncing}</span>
-        </div>
-        <div className="w-px h-3 bg-ds-outline-variant/20 shrink-0" />
-        <div className="flex items-center gap-1.5">
-          <AlertCircle className={`w-3.5 h-3.5 shrink-0 ${syncCounts.error > 0 ? 'text-ds-error' : 'text-ds-on-surface-variant/30'}`} />
-          <span className="text-11 text-ds-on-surface-variant/60">오류</span>
-          <span className={`text-13 font-bold tabular-nums ${syncCounts.error > 0 ? 'text-ds-error' : 'text-ds-on-surface-variant/40'}`}>{isLoading ? '…' : syncCounts.error}</span>
-        </div>
-      </div>
+      <DeviceStatusStrip counts={syncCounts} active={statusFilter} onChange={setStatusFilter} loading={isLoading} />
 
       {/* 직접 추출 진행/완료 상태 — 완료·실패 건은 사용자가 닫기(X) 전까지 유지됨 */}
       {visibleExportTasks.length > 0 && (
@@ -522,61 +477,16 @@ export function DevicesPage() {
           <div className="flex items-center gap-2 shrink-0">
             {/* 선택 시 작업 버튼 */}
             {sel > 0 && (
-              <>
-                <span className="text-11 font-semibold text-ds-tertiary tabular-nums shrink-0">{sel}개 선택</span>
-                <button
-                  onClick={handleEdit}
-                  disabled={!isSingle}
-                  title={isSingle ? '수정' : '단일 장비만 수정 가능'}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Pencil className="w-3 h-3" />
-                  수정
-                </button>
-                <button
-                  onClick={() => setBulkOptionsOpen(true)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
-                >
-                  <Settings2 className="w-3 h-3" />
-                  수집 옵션
-                </button>
-                <button
-                  onClick={() => setBulkGroupOpen(true)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
-                >
-                  <Tag className="w-3 h-3" />
-                  그룹 설정
-                </button>
-                <button
-                  onClick={handleBulkSync}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  동기화
-                </button>
-                <button
-                  onClick={handleBulkTestConnection}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
-                >
-                  <Wifi className="w-3 h-3" />
-                  연결 테스트
-                </button>
-                <button
-                  onClick={() => setDirectExportOpen(true)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-ds-outline-variant/20 bg-ds-surface-container-low text-ds-on-surface-variant hover:text-ds-primary hover:bg-ds-surface-container-high transition-colors"
-                >
-                  <FileDown className="w-3 h-3" />
-                  직접 추출
-                </button>
-                <button
-                  onClick={handleBulkDelete}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-ds-error/20 bg-ds-error/5 text-ds-error hover:bg-ds-error/10 transition-colors"
-                >
-                  <Trash2 className="w-3 h-3" />
-                  삭제
-                </button>
-                <span className="w-px h-4 bg-ds-outline-variant/30 shrink-0" />
-              </>
+              <DeviceSelectionActions
+                count={sel}
+                onSync={handleBulkSync}
+                onTestConnection={handleBulkTestConnection}
+                onEdit={handleEdit}
+                onOptions={() => setBulkOptionsOpen(true)}
+                onGroup={() => setBulkGroupOpen(true)}
+                onExport={() => setDirectExportOpen(true)}
+                onDelete={handleBulkDelete}
+              />
             )}
 
             <div className="flex items-center gap-1.5 bg-ds-surface-container-low rounded-lg px-2.5 py-1.5 border border-ds-outline-variant/10">
@@ -585,14 +495,16 @@ export function DevicesPage() {
                 value={quickFilter}
                 onChange={(e) => setQuickFilter(e.target.value)}
                 placeholder="장비명, IP, 그룹, 설명 검색"
+                aria-label="장비 검색"
                 className="text-xs bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/40 w-72"
               />
               {quickFilter && (
-                <button onClick={() => setQuickFilter('')}>
+                <button onClick={() => setQuickFilter('')} aria-label="검색어 지우기">
                   <XCircle className="w-3 h-3 text-ds-on-surface-variant hover:text-ds-on-surface" />
                 </button>
               )}
             </div>
+            <ColumnChooser hidden={hiddenColumns} onToggle={toggleColumn} />
           </div>
           </div>
 
@@ -637,7 +549,9 @@ export function DevicesPage() {
           quickFilterText={quickFilter}
           height="calc(100vh - 280px)"
           loading={isLoading}
-          noRowsText="등록된 장비가 없습니다."
+          noRowsText={devices.length === 0
+            ? "등록된 장비가 없습니다. 우측 상단 '장비 등록'에서 직접 입력하거나 Excel로 일괄 등록하세요."
+            : '조건에 맞는 장비가 없습니다. 검색어나 필터를 확인하세요.'}
           rowSelection={{ mode: 'multiRow', checkboxes: true, headerCheckbox: true, selectAll: 'filtered' }}
           onSelectionChanged={(rows) => setSelectedDevices(rows)}
           defaultColDefOverride={{ resizable: true, sortable: true }}
@@ -654,7 +568,7 @@ export function DevicesPage() {
 
       {/* 장비 폼 다이얼로그 */}
       <DeviceFormDialog
-        key={editTarget ? `edit-${editTarget.id}` : 'new'}
+        key={`${editTarget ? `edit-${editTarget.id}` : 'new'}-${formSession}`}
         open={formOpen}
         onClose={() => { setFormOpen(false); setEditTarget(null) }}
         initial={editTarget ? {
@@ -743,8 +657,10 @@ export function DevicesPage() {
       <DeviceDetailDialog
         device={detailTarget}
         onClose={() => setDetailTarget(null)}
-        onEdit={(device) => { setDetailTarget(null); setEditTarget(device); setFormOpen(true) }}
+        onEdit={(device) => { setDetailTarget(null); openForm(device) }}
       />
+
+      <BulkResultDialog state={bulkState} onClose={closeBulk} />
 
       {/* 일괄 등록 다이얼로그 */}
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>

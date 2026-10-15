@@ -21,6 +21,17 @@ export const STATUS_CONFIG: Record<string, { label: string; dot: string; text: s
   error:       { label: '오류',   dot: 'bg-ds-error',                  text: 'text-ds-error' },
 }
 
+/** 목록에서 숨기거나 표시할 수 있는 컬럼 — 처음에는 자주 보지 않는 컬럼만 숨긴다. */
+export const HIDEABLE_COLUMNS = [
+  { id: 'ha', label: 'HA Peer IP' },
+  { id: 'model', label: '모델' },
+  { id: 'group', label: '그룹' },
+  { id: 'description', label: '설명' },
+  { id: 'collect', label: '수집 옵션' },
+  { id: 'threshold', label: '임계치' },
+]
+export const DEFAULT_HIDDEN_COLUMNS = ['model', 'description', 'collect']
+
 export const STATUS_ORDER: Record<string, number> = {
   pending: 0, in_progress: 1, success: 2, failure: 3, error: 4,
 }

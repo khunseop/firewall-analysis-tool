@@ -6,23 +6,27 @@ import { VENDOR_OPTIONS, VENDOR_BADGE, STATUS_CONFIG, STATUS_ORDER } from './con
 import { DeviceNameCell, ResourceWarningBadge } from './DeviceGridCells'
 import { SshLinkButton } from './SshLinkButton'
 
-export function buildColumnDefs(onShowDetail: (device: Device) => void): ColDef<Device>[] {
+export function buildColumnDefs(onShowDetail: (device: Device) => void, hidden: Set<string>): ColDef<Device>[] {
   return [
   {
     width: 44, minWidth: 44, maxWidth: 44,
     sortable: false, resizable: false, filter: false,
   },
   {
-    headerName: '상태', minWidth: 80,
+    headerName: '상태', minWidth: 110, flex: 0.9,
     valueGetter: (p) => STATUS_CONFIG[p.data?.last_sync_status ?? '']?.label ?? '',
     comparator: (_a, _b, nodeA, nodeB) =>
       (STATUS_ORDER[nodeA.data?.last_sync_status ?? ''] ?? -1) - (STATUS_ORDER[nodeB.data?.last_sync_status ?? ''] ?? -1),
     cellRenderer: (p: { data: Device }) => {
       const conf = STATUS_CONFIG[p.data?.last_sync_status ?? '']
+      const failed = p.data?.last_sync_status === 'failure' || p.data?.last_sync_status === 'error'
+      const step = p.data?.last_sync_step
+      // 실패 사유(마지막 진행 단계)를 툴팁에만 두면 키보드·터치로 볼 수 없어 텍스트로 병기한다.
       return conf
-        ? <span className={`flex items-center gap-1.5 text-11 font-semibold ${conf.text}`} title={p.data?.last_sync_step ?? ''}>
+        ? <span className={`flex items-center gap-1.5 text-11 font-semibold min-w-0 ${conf.text}`} title={step ?? ''}>
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${conf.dot}`} />
-            {conf.label}
+            <span className="shrink-0">{conf.label}</span>
+            {failed && step && <span className="font-normal truncate">· {step}</span>}
           </span>
         : <span className="text-ds-on-surface-variant/40 text-xs">—</span>
     },
@@ -54,6 +58,7 @@ export function buildColumnDefs(onShowDetail: (device: Device) => void): ColDef<
     ),
   },
   {
+    colId: 'ha', hide: hidden.has('ha'),
     headerName: 'HA Peer IP', minWidth: 140,
     valueGetter: (p) => p.data?.ha_peer_ip ?? '',
     cellRenderer: (p: { data: Device }) => p.data?.ha_peer_ip ? (
@@ -83,20 +88,24 @@ export function buildColumnDefs(onShowDetail: (device: Device) => void): ColDef<
     ),
   },
   {
+    colId: 'model', hide: hidden.has('model'),
     field: 'model', headerName: '모델', minWidth: 100,
     cellRenderer: (p: { value: string }) => <span className="text-xs text-ds-on-surface-variant">{p.value ?? '—'}</span>,
   },
   {
+    colId: 'group', hide: hidden.has('group'),
     field: 'group', headerName: '그룹', minWidth: 90,
     cellRenderer: (p: { value: string }) => p.value
       ? <span className="inline-flex px-2 py-0.5 rounded text-10 font-bold bg-ds-tertiary/10 text-ds-tertiary">{p.value}</span>
       : <span className="text-xs text-ds-on-surface-variant/40">—</span>,
   },
   {
+    colId: 'description', hide: hidden.has('description'),
     field: 'description', headerName: '설명', minWidth: 120, flex: 1,
     cellRenderer: (p: { value: string }) => <span className="text-xs text-ds-on-surface-variant">{p.value ?? '—'}</span>,
   },
   {
+    colId: 'collect', hide: hidden.has('collect'),
     headerName: '수집 옵션', minWidth: 100, sortable: false, filter: false,
     cellRenderer: (p: { data: Device }) => (
       <div className="flex gap-1 flex-wrap items-center">
@@ -114,6 +123,7 @@ export function buildColumnDefs(onShowDetail: (device: Device) => void): ColDef<
     cellRenderer: (p: { value: string }) => <span className="text-xs text-ds-on-surface-variant">{p.value}</span>,
   },
   {
+    colId: 'threshold', hide: hidden.has('threshold'),
     headerName: '임계치', minWidth: 90, sortable: false, filter: false,
     cellRenderer: (p: { data: Device }) => <ResourceWarningBadge data={p.data as Device} />,
   },
