@@ -42,7 +42,7 @@ function DeviceItem({ d, selected, single, onSelect }: {
       )} />
       <span className="truncate font-mono leading-tight">{d.name}</span>
       {d.description && (
-        <span className="truncate text-10 text-ds-on-surface-variant/50 shrink-0 max-w-[80px]">{d.description}</span>
+        <span className="truncate text-11 text-ds-on-surface-variant shrink-0 max-w-[80px]">{d.description}</span>
       )}
     </button>
   )
@@ -164,7 +164,7 @@ function DeviceDropdownBase({
         <Monitor className="w-3.5 h-3.5 shrink-0" />
         <span className={single ? 'max-w-[160px] truncate' : undefined}>{triggerLabel}</span>
         {!single && selectedIds.length > 0 && (
-          <span className="text-9 font-bold bg-ds-tertiary text-white rounded-full px-1.5 py-0.5 leading-none">
+          <span className="text-11 font-bold bg-ds-tertiary text-white rounded-full px-1.5 py-0.5 leading-none">
             {selectedIds.length}
           </span>
         )}
@@ -186,8 +186,8 @@ function DeviceDropdownBase({
       {open && !disabled && (
         <div role="group" aria-label="장비 선택" className="absolute right-0 top-full mt-2 w-72 bg-white/90 backdrop-blur-xl rounded-xl border border-white/60 shadow-ambient-md z-50">
           <div className="px-3 pt-3 pb-1.5">
-            <p className="text-9 font-bold uppercase tracking-widest text-ds-on-surface-variant/60 mb-2">
-              Device Selection
+            <p className="text-11 font-semibold text-ds-on-surface-variant mb-2">
+              장비 선택
             </p>
             <div className="flex items-center gap-1.5 bg-ds-surface-container-low rounded-lg px-2 py-1.5">
               <Search className="w-3 h-3 text-ds-on-surface-variant shrink-0" />
@@ -196,7 +196,7 @@ function DeviceDropdownBase({
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="장비 검색…"
                 aria-label="장비 검색"
-                className="flex-1 text-11 bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/50 min-w-0"
+                className="flex-1 text-11 bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant min-w-0"
               />
               {search && (
                 <button type="button" onClick={() => setSearch('')} aria-label="검색어 지우기" className="shrink-0">
@@ -208,14 +208,14 @@ function DeviceDropdownBase({
 
           <div className={cn('max-h-[240px] overflow-y-auto px-2', single ? 'pb-2' : 'pb-1')}>
             {filtered.length === 0 && devices.length === 0 ? (
-              <p className="text-10 text-ds-on-surface-variant text-center py-3 italic">장비가 없습니다</p>
+              <p className="text-xs text-ds-on-surface-variant text-center py-3 italic">장비가 없습니다</p>
             ) : filtered.length === 0 && q ? (
-              <p className="text-10 text-ds-on-surface-variant text-center py-3 italic">검색 결과 없음</p>
+              <p className="text-xs text-ds-on-surface-variant text-center py-3 italic">검색 결과 없음</p>
             ) : grouped ? (
               Array.from(grouped.entries()).map(([groupName, groupDevices]) => (
                 <div key={groupName}>
                   {grouped.size > 1 && (
-                    <p className="text-9 font-bold uppercase tracking-widest text-ds-on-surface-variant/50 px-2 pt-2 pb-0.5">{groupName}</p>
+                    <p className="text-11 font-semibold text-ds-on-surface-variant px-2 pt-2 pb-0.5">{groupName}</p>
                   )}
                   {groupDevices.map(renderItem)}
                 </div>
@@ -229,7 +229,7 @@ function DeviceDropdownBase({
             <div className="flex items-center gap-1 px-2 pb-2 pt-1 border-t border-ds-outline-variant/10">
               <button
                 onClick={() => (isAllSelected ? onClear() : onSelectAll?.(allIds))}
-                className="flex-1 text-10 font-semibold text-ds-on-surface-variant hover:text-ds-tertiary transition-colors py-1 rounded hover:bg-ds-tertiary/5"
+                className="flex-1 text-11 font-semibold text-ds-on-surface-variant hover:text-ds-tertiary transition-colors py-1 rounded hover:bg-ds-tertiary/5"
               >
                 {isAllSelected ? '전체 해제' : '전체 선택'}
               </button>
@@ -237,7 +237,7 @@ function DeviceDropdownBase({
               <button
                 onClick={onClear}
                 disabled={selectedIds.length === 0}
-                className="flex-1 text-10 font-semibold text-ds-on-surface-variant hover:text-ds-error transition-colors py-1 rounded hover:bg-ds-error/5 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 text-11 font-semibold text-ds-on-surface-variant hover:text-ds-error transition-colors py-1 rounded hover:bg-ds-error/5 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 초기화
               </button>
