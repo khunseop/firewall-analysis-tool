@@ -9,6 +9,8 @@ import { describeTaskResult, isActiveTask } from './analysisModel'
 /** 이 일수 이상 지난 결과는 "오래됨"으로 표시해, 최신처럼 보이는 낡은 값으로 오인되지 않게 한다. */
 export const STALE_RESULT_DAYS = 30
 const DAY_MS = 86_400_000
+/** 장비가 많을 때 기본으로 보여 줄 "조치 필요 장비" 최대 행 수. */
+const COLLAPSED_ROW_LIMIT = 10
 
 const isStale = (t: AnalysisTaskListItem) =>
   !isActiveTask(t) && Math.floor((Date.now() - new Date(t.created_at).getTime()) / DAY_MS) >= STALE_RESULT_DAYS
@@ -36,6 +38,8 @@ export function LatestRunMatrix({
     return !v
   })
 
+  const [showAll, setShowAll] = useState(false)
+
   const { devices, latest } = useMemo(() => {
     const byDevice = new Map<number, { name: string; cells: Map<string, AnalysisTaskListItem> }>()
     for (const t of tasks) {
@@ -51,18 +55,31 @@ export function LatestRunMatrix({
   }, [tasks])
 
   // 접힌 상태에서도 "조치가 필요한 셀"이 몇 개인지 보이도록 마지막 결과 기준으로 센다.
-  const attention = useMemo(() => {
+  // 장비가 많아도 훑을 수 있게, 장비별 실패·오래됨 수를 같이 구해 조치 필요 장비를 위로 올린다.
+  const { attention, ranked } = useMemo(() => {
     let failed = 0, stale = 0
-    for (const d of latest.values()) {
+    const perDevice = new Map<number, { failed: number; stale: number }>()
+    for (const [id, d] of latest.entries()) {
+      const c = { failed: 0, stale: 0 }
       for (const t of d.cells.values()) {
         const res = describeTaskResult(t)
         if (res.kind === 'running') continue
-        if (res.kind === 'failure') failed += 1
-        else if (isStale(t)) stale += 1
+        if (res.kind === 'failure') c.failed += 1
+        else if (isStale(t)) c.stale += 1
       }
+      failed += c.failed; stale += c.stale
+      perDevice.set(id, c)
     }
-    return { failed, stale }
-  }, [latest])
+    const ranked = [...devices].sort((a, b) => {
+      const ca = perDevice.get(a[0])!, cb = perDevice.get(b[0])!
+      return (cb.failed - ca.failed) || (cb.stale - ca.stale)
+    })
+    return { attention: { failed, stale }, ranked: ranked.map(([id, d]) => ({ id, d, ...perDevice.get(id)! })) }
+  }, [latest, devices])
+
+  const needAction = ranked.filter((r) => r.failed + r.stale > 0)
+  const visible = showAll ? ranked : needAction.slice(0, COLLAPSED_ROW_LIMIT)
+  const hiddenCount = ranked.length - visible.length
 
   return (
     <section aria-label="마지막 실행 현황">
@@ -88,7 +105,7 @@ export function LatestRunMatrix({
       </button>
 
       {open && (
-        <div id="analysis-latest-matrix" className="card rounded-xl mt-3 overflow-x-auto">
+        <div id="analysis-latest-matrix" className="card rounded-xl mt-3 overflow-x-auto max-h-96 overflow-y-auto">
           {error ? (
             <div role="alert" className="px-4 py-4 flex items-center gap-3 text-xs text-ds-error">
               <span className="flex-1">
@@ -107,8 +124,8 @@ export function LatestRunMatrix({
                 각 칸은 해당 장비에서 그 분석을 마지막으로 돌린 결과입니다 — 현재 상태가 아니라 그때 기준입니다.
                 {truncated ? ` 최근 이력 일부 기준입니다.` : ''}
               </caption>
-              <thead>
-                <tr className="border-y border-ds-outline-variant/15 bg-ds-surface-container-low/50">
+              <thead className="sticky top-0 z-10">
+                <tr className="border-y border-ds-outline-variant/15 bg-ds-surface-container-low">
                   <th scope="col" className="text-left font-semibold text-ds-on-surface-variant px-4 py-2">장비</th>
                   {QUICK_MODULES.map((m) => (
                     <th key={m.type} scope="col" className="text-left font-semibold text-ds-on-surface-variant px-3 py-2 whitespace-nowrap">{shortLabel(m.label)}</th>
@@ -116,7 +133,7 @@ export function LatestRunMatrix({
                 </tr>
               </thead>
               <tbody>
-                {devices.map(([deviceId, d]) => (
+                {visible.map(({ id: deviceId, d }) => (
                   <tr key={deviceId} className="border-b border-ds-outline-variant/8">
                     <th scope="row" className="text-left px-4 py-2 font-mono font-semibold text-ds-on-surface whitespace-nowrap">{d.name}</th>
                     {QUICK_MODULES.map((m) => {
@@ -143,6 +160,22 @@ export function LatestRunMatrix({
                   </tr>
                 ))}
               </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={QUICK_MODULES.length + 1} className="px-4 py-2 text-11 text-ds-on-surface-variant border-t border-ds-outline-variant/15">
+                    {showAll
+                      ? `전체 ${ranked.length}대 · 조치가 필요한 장비를 위에 모았습니다. `
+                      : needAction.length === 0
+                        ? `실패하거나 ${STALE_RESULT_DAYS}일 넘은 결과가 있는 장비가 없습니다. `
+                        : `조치가 필요한 장비 ${needAction.length}대${hiddenCount > 0 && needAction.length > COLLAPSED_ROW_LIMIT ? ` 중 ${COLLAPSED_ROW_LIMIT}대` : ''}만 표시 중입니다. `}
+                    {(showAll || hiddenCount > 0) && (
+                      <button type="button" onClick={() => setShowAll((v) => !v)} className="font-semibold text-ds-tertiary hover:underline">
+                        {showAll ? '조치 필요 장비만 보기' : `전체 ${ranked.length}대 보기`}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           )}
         </div>
