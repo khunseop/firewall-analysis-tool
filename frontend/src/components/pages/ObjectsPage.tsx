@@ -153,7 +153,7 @@ export function ObjectsPage() {
   const usageCol = <T extends { device_id: number; name: string }>(usageMap: Map<string, number>): ColDef<T> => ({
     headerName: '사용 정책',
     filter: 'agNumberColumnFilter',
-    width: 112,
+    width: 120,
     sort: 'asc' as const,
     // 사용 현황을 아직 못 가져왔다면 null — 0("미사용")과 구분한다.
     valueGetter: (p) => usageReady ? (usageMap.get(`${(p.data as T)?.device_id}_${(p.data as T)?.name}`) ?? 0) : null,

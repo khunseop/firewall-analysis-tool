@@ -10,6 +10,7 @@ import { listDevices } from '@/api/devices'
 import { exportStyledToExcel } from '@/api/firewall'
 import { assessDiffRisk } from '@/lib/policyDiffRisk'
 import { cn } from '@/lib/utils'
+import { errorMessage } from '@/lib/errorMessage'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { DiffTable, type DiffRowData } from './policy-diff/DiffRow'
@@ -31,12 +32,7 @@ async function fetchPolicyDiff(deviceId: number, fromId: number, toId: number): 
   return res.data
 }
 
-/** 백엔드가 한국어 detail을 내려주면 그대로 보여주고, 그 외에는 원문 에러 대신 복구 안내 문장을 쓴다. */
-function diffErrorMessage(e: unknown) {
-  const detail = (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail
-  if (typeof detail === 'string' && detail) return detail
-  return '비교 결과를 가져오지 못했습니다. 네트워크 상태를 확인하고 다시 시도하세요.'
-}
+const DIFF_ERROR_FALLBACK = '비교 결과를 가져오지 못했습니다. 네트워크 상태를 확인하고 다시 시도하세요.'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -336,7 +332,7 @@ export function PolicyDiffPage() {
       {diffError && !diffFetching && (
         <div role="alert" className="card rounded-xl px-5 py-4 flex flex-wrap items-center gap-3 text-13 text-ds-error">
           <AlertCircle className="w-4 h-4 shrink-0" />
-          <span className="flex-1 min-w-[200px]">{diffErrorMessage(diffError)}</span>
+          <span className="flex-1 min-w-[200px]">{errorMessage(diffError, DIFF_ERROR_FALLBACK)}</span>
           <button
             type="button"
             onClick={() => void refetch()}

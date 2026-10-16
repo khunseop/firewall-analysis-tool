@@ -167,7 +167,7 @@
   --ag-background-color: transparent;
   --ag-odd-row-background-color: transparent;
   --ag-header-background-color: rgba(235, 240, 245, 0.7);
-  --ag-header-foreground-color: rgba(86, 97, 102, 0.6);
+  --ag-header-foreground-color: #566166;
   --ag-row-hover-color: rgba(240, 244, 247, 0.3);
   --ag-border-color: transparent;
   --ag-borders: none;
@@ -200,11 +200,10 @@
 
 /* Table-like header */
 .ag-theme-quartz .ag-header-cell-text {
-  font-size: 10px !important;
-  font-weight: 700 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.12em !important;
-  color: rgba(86, 97, 102, 0.6) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  color: #566166 !important;
 }
 .ag-theme-quartz .ag-header-cell {
   border-right: none !important;

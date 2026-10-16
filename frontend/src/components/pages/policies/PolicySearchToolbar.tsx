@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
 import { SlidersHorizontal, MoreHorizontal, Download, Bookmark, BookmarkPlus, X } from 'lucide-react'
 import { QueryBuilder } from '@/components/shared/QueryBuilder'
-import { QB_FIELDS, OP_LABELS, type FilterTree } from '@/components/shared/queryBuilderModel'
+import { QB_FIELDS, OP_LABELS, generateId, type FilterTree } from '@/components/shared/queryBuilderModel'
 import { Button } from '@/components/ui/button'
 
 type Preset = { name: string; tree: FilterTree }
@@ -81,7 +81,14 @@ export function PolicySearchToolbar({
     <div className="card rounded-xl shrink-0">
       <div className="flex items-center gap-2 px-4 py-2.5">
         <button
-          onClick={() => onFiltersOpenChange(!filtersOpen)}
+          onClick={() => {
+            // 조건이 하나도 없으면 첫 조건 행을 미리 만들어 "조건 추가"를 한 번 더 누르지 않게 한다.
+            if (!filtersOpen && filterTree.length === 0) {
+              const def = QB_FIELDS[0]
+              onFilterTreeChange([{ id: generateId(), joinOperator: 'AND', conditions: [{ field: def.key, operator: def.operators[0], value: '', joinOperator: 'AND' }] }])
+            }
+            onFiltersOpenChange(!filtersOpen)
+          }}
           aria-expanded={filtersOpen}
           className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${
             filtersOpen || hasConditions
@@ -126,10 +133,10 @@ export function PolicySearchToolbar({
               onClick={() => setMenuOpen(o => !o)}
               aria-haspopup="menu"
               aria-expanded={menuOpen}
-              aria-label="더 보기: 내보내기·프리셋"
-              className="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-ds-on-surface-variant rounded-lg hover:bg-ds-surface-container-low hover:text-ds-on-surface transition-colors"
+              className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium text-ds-on-surface-variant rounded-lg hover:bg-ds-surface-container-low hover:text-ds-on-surface transition-colors"
             >
               <MoreHorizontal className="w-4 h-4" />
+              내보내기·프리셋
               {presets.length > 0 && <span className="text-11 tabular-nums">{presets.length}</span>}
             </button>
             {menuOpen && (
@@ -207,7 +214,7 @@ export function PolicySearchToolbar({
               <button onClick={() => setShowPresetInput(false)} aria-label="프리셋 저장 취소" className="text-xs text-ds-on-surface-variant px-1 py-1 rounded hover:bg-ds-surface-container-low transition-colors"><X className="w-3 h-3" /></button>
             </div>
           )}
-          <QueryBuilder tree={filterTree} onTreeChange={onFilterTreeChange} />
+          <QueryBuilder tree={filterTree} onTreeChange={onFilterTreeChange} onSubmit={() => { if (!searchDisabled && !searching) onSearch() }} />
         </div>
       )}
     </div>

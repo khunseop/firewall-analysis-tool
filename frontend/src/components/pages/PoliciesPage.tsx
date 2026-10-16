@@ -2,6 +2,7 @@ import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
+import { errorMessage } from '@/lib/errorMessage'
 import { X, Search, Pencil, RotateCcw, PanelRightOpen } from 'lucide-react'
 import type { CellValueChangedEvent, ColDef, RowClickedEvent } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
@@ -99,7 +100,7 @@ export function PoliciesPage() {
   })
 
   useEffect(() => {
-    if (searchQuery.error) toast.error((searchQuery.error as Error).message)
+    if (searchQuery.error) toast.error(errorMessage(searchQuery.error, '정책 검색에 실패했습니다. 조건을 확인하고 다시 검색하세요.'))
   }, [searchQuery.error])
 
   const policies = useMemo(() => searchQuery.data?.policyRes.policies ?? [], [searchQuery.data])
@@ -189,7 +190,7 @@ export function PoliciesPage() {
       await action()
       await refetchPendingChanges()
     } catch (e) {
-      toast.error((e as Error).message)
+      toast.error(errorMessage(e, '변경 계획에 반영하지 못했습니다. 잠시 후 다시 시도하세요.'))
     } finally {
       setApplyingChanges(false)
     }
@@ -274,13 +275,19 @@ export function PoliciesPage() {
         await cleanupOrphanNewObjects(editDeviceId, remainingChanges)
       }
       toast.success(`정책 ${targetIds.length}건 삭제가 변경 계획에 추가되었습니다.${skipped > 0 ? ` (이미 삭제 예정 ${skipped}건 제외)` : ''}`)
-      setSelectedPolicyIds([])
+      clearSelection()
       await refetchPendingChanges()
     } catch (e) {
-      toast.error((e as Error).message)
+      toast.error(errorMessage(e, '삭제 대상 추가에 실패했습니다. 변경 목록을 확인한 뒤 다시 시도하세요.'))
     } finally {
       setApplyingChanges(false)
     }
+  }
+
+  // 앱 상태와 그리드의 체크박스 선택을 함께 비운다 — 상태만 비우면 체크가 남아 선택 수와 어긋난다.
+  const clearSelection = () => {
+    setSelectedPolicyIds([])
+    gridRef.current?.gridApi?.deselectAll()
   }
 
   // 선택 정책 중 하나라도 활성이면 활성 정책을 모두 비활성화, 전부 비활성이면 모두 활성화한다.
@@ -302,6 +309,7 @@ export function PoliciesPage() {
     runEditAction(async () => {
       await setPoliciesDisabled(editDeviceId, ids, disable, pendingChanges)
       toast.success(`정책 ${ids.length}건 ${disable ? '비활성화' : '활성화'}가 변경 계획에 추가되었습니다.`)
+      clearSelection()
     })
   }
 
@@ -339,6 +347,8 @@ export function PoliciesPage() {
       if (remaining > 0) toast.info(`변경 계획 ${remaining}건이 저장되어 있습니다. 다시 편집모드에 들어오면 이어서 작업할 수 있습니다.`)
     } else {
       setPanelOpen(true)
+      // 편집모드는 그리드 높이가 핵심이라 상세 검색 패널은 접는다(조건은 칩으로 계속 보인다).
+      setFiltersOpen(false)
     }
     setEditMode((v) => !v)
   }
@@ -365,7 +375,7 @@ export function PoliciesPage() {
       const result = await planBulkPolicy(editDeviceId)
       setPlanResult(result)
     } catch (e) {
-      toast.error((e as Error).message)
+      toast.error(errorMessage(e, 'CLI를 생성하지 못했습니다. 변경 목록을 확인하고 다시 시도하세요.'))
     } finally {
       setPlanLoading(false)
     }
@@ -378,7 +388,7 @@ export function PoliciesPage() {
       const result = await verifyAgainstDevice(editDeviceId)
       setVerifyResult(result)
     } catch (e) {
-      toast.error((e as Error).message)
+      toast.error(errorMessage(e, '장비와 비교하지 못했습니다. 장비 접속 상태를 확인하고 다시 시도하세요.'))
     } finally {
       setVerifyLoading(false)
     }
@@ -398,7 +408,7 @@ export function PoliciesPage() {
       toast.success('변경 계획을 모두 초기화했습니다.')
       await refetchPendingChanges()
     } catch (e) {
-      toast.error((e as Error).message)
+      toast.error(errorMessage(e, '변경 계획을 초기화하지 못했습니다. 다시 시도하세요.'))
     } finally {
       setApplyingChanges(false)
     }
@@ -550,7 +560,7 @@ export function PoliciesPage() {
       }))
       await exportToExcel(exportData, '방화벽정책')
     }
-    catch (e: unknown) { toast.error((e as Error).message) }
+    catch (e: unknown) { toast.error(errorMessage(e, '엑셀 내보내기에 실패했습니다. 다시 시도하세요.')) }
   }
 
   // 자동 사용이력 수집이 실패했을 때, Deletion Workflow의 "사용이력 반영" 태스크가
@@ -566,7 +576,7 @@ export function PoliciesPage() {
       }))
       await exportToExcel(exportData, '사용이력_반영용')
     }
-    catch (e: unknown) { toast.error((e as Error).message) }
+    catch (e: unknown) { toast.error(errorMessage(e, '사용이력 내보내기에 실패했습니다. 다시 시도하세요.')) }
   }
 
   const summary = useMemo(() => {
@@ -635,7 +645,7 @@ export function PoliciesPage() {
                 {PENDING_STATUS_META[p.data._pendingStatus].label}
               </span>
             )}
-            <span className="font-mono text-xs font-semibold text-ds-on-surface truncate">{p.value ?? '-'}</span>
+            <span className={`font-mono text-xs font-semibold truncate ${p.data?._pendingStatus === 'deleted' ? 'text-ds-on-surface-variant line-through' : 'text-ds-on-surface'}`}>{p.value ?? '-'}</span>
             {editMode && (
               <button
                 type="button"
@@ -823,7 +833,7 @@ export function PoliciesPage() {
                   onChange={e => setQuickFilterInput(e.target.value)}
                   aria-label="결과 내 검색"
                   placeholder="결과 내 검색…"
-                  className="w-full pl-8 pr-8 py-1.5 text-xs bg-ds-surface-container-low border border-ds-outline-variant/20 rounded-lg focus:outline-none focus:border-ds-tertiary focus:ring-1 focus:ring-ds-tertiary placeholder:text-ds-on-surface-variant/70"
+                  className="w-full pl-8 pr-8 py-1.5 text-xs bg-ds-surface-container-low border border-ds-outline-variant/20 rounded-lg focus:outline-none focus:border-ds-tertiary focus:ring-1 focus:ring-ds-tertiary placeholder:text-ds-on-surface-variant"
                 />
                 {quickFilterInput && (
                   <button
@@ -972,7 +982,7 @@ export function PoliciesPage() {
           policyIds={selectedPolicyIds}
           pendingChanges={pendingChanges}
           onClose={() => setShowMoveDialog(false)}
-          onMoved={() => { handleModalApplied(); setSelectedPolicyIds([]) }}
+          onMoved={() => { handleModalApplied(); clearSelection() }}
         />
       )}
 
