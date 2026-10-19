@@ -5,7 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button'
 import { NewPolicyPasteInput } from '@/components/pages/policy-builder/NewPolicyPasteInput'
 import { ObjectGapPanel } from '@/components/pages/policy-builder/ObjectGapPanel'
-import { addPendingChange, type NewObjectSpec, type NewPolicyRow } from '@/api/policyBuilder'
+import { MoveTargetPicker } from '@/components/pages/policy-builder/MoveTargetPicker'
+import { addPendingChange, type MoveTarget, type NewObjectSpec, type NewPolicyRow } from '@/api/policyBuilder'
 
 export function CreatePolicyModal({ deviceId, onClose, onCreated }: {
   deviceId: number
@@ -14,6 +15,7 @@ export function CreatePolicyModal({ deviceId, onClose, onCreated }: {
 }) {
   const [rows, setRows] = useState<NewPolicyRow[]>([])
   const [newObjects, setNewObjects] = useState<NewObjectSpec[]>([])
+  const [target, setTarget] = useState<MoveTarget>({ position: 'bottom', reference_policy_id: null })
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -26,38 +28,41 @@ export function CreatePolicyModal({ deviceId, onClose, onCreated }: {
       for (const row of rows) {
         await addPendingChange(deviceId, {
           change_type: 'create', client_key: `draft-${row.row_index}-${timestamp}`,
-          payload: { ...row, position: 'bottom', reference_policy_id: null } as unknown as Record<string, unknown>,
+          payload: { ...row, position: target.position, reference_policy_id: target.reference_policy_id } as unknown as Record<string, unknown>,
         })
       }
     },
     onSuccess: () => {
-      toast.success(`정책 ${rows.length}건이 대기중 변경사항으로 추가되었습니다. 그리드에서 선택 후 "선택 이동"으로 위치를 지정하세요.`)
+      toast.success(`정책 ${rows.length}건을 변경 계획에 추가했습니다. 오른쪽 패널에서 순서를 확인하세요.`)
       onCreated()
       onClose()
     },
     onError: (err: Error) => toast.error(err.message),
   })
 
-  const canSubmit = rows.length > 0
+  const needsReference = target.position === 'before' || target.position === 'after'
+  const canSubmit = rows.length > 0 && (!needsReference || target.reference_policy_id != null)
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      {/* 붙여넣기 결과 표 + 오브젝트 갭 패널까지 한 화면에서 다뤄야 해서 내용이 금방 넘친다.
-          높이를 뷰포트 기준으로 고정하고 헤더/푸터는 그대로 둔 채 중간 영역만 스크롤되게 해서
-          (1) 매번 스크롤해서 액션 버튼을 찾을 필요가 없고 (2) 파싱 결과가 늘어나도 다이얼로그
-          박스 자체의 높이가 바뀌지 않아 화면이 갑자기 확대되는 문제도 함께 없앤다. */}
+      {/* 입력 | 결과를 좌우로 나눠 결과가 늘어나도 입력창이 밀려나지 않게 하고,
+          배치 위치는 푸터 바로 위에 고정해 "어디에 넣을지"를 같은 화면에서 정한다. */}
       <DialogContent className="max-w-6xl w-[92vw] h-[88vh] bg-ds-surface-container-lowest flex flex-col">
         <DialogHeader className="shrink-0">
           <DialogTitle className="font-headline text-ds-on-surface">새 정책 붙여넣기</DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
-          <NewPolicyPasteInput rows={rows} onChange={setRows} />
-          <ObjectGapPanel deviceId={deviceId} rows={rows} newObjects={newObjects} onChange={setNewObjects} />
-          <p className="text-xs text-ds-on-surface-variant">
-            생성된 정책은 일단 최하단에 추가됩니다. 배치 위치는 추가 후 그리드에서 행을 선택해 "선택 이동"으로 지정하세요.
-          </p>
+        <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden">
+          <NewPolicyPasteInput rows={rows} onChange={setRows}>
+            <ObjectGapPanel deviceId={deviceId} rows={rows} newObjects={newObjects} onChange={setNewObjects} />
+          </NewPolicyPasteInput>
         </div>
+
+        <fieldset className="shrink-0 border-t border-ds-outline-variant/15 pt-3 space-y-2">
+          <legend className="sr-only">배치 위치</legend>
+          <p className="text-13 font-semibold text-ds-on-surface">배치 위치 <span className="font-normal text-ds-on-surface-variant">· 파싱된 정책을 한꺼번에 이 위치에 넣습니다 (나중에 그리드의 "선택 이동"으로 바꿀 수 있습니다)</span></p>
+          <MoveTargetPicker deviceId={deviceId} value={target} onChange={setTarget} />
+        </fieldset>
 
         <DialogFooter className="shrink-0">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">취소</button>
@@ -69,7 +74,7 @@ export function CreatePolicyModal({ deviceId, onClose, onCreated }: {
             onClick={() => mutation.mutate()}
             className="px-5 py-2 text-sm font-bold rounded-md"
           >
-            {mutation.isPending ? '추가 중…' : `대기중 변경사항으로 추가 (${rows.length}건)`}
+            {mutation.isPending ? '추가 중…' : `변경 계획에 추가 (${rows.length}건)`}
           </Button>
         </DialogFooter>
       </DialogContent>

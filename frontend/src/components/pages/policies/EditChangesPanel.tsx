@@ -57,6 +57,8 @@ export function EditChangesPanel({
   menuProps: React.ComponentProps<typeof EditActionMenu>
 }) {
   const visible = sortCreatesInPasteOrder(changes).filter((c) => c.change_type !== 'new_object')
+  // 붙여넣은 순서를 눈으로 검증할 수 있도록 생성 항목에만 1부터 순번을 붙인다.
+  const createRank = new Map(visible.filter((c) => c.change_type === 'create').map((c, i) => [c.id, i + 1]))
   const total = visible.length
   const chips = (Object.keys(TYPE_META) as (keyof PendingCounts)[])
     .filter((k) => counts[k] > 0)
@@ -144,7 +146,10 @@ export function EditChangesPanel({
               >
                 <span className={`shrink-0 px-1.5 py-0.5 rounded text-11 font-bold ${badge}`}>{meta?.label ?? c.change_type}</span>
                 <span className="min-w-0">
-                  <span className="block font-mono text-xs font-semibold text-ds-on-surface truncate">{name}</span>
+                  <span className="block font-mono text-xs font-semibold text-ds-on-surface truncate">
+                    {createRank.has(c.id) && <span className="mr-1 font-normal tabular-nums text-ds-on-surface-variant">#{createRank.get(c.id)}</span>}
+                    {name}
+                  </span>
                   {detail && <span className="block text-11 text-ds-on-surface-variant truncate">{detail}</span>}
                 </span>
               </button>
