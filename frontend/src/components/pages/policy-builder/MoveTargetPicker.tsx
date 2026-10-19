@@ -19,7 +19,7 @@ export function MoveTargetPicker({ deviceId, value, onChange, deletedPolicyIds }
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-3 flex-wrap">
+      <div role="radiogroup" aria-label="배치 위치" className="flex items-center gap-3 flex-wrap">
         {POSITION_OPTIONS.map((opt) => (
           <label key={opt.value} className="flex items-center gap-1.5 text-13 cursor-pointer">
             <input
@@ -44,6 +44,7 @@ export function MoveTargetPicker({ deviceId, value, onChange, deletedPolicyIds }
             onChange={(id) => onChange({ ...value, reference_policy_id: id })}
             placeholder="기준 정책 선택…"
             warnIds={deletedPolicyIds}
+            includeDisabled
           />
         </div>
       )}

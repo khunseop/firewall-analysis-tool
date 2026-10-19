@@ -47,7 +47,7 @@ export function MoveExistingDialog({ deviceId, policyIds, pendingChanges, onClos
       }))
     },
     onSuccess: () => {
-      toast.success(`정책 ${policyIds.length}건 이동이 대기중 변경사항으로 추가되었습니다.`)
+      toast.success(`정책 ${policyIds.length}건 이동을 변경 계획에 추가했습니다.`)
       onMoved()
       onClose()
     },
@@ -80,7 +80,7 @@ export function MoveExistingDialog({ deviceId, policyIds, pendingChanges, onClos
             onClick={() => mutation.mutate()}
             className="px-5 py-2 text-sm font-bold rounded-md"
           >
-            {mutation.isPending ? '추가 중…' : '이동 예약'}
+            {mutation.isPending ? '추가 중…' : '변경 계획에 추가'}
           </Button>
         </DialogFooter>
       </DialogContent>

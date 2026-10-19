@@ -8,16 +8,17 @@ import { rowIdFromId } from '@/lib/utils'
 import { getPolicies, type Policy } from '@/api/firewall'
 import { queryKeys } from '@/api/queryKeys'
 
-function buildColumnDefs(warnIds?: Set<number>): ColDef<Policy>[] {
+function buildColumnDefs(warnIds?: Set<number>, showDisabled?: boolean): ColDef<Policy>[] {
   return [
     { field: 'seq', headerName: '순번', width: 70 },
     {
       field: 'rule_name', headerName: '정책명', width: 220,
       cellRenderer: (p: { value: string; data: Policy }) =>
-        warnIds?.has(p.data.id) ? (
+        warnIds?.has(p.data.id) || (showDisabled && !p.data.enable) ? (
           <span className="flex items-center gap-1">
             {p.value}
-            <span className="text-10 font-semibold text-ds-error" title="이 정책은 삭제 대기중입니다.">삭제예정</span>
+            {warnIds?.has(p.data.id) && <span className="text-11 font-semibold text-ds-error" title="이 정책은 삭제 대기중입니다.">삭제예정</span>}
+            {showDisabled && !p.data.enable && <span className="text-11 font-semibold text-ds-on-surface-variant" title="비활성 정책입니다.">비활성</span>}
           </span>
         ) : p.value,
     },
@@ -36,6 +37,8 @@ interface PolicyGridPickerMultiProps {
   placeholder?: string
   /** 이미 삭제 대기중인 정책 id — 목록에 "삭제예정" 표시만 하고 선택은 막지 않는다. */
   warnIds?: Set<number>
+  /** 비활성 정책도 목록에 포함한다(기본: 제외). 영향분석 대상은 활성 정책만 가능하지만 배치 기준 정책은 비활성도 가능하다. */
+  includeDisabled?: boolean
 }
 interface PolicyGridPickerSingleProps {
   deviceId: number | null
@@ -45,12 +48,13 @@ interface PolicyGridPickerSingleProps {
   placeholder?: string
   /** 이미 삭제 대기중인 정책 id — 목록에 "삭제예정" 표시만 하고 선택은 막지 않는다. */
   warnIds?: Set<number>
+  includeDisabled?: boolean
 }
 type PolicyGridPickerProps = PolicyGridPickerMultiProps | PolicyGridPickerSingleProps
 
 export function PolicyGridPicker(props: PolicyGridPickerProps) {
-  const { deviceId, mode, placeholder, warnIds } = props
-  const columnDefs = useMemo(() => buildColumnDefs(warnIds), [warnIds])
+  const { deviceId, mode, placeholder, warnIds, includeDisabled } = props
+  const columnDefs = useMemo(() => buildColumnDefs(warnIds, includeDisabled), [warnIds, includeDisabled])
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [pendingMulti, setPendingMulti] = useState<number[]>([])
@@ -63,8 +67,8 @@ export function PolicyGridPicker(props: PolicyGridPickerProps) {
     enabled: !!deviceId && open,
     staleTime: 60_000,
   })
-  // 비활성화된 정책은 영향분석 기준/대상으로 사용할 수 없으므로 선택 목록에서 제외
-  const policies = useMemo(() => rawPolicies.filter((p) => p.enable), [rawPolicies])
+  // 비활성화된 정책은 영향분석 기준/대상으로 사용할 수 없으므로 기본적으로 선택 목록에서 제외
+  const policies = useMemo(() => (includeDisabled ? rawPolicies : rawPolicies.filter((p) => p.enable)), [rawPolicies, includeDisabled])
 
   useEffect(() => {
     if (!open) return

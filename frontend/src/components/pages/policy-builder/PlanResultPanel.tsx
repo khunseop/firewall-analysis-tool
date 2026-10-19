@@ -174,7 +174,7 @@ export function VerifyResultPanel({ results }: { results: PolicyVerifyResult[] }
   return (
     <div className="space-y-1.5">
       <p className="text-xs text-ds-on-surface-variant">
-        대기중 변경사항 {results.length}건 검증 · <span className="text-emerald-600 font-semibold">일치 {matchCount}건</span>
+        변경 계획 {results.length}건 검증 · <span className="text-emerald-600 font-semibold">일치 {matchCount}건</span>
         {mismatchCount > 0 && <span className="text-ds-error font-semibold"> · 불일치 {mismatchCount}건</span>}
       </p>
       <div className="space-y-2">
@@ -217,7 +217,7 @@ export function VerifyResultPanel({ results }: { results: PolicyVerifyResult[] }
             )}
           </div>
         ))}
-        {results.length === 0 && <p className="text-xs text-ds-on-surface-variant italic">대기중 변경사항이 없습니다.</p>}
+        {results.length === 0 && <p className="text-xs text-ds-on-surface-variant italic">변경 계획이 없습니다.</p>}
       </div>
     </div>
   )

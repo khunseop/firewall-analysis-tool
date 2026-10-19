@@ -166,7 +166,7 @@ export function ModifyPolicyModal({ deviceId, onClose, onApplied }: {
       }))
     },
     onSuccess: () => {
-      toast.success(`${validRows.length}건의 필드 변경이 대기중 변경사항으로 추가되었습니다.`)
+      toast.success(`${validRows.length}건의 필드 변경이 변경 계획에 추가되었습니다.`)
       onApplied()
       onClose()
     },
@@ -252,7 +252,7 @@ export function ModifyPolicyModal({ deviceId, onClose, onApplied }: {
             onClick={() => mutation.mutate()}
             className="px-5 py-2 text-sm font-bold rounded-md"
           >
-            {mutation.isPending ? '적용 중…' : `대기중 변경사항으로 추가 (${validRows.length}건)`}
+            {mutation.isPending ? '적용 중…' : `변경 계획에 추가 (${validRows.length}건)`}
           </Button>
         </DialogFooter>
       </DialogContent>

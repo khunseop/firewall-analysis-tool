@@ -60,7 +60,7 @@ export function CreatePolicyModal({ deviceId, onClose, onCreated }: {
 
         <fieldset className="shrink-0 border-t border-ds-outline-variant/15 pt-3 space-y-2">
           <legend className="sr-only">배치 위치</legend>
-          <p className="text-13 font-semibold text-ds-on-surface">배치 위치 <span className="font-normal text-ds-on-surface-variant">· 파싱된 정책을 한꺼번에 이 위치에 넣습니다 (나중에 그리드의 "선택 이동"으로 바꿀 수 있습니다)</span></p>
+          <p className="text-13 font-semibold text-ds-on-surface">배치 위치 <span className="font-normal text-ds-on-surface-variant">· 파싱된 정책을 한꺼번에 이 위치에 넣습니다 (나중에 그리드에서 행을 선택해 "이동"으로 바꿀 수 있습니다)</span></p>
           <MoveTargetPicker deviceId={deviceId} value={target} onChange={setTarget} />
         </fieldset>
 

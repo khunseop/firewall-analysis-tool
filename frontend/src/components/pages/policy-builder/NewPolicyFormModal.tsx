@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -24,6 +24,7 @@ export function NewPolicyFormModal({ deviceId, onClose, onCreated }: {
   onClose: () => void
   onCreated: () => void
 }) {
+  const uid = useId()
   const [row, setRow] = useState<NewPolicyRow>(() => newPolicyRowDefaults(0))
   const [newObjects, setNewObjects] = useState<NewObjectSpec[]>([])
 
@@ -42,7 +43,7 @@ export function NewPolicyFormModal({ deviceId, onClose, onCreated }: {
       })
     },
     onSuccess: () => {
-      toast.success('정책 1건이 대기중 변경사항으로 추가되었습니다. 그리드에서 선택 후 "선택 이동"으로 위치를 지정하세요.')
+      toast.success('정책 1건을 변경 계획에 추가했습니다. 위치는 그리드에서 선택 후 "이동"으로 지정하세요.')
       onCreated()
       onClose()
     },
@@ -61,13 +62,13 @@ export function NewPolicyFormModal({ deviceId, onClose, onCreated }: {
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-11 font-semibold text-ds-on-surface-variant">정책명 *</label>
-              <Input value={row.rule_name} onChange={(e) => update({ rule_name: e.target.value })} className="h-8 text-xs" />
+              <label htmlFor={`${uid}-rule_name`} className="text-11 font-semibold text-ds-on-surface-variant">정책명 *</label>
+              <Input id={`${uid}-rule_name`} aria-required="true" value={row.rule_name} onChange={(e) => update({ rule_name: e.target.value })} className="h-8 text-xs" />
             </div>
             <div className="space-y-1">
-              <label className="text-11 font-semibold text-ds-on-surface-variant">액션</label>
+              <label htmlFor={`${uid}-rule_action`} className="text-11 font-semibold text-ds-on-surface-variant">액션</label>
               <Select value={row.rule_action} onValueChange={(v) => update({ rule_action: v })}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectTrigger id={`${uid}-rule_action`} className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="allow">allow</SelectItem>
                   <SelectItem value="deny">deny</SelectItem>
@@ -80,8 +81,9 @@ export function NewPolicyFormModal({ deviceId, onClose, onCreated }: {
           <div className="grid grid-cols-2 gap-3">
             {FIELD_LABELS.map(({ key, label, placeholder }) => (
               <div key={key} className="space-y-1">
-                <label className="text-11 font-semibold text-ds-on-surface-variant">{label}</label>
+                <label htmlFor={`${uid}-${key}`} className="text-11 font-semibold text-ds-on-surface-variant">{label}</label>
                 <Input
+                  id={`${uid}-${key}`}
                   value={row[key] as string}
                   onChange={(e) => update({ [key]: e.target.value })}
                   placeholder={placeholder}
@@ -92,8 +94,8 @@ export function NewPolicyFormModal({ deviceId, onClose, onCreated }: {
           </div>
 
           <div className="space-y-1">
-            <label className="text-11 font-semibold text-ds-on-surface-variant">설명</label>
-            <Input value={row.description} onChange={(e) => update({ description: e.target.value })} className="h-8 text-xs" />
+            <label htmlFor={`${uid}-description`} className="text-11 font-semibold text-ds-on-surface-variant">설명</label>
+            <Input id={`${uid}-description`} value={row.description} onChange={(e) => update({ description: e.target.value })} className="h-8 text-xs" />
           </div>
 
           <ObjectGapPanel deviceId={deviceId} rows={canSubmit ? [row] : []} newObjects={newObjects} onChange={setNewObjects} />
@@ -109,7 +111,7 @@ export function NewPolicyFormModal({ deviceId, onClose, onCreated }: {
             onClick={() => mutation.mutate()}
             className="px-5 py-2 text-sm font-bold rounded-md"
           >
-            {mutation.isPending ? '추가 중…' : '대기중 변경사항으로 추가'}
+            {mutation.isPending ? '추가 중…' : '변경 계획에 추가'}
           </Button>
         </DialogFooter>
       </DialogContent>

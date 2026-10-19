@@ -39,7 +39,12 @@ function containsDialogDescription(children: React.ReactNode): boolean {
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, "aria-describedby": describedBy, ...props }, ref) => {
+>(({ className, children, "aria-describedby": describedBy, onCloseAutoFocus, ...props }, ref) => {
+  // Dialog.Trigger 없이 상태로 여는 다이얼로그는 Radix가 닫힐 때 돌려보낼 곳을 몰라 포커스가 body로 떨어진다.
+  // 열리는 순간 포커스를 갖고 있던 요소(메뉴 버튼 등)를 기억해 두었다가 닫힐 때 그 요소로 돌려준다.
+  const [opener] = React.useState<HTMLElement | null>(() =>
+    typeof document !== "undefined" && document.activeElement instanceof HTMLElement ? document.activeElement : null
+  )
   // description 없이 쓰는 다이얼로그가 대부분이라 Radix가 없는 id를 참조하며 콘솔 경고를 내는 문제 방지.
   // DialogDescription이 실제로 있으면 Radix 기본 연결(context.descriptionId)을 그대로 두고, 없으면 명시적으로 끈다.
   const ariaProps =
@@ -60,11 +65,17 @@ const DialogContent = React.forwardRef<
       )}
       {...props}
       {...ariaProps}
+      onCloseAutoFocus={(event) => {
+        onCloseAutoFocus?.(event)
+        if (event.defaultPrevented) return
+        event.preventDefault()
+        if (opener?.isConnected) opener.focus()
+      }}
     >
       {children}
       <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ds-tertiary focus:ring-offset-2 disabled:pointer-events-none">
         <X className="h-4 w-4 text-ds-on-surface-variant" />
-        <span className="sr-only">Close</span>
+        <span className="sr-only">닫기</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </DialogPortal>
