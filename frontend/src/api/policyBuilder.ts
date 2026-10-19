@@ -132,6 +132,24 @@ export interface PendingPolicyChange {
   created_at: string
 }
 
+/**
+ * 대기중 변경 목록에서 create 항목만 붙여넣은 순서(배치 timestamp → row_index)로 재정렬한다.
+ * 다른 유형 항목의 자리는 그대로 두고 create가 차지한 자리만 정렬 결과로 채운다 —
+ * 백엔드 `sort_create_changes`와 같은 기준이라 패널·그리드·CLI의 순서가 일치한다.
+ */
+export const sortCreatesInPasteOrder = (changes: PendingPolicyChange[]): PendingPolicyChange[] => {
+  const stamp = (c: PendingPolicyChange) => {
+    const n = Number((c.client_key ?? '').split('-').pop())
+    return Number.isFinite(n) ? n : c.id
+  }
+  const rowIndex = (c: PendingPolicyChange) => Number((c.payload as { row_index?: number }).row_index ?? 0)
+  const sorted = changes
+    .filter((c) => c.change_type === 'create')
+    .sort((a, b) => stamp(a) - stamp(b) || rowIndex(a) - rowIndex(b))
+  let next = 0
+  return changes.map((c) => (c.change_type === 'create' ? sorted[next++] : c))
+}
+
 export const listPendingChanges = async (deviceId: number): Promise<PendingPolicyChange[]> => {
   const res = await apiClient.get<PendingPolicyChange[]>(`/policy-builder/${deviceId}/pending-changes`)
   return res.data

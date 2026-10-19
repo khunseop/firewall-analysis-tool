@@ -1,5 +1,5 @@
 import { RotateCcw, Terminal, ShieldCheck, Undo2, X, PanelRightClose, AlertTriangle } from 'lucide-react'
-import type { PendingPolicyChange } from '@/api/policyBuilder'
+import { sortCreatesInPasteOrder, type PendingPolicyChange } from '@/api/policyBuilder'
 import { Button } from '@/components/ui/button'
 import { EditActionMenu } from '@/components/pages/policy-builder/EditActionMenu'
 import { PENDING_STATUS_META, type PendingStatus } from './policyCellUtils'
@@ -56,7 +56,7 @@ export function EditChangesPanel({
   onCollapse: () => void
   menuProps: React.ComponentProps<typeof EditActionMenu>
 }) {
-  const visible = changes.filter((c) => c.change_type !== 'new_object')
+  const visible = sortCreatesInPasteOrder(changes).filter((c) => c.change_type !== 'new_object')
   const total = visible.length
   const chips = (Object.keys(TYPE_META) as (keyof PendingCounts)[])
     .filter((k) => counts[k] > 0)

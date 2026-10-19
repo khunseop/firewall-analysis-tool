@@ -22,10 +22,13 @@ export function CreatePolicyModal({ deviceId, onClose, onCreated }: {
         change_type: 'new_object', client_key: `obj-${obj.object_kind}-${obj.name}-${timestamp}`,
         payload: obj as unknown as Record<string, unknown>,
       })))
-      await Promise.all(rows.map((row) => addPendingChange(deviceId, {
-        change_type: 'create', client_key: `draft-${row.row_index}-${timestamp}`,
-        payload: { ...row, position: 'bottom', reference_policy_id: null } as unknown as Record<string, unknown>,
-      })))
+      // 붙여넣은 순서가 DB id 순서가 되도록 한 건씩 차례로 저장한다(병렬 저장은 도착 순서대로 id가 매겨져 순서가 뒤섞인다).
+      for (const row of rows) {
+        await addPendingChange(deviceId, {
+          change_type: 'create', client_key: `draft-${row.row_index}-${timestamp}`,
+          payload: { ...row, position: 'bottom', reference_policy_id: null } as unknown as Record<string, unknown>,
+        })
+      }
     },
     onSuccess: () => {
       toast.success(`정책 ${rows.length}건이 대기중 변경사항으로 추가되었습니다. 그리드에서 선택 후 "선택 이동"으로 위치를 지정하세요.`)
