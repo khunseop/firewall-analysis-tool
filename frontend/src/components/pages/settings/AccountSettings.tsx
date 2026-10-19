@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Plus, Trash2, KeyRound, UserCheck, UserX } from 'lucide-react'
@@ -9,13 +9,15 @@ import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
 import { getUsers, createUser, changeUserPassword, toggleUserActive, deleteUser, type User } from '@/api/users'
 import { queryKeys } from '@/api/queryKeys'
+import { errorMessage } from '@/lib/errorMessage'
 
 export function AccountSettings() {
   const queryClient = useQueryClient()
+  const uid = useId()
   const { confirm, ConfirmDialogElement } = useConfirm()
   const [createOpen, setCreateOpen] = useState(false)
-  const [newUser, setNewUser] = useState({ username: '', password: '', is_admin: false })
-  const [pwDialog, setPwDialog] = useState<{ user: User; password: string } | null>(null)
+  const [newUser, setNewUser] = useState({ username: '', password: '', passwordConfirm: '', is_admin: false })
+  const [pwDialog, setPwDialog] = useState<{ user: User; password: string; passwordConfirm: string } | null>(null)
 
   const { data: users = [], isLoading } = useQuery({ queryKey: queryKeys.users, queryFn: getUsers })
 
@@ -24,33 +26,55 @@ export function AccountSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users })
       setCreateOpen(false)
-      setNewUser({ username: '', password: '', is_admin: false })
+      setNewUser({ username: '', password: '', passwordConfirm: '', is_admin: false })
       toast.success('계정이 생성되었습니다.')
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: unknown) => toast.error(errorMessage(e, '요청을 처리하지 못했습니다. 잠시 후 다시 시도하세요.')),
   })
 
   const pwMutation = useMutation({
     mutationFn: ({ userId, password }: { userId: number; password: string }) => changeUserPassword(userId, password),
     onSuccess: () => { setPwDialog(null); toast.success('비밀번호가 변경되었습니다.') },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: unknown) => toast.error(errorMessage(e, '요청을 처리하지 못했습니다. 잠시 후 다시 시도하세요.')),
   })
 
   const toggleMutation = useMutation({
     mutationFn: ({ userId, is_active }: { userId: number; is_active: boolean }) => toggleUserActive(userId, is_active),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.users }),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: unknown) => toast.error(errorMessage(e, '요청을 처리하지 못했습니다. 잠시 후 다시 시도하세요.')),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (userId: number) => deleteUser(userId),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: queryKeys.users }); toast.success('계정이 삭제되었습니다.') },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: unknown) => toast.error(errorMessage(e, '요청을 처리하지 못했습니다. 잠시 후 다시 시도하세요.')),
   })
 
+  // 활성 관리자가 한 명뿐일 때 그 계정을 막으면 아무도 설정을 관리할 수 없게 되므로 확인창에서 경고한다.
+  const isLastActiveAdmin = (user: User) => user.is_admin && user.is_active && users.filter((u) => u.is_admin && u.is_active).length === 1
+  const lastAdminNote = (user: User) => (isLastActiveAdmin(user) ? ' 이 계정은 마지막 활성 관리자입니다. 진행하면 설정을 관리할 수 있는 계정이 없어집니다.' : '')
+
   const handleDelete = async (user: User) => {
-    const ok = await confirm({ title: '계정 삭제', description: `'${user.username}' 계정을 삭제하시겠습니까?`, variant: 'destructive', confirmLabel: '삭제' })
+    const ok = await confirm({
+      title: '계정 삭제',
+      description: `'${user.username}' 계정을 삭제합니다. 삭제한 계정은 되돌릴 수 없습니다.${lastAdminNote(user)}`,
+      variant: 'destructive',
+      confirmLabel: '삭제',
+    })
     if (ok) deleteMutation.mutate(user.id)
+  }
+
+  const handleToggle = async (user: User) => {
+    if (user.is_active) {
+      const ok = await confirm({
+        title: '계정 비활성화',
+        description: `'${user.username}' 계정을 비활성화하면 이 계정으로 로그인할 수 없습니다. 언제든 다시 활성화할 수 있습니다.${lastAdminNote(user)}`,
+        variant: 'destructive',
+        confirmLabel: '비활성화',
+      })
+      if (!ok) return
+    }
+    toggleMutation.mutate({ userId: user.id, is_active: !user.is_active })
   }
 
   if (isLoading) return <div className="py-8 text-center text-sm text-ds-on-surface-variant">로딩 중…</div>
@@ -59,7 +83,7 @@ export function AccountSettings() {
     <div className="space-y-4">
       {ConfirmDialogElement}
       <div className="flex justify-between items-center">
-        <p className="text-xs text-ds-on-surface-variant">시스템 계정을 관리합니다.</p>
+        <p className="text-sm text-ds-on-surface-variant">FAT에 로그인하는 계정을 관리합니다.</p>
         <Button
           variant="gradient"
           size="auto"
@@ -75,11 +99,11 @@ export function AccountSettings() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-ds-outline-variant/8 bg-ds-surface-container-low/30">
-              <th className="px-5 py-2.5 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">사용자명</th>
-              <th className="px-5 py-2.5 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">권한</th>
-              <th className="px-5 py-2.5 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">상태</th>
-              <th className="px-5 py-2.5 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">생성일</th>
-              <th className="px-5 py-2.5 text-right text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">작업</th>
+              <th className="px-5 py-2.5 text-11 font-semibold text-ds-on-surface-variant">사용자명</th>
+              <th className="px-5 py-2.5 text-11 font-semibold text-ds-on-surface-variant">권한</th>
+              <th className="px-5 py-2.5 text-11 font-semibold text-ds-on-surface-variant">상태</th>
+              <th className="px-5 py-2.5 text-11 font-semibold text-ds-on-surface-variant">생성일</th>
+              <th className="px-5 py-2.5 text-right text-11 font-semibold text-ds-on-surface-variant">작업</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-ds-outline-variant/10">
@@ -89,12 +113,12 @@ export function AccountSettings() {
                   <span className="font-mono text-sm font-semibold text-ds-on-surface">{user.username}</span>
                 </td>
                 <td className="px-5 py-4">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-10 font-bold uppercase ${user.is_admin ? 'bg-amber-100 text-amber-700' : 'bg-ds-surface-container text-ds-on-surface-variant'}`}>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-11 font-bold ${user.is_admin ? 'bg-amber-100 text-amber-700' : 'bg-ds-surface-container text-ds-on-surface-variant'}`}>
                     {user.is_admin ? '관리자' : '일반'}
                   </span>
                 </td>
                 <td className="px-5 py-4">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-10 font-bold ${user.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-11 font-bold ${user.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     {user.is_active ? '활성' : '비활성'}
                   </span>
                 </td>
@@ -104,15 +128,17 @@ export function AccountSettings() {
                 <td className="px-5 py-4 text-right">
                   <div className="flex justify-end gap-1">
                     <button
-                      onClick={() => setPwDialog({ user, password: '' })}
+                      onClick={() => setPwDialog({ user, password: '', passwordConfirm: '' })}
                       title="비밀번호 변경"
-                      className="p-1.5 rounded hover:bg-ds-surface-container-high text-ds-on-surface-variant hover:text-ds-primary transition-colors"
+                      aria-label={`${user.username} 비밀번호 변경`}
+                      className="p-1.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ds-tertiary/40 hover:bg-ds-surface-container-high text-ds-on-surface-variant hover:text-ds-primary transition-colors"
                     >
                       <KeyRound className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => toggleMutation.mutate({ userId: user.id, is_active: !user.is_active })}
+                      onClick={() => handleToggle(user)}
                       title={user.is_active ? '비활성화' : '활성화'}
+                      aria-label={`${user.username} ${user.is_active ? '비활성화' : '활성화'}`}
                       className={`p-1.5 rounded transition-colors ${user.is_active ? 'hover:bg-amber-50 text-amber-600' : 'hover:bg-green-50 text-green-600'}`}
                     >
                       {user.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
@@ -120,7 +146,8 @@ export function AccountSettings() {
                     <button
                       onClick={() => handleDelete(user)}
                       title="삭제"
-                      className="p-1.5 rounded hover:bg-red-50 text-ds-error transition-colors"
+                      aria-label={`${user.username} 삭제`}
+                      className="p-1.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ds-tertiary/40 hover:bg-red-50 text-ds-error transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -145,12 +172,17 @@ export function AccountSettings() {
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate() }} className="space-y-3 pt-1">
             <div className="space-y-1">
-              <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">사용자명 *</Label>
-              <Input value={newUser.username} onChange={(e) => setNewUser(p => ({ ...p, username: e.target.value }))} required className="bg-white border-ds-outline-variant/30 text-sm" />
+              <Label htmlFor={`${uid}-username`} className="text-xs font-semibold text-ds-primary">사용자명 *</Label>
+              <Input id={`${uid}-username`} value={newUser.username} onChange={(e) => setNewUser(p => ({ ...p, username: e.target.value }))} required className="bg-white border-ds-outline-variant/30 text-sm" />
             </div>
             <div className="space-y-1">
-              <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">비밀번호 *</Label>
-              <Input type="password" value={newUser.password} onChange={(e) => setNewUser(p => ({ ...p, password: e.target.value }))} required className="bg-white border-ds-outline-variant/30 text-sm" />
+              <Label htmlFor={`${uid}-password`} className="text-xs font-semibold text-ds-primary">비밀번호 *</Label>
+              <Input id={`${uid}-password`} type="password" autoComplete="new-password" value={newUser.password} onChange={(e) => setNewUser(p => ({ ...p, password: e.target.value }))} required className="bg-white border-ds-outline-variant/30 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor={`${uid}-password2`} className="text-xs font-semibold text-ds-primary">비밀번호 확인 *</Label>
+              <Input id={`${uid}-password2`} type="password" autoComplete="new-password" value={newUser.passwordConfirm} onChange={(e) => setNewUser(p => ({ ...p, passwordConfirm: e.target.value }))} required aria-invalid={newUser.passwordConfirm !== '' && newUser.passwordConfirm !== newUser.password} className="bg-white border-ds-outline-variant/30 text-sm aria-[invalid=true]:border-ds-error" />
+              {newUser.passwordConfirm !== '' && newUser.passwordConfirm !== newUser.password && <p className="text-xs text-ds-error">비밀번호가 일치하지 않습니다.</p>}
             </div>
             <label className="flex items-center gap-2 text-sm cursor-pointer text-ds-on-surface-variant">
               <input type="checkbox" checked={newUser.is_admin} onChange={(e) => setNewUser(p => ({ ...p, is_admin: e.target.checked }))} className="rounded border-ds-outline-variant/40" />
@@ -158,7 +190,7 @@ export function AccountSettings() {
             </label>
             <DialogFooter>
               <button type="button" onClick={() => setCreateOpen(false)} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">취소</button>
-              <Button type="submit" variant="gradient" size="auto" disabled={createMutation.isPending} className="px-5 py-2 text-sm font-bold rounded-md">
+              <Button type="submit" variant="gradient" size="auto" disabled={createMutation.isPending || newUser.password !== newUser.passwordConfirm} className="px-5 py-2 text-sm font-bold rounded-md">
                 {createMutation.isPending ? '생성 중…' : '생성'}
               </Button>
             </DialogFooter>
@@ -175,8 +207,10 @@ export function AccountSettings() {
             </DialogHeader>
             <form onSubmit={(e) => { e.preventDefault(); pwMutation.mutate({ userId: pwDialog.user.id, password: pwDialog.password }) }} className="space-y-3 pt-1">
               <div className="space-y-1">
-                <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary">새 비밀번호 *</Label>
+                <Label htmlFor={`${uid}-newpw`} className="text-xs font-semibold text-ds-primary">새 비밀번호 *</Label>
                 <Input
+                  id={`${uid}-newpw`}
+                  autoComplete="new-password"
                   type="password"
                   value={pwDialog.password}
                   onChange={(e) => setPwDialog(p => p ? { ...p, password: e.target.value } : null)}
@@ -184,9 +218,23 @@ export function AccountSettings() {
                   className="bg-white border-ds-outline-variant/30 text-sm"
                 />
               </div>
+              <div className="space-y-1">
+                <Label htmlFor={`${uid}-newpw2`} className="text-xs font-semibold text-ds-primary">새 비밀번호 확인 *</Label>
+                <Input
+                  id={`${uid}-newpw2`}
+                  type="password"
+                  autoComplete="new-password"
+                  value={pwDialog.passwordConfirm}
+                  onChange={(e) => setPwDialog(p => p ? { ...p, passwordConfirm: e.target.value } : null)}
+                  required
+                  aria-invalid={pwDialog.passwordConfirm !== '' && pwDialog.passwordConfirm !== pwDialog.password}
+                  className="bg-white border-ds-outline-variant/30 text-sm aria-[invalid=true]:border-ds-error"
+                />
+                {pwDialog.passwordConfirm !== '' && pwDialog.passwordConfirm !== pwDialog.password && <p className="text-xs text-ds-error">비밀번호가 일치하지 않습니다.</p>}
+              </div>
               <DialogFooter>
                 <button type="button" onClick={() => setPwDialog(null)} className="px-4 py-2 text-sm font-semibold text-ds-on-surface-variant hover:text-ds-on-surface transition-colors">취소</button>
-                <Button type="submit" variant="gradient" size="auto" disabled={pwMutation.isPending} className="px-5 py-2 text-sm font-bold rounded-md">
+                <Button type="submit" variant="gradient" size="auto" disabled={pwMutation.isPending || pwDialog.password !== pwDialog.passwordConfirm} className="px-5 py-2 text-sm font-bold rounded-md">
                   {pwMutation.isPending ? '변경 중…' : '변경'}
                 </Button>
               </DialogFooter>

@@ -67,12 +67,13 @@ export function ExceptionTable({
         <p className="text-xs font-semibold text-ds-on-surface shrink-0">{title}</p>
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-ds-on-surface-variant/50 pointer-events-none" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-ds-on-surface-variant pointer-events-none" />
             <input
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(0) }}
               placeholder="검색"
-              className="h-7 pl-6 pr-2 text-11 bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary w-32"
+              aria-label={`${title} 검색`}
+              className="h-7 pl-6 pr-2 text-11 bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-ds-tertiary/40 focus:border-ds-tertiary w-32"
             />
           </div>
           {category && (
@@ -114,11 +115,11 @@ export function ExceptionTable({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-ds-outline-variant/8 bg-ds-surface-container-low/30">
-              <th className="px-3 py-2 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">{keyPlaceholder}</th>
-              <th className="px-3 py-2 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60">사유</th>
-              <th className="px-3 py-2 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-28">시작일</th>
-              <th className="px-3 py-2 text-10 font-bold uppercase tracking-widest text-ds-on-surface-variant/60 w-28">만료일</th>
-              <th className="px-3 py-2 w-10"></th>
+              <th className="px-3 py-2 text-11 font-semibold text-ds-on-surface-variant">{keyPlaceholder}</th>
+              <th className="px-3 py-2 text-11 font-semibold text-ds-on-surface-variant">사유</th>
+              <th className="px-3 py-2 text-11 font-semibold text-ds-on-surface-variant w-28">시작일</th>
+              <th className="px-3 py-2 text-11 font-semibold text-ds-on-surface-variant w-28">만료일</th>
+              <th className="px-3 py-2 w-10"><span className="sr-only">삭제</span></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-ds-outline-variant/8">
@@ -129,7 +130,8 @@ export function ExceptionTable({
                     value={(item[keyField] as string) ?? ''}
                     onChange={(e) => onUpdate(i, { [keyField]: e.target.value })}
                     placeholder={keyPlaceholder}
-                    className="w-full h-7 px-2 text-xs font-mono bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                    aria-label={`${keyPlaceholder} ${i + 1}행`}
+                    className="w-full h-7 px-2 text-xs font-mono bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-ds-tertiary/40 focus:border-ds-tertiary"
                   />
                 </td>
                 <td className="px-3 py-1.5">
@@ -137,27 +139,30 @@ export function ExceptionTable({
                     value={item.reason ?? ''}
                     onChange={(e) => onUpdate(i, { reason: e.target.value })}
                     placeholder="예외 사유"
-                    className="w-full h-7 px-2 text-xs bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                    aria-label={`예외 사유 ${i + 1}행`}
+                    className="w-full h-7 px-2 text-xs bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-ds-tertiary/40 focus:border-ds-tertiary"
                   />
                 </td>
                 <td className="px-3 py-1.5">
                   <input
                     type="date"
+                    aria-label={`시작일 ${i + 1}행`}
                     value={item.start ?? ''}
                     onChange={(e) => onUpdate(i, { start: e.target.value || undefined })}
-                    className="w-full h-7 px-2 text-11 bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                    className="w-full h-7 px-2 text-11 bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-ds-tertiary/40 focus:border-ds-tertiary"
                   />
                 </td>
                 <td className="px-3 py-1.5">
                   <input
                     type="date"
+                    aria-label={`만료일 ${i + 1}행`}
                     value={item.until ?? ''}
                     onChange={(e) => onUpdate(i, { until: e.target.value || undefined })}
-                    className="w-full h-7 px-2 text-11 bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
+                    className="w-full h-7 px-2 text-11 bg-white border border-ds-outline-variant/20 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-ds-tertiary/40 focus:border-ds-tertiary"
                   />
                 </td>
                 <td className="px-3 py-1.5 text-right">
-                  <button onClick={() => onRemove(i)} className="p-1 rounded hover:bg-red-50 text-ds-error transition-colors">
+                  <button onClick={() => onRemove(i)} aria-label={`${i + 1}행 삭제`} title="삭제" className="p-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ds-tertiary/40 hover:bg-ds-error/10 text-ds-error transition-colors">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </td>

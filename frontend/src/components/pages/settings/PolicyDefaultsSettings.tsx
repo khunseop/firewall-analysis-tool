@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Save } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { getSettings, updateSetting } from '@/api/settings'
 import { queryKeys } from '@/api/queryKeys'
+import { errorMessage } from '@/lib/errorMessage'
+import { SettingsSaveBar } from './SettingsSaveBar'
+import { useReportDirty } from './dirtyContext'
 
 const POLICY_BUILDER_DEFAULTS_KEY = 'policy_builder_defaults'
 
@@ -40,68 +41,75 @@ const FIELD_LABELS: { key: keyof PolicyBuilderDefaults; label: string }[] = [
 
 export function PolicyDefaultsSettings() {
   const queryClient = useQueryClient()
-  const { data: settings = [] } = useQuery({ queryKey: queryKeys.settings, queryFn: getSettings })
-  const [values, setValues] = useState<PolicyBuilderDefaults>(DEFAULT_POLICY_BUILDER_DEFAULTS)
-  const [dirty, setDirty] = useState(false)
-
-  const [prevSettings, setPrevSettings] = useState(settings)
-  if (settings !== prevSettings) {
-    setPrevSettings(settings)
-    const s = settings.find((s) => s.key === POLICY_BUILDER_DEFAULTS_KEY)
-    if (s) {
-      try { setValues({ ...DEFAULT_POLICY_BUILDER_DEFAULTS, ...JSON.parse(s.value) }) } catch { /* 무시 */ }
-    }
-  }
+  const uid = useId()
+  const { data: settings = [], isLoading, isError, refetch } = useQuery({ queryKey: queryKeys.settings, queryFn: getSettings })
+  const serverValues = useMemo<PolicyBuilderDefaults>(() => {
+    const s = settings.find((x) => x.key === POLICY_BUILDER_DEFAULTS_KEY)
+    if (!s) return DEFAULT_POLICY_BUILDER_DEFAULTS
+    try { return { ...DEFAULT_POLICY_BUILDER_DEFAULTS, ...JSON.parse(s.value) } } catch { return DEFAULT_POLICY_BUILDER_DEFAULTS }
+  }, [settings])
+  // 서버 값 위에 편집본을 얹는 방식 — 캐시된 설정으로 탭을 열어도 저장된 값이 보이고, 저장 전에는 서버 값이 기준이다.
+  const [draft, setDraft] = useState<PolicyBuilderDefaults | null>(null)
+  const values = draft ?? serverValues
+  const dirty = draft !== null && FIELD_LABELS.some(({ key }) => draft[key] !== serverValues[key])
+  // PAN-OS는 값이 아예 없는 필드를 허용하지 않는다. log-setting만 비워둘 수 있다.
+  const emptyKeys = FIELD_LABELS.filter(({ key }) => key !== 'log_setting' && !values[key].trim()).map((f) => f.key)
+  useReportDirty(dirty)
 
   const saveMutation = useMutation({
     mutationFn: () => updateSetting(POLICY_BUILDER_DEFAULTS_KEY, JSON.stringify(values)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.settings })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.settings })
+      setDraft(null)
       toast.success('정책 생성 기본값이 저장되었습니다.')
-      setDirty(false)
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: unknown) => toast.error(errorMessage(e, '정책 생성 기본값을 저장하지 못했습니다. 잠시 후 다시 시도하세요.')),
   })
 
-  const update = (key: keyof PolicyBuilderDefaults, val: string) => {
-    setValues((prev) => ({ ...prev, [key]: val }))
-    setDirty(true)
+  if (isLoading) return <div className="py-8 text-center text-sm text-ds-on-surface-variant">로딩 중…</div>
+  if (isError) {
+    return (
+      <div role="alert" className="py-8 text-center text-sm text-ds-error">
+        설정을 불러오지 못했습니다.{' '}
+        <button type="button" onClick={() => refetch()} className="font-semibold underline">다시 시도</button>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-ds-on-surface-variant">
-        Policies 편집모드에서 신규 정책을 생성할 때, 붙여넣은 데이터에 컬럼이 없거나 값이 비어 있는 필드에
+    <form onSubmit={(e) => { e.preventDefault(); if (dirty && emptyKeys.length === 0) saveMutation.mutate() }} className="space-y-4">
+      <p className="text-sm text-ds-on-surface-variant max-w-3xl">
+        Policies 편집모드에서 신규 정책을 만들 때, 붙여넣은 데이터에 컬럼이 없거나 값이 비어 있는 필드에
         자동으로 채워지는 기본값입니다. PAN-OS는 값이 아예 없는 필드를 허용하지 않으므로 비워두면 안 됩니다
         (단, log-setting은 로그 포워딩 프로파일을 지정하지 않는 것도 유효한 상태라 비워둘 수 있습니다).
       </p>
 
-      <div className="grid grid-cols-2 gap-3 max-w-2xl">
-        {FIELD_LABELS.map(({ key, label }) => (
-          <div key={key} className="space-y-1">
-            <label className="text-11 font-semibold text-ds-on-surface-variant">{label}</label>
-            <input
-              value={values[key]}
-              onChange={(e) => update(key, e.target.value)}
-              className="w-full h-8 px-2 text-sm font-mono bg-ds-surface-container-lowest border border-ds-outline-variant/20 rounded focus:outline-none focus:border-ds-tertiary"
-            />
-          </div>
-        ))}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3 max-w-2xl">
+        {FIELD_LABELS.map(({ key, label }) => {
+          const empty = emptyKeys.includes(key)
+          return (
+            <div key={key} className="space-y-1">
+              <label htmlFor={`${uid}-${key}`} className="text-xs font-semibold text-ds-on-surface-variant">{label}</label>
+              <input
+                id={`${uid}-${key}`}
+                value={values[key]}
+                onChange={(e) => setDraft({ ...values, [key]: e.target.value })}
+                aria-invalid={empty}
+                className="w-full h-8 px-2 text-sm font-mono bg-ds-surface-container-lowest border border-ds-outline-variant/20 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-ds-tertiary/40 focus:border-ds-tertiary aria-[invalid=true]:border-ds-error"
+              />
+              {empty && <p className="text-xs text-ds-error">비워둘 수 없습니다.</p>}
+            </div>
+          )
+        })}
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button
-          variant="gradient"
-          size="auto"
-          onClick={() => saveMutation.mutate()}
-          disabled={!dirty || saveMutation.isPending}
-          className="gap-1.5 px-3 py-1.5 text-13 font-semibold rounded-lg"
-        >
-          <Save className="w-3.5 h-3.5" />
-          저장
-        </Button>
-        {dirty && <span className="text-11 text-amber-600 font-semibold">저장되지 않은 변경사항이 있습니다</span>}
-      </div>
-    </div>
+      <SettingsSaveBar
+        dirty={dirty}
+        saving={saveMutation.isPending}
+        blockedReason={emptyKeys.length > 0 ? '비어 있는 필수 필드가 있습니다.' : null}
+        onSave={() => saveMutation.mutate()}
+        onRevert={() => setDraft(null)}
+      />
+    </form>
   )
 }
