@@ -198,6 +198,13 @@
   border-bottom: 1px solid rgba(169, 180, 185, 0.12) !important;
 }
 
+/* 셀 렌더러 안의 긴 텍스트가 셀 폭을 넘겨 옆 버튼을 밀어내지 않도록, flex 래퍼가 셀 폭 아래로 줄어들 수 있게 한다. */
+.ag-theme-quartz .ag-cell-wrapper,
+.ag-theme-quartz .ag-cell-wrapper > .ag-cell-value {
+  min-width: 0;
+  max-width: 100%;
+}
+
 /* Table-like header */
 .ag-theme-quartz .ag-header-cell-text {
   font-size: 11px !important;

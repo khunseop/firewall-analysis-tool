@@ -641,13 +641,13 @@ export function PoliciesPage() {
       field: 'rule_name', headerName: '정책명', width: 220, maxWidth: 260, suppressSizeToFit: true,
       cellRenderer: (p: { value: string; data: EditablePolicyRow }) => {
         return (
-          <div className="group/row flex items-center gap-1.5 min-w-0">
+          <div className="group/row flex items-center gap-1.5 w-full min-w-0">
             {editMode && p.data?._pendingStatus && (
               <span className={`shrink-0 px-1 rounded text-11 font-bold ${PENDING_STATUS_META[p.data._pendingStatus].badge}`}>
                 {PENDING_STATUS_META[p.data._pendingStatus].label}
               </span>
             )}
-            <span className={`font-mono text-xs font-semibold truncate ${p.data?._pendingStatus === 'deleted' ? 'text-ds-on-surface-variant line-through' : 'text-ds-on-surface'}`}>{p.value ?? '-'}</span>
+            <span title={p.value ?? undefined} className={`min-w-0 font-mono text-xs font-semibold truncate ${p.data?._pendingStatus === 'deleted' ? 'text-ds-on-surface-variant line-through' : 'text-ds-on-surface'}`}>{p.value ?? '-'}</span>
             {editMode && (
               <button
                 type="button"
