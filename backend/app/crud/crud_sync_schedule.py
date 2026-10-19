@@ -65,13 +65,15 @@ async def delete_sync_schedule(db: AsyncSession, schedule_id: int) -> Optional[S
 async def update_schedule_run_status(
     db: AsyncSession,
     schedule_id: int,
-    status: str
+    status: str,
+    detail: Optional[list] = None,
 ) -> Optional[SyncSchedule]:
-    """스케줄 실행 상태 업데이트"""
+    """스케줄 실행 상태(와 장비별 결과) 업데이트"""
     schedule = await get_sync_schedule(db, schedule_id)
     if schedule:
         schedule.last_run_at = datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
         schedule.last_run_status = status
+        schedule.last_run_detail = detail
         schedule.updated_at = datetime.now(ZoneInfo("Asia/Seoul")).replace(tzinfo=None)
         db.add(schedule)
         await db.commit()

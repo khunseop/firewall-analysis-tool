@@ -1,6 +1,6 @@
 import logging
 import asyncio
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Set
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -9,6 +9,7 @@ from apscheduler.triggers.cron import CronTrigger
 from app.db.session import SessionLocal
 from app import crud
 from app.services.sync.tasks import run_sync_all_orchestrator
+from app.services.audit_log import log_activity
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,7 @@ class SyncScheduler:
     def __init__(self):
         self.scheduler: Optional[AsyncIOScheduler] = None
         self.job_ids: Dict[int, str] = {}  # schedule_id -> job_id 매핑
+        self.running: Set[int] = set()  # 지금 실행 중인 schedule_id (중복 실행 방지·화면 표시용)
     
     def start(self):
         """스케줄러 시작"""
@@ -77,43 +79,102 @@ class SyncScheduler:
             timezone=ZoneInfo("Asia/Seoul")
         )
         
-        # job 함수 생성 (장비 ID 목록을 순서대로 전달)
         job_id = f"sync_schedule_{schedule.id}"
-        
-        async def run_scheduled_sync():
-            """스케줄된 동기화 실행"""
-            logger.info(f"Running scheduled sync for schedule '{schedule.name}' (ID: {schedule.id})")
-            async with SessionLocal() as db:
-                try:
-                    # 장비들을 순서대로 동기화
-                    for device_id in schedule.device_ids:
-                        logger.info(f"Starting sync for device_id={device_id} (schedule: {schedule.name})")
-                        try:
-                            await run_sync_all_orchestrator(device_id)
-                            logger.info(f"Completed sync for device_id={device_id} (schedule: {schedule.name})")
-                        except Exception as e:
-                            logger.error(f"Failed to sync device_id={device_id} (schedule: {schedule.name}): {e}", exc_info=True)
-                    
-                    # 성공 상태 업데이트
-                    await crud.sync_schedule.update_schedule_run_status(db, schedule.id, "success")
-                    logger.info(f"Scheduled sync completed successfully for '{schedule.name}'")
-                except Exception as e:
-                    logger.error(f"Scheduled sync failed for '{schedule.name}': {e}", exc_info=True)
-                    async with SessionLocal() as db2:
-                        await crud.sync_schedule.update_schedule_run_status(db2, schedule.id, "failure")
-        
-        # job 추가
+
+        # job 추가 — 실행 시점에 DB에서 최신 스케줄(장비 목록 등)을 다시 읽어 실행한다.
         self.scheduler.add_job(
-            run_scheduled_sync,
+            self.execute_schedule,
             trigger=trigger,
+            args=[schedule.id],
             id=job_id,
             name=f"Sync Schedule: {schedule.name}",
             replace_existing=True
         )
-        
+
         self.job_ids[schedule.id] = job_id
         logger.info(f"Added schedule '{schedule.name}' (ID: {schedule.id}) - Days: {schedule.days_of_week}, Time: {schedule.time}")
     
+    def is_running(self, schedule_id: int) -> bool:
+        return schedule_id in self.running
+
+    def mark_running(self, schedule_id: int) -> bool:
+        """실행 중으로 표시한다. 이미 실행 중이면 False — 같은 스케줄이 겹쳐 실행되지 않게 한다."""
+        if schedule_id in self.running:
+            return False
+        self.running.add(schedule_id)
+        return True
+
+    def next_run_time(self, schedule_id: int) -> Optional[datetime]:
+        """다음 실행 예정 시각(Asia/Seoul, tz 정보 없는 값). 비활성이거나 등록되지 않았으면 None."""
+        job_id = self.job_ids.get(schedule_id)
+        if not self.scheduler or not job_id:
+            return None
+        job = self.scheduler.get_job(job_id)
+        next_time = getattr(job, "next_run_time", None) if job else None
+        return next_time.astimezone(ZoneInfo("Asia/Seoul")).replace(tzinfo=None) if next_time else None
+
+    async def _sync_one_device(self, device_id: int) -> dict:
+        """장비 1대를 동기화하고 결과를 돌려준다.
+
+        오케스트레이터는 실패를 예외로 던지지 않고 장비의 last_sync_status에 기록하므로,
+        예외 유무가 아니라 끝난 뒤의 장비 상태로 성공 여부를 판단한다.
+        """
+        name = f"장비 {device_id}"
+        error: Optional[str] = None
+        try:
+            await run_sync_all_orchestrator(device_id)
+        except Exception as e:
+            logger.error(f"Failed to sync device_id={device_id}: {e}", exc_info=True)
+            error = str(e) or e.__class__.__name__
+        async with SessionLocal() as db:
+            device = await crud.device.get_device(db, device_id=device_id)
+            if not device:
+                return {"device_id": device_id, "device_name": name, "status": "failure", "error": "장비를 찾을 수 없습니다."}
+            name = device.name
+            if error is None and device.last_sync_status != "success":
+                step = f" (단계: {device.last_sync_step})" if device.last_sync_step else ""
+                error = "동기화가 완료되지 않았습니다." + step if device.last_sync_status == "in_progress" else "동기화에 실패했습니다." + step
+        return {"device_id": device_id, "device_name": name, "status": "failure" if error else "success", "error": error}
+
+    async def execute_schedule(self, schedule_id: int, already_marked: bool = False) -> None:
+        """스케줄에 속한 장비를 순서대로 동기화하고 장비별 결과를 기록한다. 예약 실행과 '지금 실행'이 공유한다."""
+        if not already_marked and not self.mark_running(schedule_id):
+            logger.warning(f"Schedule (ID: {schedule_id}) is already running — skipped")
+            return
+        try:
+            async with SessionLocal() as db:
+                schedule = await crud.sync_schedule.get_sync_schedule(db, schedule_id)
+                if not schedule:
+                    return
+                name, device_ids = schedule.name, list(schedule.device_ids)
+            logger.info(f"Running scheduled sync for schedule '{name}' (ID: {schedule_id})")
+
+            results: List[dict] = []
+            for device_id in device_ids:
+                results.append(await self._sync_one_device(device_id))
+
+            failed = [r for r in results if r["status"] != "success"]
+            status = "success" if not failed else ("failure" if len(failed) == len(results) else "partial")
+            async with SessionLocal() as db:
+                await crud.sync_schedule.update_schedule_run_status(db, schedule_id, status, results)
+                detail = ", ".join(f"{r['device_name']}: {r['error']}" for r in failed)
+                await log_activity(
+                    db,
+                    title="동기화 스케줄 실행 완료" if status == "success" else "동기화 스케줄 실행 일부 실패" if status == "partial" else "동기화 스케줄 실행 실패",
+                    message=f"스케줄 '{name}' — 성공 {len(results) - len(failed)}대 / 실패 {len(failed)}대" + (f" ({detail})" if detail else ""),
+                    type="success" if status == "success" else "warning" if status == "partial" else "error",
+                    category="schedule",
+                )
+            logger.info(f"Scheduled sync finished for '{name}': {status}")
+        except Exception as e:
+            logger.error(f"Scheduled sync failed for schedule_id={schedule_id}: {e}", exc_info=True)
+            async with SessionLocal() as db2:
+                await crud.sync_schedule.update_schedule_run_status(
+                    db2, schedule_id, "failure", [{"device_id": None, "device_name": "-", "status": "failure", "error": str(e) or e.__class__.__name__}]
+                )
+        finally:
+            self.running.discard(schedule_id)
+
     def remove_schedule(self, schedule_id: int):
         """스케줄을 스케줄러에서 제거"""
         if not self.scheduler:

@@ -296,9 +296,12 @@
 | `id` | `INTEGER` | `PRIMARY KEY` | 식별자 |
 | `name` | `VARCHAR` | `NOT NULL` | 스케줄 이름 |
 | `enabled` | `BOOLEAN` | `DEFAULT True` | 활성 여부 |
-| `days_of_week` | `JSON` | `NOT NULL` | 실행 요일 [0-6] |
+| `days_of_week` | `JSON` | `NOT NULL` | 실행 요일 [0-6] (0=월요일, APScheduler 규약) |
 | `time` | `VARCHAR` | `NOT NULL` | 실행 시간 (HH:MM) |
 | `device_ids` | `JSON` | `NOT NULL` | 대상 장비 ID 리스트 |
+| `last_run_at` | `DATETIME` | | 마지막 실행 완료 시각 |
+| `last_run_status` | `VARCHAR` | | `success` / `partial`(일부 장비 실패) / `failure` |
+| `last_run_detail` | `JSON` | | 마지막 실행의 장비별 결과 `[{device_id, device_name, status, error}]` |
 
 ---
 

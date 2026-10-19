@@ -63,10 +63,11 @@ export function GroupedDeviceMultiSelect({ devices, value, onChange }: GroupedDe
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="장비 검색…"
-          className="flex-1 text-xs bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant/50 min-w-0"
+          aria-label="장비 검색"
+          className="flex-1 text-xs bg-transparent outline-none text-ds-on-surface placeholder:text-ds-on-surface-variant min-w-0"
         />
         {search && (
-          <button type="button" onClick={() => setSearch('')} className="shrink-0">
+          <button type="button" onClick={() => setSearch('')} aria-label="검색어 지우기" className="shrink-0">
             <X className="w-3 h-3 text-ds-on-surface-variant hover:text-ds-on-surface" />
           </button>
         )}

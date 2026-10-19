@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud, schemas
@@ -10,6 +10,14 @@ from app.models.user import User
 from app.services.audit_log import log_activity
 
 router = APIRouter()
+
+
+def _with_runtime(schedule) -> schemas.SyncSchedule:
+    """DB 값에 스케줄러 메모리의 다음 실행 시각·실행 중 여부를 덧붙인다."""
+    out = schemas.SyncSchedule.model_validate(schedule)
+    out.next_run_at = sync_scheduler.next_run_time(schedule.id)
+    out.is_running = sync_scheduler.is_running(schedule.id)
+    return out
 
 @router.post("/", response_model=schemas.SyncSchedule)
 async def create_sync_schedule(
@@ -39,7 +47,7 @@ async def create_sync_schedule(
         user_id=current_user.id,
         username=current_user.username,
     )
-    return created_schedule
+    return _with_runtime(created_schedule)
 
 @router.get("/", response_model=List[schemas.SyncSchedule])
 async def read_sync_schedules(
@@ -48,7 +56,8 @@ async def read_sync_schedules(
     db: AsyncSession = Depends(get_db)
 ):
     """스케줄 목록 조회"""
-    return await crud.sync_schedule.get_sync_schedules(db, skip=skip, limit=limit)
+    schedules = await crud.sync_schedule.get_sync_schedules(db, skip=skip, limit=limit)
+    return [_with_runtime(s) for s in schedules]
 
 @router.get("/{schedule_id}", response_model=schemas.SyncSchedule)
 async def read_sync_schedule(
@@ -59,7 +68,7 @@ async def read_sync_schedule(
     schedule = await crud.sync_schedule.get_sync_schedule(db, schedule_id=schedule_id)
     if schedule is None:
         raise HTTPException(status_code=404, detail="스케줄을 찾을 수 없습니다.")
-    return schedule
+    return _with_runtime(schedule)
 
 @router.put("/{schedule_id}", response_model=schemas.SyncSchedule)
 async def update_sync_schedule(
@@ -95,7 +104,7 @@ async def update_sync_schedule(
         user_id=current_user.id,
         username=current_user.username,
     )
-    return updated_schedule
+    return _with_runtime(updated_schedule)
 
 @router.delete("/{schedule_id}", response_model=schemas.SyncSchedule)
 async def delete_sync_schedule(
@@ -117,5 +126,32 @@ async def delete_sync_schedule(
         user_id=current_user.id,
         username=current_user.username,
     )
-    return schedule
+    return _with_runtime(schedule)
 
+
+
+@router.post("/{schedule_id}/run", status_code=202)
+async def run_sync_schedule_now(
+    schedule_id: int,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """스케줄을 예약 시각과 상관없이 지금 실행한다(백그라운드). 이미 실행 중이면 409."""
+    schedule = await crud.sync_schedule.get_sync_schedule(db, schedule_id=schedule_id)
+    if schedule is None:
+        raise HTTPException(status_code=404, detail="스케줄을 찾을 수 없습니다.")
+    if not sync_scheduler.mark_running(schedule_id):
+        raise HTTPException(status_code=409, detail="이미 실행 중인 스케줄입니다.")
+    # BackgroundTasks에는 요청 세션을 넘기지 않는다 — execute_schedule이 자체 세션을 연다.
+    background_tasks.add_task(sync_scheduler.execute_schedule, schedule_id, True)
+    await log_activity(
+        db,
+        title="동기화 스케줄 수동 실행",
+        message=f"스케줄 '{schedule.name}' 지금 실행 — 수행자: {current_user.username}",
+        type="info",
+        category="schedule",
+        user_id=current_user.id,
+        username=current_user.username,
+    )
+    return {"status": "started"}

@@ -91,6 +91,10 @@ class SyncSchedule(SyncScheduleBase):
     updated_at: datetime
     last_run_at: Optional[datetime] = None
     last_run_status: Optional[str] = None
+    last_run_detail: Optional[List[dict]] = None
+    # 스케줄러 메모리에서 계산하는 값 (DB 컬럼 아님)
+    next_run_at: Optional[datetime] = None
+    is_running: bool = False
 
     class Config:
         from_attributes = True

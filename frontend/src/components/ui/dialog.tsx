@@ -39,12 +39,11 @@ function containsDialogDescription(children: React.ReactNode): boolean {
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, "aria-describedby": describedBy, onCloseAutoFocus, ...props }, ref) => {
+>(({ className, children, "aria-describedby": describedBy, onOpenAutoFocus, onCloseAutoFocus, ...props }, ref) => {
   // Dialog.Trigger 없이 상태로 여는 다이얼로그는 Radix가 닫힐 때 돌려보낼 곳을 몰라 포커스가 body로 떨어진다.
-  // 열리는 순간 포커스를 갖고 있던 요소(메뉴 버튼 등)를 기억해 두었다가 닫힐 때 그 요소로 돌려준다.
-  const [opener] = React.useState<HTMLElement | null>(() =>
-    typeof document !== "undefined" && document.activeElement instanceof HTMLElement ? document.activeElement : null
-  )
+  // 열릴 때(Radix가 포커스를 안으로 옮기기 직전) 포커스를 갖고 있던 요소를 기억해 두었다가 닫힐 때 그 요소로 돌려준다.
+  // (컴포넌트가 처음 만들어질 때가 아니라 "열릴 때" 기억해야 항상 마운트된 다이얼로그에서도 맞다.)
+  const openerRef = React.useRef<HTMLElement | null>(null)
   // description 없이 쓰는 다이얼로그가 대부분이라 Radix가 없는 id를 참조하며 콘솔 경고를 내는 문제 방지.
   // DialogDescription이 실제로 있으면 Radix 기본 연결(context.descriptionId)을 그대로 두고, 없으면 명시적으로 끈다.
   const ariaProps =
@@ -65,11 +64,15 @@ const DialogContent = React.forwardRef<
       )}
       {...props}
       {...ariaProps}
+      onOpenAutoFocus={(event) => {
+        openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+        onOpenAutoFocus?.(event)
+      }}
       onCloseAutoFocus={(event) => {
         onCloseAutoFocus?.(event)
         if (event.defaultPrevented) return
         event.preventDefault()
-        if (opener?.isConnected) opener.focus()
+        if (openerRef.current?.isConnected) openerRef.current.focus()
       }}
     >
       {children}

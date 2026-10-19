@@ -29,5 +29,7 @@ class SyncSchedule(Base):
     
     # 마지막 실행 정보
     last_run_at = Column(DateTime, nullable=True)
-    last_run_status = Column(String, nullable=True)  # 'success' 또는 'failure'
+    last_run_status = Column(String, nullable=True)  # 'success' | 'partial'(일부 장비 실패) | 'failure'
+    # 마지막 실행의 장비별 결과: [{device_id, device_name, status, error}]
+    last_run_detail = Column(JSON, nullable=True)
 
