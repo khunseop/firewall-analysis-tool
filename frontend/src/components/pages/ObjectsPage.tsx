@@ -2,7 +2,8 @@ import { useState, useMemo, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Download, Search, ArrowRight, AlertTriangle } from 'lucide-react'
+import { Download, Search, ArrowRight, AlertTriangle, Loader2 } from 'lucide-react'
+import { useExportAction } from '@/hooks/useExportAction'
 import type { ColDef } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { Button } from '@/components/ui/button'
@@ -96,6 +97,7 @@ export function ObjectsPage() {
     [devices]
   )
 
+  const exportAction = useExportAction()
   const handleExport = async (filename: string) => {
     // 화면에 보이는 결과(결과 내 필터·컬럼 필터 적용 후)를 그대로 내보낸다.
     const data: unknown[] = []
@@ -134,7 +136,7 @@ export function ObjectsPage() {
           '설명': o.description,
         }))
       }
-      await exportToExcel(exportData, filename)
+      await exportAction.run(() => exportToExcel(exportData, filename))
     }
     catch (e: unknown) { toast.error((e as Error).message) }
   }
@@ -362,11 +364,12 @@ export function ObjectsPage() {
             )}
             <button
               onClick={() => handleExport(current.filename)}
-              disabled={rows.length === 0}
+              disabled={rows.length === 0 || exportAction.busy}
+              aria-busy={exportAction.busy}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface disabled:opacity-40 transition-colors"
             >
-              <Download className="w-3 h-3" />
-              Excel
+              {exportAction.busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+              {exportAction.busy ? '내보내는 중…' : 'Excel'}
             </button>
           </div>
         </div>

@@ -2,6 +2,7 @@ import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
+import { useExportAction } from '@/hooks/useExportAction'
 import { errorMessage } from '@/lib/errorMessage'
 import { X, Search, Pencil, RotateCcw, PanelRightOpen } from 'lucide-react'
 import type { CellValueChangedEvent, ColDef, RowClickedEvent } from '@ag-grid-community/core'
@@ -540,6 +541,7 @@ export function PoliciesPage() {
     gridRef.current?.gridApi?.setFilterModel(null)
   }
 
+  const exportAction = useExportAction()
   const handleExport = async () => {
     if (policies.length === 0) { toast.warning('내보낼 데이터가 없습니다.'); return }
     try {
@@ -558,7 +560,7 @@ export function PoliciesPage() {
         '설명': p.description,
         '마지막 사용일': p.last_hit_date,
       }))
-      await exportToExcel(exportData, '방화벽정책')
+      await exportAction.run(() => exportToExcel(exportData, '방화벽정책'))
     }
     catch (e: unknown) { toast.error(errorMessage(e, '엑셀 내보내기에 실패했습니다. 다시 시도하세요.')) }
   }
@@ -574,7 +576,7 @@ export function PoliciesPage() {
         'Last Hit Date': p.last_hit_date,
         'Unused Days': daysSinceHit(p.last_hit_date),
       }))
-      await exportToExcel(exportData, '사용이력_반영용')
+      await exportAction.run(() => exportToExcel(exportData, '사용이력_반영용'))
     }
     catch (e: unknown) { toast.error(errorMessage(e, '사용이력 내보내기에 실패했습니다. 다시 시도하세요.')) }
   }
@@ -788,6 +790,7 @@ export function PoliciesPage() {
         hasResults={policies.length > 0}
         onExport={handleExport}
         onExportUsage={handleExportUsage}
+        exporting={exportAction.busy}
         onReset={handleReset}
         onSearch={handleSearch}
         searchDisabled={deviceIds.length === 0}

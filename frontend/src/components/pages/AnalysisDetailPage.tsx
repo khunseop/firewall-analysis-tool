@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useExportAction } from '@/hooks/useExportAction'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -63,11 +64,11 @@ function buildExcelPayload(
 }
 
 function ResultSummary({
-  summary, basis, completedAt, onExport, onDownloadScript,
+  summary, basis, completedAt, onExport, exporting, onDownloadScript,
 }: {
   summary: string
   basis: string | null
-  completedAt: string | null; onExport: () => void; onDownloadScript?: () => void
+  completedAt: string | null; onExport: () => void; exporting: boolean; onDownloadScript?: () => void
 }) {
   return (
     <div className="card rounded-xl px-5 py-3 flex items-center justify-between gap-4">
@@ -89,10 +90,14 @@ function ResultSummary({
         )}
         <button
           onClick={onExport}
+          disabled={exporting}
+          aria-busy={exporting}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container-low rounded-lg border border-ds-outline-variant/10 hover:text-ds-on-surface transition-colors"
         >
-          <Download className="w-3 h-3" aria-hidden="true" />
-          Excel
+          {exporting
+            ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+            : <Download className="w-3 h-3" aria-hidden="true" />}
+          {exporting ? '내보내는 중…' : 'Excel'}
         </button>
       </div>
     </div>
@@ -129,6 +134,7 @@ export function AnalysisDetailPage() {
   const { taskId } = useParams<{ taskId: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const exportAction = useExportAction()
   const { confirm, ConfirmDialogElement } = useConfirm()
   const id = Number(taskId)
   const [previewRow, setPreviewRow] = useState<Record<string, unknown> | null>(null)
@@ -337,8 +343,9 @@ export function AnalysisDetailPage() {
             onExport={() => {
               const stamp = (task.completed_at ?? task.created_at).slice(0, 10)
               const payload = buildExcelPayload(results, columnDefs, rowStyleFn ?? (() => undefined), `분석결과_${typeLabel}_${device?.name ?? task.device_id}_${stamp}`)
-              exportStyledToExcel(payload).catch((e: Error) => toast.error(e.message))
+              exportAction.run(() => exportStyledToExcel(payload)).catch((e: Error) => toast.error(e.message))
             }}
+            exporting={exportAction.busy}
             onDownloadScript={
               downloadScript
                 ? () => saveBlob(new Blob([downloadScript.content], { type: 'text/plain' }), downloadScript.filename)

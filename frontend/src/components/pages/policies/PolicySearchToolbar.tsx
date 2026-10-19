@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
-import { SlidersHorizontal, MoreHorizontal, Download, Bookmark, BookmarkPlus, X } from 'lucide-react'
+import { SlidersHorizontal, MoreHorizontal, Download, Loader2, Bookmark, BookmarkPlus, X } from 'lucide-react'
 import { QueryBuilder } from '@/components/shared/QueryBuilder'
 import { QB_FIELDS, OP_LABELS, generateId, type FilterTree } from '@/components/shared/queryBuilderModel'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,7 @@ const MENU_ITEM = 'flex items-center gap-2 w-full px-3 py-1.5 text-xs text-left 
  */
 export function PolicySearchToolbar({
   filterTree, onFilterTreeChange, filtersOpen, onFiltersOpenChange,
-  hasResults, onExport, onExportUsage, onReset, onSearch, searchDisabled, searching,
+  hasResults, onExport, onExportUsage, exporting, onReset, onSearch, searchDisabled, searching,
 }: {
   filterTree: FilterTree
   onFilterTreeChange: (tree: FilterTree) => void
@@ -25,6 +25,7 @@ export function PolicySearchToolbar({
   hasResults: boolean
   onExport: () => void
   onExportUsage: () => void
+  exporting: boolean
   onReset: () => void
   onSearch: () => void
   searchDisabled: boolean
@@ -133,19 +134,20 @@ export function PolicySearchToolbar({
               onClick={() => setMenuOpen(o => !o)}
               aria-haspopup="menu"
               aria-expanded={menuOpen}
+              aria-busy={exporting}
               className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium text-ds-on-surface-variant rounded-lg hover:bg-ds-surface-container-low hover:text-ds-on-surface transition-colors"
             >
-              <MoreHorizontal className="w-4 h-4" />
-              내보내기·프리셋
+              {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <MoreHorizontal className="w-4 h-4" />}
+              {exporting ? '엑셀 준비 중…' : '내보내기·프리셋'}
               {presets.length > 0 && <span className="text-11 tabular-nums">{presets.length}</span>}
             </button>
             {menuOpen && (
               <div role="menu" className="absolute right-0 top-full mt-1 z-40 w-56 bg-white border border-ds-outline-variant/20 rounded-lg shadow-ambient-md py-1">
-                <button role="menuitem" className={MENU_ITEM} disabled={!hasResults} onClick={() => { setMenuOpen(false); onExport() }}>
+                <button role="menuitem" className={MENU_ITEM} disabled={!hasResults || exporting} onClick={() => { setMenuOpen(false); onExport() }}>
                   <Download className="w-3.5 h-3.5" /> Excel로 내보내기
                 </button>
                 <button
-                  role="menuitem" className={MENU_ITEM} disabled={!hasResults}
+                  role="menuitem" className={MENU_ITEM} disabled={!hasResults || exporting}
                   title="자동 사용이력 수집이 실패했을 때, Deletion Workflow의 사용이력 반영 태스크에 그대로 업로드할 수 있는 형식(Rule Name / Unused Days)으로 내보냅니다."
                   onClick={() => { setMenuOpen(false); onExportUsage() }}
                 >

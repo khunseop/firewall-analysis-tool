@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Save, ChevronDown, ChevronUp, Download, Upload } from 'lucide-react'
+import { Save, ChevronDown, ChevronUp, Download, Upload, Loader2 } from 'lucide-react'
+import { useExportAction } from '@/hooks/useExportAction'
 import { Button } from '@/components/ui/button'
 import { getDeletionWorkflowConfig, updateDeletionWorkflowConfig, exportDeletionWorkflowConfig, importDeletionWorkflowConfig, getDeletionWorkflowConfigYaml, updateDeletionWorkflowConfigYaml } from '@/api/settings'
 import { listDevices } from '@/api/devices'
@@ -65,15 +66,18 @@ export function DeletionWorkflowSettings() {
     onError: (e: Error) => toast.error(e.message),
   })
 
+  const exportAction = useExportAction()
   const handleExport = async () => {
     try {
-      const { blob, filename } = await exportDeletionWorkflowConfig()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      a.click()
-      URL.revokeObjectURL(url)
+      await exportAction.run(async () => {
+        const { blob, filename } = await exportDeletionWorkflowConfig()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        a.click()
+        URL.revokeObjectURL(url)
+      })
     } catch {
       toast.error('백업 파일 다운로드에 실패했습니다.')
     }
@@ -266,10 +270,12 @@ export function DeletionWorkflowSettings() {
         <div className="h-5 w-px bg-ds-outline-variant/30" />
         <button
           onClick={handleExport}
+          disabled={exportAction.busy}
+          aria-busy={exportAction.busy}
           className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-ds-on-surface-variant bg-ds-surface-container border border-ds-outline-variant/30 rounded-lg hover:bg-ds-surface-container-high transition-colors"
         >
-          <Download className="w-3.5 h-3.5" />
-          백업
+          {exportAction.busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+          {exportAction.busy ? '백업 중…' : '백업'}
         </button>
         <button
           onClick={() => importRef.current?.click()}

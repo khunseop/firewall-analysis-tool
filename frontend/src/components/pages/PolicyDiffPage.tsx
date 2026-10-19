@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { DiffTable, type DiffRowData } from './policy-diff/DiffRow'
 import { SyncPointSelector } from './policy-diff/SyncPointSelector'
 import { buildDiffWorkbook } from './policy-diff/excel'
+import { useExportAction } from '@/hooks/useExportAction'
 import { LIVE_RUNNING_ID, LIVE_CANDIDATE_ID, fmt, type DiffResponse, type SyncPoint } from './policy-diff/types'
 
 // ─── API ─────────────────────────────────────────────────────────────────────
@@ -191,13 +192,14 @@ export function PolicyDiffPage() {
 
   const deviceLabel = selectedDevice ? `${selectedDevice.name} (${selectedDevice.vendor})` : `device${selectedDeviceId}`
 
+  const exportAction = useExportAction()
   const handleExport = () => {
     if (!diffResult || searchFilteredRows.length === 0) return
     const stamp = (iso: string) => fmt(iso).replace(/[-: ]/g, '')
     const fromLabel = diffResult.from_sync.id === LIVE_RUNNING_ID ? 'running' : stamp(diffResult.from_sync.sync_at)
     const toLabel = diffResult.to_sync.id === LIVE_CANDIDATE_ID ? 'candidate' : stamp(diffResult.to_sync.sync_at)
     const filename = `정책비교_${selectedDevice?.name ?? `device${selectedDeviceId}`}_${fromLabel}_${toLabel}`
-    exportStyledToExcel(buildDiffWorkbook(diffResult, searchFilteredRows.map((r) => r.entry), searchQuery, filename, deviceLabel))
+    exportAction.run(() => exportStyledToExcel(buildDiffWorkbook(diffResult, searchFilteredRows.map((r) => r.entry), searchQuery, filename, deviceLabel)))
       .catch((e: Error) => toast.error(e.message))
   }
 
@@ -428,10 +430,12 @@ export function PolicyDiffPage() {
                   <button
                     type="button"
                     onClick={handleExport}
-                    disabled={searchFilteredRows.length === 0}
+                    disabled={searchFilteredRows.length === 0 || exportAction.busy}
+                    aria-busy={exportAction.busy}
                     className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-semibold border border-ds-outline-variant/40 bg-white text-ds-on-surface hover:bg-ds-surface-container-low transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ds-tertiary/40"
                   >
-                    <FileDown className="w-3.5 h-3.5" />엑셀로 저장
+                    {exportAction.busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
+                    {exportAction.busy ? '엑셀 준비 중…' : '엑셀로 저장'}
                   </button>
                 </div>
               </div>
