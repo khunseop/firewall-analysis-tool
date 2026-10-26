@@ -210,23 +210,41 @@ async def _collect_db_hit_dates(db, device_id: int) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+WARNING_SHEET_NAME = "수집 경고"
+
+
+def _err_text(e: BaseException) -> str:
+    if isinstance(e, asyncio.TimeoutError):
+        return "타임아웃"
+    return str(e).splitlines()[0][:200] if str(e) else type(e).__name__
+
+
 async def _collect_hit_dates(
-    collector,
     device: models.Device,
     use_ssh: bool,
     loop: asyncio.AbstractEventLoop,
     timeout: int,
     ssh_command_mode: str | None = None,
-) -> pd.DataFrame:
-    def _method():
-        if use_ssh:
-            return collector.export_last_hit_date_ssh(timeout=timeout, os_version=device.os_version, command_mode=ssh_command_mode)
-        return collector.export_last_hit_date()
-
+) -> tuple[pd.DataFrame, str | None]:
+    """(결과, 경고) 반환. 주 장비/HA 중 한쪽만 성공해도 수집된 결과를 돌려주고 경고로 표시한다.
+    양쪽 모두 실패한 경우에만 예외를 던진다."""
     async def _collect_main() -> pd.DataFrame:
-        return await asyncio.wait_for(
-            loop.run_in_executor(IO_EXECUTOR, _method), timeout=timeout
-        )
+        # 연결 실패도 주 장비 실패로 취급해야 HA Peer 결과를 살릴 수 있으므로 여기서 직접 연결한다.
+        collector = create_collector_from_device(device)
+        try:
+            await asyncio.wait_for(loop.run_in_executor(IO_EXECUTOR, collector.connect), timeout=min(timeout, 60))
+
+            def _method():
+                if use_ssh:
+                    return collector.export_last_hit_date_ssh(timeout=timeout, os_version=device.os_version, command_mode=ssh_command_mode)
+                return collector.export_last_hit_date()
+
+            return await asyncio.wait_for(loop.run_in_executor(IO_EXECUTOR, _method), timeout=timeout)
+        finally:
+            try:
+                await loop.run_in_executor(IO_EXECUTOR, collector.disconnect)
+            except Exception:
+                pass
 
     async def _collect_ha() -> pd.DataFrame | None:
         # HA peer 수집 실패는 주 장비 결과를 막지 않는다.
@@ -242,7 +260,7 @@ async def _collect_hit_dates(
             return await loop.run_in_executor(IO_EXECUTOR, _ha_method)
         except Exception as e:
             logger.warning(f"HA peer hit_date 수집 실패 ({device.ha_peer_ip}): {e}")
-            return None
+            raise
         finally:
             try:
                 await loop.run_in_executor(IO_EXECUTOR, ha_collector.disconnect)
@@ -250,19 +268,29 @@ async def _collect_hit_dates(
                 pass
 
     if not device.ha_peer_ip:
-        return await _collect_main()
+        return await _collect_main(), None
 
     # 주 장비와 HA peer는 서로 독립이므로 동시에 수집한다 (순차면 최악 timeout×2).
-    main_df, ha_df = await asyncio.gather(_collect_main(), _collect_ha())
+    main_res, ha_res = await asyncio.gather(_collect_main(), _collect_ha(), return_exceptions=True)
+    main_err = main_res if isinstance(main_res, BaseException) else None
+    ha_err = ha_res if isinstance(ha_res, BaseException) else None
+    if main_err and ha_err:
+        raise main_err
+    if main_err:
+        warning = f"주 장비 수집 실패({_err_text(main_err)}) — HA Peer({device.ha_peer_ip}) 결과만 포함"
+        return ha_res, warning
+    main_df = main_res
+    warning = f"HA Peer({device.ha_peer_ip}) 수집 실패({_err_text(ha_err)}) — 주 장비 결과만 포함" if ha_err else None
+    ha_df = None if ha_err else ha_res
 
     if ha_df is None or ha_df.empty:
-        return main_df
+        return main_df, warning
 
     combined = pd.concat([main_df, ha_df])
     combined["last_hit_date"] = pd.to_datetime(combined["last_hit_date"], errors="coerce")
     subset = ["vsys", "rule_name"] if "vsys" in combined.columns else ["rule_name"]
     combined = combined.sort_values("last_hit_date", ascending=False, na_position="last")
-    return combined.drop_duplicates(subset=subset, keep="first")
+    return combined.drop_duplicates(subset=subset, keep="first"), warning
 
 
 async def _collect_live_export(
@@ -272,7 +300,11 @@ async def _collect_live_export(
     loop: asyncio.AbstractEventLoop,
     timeout: int,
     ssh_command_mode: str | None = None,
-) -> Any:
+) -> tuple[Any, str | None]:
+    """(데이터, 경고) 반환. 경고는 일부만 수집된 경우(hit_dates의 주 장비/HA 한쪽 실패)에만 채워진다."""
+    if export_type == "hit_dates":
+        return await _collect_hit_dates(device, use_ssh, loop, timeout, ssh_command_mode)
+
     try:
         collector = create_collector_from_device(device)
     except Exception as e:
@@ -290,15 +322,14 @@ async def _collect_live_export(
             df = await asyncio.wait_for(
                 loop.run_in_executor(IO_EXECUTOR, collector.export_security_rules), timeout=timeout
             )
-            return _normalize_policy_df(df)
+            return _normalize_policy_df(df), None
         elif export_type == "objects":
             net_obj = await loop.run_in_executor(IO_EXECUTOR, collector.export_network_objects)
             net_grp = await loop.run_in_executor(IO_EXECUTOR, collector.export_network_group_objects)
             svc_obj = await loop.run_in_executor(IO_EXECUTOR, collector.export_service_objects)
             svc_grp = await loop.run_in_executor(IO_EXECUTOR, collector.export_service_group_objects)
-            return _normalize_object_dfs(net_obj, net_grp, svc_obj, svc_grp)
-        else:
-            return await _collect_hit_dates(collector, device, use_ssh, loop, timeout, ssh_command_mode)
+            return _normalize_object_dfs(net_obj, net_grp, svc_obj, svc_grp), None
+        raise ValueError(f"지원하지 않는 추출 종류: {export_type}")
     finally:
         try:
             await loop.run_in_executor(IO_EXECUTOR, collector.disconnect)
@@ -394,6 +425,8 @@ async def run_export_task(task_id: int) -> None:
 
     loop = asyncio.get_running_loop()
     per_device_data: dict[int, Any] = {}
+    warnings: list[tuple[str, str]] = []
+    last_error: Exception | None = None
     label = EXPORT_TYPE_LABEL[export_type]
 
     try:
@@ -402,45 +435,65 @@ async def run_export_task(task_id: int) -> None:
                 logger.info(f"[export] 작업 취소됨 task_id={task_id}")
                 return
             await _update_export_task(task_id, step=f"{device.name} 처리 중 ({idx}/{len(devices)})")
-            if source == "db":
-                async with SessionLocal() as db:
-                    if export_type == "policies":
-                        per_device_data[device.id] = _normalize_policy_df(await _collect_db_policies(db, device.id))
-                    elif export_type == "objects":
-                        per_device_data[device.id] = await _collect_db_objects(db, device.id)
-                    else:
-                        per_device_data[device.id] = _normalize_hit_dates_df(await _collect_db_hit_dates(db, device.id))
-            else:
-                data = await _collect_live_export(device, export_type, use_ssh, loop, timeout, ssh_command_mode)
-                if export_type == "hit_dates":
+            try:
+                if source == "db":
                     async with SessionLocal() as db:
-                        data = await _enrich_hit_dates_with_seq(db, device.id, data)
-                    data = _normalize_hit_dates_df(data)
-                per_device_data[device.id] = data
+                        if export_type == "policies":
+                            per_device_data[device.id] = _normalize_policy_df(await _collect_db_policies(db, device.id))
+                        elif export_type == "objects":
+                            per_device_data[device.id] = await _collect_db_objects(db, device.id)
+                        else:
+                            per_device_data[device.id] = _normalize_hit_dates_df(await _collect_db_hit_dates(db, device.id))
+                else:
+                    data, warning = await _collect_live_export(device, export_type, use_ssh, loop, timeout, ssh_command_mode)
+                    if export_type == "hit_dates":
+                        async with SessionLocal() as db:
+                            data = await _enrich_hit_dates_with_seq(db, device.id, data)
+                        data = _normalize_hit_dates_df(data)
+                    per_device_data[device.id] = data
+                    if warning:
+                        warnings.append((device.name, warning))
+            except Exception as e:
+                # 한 장비의 실패가 다른 장비의 수집 결과까지 버리지 않도록 기록만 하고 계속 진행
+                logger.error(f"[export] 장비 수집 실패 task_id={task_id} device={device.name}: {e}", exc_info=True)
+                last_error = e
+                warnings.append((device.name, f"수집 실패({_err_text(e)}) — 결과에서 제외"))
             await _update_export_task(task_id, progress_current=idx)
 
         if await _is_cancelled(task_id):
             logger.info(f"[export] 작업 취소됨 task_id={task_id}")
             return
 
+        collected = [d for d in devices if d.id in per_device_data]
+        if not collected:
+            raise last_error if last_error else RuntimeError("수집된 데이터가 없습니다.")
+
         await _update_export_task(task_id, step="엑셀 생성 중...")
         today = date.today().strftime("%Y-%m-%d")
 
+        warning_sheet = (
+            {WARNING_SHEET_NAME: pd.DataFrame(warnings, columns=["장비", "내용"])} if warnings else {}
+        )
         if merge and len(devices) > 1:
             merged_sheets: dict[str, pd.DataFrame] = {}
-            for device in devices:
+            for device in collected:
                 data = per_device_data[device.id]
                 if isinstance(data, dict):
                     for sheet_name, df in data.items():
                         merged_sheets[f"{sheet_name}_{device.name}"[:31]] = df
                 else:
                     merged_sheets[device.name[:31]] = data
-            output = _multi_sheet_excel(merged_sheets)
+            output = _multi_sheet_excel({**merged_sheets, **warning_sheet})
             filename = f"{today}_통합_{label}.xlsx"
         else:
-            device = devices[0]
+            device = collected[0]
             data = per_device_data[device.id]
-            output = _multi_sheet_excel(data) if isinstance(data, dict) else _single_sheet_excel(data, label)
+            if isinstance(data, dict):
+                output = _multi_sheet_excel({**data, **warning_sheet})
+            elif warning_sheet:
+                output = _multi_sheet_excel({label: data, **warning_sheet})
+            else:
+                output = _single_sheet_excel(data, label)
             filename = f"{today}_{device.name}_{label}.xlsx"
 
         EXPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -455,6 +508,8 @@ async def run_export_task(task_id: int) -> None:
             progress_current=len(devices),
             result_file_path=str(file_path),
             result_filename=filename,
+            # 일부만 수집된 경우: 성공 상태로 완료하되 경고 내용을 error_message에 담아 화면에 표시한다
+            error_message=" / ".join(f"{name}: {msg}" for name, msg in warnings) if warnings else None,
         )
     except asyncio.TimeoutError:
         await _update_export_task(task_id, status="failure", error_message=f"데이터 수집 타임아웃 ({timeout}초 초과)")

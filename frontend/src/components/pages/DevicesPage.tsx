@@ -202,10 +202,15 @@ export function DevicesPage() {
     if (msg.status === 'success') {
       const label = exportTypeLabel(existing?.exportType ?? null)
       const downloadName = msg.result_filename ?? `${label}_${msg.task_id}.xlsx`
-      toast.success(`직접 추출 완료: ${label} 추출이 완료되었습니다.`, {
-        action: { label: '다운로드', onClick: () => downloadExportResult(msg.task_id, downloadName) },
-      })
-      createNotification({ title: '직접 추출 완료', message: `${label} 추출이 완료되었습니다.`, type: 'success', category: 'system' }).catch(console.error)
+      const action = { label: '다운로드', onClick: () => downloadExportResult(msg.task_id, downloadName) }
+      if (msg.error) {
+        // 일부만 수집된 경우: 성공 처리하되 경고를 함께 표시 (결과 파일의 '수집 경고' 시트에도 기록됨)
+        toast.warning(`직접 추출 일부 완료: ${msg.error}`, { action })
+        createNotification({ title: '직접 추출 일부 완료', message: `${label}: ${msg.error}`, type: 'warning', category: 'system' }).catch(console.error)
+      } else {
+        toast.success(`직접 추출 완료: ${label} 추출이 완료되었습니다.`, { action })
+        createNotification({ title: '직접 추출 완료', message: `${label} 추출이 완료되었습니다.`, type: 'success', category: 'system' }).catch(console.error)
+      }
     } else if (msg.status === 'failure') {
       const label = exportTypeLabel(existing?.exportType ?? null)
       const errorMessage = msg.error ?? `${label} 추출 중 오류가 발생했습니다.`
@@ -410,6 +415,7 @@ export function DevicesPage() {
                   <span className="text-11 text-ds-on-surface-variant flex-1 truncate">
                     {t.deviceLabel && <span className="font-semibold text-ds-on-surface">{t.deviceLabel}</span>} {label} 추출 완료
                     {t.timeLabel && <span className="ml-1 text-ds-on-surface-variant/60">({t.timeLabel})</span>}
+                    {t.errorMessage && <span className="ml-1.5 text-amber-700" title={t.errorMessage}>· 일부만 수집됨: {t.errorMessage}</span>}
                   </span>
                   <button
                     onClick={() => downloadExportResult(t.id, downloadName)}

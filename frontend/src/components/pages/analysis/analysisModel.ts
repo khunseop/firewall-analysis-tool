@@ -46,7 +46,9 @@ export function describeTaskResult(t: TaskLike): { kind: ResultKind; text: strin
       ? { kind: 'zero', text: `정상 완료 · ${noun} 0건` }
       : { kind: 'zero', text: `완료 · ${noun} 0건` }
   }
-  return { kind: 'count', text: `${noun} ${t.result_count.toLocaleString()}건` }
+  // 일부만 수집된 채 성공 처리된 경우(error_message에 경고 기록) 건수 뒤에 함께 표시
+  const warn = t.error_message ? ` · ⚠ ${t.error_message}` : ''
+  return { kind: 'count', text: `${noun} ${t.result_count.toLocaleString()}건${warn}` }
 }
 
 /** 이력의 "기준" 칸 — 저장된 실행 파라미터를 모듈이 정의한 방식으로 요약한다. */

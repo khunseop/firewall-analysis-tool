@@ -148,61 +148,66 @@ def merge_and_enrich(
     return df
 
 
-async def _collect_usage_live(device, loop: asyncio.AbstractEventLoop) -> pd.DataFrame:
-    """장비에 라이브 접속해 사용이력을 수집한다. Devices 페이지 "직접 추출"(hit_dates)과
-    동일한 벤더 컬렉터를 사용하되, 파이프라인 실행 로직은 모듈 간 공통화하지 않는다는
-    원칙에 따라 이 모듈 전용으로 독립 작성한다. HA Peer가 있으면 last_hit_date 기준
-    최신값으로 병합한다. 벤더가 미지원이면(NGF 등) 빈/부분 DataFrame이 반환될 수 있다.
+def _err_text(e: BaseException) -> str:
+    if isinstance(e, asyncio.TimeoutError):
+        return "타임아웃"
+    return str(e).splitlines()[0][:200] if str(e) else type(e).__name__
+
+
+async def _collect_usage_live(device, loop: asyncio.AbstractEventLoop) -> tuple[pd.DataFrame, str | None]:
+    """장비에 라이브 접속해 사용이력을 수집한다. (결과, 경고) 반환.
+    Devices 페이지 "직접 추출"(hit_dates)과 동일한 벤더 컬렉터를 사용하되, 파이프라인 실행
+    로직은 모듈 간 공통화하지 않는다는 원칙에 따라 이 모듈 전용으로 독립 작성한다.
+    주 장비와 HA Peer는 동시에 수집하고, last_hit_date 기준 최신값으로 병합한다.
+    한쪽만 실패하면 수집된 쪽 결과로 진행하고 경고를 돌려주며, 양쪽 모두 실패하면 예외를 던진다.
+    벤더가 미지원이면(NGF 등) 빈/부분 DataFrame이 반환될 수 있다.
     """
     use_ssh = bool(device.use_ssh_for_last_hit_date)
-    collector = create_collector_from_device(device)
 
-    def _method():
-        return collector.export_last_hit_date_ssh(timeout=_USAGE_COLLECT_TIMEOUT, os_version=device.os_version) if use_ssh else collector.export_last_hit_date()
+    async def _collect(use_ha_ip: bool) -> pd.DataFrame:
+        collector = create_collector_from_device(device, use_ha_ip=use_ha_ip)
 
-    await loop.run_in_executor(IO_EXECUTOR, collector.connect)
-    try:
-        main_df = await asyncio.wait_for(
-            loop.run_in_executor(IO_EXECUTOR, _method), timeout=_USAGE_COLLECT_TIMEOUT
-        )
-    finally:
+        def _method():
+            if use_ssh:
+                return collector.export_last_hit_date_ssh(timeout=_USAGE_COLLECT_TIMEOUT, os_version=device.os_version)
+            return collector.export_last_hit_date()
+
         try:
-            await loop.run_in_executor(IO_EXECUTOR, collector.disconnect)
-        except Exception:
-            pass
+            await loop.run_in_executor(IO_EXECUTOR, collector.connect)
+            return await asyncio.wait_for(
+                loop.run_in_executor(IO_EXECUTOR, _method), timeout=_USAGE_COLLECT_TIMEOUT
+            )
+        finally:
+            try:
+                await loop.run_in_executor(IO_EXECUTOR, collector.disconnect)
+            except Exception:
+                pass
 
     if not device.ha_peer_ip:
-        return main_df
+        return await _collect(False), None
 
-    ha_collector = create_collector_from_device(device, use_ha_ip=True)
-    ha_df: pd.DataFrame | None = None
-    try:
-        await loop.run_in_executor(IO_EXECUTOR, ha_collector.connect)
+    main_res, ha_res = await asyncio.gather(_collect(False), _collect(True), return_exceptions=True)
+    main_err = main_res if isinstance(main_res, BaseException) else None
+    ha_err = ha_res if isinstance(ha_res, BaseException) else None
+    if main_err and ha_err:
+        raise main_err
+    if main_err:
+        logger.warning(f"주 장비 사용이력 수집 실패: {main_err}")
+        return ha_res, f"주 장비 사용이력 수집 실패({_err_text(main_err)}) — HA Peer({device.ha_peer_ip}) 결과만 사용"
+    if ha_err:
+        logger.warning(f"HA peer 사용이력 수집 실패 ({device.ha_peer_ip}): {ha_err}")
+        return main_res, f"HA Peer({device.ha_peer_ip}) 사용이력 수집 실패({_err_text(ha_err)}) — 주 장비 결과만 사용"
 
-        def _ha_method():
-            return ha_collector.export_last_hit_date_ssh(timeout=_USAGE_COLLECT_TIMEOUT, os_version=device.os_version) if use_ssh else ha_collector.export_last_hit_date()
+    if ha_res is None or ha_res.empty:
+        return main_res, None
 
-        ha_df = await asyncio.wait_for(
-            loop.run_in_executor(IO_EXECUTOR, _ha_method), timeout=_USAGE_COLLECT_TIMEOUT
-        )
-    except Exception as e:
-        logger.warning(f"HA peer 사용이력 수집 실패 ({device.ha_peer_ip}): {e}")
-    finally:
-        try:
-            await loop.run_in_executor(IO_EXECUTOR, ha_collector.disconnect)
-        except Exception:
-            pass
-
-    if ha_df is None or ha_df.empty:
-        return main_df
-
-    combined = pd.concat([main_df, ha_df])
+    combined = pd.concat([main_res, ha_res])
     if "last_hit_date" in combined.columns:
         combined["last_hit_date"] = pd.to_datetime(combined["last_hit_date"], errors="coerce")
         subset = ["vsys", "rule_name"] if "vsys" in combined.columns else ["rule_name"]
         combined = combined.sort_values("last_hit_date", ascending=False, na_position="last")
         combined = combined.drop_duplicates(subset=subset, keep="first")
-    return combined
+    return combined, None
 
 
 class UnusedNgPolicyAnalyzer:
@@ -213,6 +218,7 @@ class UnusedNgPolicyAnalyzer:
         self.task = task
         self.device_id = task.device_id
         self.reference_date = reference_date
+        self.usage_warning: Optional[str] = None  # 사용이력이 일부만 수집된 경우의 경고 (성공 처리 + 화면 표시용)
 
     async def _get_policies(self) -> List[Policy]:
         result = await self.db.execute(
@@ -253,7 +259,7 @@ class UnusedNgPolicyAnalyzer:
 
         parsed_df = await loop.run_in_executor(CPU_EXECUTOR, _parse_step)
 
-        usage_df = await _collect_usage_live(device, loop)
+        usage_df, self.usage_warning = await _collect_usage_live(device, loop)
 
         def _merge_step():
             return merge_and_enrich(parsed_df, usage_df, self.reference_date)

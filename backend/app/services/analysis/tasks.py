@@ -570,6 +570,7 @@ async def _run_unused_ng_policy_analysis(db: AsyncSession, device_id: int, refer
                 completed_at=get_kst_now(),
                 task_status='success',
                 result_count=await _stored_result_count(db, task.id, AnalysisTaskType.UNUSED_NG_POLICY),
+                error_message=analyzer.usage_warning,
             )
             await crud.analysis.update_analysis_task(db, db_obj=task, obj_in=task_update)
             await log_activity(db, title="미사용 NG 정책 분석 완료", message=f"Device ID {device_id} 미사용 NG 정책 분석 완료", type="success", category="analysis", device_id=device_id)
