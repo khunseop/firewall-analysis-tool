@@ -20,6 +20,7 @@
 | `description` | `VARCHAR` | `NULLABLE` | 장비 설명 |
 | `ha_peer_ip` | `VARCHAR` | `NULLABLE` | HA 구성을 위한 상대 장비 IP (Palo Alto) |
 | `use_ssh_for_last_hit_date` | `BOOLEAN` | `DEFAULT False` | 히트 수집 시 SSH 사용 여부 |
+| `ssh_hit_command_mode` | `VARCHAR` | `NULLABLE` | SSH 히트 수집 명령 버전 (`vsys_all`, `vsys_name`). NULL이면 OS 버전으로 자동 판단 (동기화·미사용 NG 분석에 적용) |
 | `collect_last_hit_date` | `BOOLEAN` | `DEFAULT False` | Last Hit Date 수집 활성화 여부 |
 | `group` | `VARCHAR` | `NULLABLE` | 장비 그룹 (예: 서울DC, 부산DR) |
 | `model` | `VARCHAR` | `NULLABLE` | 장비 모델명 |

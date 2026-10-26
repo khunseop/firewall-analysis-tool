@@ -24,7 +24,7 @@ import { useBulkRun } from './devices/useBulkRun'
 import { DeviceStatusStrip, type DeviceStatusFilter } from './devices/DeviceStatusStrip'
 import { DeviceSelectionActions } from './devices/DeviceSelectionActions'
 import { ColumnChooser } from './devices/ColumnChooser'
-import { DEFAULT_HIDDEN_COLUMNS } from './devices/constants'
+import { DEFAULT_HIDDEN_COLUMNS, toSshHitCommandChoice, fromSshHitCommandChoice } from './devices/constants'
 import { ActionMenu } from '@/components/shared/ActionMenu'
 import { useDeviceSearchStore } from '@/store/deviceSearchStore'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -341,7 +341,7 @@ export function DevicesPage() {
     await runBulk('연결 테스트 결과', selectedDevices, async (d) => (await testConnection(d.id)).message)
   }, [selectedDevices, runBulk])
 
-  const handleBulkSetOptions = useCallback(async (opts: Pick<DeviceUpdate, 'collect_last_hit_date' | 'use_ssh_for_last_hit_date'>) => {
+  const handleBulkSetOptions = useCallback(async (opts: Pick<DeviceUpdate, 'collect_last_hit_date' | 'use_ssh_for_last_hit_date' | 'ssh_hit_command_mode'>) => {
     setBulkOptionsOpen(false)
     try {
       await Promise.all(selectedDevices.map(d => updateDevice(d.id, opts)))
@@ -585,6 +585,7 @@ export function DevicesPage() {
           group: editTarget.group ?? '', description: editTarget.description ?? '',
           collect_last_hit_date: editTarget.collect_last_hit_date,
           use_ssh_for_last_hit_date: editTarget.use_ssh_for_last_hit_date,
+          ssh_hit_command_mode: toSshHitCommandChoice(editTarget.ssh_hit_command_mode),
           hostname: editTarget.hostname ?? '', hostname_manual: editTarget.hostname_manual,
           uptime: editTarget.uptime ?? '',
           multi_vsys: editTarget.multi_vsys ?? '', multi_vsys_manual: editTarget.multi_vsys_manual,
@@ -607,10 +608,11 @@ export function DevicesPage() {
           service_group_threshold_manual: editTarget.service_group_threshold_manual,
         } : undefined}
         onSubmit={(data) => {
-          const { policy_threshold, network_object_threshold, network_group_threshold, service_threshold, service_group_threshold, install_date, ...rest } = data
+          const { policy_threshold, network_object_threshold, network_group_threshold, service_threshold, service_group_threshold, install_date, ssh_hit_command_mode, ...rest } = data
           const toNum = (v: string) => v === '' ? undefined : Number(v)
           const payload = {
             ...rest,
+            ssh_hit_command_mode: fromSshHitCommandChoice(ssh_hit_command_mode),
             install_date: install_date || undefined,
             policy_threshold: toNum(policy_threshold),
             network_object_threshold: toNum(network_object_threshold),
@@ -637,6 +639,8 @@ export function DevicesPage() {
         initial={{
           collect_last_hit_date: selectedDevices.every(d => d.collect_last_hit_date),
           use_ssh_for_last_hit_date: selectedDevices.every(d => d.use_ssh_for_last_hit_date),
+          ssh_hit_command_mode: selectedDevices.every(d => d.ssh_hit_command_mode === selectedDevices[0].ssh_hit_command_mode)
+            ? toSshHitCommandChoice(selectedDevices[0].ssh_hit_command_mode) : 'auto',
         }}
         onSubmit={handleBulkSetOptions}
       />

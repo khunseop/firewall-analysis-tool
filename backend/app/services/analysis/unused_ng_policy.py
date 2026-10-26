@@ -169,7 +169,7 @@ async def _collect_usage_live(device, loop: asyncio.AbstractEventLoop) -> tuple[
 
         def _method():
             if use_ssh:
-                return collector.export_last_hit_date_ssh(timeout=_USAGE_COLLECT_TIMEOUT, os_version=device.os_version)
+                return collector.export_last_hit_date_ssh(timeout=_USAGE_COLLECT_TIMEOUT, os_version=device.os_version, command_mode=device.ssh_hit_command_mode)
             return collector.export_last_hit_date()
 
         try:

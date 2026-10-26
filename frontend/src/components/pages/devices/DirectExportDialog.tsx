@@ -35,7 +35,7 @@ export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
       setSource('live')
       setMerge(false)
       setUseSsh(devices.length === 1 ? devices[0].use_ssh_for_last_hit_date : false)
-      setSshCommandMode('vsys_all')
+      setSshCommandMode(devices.length === 1 ? (devices[0].ssh_hit_command_mode ?? 'vsys_all') : 'vsys_all')
       setTimeout_(6000)
       setSubmitting(false)
     }

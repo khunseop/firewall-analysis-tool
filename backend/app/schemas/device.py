@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Literal, Optional
 from datetime import datetime, date
 
 # Base schema for device attributes
@@ -11,6 +11,7 @@ class DeviceBase(BaseModel):
     description: Optional[str] = None
     ha_peer_ip: Optional[str] = None
     use_ssh_for_last_hit_date: Optional[bool] = False
+    ssh_hit_command_mode: Optional[Literal["vsys_all", "vsys_name"]] = None
     collect_last_hit_date: Optional[bool] = True
     model: Optional[str] = None
     model_manual: Optional[bool] = False
@@ -64,6 +65,7 @@ class DeviceUpdate(BaseModel):
     description: Optional[str] = None
     ha_peer_ip: Optional[str] = None
     use_ssh_for_last_hit_date: Optional[bool] = None
+    ssh_hit_command_mode: Optional[Literal["vsys_all", "vsys_name"]] = None
     collect_last_hit_date: Optional[bool] = None
     model: Optional[str] = None
     model_manual: Optional[bool] = None

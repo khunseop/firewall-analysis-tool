@@ -36,11 +36,24 @@ export const STATUS_ORDER: Record<string, number> = {
   pending: 0, in_progress: 1, success: 2, failure: 3, error: 4,
 }
 
+/** 'auto' = 저장 시 null (OS 버전으로 자동 판단) */
+export type SshHitCommandChoice = 'auto' | 'vsys_all' | 'vsys_name'
+
+export const SSH_HIT_COMMAND_OPTIONS: { value: SshHitCommandChoice; label: string }[] = [
+  { value: 'auto', label: '자동 (OS 버전 기준)' },
+  { value: 'vsys_all', label: 'vsys all' },
+  { value: 'vsys_name', label: 'vsys-name' },
+]
+
+export const toSshHitCommandChoice = (v: 'vsys_all' | 'vsys_name' | null | undefined): SshHitCommandChoice => v ?? 'auto'
+export const fromSshHitCommandChoice = (v: SshHitCommandChoice) => (v === 'auto' ? null : v)
+
 export interface DeviceFormData {
   name: string; ip_address: string; vendor: string; username: string
   password: string; password_confirm: string; ha_peer_ip: string
   model: string; model_manual: boolean; group: string; description: string; collect_last_hit_date: boolean
   use_ssh_for_last_hit_date: boolean
+  ssh_hit_command_mode: SshHitCommandChoice
   hostname: string; hostname_manual: boolean; uptime: string
   multi_vsys: string; multi_vsys_manual: boolean
   serial_number: string; serial_number_manual: boolean
@@ -56,7 +69,7 @@ export interface DeviceFormData {
 
 export const DEFAULT_FORM: DeviceFormData = {
   name: '', ip_address: '', vendor: 'paloalto', username: '', password: '', password_confirm: '',
-  ha_peer_ip: '', model: '', model_manual: false, group: '', description: '', collect_last_hit_date: true, use_ssh_for_last_hit_date: false,
+  ha_peer_ip: '', model: '', model_manual: false, group: '', description: '', collect_last_hit_date: true, use_ssh_for_last_hit_date: false, ssh_hit_command_mode: 'auto',
   hostname: '', hostname_manual: false, uptime: '',
   multi_vsys: '', multi_vsys_manual: false,
   serial_number: '', serial_number_manual: false,

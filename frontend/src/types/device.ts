@@ -7,6 +7,7 @@ export interface Device {
   description: string | null
   ha_peer_ip: string | null
   use_ssh_for_last_hit_date: boolean
+  ssh_hit_command_mode: 'vsys_all' | 'vsys_name' | null
   collect_last_hit_date: boolean
   model: string | null
   model_manual: boolean
@@ -61,6 +62,7 @@ export interface DeviceCreate {
   ha_peer_ip?: string
   description?: string
   use_ssh_for_last_hit_date?: boolean
+  ssh_hit_command_mode?: 'vsys_all' | 'vsys_name' | null
   collect_last_hit_date?: boolean
   model?: string
   model_manual?: boolean
@@ -105,6 +107,7 @@ export interface DeviceUpdate {
   ha_peer_ip?: string
   description?: string
   use_ssh_for_last_hit_date?: boolean
+  ssh_hit_command_mode?: 'vsys_all' | 'vsys_name' | null
   collect_last_hit_date?: boolean
   model?: string
   model_manual?: boolean

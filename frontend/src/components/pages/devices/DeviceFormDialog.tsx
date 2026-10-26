@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useConfirm } from '@/components/shared/ConfirmDialog'
-import { VENDOR_OPTIONS, DEFAULT_FORM, type DeviceFormData } from './constants'
+import { VENDOR_OPTIONS, DEFAULT_FORM, SSH_HIT_COMMAND_OPTIONS, type DeviceFormData, type SshHitCommandChoice } from './constants'
 
 /** IPv4(옥텟 0~255), IPv6, 호스트명을 허용한다 — 공백·특수문자가 섞인 값은 저장 전에 걸러낸다. */
 function isValidHost(value: string): boolean {
@@ -201,6 +201,19 @@ export function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }
                   SSH로 최근 사용일 수집
                 </label>
               </div>
+              {form.use_ssh_for_last_hit_date && (
+                <div className="space-y-1">
+                  <Label htmlFor="device-form-ssh-cmd" className="text-10 font-bold uppercase tracking-widest text-ds-primary">SSH 수집 명령 (동기화·분석)</Label>
+                  <ShadSelect value={form.ssh_hit_command_mode} onValueChange={(v) => set('ssh_hit_command_mode', v as SshHitCommandChoice)}>
+                    <SelectTrigger id="device-form-ssh-cmd" className="bg-white border-ds-outline-variant/30 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SSH_HIT_COMMAND_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </ShadSelect>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="detail" className="space-y-3">

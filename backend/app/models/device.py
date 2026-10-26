@@ -32,6 +32,7 @@ class Device(Base):
     description = Column(String, nullable=True)
     ha_peer_ip = Column(String, nullable=True)
     use_ssh_for_last_hit_date = Column(Boolean, nullable=True, default=False)
+    ssh_hit_command_mode = Column(String, nullable=True)  # vsys_all | vsys_name | NULL(OS 버전으로 자동 판단)
     collect_last_hit_date = Column(Boolean, nullable=True, default=True)
     model = Column(String, nullable=True)
     
