@@ -28,7 +28,8 @@ from app.services.export.tasks import run_export_task, cancel_export_task
 class DirectExportRequest(BaseModel):
     export_type: Literal["policies", "objects", "hit_dates"]
     use_ssh: bool = False
-    timeout_seconds: int = Field(default=6000, ge=30, le=7200)
+    ssh_command_mode: Literal["vsys_all", "vsys_name"] = "vsys_all"
+    timeout_seconds: int = Field(default=6000, ge=30, le=21600)
 
 
 class BulkExportRequest(BaseModel):
@@ -37,7 +38,8 @@ class BulkExportRequest(BaseModel):
     source: Literal["live", "db"] = "live"
     merge: bool = False
     use_ssh: bool = False
-    timeout_seconds: int = Field(default=6000, ge=30, le=7200)
+    ssh_command_mode: Literal["vsys_all", "vsys_name"] = "vsys_all"
+    timeout_seconds: int = Field(default=6000, ge=30, le=21600)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -461,6 +463,7 @@ async def _create_export_task(
     source: str,
     merge: bool,
     use_ssh: bool,
+    ssh_command_mode: str,
     timeout_seconds: int,
 ) -> models.ExportTask:
     task = models.ExportTask(
@@ -469,6 +472,7 @@ async def _create_export_task(
         source=source,
         merge=merge,
         use_ssh=use_ssh,
+        ssh_command_mode=ssh_command_mode,
         timeout_seconds=timeout_seconds,
         status="pending",
         progress_total=len(device_ids),
@@ -496,7 +500,8 @@ async def direct_export_device(
         raise HTTPException(status_code=404, detail="Device not found")
 
     task = await _create_export_task(
-        db, current_user, [device_id], request.export_type, "live", False, request.use_ssh, request.timeout_seconds
+        db, current_user, [device_id], request.export_type, "live", False, request.use_ssh,
+        request.ssh_command_mode, request.timeout_seconds
     )
     background_tasks.add_task(run_export_task, task.id)
     return {"task_id": task.id}
@@ -524,7 +529,7 @@ async def bulk_export_devices(
 
     task = await _create_export_task(
         db, current_user, request.device_ids, request.export_type,
-        request.source, request.merge, request.use_ssh, request.timeout_seconds,
+        request.source, request.merge, request.use_ssh, request.ssh_command_mode, request.timeout_seconds,
     )
     background_tasks.add_task(run_export_task, task.id)
     return {"task_id": task.id}

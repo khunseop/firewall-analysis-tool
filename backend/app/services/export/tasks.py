@@ -216,10 +216,11 @@ async def _collect_hit_dates(
     use_ssh: bool,
     loop: asyncio.AbstractEventLoop,
     timeout: int,
+    ssh_command_mode: str | None = None,
 ) -> pd.DataFrame:
     def _method():
         if use_ssh:
-            return collector.export_last_hit_date_ssh(timeout=timeout, os_version=device.os_version)
+            return collector.export_last_hit_date_ssh(timeout=timeout, os_version=device.os_version, command_mode=ssh_command_mode)
         return collector.export_last_hit_date()
 
     main_df: pd.DataFrame = await asyncio.wait_for(
@@ -236,7 +237,7 @@ async def _collect_hit_dates(
 
         def _ha_method():
             if use_ssh:
-                return ha_collector.export_last_hit_date_ssh(timeout=timeout, os_version=device.os_version)
+                return ha_collector.export_last_hit_date_ssh(timeout=timeout, os_version=device.os_version, command_mode=ssh_command_mode)
             return ha_collector.export_last_hit_date()
 
         ha_df = await loop.run_in_executor(IO_EXECUTOR, _ha_method)
@@ -264,6 +265,7 @@ async def _collect_live_export(
     use_ssh: bool,
     loop: asyncio.AbstractEventLoop,
     timeout: int,
+    ssh_command_mode: str | None = None,
 ) -> Any:
     try:
         collector = create_collector_from_device(device)
@@ -290,7 +292,7 @@ async def _collect_live_export(
             svc_grp = await loop.run_in_executor(IO_EXECUTOR, collector.export_service_group_objects)
             return _normalize_object_dfs(net_obj, net_grp, svc_obj, svc_grp)
         else:
-            return await _collect_hit_dates(collector, device, use_ssh, loop, timeout)
+            return await _collect_hit_dates(collector, device, use_ssh, loop, timeout, ssh_command_mode)
     finally:
         try:
             await loop.run_in_executor(IO_EXECUTOR, collector.disconnect)
@@ -368,6 +370,7 @@ async def run_export_task(task_id: int) -> None:
         merge: bool = task.merge
         use_ssh: bool = task.use_ssh
         timeout: int = task.timeout_seconds
+        ssh_command_mode: str | None = task.ssh_command_mode
 
         devices = []
         for device_id in device_ids:
@@ -402,7 +405,7 @@ async def run_export_task(task_id: int) -> None:
                     else:
                         per_device_data[device.id] = _normalize_hit_dates_df(await _collect_db_hit_dates(db, device.id))
             else:
-                data = await _collect_live_export(device, export_type, use_ssh, loop, timeout)
+                data = await _collect_live_export(device, export_type, use_ssh, loop, timeout, ssh_command_mode)
                 if export_type == "hit_dates":
                     async with SessionLocal() as db:
                         data = await _enrich_hit_dates_with_seq(db, device.id, data)

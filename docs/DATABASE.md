@@ -252,7 +252,8 @@
 | `source` | `VARCHAR` | `NOT NULL, DEFAULT 'live'` | 데이터 출처 (`live`: 실시간 접속, `db`: 동기화된 DB 데이터) |
 | `merge` | `BOOLEAN` | `NOT NULL, DEFAULT false` | 여러 장비 결과를 하나의 엑셀로 합칠지 여부 |
 | `use_ssh` | `BOOLEAN` | `NOT NULL, DEFAULT false` | hit_dates 수집 시 SSH 사용 여부 |
-| `timeout_seconds` | `INTEGER` | `NOT NULL, DEFAULT 600` | 장비당 수집 타임아웃 (최대 7200) |
+| `ssh_command_mode` | `VARCHAR` | `NULLABLE` | hit_dates SSH 수집 시 Palo Alto 명령 버전 (`vsys_all`, `vsys_name`). NULL이면 OS 버전으로 자동 판단 |
+| `timeout_seconds` | `INTEGER` | `NOT NULL, DEFAULT 600` | 장비당 수집 타임아웃 (최대 21600) |
 | `status` | `VARCHAR` | `NOT NULL, DEFAULT 'pending'` | 상태 (`pending`, `in_progress`, `success`, `failure`) |
 | `step` | `VARCHAR` | `NULLABLE` | 세부 진행 단계 텍스트 |
 | `progress_current` | `INTEGER` | `NOT NULL, DEFAULT 0` | 처리 완료된 장비 수 |

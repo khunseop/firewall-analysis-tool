@@ -72,6 +72,8 @@ export const bulkImportDevices = async (file: File): Promise<BulkImportResult> =
 
 export type DirectExportType = 'policies' | 'objects' | 'hit_dates'
 
+export type SshCommandMode = 'vsys_all' | 'vsys_name'
+
 export type ExportTaskStatus = 'pending' | 'in_progress' | 'success' | 'failure'
 
 export interface ExportTask {
@@ -81,6 +83,7 @@ export interface ExportTask {
   source: 'live' | 'db'
   merge: boolean
   use_ssh: boolean
+  ssh_command_mode: SshCommandMode | null
   timeout_seconds: number
   status: ExportTaskStatus
   step: string | null
@@ -99,11 +102,12 @@ export interface ExportTask {
 export const directExport = async (
   device: Device,
   exportType: DirectExportType,
-  options?: { use_ssh?: boolean; timeout_seconds?: number },
+  options?: { use_ssh?: boolean; ssh_command_mode?: SshCommandMode; timeout_seconds?: number },
 ): Promise<{ task_id: number }> => {
   const res = await apiClient.post(`/devices/${device.id}/direct-export`, {
     export_type: exportType,
     use_ssh: options?.use_ssh ?? false,
+    ssh_command_mode: options?.ssh_command_mode ?? 'vsys_all',
     timeout_seconds: options?.timeout_seconds ?? 6000,
   })
   return res.data
@@ -112,7 +116,7 @@ export const directExport = async (
 export const bulkExportDevices = async (
   devices: Device[],
   exportType: DirectExportType,
-  options?: { source?: 'live' | 'db'; merge?: boolean; use_ssh?: boolean; timeout_seconds?: number },
+  options?: { source?: 'live' | 'db'; merge?: boolean; use_ssh?: boolean; ssh_command_mode?: SshCommandMode; timeout_seconds?: number },
 ): Promise<{ task_id: number }> => {
   const res = await apiClient.post('/devices/export', {
     device_ids: devices.map((d) => d.id),
@@ -120,6 +124,7 @@ export const bulkExportDevices = async (
     source: options?.source ?? 'live',
     merge: options?.merge ?? false,
     use_ssh: options?.use_ssh ?? false,
+    ssh_command_mode: options?.ssh_command_mode ?? 'vsys_all',
     timeout_seconds: options?.timeout_seconds ?? 6000,
   })
   return res.data

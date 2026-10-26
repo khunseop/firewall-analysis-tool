@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { directExport, bulkExportDevices, type Device, type DirectExportType } from '@/api/devices'
+import { directExport, bulkExportDevices, type Device, type DirectExportType, type SshCommandMode } from '@/api/devices'
 
 const EXPORT_TYPE_OPTIONS: { type: DirectExportType; label: string; desc: string }[] = [
   { type: 'policies',  label: '정책',    desc: '보안 정책 목록 전체' },
@@ -22,6 +22,7 @@ export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
   const [source, setSource] = useState<'live' | 'db'>('live')
   const [merge, setMerge] = useState(false)
   const [useSsh, setUseSsh] = useState(false)
+  const [sshCommandMode, setSshCommandMode] = useState<SshCommandMode>('vsys_all')
   const [timeout, setTimeout_] = useState(6000)
   const [submitting, setSubmitting] = useState(false)
 
@@ -34,6 +35,7 @@ export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
       setSource('live')
       setMerge(false)
       setUseSsh(devices.length === 1 ? devices[0].use_ssh_for_last_hit_date : false)
+      setSshCommandMode('vsys_all')
       setTimeout_(6000)
       setSubmitting(false)
     }
@@ -49,6 +51,7 @@ export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
         const { task_id } = await bulkExportDevices(devices, exportType, {
           source, merge: true,
           use_ssh: exportType === 'hit_dates' ? useSsh : false,
+          ssh_command_mode: sshCommandMode,
           timeout_seconds: timeout,
         })
         onTasksStarted([task_id], exportType, devices.map((d) => d.id))
@@ -64,10 +67,12 @@ export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
               ? bulkExportDevices([d], exportType, {
                   source: 'db',
                   use_ssh: exportType === 'hit_dates' ? useSsh : false,
+                  ssh_command_mode: sshCommandMode,
                   timeout_seconds: timeout,
                 })
               : directExport(d, exportType, {
                   use_ssh: exportType === 'hit_dates' ? useSsh : false,
+                  ssh_command_mode: sshCommandMode,
                   timeout_seconds: timeout,
                 })
           )
@@ -168,18 +173,38 @@ export function DirectExportDialog({ open, onClose, devices, onTasksStarted }: {
           </div>
         )}
 
+        {exportType === 'hit_dates' && useSsh && (
+          <div className="flex items-center gap-2 px-1">
+            <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary shrink-0">SSH 명령</Label>
+            <div className="flex gap-1.5">
+              {([
+                { mode: 'vsys_all', label: 'vsys all' },
+                { mode: 'vsys_name', label: 'vsys-name' },
+              ] as const).map(({ mode, label }) => (
+                <button
+                  key={mode}
+                  type="button" onClick={() => setSshCommandMode(mode)}
+                  className={`px-2.5 py-1 rounded-md text-11 font-semibold border transition-colors ${sshCommandMode === mode ? 'border-ds-primary bg-ds-primary/5 text-ds-primary' : 'border-ds-outline-variant/30 text-ds-on-surface-variant hover:bg-ds-surface-container-low'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {needsTimeout && (
           <div className="flex items-center gap-2 px-1">
             <Label className="text-10 font-bold uppercase tracking-widest text-ds-primary shrink-0">타임아웃</Label>
             <Input
               type="number"
               min={30}
-              max={7200}
+              max={21600}
               value={timeout}
               onChange={(e) => setTimeout_(Number(e.target.value))}
               className="bg-white border-ds-outline-variant/30 text-sm w-24 text-right"
             />
-            <span className="text-11 text-ds-on-surface-variant">초 / 장비 (최대 2시간)</span>
+            <span className="text-11 text-ds-on-surface-variant">초 / 장비 (최대 6시간)</span>
           </div>
         )}
 

@@ -399,6 +399,7 @@ class PaloAltoAPI(FirewallInterface):
         vsys: list[str] | set[str] | None = None,
         timeout: int = 3600,
         os_version: str | None = None,
+        command_mode: str | None = None,
     ) -> pd.DataFrame:
         """
         SSH 인터랙티브 쉘을 사용하여 정책 히트 정보를 정밀하게 추출합니다.
@@ -412,14 +413,19 @@ class PaloAltoAPI(FirewallInterface):
         5. 정규식(Regex)을 사용하여 정책 이름, vsys, 히트 수, 타임스탬프를 한 줄씩 파싱.
            - 타임스탬프 포맷(예: Tue Nov 4 00:50:48 2025)을 정규화하여 처리.
 
-        PAN-OS 10 이상 장비는 `vsys vsys-name {vsys}` 명령에서 장비가 응답 없이 멈추는
-        문제가 있어, `vsys all`로 한 번에 조회하는 명령으로 대체한다(os_version으로 판단).
+        명령 버전은 command_mode로 지정한다.
+          - "vsys_all": `vsys all` 한 번에 조회 (PAN-OS 10+에서 vsys-name 명령이 멈추는 문제 대응)
+          - "vsys_name": vsys별 `vsys vsys-name {vsys}` 조회
+        command_mode가 None이면(사용자 지정이 없는 내부 호출) os_version으로 자동 판단한다.
         """
-        major_version = None
-        if os_version:
-            match = re.match(r'^\s*(\d+)', os_version)
-            major_version = int(match.group(1)) if match else None
-        use_vsys_all_cmd = major_version is not None and major_version >= 10
+        if command_mode in ("vsys_all", "vsys_name"):
+            use_vsys_all_cmd = command_mode == "vsys_all"
+        else:
+            major_version = None
+            if os_version:
+                match = re.match(r'^\s*(\d+)', os_version)
+                major_version = int(match.group(1)) if match else None
+            use_vsys_all_cmd = major_version is not None and major_version >= 10
 
         target_vsys_list: list[str] = ['vsys1']
         if vsys:

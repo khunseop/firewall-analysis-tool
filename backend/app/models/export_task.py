@@ -15,6 +15,7 @@ class ExportTask(Base):
     source = Column(String, nullable=False, default="live")  # live | db
     merge = Column(Boolean, nullable=False, default=False)
     use_ssh = Column(Boolean, nullable=False, default=False)
+    ssh_command_mode = Column(String, nullable=True)  # vsys_all | vsys_name (사용이력 SSH 수집 시 명령 버전)
     timeout_seconds = Column(Integer, nullable=False, default=600)
 
     status = Column(String, nullable=False, default="pending")  # pending | in_progress | success | failure
