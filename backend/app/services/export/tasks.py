@@ -223,31 +223,37 @@ async def _collect_hit_dates(
             return collector.export_last_hit_date_ssh(timeout=timeout, os_version=device.os_version, command_mode=ssh_command_mode)
         return collector.export_last_hit_date()
 
-    main_df: pd.DataFrame = await asyncio.wait_for(
-        loop.run_in_executor(IO_EXECUTOR, _method), timeout=timeout
-    )
+    async def _collect_main() -> pd.DataFrame:
+        return await asyncio.wait_for(
+            loop.run_in_executor(IO_EXECUTOR, _method), timeout=timeout
+        )
+
+    async def _collect_ha() -> pd.DataFrame | None:
+        # HA peer 수집 실패는 주 장비 결과를 막지 않는다.
+        ha_collector = create_collector_from_device(device, use_ha_ip=True)
+        try:
+            await loop.run_in_executor(IO_EXECUTOR, ha_collector.connect)
+
+            def _ha_method():
+                if use_ssh:
+                    return ha_collector.export_last_hit_date_ssh(timeout=timeout, os_version=device.os_version, command_mode=ssh_command_mode)
+                return ha_collector.export_last_hit_date()
+
+            return await loop.run_in_executor(IO_EXECUTOR, _ha_method)
+        except Exception as e:
+            logger.warning(f"HA peer hit_date 수집 실패 ({device.ha_peer_ip}): {e}")
+            return None
+        finally:
+            try:
+                await loop.run_in_executor(IO_EXECUTOR, ha_collector.disconnect)
+            except Exception:
+                pass
 
     if not device.ha_peer_ip:
-        return main_df
+        return await _collect_main()
 
-    ha_collector = create_collector_from_device(device, use_ha_ip=True)
-    ha_df: pd.DataFrame | None = None
-    try:
-        await loop.run_in_executor(IO_EXECUTOR, ha_collector.connect)
-
-        def _ha_method():
-            if use_ssh:
-                return ha_collector.export_last_hit_date_ssh(timeout=timeout, os_version=device.os_version, command_mode=ssh_command_mode)
-            return ha_collector.export_last_hit_date()
-
-        ha_df = await loop.run_in_executor(IO_EXECUTOR, _ha_method)
-    except Exception as e:
-        logger.warning(f"HA peer hit_date 수집 실패 ({device.ha_peer_ip}): {e}")
-    finally:
-        try:
-            await loop.run_in_executor(IO_EXECUTOR, ha_collector.disconnect)
-        except Exception:
-            pass
+    # 주 장비와 HA peer는 서로 독립이므로 동시에 수집한다 (순차면 최악 timeout×2).
+    main_df, ha_df = await asyncio.gather(_collect_main(), _collect_ha())
 
     if ha_df is None or ha_df.empty:
         return main_df
