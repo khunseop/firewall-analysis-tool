@@ -493,11 +493,11 @@ class PaloAltoAPI(FirewallInterface):
             read_until_prompt()
             channel.send("set cli pager off\n")
             read_until_prompt()
-            # 대용량 show 중 CLI idle timeout으로 세션이 끊기지 않도록 해제(0 = 무제한).
+            # 대용량 show 중 CLI idle timeout으로 세션이 끊기지 않도록 해제(never = 무제한).
             # 장비/버전이 명령을 지원하지 않아도 에러 후 프롬프트는 돌아오므로 수집은 계속 진행한다.
-            channel.send("set cli timeout idle 0\n")
+            channel.send("set cli timeout idle never\n")
             idle_out = read_until_prompt()
-            self.logger.info(f"set cli timeout idle 0 응답: {idle_out.strip()[-200:]}")
+            self.logger.info(f"set cli timeout idle never 응답: {idle_out.strip()[-200:]}")
 
             def parse_timestamp(timestamp_str: str, rule_name: str) -> str | None:
                 if timestamp_str == '-':
