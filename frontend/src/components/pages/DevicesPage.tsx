@@ -639,8 +639,9 @@ export function DevicesPage() {
         initial={{
           collect_last_hit_date: selectedDevices.every(d => d.collect_last_hit_date),
           use_ssh_for_last_hit_date: selectedDevices.every(d => d.use_ssh_for_last_hit_date),
-          ssh_hit_command_mode: selectedDevices.every(d => d.ssh_hit_command_mode === selectedDevices[0].ssh_hit_command_mode)
-            ? toSshHitCommandChoice(selectedDevices[0].ssh_hit_command_mode) : 'auto',
+          // 선택이 비어 있어도(다이얼로그는 항상 렌더링됨) [0] 접근이 터지지 않도록 옵셔널 체이닝
+          ssh_hit_command_mode: selectedDevices.every(d => d.ssh_hit_command_mode === selectedDevices[0]?.ssh_hit_command_mode)
+            ? toSshHitCommandChoice(selectedDevices[0]?.ssh_hit_command_mode) : 'auto',
         }}
         onSubmit={handleBulkSetOptions}
       />
