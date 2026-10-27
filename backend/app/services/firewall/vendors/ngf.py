@@ -387,5 +387,40 @@ class NGFCollector(FirewallInterface):
         return self.client.export_service_group_objects_with_members()
 
     def export_last_hit_date(self, vsys: Optional[list[str] | set[str]] = None) -> pd.DataFrame:
-        """Palo Alto 전용 확장 기능으로, NGF에서는 지원하지 않습니다."""
-        return pd.DataFrame(columns=["vsys", "rule_name", "last_hit_date"])
+        """
+        정책 조회 응답의 last_hit_time으로 Palo Alto와 유사한 사용이력을 만듭니다.
+        NGF는 VSYS 개념이 없어 vsys는 항상 None이며, 히트 카운트/최초 히트는 API가 제공하지 않아 None입니다.
+        한 번도 사용되지 않은 정책(last_hit_time 없음/0)은 Palo Alto와 동일하게 unused_days=99999.
+        """
+        rules = self.client.export_security_rules()
+        columns = ["vsys", "seq", "rule_name", "hit_count", "first_hit_date", "last_hit_date", "unused_days"]
+        if rules.empty:
+            return pd.DataFrame(columns=columns)
+
+        def _to_dt(v):
+            if v is None or pd.isna(v) or v in ('-', '', 0, '0'):
+                return None
+            try:
+                dt = pd.to_datetime(v, unit='s', errors='raise')
+            except (ValueError, TypeError):
+                dt = pd.to_datetime(v, errors='coerce')
+            return None if pd.isna(dt) else dt
+
+        now = datetime.now()
+        rows = []
+        for _, r in rules.iterrows():
+            dt = _to_dt(r.get("last_hit_date"))
+            rows.append({
+                "vsys": None,
+                "seq": r.get("seq"),
+                "rule_name": r.get("rule_name"),
+                "hit_count": None,
+                "first_hit_date": None,
+                "last_hit_date": dt.strftime('%Y-%m-%d') if dt is not None else None,
+                "unused_days": (now - dt.to_pydatetime()).days if dt is not None else 99999,
+            })
+        return pd.DataFrame(rows, columns=columns)
+
+    def export_last_hit_date_ssh(self, **kwargs) -> pd.DataFrame:
+        """NGF는 SSH 수집을 지원하지 않으므로 API 결과를 그대로 돌려줍니다 (SSH 옵션이 켜져 있어도 실패하지 않도록)."""
+        return self.export_last_hit_date()
