@@ -187,9 +187,9 @@ ITEMS = [
     Item('admin', '계정', '/config/mgt-config/users',
          lambda xml, ctx: parse_admins(xml, ctx.get('auth_profile', {}))),
     Item('permitted_ip', '허용IP', f'{DEVICE_XPATH}/deviceconfig/system/permitted-ip', parse_permitted_ips),
-    Item('password_profile', '패스워드프로파일', '/config/shared/password-profile', parse_password_profiles),
+    Item('password_profile', '패스워드프로파일', '/config/mgt-config/password-profile', parse_password_profiles),
     Item('password_complexity', '패스워드복잡도',
-         f'{DEVICE_XPATH}/deviceconfig/setting/management/password-complexity', parse_password_complexity),
+         '/config/mgt-config/password-complexity', parse_password_complexity),
 ]
 
 
