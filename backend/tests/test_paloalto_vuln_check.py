@@ -4,6 +4,8 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
 from paloalto_vuln_check import (
+    check_default_deny,
+    judge_default_deny,
     build_frames,
     parse_admins,
     parse_auth_profiles,
@@ -128,3 +130,56 @@ def test_auth_method_tags_tacplus_and_none():
     p = parse_auth_profiles(xml)
     assert p['t']['method'] == 'tacacs+'
     assert p['n']['method'] == 'none'
+
+
+def _pol(**kw):
+    base = dict(enable=True, action='deny', from_zone='any', to_zone='any', source='any',
+                destination='any', service='any', application='any')
+    return {**base, **kw}
+
+
+def test_judge_default_deny():
+    assert judge_default_deny(_pol()) == ('양호', '')
+    assert judge_default_deny(_pol(action='drop'))[0] == '양호'
+    v, why = judge_default_deny(_pol(action='allow', source='10.0.0.0/8'))
+    assert v == '취약' and 'action=allow' in why and '출발지≠any' in why
+    assert '비활성' in judge_default_deny(_pol(enable=False))[1]
+    assert judge_default_deny(_pol(service='Svc_443'))[1] == '서비스≠any'
+
+
+def test_check_default_deny_picks_last_active_policy_per_vsys():
+    import asyncio
+    from types import SimpleNamespace
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+    from app.db.session import Base
+    import app.models  # noqa: F401  (모든 모델 등록)
+    from app.models import Device, Policy
+
+    async def run():
+        engine = create_async_engine('sqlite+aiosqlite:///:memory:')
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        async with async_sessionmaker(engine, expire_on_commit=False)() as db:
+            d1 = Device(name='fw1', ip_address='1.1.1.1', vendor='paloalto', username='u', password='p')
+            d2 = Device(name='fw2', ip_address='2.2.2.2', vendor='paloalto', username='u', password='p')
+            db.add_all([d1, d2]); await db.flush()
+
+            def mk(dev, seq, name, action, src='any', active=True, vsys='vsys1'):
+                return Policy(device_id=dev.id, vsys=vsys, seq=seq, rule_name=name, enable=True, action=action,
+                              source=src, destination='any', service='any', application='any',
+                              from_zone='any', to_zone='any', is_active=active)
+            db.add_all([
+                mk(d1, 1, 'web', 'allow'), mk(d1, 2, 'cleanup', 'deny'),
+                mk(d1, 3, 'deleted-on-device', 'allow', active=False),   # 장비에서 사라진 정책은 무시
+                mk(d1, 9, 'v2-last', 'allow', vsys='vsys2'),
+            ])
+            await db.commit()
+            rows = await check_default_deny(db, [d1, d2])
+        await engine.dispose()
+        return rows
+
+    rows = asyncio.run(run())
+    by = {(r['장비'], r.get('vsys')): r for r in rows}
+    assert by[('fw1', 'vsys1')]['규칙명'] == 'cleanup' and by[('fw1', 'vsys1')]['판정'] == '양호'
+    assert by[('fw1', 'vsys2')]['판정'] == '취약'
+    assert by[('fw2', None)]['판정'] == '확인 불가'

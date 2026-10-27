@@ -2,14 +2,17 @@
 임시 스크립트: Palo Alto 전 장비의 보안 설정 현황 수집 (취약점 점검용).
 
 - 장비에서 XML API(running config)로 실시간 조회하며 DB에는 아무것도 저장하지 않는다.
+- 라이브 점검(ITEMS)은 장비에서 직접 읽고, DB 점검(DB_CHECKS)은 이미 동기화된 policies 테이블을 읽는다 (장비 접속 없음).
 - 장비 로컬 설정만 본다 (Panorama 푸시 설정은 제외). ha_peer_ip 가 있는 장비는 피어도 각각 수집한다.
-- 결과는 xlsx: `요약` 시트 + 점검 항목(ITEMS)별 시트.
+- 결과는 xlsx: `요약` 시트 + 점검 항목(ITEMS)별 시트 + DB 점검 시트.
 
 점검 항목 (ITEMS)
   admin               관리자 계정 (비밀번호 해시 값은 출력하지 않고 설정 여부만)
   permitted_ip        장비 관리 접속 허용 IP + 설명 (비어 있으면 전체 허용)
   password_profile    패스워드 프로파일 전체 설정
   password_complexity Minimum Password Complexity (Device > Setup > Management)
+  default_deny(DB)    최하단 정책이 default deny 인지 (장비/vsys별 마지막 활성 정책이 활성·deny 계열·모든 조건 any 여야 양호).
+                      DB 는 마지막 동기화 시점 기준이므로 '마지막 동기화' 컬럼을 확인할 것
   auth_profile        (시트 없음) 계정이 참조하는 인증 프로파일의 allow-list / MFA 계산용
 - MFA 는 계정이 아니라 인증 프로파일에 설정되므로 "계정 → 인증 프로파일 → multi-factor-auth" 로 계산한다.
   (설정상 사용 여부이며 MFA 서버의 실제 동작 여부는 확인하지 않는다)
@@ -17,10 +20,11 @@
 점검 항목 추가 방법
   1) parse_xxx(xml_text, ctx) -> list[dict] 파서 작성 (행 1개 = dict 1개. 설정 트리를 그대로 담을 때는 _flatten 사용)
   2) ITEMS 에 Item(key, sheet, xpath, parse) 한 줄 추가 (다른 항목 결과가 필요하면 ITEMS 에서 그 항목 뒤에 두고 ctx[key] 로 참조)
+  DB 에서 읽는 항목은 async 함수(db, devices) -> list[dict] 를 만들어 DB_CHECKS 에 (시트명, 함수) 추가.
   항목 하나가 실패해도 나머지는 계속 수집되며, 요약 시트에 '부분 실패'와 사유가 남는다.
 
 실행 (프로젝트 루트에서):
-    .venv/bin/python backend/scripts/paloalto_vuln_check.py [--device-id 1] [--out out.xlsx] [--workers 8]
+    .venv/bin/python backend/scripts/paloalto_vuln_check.py [--ip 192.168.1.1 [192.168.1.2 ...]] [--out out.xlsx] [--workers 8]
 """
 import argparse
 import asyncio
@@ -35,10 +39,10 @@ from datetime import datetime
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import pandas as pd
-from sqlalchemy import select
+from sqlalchemy import and_, func, select
 
 from app.db.session import SessionLocal
-from app.models import Device
+from app.models import Device, Policy
 from app.services.sync.collector import create_collector_from_device
 
 DEVICE_XPATH = "/config/devices/entry[@name='localhost.localdomain']"
@@ -263,16 +267,87 @@ def build_frames(results: list[dict]) -> dict[str, pd.DataFrame]:
     return {'요약': pd.DataFrame(summary_rows), **{sheet: pd.DataFrame(v) for sheet, v in rows.items()}}
 
 
-async def load_devices(device_id: int | None) -> list[Device]:
+# ---------------------------------------------------------------- DB 점검 (동기화된 policies 사용)
+
+_BLOCK_ACTIONS = ('deny', 'drop', 'reset-client', 'reset-server', 'reset-both')
+_ANY_FIELDS = (('출발 존', 'from_zone'), ('도착 존', 'to_zone'), ('출발지', 'source'), ('목적지', 'destination'),
+               ('서비스', 'service'), ('애플리케이션', 'application'))
+
+
+def judge_default_deny(p: dict) -> tuple[str, str]:
+    """최하단 정책 1건 판정: 활성 + deny 계열 + 존/주소/서비스/애플리케이션 모두 any 이면 양호."""
+    reasons = []
+    if p.get('enable') is False:
+        reasons.append('최하단 정책이 비활성')
+    action = (p.get('action') or '').strip().lower()
+    if action not in _BLOCK_ACTIONS:
+        reasons.append(f'action={action or "-"}')
+    for label, key in _ANY_FIELDS:
+        if (p.get(key) or '').strip().lower() != 'any':
+            reasons.append(f'{label}≠any')
+    return ('취약', ', '.join(reasons)) if reasons else ('양호', '')
+
+
+def _cut(v, n: int = 300) -> str:
+    v = '' if v is None else str(v)
+    return v if len(v) <= n else v[:n] + '…'
+
+
+async def check_default_deny(db, devices: list[Device]) -> list[dict]:
+    """장비/vsys별로 is_active 정책 중 seq 가 가장 큰 정책(최하단)을 가져와 판정한다."""
+    last = (select(Policy.device_id, Policy.vsys, func.max(Policy.seq).label('mx'))
+            .where(Policy.is_active.is_(True)).group_by(Policy.device_id, Policy.vsys).subquery())
+    stmt = (select(Policy).join(last, and_(
+                Policy.device_id == last.c.device_id,
+                func.coalesce(Policy.vsys, '') == func.coalesce(last.c.vsys, ''),
+                Policy.seq == last.c.mx))
+            .where(Policy.is_active.is_(True), Policy.device_id.in_([d.id for d in devices]))
+            .order_by(Policy.device_id, Policy.vsys, Policy.id.desc()))
+    by_dev: dict[int, dict[str, Policy]] = {}
+    for pol in (await db.execute(stmt)).scalars().all():
+        by_dev.setdefault(pol.device_id, {}).setdefault(pol.vsys or '', pol)  # seq 중복 시 id 큰 쪽
+
+    rows = []
+    for d in devices:
+        base = {'장비': d.name, '접속 IP': d.ip_address, '마지막 동기화': d.last_sync_at}
+        if d.id not in by_dev:
+            rows.append({**base, '판정': '확인 불가', '사유': '동기화된 정책 없음(동기화 필요)'})
+            continue
+        for vsys, pol in by_dev[d.id].items():
+            verdict, reason = judge_default_deny(vars(pol))
+            rows.append({
+                **base, 'vsys': vsys, '최하단 순번': pol.seq, '규칙명': pol.rule_name,
+                '활성': 'N' if pol.enable is False else 'Y', 'action': pol.action,
+                '출발 존': pol.from_zone, '도착 존': pol.to_zone, '출발지': _cut(pol.source),
+                '목적지': _cut(pol.destination), '서비스': _cut(pol.service),
+                '애플리케이션': _cut(pol.application), '로그 설정': pol.log_setting,
+                '판정': verdict, '사유': reason,
+            })
+    return rows
+
+
+DB_CHECKS = [
+    ('최하단정책', check_default_deny),
+]
+
+
+async def load_devices(ips: list[str] | None) -> list[Device]:
+    """Palo Alto 장비. ips 지정 시 ip_address 또는 ha_peer_ip 가 일치하는 장비만 (없는 IP는 경고)."""
     async with SessionLocal() as db:
         stmt = select(Device).where(Device.vendor == 'paloalto').order_by(Device.id)
-        if device_id is not None:
-            stmt = stmt.where(Device.id == device_id)
-        return list((await db.execute(stmt)).scalars().all())
+        if ips:
+            stmt = stmt.where(Device.ip_address.in_(ips) | Device.ha_peer_ip.in_(ips))
+        devices = list((await db.execute(stmt)).scalars().all())
+    if ips:
+        known = {d.ip_address for d in devices} | {d.ha_peer_ip for d in devices}
+        for ip in ips:
+            if ip not in known:
+                print(f'경고: {ip} — 등록된 Palo Alto 장비 IP(또는 HA 피어 IP)가 아닙니다.')
+    return devices
 
 
-async def main(device_id: int | None, out: str | None, workers: int):
-    devices = await load_devices(device_id)
+async def main(ips: list[str] | None, out: str | None, workers: int):
+    devices = await load_devices(ips)
     if not devices:
         print('대상 Palo Alto 장비가 없습니다.')
         return
@@ -303,15 +378,23 @@ async def main(device_id: int | None, out: str | None, workers: int):
         os.makedirs(out_dir, exist_ok=True)
         out = os.path.join(out_dir, f"paloalto_vuln_check_{datetime.now():%Y%m%d_%H%M%S}.xlsx")
     with pd.ExcelWriter(out, engine='openpyxl') as writer:
-        for sheet, df in build_frames(results).items():
+        frames = build_frames(results)
+        async with SessionLocal() as db:
+            for sheet, check in DB_CHECKS:
+                try:
+                    frames[sheet] = pd.DataFrame(await check(db, devices))
+                except Exception as e:
+                    print(f'  [DB 점검 실패] {sheet}: {type(e).__name__}: {e}')
+                    frames[sheet] = pd.DataFrame([{'오류': f'{type(e).__name__}: {e}'}])
+        for sheet, df in frames.items():
             df.to_excel(writer, sheet_name=sheet, index=False)
     print(f'저장: {os.path.abspath(out)}')
 
 
 if __name__ == '__main__':
     parser_arg = argparse.ArgumentParser()
-    parser_arg.add_argument('--device-id', type=int, default=None, help='특정 장비만 수집 (미지정 시 Palo Alto 전체)')
+    parser_arg.add_argument('--ip', nargs='+', default=None, help='특정 장비 IP만 수집, 여러 개 가능 (미지정 시 Palo Alto 전체)')
     parser_arg.add_argument('--out', type=str, default=None, help='xlsx 저장 경로 (기본: backend/exports/)')
     parser_arg.add_argument('--workers', type=int, default=8, help='병렬 수집 스레드 수 (기본 8)')
     args = parser_arg.parse_args()
-    asyncio.run(main(args.device_id, args.out, args.workers))
+    asyncio.run(main(args.ip, args.out, args.workers))
