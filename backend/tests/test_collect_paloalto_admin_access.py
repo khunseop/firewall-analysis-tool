@@ -7,6 +7,7 @@ from collect_paloalto_admin_access import (
     build_frames,
     parse_admins,
     parse_auth_profiles,
+    parse_password_profiles,
     parse_permitted_ips,
 )
 
@@ -19,7 +20,7 @@ AUTH_XML = """<response status="success"><result><authentication-profile>
 </authentication-profile></result></response>"""
 
 USERS_XML = """<response status="success"><result><users>
-<entry name="admin"><phash>$1$abc</phash><permissions><role-based><superuser>yes</superuser></role-based></permissions></entry>
+<entry name="admin"><phash>$1$abc</phash><password-profile>pw90</password-profile><permissions><role-based><superuser>yes</superuser></role-based></permissions></entry>
 <entry name="ops"><authentication-profile>radius-mfa</authentication-profile>
 <permissions><role-based><custom><profile>readonly-x</profile></custom></role-based></permissions></entry>
 <entry name="keyuser"><public-key>c3No</public-key><authentication-profile>local-nomfa</authentication-profile>
@@ -30,6 +31,10 @@ USERS_XML = """<response status="success"><result><users>
 
 PERMIT_XML = """<response status="success"><result><permitted-ip>
 <entry name="10.0.0.0/24"><description>본사 관리망</description></entry><entry name="192.168.1.5"/></permitted-ip></result></response>"""
+
+PWPROF_XML = """<response status="success"><result><password-profile>
+<entry name="pw90"><password-change><expire-in-days>90</expire-in-days><expiration-warning-period>7</expiration-warning-period></password-change>
+<password-history-count>5</password-history-count></entry><entry name="empty"/></password-profile></result></response>"""
 
 EMPTY_XML = '<response status="success" code="7"><result/></response>'
 
@@ -74,3 +79,13 @@ def test_build_frames_flags_open_access_and_failure():
     assert s.loc[0, 'MFA 미사용 계정 수'] == 4
     assert s.loc[1, '수집 결과'] == '실패'
     assert len(frames['계정']) == 5
+
+
+def test_parse_password_profiles_flattens_all_fields():
+    rows = parse_password_profiles(PWPROF_XML)
+    assert rows[0] == {'프로파일': 'pw90', 'password-change/expire-in-days': '90',
+                       'password-change/expiration-warning-period': '7', 'password-history-count': '5'}
+    assert rows[1] == {'프로파일': 'empty'}
+    assert parse_password_profiles(EMPTY_XML) == []
+    admins = {a['계정']: a for a in parse_admins(USERS_XML, {})}
+    assert admins['admin']['패스워드 프로파일'] == 'pw90'

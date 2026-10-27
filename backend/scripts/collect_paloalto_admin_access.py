@@ -6,9 +6,10 @@
   * /config/mgt-config/users                 관리자 계정 (비밀번호 해시 값은 출력하지 않고 설정 여부만)
   * .../deviceconfig/system/permitted-ip     장비 관리 접속 허용 IP (비어 있으면 전체 허용)
   * /config/shared/authentication-profile    계정이 참조하는 인증 프로파일의 allow-list / MFA 설정
+  * /config/shared/password-profile          패스워드 프로파일 전체 설정 (만료일·경고·유예 등을 그대로 펼침)
 - MFA 는 계정이 아니라 인증 프로파일에 설정되므로 "계정 → 인증 프로파일 → multi-factor-auth" 로 계산한다.
   (설정상 사용 여부이며 MFA 서버의 실제 동작 여부는 확인하지 않는다)
-- ha_peer_ip 가 있는 장비는 피어도 각각 수집한다. 결과는 xlsx (계정 / 허용IP / 요약 시트).
+- ha_peer_ip 가 있는 장비는 피어도 각각 수집한다. 결과는 xlsx (요약 / 계정 / 허용IP / 패스워드프로파일 시트).
 
 실행 (프로젝트 루트에서):
     .venv/bin/python backend/scripts/collect_paloalto_admin_access.py [--device-id 1] [--out out.xlsx] [--workers 8]
@@ -34,6 +35,7 @@ DEVICE_XPATH = "/config/devices/entry[@name='localhost.localdomain']"
 XPATH_USERS = "/config/mgt-config/users"
 XPATH_PERMITTED_IP = f"{DEVICE_XPATH}/deviceconfig/system/permitted-ip"
 XPATH_AUTH_PROFILE = "/config/shared/authentication-profile"
+XPATH_PASSWORD_PROFILE = "/config/shared/password-profile"
 
 # 인증 프로파일 method 하위 태그 → 표시명
 _AUTH_METHODS = {
@@ -67,6 +69,23 @@ def _entries(xml_text: str, tag: str) -> list[ET.Element]:
 def parse_permitted_ips(xml_text: str) -> list[dict]:
     return [{'ip': e.get('name'), 'description': (e.findtext('description') or '').strip()}
             for e in _entries(xml_text, 'permitted-ip') if e.get('name')]
+
+
+def parse_password_profiles(xml_text: str) -> list[dict]:
+    """password-profile 항목을 전체 펼친다: 하위 설정을 `경로/태그 → 값` 으로 (버전별 필드 차이에 대응)."""
+    rows = []
+    for e in _entries(xml_text, 'password-profile'):
+        row = {'프로파일': e.get('name')}
+        stack = [(c, c.tag) for c in e]
+        while stack:
+            node, path = stack.pop(0)
+            children = list(node)
+            if children:
+                stack = [(c, f'{path}/{c.tag}') for c in children] + stack
+            else:
+                row[path] = (node.text or '').strip()
+        rows.append(row)
+    return rows
 
 
 def parse_auth_profiles(xml_text: str) -> dict[str, dict]:
@@ -126,6 +145,7 @@ def parse_admins(xml_text: str, profiles: dict[str, dict]) -> list[dict]:
             '인증 방식': ' + '.join(methods),
             '인증 프로파일': profile_name,
             '비밀번호 설정': 'Y' if has_hash else 'N',
+            '패스워드 프로파일': (e.findtext('password-profile') or '').strip(),
             '프로파일 allow-list': ','.join(profile['allow_list']) if profile else '',
             'MFA 사용': 'Y' if profile and profile['mfa_enabled'] else 'N',
             'MFA 요소': ','.join(profile['mfa_factors']) if profile else '',
@@ -142,7 +162,7 @@ def collect_one(label: str, device, use_ha_ip: bool) -> dict:
     """장비 1대(주 장비 또는 HA 피어) 수집. 실패해도 예외 대신 error 를 담아 반환."""
     host = device.ha_peer_ip if use_ha_ip else device.ip_address
     result = {'device': device.name, 'role': label, 'host': host,
-              'admins': [], 'permitted_ips': [], 'error': ''}
+              'admins': [], 'permitted_ips': [], 'password_profiles': [], 'error': ''}
     try:
         fw = create_collector_from_device(device, use_ha_ip=use_ha_ip)
         if not fw.connect():
@@ -151,6 +171,7 @@ def collect_one(label: str, device, use_ha_ip: bool) -> dict:
             profiles = parse_auth_profiles(_show(fw, XPATH_AUTH_PROFILE))
             result['admins'] = parse_admins(_show(fw, XPATH_USERS), profiles)
             result['permitted_ips'] = parse_permitted_ips(_show(fw, XPATH_PERMITTED_IP))
+            result['password_profiles'] = parse_password_profiles(_show(fw, XPATH_PASSWORD_PROFILE))
         finally:
             fw.disconnect()
     except Exception as e:
@@ -159,11 +180,12 @@ def collect_one(label: str, device, use_ha_ip: bool) -> dict:
 
 
 def build_frames(results: list[dict]) -> dict[str, pd.DataFrame]:
-    admin_rows, ip_rows, summary_rows = [], [], []
+    admin_rows, ip_rows, pw_rows, summary_rows = [], [], [], []
     for r in results:
         base = {'장비': r['device'], '구분': r['role'], '접속 IP': r['host']}
         admin_rows += [{**base, **a} for a in r['admins']]
         ip_rows += [{**base, '허용 IP': p['ip'], '설명': p['description']} for p in r['permitted_ips']]
+        pw_rows += [{**base, **p} for p in r.get('password_profiles', [])]
         failed = bool(r['error'])
         summary_rows.append({
             **base,
@@ -178,6 +200,7 @@ def build_frames(results: list[dict]) -> dict[str, pd.DataFrame]:
         '요약': pd.DataFrame(summary_rows),
         '계정': pd.DataFrame(admin_rows),
         '허용IP': pd.DataFrame(ip_rows),
+        '패스워드프로파일': pd.DataFrame(pw_rows),
     }
 
 
