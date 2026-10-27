@@ -64,8 +64,9 @@ def _entries(xml_text: str, tag: str) -> list[ET.Element]:
     return [] if container is None else container.findall('entry')
 
 
-def parse_permitted_ips(xml_text: str) -> list[str]:
-    return [e.get('name') for e in _entries(xml_text, 'permitted-ip') if e.get('name')]
+def parse_permitted_ips(xml_text: str) -> list[dict]:
+    return [{'ip': e.get('name'), 'description': (e.findtext('description') or '').strip()}
+            for e in _entries(xml_text, 'permitted-ip') if e.get('name')]
 
 
 def parse_auth_profiles(xml_text: str) -> dict[str, dict]:
@@ -162,7 +163,7 @@ def build_frames(results: list[dict]) -> dict[str, pd.DataFrame]:
     for r in results:
         base = {'장비': r['device'], '구분': r['role'], '접속 IP': r['host']}
         admin_rows += [{**base, **a} for a in r['admins']]
-        ip_rows += [{**base, '허용 IP': ip} for ip in r['permitted_ips']]
+        ip_rows += [{**base, '허용 IP': p['ip'], '설명': p['description']} for p in r['permitted_ips']]
         failed = bool(r['error'])
         summary_rows.append({
             **base,

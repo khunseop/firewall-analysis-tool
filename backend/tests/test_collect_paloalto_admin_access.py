@@ -29,7 +29,7 @@ USERS_XML = """<response status="success"><result><users>
 </users></result></response>"""
 
 PERMIT_XML = """<response status="success"><result><permitted-ip>
-<entry name="10.0.0.0/24"/><entry name="192.168.1.5"/></permitted-ip></result></response>"""
+<entry name="10.0.0.0/24"><description>본사 관리망</description></entry><entry name="192.168.1.5"/></permitted-ip></result></response>"""
 
 EMPTY_XML = '<response status="success" code="7"><result/></response>'
 
@@ -58,7 +58,7 @@ def test_parse_admins_mfa_and_methods():
 
 
 def test_parse_permitted_ips_and_empty():
-    assert parse_permitted_ips(PERMIT_XML) == ['10.0.0.0/24', '192.168.1.5']
+    assert parse_permitted_ips(PERMIT_XML) == [{'ip': '10.0.0.0/24', 'description': '본사 관리망'}, {'ip': '192.168.1.5', 'description': ''}]
     assert parse_permitted_ips(EMPTY_XML) == []
     assert parse_admins(EMPTY_XML, {}) == []
 
