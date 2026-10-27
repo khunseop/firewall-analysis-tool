@@ -119,3 +119,12 @@ def test_parse_password_profiles_flattens_all_fields():
     assert parse_password_profiles(EMPTY_XML) == []
     admins = {a['계정']: a for a in parse_admins(USERS_XML, {})}
     assert admins['admin']['패스워드 프로파일'] == 'pw90'
+
+
+def test_auth_method_tags_tacplus_and_none():
+    xml = """<response status="success"><result><authentication-profile>
+<entry name="t"><method><tacplus><server-profile>x</server-profile></tacplus></method></entry>
+<entry name="n"><method><none/></method></entry></authentication-profile></result></response>"""
+    p = parse_auth_profiles(xml)
+    assert p['t']['method'] == 'tacacs+'
+    assert p['n']['method'] == 'none'

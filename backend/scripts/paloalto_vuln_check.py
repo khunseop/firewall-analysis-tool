@@ -49,7 +49,8 @@ _AUTH_METHODS = {
     'radius': 'radius',
     'ldap': 'ldap',
     'kerberos': 'kerberos',
-    'tacacs-plus': 'tacacs+',
+    'tacplus': 'tacacs+',
+    'none': 'none',
     'saml-idp': 'saml',
     'cloud': 'cloud',
 }
