@@ -3,10 +3,11 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
-from collect_paloalto_admin_access import (
+from paloalto_vuln_check import (
     build_frames,
     parse_admins,
     parse_auth_profiles,
+    parse_password_complexity,
     parse_password_profiles,
     parse_permitted_ips,
 )
@@ -63,22 +64,51 @@ def test_parse_admins_mfa_and_methods():
 
 
 def test_parse_permitted_ips_and_empty():
-    assert parse_permitted_ips(PERMIT_XML) == [{'ip': '10.0.0.0/24', 'description': '본사 관리망'}, {'ip': '192.168.1.5', 'description': ''}]
+    assert parse_permitted_ips(PERMIT_XML) == [{'허용 IP': '10.0.0.0/24', '설명': '본사 관리망'}, {'허용 IP': '192.168.1.5', '설명': ''}]
     assert parse_permitted_ips(EMPTY_XML) == []
     assert parse_admins(EMPTY_XML, {}) == []
 
 
+def _result(device, role, host, data=None, item_errors=None, error=''):
+    return {'device': device, 'role': role, 'host': host, 'data': data or {},
+            'item_errors': item_errors or {}, 'error': error}
+
+
 def test_build_frames_flags_open_access_and_failure():
-    ok = {'device': 'fw1', 'role': '주 장비', 'host': '1.1.1.1', 'error': '',
-          'admins': parse_admins(USERS_XML, parse_auth_profiles(AUTH_XML)), 'permitted_ips': []}
-    bad = {'device': 'fw2', 'role': 'HA 피어', 'host': '2.2.2.2', 'error': 'timeout',
-           'admins': [], 'permitted_ips': []}
+    ok = _result('fw1', '주 장비', '1.1.1.1', {
+        'admin': parse_admins(USERS_XML, parse_auth_profiles(AUTH_XML)), 'permitted_ip': []})
+    bad = _result('fw2', 'HA 피어', '2.2.2.2', error='timeout')
     frames = build_frames([ok, bad])
     s = frames['요약']
     assert s.loc[0, '허용 IP 미설정(전체 허용)'] == 'Y'
     assert s.loc[0, 'MFA 미사용 계정 수'] == 4
     assert s.loc[1, '수집 결과'] == '실패'
     assert len(frames['계정']) == 5
+
+
+def test_build_frames_partial_failure_keeps_other_items():
+    r = _result('fw1', '주 장비', '1.1.1.1',
+                {'permitted_ip': [{'허용 IP': '1.1.1.1', '설명': ''}]},
+                item_errors={'password_complexity': 'RuntimeError: API 오류'})
+    frames = build_frames([r])
+    assert frames['요약'].loc[0, '수집 결과'] == '부분 실패'
+    assert 'password_complexity' in frames['요약'].loc[0, '실패 사유']
+    assert frames['요약'].loc[0, '허용 IP 수'] == 1
+    assert frames['요약'].loc[0, '관리자 수'] == ''
+    assert len(frames['허용IP']) == 1
+    assert frames['패스워드복잡도'].empty
+
+
+COMPLEX_XML = """<response status="success"><result><password-complexity><enabled>yes</enabled>
+<minimum-length>12</minimum-length><minimum-uppercase-letters>1</minimum-uppercase-letters>
+<block-username-inclusion>yes</block-username-inclusion></password-complexity></result></response>"""
+
+
+def test_parse_password_complexity():
+    assert parse_password_complexity(COMPLEX_XML) == [{
+        'enabled': 'yes', 'minimum-length': '12',
+        'minimum-uppercase-letters': '1', 'block-username-inclusion': 'yes'}]
+    assert parse_password_complexity(EMPTY_XML) == []
 
 
 def test_parse_password_profiles_flattens_all_fields():
