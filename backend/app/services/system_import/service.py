@@ -42,7 +42,9 @@ async def build_preview(
         partner = by_host.get(_host(info.partner_hostname)) if info and info.kind == "paired" else None
         if partner is not None:
             partner_hosts.add(_host(info.partner_hostname))
-        if info and info.kind in ("orphan", "ambiguous"):
+        # 짝이 없다는 경고는 FAT이 HA로 등록한 장비이거나 이름 규칙이 모호할 때만 의미가 있다.
+        # 단독 장비에 흔한 `-01`/`-02` 이름까지 경고하면 경고가 소음이 된다.
+        if info and (info.kind == "ambiguous" or (info.kind == "orphan" and (getattr(m.device, "ha_peer_ip", None) or "").strip())):
             reason = "짝이 되는 장비를 찾지 못했습니다" if info.kind == "orphan" else "같은 이름 규칙의 장비가 3대 이상이라 짝을 정할 수 없습니다"
             preview.warnings.append(f"대시보드 hostname '{m.row.hostname}': {reason} (HA 여부 확인 필요).")
         preview.diffs.append(build_diff(m, info, partner))

@@ -70,18 +70,28 @@ def test_preview_builds_diffs_unmatched_and_counts_without_writing():
     assert preview.skipped_vendor_count == 1
 
 
-def test_preview_warns_about_unpaired_candidate_hostname_of_matched_device():
+def _preview_for_single_row(ha_peer_ip):
     async def scenario():
         engine, maker = await _session()
         async with maker() as db:
-            db.add(Device(name="FW-A", ip_address="10.0.0.1", vendor="paloalto", username="u", password="p"))
+            db.add(Device(name="FW-A", ip_address="10.0.0.1", vendor="paloalto", username="u", password="p", ha_peer_ip=ha_peer_ip))
             await db.commit()
             preview = await build_preview(db, "http://dash:5012", transport=_transport([ROWS[0]]))
         await engine.dispose()
         return preview
 
-    preview = asyncio.run(scenario())
+    return asyncio.run(scenario())
+
+
+def test_preview_warns_when_fat_is_ha_but_dashboard_has_no_partner_row():
+    preview = _preview_for_single_row(ha_peer_ip="10.0.0.2")
     assert any("fwap" in w for w in preview.warnings)
+
+
+def test_preview_does_not_warn_for_standalone_device_whose_hostname_merely_ends_like_ha():
+    # `sec-dev-01`처럼 단독 장비에 흔한 이름이 매번 경고를 만들면 경고가 소음이 된다
+    preview = _preview_for_single_row(ha_peer_ip=None)
+    assert preview.warnings == []
 
 
 def test_preview_propagates_fetch_errors():
