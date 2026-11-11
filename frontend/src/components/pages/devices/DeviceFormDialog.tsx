@@ -214,6 +214,20 @@ export function DeviceFormDialog({ open, onClose, initial, onSubmit, isPending }
                   </ShadSelect>
                 </div>
               )}
+              {form.use_ssh_for_last_hit_date && (
+                <div className="space-y-1">
+                  <Label htmlFor="device-form-ssh-timeout" className="text-10 font-bold uppercase tracking-widest text-ds-primary">SSH 수집 대기 시간 (초, 동기화)</Label>
+                  <Input
+                    id="device-form-ssh-timeout"
+                    type="number" min={30} max={21600}
+                    placeholder="비워두면 기본 3600초"
+                    value={form.ssh_hit_timeout}
+                    onChange={(e) => set('ssh_hit_timeout', e.target.value)}
+                    className="bg-white border-ds-outline-variant/30 text-sm"
+                  />
+                  <p className="text-11 text-ds-on-surface-variant">사용이력 추출이 오래 걸리는 장비는 값을 늘리세요. (30~21600초)</p>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="detail" className="space-y-3">

@@ -586,6 +586,7 @@ export function DevicesPage() {
           collect_last_hit_date: editTarget.collect_last_hit_date,
           use_ssh_for_last_hit_date: editTarget.use_ssh_for_last_hit_date,
           ssh_hit_command_mode: toSshHitCommandChoice(editTarget.ssh_hit_command_mode),
+          ssh_hit_timeout: editTarget.ssh_hit_timeout?.toString() ?? '',
           hostname: editTarget.hostname ?? '', hostname_manual: editTarget.hostname_manual,
           uptime: editTarget.uptime ?? '',
           multi_vsys: editTarget.multi_vsys ?? '', multi_vsys_manual: editTarget.multi_vsys_manual,
@@ -608,11 +609,12 @@ export function DevicesPage() {
           service_group_threshold_manual: editTarget.service_group_threshold_manual,
         } : undefined}
         onSubmit={(data) => {
-          const { policy_threshold, network_object_threshold, network_group_threshold, service_threshold, service_group_threshold, install_date, ssh_hit_command_mode, ...rest } = data
+          const { policy_threshold, network_object_threshold, network_group_threshold, service_threshold, service_group_threshold, install_date, ssh_hit_command_mode, ssh_hit_timeout, ...rest } = data
           const toNum = (v: string) => v === '' ? undefined : Number(v)
           const payload = {
             ...rest,
             ssh_hit_command_mode: fromSshHitCommandChoice(ssh_hit_command_mode),
+            ssh_hit_timeout: ssh_hit_timeout === '' ? null : Number(ssh_hit_timeout),
             install_date: install_date || undefined,
             policy_threshold: toNum(policy_threshold),
             network_object_threshold: toNum(network_object_threshold),

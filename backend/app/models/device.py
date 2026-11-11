@@ -33,6 +33,7 @@ class Device(Base):
     ha_peer_ip = Column(String, nullable=True)
     use_ssh_for_last_hit_date = Column(Boolean, nullable=True, default=False)
     ssh_hit_command_mode = Column(String, nullable=True)  # vsys_all | vsys_name | NULL(OS 버전으로 자동 판단)
+    ssh_hit_timeout = Column(Integer, nullable=True)  # SSH 히트 수집 명령 응답 대기 시간(초). NULL이면 기본 3600초
     collect_last_hit_date = Column(Boolean, nullable=True, default=True)
     model = Column(String, nullable=True)
     

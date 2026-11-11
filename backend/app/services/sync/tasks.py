@@ -31,6 +31,8 @@ _device_sync_semaphore: asyncio.Semaphore | None = None
 
 # SQLite 바인딩 변수 한도를 넘지 않도록 대량 삭제 시 IN절을 청킹 (policy_indexer.py와 동일 기준)
 _SQLITE_IN_CHUNK = 800
+# SSH 히트 수집 명령 응답 대기 기본값(초). 장비별 ssh_hit_timeout이 없을 때 사용
+DEFAULT_SSH_HIT_TIMEOUT = 3600
 
 
 def _chunked(items: list, size: int):
@@ -363,7 +365,7 @@ async def _collect_last_hit_date_parallel(
                 logging.info("[orchestrator] Collecting main device last_hit_date via SSH.")
                 return await loop.run_in_executor(
                     IO_EXECUTOR,
-                    lambda: collector.export_last_hit_date_ssh(vsys=vsys_list, os_version=device.os_version, command_mode=device.ssh_hit_command_mode)
+                    lambda: collector.export_last_hit_date_ssh(vsys=vsys_list, os_version=device.os_version, command_mode=device.ssh_hit_command_mode, timeout=device.ssh_hit_timeout or DEFAULT_SSH_HIT_TIMEOUT)
                 )
             else:
                 logging.info("[orchestrator] Collecting main device last_hit_date via API.")
@@ -372,7 +374,7 @@ async def _collect_last_hit_date_parallel(
                     lambda: collector.export_last_hit_date(vsys=vsys_list)
                 )
         except Exception as e:
-            logging.warning(f"[orchestrator] Failed to collect last_hit_date from main device: {e}")
+            logging.warning(f"[orchestrator] Failed to collect last_hit_date from main device {device.name} (ssh_timeout={device.ssh_hit_timeout or DEFAULT_SSH_HIT_TIMEOUT}s): {e}")
             return None
     
     async def _collect_ha_peer() -> pd.DataFrame | None:
@@ -393,7 +395,7 @@ async def _collect_last_hit_date_parallel(
             if device.use_ssh_for_last_hit_date:
                 hit_date_df = await loop.run_in_executor(
                     IO_EXECUTOR,
-                    lambda: ha_collector.export_last_hit_date_ssh(vsys=vsys_list, os_version=device.os_version, command_mode=device.ssh_hit_command_mode)
+                    lambda: ha_collector.export_last_hit_date_ssh(vsys=vsys_list, os_version=device.os_version, command_mode=device.ssh_hit_command_mode, timeout=device.ssh_hit_timeout or DEFAULT_SSH_HIT_TIMEOUT)
                 )
             else:
                 hit_date_df = await loop.run_in_executor(
@@ -403,7 +405,7 @@ async def _collect_last_hit_date_parallel(
             
             return hit_date_df
         except Exception as e:
-            logging.warning(f"[orchestrator] Failed to collect last_hit_date from HA peer {device.ha_peer_ip}: {e}")
+            logging.warning(f"[orchestrator] Failed to collect last_hit_date from HA peer {device.ha_peer_ip} (ssh_timeout={device.ssh_hit_timeout or DEFAULT_SSH_HIT_TIMEOUT}s): {e}")
             return None
         finally:
             # HA Peer 연결 종료

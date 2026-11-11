@@ -54,6 +54,7 @@ export interface DeviceFormData {
   model: string; model_manual: boolean; group: string; description: string; collect_last_hit_date: boolean
   use_ssh_for_last_hit_date: boolean
   ssh_hit_command_mode: SshHitCommandChoice
+  ssh_hit_timeout: string
   hostname: string; hostname_manual: boolean; uptime: string
   multi_vsys: string; multi_vsys_manual: boolean
   serial_number: string; serial_number_manual: boolean
@@ -69,7 +70,7 @@ export interface DeviceFormData {
 
 export const DEFAULT_FORM: DeviceFormData = {
   name: '', ip_address: '', vendor: 'paloalto', username: '', password: '', password_confirm: '',
-  ha_peer_ip: '', model: '', model_manual: false, group: '', description: '', collect_last_hit_date: true, use_ssh_for_last_hit_date: false, ssh_hit_command_mode: 'auto',
+  ha_peer_ip: '', model: '', model_manual: false, group: '', description: '', collect_last_hit_date: true, use_ssh_for_last_hit_date: false, ssh_hit_command_mode: 'auto', ssh_hit_timeout: '',
   hostname: '', hostname_manual: false, uptime: '',
   multi_vsys: '', multi_vsys_manual: false,
   serial_number: '', serial_number_manual: false,
