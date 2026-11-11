@@ -163,19 +163,21 @@ async def _collect_usage_live(device, loop: asyncio.AbstractEventLoop) -> tuple[
     벤더가 미지원이면(NGF 등) 빈/부분 DataFrame이 반환될 수 있다.
     """
     use_ssh = bool(device.use_ssh_for_last_hit_date)
+    # SSH 수집은 장비별 ssh_hit_timeout(동기화와 공용)이 있으면 그 값을 쓰고, 없으면 기본값
+    collect_timeout = (device.ssh_hit_timeout or _USAGE_COLLECT_TIMEOUT) if use_ssh else _USAGE_COLLECT_TIMEOUT
 
     async def _collect(use_ha_ip: bool) -> pd.DataFrame:
         collector = create_collector_from_device(device, use_ha_ip=use_ha_ip)
 
         def _method():
             if use_ssh:
-                return collector.export_last_hit_date_ssh(timeout=_USAGE_COLLECT_TIMEOUT, os_version=device.os_version, command_mode=device.ssh_hit_command_mode)
+                return collector.export_last_hit_date_ssh(timeout=collect_timeout, os_version=device.os_version, command_mode=device.ssh_hit_command_mode)
             return collector.export_last_hit_date()
 
         try:
             await loop.run_in_executor(IO_EXECUTOR, collector.connect)
             return await asyncio.wait_for(
-                loop.run_in_executor(IO_EXECUTOR, _method), timeout=_USAGE_COLLECT_TIMEOUT
+                loop.run_in_executor(IO_EXECUTOR, _method), timeout=collect_timeout
             )
         finally:
             try:
