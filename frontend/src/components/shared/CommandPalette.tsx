@@ -17,6 +17,11 @@ import { cn } from '@/lib/utils'
 
 const RECENT_KEY = 'fat-recent-devices'
 const RECENT_MAX = 5
+// 한 번에 그리는 장비 수 상한. 수백 대를 전부 그리면 열 때·입력할 때마다 눈에 띄게 버벅인다.
+const MAX_VISIBLE = 50
+// 장비 목록은 자주 바뀌지 않으므로, 열 때마다 재조회(→ 뒤 페이지 그리드 재렌더)하지 않고 캐시를 쓴다.
+// 장비를 추가/수정/삭제하면 기존 로직이 queryKeys.devices를 무효화하므로 최신성은 유지된다.
+const DEVICES_STALE_MS = 5 * 60_000
 
 function readRecent(): number[] {
   try {
@@ -90,8 +95,9 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
   const [active, setActive] = useState(0)
   const [recentIds] = useState<number[]>(readRecent)
   const listRef = useRef<HTMLDivElement>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
 
-  const { data: devices = [] } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices })
+  const { data: devices = [] } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices, staleTime: DEVICES_STALE_MS })
 
   const actions: DeviceAction[] = useMemo(() => [
     {
@@ -133,11 +139,18 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
       return [...recent, ...devices.filter((d) => !recentSet.has(d.id))]
     }
     return devices.filter((d) =>
-      [d.name, d.ip_address, d.hostname].some((v) => v?.toLowerCase().includes(q))
+      [d.name, d.ip_address, d.hostname, d.description].some((v) => v?.toLowerCase().includes(q))
     )
   }, [devices, query, recentIds])
 
-  const itemCount = target ? actions.length : filteredDevices.length
+  const visibleDevices = useMemo(() => filteredDevices.slice(0, MAX_VISIBLE), [filteredDevices])
+  const hiddenCount = filteredDevices.length - visibleDevices.length
+  const itemCount = target ? actions.length : visibleDevices.length
+
+  // 동작 목록(2단계)으로 넘어가면 검색 입력창이 사라져 포커스를 잃으므로, 키 입력을 계속 받도록 래퍼로 옮긴다.
+  useEffect(() => {
+    if (target) wrapperRef.current?.focus()
+  }, [target])
 
   // 방향키로 움직인 항목이 스크롤 영역 밖이면 보이게 한다.
   useEffect(() => {
@@ -167,7 +180,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
     } else if (e.key === 'Enter') {
       e.preventDefault()
       if (target) chooseAction(actions[active])
-      else if (filteredDevices[active]) chooseDevice(filteredDevices[active])
+      else if (visibleDevices[active]) chooseDevice(visibleDevices[active])
     } else if (e.key === 'Backspace' && target) {
       e.preventDefault()
       setTarget(null)
@@ -176,7 +189,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div onKeyDown={onKeyDown}>
+    <div ref={wrapperRef} tabIndex={-1} onKeyDown={onKeyDown} className="outline-none">
         {target ? (
           <div className="flex items-center gap-2 px-4 py-3 border-b border-ds-outline-variant/20 pr-12">
             <button
@@ -199,7 +212,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
               autoFocus
               value={query}
               onChange={(e) => { setQuery(e.target.value); setActive(0) }}
-              placeholder="장비 이름 또는 IP를 입력하세요"
+              placeholder="장비 이름, IP, 설명으로 검색"
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-ds-on-surface-variant/60"
               aria-label="장비 검색"
             />
@@ -233,7 +246,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
                   최근 · 전체
                 </div>
               )}
-              {filteredDevices.map((d, i) => (
+              {visibleDevices.map((d, i) => (
                 <button
                   key={d.id}
                   type="button"
@@ -247,11 +260,20 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
                 >
                   <span className="min-w-0">
                     <span className="block text-sm font-semibold text-ds-on-surface truncate">{d.name}</span>
-                    {d.hostname && <span className="block text-11 text-ds-on-surface-variant truncate">{d.hostname}</span>}
+                    {(d.hostname || d.description) && (
+                      <span className="block text-11 text-ds-on-surface-variant truncate">
+                        {[d.hostname, d.description].filter(Boolean).join(' · ')}
+                      </span>
+                    )}
                   </span>
                   <span className="shrink-0 text-11 font-mono text-ds-on-surface-variant">{d.ip_address}</span>
                 </button>
               ))}
+              {hiddenCount > 0 && (
+                <div className="px-3 py-2 text-11 text-ds-on-surface-variant">
+                  외 {hiddenCount}대 — 검색어를 더 입력하면 좁혀집니다.
+                </div>
+              )}
             </>
           )}
         </div>
