@@ -37,7 +37,8 @@
   `retired=1`이면 폐기 장비 포함. 응답은 `{total, page, page_size, items}`; 모든 페이지를 순회해 합친다.
 - 사용 컬럼 key: `status, hostname, task_name, vendor, model, ip, serial, intro_date, os_install_date, os_name,
   os_version, region, building, floor, room, coord_x, coord_y, coord_z, remarks`.
-- 대시보드 주소는 **Settings**(기존 settings 테이블, key `system_dashboard`)에 저장한다. 스키마 변경 없음.
+- 대시보드 주소는 기존 settings 테이블의 key `system_dashboard_url`에 저장한다. 가져오기 창에서 입력하고
+  기존 `PUT /settings/{key}`(없으면 생성)로 저장하므로 스키마·마이그레이션 변경이 없다.
 - 호출 제약: GET만, 연결 5초/전체 30초 타임아웃, 리다이렉트 따라가지 않음, 응답 크기 상한(예: 20MB).
   주소를 바꿀 수 있는 사용자는 기존 Settings 권한과 같다.
 - 네트워크 도달성(FAT 서버 → 대시보드 PC)은 운영 쪽 과제이며 코드에서 해결하지 않는다.
@@ -110,7 +111,9 @@ FAT 장비를 기준으로 대시보드 행을 찾는다(대시보드 행이 기
    (그 사이 누가 고쳤다면) 그 항목을 건너뛰고 결과에 "충돌"로 보고한다.
 5. 한 요청 안에서는 트랜잭션으로 처리하고, 결과(적용 N, 건너뜀 N, 충돌 N)를 응답한다.
    기존 감사 로그(`audit_log`)에 요청자·장비·필드를 남긴다.
-6. 대시보드 읽기 실패·응답 형식 불일치·0건 응답이면 미리보기를 만들지 않고 오류만 반환한다.
+6. **되돌리기**: 적용 응답에 반대 방향 변경 목록(`reverse`)을 담아 돌려주고, 화면의 "되돌리기" 버튼이 이를
+   같은 적용 API로 보낸다(충돌 검사 동일). 채우기로 빈 값이 된 필드는 다시 비우고, `hostname_manual`도 이전 값으로 복원한다.
+7. 대시보드 읽기 실패·응답 형식 불일치·0건 응답이면 미리보기를 만들지 않고 오류만 반환한다.
 
 ## 9. 구성
 
@@ -123,7 +126,7 @@ FAT 장비를 기준으로 대시보드 행을 찾는다(대시보드 행이 기
 
 프론트(`frontend/src/`)
 - `components/pages/devices/SystemImportDialog.tsx`(미리보기·선택·적용) + API 함수, 쿼리키는 `queryKeys.ts` 팩토리에 추가
-- Settings에 대시보드 주소 입력 추가. 적용 후 `queryKeys.devices` 무효화.
+- 대시보드 주소 입력은 가져오기 창 안에 둔다. 적용 후 `queryKeys.devices` 무효화.
 
 테스트: 순수 함수(`vendor_map`, `ha_pairing`, `matcher`, `differ`)는 먼저 단위 테스트를 작성한다.
 수동 확인 시 대시보드는 `uvicorn`으로 띄우고 샘플 엑셀(`make_sample_xlsx.py`)을 쓴다. 실제 현황 데이터는 저장소에 넣지 않는다.
