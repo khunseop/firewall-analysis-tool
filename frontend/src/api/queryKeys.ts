@@ -55,6 +55,7 @@ export const queryKeys = {
   // 기타
   schedules: ['schedules'] as const,
   settings: ['settings'] as const,
+  systemDashboardUrl: ['settings', 'system-dashboard-url'] as const,
   users: ['users'] as const,
   notifications: (tab: string, search: string, dateFrom: string, dateTo: string) =>
     ['notifications', tab, search, dateFrom, dateTo] as const,

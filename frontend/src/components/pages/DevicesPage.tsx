@@ -30,6 +30,7 @@ import { ActionMenu } from '@/components/shared/ActionMenu'
 import { useDeviceSearchStore } from '@/store/deviceSearchStore'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
+import { SystemImportDialog } from './devices/SystemImportDialog'
 
 interface ExportTaskInfo {
   // WebSocket 메시지가 onTasksStarted 등록보다 먼저 도착하면 종류를 알 수 없어 null일 수 있음
@@ -61,6 +62,7 @@ export function DevicesPage() {
   const [bulkGroupOpen, setBulkGroupOpen] = useState(false)
   const [directExportOpen, setDirectExportOpen] = useState(false)
   const [detailTarget, setDetailTarget] = useState<Device | null>(null)
+  const [systemImportOpen, setSystemImportOpen] = useState(false)
   const [exportTasks, setExportTasks] = useState<Record<number, ExportTaskInfo>>({})
   const [statusFilter, setStatusFilter] = useState<DeviceStatusFilter | null>(null)
   // 폼은 열 때마다 새로 마운트해(키 변경) 이전 입력이 남지 않게 한다.
@@ -388,6 +390,7 @@ export function DevicesPage() {
   return (
     <div className="flex flex-col gap-6">
       {ConfirmDialogElement}
+      {systemImportOpen && <SystemImportDialog onClose={() => setSystemImportOpen(false)} />}
 
       <PageHeader
         title="장비"
@@ -401,6 +404,15 @@ export function DevicesPage() {
             >
               <RefreshCw className="!w-3.5 !h-3.5" />
               갱신
+            </Button>
+            <Button
+              variant="subtle"
+              size="auto"
+              onClick={() => setSystemImportOpen(true)}
+              className="gap-1.5 px-3 py-1.5 text-13 font-medium rounded-lg"
+            >
+              <Download className="!w-3.5 !h-3.5" />
+              시스템 현황 가져오기
             </Button>
             <ActionMenu
               label="장비 등록"
