@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { Search } from 'lucide-react'
+import { DeviceSearch } from '@/components/shared/DeviceSearch'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
@@ -15,7 +15,7 @@ const NAV_ITEMS = [
   { to: '/guide/deletion-workflow', label: 'Guide' },
 ]
 
-export function Navbar({ onOpenSearch }: { onOpenSearch: () => void }) {
+export function Navbar() {
   const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
   const navRef = useRef<HTMLElement>(null)
@@ -95,16 +95,7 @@ export function Navbar({ onOpenSearch }: { onOpenSearch: () => void }) {
 
       {/* Right */}
       <div className="flex items-center gap-0.5 shrink-0">
-        <button
-          type="button"
-          onClick={onOpenSearch}
-          className="flex items-center gap-2 w-44 px-3 py-1.5 text-xs rounded-lg border border-ds-outline-variant/30 text-ds-on-surface-variant/70 hover:bg-black/5 transition-colors"
-          aria-label="장비 검색 열기"
-        >
-          <Search className="h-3.5 w-3.5" />
-          <span className="flex-1 text-left">장비 검색</span>
-          <kbd className="px-1.5 rounded border border-ds-outline-variant/40 text-10 font-mono">/</kbd>
-        </button>
+        <DeviceSearch />
 
         <div className="w-px h-4 bg-ds-outline-variant/20 mx-2" />
 

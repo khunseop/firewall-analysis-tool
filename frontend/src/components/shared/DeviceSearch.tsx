@@ -3,10 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
-  Search, ArrowLeft, Globe, Terminal, IdCard, ListFilter, Boxes, BarChart3, GitCompare,
+  Search, Globe, Terminal, IdCard, ListFilter, Boxes, BarChart3, GitCompare,
   type LucideIcon,
 } from 'lucide-react'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { queryKeys } from '@/api/queryKeys'
 import { listDevices, type Device } from '@/api/devices'
 import type { PolicySearchRequest } from '@/api/firewall'
@@ -17,7 +16,7 @@ import { cn } from '@/lib/utils'
 
 const RECENT_KEY = 'fat-recent-devices'
 const RECENT_MAX = 5
-// 한 번에 그리는 장비 수 상한. 수백 대를 전부 그리면 열 때·입력할 때마다 눈에 띄게 버벅인다.
+// 한 번에 그리는 장비 수 상한. 수백 대를 전부 그리면 입력할 때마다 눈에 띄게 버벅인다.
 const MAX_VISIBLE = 50
 // 장비 목록은 자주 바뀌지 않으므로, 열 때마다 재조회(→ 뒤 페이지 그리드 재렌더)하지 않고 캐시를 쓴다.
 // 장비를 추가/수정/삭제하면 기존 로직이 queryKeys.devices를 무효화하므로 최신성은 유지된다.
@@ -62,6 +61,12 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
+/** 글자를 입력 중인 곳(입력창·편집 가능 영역)에서는 "/"를 검색 단축키로 가로채지 않는다. */
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+}
+
 interface DeviceAction {
   key: string
   label: string
@@ -69,35 +74,50 @@ interface DeviceAction {
   run: (device: Device) => void
 }
 
-export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="top-[18%] translate-y-0 max-w-xl p-0 overflow-hidden"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <DialogTitle className="sr-only">장비 검색</DialogTitle>
-        {/* 다이얼로그가 닫히면 내용이 언마운트되므로, 상태는 열 때마다 자동으로 초기화된다. */}
-        <PaletteBody onClose={() => onOpenChange(false)} />
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function PaletteBody({ onClose }: { onClose: () => void }) {
+/** 네비바 장비 검색: 입력창에 바로 입력하면 아래로 결과가 펼쳐진다. 장비를 고르면 같은 자리에 동작 목록이 나온다. */
+export function DeviceSearch() {
   const navigate = useNavigate()
   const setSelectedIds = useDeviceStore((s) => s.setSelectedIds)
   const setSearchRequest = usePolicySearchStore((s) => s.setSearchRequest)
   const setFilterTree = usePolicySearchStore((s) => s.setFilterTree)
 
+  const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [target, setTarget] = useState<Device | null>(null)
   const [active, setActive] = useState(0)
-  const [recentIds] = useState<number[]>(readRecent)
+  const [recentIds, setRecentIds] = useState<number[]>([])
+  const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
-  const wrapperRef = useRef<HTMLDivElement>(null)
 
-  const { data: devices = [] } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices, staleTime: DEVICES_STALE_MS })
+  const { data: devices = [] } = useQuery({
+    queryKey: queryKeys.devices, queryFn: listDevices, staleTime: DEVICES_STALE_MS, enabled: open,
+  })
+
+  const openSearch = () => {
+    if (open) return
+    setRecentIds(readRecent())
+    setOpen(true)
+  }
+
+  const closeSearch = () => {
+    setOpen(false)
+    setQuery('')
+    setTarget(null)
+    setActive(0)
+  }
+
+  // "/" 단축키: 입력 중이거나 다른 다이얼로그가 떠 있을 때를 빼고 검색창으로 포커스를 옮긴다.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return
+      if (isTypingTarget(e.target)) return
+      if (document.querySelector('[role="dialog"]')) return
+      e.preventDefault()
+      inputRef.current?.focus()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   const actions: DeviceAction[] = useMemo(() => [
     {
@@ -147,11 +167,6 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
   const hiddenCount = filteredDevices.length - visibleDevices.length
   const itemCount = target ? actions.length : visibleDevices.length
 
-  // 동작 목록(2단계)으로 넘어가면 검색 입력창이 사라져 포커스를 잃으므로, 키 입력을 계속 받도록 래퍼로 옮긴다.
-  useEffect(() => {
-    if (target) wrapperRef.current?.focus()
-  }, [target])
-
   // 방향키로 움직인 항목이 스크롤 영역 밖이면 보이게 한다.
   useEffect(() => {
     listRef.current?.querySelector<HTMLElement>('[data-active="true"]')?.scrollIntoView({ block: 'nearest' })
@@ -165,14 +180,21 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
 
   const chooseAction = (action: DeviceAction) => {
     if (!target) return
-    onClose()
-    action.run(target)
+    const device = target
+    closeSearch()
+    inputRef.current?.blur()
+    action.run(device)
   }
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.nativeEvent.isComposing) return
-    if (e.key === 'ArrowDown') {
+    if (e.key === 'Escape') {
       e.preventDefault()
+      closeSearch()
+      inputRef.current?.blur()
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      openSearch()
       if (itemCount > 0) setActive((i) => (i + 1) % itemCount)
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
@@ -189,54 +211,68 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div ref={wrapperRef} tabIndex={-1} onKeyDown={onKeyDown} className="outline-none">
-        {target ? (
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-ds-outline-variant/20 pr-12">
-            <button
-              type="button"
-              onClick={() => { setTarget(null); setActive(0) }}
-              className="p-1 rounded-md text-ds-on-surface-variant hover:bg-black/5"
-              aria-label="장비 다시 고르기"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <div className="min-w-0">
-              <div className="text-sm font-semibold text-ds-on-surface truncate">{target.name}</div>
-              <div className="text-11 text-ds-on-surface-variant font-mono">{target.ip_address}</div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-ds-outline-variant/20 pr-12">
-            <Search className="h-4 w-4 text-ds-on-surface-variant shrink-0" />
-            <input
-              autoFocus
-              value={query}
-              onChange={(e) => { setQuery(e.target.value); setActive(0) }}
-              placeholder="장비 이름, IP, 설명으로 검색"
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-ds-on-surface-variant/60"
-              aria-label="장비 검색"
-            />
-          </div>
+    <div
+      className="relative"
+      // 포커스가 검색 영역 밖으로 나가면(바깥 클릭, Tab 등) 닫는다.
+      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) closeSearch() }}
+    >
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ds-on-surface-variant/70" />
+        <input
+          ref={inputRef}
+          value={target ? target.name : query}
+          readOnly={!!target}
+          onChange={(e) => { setQuery(e.target.value); setActive(0) }}
+          onFocus={openSearch}
+          onKeyDown={onKeyDown}
+          placeholder="장비 검색"
+          role="combobox"
+          aria-label="장비 검색"
+          aria-expanded={open}
+          aria-autocomplete="list"
+          autoComplete="off"
+          className={cn(
+            'w-48 pl-8 pr-8 py-1.5 text-xs rounded-lg border bg-white outline-none transition-colors',
+            'border-ds-outline-variant/30 placeholder:text-ds-on-surface-variant/70',
+            'focus:border-ds-tertiary/60 focus:ring-2 focus:ring-ds-tertiary/20',
+            target && 'font-semibold text-ds-tertiary'
+          )}
+        />
+        {!open && (
+          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 px-1.5 rounded border border-ds-outline-variant/40 text-10 font-mono text-ds-on-surface-variant">/</kbd>
         )}
+      </div>
 
-        <div ref={listRef} className="max-h-[50vh] overflow-y-auto p-2">
+      {open && (
+        // 버튼을 눌러도 입력창의 포커스가 빠지지 않게 mousedown의 기본 동작(포커스 이동)을 막는다.
+        <div
+          ref={listRef}
+          onMouseDown={(e) => e.preventDefault()}
+          role="listbox"
+          className="absolute right-0 top-full mt-2 w-[30rem] max-w-[90vw] max-h-[60vh] overflow-y-auto p-2 rounded-xl bg-white shadow-2xl ring-1 ring-ds-outline-variant/20"
+        >
           {target ? (
-            actions.map((a, i) => (
-              <button
-                key={a.key}
-                type="button"
-                data-active={i === active}
-                onMouseMove={() => setActive(i)}
-                onClick={() => chooseAction(a)}
-                className={cn(
-                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left transition-colors',
-                  i === active ? 'bg-ds-tertiary/10 text-ds-tertiary' : 'text-ds-on-surface'
-                )}
-              >
-                <a.Icon className="h-4 w-4 shrink-0" />
-                {a.label}
-              </button>
-            ))
+            <>
+              <div className="px-3 pb-1.5 text-11 text-ds-on-surface-variant font-mono">{target.ip_address}</div>
+              {actions.map((a, i) => (
+                <button
+                  key={a.key}
+                  type="button"
+                  role="option"
+                  aria-selected={i === active}
+                  data-active={i === active}
+                  onMouseMove={() => setActive(i)}
+                  onClick={() => chooseAction(a)}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left transition-colors',
+                    i === active ? 'bg-ds-tertiary/10 text-ds-tertiary' : 'text-ds-on-surface'
+                  )}
+                >
+                  <a.Icon className="h-4 w-4 shrink-0" />
+                  {a.label}
+                </button>
+              ))}
+            </>
           ) : filteredDevices.length === 0 ? (
             <div className="px-3 py-8 text-center text-sm text-ds-on-surface-variant">일치하는 장비가 없습니다.</div>
           ) : (
@@ -250,6 +286,8 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
                 <button
                   key={d.id}
                   type="button"
+                  role="option"
+                  aria-selected={i === active}
                   data-active={i === active}
                   onMouseMove={() => setActive(i)}
                   onClick={() => chooseDevice(d)}
@@ -277,6 +315,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
             </>
           )}
         </div>
+      )}
     </div>
   )
 }
