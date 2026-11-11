@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from app.api.api_v1.endpoints import (
     devices, firewall_sync, firewall_query, export, analysis, analysis_projects,
     websocket, sync_schedule, settings, notifications, deletion_workflow,
-    users, policy_builder, health,
+    users, policy_builder, health, system_import,
 )
 from app.api.api_v1.endpoints import auth
 from app.core.auth import get_current_user
@@ -30,3 +30,4 @@ api_router.include_router(notifications.router, prefix="/notifications", tags=["
 api_router.include_router(deletion_workflow.router, prefix="/deletion-workflow", tags=["deletion-workflow"], dependencies=_auth)
 api_router.include_router(users.router, prefix="/users", tags=["users"], dependencies=_auth)
 api_router.include_router(policy_builder.router, prefix="/policy-builder", tags=["policy-builder"], dependencies=_auth)
+api_router.include_router(system_import.router, prefix="/system-import", tags=["system-import"], dependencies=_auth)
