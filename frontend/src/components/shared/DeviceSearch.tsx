@@ -71,7 +71,19 @@ interface DeviceAction {
   key: string
   label: string
   Icon: LucideIcon
-  run: (device: Device) => void
+  run?: (device: Device) => void
+  /** true면 바로 실행하지 않고 먼저 추가 입력(SSH 계정)을 받는다. */
+  needsInput?: boolean
+}
+
+/** 입력한 계정으로 SSH 링크를 열고, 같은 명령을 클립보드에 복사한다. */
+function openSsh(device: Device, user: string) {
+  const command = `ssh ${user}@${device.ip_address}`
+  void copyText(command).then((ok) => {
+    if (ok) toast.info(`SSH 명령을 복사했습니다: ${command}`)
+    else toast.info(`SSH 명령: ${command}`)
+  })
+  window.location.href = `ssh://${user}@${device.ip_address}`
 }
 
 /** 네비바 장비 검색: 입력창에 바로 입력하면 아래로 결과가 펼쳐진다. 장비를 고르면 같은 자리에 동작 목록이 나온다. */
@@ -84,6 +96,8 @@ export function DeviceSearch() {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [target, setTarget] = useState<Device | null>(null)
+  // null이 아니면 SSH 계정 입력 단계(값 = 입력 중인 계정)
+  const [sshUser, setSshUser] = useState<string | null>(null)
   const [active, setActive] = useState(0)
   const [recentIds, setRecentIds] = useState<number[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
@@ -103,6 +117,7 @@ export function DeviceSearch() {
     setOpen(false)
     setQuery('')
     setTarget(null)
+    setSshUser(null)
     setActive(0)
   }
 
@@ -124,17 +139,7 @@ export function DeviceSearch() {
       key: 'web', label: '웹 UI 열기', Icon: Globe,
       run: (d) => { window.open(`https://${d.ip_address}`, '_blank', 'noopener,noreferrer') },
     },
-    {
-      key: 'ssh', label: 'SSH 열기', Icon: Terminal,
-      run: (d) => {
-        const command = `ssh ${d.username}@${d.ip_address}`
-        void copyText(command).then((ok) => {
-          if (ok) toast.info(`SSH 명령을 복사했습니다: ${command}`)
-          else toast.info(`SSH 명령: ${command}`)
-        })
-        window.location.href = `ssh://${d.username}@${d.ip_address}`
-      },
-    },
+    { key: 'ssh', label: 'SSH 열기', Icon: Terminal, needsInput: true },
     { key: 'detail', label: '상세정보', Icon: IdCard, run: (d) => navigate('/devices', { state: { openDetailDeviceId: d.id } }) },
     {
       key: 'policies', label: '정책 조회', Icon: ListFilter,
@@ -180,10 +185,25 @@ export function DeviceSearch() {
 
   const chooseAction = (action: DeviceAction) => {
     if (!target) return
+    if (action.needsInput) {
+      setSshUser(target.username)
+      // 기본 계정을 바로 덮어쓸 수 있게 전체 선택(값이 반영된 다음 프레임에)
+      requestAnimationFrame(() => inputRef.current?.select())
+      return
+    }
     const device = target
     closeSearch()
     inputRef.current?.blur()
-    action.run(device)
+    action.run?.(device)
+  }
+
+  const submitSsh = () => {
+    const user = sshUser?.trim()
+    if (!target || !user) return
+    const device = target
+    closeSearch()
+    inputRef.current?.blur()
+    openSsh(device, user)
   }
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -201,9 +221,17 @@ export function DeviceSearch() {
       if (itemCount > 0) setActive((i) => (i - 1 + itemCount) % itemCount)
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      if (target) chooseAction(actions[active])
+      if (sshUser !== null) submitSsh()
+      else if (target) chooseAction(actions[active])
       else if (visibleDevices[active]) chooseDevice(visibleDevices[active])
     } else if (e.key === 'Backspace' && target) {
+      // SSH 계정 입력 중에는 글자를 지우는 것이 기본 동작. 입력이 비어 있을 때만 한 단계 뒤로 간다.
+      if (sshUser !== null) {
+        if (sshUser !== '') return
+        e.preventDefault()
+        setSshUser(null)
+        return
+      }
       e.preventDefault()
       setTarget(null)
       setActive(0)
@@ -220,12 +248,15 @@ export function DeviceSearch() {
         <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ds-on-surface-variant/70" />
         <input
           ref={inputRef}
-          value={target ? target.name : query}
-          readOnly={!!target}
-          onChange={(e) => { setQuery(e.target.value); setActive(0) }}
+          value={sshUser ?? (target ? target.name : query)}
+          readOnly={!!target && sshUser === null}
+          onChange={(e) => {
+            if (sshUser !== null) setSshUser(e.target.value)
+            else { setQuery(e.target.value); setActive(0) }
+          }}
           onFocus={openSearch}
           onKeyDown={onKeyDown}
-          placeholder="장비 검색"
+          placeholder={sshUser !== null ? 'SSH 계정' : '장비 검색'}
           role="combobox"
           aria-label="장비 검색"
           aria-expanded={open}
@@ -251,7 +282,14 @@ export function DeviceSearch() {
           role="listbox"
           className="absolute right-0 top-full mt-2 w-[30rem] max-w-[90vw] max-h-[60vh] overflow-y-auto p-2 rounded-xl bg-white shadow-2xl ring-1 ring-ds-outline-variant/20"
         >
-          {target ? (
+          {target && sshUser !== null ? (
+            <div className="px-3 py-4 space-y-1.5">
+              <div className="text-sm text-ds-on-surface">접속할 계정을 입력하고 Enter를 누르세요.</div>
+              <div className="text-11 font-mono text-ds-on-surface-variant break-all">
+                ssh {sshUser.trim() || '계정'}@{target.ip_address}
+              </div>
+            </div>
+          ) : target ? (
             <>
               <div className="px-3 pb-1.5 text-11 text-ds-on-surface-variant font-mono">{target.ip_address}</div>
               {actions.map((a, i) => (
