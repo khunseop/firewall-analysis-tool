@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { useConfirm } from '@/components/shared/ConfirmDialog'
 import { queryKeys } from '@/api/queryKeys'
 import {
   applySystemImport, changeKey, getSavedDashboardUrl, previewSystemImport, saveDashboardUrl,
@@ -19,6 +20,7 @@ const countDevices = (changes: FieldChange[]) => new Set(changes.map((c) => c.de
 /** 시스템 현황 대시보드를 읽어 FAT 장비 정보를 갱신한다. 미리보기 → 선택 적용 → (필요 시) 되돌리기. */
 export function SystemImportDialog({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient()
+  const { confirm, ConfirmDialogElement } = useConfirm()
   const saved = useQuery({ queryKey: queryKeys.systemDashboardUrl, queryFn: getSavedDashboardUrl })
   const [urlEdit, setUrlEdit] = useState<string | null>(null)
   const url = urlEdit ?? saved.data ?? ''
@@ -86,10 +88,24 @@ export function SystemImportDialog({ onClose }: { onClose: () => void }) {
       return next
     })
 
+  // 되돌리기 정보는 이 창 안에만 있으므로, 적용 결과가 남아 있는 채로 닫으면 한 번 확인한다
+  const handleClose = async () => {
+    if (result && result.reverse.length > 0) {
+      const ok = await confirm({
+        title: '창을 닫을까요?',
+        description: '닫으면 이번에 적용한 변경을 이 화면에서 되돌릴 수 없습니다. (적용 내용은 알림 기록에 남아 있습니다)',
+        confirmLabel: '닫기',
+        cancelLabel: '계속 보기',
+      })
+      if (!ok) return
+    }
+    onClose()
+  }
+
   const canApply = selectedChanges.length > 0 && (connectionCount === 0 || confirmConnection) && !applyMutation.isPending
 
   return (
-    <Dialog open onOpenChange={onClose}>
+    <Dialog open onOpenChange={(next) => { if (!next) void handleClose() }}>
       <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto bg-ds-surface-container-lowest">
         <DialogHeader>
           <DialogTitle className="font-headline text-ds-on-surface">시스템 현황 가져오기</DialogTitle>
@@ -143,9 +159,10 @@ export function SystemImportDialog({ onClose }: { onClose: () => void }) {
               {applyMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : `선택한 ${selectedChanges.length}건 적용`}
             </Button>
           )}
-          <Button variant="subtle" size="auto" onClick={onClose} className="px-4 py-2 text-sm rounded-md">닫기</Button>
+          <Button variant="subtle" size="auto" onClick={() => void handleClose()} className="px-4 py-2 text-sm rounded-md">닫기</Button>
         </DialogFooter>
       </DialogContent>
+      {ConfirmDialogElement}
     </Dialog>
   )
 }

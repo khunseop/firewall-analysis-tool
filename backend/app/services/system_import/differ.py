@@ -1,4 +1,5 @@
 """매칭된 FAT 장비와 대시보드 행의 차이를 계산한다 (DB 쓰기 없음)."""
+import ipaddress
 import re
 from datetime import date
 from typing import Optional
@@ -43,6 +44,15 @@ def to_text(value) -> str:
     return str(value).strip()
 
 
+def _is_ip(text: str) -> bool:
+    """IPv4/IPv6 주소 하나인지. 셀에 여러 IP가 적혀 있거나 설명이 붙은 값은 거부한다."""
+    try:
+        ipaddress.ip_address(text)
+        return True
+    except ValueError:
+        return False
+
+
 def _normalize_dashboard_value(fat_field: str, value: Optional[str]) -> str:
     """대시보드 값을 FAT 필드 형식의 문자열로 바꾼다. 해석할 수 없으면 빈 문자열."""
     text = to_text(value)
@@ -69,8 +79,15 @@ def build_diff(match: Match, ha: Optional[HaInfo], partner: Optional[DashboardRo
     pairs = [(f, to_text(getattr(row, col)), kind, manual) for f, col, kind, manual in _OVERRIDE_FIELDS]
     mapped_vendor = map_vendor(row.vendor, row.model)
     pairs.append(("vendor", mapped_vendor or "", "connection", None))
+    # SECUI 행의 모델이 비어 있으면 ngf/mf2를 구분할 수 없다 — 이미 ngf/mf2로 등록된 장비는 바꾸지 않는다
+    if mapped_vendor == "mf2" and not to_text(row.model) and to_text(getattr(device, "vendor", None)) in ("ngf", "mf2"):
+        pairs = [p for p in pairs if p[0] != "vendor"]
     for fat_field, new, kind, manual in pairs:
         old = to_text(getattr(device, fat_field, None))
+        if new and fat_field == "ip_address" and not _is_ip(new):
+            # 접속 대상을 깨진 값으로 바꾸지 않고, 원인을 볼 수 있게 불일치로만 보여준다
+            diff.mismatches.append(Mismatch(device_id=device.id, field=fat_field, fat_value=old, dashboard_value=new))
+            continue
         if new and new != old:
             diff.changes.append(FieldChange(device_id=device.id, field=fat_field, old=old or None, new=new, kind=kind, set_manual=manual))
 
@@ -91,8 +108,11 @@ def build_diff(match: Match, ha: Optional[HaInfo], partner: Optional[DashboardRo
     fat_peer = to_text(getattr(device, "ha_peer_ip", None))
     if ha and ha.kind == "paired" and partner is not None and to_text(partner.ip):
         partner_ip = to_text(partner.ip)
-        if not fat_peer:
-            diff.changes.append(FieldChange(device_id=device.id, field="ha_peer_ip", old=None, new=partner_ip, kind="fill"))
+        if not _is_ip(partner_ip):
+            diff.mismatches.append(Mismatch(device_id=device.id, field="ha_peer_ip", fat_value=fat_peer, dashboard_value=partner_ip))
+        elif not fat_peer:
+            # ha_peer_ip는 동기화가 이 장비의 계정으로 실제 접속하는 대상이라 연결 정보로 취급한다
+            diff.changes.append(FieldChange(device_id=device.id, field="ha_peer_ip", old=None, new=partner_ip, kind="connection"))
         elif fat_peer != partner_ip:
             diff.mismatches.append(Mismatch(device_id=device.id, field="ha_peer_ip", fat_value=fat_peer, dashboard_value=partner_ip))
     elif ha and ha.kind == "single" and fat_peer:

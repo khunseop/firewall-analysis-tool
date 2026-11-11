@@ -122,3 +122,52 @@ def test_resolve_base_url_prefers_request_then_setting_else_400():
         await engine.dispose()
 
     asyncio.run(scenario())
+
+
+def _preview(devices, rows):
+    async def scenario():
+        engine, maker = await _session()
+        async with maker() as db:
+            db.add_all(devices)
+            await db.commit()
+            preview = await build_preview(db, "http://dash:5012", transport=_transport(rows))
+        await engine.dispose()
+        return preview
+
+    return asyncio.run(scenario())
+
+
+def _fw(name, ip, **kw):
+    return Device(name=name, ip_address=ip, vendor="paloalto", username="u", password="p", **kw)
+
+
+def _ha_changes(preview):
+    return [(d.device_name, c.new) for d in preview.diffs for c in d.changes if c.field == "ha_peer_ip"]
+
+
+def test_retired_dashboard_row_is_never_used_as_ha_partner():
+    rows = [
+        {"hostname": "dmz1", "ip": "10.0.0.1", "vendor": "Paloalto", "status": "운영"},
+        {"hostname": "dmz2", "ip": "10.0.0.2", "vendor": "Paloalto", "status": "폐기"},
+    ]
+    preview = _preview([_fw("FW-A", "10.0.0.1")], rows)
+    assert _ha_changes(preview) == []
+    assert preview.diffs[0].partner_hostname is None
+
+
+def test_pair_where_both_halves_are_registered_in_fat_is_not_proposed_as_ha():
+    rows = [
+        {"hostname": "sec-dev-01", "ip": "10.0.0.1", "vendor": "Paloalto", "status": "운영"},
+        {"hostname": "sec-dev-02", "ip": "10.0.0.2", "vendor": "Paloalto", "status": "운영"},
+    ]
+    preview = _preview([_fw("FW-A", "10.0.0.1"), _fw("FW-B", "10.0.0.2")], rows)
+    assert _ha_changes(preview) == []
+    assert all(d.partner_hostname is None for d in preview.diffs)
+    assert any("FW-A" in w for w in preview.warnings)
+
+
+def test_retired_dashboard_status_is_warned_even_when_nothing_changes():
+    rows = [{"hostname": "fwx", "ip": "10.0.0.1", "vendor": "Paloalto", "status": "폐기"}]
+    preview = _preview([_fw("FW-A", "10.0.0.1", hostname="fwx")], rows)
+    assert preview.diffs[0].changes == [] and preview.diffs[0].dashboard_retired is True
+    assert any("FW-A" in w and "폐기" in w for w in preview.warnings)

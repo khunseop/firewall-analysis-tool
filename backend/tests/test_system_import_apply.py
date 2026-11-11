@@ -157,3 +157,40 @@ def test_applying_reverse_restores_the_whole_row():
     assert len(undone.applied) == 6 and not undone.skipped_conflicts and not undone.skipped_invalid
     assert restored == before  # hostname_manual 포함 행 전체가 원래대로
     assert any(c.kind == "connection" for c in applied.reverse)  # 되돌리기도 연결 정보 확인이 필요
+
+
+def test_malformed_ip_values_are_invalid_but_valid_ones_and_clearing_are_applied():
+    async def scenario(db):
+        before = _snapshot(await _devices(db))
+        bad = ApplyRequest(confirm_connection=True, changes=[
+            _chg("ip_address", "10.0.0.1", "10.0.0.5, 10.0.0.6 (VIP)", "connection"),
+            _chg("ha_peer_ip", None, "not an ip", "connection"),
+            _chg("ip_address", "10.0.0.1", "10.0.0.5\n10.0.0.6", "connection"),
+        ])
+        bad_result = await apply_changes(db, bad, **USER)
+        unchanged = _snapshot(await _devices(db))
+        good = await apply_changes(db, ApplyRequest(confirm_connection=True, changes=[
+            _chg("ha_peer_ip", None, "10.0.0.2", "connection"),
+            _chg("ip_address", "10.0.0.1", "2001:db8::1", "connection"),
+        ]), **USER)
+        cleared = await apply_changes(db, ApplyRequest(confirm_connection=True, changes=[_chg("ha_peer_ip", "10.0.0.2", None, "connection")]), **USER)
+        return before, bad_result, unchanged, good, cleared, (await _devices(db))[0]
+
+    before, bad_result, unchanged, good, cleared, d1 = _run(scenario)
+    assert len(bad_result.skipped_invalid) == 3 and bad_result.applied == [] and before == unchanged
+    assert len(good.applied) == 2 and len(cleared.applied) == 1
+    assert d1.ha_peer_ip is None and d1.ip_address == "2001:db8::1"
+
+
+def test_audit_log_records_fields_and_old_new_values():
+    async def scenario(db):
+        req = ApplyRequest(confirm_connection=True, changes=[
+            _chg("ip_address", "10.0.0.1", "10.0.0.11", "connection"),
+            _chg("hostname", None, "fwa", "override", set_manual=True),
+        ])
+        await apply_changes(db, req, **USER)
+        return (await db.execute(select(NotificationLog))).scalars().one().message
+
+    message = _run(scenario)
+    for expected in ("FW-A", "ip_address", "10.0.0.1", "10.0.0.11", "hostname", "fwa"):
+        assert expected in message

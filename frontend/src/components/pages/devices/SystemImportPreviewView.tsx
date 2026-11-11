@@ -48,7 +48,8 @@ function DeviceChanges({ diff, kind, selected, onToggle }: {
   const keys = changes.map(changeKey)
   const all = keys.every((k) => selected.has(k))
   return (
-    <details className="rounded border border-ds-outline-variant/20">
+    // 연결 정보(IP·벤더·HA Peer) 변경은 바뀌는 값을 보지 않고 확인 체크를 누르지 못하도록 항상 펼쳐서 보여준다
+    <details open={kind === 'connection'} className="rounded border border-ds-outline-variant/20">
       <summary className="flex cursor-pointer select-none items-center gap-2 px-2 py-1.5">
         <Checkbox checked={all} onCheckedChange={() => onToggle(keys)} onClick={(e) => e.stopPropagation()} />
         <span className="font-semibold text-ds-on-surface">{diff.device_name}</span>
@@ -74,7 +75,7 @@ export function SystemImportPreviewView({ preview, selected, onToggle }: {
 
   return (
     <div className="flex flex-col gap-2">
-      <Section title="연결 정보 변경 (IP·벤더)" count={connection.length} tone="danger" defaultOpen>
+      <Section title="연결 정보 변경 (IP·벤더·HA Peer)" count={connection.length} tone="danger" defaultOpen>
         <p className="px-2 pb-2 text-ds-error">접속 대상이나 수집기가 바뀝니다. 적용 후 연결 테스트를 권장합니다.</p>
         <div className="flex flex-col gap-1">
           {connection.map((d) => <DeviceChanges key={d.device_id} diff={d} kind="connection" selected={selected} onToggle={onToggle} />)}

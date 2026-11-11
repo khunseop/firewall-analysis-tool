@@ -1,4 +1,5 @@
 """시스템 현황 가져오기: 미리보기 계산(DB 쓰기 없음)과 선택 항목 적용·되돌리기."""
+import ipaddress
 from datetime import date
 from typing import Optional
 
@@ -31,12 +32,14 @@ async def build_preview(
     targets = [r for r in rows if map_vendor(r.vendor, r.model)]
     devices = await crud.device.get_devices(db)
 
-    ha = classify_ha(targets)
+    # 폐기 행은 HA 짝 후보에서 뺀다 (운영 장비에 폐기 장비의 IP를 상대로 제안하지 않기 위해)
+    ha = classify_ha([r for r in targets if "폐기" not in (r.status or "")])
     matched = match_devices(devices, targets)
     by_host = {_host(r.hostname): r for r in targets if _host(r.hostname)}
 
     preview = SystemImportPreview(skipped_vendor_count=len(rows) - len(targets), warnings=list(matched.warnings))
     partner_hosts: set[str] = set()
+    matched_rows = {id(m.row) for m in matched.matches}
     for m in matched.matches:
         info = ha.get(_host(m.row.hostname))
         partner = by_host.get(_host(info.partner_hostname)) if info and info.kind == "paired" else None
@@ -47,7 +50,17 @@ async def build_preview(
         if info and (info.kind == "ambiguous" or (info.kind == "orphan" and (getattr(m.device, "ha_peer_ip", None) or "").strip())):
             reason = "짝이 되는 장비를 찾지 못했습니다" if info.kind == "orphan" else "같은 이름 규칙의 장비가 3대 이상이라 짝을 정할 수 없습니다"
             preview.warnings.append(f"대시보드 hostname '{m.row.hostname}': {reason} (HA 여부 확인 필요).")
-        preview.diffs.append(build_diff(m, info, partner))
+        diff = build_diff(m, info, partner)
+        if partner is not None and id(partner) in matched_rows:
+            # 짝으로 보이는 상대도 FAT에 별도 장비로 등록돼 있다면 HA 쌍이 아니라는 신호다 (FAT은 HA 한 쌍을 1건으로 관리)
+            diff.changes = [c for c in diff.changes if c.field != "ha_peer_ip"]
+            diff.partner_hostname = None
+            preview.warnings.append(
+                f"장비 '{m.device.name}'과 HA 짝으로 보이는 대시보드 행('{partner.hostname}')이 FAT에 별도 장비로 등록돼 있어 HA Peer IP를 제안하지 않았습니다."
+            )
+        if diff.dashboard_retired:
+            preview.warnings.append(f"장비 '{m.device.name}'은(는) 대시보드에서 폐기 상태입니다.")
+        preview.diffs.append(diff)
 
     preview.unmatched_devices = [UnmatchedDevice(id=d.id, name=d.name, ip_address=d.ip_address) for d in matched.unmatched_devices]
     preview.unmatched_rows = [
@@ -71,6 +84,7 @@ _ALLOWED_FIELDS: dict[str, Optional[str]] = {
 }
 _VENDORS = frozenset({"paloalto", "ngf", "mf2", "mock"})
 _IN_CHUNK = 800  # SQLite IN 절 바인딩 청킹 단위
+_LOG_DETAIL_MAX = 6000  # 감사 로그 메시지에 남길 변경 상세의 최대 길이
 
 
 class ConfirmationRequired(Exception):
@@ -86,6 +100,8 @@ def _parse_value(field: str, new: Optional[str]):
         return date.fromisoformat(text)
     if field == "vendor" and text not in _VENDORS:
         raise ValueError(f"지원하지 않는 벤더: {text}")
+    if field in ("ip_address", "ha_peer_ip"):
+        ipaddress.ip_address(text)  # 형식이 깨진 값은 ValueError → 제외
     return text
 
 
@@ -139,11 +155,15 @@ async def apply_changes(db: AsyncSession, req: ApplyRequest, *, user_id: int, us
     if result.applied:
         await db.commit()
         result.reverse.reverse()  # 같은 필드를 여러 번 바꿨다면 적용의 역순으로 풀어야 한다
-        touched = sorted({c.device_id for c in result.applied})
+        # 창을 닫으면 되돌리기 정보가 사라지므로, 감사 로그가 복구의 마지막 근거가 되도록 필드·이전 값·새 값을 남긴다
+        details = "; ".join(
+            f"{devices[c.device_id].name}.{c.field}: {c.old or '(없음)'}→{c.new or '(비움)'}" for c in result.applied
+        )
+        if len(details) > _LOG_DETAIL_MAX:
+            details = details[:_LOG_DETAIL_MAX] + "…(이하 생략)"
         await log_activity(
             db, title="시스템 현황 가져오기 적용",
-            message=f"{len(result.applied)}개 항목 적용 (장비 {len(touched)}대: {', '.join(devices[i].name for i in touched[:10])}"
-                    f"{'…' if len(touched) > 10 else ''}), 충돌 {len(result.skipped_conflicts)}건, 제외 {len(result.skipped_invalid)}건",
+            message=f"{len(result.applied)}개 항목 적용 (충돌 {len(result.skipped_conflicts)}건, 제외 {len(result.skipped_invalid)}건) — {details}",
             type="success", category="device", user_id=user_id, username=username,
         )
     return result

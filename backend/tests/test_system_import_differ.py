@@ -104,7 +104,8 @@ def test_paired_fills_empty_ha_peer_ip_from_partner_row():
     ha = HaInfo("paired", "fwb")
     diff = _diff(_dev(), _row(), ha=ha, partner=_row(hostname="fwb", ip="10.0.0.2"))
     c = _changes(diff)["ha_peer_ip"]
-    assert (c.kind, c.old, c.new) == ("fill", None, "10.0.0.2")
+    # ha_peer_ip는 동기화가 실제로 접속하는 대상이라 연결 정보로 취급한다
+    assert (c.kind, c.old, c.new) == ("connection", None, "10.0.0.2")
     assert diff.partner_hostname == "fwb"
 
 
@@ -125,3 +126,22 @@ def test_dashboard_retired_flag_and_metadata():
     assert diff.dashboard_retired is True and diff.via == "hostname"
     assert (diff.device_id, diff.device_name) == (1, "FW-A")
     assert _diff(_dev(), _row(status="운영")).dashboard_retired is False
+
+
+def test_malformed_ip_cells_are_not_proposed_and_are_reported_as_mismatch():
+    diff = _diff(_dev(ip_address="10.0.0.3"), _row(ip="10.0.0.33\n10.0.0.34"), via="hostname")
+    assert "ip_address" not in _changes(diff)
+    assert [(m.field, m.fat_value) for m in diff.mismatches] == [("ip_address", "10.0.0.3")]
+
+
+def test_malformed_partner_ip_is_not_proposed_as_ha_peer():
+    diff = _diff(_dev(), _row(), ha=HaInfo("paired", "fwb"), partner=_row(hostname="fwb", ip="not an ip"))
+    assert "ha_peer_ip" not in _changes(diff)
+    assert [m.field for m in diff.mismatches] == ["ha_peer_ip"]
+
+
+def test_secui_row_without_model_does_not_flip_registered_ngf_device_to_mf2():
+    assert "vendor" not in _changes(_diff(_dev(vendor="ngf"), _row(vendor="SECUI", model=None)))
+    assert "vendor" not in _changes(_diff(_dev(vendor="mf2"), _row(vendor="SECUI", model="  ")))
+    # 다른 벤더로 등록된 장비는 여전히 mf2로 제안한다(연결 정보로 확인을 거침)
+    assert _changes(_diff(_dev(vendor="mock"), _row(vendor="SECUI", model=None)))["vendor"].new == "mf2"
