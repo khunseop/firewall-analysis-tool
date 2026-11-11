@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Plus, Upload, Download, RefreshCw, Search, XCircle, CheckCircle2, AlertCircle, Loader2, FileDown, X } from 'lucide-react'
@@ -91,6 +92,18 @@ export function DevicesPage() {
   }, [])
 
   const { data: devices = [], isLoading } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices })
+
+  // 통합 검색("/")에서 "상세정보"를 고르면 해당 장비의 상세 창을 바로 연다. 장비 목록이 로드된 뒤에 판단한다.
+  const location = useLocation()
+  const navigate = useNavigate()
+  useEffect(() => {
+    const openDetailDeviceId = (location.state as { openDetailDeviceId?: number } | null)?.openDetailDeviceId
+    if (openDetailDeviceId == null || devices.length === 0) return
+    const target = devices.find((d) => d.id === openDetailDeviceId)
+    if (target) setDetailTarget(target)
+    navigate(location.pathname, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, devices])
 
   // devices 쿼리가 갱신될 때 그리드에서 최신 선택 행 데이터를 재동기화
   useEffect(() => {
