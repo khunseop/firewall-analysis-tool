@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 
 const RECENT_KEY = 'fat-recent-devices'
 const RECENT_MAX = 5
+const SSH_USERS_KEY = 'fat-ssh-users'
 // 한 번에 그리는 장비 수 상한. 수백 대를 전부 그리면 입력할 때마다 눈에 띄게 버벅인다.
 const MAX_VISIBLE = 50
 // 장비 목록은 자주 바뀌지 않으므로, 열 때마다 재조회(→ 뒤 페이지 그리드 재렌더)하지 않고 캐시를 쓴다.
@@ -36,6 +37,22 @@ function writeRecent(id: number) {
     const next = [id, ...readRecent().filter((v) => v !== id)].slice(0, RECENT_MAX)
     localStorage.setItem(RECENT_KEY, JSON.stringify(next))
   } catch { /* 저장이 막혀 있어도 검색은 동작해야 한다 */ }
+}
+
+/** 장비별로 마지막에 SSH 접속에 쓴 계정({장비 id: 계정}). 저장이 막혀 있으면 빈 값으로 동작한다. */
+function readSshUsers(): Record<string, string> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SSH_USERS_KEY) ?? '{}')
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeSshUser(deviceId: number, user: string) {
+  try {
+    localStorage.setItem(SSH_USERS_KEY, JSON.stringify({ ...readSshUsers(), [deviceId]: user }))
+  } catch { /* 저장이 막혀 있어도 접속은 가능해야 한다 */ }
 }
 
 /** 클립보드 API는 http(비보안 컨텍스트)에서 막히므로 textarea 복사로 폴백한다. */
@@ -186,7 +203,8 @@ export function DeviceSearch() {
   const chooseAction = (action: DeviceAction) => {
     if (!target) return
     if (action.needsInput) {
-      setSshUser(target.username)
+      // 이전에 이 장비에 쓴 계정이 있으면 그것을, 없으면 장비에 등록된 계정을 기본값으로 쓴다.
+      setSshUser(readSshUsers()[target.id] || target.username)
       // 기본 계정을 바로 덮어쓸 수 있게 전체 선택(값이 반영된 다음 프레임에)
       requestAnimationFrame(() => inputRef.current?.select())
       return
@@ -201,6 +219,7 @@ export function DeviceSearch() {
     const user = sshUser?.trim()
     if (!target || !user) return
     const device = target
+    writeSshUser(device.id, user)
     closeSearch()
     inputRef.current?.blur()
     openSsh(device, user)
