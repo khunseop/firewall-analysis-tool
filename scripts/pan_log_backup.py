@@ -18,9 +18,15 @@ devices.csv (헤더 포함):
 
 여러 로그 타입: --log-types traffic,threat,system
 날짜 미지정 시 어제 날짜. 날짜 범위: --date 2026/11/10 --end-date 2026/11/12 (일 단위로 반복)
+
+로그 산출물 (기본 ./logs, --log-dir 로 변경):
+  logs/pan_backup_YYYYMMDD_HHMMSS.log        시각이 붙은 진행/결과 기록
+  logs/pan_backup_YYYYMMDD_HHMMSS_result.csv 작업별 결과 (host,date,log_type,status,message,elapsed_sec)
+  logs/raw/YYYYMMDD_HHMMSS/<host>.txt        장비 CLI 응답 원문 (FTP 비밀번호는 *** 마스킹)
 """
 import argparse
 import csv
+import logging
 import os
 import re
 import sys
@@ -32,14 +38,19 @@ import paramiko
 
 PROMPT_RE = re.compile(r"[\w.\-@()]+[>#]\s*$")  # admin@PA-FW01> / admin@PA-FW01#
 
+log = logging.getLogger("pan_backup")
 
-def read_until_prompt(chan, timeout):
+
+def read_until_prompt(chan, timeout, raw=None):
     """프롬프트가 다시 나타날 때까지 출력 수집. (출력, 프롬프트 도달 여부) 반환."""
     buf = ""
     deadline = time.time() + timeout
     while time.time() < deadline:
         if chan.recv_ready():
-            buf += chan.recv(65535).decode("utf-8", errors="replace")
+            chunk = chan.recv(65535).decode("utf-8", errors="replace")
+            buf += chunk
+            if raw:
+                raw(chunk)
             last = buf.rstrip("\r\n ").splitlines()[-1] if buf.strip() else ""
             if PROMPT_RE.search(last + " "):
                 return buf, True
@@ -48,54 +59,90 @@ def read_until_prompt(chan, timeout):
     return buf, False
 
 
-def run_cmd(chan, cmd, timeout):
+def run_cmd(chan, cmd, timeout, raw=None):
     chan.send(cmd + "\n")
-    return read_until_prompt(chan, timeout)
+    return read_until_prompt(chan, timeout, raw)
 
 
-def backup_one(dev, jobs, args):
-    """한 장비에서 모든 (날짜, 로그타입) 작업 수행. 결과 리스트 반환."""
+def backup_one(dev, jobs, args, raw_dir):
+    """한 장비에서 모든 (날짜, 로그타입) 작업 수행.
+
+    결과 리스트 [(host, date, log_type, ok, message, elapsed_sec)] 반환.
+    """
     host = dev["host"]
     results = []
+    secret = args.ftp_pw
+
+    def mask(text):
+        return text.replace(secret, "***")
+
+    raw_fh = open(os.path.join(raw_dir, f"{host}.txt"), "a", encoding="utf-8")
+
+    def raw(text):
+        raw_fh.write(mask(text))
+        raw_fh.flush()
+
+    def mark(text):  # 원문 파일 안의 구분선
+        raw(f"\n===== [{datetime.now():%H:%M:%S}] {text} =====\n")
+
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    t_dev = time.time()
     try:
+        log.info("%s 접속 시도", host)
         client.connect(
             host, port=args.port, username=dev["username"], password=dev["password"],
             look_for_keys=False, allow_agent=False, timeout=args.connect_timeout,
         )
+        log.info("%s 접속 성공", host)
         chan = client.invoke_shell(width=250, height=1000)
-        out, ok = read_until_prompt(chan, 30)  # 로그인 배너 소비
+        out, ok = read_until_prompt(chan, 30, raw)  # 로그인 배너 소비
         if not ok:
-            return [(host, "-", "-", False, "로그인 프롬프트 확인 실패")]
+            log.error("%s 로그인 프롬프트 확인 실패", host)
+            return [(host, "-", "-", False, "로그인 프롬프트 확인 실패", round(time.time() - t_dev, 1))]
 
         for cmd in ("set cli pager off", "set cli timeout idle never"):
-            out, ok = run_cmd(chan, cmd, 15)
+            mark(cmd)
+            out, ok = run_cmd(chan, cmd, 15, raw)
             if not ok:
-                return [(host, "-", "-", False, f"'{cmd}' 응답 없음")]
+                log.error("%s '%s' 응답 없음", host, cmd)
+                return [(host, "-", "-", False, f"'{cmd}' 응답 없음", round(time.time() - t_dev, 1))]
+        log.info("%s CLI 설정 완료 (pager off, timeout idle never)", host)
 
         for day, log_type in jobs:
             d = day.strftime("%Y/%m/%d")
             cmd = (
                 f"ftp export log {log_type} start-time equal {d}@00:00:00 "
                 f"end-time equal {d}@23:59:59 to "
-                f"{args.ftp_user}:{args.ftp_pw}@{args.server}"
+                f"{args.ftp_user}:{secret}@{args.server}"
             )
-            out, ok = run_cmd(chan, cmd, args.export_timeout)
+            log.info("%s export 시작: %s %s", host, d, log_type)
+            mark(mask(cmd))
+            t0 = time.time()
+            out, ok = run_cmd(chan, cmd, args.export_timeout, raw)
+            elapsed = round(time.time() - t0, 1)
             low = out.lower()
             failed = any(k in low for k in ("error", "fail", "invalid syntax", "unknown command"))
             if not ok:
-                results.append((host, d, log_type, False, "타임아웃(프롬프트 미복귀)"))
+                msg, success = "타임아웃(프롬프트 미복귀)", False
             elif failed:
-                tail = " | ".join(l.strip() for l in out.strip().splitlines()[-3:])
-                results.append((host, d, log_type, False, tail))
+                msg = " | ".join(l.strip() for l in mask(out).strip().splitlines()[-3:])
+                success = False
             else:
-                results.append((host, d, log_type, True, "OK"))
+                msg, success = "OK", True
+            (log.info if success else log.error)(
+                "%s export %s: %s %s (%.1fs) %s", host,
+                "성공" if success else "실패", d, log_type, elapsed, "" if success else msg)
+            results.append((host, d, log_type, success, msg, elapsed))
         chan.send("exit\n")
     except Exception as e:  # 접속/인증 실패 등
-        results.append((host, "-", "-", False, f"{type(e).__name__}: {e}"))
+        msg = f"{type(e).__name__}: {e}"
+        log.error("%s 오류: %s", host, msg)
+        raw(f"\n[예외] {msg}\n")
+        results.append((host, "-", "-", False, msg, round(time.time() - t_dev, 1)))
     finally:
         client.close()
+        raw_fh.close()
     return results
 
 
@@ -105,6 +152,16 @@ def load_devices(path):
     for r in rows:
         r["host"] = r["host"].strip()
     return rows
+
+
+def setup_logging(log_dir, stamp):
+    os.makedirs(log_dir, exist_ok=True)
+    fmt = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", "%Y-%m-%d %H:%M:%S")
+    log.setLevel(logging.INFO)
+    for h in (logging.FileHandler(os.path.join(log_dir, f"pan_backup_{stamp}.log"), encoding="utf-8"),
+              logging.StreamHandler(sys.stdout)):
+        h.setFormatter(fmt)
+        log.addHandler(h)
 
 
 def main():
@@ -121,6 +178,7 @@ def main():
     p.add_argument("--workers", type=int, default=5, help="동시 처리 장비 수")
     p.add_argument("--connect-timeout", type=int, default=15)
     p.add_argument("--export-timeout", type=int, default=3600, help="export 1건 최대 대기(초)")
+    p.add_argument("--log-dir", default="logs", help="로그 저장 폴더 (기본: ./logs)")
     args = p.parse_args()
 
     if not args.ftp_pw:
@@ -135,19 +193,37 @@ def main():
     types = [t.strip() for t in args.log_types.split(",") if t.strip()]
     jobs = [(d, t) for d in days for t in types]
 
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    setup_logging(args.log_dir, stamp)
+    raw_dir = os.path.join(args.log_dir, "raw", stamp)
+    os.makedirs(raw_dir, exist_ok=True)
+
     devices = load_devices(args.devices)
-    print(f"장비 {len(devices)}대 × 작업 {len(jobs)}건 시작 (동시 {args.workers})")
+    log.info("시작: 장비 %d대 × 작업 %d건 (동시 %d) 서버=%s 기간=%s~%s 타입=%s",
+             len(devices), len(jobs), args.workers, args.server,
+             start.strftime("%Y/%m/%d"), end.strftime("%Y/%m/%d"), ",".join(types))
 
     all_results = []
     with ThreadPoolExecutor(max_workers=args.workers) as ex:
-        futs = {ex.submit(backup_one, d, jobs, args): d["host"] for d in devices}
+        futs = {ex.submit(backup_one, d, jobs, args, raw_dir): d["host"] for d in devices}
+        done = 0
         for fut in as_completed(futs):
-            for host, d, t, ok, msg in fut.result():
-                print(f"[{'OK ' if ok else 'FAIL'}] {host:<18} {d:<11} {t:<10} {msg}")
-                all_results.append((host, d, t, ok, msg))
+            all_results.extend(fut.result())
+            done += 1
+            log.info("진행: 장비 %d/%d 완료 (%s)", done, len(devices), futs[fut])
+
+    csv_path = os.path.join(args.log_dir, f"pan_backup_{stamp}_result.csv")
+    with open(csv_path, "w", newline="", encoding="utf-8-sig") as f:
+        w = csv.writer(f)
+        w.writerow(["host", "date", "log_type", "status", "message", "elapsed_sec"])
+        for host, d, t, ok, msg, el in sorted(all_results):
+            w.writerow([host, d, t, "OK" if ok else "FAIL", msg, el])
 
     fails = [r for r in all_results if not r[3]]
-    print(f"\n완료: 성공 {len(all_results) - len(fails)} / 실패 {len(fails)}")
+    log.info("완료: 성공 %d / 실패 %d", len(all_results) - len(fails), len(fails))
+    for host, d, t, _, msg, _ in fails:
+        log.info("  실패: %s %s %s - %s", host, d, t, msg)
+    log.info("결과 CSV: %s / 원문: %s", csv_path, raw_dir)
     sys.exit(1 if fails else 0)
 
 
