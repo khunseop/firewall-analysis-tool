@@ -5,9 +5,11 @@
   1) set cli pager off
   2) set cli timeout idle never
   3) ftp export log <type> start-time equal <D>@00:00:00 end-time equal <D>@23:59:59 to <id>:<pw>@<server>
+  4) export 는 job 으로 등록되므로 `show jobs id N` 이 FIN 이 될 때까지 세션을 유지하며 폴링
 
 사용 예:
-  python scripts/pan_log_backup.py -d devices.csv --date 2026/11/12
+  python scripts/pan_log_backup.py -d devices.csv --date 2026/11/12 --background
+  python scripts/pan_log_backup.py --status          # 실행 중/종료된 작업 상태 확인
 
 devices.csv (헤더 포함) — 장비마다 백업 서버를 지정:
   host,username,password,server,ftp_user,ftp_pw
@@ -19,18 +21,23 @@ BACKUP_PW) 기본값을 사용한다. 전부 같은 서버면 CSV 에서 해당 
 
 여러 로그 타입: --log-types traffic,threat,system
 날짜 미지정 시 어제 날짜. 날짜 범위: --date 2026/11/10 --end-date 2026/11/12 (일 단위로 반복)
+장비 수만큼 동시 접속(기본). 제한하려면 --workers N. export 대기 기본 최대 12시간.
 
 로그 산출물 (기본 ./logs, --log-dir 로 변경):
-  logs/pan_backup_YYYYMMDD_HHMMSS.log        시각이 붙은 진행/결과 기록
+  logs/pan_backup_YYYYMMDD_HHMMSS.log        시각이 붙은 진행/결과 기록 (+ 주기적 요약 한 줄)
   logs/pan_backup_YYYYMMDD_HHMMSS_result.csv 작업별 결과 (host,date,log_type,status,message,elapsed_sec)
   logs/raw/YYYYMMDD_HHMMSS/<host>.txt        장비 CLI 응답 원문 (FTP 비밀번호는 *** 마스킹)
+  logs/pan_backup_status.json                실시간 상태 (5초마다 갱신, --status 가 읽음)
 """
 import argparse
 import csv
+import json
 import logging
 import os
 import re
+import subprocess
 import sys
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
@@ -38,9 +45,57 @@ from datetime import datetime, timedelta
 import paramiko
 
 PROMPT_RE = re.compile(r"[\w.\-@()]+[>#]\s*$")  # admin@PA-FW01> / admin@PA-FW01#
-
 JOBID_RE = re.compile(r"job\s*(?:id)?\D{0,40}?(\d+)", re.I)  # "enqueued with jobid 123" 등
 log = logging.getLogger("pan_backup")
+STATUS_FILE = "pan_backup_status.json"
+
+
+class StatusBoard:
+    """장비별 실시간 상태를 모아 JSON 으로 주기 저장하고, 주기적으로 요약을 로그에 남긴다."""
+
+    def __init__(self, path, hosts, total_jobs, heartbeat):
+        self.path, self.heartbeat = path, heartbeat
+        self.lock = threading.Lock()
+        self.stop = threading.Event()
+        self.meta = {"pid": os.getpid(), "started": time.time(), "finished": False,
+                     "total_jobs": total_jobs}
+        self.devs = {h: {"state": "대기", "session": "-", "done": 0, "failed": 0,
+                         "total": total_jobs, "current": "", "job_id": "", "job_status": "",
+                         "start": None, "end": None, "updated": time.time(), "msg": ""}
+                     for h in hosts}
+
+    def set(self, host, **kw):
+        with self.lock:
+            self.devs[host].update(kw, updated=time.time())
+
+    def get(self, host):
+        with self.lock:
+            return dict(self.devs[host])
+
+    def write(self):
+        with self.lock:
+            data = {"meta": self.meta, "devices": self.devs}
+            tmp = self.path + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False)
+            os.replace(tmp, self.path)
+
+    def summary(self):
+        with self.lock:
+            counts = {}
+            for d in self.devs.values():
+                counts[d["state"]] = counts.get(d["state"], 0) + 1
+            lost = sum(1 for d in self.devs.values() if d["session"] == "끊김")
+        return ", ".join(f"{k} {v}" for k, v in sorted(counts.items())) + f" | 세션 끊김 {lost}"
+
+    def run(self):
+        last_hb = time.time()
+        while not self.stop.wait(5):
+            self.write()
+            if time.time() - last_hb >= self.heartbeat:
+                log.info("[요약] %s", self.summary())
+                last_hb = time.time()
+        self.write()
 
 
 def read_until_prompt(chan, timeout, raw=None):
@@ -66,7 +121,7 @@ def run_cmd(chan, cmd, timeout, raw=None):
     return read_until_prompt(chan, timeout, raw)
 
 
-def wait_job(chan, job_id, args, raw, host):
+def wait_job(chan, job_id, args, raw, host, board):
     """`show jobs id N` 를 폴링하며 작업이 끝날 때까지 세션을 유지. (성공여부, 메시지) 반환."""
     row_re = re.compile(rf"\b{job_id}\b\s+\S+\s+(ACT|FIN|PEND)\s+(\S+)")
     deadline = time.time() + args.export_timeout
@@ -77,6 +132,7 @@ def wait_job(chan, job_id, args, raw, host):
         m = row_re.search(out)
         if m:
             status, result = m.group(1), m.group(2)
+            board.set(host, job_status=status if status != "FIN" else f"FIN/{result}")
             if status != last_status:
                 log.info("%s job %s 상태: %s", host, job_id, status)
                 last_status = status
@@ -89,7 +145,7 @@ def wait_job(chan, job_id, args, raw, host):
     return False, f"job {job_id} 타임아웃({args.export_timeout}s 내 FIN 안 됨, 마지막 상태 {last_status})"
 
 
-def backup_one(dev, jobs, args, raw_dir):
+def backup_one(dev, jobs, args, raw_dir, board):
     """한 장비에서 모든 (날짜, 로그타입) 작업 수행.
 
     결과 리스트 [(host, date, log_type, ok, message, elapsed_sec)] 반환.
@@ -110,29 +166,36 @@ def backup_one(dev, jobs, args, raw_dir):
     def mark(text):  # 원문 파일 안의 구분선
         raw(f"\n===== [{datetime.now():%H:%M:%S}] {text} =====\n")
 
+    def fail_all(msg):  # 접속 단계 실패
+        board.set(host, state="실패", session="끊김", msg=msg, end=time.time())
+        return [(host, "-", "-", False, msg, round(time.time() - t_dev, 1))]
+
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     t_dev = time.time()
+    board.set(host, state="접속중", start=t_dev)
     try:
         log.info("%s 접속 시도", host)
         client.connect(
             host, port=args.port, username=dev["username"], password=dev["password"],
             look_for_keys=False, allow_agent=False, timeout=args.connect_timeout,
         )
-        client.get_transport().set_keepalive(30)  # 장시간 대기 중 SSH 세션 유지
+        transport = client.get_transport()
+        transport.set_keepalive(30)  # 장시간 대기 중 SSH 세션 유지
         log.info("%s 접속 성공", host)
+        board.set(host, state="설정중", session="연결")
         chan = client.invoke_shell(width=250, height=1000)
         out, ok = read_until_prompt(chan, 30, raw)  # 로그인 배너 소비
         if not ok:
             log.error("%s 로그인 프롬프트 확인 실패", host)
-            return [(host, "-", "-", False, "로그인 프롬프트 확인 실패", round(time.time() - t_dev, 1))]
+            return fail_all("로그인 프롬프트 확인 실패")
 
         for cmd in ("set cli pager off", "set cli timeout idle never"):
             mark(cmd)
             out, ok = run_cmd(chan, cmd, 15, raw)
             if not ok:
                 log.error("%s '%s' 응답 없음", host, cmd)
-                return [(host, "-", "-", False, f"'{cmd}' 응답 없음", round(time.time() - t_dev, 1))]
+                return fail_all(f"'{cmd}' 응답 없음")
         log.info("%s CLI 설정 완료 (pager off, timeout idle never)", host)
 
         for day, log_type in jobs:
@@ -143,6 +206,7 @@ def backup_one(dev, jobs, args, raw_dir):
                 f"{ftp_user}:{secret}@{server}"
             )
             log.info("%s export 시작: %s %s → %s", host, d, log_type, server)
+            board.set(host, state="export중", current=f"{d} {log_type}", job_id="", job_status="")
             mark(mask(cmd))
             t0 = time.time()
             out, ok = run_cmd(chan, cmd, 60, raw)  # export 는 job 등록 후 바로 프롬프트 복귀
@@ -162,18 +226,30 @@ def backup_one(dev, jobs, args, raw_dir):
             else:
                 job_id = m.group(1)
                 log.info("%s job %s 등록됨, 완료까지 세션 유지: %s %s", host, job_id, d, log_type)
-                success, msg = wait_job(chan, job_id, args, raw, host)
+                board.set(host, job_id=job_id, job_status="등록")
+                success, msg = wait_job(chan, job_id, args, raw, host, board)
             elapsed = round(time.time() - t0, 1)
             (log.info if success else log.error)(
                 "%s export %s: %s %s (%.1fs) %s", host,
                 "성공" if success else "실패", d, log_type, elapsed, "" if success else msg)
             results.append((host, d, log_type, success, msg, elapsed))
+            cur = board.get(host)
+            board.set(host, done=cur["done"] + (1 if success else 0),
+                      failed=cur["failed"] + (0 if success else 1),
+                      msg="" if success else msg)
         chan.send("exit\n")
-    except Exception as e:  # 접속/인증 실패 등
+        cur = board.get(host)
+        board.set(host, state="완료" if cur["failed"] == 0 else "실패(일부)",
+                  session="종료", end=time.time())
+    except Exception as e:  # 접속/인증 실패, 세션 끊김 등
+        cur = board.get(host)
         msg = f"{type(e).__name__}: {e}"
+        if cur["job_id"]:
+            msg += f" (세션 끊김 시점 job {cur['job_id']}; 장비에서는 계속 진행 중일 수 있으니 show jobs 로 확인)"
         log.error("%s 오류: %s", host, msg)
         raw(f"\n[예외] {msg}\n")
-        results.append((host, "-", "-", False, msg, round(time.time() - t_dev, 1)))
+        results.append((host, cur["current"] or "-", "-", False, msg, round(time.time() - t_dev, 1)))
+        board.set(host, state="실패", session="끊김", msg=msg, end=time.time())
     finally:
         client.close()
         raw_fh.close()
@@ -207,9 +283,56 @@ def setup_logging(log_dir, stamp):
         log.addHandler(h)
 
 
+def fmt_dur(sec):
+    sec = int(max(sec, 0))
+    return f"{sec // 3600}:{sec % 3600 // 60:02d}:{sec % 60:02d}"
+
+
+def show_status(log_dir, only_problem):
+    """status JSON 을 읽어 장비별 표를 출력."""
+    path = os.path.join(log_dir, STATUS_FILE)
+    if not os.path.exists(path):
+        sys.exit(f"상태 파일이 없습니다: {path}")
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    meta, devs = data["meta"], data["devices"]
+    now = time.time()
+    alive = None
+    if os.name == "posix":
+        try:
+            os.kill(meta["pid"], 0)
+            alive = True
+        except OSError:
+            alive = False
+    if meta["finished"]:
+        run = "종료됨"
+    elif alive is False:
+        run = "⚠ 프로세스 없음 (정상 종료 전에 중단됨)"
+    else:
+        run = "실행 중" if alive else "실행 중(프로세스 확인 불가)"
+    counts = {}
+    for d in devs.values():
+        counts[d["state"]] = counts.get(d["state"], 0) + 1
+    print(f"PID {meta['pid']} | {run} | 시작 {datetime.fromtimestamp(meta['started']):%m/%d %H:%M} "
+          f"| 경과 {fmt_dur(now - meta['started'])}")
+    print("요약: " + ", ".join(f"{k} {v}" for k, v in sorted(counts.items())) + f" (총 {len(devs)}대)\n")
+    print(f"{'HOST':<16}{'상태':<10}{'세션':<5}{'완료/전체':<10}{'현재작업':<22}{'JOB':<8}{'JOB상태':<10}{'경과':<9}{'갱신':<8}비고")
+    for host, d in sorted(devs.items()):
+        if only_problem and d["state"] in ("완료", "대기") and not d["failed"]:
+            continue
+        el = (d["end"] or now) - d["start"] if d["start"] else 0
+        stale = now - d["updated"]
+        flag = " ⚠" if (d["state"] == "export중" and stale > 300) else ""
+        print(f"{host:<16}{d['state']:<10}{d['session']:<5}{d['done']}/{d['total']:<8}"
+              f"{d['current']:<22}{d['job_id']:<8}{d['job_status']:<10}{fmt_dur(el):<9}"
+              f"{int(stale)}s전{flag:<4} {d['msg'][:60]}")
+
+
 def main():
     p = argparse.ArgumentParser(description="Palo Alto 로그 FTP 일괄 백업")
-    p.add_argument("-d", "--devices", required=True, help="장비 CSV (host,username,password)")
+    p.add_argument("-d", "--devices", help="장비 CSV (host,username,password[,server,ftp_user,ftp_pw])")
+    p.add_argument("--status", action="store_true", help="실행 상태 표 출력 후 종료")
+    p.add_argument("--only-problem", action="store_true", help="--status 와 함께: 완료/대기 장비 숨김")
     p.add_argument("--server", help="기본 백업(FTP) 서버 (CSV의 server 컬럼이 비었을 때 사용)")
     p.add_argument("--ftp-user", help="기본 FTP 계정 (CSV의 ftp_user 가 비었을 때 사용)")
     p.add_argument("--ftp-pw", default=os.environ.get("BACKUP_PW"),
@@ -218,12 +341,21 @@ def main():
     p.add_argument("--end-date", help="범위 백업 종료일 (선택)")
     p.add_argument("--log-types", default="traffic", help="쉼표 구분 (기본: traffic)")
     p.add_argument("--port", type=int, default=22)
-    p.add_argument("--workers", type=int, default=5, help="동시 처리 장비 수")
+    p.add_argument("--workers", type=int, default=0, help="동시 처리 장비 수 (기본 0 = 장비 전체 동시)")
     p.add_argument("--connect-timeout", type=int, default=15)
-    p.add_argument("--export-timeout", type=int, default=3600, help="export job 1건 최대 대기(초)")
-    p.add_argument("--poll-interval", type=int, default=10, help="job 상태 확인 간격(초)")
+    p.add_argument("--export-timeout", type=int, default=43200, help="export job 1건 최대 대기(초, 기본 12시간)")
+    p.add_argument("--poll-interval", type=int, default=30, help="job 상태 확인 간격(초)")
+    p.add_argument("--heartbeat", type=int, default=600, help="로그에 요약 한 줄 남기는 간격(초)")
     p.add_argument("--log-dir", default="logs", help="로그 저장 폴더 (기본: ./logs)")
+    p.add_argument("--background", action="store_true",
+                   help="백그라운드로 분리 실행 (콘솔/SSH 창을 닫아도 계속 진행)")
     args = p.parse_args()
+
+    if args.status:
+        show_status(args.log_dir, args.only_problem)
+        return
+    if not args.devices:
+        p.error("-d/--devices 가 필요합니다 (상태 확인은 --status)")
 
     start = (datetime.strptime(args.date, "%Y/%m/%d") if args.date
              else datetime.now() - timedelta(days=1))
@@ -234,24 +366,51 @@ def main():
     types = [t.strip() for t in args.log_types.split(",") if t.strip()]
     jobs = [(d, t) for d in days for t in types]
 
+    if args.background and not os.environ.get("PAN_BG_CHILD"):
+        load_devices(args.devices, args)  # CSV 오류는 백그라운드로 보내기 전에 여기서 바로 보여줌
+        os.makedirs(args.log_dir, exist_ok=True)
+        out_path = os.path.join(args.log_dir, f"pan_backup_stdout_{datetime.now():%Y%m%d_%H%M%S}.out")
+        kw = {"start_new_session": True} if os.name == "posix" else {
+            "creationflags": subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP}
+        with open(out_path, "w") as out_fh:
+            proc = subprocess.Popen(
+                [sys.executable] + [a for a in sys.argv if a != "--background"],
+                stdin=subprocess.DEVNULL, stdout=out_fh, stderr=subprocess.STDOUT,
+                env={**os.environ, "PAN_BG_CHILD": "1"}, **kw)
+        print(f"백그라운드 실행 시작 (PID {proc.pid}). 이 창은 닫아도 됩니다.")
+        print(f"상태 확인: python {sys.argv[0]} --status" + (f" --log-dir {args.log_dir}" if args.log_dir != "logs" else ""))
+        print(f"콘솔 출력 파일: {out_path}")
+        sys.exit(0)
+
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     setup_logging(args.log_dir, stamp)
     raw_dir = os.path.join(args.log_dir, "raw", stamp)
     os.makedirs(raw_dir, exist_ok=True)
 
     devices = load_devices(args.devices, args)
+    workers = args.workers or len(devices)
     log.info("시작: 장비 %d대 × 작업 %d건 (동시 %d) 기간=%s~%s 타입=%s",
-             len(devices), len(jobs), args.workers,
+             len(devices), len(jobs), workers,
              start.strftime("%Y/%m/%d"), end.strftime("%Y/%m/%d"), ",".join(types))
 
+    board = StatusBoard(os.path.join(args.log_dir, STATUS_FILE),
+                        [d["host"] for d in devices], len(jobs), args.heartbeat)
+    board.write()
+    threading.Thread(target=board.run, daemon=True).start()
+
     all_results = []
-    with ThreadPoolExecutor(max_workers=args.workers) as ex:
-        futs = {ex.submit(backup_one, d, jobs, args, raw_dir): d["host"] for d in devices}
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        futs = {ex.submit(backup_one, d, jobs, args, raw_dir, board): d["host"] for d in devices}
         done = 0
         for fut in as_completed(futs):
             all_results.extend(fut.result())
             done += 1
             log.info("진행: 장비 %d/%d 완료 (%s)", done, len(devices), futs[fut])
+
+    board.meta["finished"] = True
+    board.stop.set()
+    time.sleep(0.5)
+    board.write()
 
     csv_path = os.path.join(args.log_dir, f"pan_backup_{stamp}_result.csv")
     with open(csv_path, "w", newline="", encoding="utf-8-sig") as f:
