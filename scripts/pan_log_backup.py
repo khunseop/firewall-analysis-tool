@@ -7,14 +7,15 @@
   3) ftp export log <type> start-time equal <D>@00:00:00 end-time equal <D>@23:59:59 to <id>:<pw>@<server>
 
 사용 예:
-  export BACKUP_PW='ftp-password'
-  python scripts/pan_log_backup.py -d devices.csv --date 2026/11/12 \
-      --server 10.0.0.50 --ftp-user backup
+  python scripts/pan_log_backup.py -d devices.csv --date 2026/11/12
 
-devices.csv (헤더 포함):
-  host,username,password
-  10.1.1.1,admin,secret
-  10.1.1.2,admin,secret
+devices.csv (헤더 포함) — 장비마다 백업 서버를 지정:
+  host,username,password,server,ftp_user,ftp_pw
+  10.1.1.1,admin,secret,10.0.0.50,backup,ftppw1
+  10.1.1.2,admin,secret,10.0.0.51,backup,ftppw2
+
+server/ftp_user/ftp_pw 는 행에서 비워 두면 --server/--ftp-user/--ftp-pw(또는 환경변수
+BACKUP_PW) 기본값을 사용한다. 전부 같은 서버면 CSV 에서 해당 컬럼을 생략해도 된다.
 
 여러 로그 타입: --log-types traffic,threat,system
 날짜 미지정 시 어제 날짜. 날짜 범위: --date 2026/11/10 --end-date 2026/11/12 (일 단위로 반복)
@@ -71,7 +72,7 @@ def backup_one(dev, jobs, args, raw_dir):
     """
     host = dev["host"]
     results = []
-    secret = args.ftp_pw
+    server, ftp_user, secret = dev["server"], dev["ftp_user"], dev["ftp_pw"]
 
     def mask(text):
         return text.replace(secret, "***")
@@ -114,9 +115,9 @@ def backup_one(dev, jobs, args, raw_dir):
             cmd = (
                 f"ftp export log {log_type} start-time equal {d}@00:00:00 "
                 f"end-time equal {d}@23:59:59 to "
-                f"{args.ftp_user}:{secret}@{args.server}"
+                f"{ftp_user}:{secret}@{server}"
             )
-            log.info("%s export 시작: %s %s", host, d, log_type)
+            log.info("%s export 시작: %s %s → %s", host, d, log_type, server)
             mark(mask(cmd))
             t0 = time.time()
             out, ok = run_cmd(chan, cmd, args.export_timeout, raw)
@@ -146,11 +147,20 @@ def backup_one(dev, jobs, args, raw_dir):
     return results
 
 
-def load_devices(path):
+def load_devices(path, args):
+    """CSV 로드. server/ftp_user/ftp_pw 는 행 값이 우선, 비어 있으면 CLI 인자로 대체."""
     with open(path, newline="", encoding="utf-8-sig") as f:
-        rows = [r for r in csv.DictReader(f) if r.get("host", "").strip()]
+        rows = [r for r in csv.DictReader(f) if (r.get("host") or "").strip()]
+    errors = []
     for r in rows:
         r["host"] = r["host"].strip()
+        for key, default in (("server", args.server), ("ftp_user", args.ftp_user),
+                             ("ftp_pw", args.ftp_pw)):
+            r[key] = (r.get(key) or "").strip() or default
+            if not r[key]:
+                errors.append(f"{r['host']}: '{key}' 값이 없습니다 (CSV 컬럼 또는 인자로 지정)")
+    if errors:
+        sys.exit("장비 목록 오류:\n  " + "\n  ".join(errors))
     return rows
 
 
@@ -167,10 +177,10 @@ def setup_logging(log_dir, stamp):
 def main():
     p = argparse.ArgumentParser(description="Palo Alto 로그 FTP 일괄 백업")
     p.add_argument("-d", "--devices", required=True, help="장비 CSV (host,username,password)")
-    p.add_argument("--server", required=True, help="백업(FTP) 서버 주소")
-    p.add_argument("--ftp-user", required=True)
+    p.add_argument("--server", help="기본 백업(FTP) 서버 (CSV의 server 컬럼이 비었을 때 사용)")
+    p.add_argument("--ftp-user", help="기본 FTP 계정 (CSV의 ftp_user 가 비었을 때 사용)")
     p.add_argument("--ftp-pw", default=os.environ.get("BACKUP_PW"),
-                   help="FTP 비밀번호 (미지정 시 환경변수 BACKUP_PW)")
+                   help="기본 FTP 비밀번호 (CSV의 ftp_pw 가 비었을 때 사용, 환경변수 BACKUP_PW 가능)")
     p.add_argument("--date", help="백업 날짜 YYYY/MM/DD (기본: 어제)")
     p.add_argument("--end-date", help="범위 백업 종료일 (선택)")
     p.add_argument("--log-types", default="traffic", help="쉼표 구분 (기본: traffic)")
@@ -180,9 +190,6 @@ def main():
     p.add_argument("--export-timeout", type=int, default=3600, help="export 1건 최대 대기(초)")
     p.add_argument("--log-dir", default="logs", help="로그 저장 폴더 (기본: ./logs)")
     args = p.parse_args()
-
-    if not args.ftp_pw:
-        sys.exit("FTP 비밀번호가 없습니다: --ftp-pw 또는 환경변수 BACKUP_PW")
 
     start = (datetime.strptime(args.date, "%Y/%m/%d") if args.date
              else datetime.now() - timedelta(days=1))
@@ -198,9 +205,9 @@ def main():
     raw_dir = os.path.join(args.log_dir, "raw", stamp)
     os.makedirs(raw_dir, exist_ok=True)
 
-    devices = load_devices(args.devices)
-    log.info("시작: 장비 %d대 × 작업 %d건 (동시 %d) 서버=%s 기간=%s~%s 타입=%s",
-             len(devices), len(jobs), args.workers, args.server,
+    devices = load_devices(args.devices, args)
+    log.info("시작: 장비 %d대 × 작업 %d건 (동시 %d) 기간=%s~%s 타입=%s",
+             len(devices), len(jobs), args.workers,
              start.strftime("%Y/%m/%d"), end.strftime("%Y/%m/%d"), ",".join(types))
 
     all_results = []
