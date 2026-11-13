@@ -11,13 +11,16 @@
   python scripts/pan_log_backup.py -d devices.csv --date 2026/11/12 --background
   python scripts/pan_log_backup.py --status          # 실행 중/종료된 작업 상태 확인
 
-devices.csv (헤더 포함) — 장비마다 백업 서버를 지정:
-  host,username,password,server,ftp_user,ftp_pw
-  10.1.1.1,admin,secret,10.0.0.50,backup,ftppw1
-  10.1.1.2,admin,secret,10.0.0.51,backup,ftppw2
+devices.csv (헤더 포함) — 장비마다 백업 서버/기간/로그종류까지 지정 가능:
+  host,username,password,server,ftp_user,ftp_pw,start_date,start_time,end_date,end_time,log_types
+  10.1.1.1,admin,secret,10.0.0.50,backup,pw1,2026/11/12,09:00,2026/11/12,18:00,traffic
+  10.1.1.2,admin,secret,10.0.0.51,backup,pw2,2026/11/10,,2026/11/12,,traffic;threat
 
-server/ftp_user/ftp_pw 는 행에서 비워 두면 --server/--ftp-user/--ftp-pw(또는 환경변수
-BACKUP_PW) 기본값을 사용한다. 전부 같은 서버면 CSV 에서 해당 컬럼을 생략해도 된다.
+필수는 host,username,password. 나머지 컬럼은 생략하거나 행에서 비워 두면 명령줄 값
+(--server/--ftp-user/--ftp-pw(환경변수 BACKUP_PW)/--start-date/--start-time/--end-date/
+--end-time/--log-types)을, 그것도 없으면 기본값을 사용한다.
+log_types 를 CSV 안에서 여러 개 쓸 땐 쉼표 대신 세미콜론(;) 또는 따옴표로 감싼 쉼표 사용.
+장비당 1행 (host 중복 불가).
 
 여러 로그 타입: --log-types traffic,threat,system
 
@@ -59,16 +62,17 @@ STATUS_FILE = "pan_backup_status.json"
 class StatusBoard:
     """장비별 실시간 상태를 모아 JSON 으로 주기 저장하고, 주기적으로 요약을 로그에 남긴다."""
 
-    def __init__(self, path, hosts, total_jobs, heartbeat):
+    def __init__(self, path, totals, heartbeat):
+        """totals: {host: 해당 장비의 작업 건수}"""
         self.path, self.heartbeat = path, heartbeat
         self.lock = threading.Lock()
         self.stop = threading.Event()
         self.meta = {"pid": os.getpid(), "started": time.time(), "finished": False,
-                     "total_jobs": total_jobs}
+                     "total_jobs": sum(totals.values())}
         self.devs = {h: {"state": "대기", "session": "-", "done": 0, "failed": 0,
-                         "total": total_jobs, "current": "", "job_id": "", "job_status": "",
+                         "total": n, "current": "", "job_id": "", "job_status": "",
                          "start": None, "end": None, "updated": time.time(), "msg": ""}
-                     for h in hosts}
+                     for h, n in totals.items()}
 
     def set(self, host, **kw):
         with self.lock:
@@ -151,7 +155,7 @@ def wait_job(chan, job_id, args, raw, host, board):
     return False, f"job {job_id} 타임아웃({args.export_timeout}s 내 FIN 안 됨, 마지막 상태 {last_status})"
 
 
-def backup_one(dev, jobs, args, raw_dir, board):
+def backup_one(dev, args, raw_dir, board):
     """한 장비에서 모든 (날짜, 로그타입) 작업 수행.
 
     결과 리스트 [(host, date, log_type, ok, message, elapsed_sec)] 반환.
@@ -204,7 +208,7 @@ def backup_one(dev, jobs, args, raw_dir, board):
                 return fail_all(f"'{cmd}' 응답 없음")
         log.info("%s CLI 설정 완료 (pager off, timeout idle never)", host)
 
-        for s_dt, e_dt, log_type in jobs:
+        for s_dt, e_dt, log_type in dev["jobs"]:
             d = span_label(s_dt, e_dt)
             cmd = (
                 f"ftp export log {log_type} start-time equal {s_dt:%Y/%m/%d@%H:%M:%S} "
@@ -266,14 +270,28 @@ def load_devices(path, args):
     """CSV 로드. server/ftp_user/ftp_pw 는 행 값이 우선, 비어 있으면 CLI 인자로 대체."""
     with open(path, newline="", encoding="utf-8-sig") as f:
         rows = [r for r in csv.DictReader(f) if (r.get("host") or "").strip()]
-    errors = []
+    errors, seen = [], set()
     for r in rows:
         r["host"] = r["host"].strip()
+        if r["host"] in seen:
+            errors.append(f"{r['host']}: host 가 중복되었습니다 (장비당 1행, 기간이 여러 날이면 시작/종료로 지정)")
+        seen.add(r["host"])
         for key, default in (("server", args.server), ("ftp_user", args.ftp_user),
                              ("ftp_pw", args.ftp_pw)):
             r[key] = (r.get(key) or "").strip() or default
             if not r[key]:
                 errors.append(f"{r['host']}: '{key}' 값이 없습니다 (CSV 컬럼 또는 인자로 지정)")
+        # 기간/로그타입: 행 값 우선, 비어 있으면 명령줄 값(또는 기본값)
+        opt = {k: (r.get(k) or "").strip() or getattr(args, k)
+               for k in ("start_date", "start_time", "end_date", "end_time", "log_types")}
+        try:
+            spans = build_spans(argparse.Namespace(no_split=args.no_split, **{
+                k: v for k, v in opt.items() if k != "log_types"}))
+        except SystemExit as e:
+            errors.append(f"{r['host']}: {e}")
+            continue
+        types = [t.strip() for t in opt["log_types"].replace(";", ",").split(",") if t.strip()]
+        r["jobs"] = [(s, e, t) for s, e in spans for t in types]
     if errors:
         sys.exit("장비 목록 오류:\n  " + "\n  ".join(errors))
     return rows
@@ -409,10 +427,6 @@ def main():
     if not args.devices:
         p.error("-d/--devices 가 필요합니다 (상태 확인은 --status)")
 
-    spans = build_spans(args)
-    types = [t.strip() for t in args.log_types.split(",") if t.strip()]
-    jobs = [(s, e, t) for s, e in spans for t in types]
-
     if args.background and not os.environ.get("PAN_BG_CHILD"):
         load_devices(args.devices, args)  # CSV 오류는 백그라운드로 보내기 전에 여기서 바로 보여줌
         os.makedirs(args.log_dir, exist_ok=True)
@@ -436,20 +450,20 @@ def main():
 
     devices = load_devices(args.devices, args)
     workers = args.workers or len(devices)
-    log.info("시작: 장비 %d대 × 작업 %d건 (동시 %d) 기간=%s 타입=%s",
-             len(devices), len(jobs), workers,
-             span_label(spans[0][0], spans[-1][1]), ",".join(types))
-    for s, e in spans:
-        log.info("  구간: %s", span_label(s, e))
+    log.info("시작: 장비 %d대, 작업 총 %d건 (동시 %d)",
+             len(devices), sum(len(d["jobs"]) for d in devices), workers)
+    for d in devices:  # 장비별 실행 계획을 로그에 남김
+        plan = "; ".join(f"{span_label(s, e)} {t}" for s, e, t in d["jobs"])
+        log.info("  계획 %s → %s : %s", d["host"], d["server"], plan)
 
     board = StatusBoard(os.path.join(args.log_dir, STATUS_FILE),
-                        [d["host"] for d in devices], len(jobs), args.heartbeat)
+                        {d["host"]: len(d["jobs"]) for d in devices}, args.heartbeat)
     board.write()
     threading.Thread(target=board.run, daemon=True).start()
 
     all_results = []
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        futs = {ex.submit(backup_one, d, jobs, args, raw_dir, board): d["host"] for d in devices}
+        futs = {ex.submit(backup_one, d, args, raw_dir, board): d["host"] for d in devices}
         done = 0
         for fut in as_completed(futs):
             all_results.extend(fut.result())
