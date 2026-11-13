@@ -20,7 +20,13 @@ server/ftp_user/ftp_pw 는 행에서 비워 두면 --server/--ftp-user/--ftp-pw(
 BACKUP_PW) 기본값을 사용한다. 전부 같은 서버면 CSV 에서 해당 컬럼을 생략해도 된다.
 
 여러 로그 타입: --log-types traffic,threat,system
-날짜 미지정 시 어제 날짜. 날짜 범위: --date 2026/11/10 --end-date 2026/11/12 (일 단위로 반복)
+
+기간 지정 (날짜/시각 각각, 시각은 HH:MM[:SS]):
+  --start-date 2026/11/12 --start-time 09:00 --end-date 2026/11/12 --end-time 18:30
+  생략 시: 시작날짜=어제, 종료날짜=시작날짜, 시작시각=00:00:00, 종료시각=23:59:59
+  (--date 는 --start-date 의 별칭)
+  여러 날에 걸치면 하루씩 나눠 export (첫날은 시작시각부터, 마지막 날은 종료시각까지,
+  중간 날은 종일). 나누지 않고 1건으로 보내려면 --no-split.
 장비 수만큼 동시 접속(기본). 제한하려면 --workers N. export 대기 기본 최대 12시간.
 
 로그 산출물 (기본 ./logs, --log-dir 로 변경):
@@ -198,11 +204,11 @@ def backup_one(dev, jobs, args, raw_dir, board):
                 return fail_all(f"'{cmd}' 응답 없음")
         log.info("%s CLI 설정 완료 (pager off, timeout idle never)", host)
 
-        for day, log_type in jobs:
-            d = day.strftime("%Y/%m/%d")
+        for s_dt, e_dt, log_type in jobs:
+            d = span_label(s_dt, e_dt)
             cmd = (
-                f"ftp export log {log_type} start-time equal {d}@00:00:00 "
-                f"end-time equal {d}@23:59:59 to "
+                f"ftp export log {log_type} start-time equal {s_dt:%Y/%m/%d@%H:%M:%S} "
+                f"end-time equal {e_dt:%Y/%m/%d@%H:%M:%S} to "
                 f"{ftp_user}:{secret}@{server}"
             )
             log.info("%s export 시작: %s %s → %s", host, d, log_type, server)
@@ -283,6 +289,48 @@ def setup_logging(log_dir, stamp):
         log.addHandler(h)
 
 
+def span_label(s, e):
+    """결과/로그/상태표에 쓰는 구간 표기. 같은 날이면 날짜를 한 번만 표시."""
+    if s.date() == e.date():
+        return f"{s:%Y/%m/%d %H:%M:%S}~{e:%H:%M:%S}"
+    return f"{s:%Y/%m/%d %H:%M:%S}~{e:%Y/%m/%d %H:%M:%S}"
+
+
+def parse_time(text, name):
+    for fmt in ("%H:%M:%S", "%H:%M"):
+        try:
+            return datetime.strptime(text, fmt).time()
+        except ValueError:
+            pass
+    sys.exit(f"{name} 형식 오류: '{text}' (HH:MM:SS 또는 HH:MM)")
+
+
+def build_spans(args):
+    """(시작, 종료) 구간 목록. 기본은 날짜별 분할, --no-split 이면 구간 전체를 1건으로."""
+    def pdate(text, name):
+        try:
+            return datetime.strptime(text, "%Y/%m/%d").date()
+        except ValueError:
+            sys.exit(f"{name} 형식 오류: '{text}' (YYYY/MM/DD)")
+
+    sd = pdate(args.start_date, "--start-date") if args.start_date else (datetime.now() - timedelta(days=1)).date()
+    ed = pdate(args.end_date, "--end-date") if args.end_date else sd
+    st = parse_time(args.start_time, "--start-time")
+    et = parse_time(args.end_time, "--end-time")
+    start, end = datetime.combine(sd, st), datetime.combine(ed, et)
+    if end <= start:
+        sys.exit(f"종료({end:%Y/%m/%d %H:%M:%S})가 시작({start:%Y/%m/%d %H:%M:%S})보다 늦어야 합니다")
+    if args.no_split or sd == ed:
+        return [(start, end)]
+    spans = []
+    for i in range((ed - sd).days + 1):
+        day = sd + timedelta(days=i)
+        s = start if day == sd else datetime.combine(day, datetime.min.time())
+        e = end if day == ed else datetime.combine(day, datetime.max.time().replace(microsecond=0))
+        spans.append((s, e))
+    return spans
+
+
 def fmt_dur(sec):
     sec = int(max(sec, 0))
     return f"{sec // 3600}:{sec % 3600 // 60:02d}:{sec % 60:02d}"
@@ -316,7 +364,7 @@ def show_status(log_dir, only_problem):
     print(f"PID {meta['pid']} | {run} | 시작 {datetime.fromtimestamp(meta['started']):%m/%d %H:%M} "
           f"| 경과 {fmt_dur(now - meta['started'])}")
     print("요약: " + ", ".join(f"{k} {v}" for k, v in sorted(counts.items())) + f" (총 {len(devs)}대)\n")
-    print(f"{'HOST':<16}{'상태':<10}{'세션':<5}{'완료/전체':<10}{'현재작업':<22}{'JOB':<8}{'JOB상태':<10}{'경과':<9}{'갱신':<8}비고")
+    print(f"{'HOST':<16}{'상태':<10}{'세션':<5}{'완료/전체':<10}{'현재작업':<52}{'JOB':<8}{'JOB상태':<10}{'경과':<9}{'갱신':<8}비고")
     for host, d in sorted(devs.items()):
         if only_problem and d["state"] in ("완료", "대기") and not d["failed"]:
             continue
@@ -324,7 +372,7 @@ def show_status(log_dir, only_problem):
         stale = now - d["updated"]
         flag = " ⚠" if (d["state"] == "export중" and stale > 300) else ""
         print(f"{host:<16}{d['state']:<10}{d['session']:<5}{d['done']}/{d['total']:<8}"
-              f"{d['current']:<22}{d['job_id']:<8}{d['job_status']:<10}{fmt_dur(el):<9}"
+              f"{d['current']:<52}{d['job_id']:<8}{d['job_status']:<10}{fmt_dur(el):<9}"
               f"{int(stale)}s전{flag:<4} {d['msg'][:60]}")
 
 
@@ -337,8 +385,12 @@ def main():
     p.add_argument("--ftp-user", help="기본 FTP 계정 (CSV의 ftp_user 가 비었을 때 사용)")
     p.add_argument("--ftp-pw", default=os.environ.get("BACKUP_PW"),
                    help="기본 FTP 비밀번호 (CSV의 ftp_pw 가 비었을 때 사용, 환경변수 BACKUP_PW 가능)")
-    p.add_argument("--date", help="백업 날짜 YYYY/MM/DD (기본: 어제)")
-    p.add_argument("--end-date", help="범위 백업 종료일 (선택)")
+    p.add_argument("--start-date", "--date", dest="start_date", help="시작 날짜 YYYY/MM/DD (기본: 어제)")
+    p.add_argument("--start-time", default="00:00:00", help="시작 시각 HH:MM[:SS] (기본 00:00:00)")
+    p.add_argument("--end-date", help="종료 날짜 YYYY/MM/DD (기본: 시작 날짜와 동일)")
+    p.add_argument("--end-time", default="23:59:59", help="종료 시각 HH:MM[:SS] (기본 23:59:59)")
+    p.add_argument("--no-split", action="store_true",
+                   help="여러 날에 걸친 구간을 하루씩 나누지 않고 1건으로 export")
     p.add_argument("--log-types", default="traffic", help="쉼표 구분 (기본: traffic)")
     p.add_argument("--port", type=int, default=22)
     p.add_argument("--workers", type=int, default=0, help="동시 처리 장비 수 (기본 0 = 장비 전체 동시)")
@@ -357,14 +409,9 @@ def main():
     if not args.devices:
         p.error("-d/--devices 가 필요합니다 (상태 확인은 --status)")
 
-    start = (datetime.strptime(args.date, "%Y/%m/%d") if args.date
-             else datetime.now() - timedelta(days=1))
-    end = datetime.strptime(args.end_date, "%Y/%m/%d") if args.end_date else start
-    if end < start:
-        sys.exit("--end-date 가 --date 보다 빠릅니다")
-    days = [start + timedelta(days=i) for i in range((end - start).days + 1)]
+    spans = build_spans(args)
     types = [t.strip() for t in args.log_types.split(",") if t.strip()]
-    jobs = [(d, t) for d in days for t in types]
+    jobs = [(s, e, t) for s, e in spans for t in types]
 
     if args.background and not os.environ.get("PAN_BG_CHILD"):
         load_devices(args.devices, args)  # CSV 오류는 백그라운드로 보내기 전에 여기서 바로 보여줌
@@ -389,9 +436,11 @@ def main():
 
     devices = load_devices(args.devices, args)
     workers = args.workers or len(devices)
-    log.info("시작: 장비 %d대 × 작업 %d건 (동시 %d) 기간=%s~%s 타입=%s",
+    log.info("시작: 장비 %d대 × 작업 %d건 (동시 %d) 기간=%s 타입=%s",
              len(devices), len(jobs), workers,
-             start.strftime("%Y/%m/%d"), end.strftime("%Y/%m/%d"), ",".join(types))
+             span_label(spans[0][0], spans[-1][1]), ",".join(types))
+    for s, e in spans:
+        log.info("  구간: %s", span_label(s, e))
 
     board = StatusBoard(os.path.join(args.log_dir, STATUS_FILE),
                         [d["host"] for d in devices], len(jobs), args.heartbeat)
