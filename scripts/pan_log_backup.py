@@ -39,6 +39,7 @@ import paramiko
 
 PROMPT_RE = re.compile(r"[\w.\-@()]+[>#]\s*$")  # admin@PA-FW01> / admin@PA-FW01#
 
+JOBID_RE = re.compile(r"job\s*(?:id)?\D{0,40}?(\d+)", re.I)  # "enqueued with jobid 123" 등
 log = logging.getLogger("pan_backup")
 
 
@@ -63,6 +64,29 @@ def read_until_prompt(chan, timeout, raw=None):
 def run_cmd(chan, cmd, timeout, raw=None):
     chan.send(cmd + "\n")
     return read_until_prompt(chan, timeout, raw)
+
+
+def wait_job(chan, job_id, args, raw, host):
+    """`show jobs id N` 를 폴링하며 작업이 끝날 때까지 세션을 유지. (성공여부, 메시지) 반환."""
+    row_re = re.compile(rf"\b{job_id}\b\s+\S+\s+(ACT|FIN|PEND)\s+(\S+)")
+    deadline = time.time() + args.export_timeout
+    last_status = None
+    while time.time() < deadline:
+        raw(f"\n===== [{datetime.now():%H:%M:%S}] show jobs id {job_id} =====\n")
+        out, ok = run_cmd(chan, f"show jobs id {job_id}", 30, raw)
+        m = row_re.search(out)
+        if m:
+            status, result = m.group(1), m.group(2)
+            if status != last_status:
+                log.info("%s job %s 상태: %s", host, job_id, status)
+                last_status = status
+            if status == "FIN":
+                if result == "OK":
+                    return True, "OK"
+                detail = " | ".join(l.strip() for l in out.strip().splitlines()[-4:])
+                return False, f"job {job_id} 결과 {result}: {detail}"
+        time.sleep(args.poll_interval)
+    return False, f"job {job_id} 타임아웃({args.export_timeout}s 내 FIN 안 됨, 마지막 상태 {last_status})"
 
 
 def backup_one(dev, jobs, args, raw_dir):
@@ -95,6 +119,7 @@ def backup_one(dev, jobs, args, raw_dir):
             host, port=args.port, username=dev["username"], password=dev["password"],
             look_for_keys=False, allow_agent=False, timeout=args.connect_timeout,
         )
+        client.get_transport().set_keepalive(30)  # 장시간 대기 중 SSH 세션 유지
         log.info("%s 접속 성공", host)
         chan = client.invoke_shell(width=250, height=1000)
         out, ok = read_until_prompt(chan, 30, raw)  # 로그인 배너 소비
@@ -120,17 +145,25 @@ def backup_one(dev, jobs, args, raw_dir):
             log.info("%s export 시작: %s %s → %s", host, d, log_type, server)
             mark(mask(cmd))
             t0 = time.time()
-            out, ok = run_cmd(chan, cmd, args.export_timeout, raw)
-            elapsed = round(time.time() - t0, 1)
+            out, ok = run_cmd(chan, cmd, 60, raw)  # export 는 job 등록 후 바로 프롬프트 복귀
             low = out.lower()
             failed = any(k in low for k in ("error", "fail", "invalid syntax", "unknown command"))
+            m = JOBID_RE.search(out)
             if not ok:
-                msg, success = "타임아웃(프롬프트 미복귀)", False
+                msg, success = "명령 응답 없음(프롬프트 미복귀)", False
             elif failed:
                 msg = " | ".join(l.strip() for l in mask(out).strip().splitlines()[-3:])
                 success = False
+            elif not m:
+                # job id 를 못 찾으면 완료 여부를 확인할 수 없음 → 성공으로 단정하지 않는다
+                msg = "job id 확인 불가(완료 여부 미확인): " + " | ".join(
+                    l.strip() for l in mask(out).strip().splitlines()[-3:])
+                success = False
             else:
-                msg, success = "OK", True
+                job_id = m.group(1)
+                log.info("%s job %s 등록됨, 완료까지 세션 유지: %s %s", host, job_id, d, log_type)
+                success, msg = wait_job(chan, job_id, args, raw, host)
+            elapsed = round(time.time() - t0, 1)
             (log.info if success else log.error)(
                 "%s export %s: %s %s (%.1fs) %s", host,
                 "성공" if success else "실패", d, log_type, elapsed, "" if success else msg)
@@ -187,7 +220,8 @@ def main():
     p.add_argument("--port", type=int, default=22)
     p.add_argument("--workers", type=int, default=5, help="동시 처리 장비 수")
     p.add_argument("--connect-timeout", type=int, default=15)
-    p.add_argument("--export-timeout", type=int, default=3600, help="export 1건 최대 대기(초)")
+    p.add_argument("--export-timeout", type=int, default=3600, help="export job 1건 최대 대기(초)")
+    p.add_argument("--poll-interval", type=int, default=10, help="job 상태 확인 간격(초)")
     p.add_argument("--log-dir", default="logs", help="로그 저장 폴더 (기본: ./logs)")
     args = p.parse_args()
 
