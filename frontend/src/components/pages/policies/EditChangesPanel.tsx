@@ -64,8 +64,8 @@ export function EditChangesPanel({
     .filter((k) => counts[k] > 0)
 
   return (
-    <aside aria-label="변경 계획" className="card rounded-xl flex flex-col w-[360px] shrink-0 border-amber-300/60">
-      <div className="px-4 py-3 border-b border-ds-outline-variant/10 bg-amber-50/70 rounded-t-xl">
+    <aside aria-label="변경 계획" className="card rounded-xl flex flex-col w-[360px] shrink-0 border-amber-300/60 sticky top-2 max-h-[calc(100vh-1rem)]">
+      <div className="px-4 py-3 border-b border-ds-outline-variant/10 bg-amber-50/70 rounded-t-xl shrink-0">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="text-13 font-semibold text-ds-on-surface">변경 계획 · <span className="font-mono">{deviceName}</span></div>
@@ -79,16 +79,46 @@ export function EditChangesPanel({
         </div>
       </div>
 
-      <div className="px-4 py-2.5 border-b border-ds-outline-variant/10 flex items-center gap-2">
-        <EditActionMenu {...menuProps} />
-        {canUndo && total > 0 && (
-          <button type="button" onClick={onUndo} title="마지막 편집 취소 (Ctrl/⌘+Z)" className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-ds-on-surface-variant hover:text-ds-tertiary rounded-lg hover:bg-ds-surface-container-low transition-colors">
-            <Undo2 className="w-3.5 h-3.5" /> 실행 취소
+      <div className="px-4 py-3 border-b border-ds-outline-variant/10 space-y-2">
+        <div className="flex items-center gap-2">
+          <EditActionMenu {...menuProps} />
+          {canUndo && total > 0 && (
+            <button type="button" onClick={onUndo} title="마지막 편집 취소 (Ctrl/⌘+Z)" className="shrink-0 flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium text-ds-on-surface-variant hover:text-ds-tertiary rounded-lg hover:bg-ds-surface-container-low transition-colors">
+              <Undo2 className="w-3.5 h-3.5" /> 실행 취소
+            </button>
+          )}
+        </div>
+        <div className="text-11 text-ds-on-surface-variant tabular-nums">
+          {selectedCount > 0 ? `${selectedCount}개 선택됨` : '행을 선택하면 이동·삭제 등을 할 수 있습니다'}
+        </div>
+        <Button
+          variant="gradient"
+          size="auto"
+          onClick={onGenerate}
+          disabled={total === 0 || planLoading}
+          className="w-full justify-center gap-1.5 px-4 py-2 text-13 font-bold rounded-md"
+        >
+          <Terminal className="w-3.5 h-3.5" /> {planLoading ? 'CLI 생성 중…' : `CLI 생성 (${total}건)`}
+        </Button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onVerify}
+            disabled={total === 0 || verifyLoading}
+            title="장비에서 현재 설정을 읽어 변경 계획과 비교합니다. 장비는 변경되지 않습니다."
+            className="flex items-center justify-center gap-1.5 flex-1 px-3 py-1.5 text-xs font-semibold text-ds-on-surface border border-ds-outline-variant/30 rounded-md disabled:opacity-50 hover:bg-white transition-colors"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" /> {verifyLoading ? '검증 중…' : '장비와 비교 (읽기 전용)'}
           </button>
-        )}
-        <span className="ml-auto text-11 text-ds-on-surface-variant tabular-nums">
-          {selectedCount > 0 ? `${selectedCount}개 선택` : '행을 선택해 편집'}
-        </span>
+          <button
+            type="button"
+            onClick={onClearAll}
+            disabled={total === 0}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-ds-error rounded-md hover:bg-ds-error/10 disabled:opacity-40 transition-colors"
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> 전체 취소
+          </button>
+        </div>
       </div>
 
       <div className="px-4 pt-3 pb-2 flex flex-wrap items-center gap-1.5">
@@ -120,7 +150,7 @@ export function EditChangesPanel({
         </div>
       )}
 
-      <ul className="flex-1 min-h-40 overflow-y-auto px-2 pb-2 divide-y divide-ds-outline-variant/8">
+      <ul className="flex-1 min-h-32 overflow-y-auto px-2 pb-2 divide-y divide-ds-outline-variant/8">
         {loadError && (
           <li role="alert" className="px-3 py-6 text-center text-xs text-ds-error leading-relaxed">
             변경 목록을 불러오지 못했습니다.<br />{loadError}
@@ -167,36 +197,6 @@ export function EditChangesPanel({
         })}
       </ul>
 
-      <div className="px-4 py-3 border-t border-ds-outline-variant/10 space-y-2 bg-ds-surface-container-low/40 rounded-b-xl">
-        <Button
-          variant="gradient"
-          size="auto"
-          onClick={onGenerate}
-          disabled={total === 0 || planLoading}
-          className="w-full justify-center gap-1.5 px-4 py-2 text-13 font-bold rounded-md"
-        >
-          <Terminal className="w-3.5 h-3.5" /> {planLoading ? 'CLI 생성 중…' : `CLI 생성 (${total}건)`}
-        </Button>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onVerify}
-            disabled={total === 0 || verifyLoading}
-            title="장비에서 현재 설정을 읽어 변경 계획과 비교합니다. 장비는 변경되지 않습니다."
-            className="flex items-center justify-center gap-1.5 flex-1 px-3 py-1.5 text-xs font-semibold text-ds-on-surface border border-ds-outline-variant/30 rounded-md disabled:opacity-50 hover:bg-white transition-colors"
-          >
-            <ShieldCheck className="w-3.5 h-3.5" /> {verifyLoading ? '검증 중…' : '장비와 비교 (읽기 전용)'}
-          </button>
-          <button
-            type="button"
-            onClick={onClearAll}
-            disabled={total === 0}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-ds-error rounded-md hover:bg-ds-error/10 disabled:opacity-40 transition-colors"
-          >
-            <RotateCcw className="w-3.5 h-3.5" /> 전체 취소
-          </button>
-        </div>
-      </div>
     </aside>
   )
 }

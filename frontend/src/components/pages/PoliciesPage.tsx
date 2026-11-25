@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useExportAction } from '@/hooks/useExportAction'
 import { errorMessage } from '@/lib/errorMessage'
-import { X, Search, Pencil, RotateCcw, PanelRightOpen } from 'lucide-react'
+import { X, Search, Pencil, RotateCcw, PanelRightOpen, ChevronUp, ChevronDown } from 'lucide-react'
 import type { CellValueChangedEvent, ColDef, RowClickedEvent } from '@ag-grid-community/core'
 import { AgGridWrapper, type AgGridWrapperHandle } from '@/components/shared/AgGridWrapper'
 import { rowIdFromId } from '@/lib/utils'
@@ -126,6 +126,8 @@ export function PoliciesPage() {
 
   // 편집모드 — 단일 장비 선택 시에만 가능 (대기중 변경사항은 장비 1개 단위로 저장됨)
   const [editMode, setEditMode] = useState(false)
+  // 편집모드에서는 그리드 높이가 핵심이라 검색 툴바·요약 바를 기본으로 접는다.
+  const [searchChromeOpen, setSearchChromeOpen] = useState(false)
   const editDeviceId = deviceIds.length === 1 ? deviceIds[0] : null
   const { data: devices = [] } = useQuery({ queryKey: queryKeys.devices, queryFn: listDevices })
   const editDevice = devices.find((d) => d.id === editDeviceId)
@@ -350,6 +352,7 @@ export function PoliciesPage() {
       setPanelOpen(true)
       // 편집모드는 그리드 높이가 핵심이라 상세 검색 패널은 접는다(조건은 칩으로 계속 보인다).
       setFiltersOpen(false)
+      setSearchChromeOpen(false)
     }
     setEditMode((v) => !v)
   }
@@ -782,7 +785,7 @@ export function PoliciesPage() {
         <p className="text-11 text-ds-on-surface-variant -mt-2 shrink-0">{editBlockedReason}</p>
       )}
 
-      <PolicySearchToolbar
+      {(!editMode || searchChromeOpen) && <PolicySearchToolbar
         filterTree={filterTree}
         onFilterTreeChange={setFilterTree}
         filtersOpen={filtersOpen}
@@ -795,9 +798,9 @@ export function PoliciesPage() {
         onSearch={handleSearch}
         searchDisabled={deviceIds.length === 0}
         searching={searchQuery.isFetching}
-      />
+      />}
 
-      {summary && <PolicySummaryBar summary={summary} active={summaryFilter} onChange={setSummaryFilter} />}
+      {summary && (!editMode || searchChromeOpen) && <PolicySummaryBar summary={summary} active={summaryFilter} onChange={setSummaryFilter} />}
 
       <div className="flex items-start gap-3">
         <div className={`card rounded-xl overflow-hidden min-w-0 flex-1 ${editMode ? 'border-amber-300/70' : ''}`}>
@@ -815,11 +818,20 @@ export function PoliciesPage() {
                   · 비활성 {editScopeDisabledCount.toLocaleString()}건은 삭제·활성화·이동만 가능 (셀 수정 불가)
                 </span>
               )}
+              <button
+                type="button"
+                onClick={() => setSearchChromeOpen((v) => !v)}
+                aria-expanded={searchChromeOpen}
+                className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded font-semibold hover:bg-amber-100"
+              >
+                {searchChromeOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                검색 조건 {searchChromeOpen ? '접기' : '펼치기'}
+              </button>
               {!showPanel && (
                 <button
                   type="button"
                   onClick={() => setPanelOpen(true)}
-                  className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded font-semibold hover:bg-amber-100"
+                  className="ml-2 flex items-center gap-1 px-2 py-0.5 rounded font-semibold hover:bg-amber-100"
                 >
                   <PanelRightOpen className="w-3.5 h-3.5" /> 변경 목록 열기 <span className="tabular-nums">({pendingTotal})</span>
                 </button>
@@ -860,7 +872,7 @@ export function PoliciesPage() {
             columnDefs={columnDefs}
             rowData={editMode ? editRows : displayedPolicies}
             getRowId={rowIdFromId}
-            height={editMode ? 'calc(100vh - 330px)' : 'calc(100vh - 300px)'}
+            height={editMode ? (searchChromeOpen ? 'calc(100vh - 330px)' : 'calc(100vh - 200px)') : 'calc(100vh - 300px)'}
             loading={editMode ? applyingChanges : searchQuery.isFetching}
             loadingLabel={editMode ? '변경사항 적용 중…' : '정책 검색 중…'}
             noRowsText="장비를 선택하고 검색 버튼을 클릭하세요."

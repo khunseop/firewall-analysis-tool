@@ -68,7 +68,7 @@ export function EditActionMenu({
   }
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative flex-1 min-w-0">
       {open && (
         <div ref={menuRef} role="menu" aria-label="편집 메뉴" onKeyDown={handleMenuKeyDown} className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-ambient-md border border-ds-outline-variant/10 p-1.5 space-y-1.5 z-40">
           <MenuGroup label="새로 만들기·수정">
@@ -111,11 +111,12 @@ export function EditActionMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((v) => !v)}
-        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
-          open ? 'text-ds-tertiary bg-ds-tertiary/10 border-ds-tertiary/20' : 'text-ds-on-surface-variant bg-ds-surface-container-low border-ds-outline-variant/10 hover:text-ds-on-surface'
+        title="정책 추가 · 수정 · 이동 · 삭제 · 비활성화"
+        className={`flex items-center justify-center gap-1.5 w-full px-3 py-2 text-13 font-bold rounded-lg border shadow-sm transition-colors text-white bg-ds-tertiary border-ds-tertiary hover:brightness-110 ${
+          open ? 'brightness-90' : ''
         }`}
       >
-        <SlidersHorizontal className="w-3.5 h-3.5" /> 편집 메뉴
+        <SlidersHorizontal className="w-3.5 h-3.5" /> 작업 메뉴
         <ChevronUp className={`w-3 h-3 transition-transform ${open ? '' : 'rotate-180'}`} />
       </button>
     </div>
