@@ -71,7 +71,7 @@ class RequestInfoAdder(BaseProcessor):
                         rule_df.at[idx, col] = self._safe_to_datetime(first[col])
                     else:
                         rule_df.at[idx, col] = first[col]
-            elif row['Request Type'] not in ('nan', 'Unknown', 'None'):
+            elif row['Request Type'] not in ('nan', 'Unknown', 'Check', 'None'):
                 rule_df.at[idx, 'REQUEST_ID'] = row['Request ID']
                 rule_df.at[idx, 'REQUEST_START_DATE'] = self._safe_to_datetime(row['Start Date'])
                 rule_df.at[idx, 'REQUEST_END_DATE'] = self._safe_to_datetime(row['End Date'])

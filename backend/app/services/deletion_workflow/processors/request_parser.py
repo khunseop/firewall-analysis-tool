@@ -74,6 +74,9 @@ class RequestParser(BaseProcessor):
                 data_dict["Request Type"] = {
                     "P": "GROUP", "F": "GENERAL", "S": "SERVER", "M": "PAM"
                 }.get(type_code, "Unknown")
+                # Request ID에 한글이 섞인 경우 파싱 오류로 보고 수동 확인 대상으로 표기
+                if re.search(r'[가-힣]', request_id):
+                    data_dict["Request Type"] = "Check"
 
             if gsams1_name_match:
                 data_dict['Request Type'] = "OLD"

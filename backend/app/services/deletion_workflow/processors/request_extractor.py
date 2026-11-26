@@ -26,7 +26,7 @@ class RequestExtractor(BaseProcessor):
 
             df = pd.read_excel(file_name)
 
-            unique_types = df[df['Request Type'] != 'Unknown']['Request Type'].unique()
+            unique_types = df[~df['Request Type'].isin(['Unknown', 'Check'])]['Request Type'].unique()
             max_types = self.config.get('file_management.max_request_types', 5)
             selected_types = unique_types[:max_types]
 

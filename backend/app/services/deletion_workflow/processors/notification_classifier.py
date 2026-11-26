@@ -71,14 +71,14 @@ class NotificationClassifier(BaseProcessor):
             expired_used = (
                 ((df['예외'].isna()) | (df['예외'] == '신규정책')) &
                 (df['중복여부'].isna()) &
-                (df['신청이력'] != 'Unknown') &
+                (~df['신청이력'].isin(['Unknown', 'Check'])) &
                 (df['만료여부'] == '만료') &
                 (df['미사용여부'] == '사용')
             )
             expired_unused = (
                 ((df['예외'].isna()) | (df['예외'] == '신규정책')) &
                 (df['중복여부'].isna()) &
-                (df['신청이력'] != 'Unknown') &
+                (~df['신청이력'].isin(['Unknown', 'Check'])) &
                 (df['만료여부'] == '만료') &
                 (df['미사용여부'] == '미사용')
             )
@@ -93,7 +93,7 @@ class NotificationClassifier(BaseProcessor):
             no_history_unused = (
                 (df['예외'].isna()) &
                 (df['중복여부'].isna()) &
-                (df['신청이력'] == 'Unknown') &
+                (df['신청이력'].isin(['Unknown', 'Check'])) &
                 (df['미사용여부'] == '미사용')
             )
 

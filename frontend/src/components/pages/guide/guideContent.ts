@@ -49,7 +49,7 @@ export const PHASES: Phase[] = [
         id: 2,
         title: '신청정보 파싱',
         what: '정책명·설명 문구에서 신청번호, 신청자, 기간을 분리합니다.',
-        rule: ['P+7자리: 그룹(GROUP)', 'F+7자리: 일반(GENERAL)', 'S: 서버(SERVER), M: PAM', '구형 형식: OLD', '패턴 없음: Unknown(신청 이력 없음)'],
+        rule: ['P+7자리: 그룹(GROUP)', 'F+7자리: 일반(GENERAL)', 'S: 서버(SERVER), M: PAM', '구형 형식: OLD', '패턴 없음: Unknown(신청 이력 없음)', 'ID에 한글 포함: Check(파싱 오류, Unknown과 동일 처리)'],
       },
       {
         id: 3,
@@ -149,7 +149,7 @@ export const PHASES: Phase[] = [
         what: '그룹마다 종료일이 가장 늦은 정책 하나를 유지하고 나머지를 삭제 대상으로 둡니다.',
         rule: [
           '신청자가 서로 다르면 공지 대상, 모두 같으면 바로 삭제 대상',
-          '자동연장 보호 그룹, PAM/SERVER/Unknown이 포함된 그룹, 유지 정책이 없는 그룹은 결과에서 제외',
+          '자동연장 보호 그룹, PAM/SERVER/Unknown/Check가 포함된 그룹, 유지 정책이 없는 그룹은 결과에서 제외',
         ],
       },
       {
@@ -232,7 +232,7 @@ export const DECISION_STEPS: DecisionStep[] = [
     no: 'next',
   },
   {
-    q: '신청 이력이 없나? (Unknown)',
+    q: '신청 이력이 없나? (Unknown/Check)',
     yes: '예외 사유가 없고 미사용이면 → 이력없는 미사용. 그 외에는 제외됩니다.',
     no: 'next',
   },
@@ -278,7 +278,7 @@ export const TERMS: Term[] = [
   { term: '만료', desc: '신청 종료일이 오늘 이전인 정책입니다. 날짜를 읽지 못하면 보수적으로 만료로 봅니다.' },
   {
     term: '신청유형',
-    desc: 'P=그룹, F=일반, S=서버, M=PAM, 구형=OLD, 없음=Unknown. 서버·PAM·Unknown이 포함된 그룹은 중복 분류에서 제외됩니다.',
+    desc: 'P=그룹, F=일반, S=서버, M=PAM, 구형=OLD, 없음=Unknown, ID 한글 포함=Check. 서버·PAM·Unknown·Check가 포함된 그룹은 중복 분류에서 제외됩니다.',
   },
   { term: '하단최신정책', desc: '같은 신청번호에서 최신 정책이 더 아래에 있어 실제로는 가려진 정책입니다.' },
   {

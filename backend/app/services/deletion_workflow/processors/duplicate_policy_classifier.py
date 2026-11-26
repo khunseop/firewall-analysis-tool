@@ -83,7 +83,7 @@ class DuplicatePolicyClassifier(BaseProcessor):
             )['No'].unique()
             df = df[~df['No'].isin(filtered_no_2)]
 
-            target_types = ["PAM", "SERVER", "Unknown"]
+            target_types = ["PAM", "SERVER", "Unknown", "Check"]
             target_nos = df[df['Request Type'].isin(target_types)]['No'].drop_duplicates()
             df = df[~df['No'].isin(target_nos)]
 
